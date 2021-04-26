@@ -1,0 +1,25 @@
+name: nixtla
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - hyperopt
+  - matplotlib
+  - pandas
+  - pip
+  - pytorch
+  - requests
+  - statsmodels
+  - scikit-learn
+  - tqdm
+  - xlrd
+  - openpyxl
+  - pip:
+    - torchinfo
+    - nbdev
+    - tabulate
+    - python-dotenv
+    - fsspec
+    - s3fs
