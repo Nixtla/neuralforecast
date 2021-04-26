@@ -11,6 +11,11 @@ State-of-the-art time series forecasting for pytorch.
 Nixtla is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
 
+
+## Documentation
+XXX Here is a link to the [documentation](https://pypi.org).
+
+
 ## Installation
 
 ### Stable version
