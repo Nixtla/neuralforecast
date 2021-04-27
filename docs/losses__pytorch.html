@@ -1,6 +1,6 @@
 ---
 
-title: Multi-quantile Loss
+title: GENERAL TRAIN LOSSES
 
 
 keywords: fastai
@@ -65,6 +65,13 @@ nb_path: "nbs/losses__pytorch.ipynb"
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -72,7 +79,7 @@ nb_path: "nbs/losses__pytorch.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MAPELoss" class="doc_header"><code>MAPELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L24" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="MAPELoss" class="doc_header"><code>MAPELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L21" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>MAPE Loss</p>
 <p>Calculates Mean Absolute Percentage Error between
@@ -80,7 +87,8 @@ y and y_hat. MAPE measures the relative prediction
 accuracy of a forecasting method by calculating the
 percentual deviation of the prediction and the true
 value at a given time and averages these devations
-over the length of the series.</p>
+over the length of the series.
+As defined in: <a href="https://en.wikipedia.org/wiki/Mean_absolute_percentage_error">https://en.wikipedia.org/wiki/Mean_absolute_percentage_error</a></p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
     actual values in torch tensor.
 y_hat: tensor (batch_size, output_size)
@@ -105,6 +113,13 @@ Mean absolute percentage error.</p>
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -112,7 +127,7 @@ Mean absolute percentage error.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MSELoss" class="doc_header"><code>MSELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L66" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="MSELoss" class="doc_header"><code>MSELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L53" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>MSE Loss</p>
 <p>Calculates Mean Squared Error between
@@ -145,6 +160,13 @@ Mean Squared Error.</p>
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -152,7 +174,7 @@ Mean Squared Error.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="RMSELoss" class="doc_header"><code>RMSELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L96" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RMSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="RMSELoss" class="doc_header"><code>RMSELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L84" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RMSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>RMSE Loss</p>
 <p>Calculates Mean Squared Error between
@@ -185,6 +207,13 @@ Root Mean Squared Error.</p>
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -192,7 +221,7 @@ Root Mean Squared Error.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="SMAPELoss" class="doc_header"><code>SMAPELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L126" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SMAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="SMAPELoss" class="doc_header"><code>SMAPELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L115" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SMAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>SMAPE2 Loss</p>
 <p>Calculates Symmetric Mean Absolute Percentage Error.
@@ -226,6 +255,13 @@ y_hat: tensor (batch_size, output_size)
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -233,7 +269,7 @@ y_hat: tensor (batch_size, output_size)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MASELoss" class="doc_header"><code>MASELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L165" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MASELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>y_insample</code></strong>, <strong><code>seasonality</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="MASELoss" class="doc_header"><code>MASELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L154" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MASELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>y_insample</code></strong>, <strong><code>seasonality</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates the M4 Mean Absolute Scaled Error.</p>
 <p>MASE measures the relative prediction accuracy of a
@@ -268,6 +304,13 @@ y_train: tensor (batch_size, input_size)
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -275,7 +318,7 @@ y_train: tensor (batch_size, input_size)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MAELoss" class="doc_header"><code>MAELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L205" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="MAELoss" class="doc_header"><code>MAELoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L195" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>MAE Loss</p>
 <p>Calculates Mean Absolute Error between
@@ -308,6 +351,13 @@ Mean absolute error.</p>
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -315,7 +365,7 @@ Mean absolute error.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="PinballLoss" class="doc_header"><code>PinballLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L234" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>PinballLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>, <strong><code>tau</code></strong>=<em><code>0.5</code></em>)</p>
+<h4 id="PinballLoss" class="doc_header"><code>PinballLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L225" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>PinballLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>, <strong><code>tau</code></strong>=<em><code>0.5</code></em>)</p>
 </blockquote>
 <p>Pinball Loss
 Computes the pinball loss between y and y_hat.</p>
@@ -347,6 +397,12 @@ tau: float, between 0 and 1
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="ESRNN-TRAIN-LOSSES">ESRNN TRAIN LOSSES<a class="anchor-link" href="#ESRNN-TRAIN-LOSSES"> </a></h1>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -358,10 +414,18 @@ tau: float, between 0 and 1
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="QuadraticBarrierLoss" class="doc_header"><code>QuadraticBarrierLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L263" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>QuadraticBarrierLoss</code>(<strong><code>z</code></strong>, <strong><code>tau</code></strong>)</p>
+<h4 id="LevelVariabilityLoss" class="doc_header"><code>LevelVariabilityLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L254" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LevelVariabilityLoss</code>(<strong><code>levels</code></strong>, <strong><code>level_variability_penalty</code></strong>)</p>
 </blockquote>
-<p>Quadratic penalty as substitition to inequality constraints
-Learning to play in a day: Faster deep reinforcement learning by optimality tightening.</p>
+<p>Level Variability Loss
+Computes the variability penalty for the level.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>levels: tensor with shape (batch, n_time)
+    levels obtained from exponential smoothing component of ESRNN
+level_variability_penalty: float
+    this parameter controls the strength of the penalization
+    to the wigglines of the level vector, induces smoothness
+    in the output</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>level_var_loss:
+    wiggliness loss for the level vector</p>
 
 </div>
 
@@ -391,15 +455,62 @@ Learning to play in a day: Faster deep reinforcement learning by optimality tigh
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MQLoss" class="doc_header"><code>MQLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L285" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="SmylLoss" class="doc_header"><code>SmylLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L286" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SmylLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>levels</code></strong>, <strong><code>mask</code></strong>, <strong><code>tau</code></strong>, <strong><code>level_variability_penalty</code></strong>=<em><code>0.0</code></em>)</p>
+</blockquote>
+<p>Computes the Smyl Loss that combines level variability with
+with Pinball loss.
+windows_y: tensor of actual values,
+                        shape (n_windows, batch_size, window_size).
+windows_y_hat: tensor of predicted values,
+                                shape (n_windows, batch_size, window_size).
+levels: levels obtained from exponential smoothing component of ESRNN.
+                tensor with shape (batch, n_time).
+return: smyl_loss.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="MULTI-QUANTILE-LOSS">MULTI-QUANTILE LOSS<a class="anchor-link" href="#MULTI-QUANTILE-LOSS"> </a></h1><p>MQLoss definition and testing</p>
+
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="MQLoss" class="doc_header"><code>MQLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L308" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>MQLoss</p>
 <p>Calculates Average Multi-quantile Loss function, for
 a given set of quantiles, based on the absolute
 difference between predicted and true values.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size) actual values in torch tensor.
-y_hat: tensor (batch_size, n_quantiles) predicted values in torch tensor.
-mask: tensor (batch_size, n_quantiles) specifies date stamps per serie
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size) actual values in torch tensor.
+y_hat: tensor (batch_size, output_size, n_quantiles) predicted values in torch tensor.
+mask: tensor (batch_size, output_size, n_quantiles) specifies date stamps per serie
       to consider in loss
 quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.</p>
 <h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>lq: tensor(n_quantiles) average multi-quantile loss.</p>
@@ -424,40 +535,31 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-<div class="input">
 
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">optim</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
-</pre></div>
+<div class="output_wrapper">
+<div class="output">
 
-    </div>
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="wMQLoss" class="doc_header"><code>wMQLoss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/pytorch.py#L341" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>wMQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+</blockquote>
+<p>wMQLoss</p>
+<p>Calculates Average Multi-quantile Loss function, for
+a given set of quantiles, based on the absolute
+difference between predicted and true values.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size) actual values in torch tensor.
+y_hat: tensor (batch_size, output_size, n_quantiles) predicted values in torch tensor.
+mask: tensor (batch_size, output_size, n_quantiles) specifies date stamps per serie
+      to consider in loss
+quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>lq: tensor(n_quantiles) average multi-quantile loss.</p>
+
 </div>
-</div>
 
 </div>
-    {% endraw %}
 
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">MQTestModel</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>  
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_quantiles</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">MQTestModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">n_quantiles</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="n">y_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">y_hat</span>
-</pre></div>
-
-    </div>
 </div>
 </div>
 
@@ -467,37 +569,13 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">DataTraining</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
-    
-    <span class="c1"># Constructor</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">len</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="c1"># Getter</span>
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>          
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-    
-    <span class="c1"># Get Length</span>
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">len</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
 
 </div>
     {% endraw %}
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Model-testing">Model testing<a class="anchor-link" href="#Model-testing"> </a></h2>
+<h1 id="TEST/DEBUG-PYTORCH-TRAIN-LOSSES">TEST/DEBUG PYTORCH TRAIN LOSSES<a class="anchor-link" href="#TEST/DEBUG-PYTORCH-TRAIN-LOSSES"> </a></h1>
 </div>
 </div>
 </div>
@@ -508,9 +586,60 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">optim</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">hmean</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="o">%</span><span class="k">matplotlib</span> inline
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>  
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">horizon</span><span class="p">,</span> <span class="n">n_quantiles</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Model</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_quantiles</span> <span class="o">=</span> <span class="n">n_quantiles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">n_obs</span><span class="p">,</span> 
+                                      <span class="n">out_features</span><span class="o">=</span><span class="n">horizon</span> <span class="o">*</span> <span class="n">n_quantiles</span><span class="p">,</span> 
+                                      <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">y_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">y_hat</span> <span class="o">=</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_quantiles</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y_hat</span>
+    
+<span class="k">class</span> <span class="nc">Data</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+    
+    <span class="c1"># Constructor</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">len</span> <span class="o">=</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Getter</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+    
+    <span class="c1"># Get Length</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">len</span>
 </pre></div>
 
     </div>
@@ -530,7 +659,8 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">t</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
 
 <span class="c1"># Sample data</span>
-<span class="n">n_obs</span> <span class="o">=</span> <span class="mi">10000</span>
+<span class="n">n_ts</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">n_obs</span> <span class="o">=</span> <span class="n">horizon</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="n">mean</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="c1"># to generate random numbers from N(mean, std)</span>
 <span class="n">std</span> <span class="o">=</span> <span class="mf">7.0</span> <span class="c1"># to generate random numbers from N(mean, std)</span>
 <span class="n">start</span> <span class="o">=</span> <span class="mf">0.05</span> <span class="c1"># First quantile</span>
@@ -541,27 +671,17 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">500</span>
 <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.08</span>
 <span class="n">epochs</span> <span class="o">=</span> <span class="mi">100</span>
-</pre></div>
 
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">quantiles</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">)</span> 
+<span class="c1"># Sample data</span>
+<span class="n">quantiles</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="mf">0.0500</span><span class="p">,</span> <span class="mf">0.3500</span><span class="p">,</span> <span class="mf">0.6500</span><span class="p">,</span> <span class="mf">0.9500</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;quantiles:</span><span class="se">\n</span><span class="si">{</span><span class="n">quantiles</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_obs</span><span class="p">,))</span>
-<span class="n">x</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">y.shape: </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">, x.shape: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">n_obs</span><span class="p">))</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">n_obs</span><span class="p">))</span>
+
+<span class="n">Y_test</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">horizon</span><span class="p">))</span>
+<span class="n">X_test</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">horizon</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Y.shape: </span><span class="si">{</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">, X.shape: </span><span class="si">{</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Y_test.shape: </span><span class="si">{</span><span class="n">Y_test</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">, X_test.shape: </span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -576,8 +696,8 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>quantiles:
 tensor([0.0500, 0.3500, 0.6500, 0.9500])
-
-y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
+Y.shape: torch.Size([1000, 10]), X.shape: torch.Size([1000, 10])
+Y_test.shape: torch.Size([1000, 10]), X_test.shape: torch.Size([1000, 10])
 </pre>
 </div>
 </div>
@@ -595,8 +715,8 @@ y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">MQTestModel</span><span class="p">(</span><span class="n">n_quantiles</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">quantiles</span><span class="p">))</span>
-<span class="n">dataset</span> <span class="o">=</span> <span class="n">DataTraining</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="n">horizon</span><span class="p">,</span> <span class="n">n_quantiles</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">quantiles</span><span class="p">))</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">Data</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="o">=</span><span class="n">Y</span><span class="p">)</span>
 <span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
 
@@ -604,17 +724,19 @@ y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
 
     <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span> 
-    <span class="n">training_trajectory</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(),</span> <span class="nb">list</span><span class="p">()]</span>
+    <span class="n">training_trajectory</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;epoch&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                           <span class="s1">&#39;train_loss&#39;</span><span class="p">:</span> <span class="p">[]}</span>
     
     <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
             
             <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="n">y_hat</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="c1">#training_loss = wMQLoss(y=y, y_hat=y_hat, quantiles=quantiles)</span>
             <span class="n">training_loss</span> <span class="o">=</span> <span class="n">MQLoss</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">=</span><span class="n">quantiles</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="p">((</span><span class="n">epochs</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_obs</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">))</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> 
-                <span class="n">training_trajectory</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">training_trajectory</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">training_loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> 
+                <span class="n">training_trajectory</span><span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">training_trajectory</span><span class="p">[</span><span class="s1">&#39;train_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">training_loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
             <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
             <span class="n">training_loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
             <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
@@ -626,8 +748,6 @@ y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
             <span class="k">if</span> <span class="n">print_progress</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="n">display_string</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">training_trajectory</span>
-
-<span class="n">trained_model</span> <span class="o">=</span> <span class="n">train_model</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -644,8 +764,12 @@ y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="o">%</span><span class="k">matplotlib</span> inline
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Y_hat = model(X_test).detach()</span>
+<span class="c1"># plt.plot(training_trajectory[&#39;epoch&#39;], training_trajectory[&#39;train_loss&#39;])</span>
+<span class="c1"># plt.xlabel(&#39;Gradient Steps&#39;)</span>
+<span class="c1"># plt.ylabel(&#39;MQLoss&#39;)</span>
+<span class="c1"># plt.grid()</span>
+<span class="c1"># plt.show()</span>
 </pre></div>
 
     </div>
@@ -662,204 +786,15 @@ y.shape: torch.Size([10000]), x.shape: torch.Size([10000, 1])
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">trained_model</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">trained_model</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;# iteration&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;MQLoss&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;MQLoss v. Iterations&#39;</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># loss_pytorch = MQLoss(Y_test, Y_hat, quantiles)</span>
+<span class="c1"># loss_numpy = mqloss(Y_test.numpy(), Y_hat.numpy(), quantiles.numpy())</span>
+
+<span class="c1"># print(f&#39;loss_pytorch: {loss_pytorch}&#39;)</span>
+<span class="c1"># print(f&#39;loss_numpy: {loss_numpy}&#39;)</span>
+<span class="c1"># print(f&#39;Difference: {abs(loss_pytorch - loss_numpy)}&#39;)</span>
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_png output_subarea ">
-<img src="data:image/png;base64,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
-"
->
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">absolute_error</span><span class="p">(</span><span class="n">quantiles</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;accuracy</span>
-
-<span class="sd">    Calculates the accuracy of the quantiles</span>
-<span class="sd">    estimated by the MQTestModel</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.</span>
-<span class="sd">    y: tensor (n_obs) actual values in torch tensor.</span>
-<span class="sd">    y_hat: tensor(n_obs, n_quantiles) predicted values in torch tensor.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    accuracy: np.array(n_quantiles) absolute error (in pp) between the true and estimated quantiles</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    
-    <span class="n">quantiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">quantiles</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">newshape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="n">y_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span> 
-    
-    <span class="n">q_hat</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">y_hat</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-    <span class="n">abs_error</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">quantiles</span> <span class="o">-</span> <span class="n">q_hat</span><span class="p">)</span>
-    <span class="n">av_abs_error</span> <span class="o">=</span> <span class="n">hmean</span><span class="p">(</span><span class="n">abs_error</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">q_hat</span><span class="p">,</span> <span class="n">abs_error</span><span class="p">,</span> <span class="n">av_abs_error</span>
-    
-<span class="n">mq_error</span> <span class="o">=</span> <span class="n">absolute_error</span><span class="p">(</span><span class="n">quantiles</span><span class="o">=</span><span class="n">quantiles</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">trained_model</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">x</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;quantiles:</span><span class="se">\n</span><span class="si">{</span><span class="n">quantiles</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;q_hat:</span><span class="se">\n</span><span class="si">{</span><span class="n">mq_error</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;absolute errors:</span><span class="se">\n</span><span class="si">{</span><span class="n">mq_error</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;average absolute error: </span><span class="si">{</span><span class="n">mq_error</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">:</span><span class="s1">.10f</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>quantiles:
-tensor([0.0500, 0.3500, 0.6500, 0.9500])
-
-q_hat:
-[0.0499 0.3505 0.6491 0.95  ]
-
-absolute errors:
-[[1.00000745e-04 5.00005960e-04 8.99976158e-04 1.19209289e-08]]
-
-average absolute error: 0.0000000477
-
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Numpy-version">Numpy version<a class="anchor-link" href="#Numpy-version"> </a></h2>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">mqloss</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">,</span> <span class="n">quantiles</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> 
-    <span class="sd">&quot;&quot;&quot;mqloss</span>
-
-<span class="sd">    Calculates Average Multi-quantile Loss function, for</span>
-<span class="sd">    a given set of quantiles, based on the absolute </span>
-<span class="sd">    difference between predicted and true values.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    y: np.array (batch_size) actual values in torch tensor.</span>
-<span class="sd">    y_hat: np.array (batch_size, n_quantiles) predicted values in torch tensor.</span>
-<span class="sd">    mask: np.array (batch_size, n_quantiles) specifies date stamps per serie</span>
-<span class="sd">          to consider in loss</span>
-<span class="sd">    quantiles: np.array(n_quantiles) quantiles to estimate from the distribution of y.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    lq: np.array(n_quantiles) average multi-quantile loss.</span>
-<span class="sd">    &quot;&quot;&quot;</span>    
-    
-    <span class="k">if</span> <span class="n">mask</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_hat</span><span class="p">)</span>
-
-    <span class="n">error</span> <span class="o">=</span> <span class="n">y_hat</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">sq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">error</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
-    <span class="n">s1_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">error</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">error</span><span class="p">))</span> 
-    <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">quantiles</span> <span class="o">*</span> <span class="n">sq</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">quantiles</span><span class="p">)</span> <span class="o">*</span> <span class="n">s1_q</span><span class="p">)</span> <span class="o">*</span> <span class="n">mask</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Comparison-with-the-PyTorch-version">Comparison with the PyTorch version<a class="anchor-link" href="#Comparison-with-the-PyTorch-version"> </a></h3>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">y_tensor</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_obs</span><span class="p">,));</span> 
-<span class="n">y_numpy</span> <span class="o">=</span> <span class="n">y_tensor</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-<span class="n">y_hat_tensor</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_tensor</span> <span class="o">+</span> <span class="n">t</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n_obs</span><span class="p">,)))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">quantiles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">y_hat_numpy</span> <span class="o">=</span> <span class="n">y_hat_tensor</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-<span class="n">quantiles_tensor</span> <span class="o">=</span> <span class="n">quantiles</span>
-<span class="n">quantiles_numpy</span> <span class="o">=</span> <span class="n">quantiles_tensor</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-
-<span class="n">loss_pytorch</span> <span class="o">=</span> <span class="n">MQLoss</span><span class="p">(</span><span class="n">y_tensor</span><span class="p">,</span> <span class="n">y_hat_tensor</span><span class="p">,</span> <span class="n">quantiles_tensor</span><span class="p">)</span>
-<span class="n">loss_numpy</span> <span class="o">=</span> <span class="n">mqloss</span><span class="p">(</span><span class="n">y_numpy</span><span class="p">,</span> <span class="n">y_hat_numpy</span><span class="p">,</span> <span class="n">quantiles_numpy</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;loss_pytorch: </span><span class="si">{</span><span class="n">loss_pytorch</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;loss_numpy: </span><span class="si">{</span><span class="n">loss_numpy</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Difference: </span><span class="si">{</span><span class="nb">abs</span><span class="p">(</span><span class="n">loss_pytorch</span> <span class="o">-</span> <span class="n">loss_numpy</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>loss_pytorch: 1.603600025177002
-loss_numpy: 1.603600025177002
-Difference: 0.0
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 

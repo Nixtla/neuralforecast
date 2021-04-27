@@ -11,7 +11,7 @@ entries:
       url: /
     - output: web,pdf
       title: Title
-      url: models_wnbeats__nbeats_model.html
+      url: models_nbeats__nbeats_model.html
     - output: web,pdf
       title: MASK example and test
       url: data__tsdataset.html
@@ -19,14 +19,17 @@ entries:
       title: LOADERS COMPARISON
       url: data__tsloader_fast.html
     - output: web,pdf
-      title: TOY EXAMPLE
+      title: TOY EXAMPLE RNN
       url: data__tsloader_general.html
-    - output: web,pdf
-      title: Business datasets
-      url: data_datasets__business.html
     - output: web,pdf
       title: EPF dataset
       url: data_datasets__epf.html
+    - output: web,pdf
+      title: GEFCom2012
+      url: data_datasets__gefcom2012.html
+    - output: web,pdf
+      title: GEFCom 2014 dataset
+      url: data_datasets__gefcom2014.html
     - output: web,pdf
       title: M3 dataset
       url: data_datasets__m3.html
@@ -40,44 +43,35 @@ entries:
       title: Utils for datasets
       url: data_datasets__utils.html
     - output: web,pdf
-      title: NBEATS CV
-      url: experiments_nbeats__cv.html
-    - output: web,pdf
-      title: SOTA params
-      url: experiments_nbeats_sota_params__tourism.html
-    - output: web,pdf
       title: TESTS
-      url: experiments_utils.html
+      url: experiments__utils.html
     - output: web,pdf
       title: Giacomini-White Test
       url: losses__gw_test.html
     - output: web,pdf
-      title: Metrics
+      title: EVALUATION METRICS
       url: losses__numpy.html
     - output: web,pdf
-      title: Multi-quantile Loss
+      title: GENERAL TRAIN LOSSES
       url: losses__pytorch.html
     - output: web,pdf
-      title: ESRNN model
+      title: Chomp1d
+      url: models_components__common.html
+    - output: web,pdf
+      title: Dilated Recurrent Neural Networks
+      url: models_components__drnn.html
+    - output: web,pdf
+      title: 'ES-RNN: Exponential Smoothing Recurrent Neural Network'
       url: models_esrnn__esrnn.html
     - output: web,pdf
-      title: RNN model
-      url: models_esrnn_rnn.html
+      title: MQESRNN model
+      url: models_esrnn__mqesrnn.html
     - output: web,pdf
-      title: ESRNN utils data
-      url: models_esrnn_utils__data.html
+      title: NAIVE BENCHMARK MODEL
+      url: models_naive2__naive2.html
     - output: web,pdf
-      title: ESRNN utils drnn
-      url: models_esrnn_utils__drnn.html
-    - output: web,pdf
-      title: ESRNN utils esrnn
-      url: models_esrnn_utils__esrnn.html
-    - output: web,pdf
-      title: ESRNN utils losses
-      url: models_esrnn_utils__losses.html
-    - output: web,pdf
-      title: TEST
-      url: models_tcn__tcn.html
+      title: NBEATS USAGE
+      url: models_nbeats__nbeats.html
     output: web
     title: nixtla
   output: web
