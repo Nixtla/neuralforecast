@@ -13,7 +13,7 @@ It provides dataset loading utilities, evaluation functions and pytorch implemen
 
 
 ## Documentation
-XXY Here is a link to the [documentation](https://pypi.org).
+XXX Here is a link to the [documentation](https://pypi.org).
 
 
 ## Installation
