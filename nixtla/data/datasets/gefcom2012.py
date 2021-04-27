@@ -16,7 +16,13 @@ from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 import numpy as np
 import pandas as pd
 
-from .utils import download_file, Info, TimeSeriesDataclass
+from .utils import (
+    download_file,
+    Info,
+    TimeSeriesDataclass,
+    create_calendar_variables,
+    create_us_holiday_distance_variables,
+)
 from ..tsdataset import TimeSeriesDataset
 
 logging.basicConfig(level=logging.INFO)
@@ -40,11 +46,86 @@ class GEFCom2012:
 class GEFCom2012_L:
 
     @staticmethod
-    def load(directory: str,
-             group: str) -> Tuple[pd.DataFrame,
-                                  pd.DataFrame,
-                                  pd.DataFrame]:
-        pass
+    def load_Y(directory) -> pd.DataFrame:
+        # Meta data
+        directory = 'data'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        filepath = f'{path}/Load_history.csv'
+        Y_df = pd.read_csv(filepath, sep=',', thousands=',')
+
+        # Parsing temperature data
+        Y_df['ds'] = pd.to_datetime(dict(year=Y_df.year,
+                                         month=Y_df.month,
+                                         day=Y_df.day))
+        del Y_df['year'], Y_df['month'], Y_df['day']
+        Y_df = pd.wide_to_long(Y_df, ['h'], i=['zone_id', 'ds'], j="hour")
+        Y_df.reset_index(inplace=True)
+        Y_df['tdelta']   = pd.to_timedelta(Y_df.hour, unit="h")
+        Y_df['ds']       = Y_df['ds'] + Y_df['tdelta']
+        del Y_df['tdelta'], Y_df['hour']
+        Y_df.rename(columns={'zone_id': 'unique_id', 'h': 'y'}, inplace=True)
+        #Y_df['y'] = pd.to_numeric(Y_df['y'], errors='coerce')
+        return Y_df
+
+    @staticmethod
+    def load_X(directory) -> pd.DataFrame:
+        # Meta data
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        filepath = f'{path}/temperature_history.csv'
+        X_df = pd.read_csv(filepath, sep=',')
+
+        # Parsing temperature data
+        X_df['ds'] = pd.to_datetime(dict(year=X_df.year,
+                                         month=X_df.month,
+                                         day=X_df.day))
+        del X_df['year'], X_df['month'], X_df['day']
+        X_df = pd.wide_to_long(X_df, ['h'], i=['station_id', 'ds'], j="hour")
+        X_df.reset_index(inplace=True)
+        X_df['tdelta']   = pd.to_timedelta(X_df.hour, unit="h")
+        X_df['ds']       = X_df['ds'] + X_df['tdelta']
+        del X_df['tdelta'], X_df['hour']
+        X_df['station_id'] = 'station_' + X_df['station_id'].astype(str)
+
+        X_df = X_df.pivot(index='ds', columns='station_id', values='h').reset_index('ds')
+        X_df.reset_index(drop=True, inplace=True)
+        X_df = create_calendar_variables(X_df=X_df)
+        X_df = create_us_holiday_distance_variables(X_df=X_df)
+        return X_df
+
+    @staticmethod
+    def load_benchmark(directory) -> pd.DataFrame:
+        # Meta data
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        filepath = f'{path}/Load_benchmark.csv'
+        benchmark_df = pd.read_csv(filepath, sep=',')
+
+        # Parsing benchmark data
+        benchmark_df['ds'] = pd.to_datetime(dict(year=benchmark_df.year,
+                                                 month=benchmark_df.month,
+                                                 day=benchmark_df.day))
+        del benchmark_df['year'], benchmark_df['month'], benchmark_df['day'], benchmark_df['id']
+        benchmark_df.rename(columns={'zone_id': 'unique_id'}, inplace=True)
+
+        benchmark_df = pd.wide_to_long(benchmark_df, ['h'], i=['unique_id', 'ds'], j="hour")
+        benchmark_df.reset_index(inplace=True)
+
+        benchmark_df['tdelta']   = pd.to_timedelta(benchmark_df.hour, unit="h")
+        benchmark_df['ds']       = benchmark_df['ds'] + benchmark_df['tdelta']
+        del benchmark_df['tdelta'], benchmark_df['hour']
+        benchmark_df.rename(columns={'h': 'y_hat'}, inplace=True)
+        return benchmark_df
+
+    @staticmethod
+    def load(directory) -> Tuple[pd.DataFrame,
+                                 pd.DataFrame,
+                                 pd.DataFrame]:
+
+        GEFCom2012.download(directory)
+
+        Y_df = GEFCom2012_L.load_Y(directory)
+        X_df = GEFCom2012_L.load_X(directory)
+        benchmark_df = GEFCom2012_L.load_benchmark(directory)
+        return Y_df, X_df, benchmark_df
 
 # Cell
 class GEFCom2012_W:
@@ -58,7 +139,6 @@ class GEFCom2012_W:
     @staticmethod
     def load_benchmark(directory):
         # Meta data
-        directory = 'data'
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind/'
         filepath = f'{path}/benchmark.csv'
         benchmark_df = pd.read_csv(filepath, sep=',')
