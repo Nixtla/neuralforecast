@@ -76,7 +76,7 @@ nb_path: "nbs/data__tsloader_fast.ipynb"
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">nixtla.data.datasets.m4</span> <span class="kn">import</span> <span class="n">M4</span><span class="p">,</span> <span class="n">M4Info</span>
-<span class="kn">from</span> <span class="nn">nixtla.data.tsdataset</span> <span class="kn">import</span> <span class="n">get_mask_df</span>
+<span class="kn">from</span> <span class="nn">nixtla.data.tsdataset</span> <span class="kn">import</span> <span class="n">get_default_mask_df</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">M4Info</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">M4Info</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -143,8 +143,8 @@ nb_path: "nbs/data__tsloader_fast.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">n_timestamps</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
-<span class="n">mask_df</span><span class="p">[</span><span class="s1">&#39;sample_mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">mask_df</span><span class="p">[</span><span class="s1">&#39;sample_mask&#39;</span><span class="p">]</span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">mask_df</span><span class="p">[</span><span class="s1">&#39;sample_mask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">mask_df</span><span class="p">[</span><span class="s1">&#39;sample_mask&#39;</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -176,7 +176,7 @@ nb_path: "nbs/data__tsloader_fast.ipynb"
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7fb1de9b1850&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7fe20dbb0750&gt;]</pre>
 </div>
 
 </div>
@@ -210,42 +210,6 @@ nb_path: "nbs/data__tsloader_fast.ipynb"
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Train Validation splits
-                       ds    
-                      min max
-unique_id sample_mask        
-Y1        0.0           1  31
-          1.0          32  37
-Y10       0.0           1  19
-          1.0          20  25
-Y100      0.0           1  54
-...                    ..  ..
-Y9997     1.0          25  30
-Y9998     0.0           1  24
-          1.0          25  30
-Y9999     0.0           1  24
-          1.0          25  30
-
-[46000 rows x 2 columns]
-Total data 			858458 time stamps
-Available percentage=100.0, 	858458 time stamps
-Train percentage=16.08, 	138000.0 time stamps
-Outsample percentage=83.92, 	720458.0 time stamps
-
-
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 
@@ -348,10 +312,10 @@ outsample_x.shape torch.Size([4, 0, 6])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[7230.6001, 7349.6001, 7339.2002, 7250.7998, 7294.6001, 7393.8999],
-        [7349.6001, 7339.2002, 7250.7998, 7294.6001, 7393.8999, 7560.8999],
-        [7339.2002, 7250.7998, 7294.6001, 7393.8999, 7560.8999, 7651.3999],
-        [7250.7998, 7294.6001, 7393.8999, 7560.8999, 7651.3999, 7587.2998]])</pre>
+<pre>tensor([[7393.8999, 7560.8999, 7651.3999, 7587.2998, 7530.5000, 7261.1001],
+        [2117.3191, 2115.8469, 2097.9780, 2080.3311, 2131.7119, 2330.4709],
+        [9283.7979, 9149.5762, 9124.9053, 8430.9863, 8316.4814, 8338.6387],
+        [4085.0000, 4127.0000, 2320.0000, 1399.0000,  464.0000,  289.0000]])</pre>
 </div>
 
 </div>
@@ -384,10 +348,10 @@ outsample_x.shape torch.Size([4, 0, 6])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[7560.8999, 7651.3999, 7587.2998, 7530.5000, 7261.1001, 7290.2002],
-        [7651.3999, 7587.2998, 7530.5000, 7261.1001, 7290.2002, 7392.6001],
-        [7587.2998, 7530.5000, 7261.1001, 7290.2002, 7392.6001, 7527.6001],
-        [7530.5000, 7261.1001, 7290.2002, 7392.6001, 7527.6001, 7594.7998]])</pre>
+<pre>tensor([[7290.2002, 7392.6001, 7527.6001, 7594.7998, 7720.7002, 7823.2002],
+        [2170.2041, 2162.8999, 2181.9060, 2167.4751, 2135.7080, 2122.1960],
+        [8511.4922, 8641.6279, 8642.4199, 8816.6211, 8799.2852, 8993.3545],
+        [ 173.0000,  114.0000,  194.0000,  285.0000,  405.0000,  413.0000]])</pre>
 </div>
 
 </div>
@@ -420,10 +384,10 @@ outsample_x.shape torch.Size([4, 0, 6])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[0., 0., 0., 0., 0., 1.],
-        [0., 0., 0., 0., 1., 1.],
-        [0., 0., 0., 1., 1., 1.],
-        [0., 0., 1., 1., 1., 1.]])</pre>
+<pre>tensor([[1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 1.]])</pre>
 </div>
 
 </div>
@@ -456,7 +420,7 @@ outsample_x.shape torch.Size([4, 0, 6])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>253000</pre>
+<pre>23000</pre>
 </div>
 
 </div>
@@ -793,24 +757,6 @@ weights_balanced_df.shape 	 (279072, 3)
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>train percentage 0.37719298245614036
-Train Validation splits
-                              ds                    
-                             min                 max
-unique_id sample_mask                               
-BE        0           2014-12-28 2018-12-24 23:00:00
-          1           2011-01-09 2014-12-27 23:00:00
-FR        0           2014-12-28 2018-12-24 23:00:00
-          1           2011-01-09 2014-12-27 23:00:00
-NP        0           2014-12-28 2018-12-24 23:00:00
-          1           2011-01-09 2014-12-27 23:00:00
-PJM       0           2014-12-28 2018-12-24 23:00:00
-          1           2011-01-09 2014-12-27 23:00:00
-Total data 			279072 time stamps
-Available percentage=75.13, 	209664 time stamps
-Train percentage=37.41, 	104400 time stamps
-Outsample percentage=50.15, 	139968 time stamps
-
-
 
 
 train_loader.ts_windows.shape torch.Size([11632, 13, 192])

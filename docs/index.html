@@ -1,6 +1,6 @@
 ---
 
-title: **Nixtla** - Machine learning for time series forecasting
+title: Deep Learning for Time Series Forecasting
 
 
 keywords: fastai
@@ -31,25 +31,23 @@ nb_path: "nbs/index.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="https://github.com/kdgutier/esrnn_torch/tree/master"><img src="https://github.com/kdgutier/esrnn_torch/workflows/Python%20package/badge.svg?branch=master" alt="Build"></a>
-<a href="https://pypi.python.org/pypi/ESRNN/"><img src="https://badge.fury.io/py/ESRNN.svg" alt="PyPI version fury.io"></a>
-<a href="https://pepy.tech/project/esrnn"><img src="https://pepy.tech/badge/esrnn" alt="Downloads"></a>
-<a href="https://www.python.org/downloads/release/python-370/"><img src="https://img.shields.io/badge/python-3.7-blue.svg" alt="Python 3.7"></a>
-<a href="https://github.com/kdgutier/esrnn_torch/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a></p>
+<p><img src="https://github.com/Nixtla/nixtlats/blob/master/nbs/indx_imgs/nixtla_logo.png"></p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><strong>Nixtla</strong> is a <strong>forecasting library</strong> for <strong>state of the art</strong> statistical and <strong>machine learning models</strong>, currently hosting the <a href="https://www.sciencedirect.com/science/article/pii/S0169207019301153">ESRNN</a>, and the <a href="https://arxiv.org/abs/1905.10437">NBEATSX</a> models.</p>
-<p>Nixtla aims to store tools and models with the capacity to provide <strong>highly accurate forecasts</strong> with <strong>comparable</strong> performance to that of <a href="https://aws.amazon.com/es/forecast/">Amazon Web Services</a>, <a href="https://docs.microsoft.com/en-us/azure/machine-learning/">Azure</a>, or <a href="https://www.datarobot.com/platform/automated-time-series/">DataRobot</a>.</p>
-<ul>
-<li><a href="">Documentation (stable version)</a></li>
-<li><a href="">Documentation (latest)</a></li>
-<li><a href="">JMLR MLOSS Paper</a></li>
-<li><a href="">ArXiv Paper</a></li>
-</ul>
+<p>State-of-the-art time series forecasting for pytorch.</p>
+<p>Nixtla is a python library for time series forecasting with deep learning. 
+It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Documentation">Documentation<a class="anchor-link" href="#Documentation"> </a></h2><p>XXX Here is a link to the <a href="https://pypi.org">documentation</a>.</p>
 
 </div>
 </div>
@@ -57,20 +55,12 @@ nb_path: "nbs/index.ipynb"
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Installation">Installation<a class="anchor-link" href="#Installation"> </a></h2><h3 id="Stable-version">Stable version<a class="anchor-link" href="#Stable-version"> </a></h3><p>This code is a work in progress, any contributions or issues are welcome on
-GitHub at: <a href="https://github.com/Nixtla/nixtla">https://github.com/Nixtla/nixtla</a></p>
+GitHub at: <a href="https://github.com/Nixtla/nixtla">https://github.com/Nixtla/nixtla</a>.</p>
 <p>You can install the <em>released version</em> of <code>Nixtla</code> from the <a href="https://pypi.org">Python package index</a> with:</p>
 <div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">nixtla</span>
 </pre></div>
-<p>(installing inside a python virtualenvironment or a conda environment is warmly recommended).</p>
-<h3 id="Development-version">Development version<a class="anchor-link" href="#Development-version"> </a></h3><p>You may want to test the current development version; follow the steps below in that case (clone the git repository and install the Python requirements):</p>
-<div class="highlight"><pre><span></span>git clone https://github.com/Nixtla/nixtla.git
-<span class="nb">cd</span> nixtla
-python setup.py bdist_wheel
-<span class="nb">cd</span> ../
-pip install nixtla/dist/nixtla-XX.whl
-</pre></div>
-<p>where XX is the latest version downloaded.</p>
-<h4 id="Development-version-in-development-mode">Development version in development mode<a class="anchor-link" href="#Development-version-in-development-mode"> </a></h4><p>If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:</p>
+<p>(installing inside a python virtualenvironment or a conda environment is recommended).</p>
+<h3 id="Development-version-in-development-mode">Development version in development mode<a class="anchor-link" href="#Development-version-in-development-mode"> </a></h3><p>If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:</p>
 <div class="highlight"><pre><span></span>git clone https://github.com/Nixtla/nixtla.git
 <span class="nb">cd</span> nixtla
 pip install -e .
@@ -81,52 +71,28 @@ pip install -e .
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Currently-available-models">Currently available models<a class="anchor-link" href="#Currently-available-models"> </a></h2><ul>
-<li><a href="https://www.sciencedirect.com/science/article/pii/S0169207019301153">Exponential Smoothing Recurrent Neural Network (ESRNN)</a>, a hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals.  This model is the winner of the M4 forecasting competition.</li>
+<h2 id="Current-available-models">Current available models<a class="anchor-link" href="#Current-available-models"> </a></h2><ul>
+<li><p><a href="https://www.sciencedirect.com/science/article/pii/S0169207019301153">Exponential Smoothing Recurrent Neural Network (ES-RNN)</a>: A hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals.  This model is the winner of the M4 forecasting competition.</p>
+</li>
+<li><p><a href="https://arxiv.org/abs/1905.10437">Neural Basis Expansion Analysis (N-BEATS)</a>: A model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state of the art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train an has an interpretable configuration.</p>
+</li>
+<li><p><a href="https://arxiv.org/abs/2104.05522">Neural Basis Expansion Analysis with Exogenous Variables (N-BEATSx)</a>: The neural basis expansion with exogenous variables is an extension to the original N-BEATS that allows it to include time dependent covariates.</p>
+</li>
 </ul>
-<!--- ![ESRNN](/indx_imgs/ESRNN.png) -->
-
-<ul>
-<li><a href="https://arxiv.org/abs/1905.10437">Neural Basis Expansion Analysis with Exogenous Variables (NBEATSX)</a> is a model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state of the art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train an has an interpretable configuration.</li>
-</ul>
-<!--- ![NBEATSX](/indx_imgs/NBEATSX.png) -->
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Usage">Usage<a class="anchor-link" href="#Usage"> </a></h2><p>KIN</p>
-
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Authors">Authors<a class="anchor-link" href="#Authors"> </a></h2><p>This repository was developed with joint efforts from AutonLab researchers at Carnegie Mellon University and Abraxas data scientists.</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="License">License<a class="anchor-link" href="#License"> </a></h2><p>This project is licensed under the MIT License - see the <a href="https://github.com/kdgutier/esrnn_torch/blob/master/LICENSE">LICENSE</a> file for details.</p>
+<h2 id="Authors">Authors<a class="anchor-link" href="#Authors"> </a></h2><p>This repository began with joint efforts from AutonLab researchers at Carnegie Mellon University and Abraxas data scientists.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="License">License<a class="anchor-link" href="#License"> </a></h2><p>This project is licensed under the MIT License - see the <a href="https://github.com/Nixtla/nixtlats/blob/master/LICENSE">LICENSE</a> file for details.</p>
 
 </div>
 </div>
@@ -137,7 +103,7 @@ pip install -e .
 the following references to the related papers:</p>
 <div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">nixtla_arxiv</span><span class="p">,</span>
   <span class="na">author</span>  <span class="p">=</span> <span class="s">{XXXX}</span><span class="p">,</span>
-  <span class="na">title</span>   <span class="p">=</span> <span class="s">{{Nixtla: Machine learning for time series forecasting}}</span><span class="p">,</span>
+  <span class="na">title</span>   <span class="p">=</span> <span class="s">{{Nixtla: Deep Learning for Time Series Forecasting}}</span><span class="p">,</span>
   <span class="na">journal</span> <span class="p">=</span> <span class="s">{arXiv preprint arXiv:XXX.XXX}</span><span class="p">,</span>
   <span class="na">year</span>    <span class="p">=</span> <span class="s">{2021}</span>
 <span class="p">}</span>

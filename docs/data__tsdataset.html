@@ -47,7 +47,7 @@ nb_path: "nbs/data__tsdataset.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="TimeSeriesDataset" class="doc_header"><code>class</code> <code>TimeSeriesDataset</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L21" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
+<h2 id="TimeSeriesDataset" class="doc_header"><code>class</code> <code>TimeSeriesDataset</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L26" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
 </blockquote>
 <p>An abstract class representing a :class:<code>Dataset</code>.</p>
 <p>All datasets that represent a map from keys to data samples should subclass
@@ -89,7 +89,172 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_mask_df" class="doc_header"><code>get_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L220" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_mask_df</code>(<strong><code>Y_df</code></strong>, <strong><code>n_timestamps</code></strong>)</p>
+<h4 id="TimeSeriesDataset.get_default_mask_df" class="doc_header"><code>TimeSeriesDataset.get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L131" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
+</blockquote>
+<p>Constructs default mask df.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+ds_in_test: int
+    Numer of datestamps to use as outsample.
+is_test: bool
+    Wheter target time series belongs to test set.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Mask DataFrame with columns
+['unique_id', 'ds', 'available_mask', 'sample_mask'].</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_meta_data_col" class="doc_header"><code>TimeSeriesDataset.get_meta_data_col</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L306" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_meta_data_col</code>(<strong><code>col</code></strong>:<code>Literal</code>[<code>unique_id</code>, <code>last_ds</code>])</p>
+</blockquote>
+<p>Based on col returns a list of values for each time series.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>col: Literal['unique_id', 'last_ds']
+    Interest column.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>List of values for each time series.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L331" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>output_size</code></strong>:<code>int</code>, <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>)</p>
+</blockquote>
+<p>Get ts tensor filtered based on output_size, window_sampling_limit and
+ts_idxs.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>output_size: int
+    Forecast horizon.
+window_sampling_limit: int
+    Max size of observations to consider, including output_size.
+ts_idxs: Collection
+    Indexes of time series to consider.
+    Default None: returns all ts.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Tuple of filtered tensor and right_padding size.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L366" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
+</blockquote>
+<p>Gets indexes of exogenous variables.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>cols: List[str]
+    Interest exogenous variables.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Indexes of cols variables.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L393" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>is_test</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -119,12 +284,11 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
 
-<span class="n">val_ds</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">365</span>
 <span class="n">args</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">]})</span>
 
-<span class="n">Y_df</span><span class="p">,</span> <span class="n">Xt_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
 
-<span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">n_timestamps</span><span class="o">=</span><span class="n">val_ds</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mask_df</span><span class="o">.</span><span class="n">sample_mask</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
 </pre></div>
@@ -141,7 +305,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7f904d754b10&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7f8b9809b510&gt;]</pre>
 </div>
 
 </div>
@@ -151,7 +315,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 
 <div class="output_png output_subarea ">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXQAAAD4CAYAAAD8Zh1EAAAAOXRFWHRTb2Z0d2FyZQBNYXRwbG90bGliIHZlcnNpb24zLjMuNCwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy8QVMy6AAAACXBIWXMAAAsTAAALEwEAmpwYAAAPeElEQVR4nO3df6zdd13H8efLloE4ZIxeSO0PW0hRGzNg3I0hohMdtJuxmpDYoQ4npFncDMY/pAsRY/gLiYQgg9pgsxCVEsOQisVJ+PkHgfVOtrEyCpcx2LVo70QQIXEU3v5xvpOzs/vjtDu3t/fzfT6Sm3u+n+/nnPt+N7evfvs9n/P9pqqQJK19P7LaBUiSJsNAl6RGGOiS1AgDXZIaYaBLUiPWr9YP3rBhQ23btm21frwkrUl33nnnQ1U1tdC+VQv0bdu2MTMzs1o/XpLWpCRfXWyfp1wkqREGuiQ1wkCXpEYY6JLUCANdkhqxbKAnOZTkVJJ7F9mfJG9LMpvkniSXTr5MSdJyxjlCvxXYtcT+3cCO7msf8M7HX5Yk6Uwtuw69qj6ZZNsSU/YA767BdXg/neSiJBur6uuTKnLYiX//Nv90z8mVeGmpOVc8++n83LM3rHYZOkcm8cGiTcCDQ9tz3dhjAj3JPgZH8WzduvWsftjsqf/hLz82e1bPlfqkCj7xpYf4wI0Gel9MItCzwNiCd82oqoPAQYDp6emzurPGNZds5JpLrjmbp0q98nu3HmP+2/+72mXoHJrEKpc5YMvQ9mbAcyKSdI5NItCPANd1q12uAL61UufPJUmLW/aUS5L3AFcCG5LMAX8KPAGgqg4AR4GrgVngu8D1K1WsJGlx46xyuXaZ/QXcOLGKJElnxU+KSg2rhdcnqFEGuiQ1wkCXGrXQemK1zUCXpEYY6JLUCANdkhphoEtSIwx0qWHlqsVeMdAlqREGutSouG6xdwx0SWqEgS5JjTDQJakRBrrUMFe59IuBLkmNMNClZrnMpW8MdElqhIEuSY0w0CWpEQa6JDXCQJca5qrFfjHQJakRBrrUKC/O1T8GuiQ1wkCXpEYY6JLUCANdkhphoEsNKy+32CsGutQoF7n0j4EuSY0w0CWpEWMFepJdSU4kmU2yf4H9T03yj0nuTnI8yfWTL1WStJRlAz3JOuAWYDewE7g2yc6RaTcCn6+q5wJXAn+R5IIJ1ypJWsI4R+iXA7NVdX9VPQwcBvaMzCngKUkCXAh8Azg90UolSUsaJ9A3AQ8Obc91Y8PeDvwMcBL4HPDaqvrB6Asl2ZdkJsnM/Pz8WZYsSVrIOIG+0Oqn0cWtLwfuAn4CeB7w9iQ//pgnVR2squmqmp6amjrDUiWdCS/O1T/jBPocsGVoezODI/Fh1wO31cAs8BXgpydToiRpHOME+jFgR5Lt3Rude4EjI3O+BvwyQJJnAj8F3D/JQiVJS1u/3ISqOp3kJuB2YB1wqKqOJ7mh238AeCNwa5LPMThF87qqemgF65YkjVg20AGq6ihwdGTswNDjk8DLJluaJOlM+ElRqWFem6tfDHSpUfHyXL1joEtSIwx0SWqEgS5JjTDQJakRBrrUsHrMVTrUMgNdkhphoEuN8uJc/WOgS1IjDHRJaoSBLkmNMNAlqREGutQwL87VLwa6JDXCQJca5bLF/jHQJakRBrokNcJAl6RGGOhSw1zk0i8GuiQ1wkCXGuU9RfvHQJekRhjoktQIA12SGmGgS1IjDHSpYeXVuXrFQJekRhjoUqtctdg7BrokNWKsQE+yK8mJJLNJ9i8y58okdyU5nuQTky1TkrSc9ctNSLIOuAW4CpgDjiU5UlWfH5pzEfAOYFdVfS3JM1aoXknSIsY5Qr8cmK2q+6vqYeAwsGdkziuB26rqawBVdWqyZUqSljNOoG8CHhzanuvGhj0HeFqSjye5M8l1C71Qkn1JZpLMzM/Pn13FksbmosV+GSfQF3qvfPT3ZD3wAuAa4OXAnyR5zmOeVHWwqqaranpqauqMi5U0Phe59M+y59AZHJFvGdreDJxcYM5DVfUd4DtJPgk8F/jiRKqUJC1rnCP0Y8COJNuTXADsBY6MzPkA8JIk65M8GXghcN9kS5UkLWXZI/SqOp3kJuB2YB1wqKqOJ7mh23+gqu5L8s/APcAPgHdV1b0rWbgk6dHGOeVCVR0Fjo6MHRjZfjPw5smVJkk6E35SVGqZy1x6xUCXpEYY6FKjEhcu9o2BLkmNMNAlqREGuiQ1wkCXpEYY6FLDXLXYLwa61CjXuPSPgS5JjTDQJakRBrokNcJAl6RGGOhSw6pc59InBrokNcJAlxrltbn6x0CXpEYY6JLUCANdkhphoEtSIwx0qWEuWuwXA12SGmGgS41y1WL/GOiS1AgDXZIaYaBLUiMMdKlhXpurXwx0SWqEgS41Kl6dq3cMdElqhIEuSY0YK9CT7EpyIslskv1LzLssyfeTvGJyJUqSxrFsoCdZB9wC7AZ2Atcm2bnIvDcBt0+6SEnS8sY5Qr8cmK2q+6vqYeAwsGeBeX8AvA84NcH6JD0O5eW5emWcQN8EPDi0PdeN/b8km4DfAA4s9UJJ9iWZSTIzPz9/prVKkpYwTqAvtPZp9J/9twKvq6rvL/VCVXWwqqaranpqamrMEiWdDRct9s/6MebMAVuGtjcDJ0fmTAOHu3WvG4Crk5yuqn+YRJGSpOWNE+jHgB1JtgP/BuwFXjk8oaq2P/I4ya3ABw1zSTq3lg30qjqd5CYGq1fWAYeq6niSG7r9S543lySdG+McoVNVR4GjI2MLBnlV/e7jL0vSJHhxrn7xk6KS1AgDXWqVy1x6x0CXpEYY6JLUCANdkhphoEtSIwx0qWEuW+wXA12SGmGgS42K6xZ7x0CXpEYY6JLUCANdkhphoEtSIwx0SWqEgS41Ki5y6R0DXZIaYaBLUiMMdElqhIEuSY0w0KWGlVfn6hUDXZIaYaBLjXLVYv8Y6JLUCANdkhphoEtSIwx0SWqEgS41zEWL/WKgS43y4lz9Y6BLUiMMdElqxFiBnmRXkhNJZpPsX2D/byW5p/v6VJLnTr5USdJSlg30JOuAW4DdwE7g2iQ7R6Z9BfjFqroEeCNwcNKFSpKWNs4R+uXAbFXdX1UPA4eBPcMTqupTVfVf3eangc2TLVPS2fDaXP0yTqBvAh4c2p7rxhbzauBDC+1Isi/JTJKZ+fn58auUJC1rnEBfaPHTgv/uJ/klBoH+uoX2V9XBqpququmpqanxq5R0xuLluXpn/Rhz5oAtQ9ubgZOjk5JcArwL2F1V/zmZ8iRJ4xrnCP0YsCPJ9iQXAHuBI8MTkmwFbgN+p6q+OPkyJUnLWfYIvapOJ7kJuB1YBxyqquNJbuj2HwDeADwdeEcGH087XVXTK1e2JGnUOKdcqKqjwNGRsQNDj18DvGaypUmSzoSfFJUaVl6eq1cMdElqhIEuNcqrLfaPgS5JjTDQJakRBrokNcJAlxrmxbn6xUCXpEYY6FKjXOXSPwa6JDXCQJekRhjoktQIA12SGmGgSw1z1WK/GOiS1AgDXWqW6xb7xkCXpEYY6JLUCANdkhphoEtSIwx0qWFebbFfDHSpUV6cq38MdElqhIEuSY0w0CWpEQa6JDXCQJea5jKXPjHQJakRBrrUKFct9o+BLkmNMNAlqRFjBXqSXUlOJJlNsn+B/Unytm7/PUkunXypkqSlLBvoSdYBtwC7gZ3AtUl2jkzbDezovvYB75xwnZKkZawfY87lwGxV3Q+Q5DCwB/j80Jw9wLurqoBPJ7koycaq+vrEK5Y0tm9852GuessnVrsMjfjNy7bwmpc8a+KvO06gbwIeHNqeA144xpxNwKMCPck+BkfwbN269UxrlXQGfv35m/jmd79HuRb9vLPhwieuyOuOE+gLrX4a/Q0ZZw5VdRA4CDA9Pe1vmbSCLtt2MZdtu3i1y9A5NM6bonPAlqHtzcDJs5gjSVpB4wT6MWBHku1JLgD2AkdG5hwBrutWu1wBfMvz55J0bi17yqWqTie5CbgdWAccqqrjSW7o9h8AjgJXA7PAd4HrV65kSdJCxjmHTlUdZRDaw2MHhh4XcONkS5MknQk/KSpJjTDQJakRBrokNcJAl6RGZPB+5ir84GQe+OpZPn0D8NAEyzlf9aVP6E+v9tmW1ejzJ6tqaqEdqxboj0eSmaqaXu06Vlpf+oT+9GqfbTnf+vSUiyQ1wkCXpEas1UA/uNoFnCN96RP606t9tuW86nNNnkOXJD3WWj1ClySNMNAlqRFrLtCXu2H1+SjJoSSnktw7NHZxkg8n+VL3/WlD+27u+juR5OVD4y9I8rlu39uSpBt/YpL3duOfSbLtnDY4qGFLko8luS/J8SSvbbTPJyW5I8ndXZ9/1mKfQzWuS/LZJB/stlvt84GuxruSzHRja6/XqlozXwwu3/tl4FnABcDdwM7VrmuMun8BuBS4d2jsz4H93eP9wJu6xzu7vp4IbO/6XdftuwN4EYM7RH0I2N2N/z5woHu8F3jvKvS4Ebi0e/wU4ItdL631GeDC7vETgM8AV7TW51C/fwT8HfDBFn9vh/p8ANgwMrbmel2VP7zH8Yf+IuD2oe2bgZtXu64xa9/GowP9BLCxe7wROLFQTwyuQ/+ibs4XhsavBf5qeE73eD2DT65llfv9AHBVy30CTwb+lcE9dpvrk8Gdxz4CvJQfBnpzfXY//wEeG+hrrte1dsplsZtRr0XPrO6uTt33Z3Tji/W4qXs8Ov6o51TVaeBbwNNXrPJldP+dfD6Do9fm+uxOQ9wFnAI+XFVN9gm8Ffhj4AdDYy32CYN7IP9LkjszuJk9rMFex7rBxXlkrJtRr3GL9bhU7+fNn0uSC4H3AX9YVf/dnUJccOoCY2uiz6r6PvC8JBcB70/ys0tMX5N9JvlV4FRV3ZnkynGessDYed/nkBdX1ckkzwA+nOQLS8w9b3tda0foLd2M+j+SbATovp/qxhfrca57PDr+qOckWQ88FfjGilW+iCRPYBDmf1tVt3XDzfX5iKr6JvBxYBft9fli4NeSPAAcBl6a5G9or08Aqupk9/0U8H7gctZgr2st0Me5YfVacQR4Vff4VQzOOT8yvrd7V3w7sAO4o/sv37eTXNG9c37dyHMeea1XAB+t7mTdudLV9NfAfVX1lqFdrfU51R2Zk+RHgV8BvkBjfVbVzVW1uaq2Mfh79tGq+m0a6xMgyY8lecojj4GXAfeyFntdjTcgHuebF1czWEHxZeD1q13PmDW/B/g68D0G/1K/msH5s48AX+q+Xzw0//Vdfyfo3iXvxqcZ/KJ9GXg7P/yk75OAv2dwk+47gGetQo8/z+C/kPcAd3VfVzfY5yXAZ7s+7wXe0I031edIz1fywzdFm+uTwaq5u7uv44/kylrs1Y/+S1Ij1topF0nSIgx0SWqEgS5JjTDQJakRBrokNcJAl6RGGOiS1Ij/A+5tyYXLBkAlAAAAAElFTkSuQmCC
+<img src="data:image/png;base64,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
 "
 >
 </div>
@@ -171,7 +335,11 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">Xt_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> 
+                            <span class="n">f_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">],</span>
+                            <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">dataset</span><span class="o">.</span><span class="n">f_idxs</span>
 </pre></div>
 
     </div>
@@ -184,54 +352,31 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/home/federicogarza2/anaconda3/envs/nixtla/lib/python3.7/site-packages/ipykernel_launcher.py:119: DeprecationWarning: np.asscalar(a) is deprecated since NumPy v1.16, use a.item() instead
-/home/federicogarza2/anaconda3/envs/nixtla/lib/python3.7/site-packages/ipykernel_launcher.py:120: DeprecationWarning: np.asscalar(a) is deprecated since NumPy v1.16, use a.item() instead
-/home/federicogarza2/anaconda3/envs/nixtla/lib/python3.7/site-packages/ipykernel_launcher.py:169: DeprecationWarning: setting an array element with a sequence. This was supported in some cases where the elements are arrays with a single element. For example `np.array([1, np.array([2])], dtype=int)`. In the future this will raise the same ValueError as `np.array([1, [2]], dtype=int)`.
+<pre>INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0.0         2016-12-27 2018-12-24 23:00:00
+          1.0         2013-01-01 2016-12-26 23:00:00
+PJM       0.0         2016-12-27 2018-12-24 23:00:00
+          1.0         2013-01-01 2016-12-26 23:00:00
+INFO:root:
+Total data 			104832 time stamps 
+Available percentage=100.0, 	104832 time stamps 
+Insample  percentage=66.67, 	69888.0 time stamps 
+Outsample percentage=33.33, 	34944.0 time stamps 
+
 </pre>
 </div>
 </div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span><span class="o">.</span><span class="n">t_cols</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
 
 <div class="output_area">
 
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&#39;y&#39;,
- &#39;Exogenous1&#39;,
- &#39;Exogenous2&#39;,
- &#39;week_day&#39;,
- &#39;day_0&#39;,
- &#39;day_1&#39;,
- &#39;day_2&#39;,
- &#39;day_3&#39;,
- &#39;day_4&#39;,
- &#39;day_5&#39;,
- &#39;day_6&#39;,
- &#39;available_mask&#39;,
- &#39;sample_mask&#39;]</pre>
+<pre>[1, 2]</pre>
 </div>
 
 </div>
@@ -280,7 +425,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset.ts_tensor.shape&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ts_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">ts_tensor</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">t_cols</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">),</span> <span class="p">:])</span>
 </pre></div>
 
     </div>
@@ -293,7 +438,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>dataset.ts_tensor.shape (1, 13, 52416)
+<pre>[42497. 41463. 40812. ... 51488. 50928. 49889.]
 </pre>
 </div>
 </div>
@@ -311,10 +456,121 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">filtered</span><span class="p">,</span> <span class="n">right_padding</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_filtered_ts_tensor</span><span class="p">(</span><span class="n">offset</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset.ts_tensor.shape&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ts_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 
     </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>dataset.ts_tensor.shape (2, 13, 52416)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">filtered</span><span class="p">,</span> <span class="n">right_padding</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_filtered_ts_tensor</span><span class="p">(</span><span class="n">output_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">36</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="n">train_ts_dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Yearly
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Y_df, *_ = M4.load(directory=&#39;../data&#39;, group=M4Info.groups[0])</span>
+
+<span class="c1"># train_ts_dataset = TimeSeriesDataset(Y_df=Y_df, ds_in_test=6, verbose=True)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:root:Train Validation splits
+
+INFO:root:             ds     
+            min  max
+sample_mask         
+0.0          14  841
+1.0           1  835
+INFO:root:
+Total data 			858458 time stamps 
+Available percentage=100.0, 	858458 time stamps 
+Insample  percentage=83.92, 	720458.0 time stamps 
+Outsample percentage=16.08, 	138000.0 time stamps 
+
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 
