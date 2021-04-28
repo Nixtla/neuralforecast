@@ -1,6 +1,6 @@
 ---
 
-title: Time Series Data Loader
+title: TimeSeriesLoader
 
 
 keywords: fastai
@@ -420,7 +420,8 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="TOY-EXAMPLE-RNN">TOY EXAMPLE RNN<a class="anchor-link" href="#TOY-EXAMPLE-RNN"> </a></h1>
+<h1 id="Checks-for-TimeSeriesLoader's-methods">Checks for TimeSeriesLoader's methods<a class="anchor-link" href="#Checks-for-TimeSeriesLoader's-methods"> </a></h1><p>Synthetic data, RNN-like windows</p>
+
 </div>
 </div>
 </div>
@@ -531,8 +532,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>S.shape (256, 2)
 Y.shape torch.Size([256, 10])
-X.shape torch.Size([256, 3, 10])
-F.shape torch.Size([256, 1, 10])
+X.shape torch.Size([256, 2, 10])
 available_mask.shape torch.Size([256, 10])
 sample_mask.shape torch.Size([256, 10])
 </pre>
@@ -565,7 +565,8 @@ sample_mask.shape torch.Size([256, 10])
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="CHECKING-NEW-RNN-CHUNKED-INPUTS">CHECKING NEW RNN CHUNKED INPUTS<a class="anchor-link" href="#CHECKING-NEW-RNN-CHUNKED-INPUTS"> </a></h2>
+<h1 id="Checks-for-TimeSeriesLoader's-methods">Checks for TimeSeriesLoader's methods<a class="anchor-link" href="#Checks-for-TimeSeriesLoader's-methods"> </a></h1><p>Univariate data, and MLP-windows</p>
+
 </div>
 </div>
 </div>
@@ -619,23 +620,6 @@ sample_mask.shape torch.Size([256, 10])
 
 <div class="output_wrapper">
 <div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>100%|██████████| 2.12M/2.12M [00:00&lt;00:00, 3.02MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded NP.csv, 2118914, bytes.
-100%|██████████| 2.53M/2.53M [00:00&lt;00:00, 3.42MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded PJM.csv, 2530311, bytes.
-100%|██████████| 1.97M/1.97M [00:00&lt;00:00, 2.78MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded BE.csv, 1974555, bytes.
-100%|██████████| 2.00M/2.00M [00:00&lt;00:00, 2.85MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded FR.csv, 1996871, bytes.
-100%|██████████| 2.10M/2.10M [00:00&lt;00:00, 2.94MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded DE.csv, 2095831, bytes.
-</pre>
-</div>
-</div>
 
 <div class="output_area">
 
@@ -738,7 +722,8 @@ idxs.shape (1429,)
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="TOY-EXAMPLE">TOY EXAMPLE<a class="anchor-link" href="#TOY-EXAMPLE"> </a></h1>
+<h1 id="Checks-for-TimeSeriesLoader's-methods">Checks for TimeSeriesLoader's methods<a class="anchor-link" href="#Checks-for-TimeSeriesLoader's-methods"> </a></h1><p>Synthetic data</p>
+
 </div>
 </div>
 </div>
@@ -990,7 +975,7 @@ sample_mask.shape torch.Size([256, 10])
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">][:</span><span class="mi">10</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -1005,261 +990,15 @@ sample_mask.shape torch.Size([256, 10])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>array([[0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
+<pre>array([[1, 0],
        [1, 0],
        [0, 1],
        [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
        [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
-       [0, 1],
        [1, 0],
        [1, 0],
        [0, 1],
-       [1, 0],
-       [1, 0],
        [0, 1],
-       [1, 0],
-       [1, 0],
-       [1, 0],
-       [1, 0],
        [1, 0]])</pre>
 </div>
 
@@ -1293,13 +1032,13 @@ sample_mask.shape torch.Size([256, 10])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[1390., 1400., 1410.,  ..., 1460., 1470., 1480.],
-        [ 430.,  440.,  450.,  ...,  500.,  510.,  520.],
-        [ 163.,  164.,  165.,  ...,  170.,  171.,  172.],
+<pre>tensor([[ 187.,  188.,  189.,  ...,  194.,  195.,  196.],
+        [ 187.,  188.,  189.,  ...,  194.,  195.,  196.],
+        [2590., 2600., 2610.,  ..., 2660., 2670., 2680.],
         ...,
-        [  19.,   20.,   21.,  ...,   26.,   27.,   28.],
-        [  91.,   92.,   93.,  ...,   98.,   99.,  100.],
-        [ 259.,  260.,  261.,  ...,  266.,  267.,  268.]])</pre>
+        [  67.,   68.,   69.,  ...,   74.,   75.,   76.],
+        [ 283.,  284.,  285.,  ...,  290.,  291.,  292.],
+        [ 670.,  680.,  690.,  ...,  740.,  750.,  760.]])</pre>
 </div>
 
 </div>
@@ -1317,7 +1056,7 @@ sample_mask.shape torch.Size([256, 10])
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -1332,37 +1071,10 @@ sample_mask.shape torch.Size([256, 10])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[[-1.3900e+03, -1.4000e+03, -1.4100e+03,  ..., -1.4600e+03,
-          -1.4700e+03, -1.4800e+03],
-         [ 7.1891e-04,  7.1378e-04,  7.0872e-04,  ...,  6.8446e-04,
-           6.7981e-04,  6.7522e-04]],
-
-        [[-4.3000e+02, -4.4000e+02, -4.5000e+02,  ..., -5.0000e+02,
-          -5.1000e+02, -5.2000e+02],
-         [ 2.3202e-03,  2.2676e-03,  2.2173e-03,  ...,  1.9960e-03,
-           1.9569e-03,  1.9194e-03]],
-
-        [[-1.6300e+02, -1.6400e+02, -1.6500e+02,  ..., -1.7000e+02,
-          -1.7100e+02, -1.7200e+02],
-         [ 6.0976e-03,  6.0606e-03,  6.0241e-03,  ...,  5.8480e-03,
-           5.8140e-03,  5.7803e-03]],
-
-        ...,
-
-        [[-1.9000e+01, -2.0000e+01, -2.1000e+01,  ..., -2.6000e+01,
-          -2.7000e+01, -2.8000e+01],
-         [ 5.0000e-02,  4.7619e-02,  4.5455e-02,  ...,  3.7037e-02,
-           3.5714e-02,  3.4483e-02]],
-
-        [[-9.1000e+01, -9.2000e+01, -9.3000e+01,  ..., -9.8000e+01,
-          -9.9000e+01, -1.0000e+02],
-         [ 1.0870e-02,  1.0753e-02,  1.0638e-02,  ...,  1.0101e-02,
-           1.0000e-02,  9.9010e-03]],
-
-        [[-2.5900e+02, -2.6000e+02, -2.6100e+02,  ..., -2.6600e+02,
-          -2.6700e+02, -2.6800e+02],
-         [ 3.8462e-03,  3.8314e-03,  3.8168e-03,  ...,  3.7453e-03,
-           3.7313e-03,  3.7175e-03]]])</pre>
+<pre>tensor([[-1.8700e+02, -1.8800e+02, -1.8900e+02, -1.9000e+02, -1.9100e+02,
+         -1.9200e+02, -1.9300e+02, -1.9400e+02, -1.9500e+02, -1.9600e+02],
+        [ 5.3191e-03,  5.2910e-03,  5.2632e-03,  5.2356e-03,  5.2083e-03,
+          5.1813e-03,  5.1546e-03,  5.1282e-03,  5.1020e-03,  5.0761e-03]])</pre>
 </div>
 
 </div>
