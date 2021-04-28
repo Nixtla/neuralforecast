@@ -49,10 +49,10 @@ entries:
       title: Giacomini-White Test
       url: losses__gw_test.html
     - output: web,pdf
-      title: EVALUATION METRICS
+      title: NumPy Evaluation Metrics
       url: losses__numpy.html
     - output: web,pdf
-      title: GENERAL TRAIN LOSSES
+      title: 'PyTorch Train Losses '
       url: losses__pytorch.html
     - output: web,pdf
       title: Chomp1d
