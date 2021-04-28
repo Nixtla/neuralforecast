@@ -56,7 +56,7 @@ class TimeSeriesDataset(Dataset):
             Only used when mask_df = None.
             Wheter target time series belongs to test set.
         verbose: bool
-            Wheter log outputs.
+            Wheter or not log outputs.
         """
         assert type(Y_df) == pd.core.frame.DataFrame
         assert all([(col in Y_df) for col in ['unique_id', 'ds', 'y']])

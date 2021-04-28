@@ -9,7 +9,6 @@ import logging
 import zipfile
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
@@ -48,8 +47,7 @@ class GEFCom2012_L:
     @staticmethod
     def load_Y(directory) -> pd.DataFrame:
         # Meta data
-        directory = 'data'
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/Load_history.csv'
         Y_df = pd.read_csv(filepath, sep=',', thousands=',')
 
@@ -70,7 +68,7 @@ class GEFCom2012_L:
     @staticmethod
     def load_X(directory) -> pd.DataFrame:
         # Meta data
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/temperature_history.csv'
         X_df = pd.read_csv(filepath, sep=',')
 
@@ -95,7 +93,7 @@ class GEFCom2012_L:
     @staticmethod
     def load_benchmark(directory) -> pd.DataFrame:
         # Meta data
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/Load_benchmark.csv'
         benchmark_df = pd.read_csv(filepath, sep=',')
 
@@ -139,7 +137,7 @@ class GEFCom2012_W:
     @staticmethod
     def load_benchmark(directory):
         # Meta data
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
         filepath = f'{path}/benchmark.csv'
         benchmark_df = pd.read_csv(filepath, sep=',')
 
@@ -152,10 +150,10 @@ class GEFCom2012_W:
     @staticmethod
     def load_Y(directory):
         # Meta data
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
+        yfilepath = f'{path}/train.csv'
 
         # Read and parse Y data
-        yfilepath = f'{path}/train.csv'
         Y_df = pd.read_csv(yfilepath, sep='\t')
         Y_df['ds'] = pd.date_range(start=GEFCom2012_W.train_start,
                                    end=GEFCom2012_W.train_end, freq='H')
@@ -167,7 +165,7 @@ class GEFCom2012_W:
     @staticmethod
     def load_X_group(directory, group):
         # Meta data
-        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind/'
+        path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
         xfilepath = f'{path}/windforecasts_wf{group}.csv'
         X_df = pd.read_csv(xfilepath, sep=',')
 
