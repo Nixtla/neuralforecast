@@ -158,8 +158,8 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
 
     #----------------------------------------- Declare Dataset and Loaders ----------------------------------#
     train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=train_mask_df, f_cols=f_cols, verbose=True)
-    val_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=val_mask_df, f_cols=f_cols, verbose=True)
-    test_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=test_mask_df, f_cols=f_cols, verbose=True)
+    val_dataset   = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=val_mask_df, f_cols=f_cols, verbose=True)
+    test_dataset  = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=test_mask_df, f_cols=f_cols, verbose=True)
 
     if ds_in_test == 0:
         test_dataset = None

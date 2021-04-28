@@ -286,7 +286,7 @@ ts_idxs: Collection
 
 <span class="n">args</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span><span class="s1">&#39;dataset&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">]})</span>
 
-<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
 
 <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
@@ -305,7 +305,7 @@ ts_idxs: Collection
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7f8b9809b510&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7f5bb80ec390&gt;]</pre>
 </div>
 
 </div>
@@ -506,8 +506,8 @@ Outsample percentage=33.33, 	34944.0 time stamps
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
+<span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">train_ts_dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
 </pre></div>
 
@@ -526,47 +526,12 @@ Outsample percentage=33.33, 	34944.0 time stamps
 </div>
 </div>
 
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Y_df, *_ = M4.load(directory=&#39;../data&#39;, group=M4Info.groups[0])</span>
-
-<span class="c1"># train_ts_dataset = TimeSeriesDataset(Y_df=Y_df, ds_in_test=6, verbose=True)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:root:Train Validation splits
-
-INFO:root:             ds     
-            min  max
-sample_mask         
-0.0          14  841
-1.0           1  835
-INFO:root:
-Total data 			858458 time stamps 
-Available percentage=100.0, 	858458 time stamps 
-Insample  percentage=83.92, 	720458.0 time stamps 
-Outsample percentage=16.08, 	138000.0 time stamps 
-
+<pre>100%|██████████| 356k/356k [00:00&lt;00:00, 3.25MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded 27-3-Athanasopoulos1.zip, 356334, bytes.
+INFO:nixtla.data.datasets.utils:Successfully decompressed data/tourism/datasets/27-3-Athanasopoulos1.zip
 </pre>
 </div>
 </div>

@@ -5,10 +5,10 @@ __all__ = ['logger', 'download_file', 'Info', 'TimeSeriesDataclass', 'get_holida
 
 # Cell
 import logging
-import subprocess
 import zipfile
-from dataclasses import dataclass
+import subprocess
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Cell
-def download_file(directory: Union[str, Path], source_url: str, decompress: bool = False) -> None:
+def download_file(directory: str, source_url: str, decompress: bool = False) -> None:
     """Download data from source_ulr inside directory.
 
     Parameters
@@ -37,7 +37,7 @@ def download_file(directory: Union[str, Path], source_url: str, decompress: bool
     directory.mkdir(parents=True, exist_ok=True)
 
     filename = source_url.split('/')[-1]
-    filepath = directory / filename
+    filepath = Path(f'{directory}/{filename}')
 
     # Streaming, so we can iterate over the response.
     headers = {'User-Agent': 'Mozilla/5.0'}

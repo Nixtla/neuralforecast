@@ -1,10 +1,8 @@
-<img src="https://github.com/Nixtla/nixtla/blob/master/nbs/indx_imgs/nixtla_logo.png">
-
 # Deep Learning for Time Series Forecasting
 > [nikstla] (noun, nahuatl) Period of time.
 
-[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/kdgutier/esrnn_torch/blob/master/LICENSE)
+
+<img src="https://github.com/Nixtla/nixtlats/blob/master/nbs/indx_imgs/nixtla_logo.png">
 
 State-of-the-art time series forecasting for pytorch.
 
@@ -31,17 +29,16 @@ pip install nixtla
 
 (installing inside a python virtualenvironment or a conda environment is recommended).
 
-
-#### Development version in development mode
+### Development version in development mode
 
 If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:
 
 ```bash
 git clone https://github.com/Nixtla/nixtla.git
 cd nixtla
-nbdev_build_lib
 pip install -e .
 ```
+
 
 ## Current available models
 
@@ -51,11 +48,12 @@ pip install -e .
 
 * [Neural Basis Expansion Analysis with Exogenous Variables (N-BEATSx)](https://arxiv.org/abs/2104.05522): The neural basis expansion with exogenous variables is an extension to the original N-BEATS that allows it to include time dependent covariates.
 
+
 ## Authors
 This repository began with joint efforts from AutonLab researchers at Carnegie Mellon University and Abraxas data scientists.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/nixtla/nixtla/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/nixtlats/blob/master/LICENSE) file for details.
 
 ## How to cite
 
@@ -72,3 +70,17 @@ the following references to the related papers:
 }
 ```
 
+
+<!---
+
+## Citing
+
+```bibtex
+@article{,
+    author = {},
+    title = {{}},
+    journal = {},
+    year = {}
+}
+```
+-->

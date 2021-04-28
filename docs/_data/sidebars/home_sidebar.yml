@@ -40,10 +40,10 @@ entries:
       title: Tourism dataset
       url: data_datasets__tourism.html
     - output: web,pdf
-      title: Utils for datasets
+      title: Dataset Utils
       url: data_datasets__utils.html
     - output: web,pdf
-      title: Experiments Utils
+      title: Experiment Utils
       url: experiments__utils.html
     - output: web,pdf
       title: Giacomini-White Test
@@ -67,10 +67,10 @@ entries:
       title: MQESRNN model
       url: models_esrnn__mqesrnn.html
     - output: web,pdf
-      title: NAIVE BENCHMARK MODEL
+      title: Naive Benchmark Model
       url: models_naive2__naive2.html
     - output: web,pdf
-      title: NBEATS USAGE
+      title: 'N-BEATS: Neural Basis Expansion Analysis'
       url: models_nbeats__nbeats.html
     output: web
     title: nixtla
