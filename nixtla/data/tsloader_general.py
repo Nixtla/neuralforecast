@@ -255,56 +255,6 @@ def _windows_batch(self: TimeSeriesLoader,
 
 # Cell
 @patch
-def _windows_batchf(self: TimeSeriesLoader,
-                    index: Collection[int]) -> Dict[str, t.Tensor]:
-    """
-    Creates batch based on index. Works with NBEATS, TCN models.
-
-    Parameters
-    ----------
-    index: Collection[int]
-        Indexes of time series to consider.
-
-    Returns
-    -------
-    Dictionary with keys:
-        - S
-        - Y
-        - X
-        - available_mask
-        - sample_mask
-    """
-
-    # Create windows for each sampled ts and sample random unmasked windows from each ts
-    windows, s_matrix = self._create_windows_tensor(ts_idxs=index)
-    sampleable_windows = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
-    self.sampleable_windows = sampleable_windows
-
-    # Get sample windows_idxs of batch
-    if self.shuffle:
-        windows_idxs = np.random.choice(sampleable_windows, self.batch_size, replace=True)
-    else:
-        windows_idxs = sampleable_windows
-
-    # Index the windows and s_matrix tensors of batch
-    windows = windows[windows_idxs]
-    S = s_matrix[windows_idxs]
-
-    # Parse windows to elements of batch
-    Y = windows[:, self.t_cols.index('y'), :]
-    #X = windows[:, (self.t_cols.index('y')+1):self.t_cols.index('available_mask'), :]
-    X = windows[:, self.t_cols.index('y'):self.t_cols.index('available_mask'), :]
-    F = windows[:, self.f_idxs, :]
-    available_mask = windows[:, self.t_cols.index('available_mask'), :]
-    sample_mask = windows[:, self.t_cols.index('sample_mask'), :]
-
-    batch = {'S': S, 'Y': Y, 'X': X, 'F': F,
-             'available_mask': available_mask,
-             'sample_mask': sample_mask}
-    return batch
-
-# Cell
-@patch
 def _create_windows_tensor_rnn(self: TimeSeriesLoader,
                                ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor,
                                                                                    t.Tensor]:
@@ -473,14 +423,12 @@ def __get_item__(self: TimeSeriesLoader,
     Batch corresponding to self.model and index.
     """
 
-    if self.model in ['nbeats', 'tcn']:
+    if self.model in ['nbeats']:
         return self._windows_batch(index=index)
-    elif self.model in ['esrnn','rnn']:
+    elif self.model in ['esrnn']:
         return self._full_series_batch(index=index)
     elif self.model in ['new_rnn', 'mqesrnn']:
         return self._windows_batch_rnn(index=index)
-    elif self.model in ['mqcnn']:
-        return self._windows_batchf(index=index)
     else:
         assert 1<0, f'There is no batch strategy for {self.model}'
 

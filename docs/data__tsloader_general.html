@@ -1,13 +1,13 @@
 ---
 
-title: TOY EXAMPLE RNN
+title: Time Series Data Loader
 
 
 keywords: fastai
 sidebar: home_sidebar
 
-
-
+summary: "Data Loader for Time Series data"
+description: "Data Loader for Time Series data"
 nb_path: "nbs/data__tsloader_general.ipynb"
 ---
 <!--
@@ -120,13 +120,6 @@ nb_path: "nbs/data__tsloader_general.ipynb"
     
 <div class="cell border-box-sizing code_cell rendered">
 
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
 <div class="output_wrapper">
 <div class="output">
 
@@ -134,7 +127,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.__get_item__" class="doc_header"><code>TimeSeriesLoader.__get_item__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L460" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__get_item__</code>(<strong><code>index</code></strong>:<code>Collection</code>[<code>int</code>])</p>
+<h4 id="TimeSeriesLoader.__get_item__" class="doc_header"><code>TimeSeriesLoader.__get_item__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L410" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__get_item__</code>(<strong><code>index</code></strong>:<code>Collection</code>[<code>int</code>])</p>
 </blockquote>
 <p>Gets batch based on index</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>index: Collection[int]
@@ -169,7 +162,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.__iter__" class="doc_header"><code>TimeSeriesLoader.__iter__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L488" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__iter__</code>()</p>
+<h4 id="TimeSeriesLoader.__iter__" class="doc_header"><code>TimeSeriesLoader.__iter__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L436" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__iter__</code>()</p>
 </blockquote>
 <p>Batch iterator.</p>
 
@@ -201,7 +194,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_meta_data_col" class="doc_header"><code>TimeSeriesLoader.get_meta_data_col</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L511" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_meta_data_col</code>(<strong><code>col</code></strong>:<code>Literal</code>[<code>unique_id</code>, <code>last_ds</code>])</p>
+<h4 id="TimeSeriesLoader.get_meta_data_col" class="doc_header"><code>TimeSeriesLoader.get_meta_data_col</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L459" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_meta_data_col</code>(<strong><code>col</code></strong>:<code>Literal</code>[<code>unique_id</code>, <code>last_ds</code>])</p>
 </blockquote>
 <p>Gets time series metadata from TimeSeriesDataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>col: Literal['unique_id', 'last_ds']
@@ -229,7 +222,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_variables" class="doc_header"><code>TimeSeriesLoader.get_n_variables</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L529" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_variables</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_variables" class="doc_header"><code>TimeSeriesLoader.get_n_variables</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L477" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_variables</code>()</p>
 </blockquote>
 <p>Gets number of exogenous and static variables.</p>
 
@@ -254,7 +247,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_series" class="doc_header"><code>TimeSeriesLoader.get_n_series</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L534" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_series</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_series" class="doc_header"><code>TimeSeriesLoader.get_n_series</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L482" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_series</code>()</p>
 </blockquote>
 <p>Gets number of time series.</p>
 
@@ -279,7 +272,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_max_len" class="doc_header"><code>TimeSeriesLoader.get_max_len</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L539" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_max_len</code>()</p>
+<h4 id="TimeSeriesLoader.get_max_len" class="doc_header"><code>TimeSeriesLoader.get_max_len</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L487" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_max_len</code>()</p>
 </blockquote>
 <p>Gets max len of time series.</p>
 
@@ -304,7 +297,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_channels" class="doc_header"><code>TimeSeriesLoader.get_n_channels</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L544" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_channels</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_channels" class="doc_header"><code>TimeSeriesLoader.get_n_channels</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L492" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_channels</code>()</p>
 </blockquote>
 <p>Gets number of channels considered.</p>
 
@@ -329,7 +322,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_X_cols" class="doc_header"><code>TimeSeriesLoader.get_X_cols</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L549" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_X_cols</code>()</p>
+<h4 id="TimeSeriesLoader.get_X_cols" class="doc_header"><code>TimeSeriesLoader.get_X_cols</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L497" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_X_cols</code>()</p>
 </blockquote>
 <p>Gets list of exogenous variables.</p>
 
@@ -354,7 +347,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_frequency" class="doc_header"><code>TimeSeriesLoader.get_frequency</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L554" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_frequency</code>()</p>
+<h4 id="TimeSeriesLoader.get_frequency" class="doc_header"><code>TimeSeriesLoader.get_frequency</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L502" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_frequency</code>()</p>
 </blockquote>
 <p>Gets infered frequency.</p>
 
@@ -379,7 +372,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.train" class="doc_header"><code>TimeSeriesLoader.train</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L559" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.train</code>()</p>
+<h4 id="TimeSeriesLoader.train" class="doc_header"><code>TimeSeriesLoader.train</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L507" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.train</code>()</p>
 </blockquote>
 <p>Sets train mode.</p>
 
@@ -404,7 +397,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.eval" class="doc_header"><code>TimeSeriesLoader.eval</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L564" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.eval</code>()</p>
+<h4 id="TimeSeriesLoader.eval" class="doc_header"><code>TimeSeriesLoader.eval</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader_general.py#L512" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.eval</code>()</p>
 </blockquote>
 <p>Sets validation mode</p>
 
@@ -425,6 +418,12 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="TOY-EXAMPLE-RNN">TOY EXAMPLE RNN<a class="anchor-link" href="#TOY-EXAMPLE-RNN"> </a></h1>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -485,8 +484,7 @@ nb_path: "nbs/data__tsloader_general.ipynb"
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">ts_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">toy_dataset</span><span class="p">,</span>
-                             <span class="n">model</span><span class="o">=</span><span class="s1">&#39;mqcnn&#39;</span><span class="p">,</span>
-                             <span class="c1">#model=&#39;nbeats&#39;,</span>
+                             <span class="n">model</span><span class="o">=</span><span class="s1">&#39;nbeats&#39;</span><span class="p">,</span>
                              <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">toy_dataset</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span>
                              <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                              <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>

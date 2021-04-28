@@ -19,7 +19,7 @@ entries:
       title: LOADERS COMPARISON
       url: data__tsloader_fast.html
     - output: web,pdf
-      title: TOY EXAMPLE RNN
+      title: Time Series Data Loader
       url: data__tsloader_general.html
     - output: web,pdf
       title: EPF dataset
@@ -43,7 +43,7 @@ entries:
       title: Utils for datasets
       url: data_datasets__utils.html
     - output: web,pdf
-      title: TESTS
+      title: Experiments Utils
       url: experiments__utils.html
     - output: web,pdf
       title: Giacomini-White Test
