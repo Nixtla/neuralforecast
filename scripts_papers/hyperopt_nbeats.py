@@ -78,6 +78,61 @@ def get_experiment_space(args):
                  'n_series_per_batch': hp.choice('n_series_per_batch', [1]),
                  'random_seed': hp.quniform('random_seed', 1, 1000, 1),
                  'device': hp.choice('device', [None])}
+    if args.space == 'nbeats_x_i':
+    	if args.data_augmentation:
+            idx_to_sample_freq = 24
+        else:
+            idx_to_sample_freq = 1
+        space = {# Architecture parameters
+                 'model':'nbeats',
+                 'input_size_multiplier': hp.choice('input_size_multiplier', [2, 3, 7]),
+                 'output_size': hp.choice('output_size', [24]),
+                 'shared_weights': hp.choice('shared_weights', [False]),
+                 'activation': hp.choice('activation', ['softplus', 'selu', 'prelu', 'sigmoid']),
+                 'initialization':  hp.choice('initialization', ['orthogonal', 'he_uniform',
+                                                                 'he_normal', 'glorot_normal']),
+                 'stack_types': hp.choice('stack_types', [['trend', 'seasonality', ],
+                                                          ['trend', 'seasonality', 'exogenous_wavenet'],
+                                                          ['exogenous_tcn', 'trend', 'seasonality'],
+                                                          ['exogenous_wavenet', 'trend', 'seasonality']]),
+                 'n_blocks': hp.choice('n_blocks', [ [1, 1] ]),
+                 'n_layers': hp.choice('n_layers', [ [2, 2] ]),
+                 'n_hidden': hp.quniform('n_hidden', 50, 500, 1),
+                 'n_harmonics': hp.choice('n_harmonics', [1, 2]),
+                 'n_polynomials': hp.choice('n_polynomials', [1, 2, 3]),
+                 'exogenous_n_channels': hp.quniform('exogenous_n_channels', 1, 10, 1),
+                 'x_s_n_hidden': hp.choice('x_s_n_hidden', [0]),
+                 # Regularization and optimization parameters
+                 'batch_normalization': hp.choice('batch_normalization', [True, False]),
+                 'dropout_prob_theta': hp.uniform('dropout_prob_theta', 0, 1),
+                 'dropout_prob_exogenous': hp.uniform('dropout_prob_exogenous', 0, 0.5),
+                 'learning_rate': hp.loguniform('learning_rate', np.log(5e-4), np.log(0.005)),
+                 'lr_decay': hp.choice('lr_decay', [0.5]),
+                 'n_lr_decay_steps': hp.choice('n_lr_decay_steps', [3]),
+                 'weight_decay': hp.choice('weight_decay', [0]),
+                 'n_iterations': hp.choice('n_iterations', [30_000]), # 
+                 'early_stopping': hp.choice('early_stopping', [10]),
+                 'eval_freq': hp.choice('eval_freq', [100]),
+                 'n_val_weeks': hp.choice('n_val_weeks', [52]),
+                 'loss': hp.choice('loss', ['MAE']),
+                 'loss_hypar': hp.choice('loss_hypar', [0.5]),                
+                 'val_loss': hp.choice('val_loss', ['MAE']),
+                 'l1_theta': hp.choice('l1_theta', [0]),
+                 # Data parameters
+                 'len_sample_chunks': hp.choice('len_sample_chunks', [None]),
+                 'normalizer_y': hp.choice('normalizer_y', [None, 'norm', 'std', 'median', 'invariant']),
+                 'normalizer_x': hp.choice('normalizer_x', [None, 'norm', 'std', 'median', 'invariant']),
+                 'window_sampling_limit': hp.choice('window_sampling_limit', [365*4*24]),
+                 'complete_inputs': hp.choice('complete_inputs', [False]),
+                 'complete_sample': hp.choice('complete_sample', [False]),                
+                 'frequency': hp.choice('frequency', ['H']),
+                 'seasonality': hp.choice('seasonality', [24]),      
+                 'idx_to_sample_freq': hp.choice('idx_to_sample_freq', [idx_to_sample_freq]),
+                 'val_idx_to_sample_freq': hp.choice('val_idx_to_sample_freq', [24]),
+                 'batch_size': hp.choice('batch_size', [256, 512]),
+                 'n_series_per_batch': hp.choice('n_series_per_batch', [1]),
+                 'random_seed': hp.quniform('random_seed', 1, 1000, 1),
+                 'device': hp.choice('device', [None])}
     return space
 
 def main(args):
