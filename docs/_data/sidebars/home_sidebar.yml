@@ -19,7 +19,7 @@ entries:
       title: LOADERS COMPARISON
       url: data__tsloader_fast.html
     - output: web,pdf
-      title: Time Series Data Loader
+      title: TimeSeriesLoader
       url: data__tsloader_general.html
     - output: web,pdf
       title: EPF dataset
