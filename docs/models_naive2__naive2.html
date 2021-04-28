@@ -1,6 +1,6 @@
 ---
 
-title: NAIVE BENCHMARK MODEL
+title: Naive Benchmark Model
 
 
 keywords: fastai
@@ -72,7 +72,7 @@ the last observed value for a given time series.</p>
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="SEASONAL-NAIVE-BENCHMARK-MODEL">SEASONAL NAIVE BENCHMARK MODEL<a class="anchor-link" href="#SEASONAL-NAIVE-BENCHMARK-MODEL"> </a></h1><blockquote><p>API details.</p>
+<h1 id="Seasonal-Naive-Benchmark-Model">Seasonal Naive Benchmark Model<a class="anchor-link" href="#Seasonal-Naive-Benchmark-Model"> </a></h1><blockquote><p>API details.</p>
 </blockquote>
 
 </div>
@@ -115,8 +115,12 @@ series.</p>
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="NAIVE2-BENCHMARK-MODEL">NAIVE2 BENCHMARK MODEL<a class="anchor-link" href="#NAIVE2-BENCHMARK-MODEL"> </a></h1><h4 id="Mejorar-descripci&#243;n">Mejorar descripci&#243;n<a class="anchor-link" href="#Mejorar-descripci&#243;n"> </a></h4><h4 id="Test-the-time-series-for-seasonal-patterns-by-performing-a-90%-auto-correlation-test:">Test the time-series for seasonal patterns by performing a 90% auto-correlation test:<a class="anchor-link" href="#Test-the-time-series-for-seasonal-patterns-by-performing-a-90%-auto-correlation-test:"> </a></h4><h4 id="As-described-here:-https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf">As described here: <a href="https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf">https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf</a><a class="anchor-link" href="#As-described-here:-https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf"> </a></h4><h4 id="Code-based-on:-https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R">Code based on: <a href="https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R">https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R</a><a class="anchor-link" href="#Code-based-on:-https://github.com/Mcompetitions/M4-methods/blob/master/Benchmarks%20and%20Evaluation.R"> </a></h4><blockquote><p>API details.</p>
+<h1 id="Naive2-Benchmark-Model">Naive2 Benchmark Model<a class="anchor-link" href="#Naive2-Benchmark-Model"> </a></h1><blockquote><p>API details.</p>
 </blockquote>
+<p>The Naive2 benchmark model, as explained in the <a href="https://www.m4.unic.ac.cy/wp-content/uploads/2018/03/M4-Competitors-Guide.pdf">M4 guide</a> is determined by the following process:- Test the time-series for seasonal patterns by performing a 90% auto-correlation.</p>
+<ul>
+<li>Based on the test select between a Naive benchmark (random walk) or a spline detrended seasonal forecast.</li>
+</ul>
 
 </div>
 </div>
@@ -305,13 +309,7 @@ else the model predicts on the simple Naive.</p>
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="NAIVE-BENCHMARK-USAGE">NAIVE BENCHMARK USAGE<a class="anchor-link" href="#NAIVE-BENCHMARK-USAGE"> </a></h1>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="LOAD-DATA">LOAD DATA<a class="anchor-link" href="#LOAD-DATA"> </a></h3>
+<h1 id="Naive-Benchmark-Usage-Example">Naive Benchmark Usage Example<a class="anchor-link" href="#Naive-Benchmark-Usage-Example"> </a></h1>
 </div>
 </div>
 </div>
@@ -334,7 +332,7 @@ else the model predicts on the simple Naive.</p>
 <span class="n">FONTSIZE</span> <span class="o">=</span> <span class="mi">17</span>
 
 <span class="c1"># Load and plot data</span>
-<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;../data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">])</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">])</span>
 
 <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Y_df</span><span class="o">.</span><span class="n">ds</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#628793&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
@@ -350,6 +348,23 @@ else the model predicts on the simple Naive.</p>
 
 <div class="output_wrapper">
 <div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>100%|██████████| 2.12M/2.12M [00:00&lt;00:00, 3.30MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded NP.csv, 2118914, bytes.
+100%|██████████| 2.53M/2.53M [00:00&lt;00:00, 3.46MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded PJM.csv, 2530311, bytes.
+100%|██████████| 1.97M/1.97M [00:00&lt;00:00, 2.74MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded BE.csv, 1974555, bytes.
+100%|██████████| 2.00M/2.00M [00:00&lt;00:00, 3.15MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded FR.csv, 1996871, bytes.
+100%|██████████| 2.10M/2.10M [00:00&lt;00:00, 2.82MiB/s]
+INFO:nixtla.data.datasets.utils:Successfully downloaded DE.csv, 2095831, bytes.
+</pre>
+</div>
+</div>
 
 <div class="output_area">
 

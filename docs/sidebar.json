@@ -11,8 +11,8 @@
     "M3 dataset": "data_datasets__m3.html",
     "M4 dataset": "data_datasets__m4.html",
     "Tourism dataset": "data_datasets__tourism.html",
-    "Utils for datasets": "data_datasets__utils.html",
-    "Experiments Utils": "experiments__utils.html",
+    "Dataset Utils": "data_datasets__utils.html",
+    "Experiment Utils": "experiments__utils.html",
     "Giacomini-White Test": "losses__gw_test.html",
     "EVALUATION METRICS": "losses__numpy.html",
     "GENERAL TRAIN LOSSES": "losses__pytorch.html",
@@ -20,7 +20,7 @@
     "Dilated Recurrent Neural Networks": "models_components__drnn.html",
     "ES-RNN: Exponential Smoothing Recurrent Neural Network": "models_esrnn__esrnn.html",
     "MQESRNN model": "models_esrnn__mqesrnn.html",
-    "NAIVE BENCHMARK MODEL": "models_naive2__naive2.html",
-    "NBEATS USAGE": "models_nbeats__nbeats.html"
+    "Naive Benchmark Model": "models_naive2__naive2.html",
+    "N-BEATS: Neural Basis Expansion Analysis": "models_nbeats__nbeats.html"
   }
 }
