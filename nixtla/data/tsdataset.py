@@ -328,12 +328,11 @@ def get_filtered_ts_tensor(self: TimeSeriesDataset,
     -------
     Tuple of filtered tensor and right_padding size (output_size).
     """
-    last_outsample_ds = self.max_len + output_size
     first_ds = max(self.max_len - window_sampling_limit, 0)
 
     idxs = range(self.n_series) if ts_idxs is None else ts_idxs
-    filtered_ts_tensor = self.ts_tensor[idxs, :, first_ds:last_outsample_ds]
-    right_padding = max(last_outsample_ds - self.max_len, 0) #To padd with zeros if there is "nothing" to the right
+    filtered_ts_tensor = self.ts_tensor[idxs, :, first_ds:]
+    right_padding = output_size #To padd with zeros if there is "nothing" to the right
 
     return filtered_ts_tensor, right_padding
 
