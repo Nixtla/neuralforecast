@@ -29,6 +29,9 @@ class TimeSeriesDataset(Dataset):
         Numpy array of shape (n_series, n_channels, max_len)
         where n_channels = t_cols + masks.
         Left-padded time series tensor.
+        This tensor is NOT sorted according to Y_df.
+        If Y_df is not sorted, the order of the
+        first dimension can change.
     s_matrix: np.ndarray
         Numpy array of shape (n_series, n_s).
         Matrix of static variables.
