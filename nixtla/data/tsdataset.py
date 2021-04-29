@@ -381,21 +381,13 @@ def get_default_mask_df(Y_df: pd.DataFrame,
     Mask DataFrame with columns
     ['unique_id', 'ds', 'available_mask', 'sample_mask'].
     """
-    last_df = Y_df[['unique_id', 'ds']].copy()
-    last_df.sort_values(by=['unique_id', 'ds'], inplace=True, ascending=False)
-    last_df.reset_index(drop=True, inplace=True)
-
-    last_df = last_df.groupby('unique_id').head(ds_in_test)
-    last_df['sample_mask'] = 0
-
-    last_df = last_df[['unique_id', 'ds', 'sample_mask']]
-
-    mask_df = Y_df.merge(last_df, on=['unique_id', 'ds'], how='left')
-    mask_df['sample_mask'] = mask_df['sample_mask'].fillna(1)
-
-    mask_df = mask_df[['unique_id', 'ds', 'sample_mask']]
-    mask_df.sort_values(by=['unique_id', 'ds'], inplace=True)
+    mask_df = Y_df[['unique_id', 'ds']].copy()
     mask_df['available_mask'] = 1
+    mask_df['sample_mask'] = 1
+
+    mask_df_s = mask_df.sort_values(by=['unique_id', 'ds'])
+    zero_idx = mask_df_s.groupby('unique_id').tail(ds_in_test).index
+    mask_df.loc[zero_idx, 'sample_mask'] = 0
 
     assert len(mask_df)==len(Y_df), \
         f'The mask_df length {len(mask_df)} is not equal to Y_df length {len(Y_df)}'

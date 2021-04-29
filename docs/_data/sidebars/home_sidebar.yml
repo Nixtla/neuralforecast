@@ -13,6 +13,9 @@ entries:
       title: Title
       url: models_nbeats__nbeats_model.html
     - output: web,pdf
+      title: Default mask example and tests
+      url: data__tsdataset.html
+    - output: web,pdf
       title: LOADERS COMPARISON
       url: data__tsloader_fast.html
     - output: web,pdf
@@ -34,7 +37,7 @@ entries:
       title: M4 dataset
       url: data_datasets__m4.html
     - output: web,pdf
-      title: Tourism dataset
+      title: data_datasets__tourism
       url: data_datasets__tourism.html
     - output: web,pdf
       title: Dataset Utils

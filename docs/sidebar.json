@@ -2,6 +2,7 @@
   "nixtla": {
     "Overview": "/",
     "Title": "models_nbeats__nbeats_model.html",
+    "Default mask example and tests": "data__tsdataset.html",
     "LOADERS COMPARISON": "data__tsloader_fast.html",
     "TimeSeriesLoader": "data__tsloader_general.html",
     "EPF dataset": "data_datasets__epf.html",
@@ -9,7 +10,7 @@
     "GEFCom 2014 dataset": "data_datasets__gefcom2014.html",
     "M3 dataset": "data_datasets__m3.html",
     "M4 dataset": "data_datasets__m4.html",
-    "Tourism dataset": "data_datasets__tourism.html",
+    "data_datasets__tourism": "data_datasets__tourism.html",
     "Dataset Utils": "data_datasets__utils.html",
     "Experiment Utils": "experiments__utils.html",
     "Giacomini-White Test": "losses__gw_test.html",
