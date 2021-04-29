@@ -330,7 +330,7 @@ is_test: bool
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7fcecf197510&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7f5d5b83e450&gt;]</pre>
 </div>
 
 </div>
@@ -394,9 +394,29 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_dataset_attrs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">):</span>
     <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_dataset_attrs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">):</span>
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span> <span class="o">=</span> <span class="n">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">)</span>
     
     <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="p">]</span>
     <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">]</span>
@@ -437,10 +457,29 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_get_f_idxs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">,</span> <span class="n">expected_f_idxs</span><span class="p">):</span>
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span> <span class="o">=</span> <span class="n">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">)</span>
+    
+    <span class="k">assert</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_f_idxs</span><span class="p">(</span><span class="n">f_cols</span><span class="p">)</span> <span class="o">==</span> <span class="n">expected_f_idxs</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">,</span> 
                                 <span class="n">window_samplig_limit</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">,</span> <span class="n">output_size</span><span class="p">):</span>
-    <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span> <span class="o">=</span> <span class="n">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">)</span>
     
     <span class="n">min_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">len_series</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">window_samplig_limit</span> <span class="o">&gt;</span> <span class="n">min_len</span><span class="p">:</span>
@@ -494,6 +533,7 @@ is_test: bool
 <span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">]</span>
 <span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">728</span> <span class="o">*</span> <span class="mi">24</span>
 <span class="n">is_test</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">expected_f_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="c1">#after y column</span>
 </pre></div>
 
     </div>
@@ -530,6 +570,24 @@ is_test: bool
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
                             <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">2_000</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> 
                             <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_f_idxs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span> 
+                <span class="n">expected_f_idxs</span><span class="o">=</span><span class="n">expected_f_idxs</span><span class="p">)</span>
 </pre></div>
 
     </div>
