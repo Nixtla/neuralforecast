@@ -13,6 +13,9 @@ entries:
       title: Title
       url: models_nbeats__nbeats_model.html
     - output: web,pdf
+      title: Default mask example and tests
+      url: data__tsdataset.html
+    - output: web,pdf
       title: LOADERS COMPARISON
       url: data__tsloader_fast.html
     - output: web,pdf

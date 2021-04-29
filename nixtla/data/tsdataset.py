@@ -68,8 +68,6 @@ class TimeSeriesDataset(Dataset):
 
     Methods
     -------
-    get_default_mask_df(Y_df, df_in_test, is_test)
-        Constructs default mask df.
     get_filtered_ts_tensor(output_size,
                            window_sampling_limit,
                            ts_idxs)
@@ -136,7 +134,6 @@ class TimeSeriesDataset(Dataset):
                                           is_test=is_test,
                                           ds_in_test=ds_in_test)
 
-        mask_df['train_mask'] = mask_df['available_mask'] * mask_df['sample_mask']
         n_ds  = len(mask_df)
         n_avl = mask_df.available_mask.sum()
         n_ins = mask_df.sample_mask.sum()
@@ -308,32 +305,34 @@ def _create_tensor(self: TimeSeriesDataset,
 # Cell
 @patch
 def get_filtered_ts_tensor(self: TimeSeriesDataset,
-                           output_size: int,
                            window_sampling_limit: int,
-                           ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor, int]:
-    """Gets ts tensor filtered based on output_size, window_sampling_limit and
-    ts_idxs.
+                           ts_idxs: Optional[Collection[int]] = None,
+                           output_size: int = 0) -> Tuple[t.Tensor, int]:
+    """Filters the last window_sampling_limit observations from ts_tensor for
+    the time series indexed by ts_idxs. The output_size
+    parameter is returned as the right_padding.
 
     Parameters
     ----------
-    output_size: int
-        Forecast horizon.
     window_sampling_limit: int
         Max size of observations to consider, including output_size.
+        If window_sampling_limit > max_len of the time series,
+        the full tensor is returned.
     ts_idxs: Collection
         Indexes of time series to consider.
         Default None: returns all ts.
+    output_size: int
+        Forecast horizon default 0.
 
     Returns
     -------
-    Tuple of filtered tensor and right_padding size.
+    Tuple of filtered tensor and right_padding size (output_size).
     """
-    last_outsample_ds = self.max_len + output_size
     first_ds = max(self.max_len - window_sampling_limit, 0)
 
     idxs = range(self.n_series) if ts_idxs is None else ts_idxs
-    filtered_ts_tensor = self.ts_tensor[idxs, :, first_ds:last_outsample_ds]
-    right_padding = max(last_outsample_ds - self.max_len, 0) #To padd with zeros if there is "nothing" to the right
+    filtered_ts_tensor = self.ts_tensor[idxs, :, first_ds:]
+    right_padding = output_size #To padd with zeros if there is "nothing" to the right
 
     return filtered_ts_tensor, right_padding
 
@@ -381,21 +380,13 @@ def get_default_mask_df(Y_df: pd.DataFrame,
     Mask DataFrame with columns
     ['unique_id', 'ds', 'available_mask', 'sample_mask'].
     """
-    last_df = Y_df[['unique_id', 'ds']].copy()
-    last_df.sort_values(by=['unique_id', 'ds'], inplace=True, ascending=False)
-    last_df.reset_index(drop=True, inplace=True)
-
-    last_df = last_df.groupby('unique_id').head(ds_in_test)
-    last_df['sample_mask'] = 0
-
-    last_df = last_df[['unique_id', 'ds', 'sample_mask']]
-
-    mask_df = Y_df.merge(last_df, on=['unique_id', 'ds'], how='left')
-    mask_df['sample_mask'] = mask_df['sample_mask'].fillna(1)
-
-    mask_df = mask_df[['unique_id', 'ds', 'sample_mask']]
-    mask_df.sort_values(by=['unique_id', 'ds'], inplace=True)
+    mask_df = Y_df[['unique_id', 'ds']].copy()
     mask_df['available_mask'] = 1
+    mask_df['sample_mask'] = 1
+
+    mask_df_s = mask_df.sort_values(by=['unique_id', 'ds'])
+    zero_idx = mask_df_s.groupby('unique_id').tail(ds_in_test).index
+    mask_df.loc[zero_idx, 'sample_mask'] = 0
 
     assert len(mask_df)==len(Y_df), \
         f'The mask_df length {len(mask_df)} is not equal to Y_df length {len(Y_df)}'
