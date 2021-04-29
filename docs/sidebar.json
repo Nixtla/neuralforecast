@@ -2,7 +2,6 @@
   "nixtla": {
     "Overview": "/",
     "Title": "models_nbeats__nbeats_model.html",
-    "MASK example and test": "data__tsdataset.html",
     "LOADERS COMPARISON": "data__tsloader_fast.html",
     "TimeSeriesLoader": "data__tsloader_general.html",
     "EPF dataset": "data_datasets__epf.html",
