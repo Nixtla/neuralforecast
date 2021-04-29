@@ -224,9 +224,10 @@ def _df_to_lists(self: TimeSeriesDataset,
         S_df = Y_df[['unique_id']].drop_duplicates()
 
     # Protect order of data
-    Y = Y_df.sort_values(by=['unique_id', 'ds']).copy()
-    X = X_df.sort_values(by=['unique_id', 'ds']).copy()
-    M = mask_df.sort_values(by=['unique_id', 'ds']).copy()
+    Y = Y_df.sort_values(by=['unique_id', 'ds'], ignore_index=True).copy()
+    X = X_df.sort_values(by=['unique_id', 'ds'], ignore_index=True).copy()
+    M = mask_df.sort_values(by=['unique_id', 'ds'], ignore_index=True).copy()
+
     assert np.array_equal(X.unique_id.values, Y.unique_id.values), f'Mismatch in X, Y unique_ids'
     assert np.array_equal(X.ds.values, Y.ds.values), f'Mismatch in X, Y ds'
     assert np.array_equal(M.unique_id.values, Y.unique_id.values), f'Mismatch in M, Y unique_ids'
@@ -235,7 +236,8 @@ def _df_to_lists(self: TimeSeriesDataset,
     # Create bigger grouped by dataframe G to parse
     M = M[['available_mask', 'sample_mask']]
     X.drop(['unique_id', 'ds'], 1, inplace=True)
-    G = pd.concat([Y, X, M], axis=1)
+    G = Y.join(X).join(M)
+
     S = S_df.sort_values(by=['unique_id']).copy()
 
     # time columns and static columns for future indexing

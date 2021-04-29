@@ -147,7 +147,7 @@ get_f_idxs(cols)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L304" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>output_size</code></strong>:<code>int</code>, <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>)</p>
+<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L306" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>output_size</code></strong>:<code>int</code>, <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Gets ts tensor filtered based on output_size, window_sampling_limit and
 ts_idxs.</p>
@@ -188,7 +188,7 @@ ts_idxs: Collection
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L336" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
+<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L338" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
 </blockquote>
 <p>Gets indexes of exogenous variables.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>cols: List[str]
@@ -223,7 +223,7 @@ ts_idxs: Collection
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L360" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
+<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L362" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
 </blockquote>
 <p>Constructs default mask df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -331,7 +331,7 @@ is_test: bool
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7fbd2c57da90&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7fa7386a47d0&gt;]</pre>
 </div>
 
 </div>
@@ -373,6 +373,147 @@ is_test: bool
 <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 <span class="n">test_default_mask</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">test_default_mask</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Dataset-tests">Dataset tests<a class="anchor-link" href="#Dataset-tests"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">):</span>
+    <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    
+    <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="p">]</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">]</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dfs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    
+    <span class="c1">#Temporal variables</span>
+    <span class="k">for</span> <span class="n">idx_ts</span><span class="p">,</span> <span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dfs</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)):</span>
+        <span class="n">len_ts</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">len_series</span><span class="p">[</span><span class="n">idx_ts</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">t_cols</span><span class="p">:</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">idx_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">t_cols</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+            <span class="n">ts_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ts_tensor</span><span class="p">[</span><span class="n">idx_ts</span><span class="p">,</span> <span class="n">idx_tensor</span><span class="p">,</span> <span class="o">-</span><span class="n">len_ts</span><span class="p">:]</span>
+            
+            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">ts_tensor</span><span class="p">),</span> <span class="sa">f</span><span class="s1">&#39;Error with time series </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s1"> and col </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1"> (idx=</span><span class="si">{</span><span class="n">idx_ts</span><span class="si">}</span><span class="s1">).&#39;</span>
+            
+    <span class="c1">#Static variables</span>
+    <span class="k">for</span> <span class="n">idx_ts</span><span class="p">,</span> <span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">S_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)):</span>
+        <span class="n">len_ts</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">len_series</span><span class="p">[</span><span class="n">idx_ts</span><span class="p">]</span>
+        
+        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">s_cols</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">s_matrix</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">s_matrix</span><span class="p">[[</span><span class="n">idx_ts</span><span class="p">]]</span>
+
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">s_matrix</span><span class="p">),</span> <span class="sa">f</span><span class="s1">&#39;Error with static variables for time series </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s1"> (idx=</span><span class="si">{</span><span class="n">idx_ts</span><span class="si">}</span><span class="s1">)&#39;</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Test-for-already-sorted-datasets">Test for already sorted datasets<a class="anchor-link" href="#Test-for-already-sorted-datasets"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span> <span class="o">*</span> <span class="mi">24</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Test-for-datasets-with-more-than-two-time-series">Test for datasets with more than two time series<a class="anchor-link" href="#Test-for-datasets-with-more-than-two-time-series"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
+
+<span class="n">meta</span> <span class="o">=</span> <span class="n">TourismInfo</span><span class="p">[</span><span class="s1">&#39;Yearly&#39;</span><span class="p">]</span>
+<span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">day_of_week</span>
+<span class="n">df</span><span class="p">[</span><span class="s1">&#39;id_ts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span>
+
+
+<span class="n">Y_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])</span>
+<span class="n">X_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">])</span>
+<span class="n">S_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;id_ts&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 
     </div>
