@@ -68,8 +68,6 @@ class TimeSeriesDataset(Dataset):
 
     Methods
     -------
-    get_default_mask_df(Y_df, df_in_test, is_test)
-        Constructs default mask df.
     get_filtered_ts_tensor(output_size,
                            window_sampling_limit,
                            ts_idxs)

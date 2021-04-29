@@ -10,7 +10,7 @@
     "GEFCom 2014 dataset": "data_datasets__gefcom2014.html",
     "M3 dataset": "data_datasets__m3.html",
     "M4 dataset": "data_datasets__m4.html",
-    "data_datasets__tourism": "data_datasets__tourism.html",
+    "Tourism dataset": "data_datasets__tourism.html",
     "Dataset Utils": "data_datasets__utils.html",
     "Experiment Utils": "experiments__utils.html",
     "Giacomini-White Test": "losses__gw_test.html",

@@ -37,7 +37,7 @@ entries:
       title: M4 dataset
       url: data_datasets__m4.html
     - output: web,pdf
-      title: data_datasets__tourism
+      title: Tourism dataset
       url: data_datasets__tourism.html
     - output: web,pdf
       title: Dataset Utils
