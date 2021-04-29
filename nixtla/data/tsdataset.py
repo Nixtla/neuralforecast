@@ -236,7 +236,6 @@ def _df_to_lists(self: TimeSeriesDataset,
     M = M[['available_mask', 'sample_mask']]
     X.drop(['unique_id', 'ds'], 1, inplace=True)
     G = pd.concat([Y, X, M], axis=1)
-    print(G.reset_index().query('unique_id == "Y100"'))
     S = S_df.sort_values(by=['unique_id']).copy()
 
     # time columns and static columns for future indexing
