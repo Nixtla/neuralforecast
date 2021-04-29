@@ -129,15 +129,15 @@ class TimeSeriesDataset(Dataset):
             assert np.sum(np.isnan(mask_df.available_mask.values)) == 0
             assert np.sum(np.isnan(mask_df.sample_mask.values)) == 0
         else:
-            mask_df = self.get_default_mask_df(Y_df=Y_df,
-                                               is_test=is_test,
-                                               ds_in_test=ds_in_test)
+            mask_df = get_default_mask_df(Y_df=Y_df,
+                                          is_test=is_test,
+                                          ds_in_test=ds_in_test)
 
         mask_df['train_mask'] = mask_df['available_mask'] * mask_df['sample_mask']
         n_ds  = len(mask_df)
         n_avl = mask_df.available_mask.sum()
         n_ins = mask_df.sample_mask.sum()
-        n_out = len(mask_df)-mask_df.sample_mask.sum()
+        n_out = len(mask_df) - mask_df.sample_mask.sum()
 
         avl_prc = np.round((100 * n_avl) / n_ds, 2)
         ins_prc = np.round((100 * n_ins) / n_ds, 2)
@@ -173,52 +173,6 @@ class TimeSeriesDataset(Dataset):
         # numpy  s_matrix of shape (n_series, n_s)
         # numpy ts_tensor of shape (n_series, n_channels, max_len) n_channels = t_cols + masks
         self.ts_tensor, self.s_matrix, self.len_series = self._create_tensor(self.ts_data, self.s_data)
-
-# Cell
-@patch
-def get_default_mask_df(self: TimeSeriesDataset,
-                        Y_df: pd.DataFrame,
-                        ds_in_test: int,
-                        is_test: bool) -> pd.DataFrame:
-    """Constructs default mask df.
-
-    Parameters
-    ----------
-    Y_df: pd.DataFrame
-        Target time series with columns ['unique_id', 'ds', 'y'].
-    ds_in_test: int
-        Numer of datestamps to use as outsample.
-    is_test: bool
-        Wheter target time series belongs to test set.
-
-    Returns
-    -------
-    Mask DataFrame with columns
-    ['unique_id', 'ds', 'available_mask', 'sample_mask'].
-    """
-    last_df = Y_df[['unique_id', 'ds']].copy()
-    last_df.sort_values(by=['unique_id', 'ds'], inplace=True, ascending=False)
-    last_df.reset_index(drop=True, inplace=True)
-
-    last_df = last_df.groupby('unique_id').head(ds_in_test)
-    last_df['sample_mask'] = 0
-
-    last_df = last_df[['unique_id', 'ds', 'sample_mask']]
-
-    mask_df = Y_df.merge(last_df, on=['unique_id', 'ds'], how='left')
-    mask_df['sample_mask'] = mask_df['sample_mask'].fillna(1)
-
-    mask_df = mask_df[['unique_id', 'ds', 'sample_mask']]
-    mask_df.sort_values(by=['unique_id', 'ds'], inplace=True)
-    mask_df['available_mask'] = 1
-
-    assert len(mask_df)==len(Y_df), \
-        f'The mask_df length {len(mask_df)} is not equal to Y_df length {len(Y_df)}'
-
-    if is_test:
-        mask_df['sample_mask'] = 1 - mask_df['sample_mask']
-
-    return mask_df
 
 # Cell
 @patch
@@ -282,6 +236,7 @@ def _df_to_lists(self: TimeSeriesDataset,
     M = M[['available_mask', 'sample_mask']]
     X.drop(['unique_id', 'ds'], 1, inplace=True)
     G = pd.concat([Y, X, M], axis=1)
+    print(G.reset_index().query('unique_id == "Y100"'))
     S = S_df.sort_values(by=['unique_id']).copy()
 
     # time columns and static columns for future indexing
@@ -403,7 +358,9 @@ def get_f_idxs(self: TimeSeriesDataset,
     return f_idxs
 
 # Cell
-def get_default_mask_df(Y_df, ds_in_test, is_test):
+def get_default_mask_df(Y_df: pd.DataFrame,
+                        ds_in_test: int,
+                        is_test: bool) -> pd.DataFrame:
     """Constructs default mask df.
 
     Parameters
@@ -420,9 +377,7 @@ def get_default_mask_df(Y_df, ds_in_test, is_test):
     Mask DataFrame with columns
     ['unique_id', 'ds', 'available_mask', 'sample_mask'].
     """
-    # Creates outsample_mask
-    # train 1 validation 0
-    last_df = Y_df.copy()[['unique_id', 'ds']]
+    last_df = Y_df[['unique_id', 'ds']].copy()
     last_df.sort_values(by=['unique_id', 'ds'], inplace=True, ascending=False)
     last_df.reset_index(drop=True, inplace=True)
 
