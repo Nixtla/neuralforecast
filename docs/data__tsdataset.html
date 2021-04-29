@@ -148,18 +148,21 @@ get_f_idxs(cols)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L307" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>output_size</code></strong>:<code>int</code>, <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>)</p>
+<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L306" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>, <strong><code>output_size</code></strong>:<code>int</code>=<em><code>0</code></em>)</p>
 </blockquote>
-<p>Gets ts tensor filtered based on output_size, window_sampling_limit and
-ts_idxs.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>output_size: int
-    Forecast horizon.
-window_sampling_limit: int
+<p>Filters the last window_sampling_limit observations from ts_tensor for
+the time series indexed by ts_idxs. The output_size
+parameter is returned as the right_padding.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>window_sampling_limit: int
     Max size of observations to consider, including output_size.
+    If window_sampling_limit &gt; max_len of the time series,
+    the full tensor is returned.
 ts_idxs: Collection
     Indexes of time series to consider.
-    Default None: returns all ts.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Tuple of filtered tensor and right_padding size.</p>
+    Default None: returns all ts.
+output_size: int
+    Forecast horizon default 0.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Tuple of filtered tensor and right_padding size (output_size).</p>
 
 </div>
 
@@ -189,7 +192,7 @@ ts_idxs: Collection
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L339" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
+<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L341" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
 </blockquote>
 <p>Gets indexes of exogenous variables.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>cols: List[str]
@@ -224,7 +227,7 @@ ts_idxs: Collection
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L363" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
+<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L365" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
 </blockquote>
 <p>Constructs default mask df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -327,7 +330,7 @@ is_test: bool
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7f20c37e4590&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7fcecf197510&gt;]</pre>
 </div>
 
 </div>
@@ -427,6 +430,51 @@ is_test: bool
 </div>
     {% endraw %}
 
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">,</span> 
+                                <span class="n">window_samplig_limit</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">,</span> <span class="n">output_size</span><span class="p">):</span>
+    <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    
+    <span class="n">min_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">len_series</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">window_samplig_limit</span> <span class="o">&gt;</span> <span class="n">min_len</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This test only works for window_sampling_limit &#39;</span>
+                        <span class="s1">&#39;lower than the size of the shortest time series.&#39;</span><span class="p">)</span>
+    
+    <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="p">]</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">]</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dfs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">window_samplig_limit</span><span class="p">)</span>
+
+    <span class="n">n_ts</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_x</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">wsl</span> <span class="o">=</span> <span class="n">window_samplig_limit</span>
+    <span class="n">idxs</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_ts</span><span class="p">)</span> <span class="k">if</span> <span class="n">ts_idxs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ts_idxs</span>
+
+    <span class="n">e_filtered_tensor</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">wsl</span><span class="p">,</span> <span class="n">n_x</span><span class="p">))[</span><span class="n">idxs</span><span class="p">]</span>
+    <span class="n">e_filtered_tensor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">e_filtered_tensor</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">filtered_tensor</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_filtered_ts_tensor</span><span class="p">(</span><span class="n">window_samplig_limit</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+    
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">e_filtered_tensor</span><span class="p">,</span> <span class="n">filtered_tensor</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s2">&quot;Expected and dataset filtered_tensor are different. Check.&quot;</span>
+    <span class="p">)</span>
+    
+    <span class="k">assert</span> <span class="n">output_size</span> <span class="o">==</span> <span class="n">rp</span><span class="p">,</span> <span class="s1">&#39;Output size and right padding are different. Check.&#39;</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h3 id="Test-for-already-sorted-datasets">Test for already sorted datasets<a class="anchor-link" href="#Test-for-already-sorted-datasets"> </a></h3>
@@ -443,6 +491,9 @@ is_test: bool
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
+<span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">]</span>
+<span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">728</span> <span class="o">*</span> <span class="mi">24</span>
+<span class="n">is_test</span> <span class="o">=</span> <span class="kc">True</span>
 </pre></div>
 
     </div>
@@ -459,7 +510,26 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_dataset_attrs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span> <span class="o">*</span> <span class="mi">24</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_dataset_attrs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
+                            <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">2_000</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> 
+                            <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -489,7 +559,6 @@ is_test: bool
 <span class="n">df</span><span class="p">[</span><span class="s1">&#39;day_of_week&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">day_of_week</span>
 <span class="n">df</span><span class="p">[</span><span class="s1">&#39;id_ts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span>
 
-
 <span class="n">Y_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])</span>
 <span class="n">X_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;day_of_week&#39;</span><span class="p">])</span>
 <span class="n">S_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">items</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;id_ts&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -510,6 +579,24 @@ is_test: bool
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_dataset_attrs</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span> <span class="n">output_size</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">)</span>
 </pre></div>
 
     </div>
