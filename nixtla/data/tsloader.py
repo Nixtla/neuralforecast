@@ -89,7 +89,7 @@ class TimeSeriesLoader(object):
 
         if len_sample_chunks is not None:
             if len_sample_chunks < self.input_size + self.output_size:
-                raise Exception(f"Insufficient len of sample chunks {len_sample_chunks}")
+                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
             self.len_sample_chunks = len_sample_chunks
         else:
             self.len_sample_chunks = input_size + output_size
@@ -99,13 +99,18 @@ class TimeSeriesLoader(object):
         self.verbose = verbose
 
         if not shuffle and model not in ['esrnn','rnn']:
-            logging.warning('Batch size will be ignored (shuffle=False). All windows constructed will be used to train.')
+            logging.warning('Batch size will be ignored (shuffle=False). '
+                            'All windows constructed will be used to train.')
 
         # Dataloader protections
-        assert self.batch_size % self.n_series_per_batch == 0, \
-                        f'batch_size {self.batch_size} must be multiple of n_series_per_batch {self.n_series_per_batch}'
-        assert self.n_series_per_batch <= self.ts_dataset.n_series, \
-                        f'n_series_per_batch {n_series_per_batch} needs to be smaller than n_series {self.ts_dataset.n_series}'
+        assert self.batch_size % self.n_series_per_batch == 0, (
+            f'batch_size {self.batch_size} must be multiple of '
+            f'n_series_per_batch {self.n_series_per_batch}'
+        )
+        assert self.n_series_per_batch <= self.ts_dataset.n_series, (
+            f'n_series_per_batch {n_series_per_batch} needs '
+            f'to be smaller than n_series {self.ts_dataset.n_series}'
+        )
 
         self.sampleable_ts_idxs = self._get_sampleable_ts_idxs()
 
@@ -152,8 +157,10 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
         sampling_idx = t.nonzero(sample_condition)
 
     sampling_idx = list(sampling_idx.flatten().numpy())
-    assert len(sampling_idx)>0, \
-        'Check the data and masks as sample_idxs are empty, check window_sampling_limit, input_size, output_size, masks'
+    assert len(sampling_idx)>0, (
+        'Check the data and masks as sample_idxs are empty, '
+        'check window_sampling_limit, input_size, output_size, masks'
+    )
 
     return sampling_idx
 
@@ -226,7 +233,6 @@ def _windows_batch(self: TimeSeriesLoader,
     # Create windows for each sampled ts and sample random unmasked windows from each ts
     windows, s_matrix = self._create_windows_tensor(ts_idxs=index)
     sampleable_windows = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
-    self.sampleable_windows = sampleable_windows
 
     # Get sample windows_idxs of batch
     if self.shuffle:
@@ -320,7 +326,6 @@ def _windows_batch_rnn(self: TimeSeriesLoader,
     # Create windows for each sampled ts and sample random unmasked windows from each ts
     windows, s_matrix, idxs = self._create_windows_tensor_rnn(ts_idxs=index)
     sampleable_windows = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
-    self.sampleable_windows = sampleable_windows
 
     # Get sample windows_idxs of batch
     if self.shuffle:
@@ -381,8 +386,10 @@ def _full_series_batch(self: TimeSeriesLoader,
     max_time_stamp = int(t.nonzero(t.min(sample_mask_tensor, axis=0).values).max())
 
     available_ts = max_time_stamp - min_time_stamp
-    assert available_ts >= self.input_size + self.output_size, \
-           f'Time series too short for given input size {self.input_size} and output size {self.output_size}.'
+    assert available_ts >= self.input_size + self.output_size, (
+        f'Time series too short for given input size '
+        f'{self.input_size} and output size {self.output_size}.'
+    )
 
     insample_y = ts_tensor[:, self.t_cols.index('y'), :]
     insample_y = insample_y[:, min_time_stamp:max_time_stamp+1] #+1 because is not inclusive
@@ -401,8 +408,8 @@ def _full_series_batch(self: TimeSeriesLoader,
 
 # Cell
 @patch
-def __get_item__(self: TimeSeriesLoader,
-                 index: Collection[int]) -> Dict[str, t.Tensor]:
+def __getitem__(self: TimeSeriesLoader,
+            index: Collection[int]) -> Dict[str, t.Tensor]:
     """Gets batch based on index
 
     Parameters
@@ -444,7 +451,7 @@ def __iter__(self: TimeSeriesLoader) -> Dict[str, t.Tensor]:
     for idx in range(n_batches):
         ts_idxs = sample_idxs[(idx * self.n_series_per_batch) : (idx + 1) * self.n_series_per_batch]
         # 2. Sampling windows
-        batch = self.__get_item__(index=ts_idxs)
+        batch = self[ts_idxs]
         yield batch
 
 # Cell
