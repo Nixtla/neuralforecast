@@ -18,11 +18,10 @@ from fastcore.foundation import patch
 from .tsdataset import TimeSeriesDataset
 
 # Cell
-# TODO: Check if the saturday zero protection is still in place
 class TimeSeriesLoader(object):
     def __init__(self,
                  ts_dataset: TimeSeriesDataset,
-                 model: Literal['nbeats', 'tcn', 'esrnn', 'rnn', 'new_rnn'],
+                 model: Literal['nbeats', 'esrnn', 'rnn', 'new_rnn'],
                  window_sampling_limit: int,
                  input_size: int,
                  output_size: int,
@@ -34,8 +33,7 @@ class TimeSeriesLoader(object):
                  len_sample_chunks: Optional[int] = None,
                  n_series_per_batch: Optional[int] = None,
                  verbose: bool = False) -> 'TimeSeriesLoader':
-        """
-        Instatiates loader for TimeSeriesDataset.
+        """Instatiates loader for TimeSeriesDataset.
 
         Parameters
         ----------
@@ -43,7 +41,7 @@ class TimeSeriesLoader(object):
             Object of class TimeSeriesDataset.
         model: str
             Model to be used.
-            One of ['nbeats', 'tcn', 'esrnn', 'rnn', 'new_rnn'].
+            One of ['nbeats', 'esrnn', 'rnn', 'new_rnn'].
         window_sampling_limit: int
             Max size of observations to consider, including output_size.
         input_size: int
@@ -114,8 +112,7 @@ class TimeSeriesLoader(object):
 # Cell
 @patch
 def _get_sampleable_ts_idxs(self: TimeSeriesLoader) -> List[int]:
-    """
-    Gets indexes of sampleable time series.
+    """Gets indexes of sampleable time series.
 
     Returns
     -------
@@ -130,12 +127,12 @@ def _get_sampleable_ts_idxs(self: TimeSeriesLoader) -> List[int]:
 @patch
 def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
                                  ts_windows_flatten: t.Tensor) -> List[int]:
-    """
-    Gets indexes of windows that fulfills conditions.
+    """Gets indexes of windows that fulfills conditions.
 
     Parameters
     ----------
-    ts_windwos_flatten: t.Tensor
+    ts_windows_flatten: t.Tensor
+        Tensor of shape (windows, n_channels, windows_size)
 
     Returns
     -------
@@ -165,8 +162,10 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
 def _create_windows_tensor(self: TimeSeriesLoader,
                            ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor,
                                                                                t.Tensor]:
-    """
-    Creates windows tensor.
+    """Creates windows of size input_size + output size from
+    the ts_tensor of the TimeSeriesDataset filtered by
+    window_sampling_limit and ts_idxs. The step of each window
+    is defined by idx_to_sample_freq.
 
     Parameters
     ----------
@@ -192,9 +191,7 @@ def _create_windows_tensor(self: TimeSeriesLoader,
     # Creating rolling windows and 'flattens' them
     windows = tensor.unfold(dimension=-1, size=self.input_size + self.output_size, step=self.idx_to_sample_freq)
     # n_serie, n_channel, n_time, window_size -> n_serie, n_time, n_channel, window_size
-    #print(f'n_serie, n_channel, n_time, window_size = {windows.shape}')
     windows = windows.permute(0,2,1,3)
-    #print(f'n_serie, n_time, n_channel, window_size = {windows.shape}')
     windows = windows.reshape(-1, self.ts_dataset.n_channels, self.input_size + self.output_size)
 
     # Broadcast s_matrix: This works because unfold in windows_tensor, orders: serie, time
@@ -209,8 +206,7 @@ def _create_windows_tensor(self: TimeSeriesLoader,
 @patch
 def _windows_batch(self: TimeSeriesLoader,
                    index: Collection[int]) -> Dict[str, t.Tensor]:
-    """
-    Creates batch based on index. Works with NBEATS, TCN models.
+    """Creates batch based on index. Works with NBEATS, TCN models.
 
     Parameters
     ----------
@@ -258,8 +254,7 @@ def _windows_batch(self: TimeSeriesLoader,
 def _create_windows_tensor_rnn(self: TimeSeriesLoader,
                                ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor,
                                                                                    t.Tensor]:
-    """
-    Creates windows tensor for RNN models.
+    """Creates windows tensor for RNN models.
 
     Parameters
     ----------
@@ -305,8 +300,7 @@ def _create_windows_tensor_rnn(self: TimeSeriesLoader,
 @patch
 def _windows_batch_rnn(self: TimeSeriesLoader,
                        index: Collection[int]) -> Dict[str, t.Tensor]:
-    """
-    Creates batch based on index. Works with RNN models.
+    """Creates batch based on index. Works with RNN models.
 
     Parameters
     ----------
@@ -355,8 +349,7 @@ def _windows_batch_rnn(self: TimeSeriesLoader,
 @patch
 def _full_series_batch(self: TimeSeriesLoader,
                        index: Collection[int]) -> Dict[str, t.Tensor]:
-    """
-    Creates batch based on index. Works with RNN models.
+    """Creates batch based on index. Works with RNN models.
 
     Parameters
     ----------
@@ -410,8 +403,7 @@ def _full_series_batch(self: TimeSeriesLoader,
 @patch
 def __get_item__(self: TimeSeriesLoader,
                  index: Collection[int]) -> Dict[str, t.Tensor]:
-    """
-    Gets batch based on index
+    """Gets batch based on index
 
     Parameters
     ----------
@@ -457,24 +449,6 @@ def __iter__(self: TimeSeriesLoader) -> Dict[str, t.Tensor]:
 
 # Cell
 @patch
-def get_meta_data_col(self: TimeSeriesLoader,
-                      col: Literal['unique_id', 'last_ds']) -> List:
-    """
-    Gets time series metadata from TimeSeriesDataset.
-
-    Parameters
-    ----------
-    col: Literal['unique_id', 'last_ds']
-        Interest column.
-
-    Returns
-    -------
-    List of values for each time series.
-    """
-
-    return self.ts_dataset.get_meta_data_col(col)
-
-@patch
 def get_n_variables(self: TimeSeriesLoader) -> Tuple[int, int]:
     """Gets number of exogenous and static variables."""
     return self.ts_dataset.n_x, self.ts_dataset.n_s
@@ -493,11 +467,6 @@ def get_max_len(self: TimeSeriesLoader) -> int:
 def get_n_channels(self: TimeSeriesLoader) -> int:
     """Gets number of channels considered."""
     return self.ts_dataset.n_channels
-
-@patch
-def get_X_cols(self: TimeSeriesLoader) -> List[str]:
-    """Gets list of exogenous variables."""
-    return self.ts_dataset.X_cols
 
 @patch
 def get_frequency(self: TimeSeriesLoader) -> str:
