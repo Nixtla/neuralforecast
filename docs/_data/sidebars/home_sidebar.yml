@@ -16,11 +16,8 @@ entries:
       title: Default mask example and tests
       url: data__tsdataset.html
     - output: web,pdf
-      title: LOADERS COMPARISON
-      url: data__tsloader_fast.html
-    - output: web,pdf
       title: TimeSeriesLoader
-      url: data__tsloader_general.html
+      url: data__tsloader.html
     - output: web,pdf
       title: EPF dataset
       url: data_datasets__epf.html

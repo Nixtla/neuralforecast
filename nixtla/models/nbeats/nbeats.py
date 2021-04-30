@@ -17,7 +17,7 @@ from pathlib import Path
 from functools import partial
 
 from ...data.tsdataset import TimeSeriesDataset
-from ...data.tsloader_general import TimeSeriesLoader
+from ...data.tsloader import TimeSeriesLoader
 from .nbeats_model import NBeats, NBeatsBlock, IdentityBasis, TrendBasis, SeasonalityBasis
 from .nbeats_model import ExogenousBasisInterpretable, ExogenousBasisWavenet, ExogenousBasisTCN
 from ...losses.pytorch import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss

@@ -25,7 +25,7 @@ from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
 from ..data.scalers import Scaler
 from ..data.tsdataset import TimeSeriesDataset
-from ..data.tsloader_general import TimeSeriesLoader
+from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
 from ..models.nbeats.nbeats import Nbeats
