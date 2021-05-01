@@ -13,7 +13,7 @@ def create_synthetic_tsdata(n_ts: int = 64,
                             sort: bool = False) -> Tuple[pd.DataFrame,
                                                          pd.DataFrame,
                                                          pd.DataFrame]:
-    """Creates synthetic time serie data."""
+    """Creates synthetic time series data."""
     uids = np.array([f'uid_{i + 1}' for i in range(n_ts)])
     dss = pd.date_range(end='2020-12-31', periods=n_ts)
 
