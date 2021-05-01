@@ -315,7 +315,6 @@ def instantiate_mqesrnn(mc):
 def instantiate_model(mc):
     MODEL_DICT = {'nbeats': instantiate_nbeats,
                   'esrnn': instantiate_esrnn,
-                  'new_rnn': instantiate_esrnn,
                   'mqesrnn': instantiate_mqesrnn,}
     return MODEL_DICT[mc['model']](mc)
 

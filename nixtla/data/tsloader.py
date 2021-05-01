@@ -19,9 +19,19 @@ from .tsdataset import TimeSeriesDataset
 
 # Cell
 class TimeSeriesLoader(object):
+    """
+
+    Attributes
+    ----------
+    windows_size: int
+        Size of the windows.
+    padding: Tuple[int, int]
+        Tuple of left and right sizes of the padding.
+        Used to pad the ts_tensor with 0.
+    """
     def __init__(self,
                  ts_dataset: TimeSeriesDataset,
-                 model: Literal['nbeats', 'esrnn', 'rnn', 'new_rnn'],
+                 model: Literal['nbeats', 'esrnn'],
                  window_sampling_limit: int,
                  input_size: int,
                  output_size: int,
@@ -41,7 +51,7 @@ class TimeSeriesLoader(object):
             Object of class TimeSeriesDataset.
         model: str
             Model to be used.
-            One of ['nbeats', 'esrnn', 'rnn', 'new_rnn'].
+            One of ['nbeats', 'esrnn'].
         window_sampling_limit: int
             Max size of observations to consider, including output_size.
         input_size: int
@@ -64,7 +74,7 @@ class TimeSeriesLoader(object):
             all windows will be used when training.
         len_sample_chunks: Optional[int] = None
             Size of complete windows.
-            Only used for model = 'new_rnn'!
+            Only used for model = 'esrnn'!
         n_series_per_batch: Optional[int] = None
             Number of time series per batch.
         verbose: bool = False
@@ -98,7 +108,7 @@ class TimeSeriesLoader(object):
         self.shuffle = shuffle
         self.verbose = verbose
 
-        if not shuffle and model not in ['esrnn','rnn']:
+        if not shuffle and model not in ['esrnn']:
             logging.warning('Batch size will be ignored (shuffle=False). '
                             'All windows constructed will be used to train.')
 
@@ -112,21 +122,26 @@ class TimeSeriesLoader(object):
             f'to be smaller than n_series {self.ts_dataset.n_series}'
         )
 
-        self.sampleable_ts_idxs = self._get_sampleable_ts_idxs()
+        sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')] \
+                              .sum(axis=1)
+        self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0].tolist()
+
+        self.windows_size: int
+        self.padding: Tuple[int, int]
+
+        self._define_attributes_by_model()
 
 # Cell
 @patch
-def _get_sampleable_ts_idxs(self: TimeSeriesLoader) -> List[int]:
-    """Gets indexes of sampleable time series.
-
-    Returns
-    -------
-    List of indexes of sampleable time series.
-    """
-    sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')].sum(axis=1)
-    ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0].tolist()
-
-    return ts_idxs
+def _define_attributes_by_model(self: TimeSeriesLoader):
+    if self.model in ['nbeats']:
+        self.windows_size = self.input_size + self.output_size
+        self.padding = (self.input_size, self.output_size)
+    elif self.model in ['esrnn']:
+        self.windows_size = self.len_sample_chunks
+        self.padding = (0, 0)
+    else:
+        raise Exception(f'There is no batch strategy for {self.model}')
 
 # Cell
 @patch
@@ -167,57 +182,62 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
 # Cell
 @patch
 def _create_windows_tensor(self: TimeSeriesLoader,
-                           ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor,
+                           index: Optional[np.ndarray] = None) -> Tuple[t.Tensor,
                                                                                t.Tensor]:
-    """Creates windows of size input_size + output size from
+    """Creates windows of size windows_size from
     the ts_tensor of the TimeSeriesDataset filtered by
     window_sampling_limit and ts_idxs. The step of each window
     is defined by idx_to_sample_freq.
 
     Parameters
     ----------
-    ts_idxs: Optional[Collection[int]]
+    index: Optional[np.ndarray]
         Indexes of time series to consider.
         Default None: returns all ts.
 
     Returns
     -------
-    Tuple of two elements:
+    Tuple of three elements:
         - Windows tensor of shape (windows, channels, input_size + output_size)
-        - Static variables tensor of shape (windows, series, n_static)
+        - Static variables tensor of shape (windows * series, n_static)
+        - Time Series indexes for each window.
     """
     # Default ts_idxs=ts_idxs sends all the data, otherwise filters series
-    tensor, right_padding = self.ts_dataset.get_filtered_ts_tensor(output_size=self.output_size,
-                                                                   window_sampling_limit=self.window_sampling_limit,
-                                                                   ts_idxs=ts_idxs)
+    tensor, _ = self.ts_dataset \
+                    .get_filtered_ts_tensor(output_size=self.output_size,
+                                            window_sampling_limit=self.window_sampling_limit,
+                                            ts_idxs=index)
     tensor = t.Tensor(tensor)
 
-    padder = t.nn.ConstantPad1d(padding=(self.input_size, right_padding), value=0)
+    padder = t.nn.ConstantPad1d(padding=self.padding, value=0)
     tensor = padder(tensor)
 
     # Creating rolling windows and 'flattens' them
-    windows = tensor.unfold(dimension=-1, size=self.input_size + self.output_size, step=self.idx_to_sample_freq)
+    windows = tensor.unfold(dimension=-1,
+                            size=self.windows_size,
+                            step=self.idx_to_sample_freq)
     # n_serie, n_channel, n_time, window_size -> n_serie, n_time, n_channel, window_size
-    windows = windows.permute(0,2,1,3)
-    windows = windows.reshape(-1, self.ts_dataset.n_channels, self.input_size + self.output_size)
+    windows = windows.permute(0, 2, 1, 3)
+    windows = windows.reshape(-1, self.ts_dataset.n_channels, self.windows_size)
 
     # Broadcast s_matrix: This works because unfold in windows_tensor, orders: serie, time
-    s_matrix = self.ts_dataset.s_matrix[ts_idxs]
-    n_ts = self.ts_dataset.n_series if ts_idxs is None else len(ts_idxs)
+    s_matrix = self.ts_dataset.s_matrix[index]
+    n_ts = self.ts_dataset.n_series if index is None else len(index)
     windows_per_serie = len(windows) / n_ts
     s_matrix = s_matrix.repeat(repeats=windows_per_serie, axis=0)
+    ts_idxs = index.repeat(repeats=windows_per_serie)
 
-    return windows, s_matrix
+    return windows, s_matrix, ts_idxs
 
 # Cell
 @patch
 def _windows_batch(self: TimeSeriesLoader,
-                   index: Collection[int]) -> Dict[str, t.Tensor]:
-    """Creates batch based on index. Works with NBEATS, TCN models.
+                   index: np.ndarray) -> Dict[str, t.Tensor]:
+    """Creates batch based on index.
 
     Parameters
     ----------
-    index: Collection[int]
+    index: np.ndarray
         Indexes of time series to consider.
 
     Returns
@@ -228,10 +248,11 @@ def _windows_batch(self: TimeSeriesLoader,
         - X
         - available_mask
         - sample_mask
+        - idxs
     """
 
     # Create windows for each sampled ts and sample random unmasked windows from each ts
-    windows, s_matrix = self._create_windows_tensor(ts_idxs=index)
+    windows, s_matrix, ts_idxs = self._create_windows_tensor(index=index)
     sampleable_windows = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
 
     # Get sample windows_idxs of batch
@@ -243,174 +264,26 @@ def _windows_batch(self: TimeSeriesLoader,
     # Index the windows and s_matrix tensors of batch
     windows = windows[windows_idxs]
     S = s_matrix[windows_idxs]
+    ts_idxs = ts_idxs[windows_idxs]
 
     # Parse windows to elements of batch
     Y = windows[:, self.t_cols.index('y'), :]
-    X = windows[:, (self.t_cols.index('y')+1):self.t_cols.index('available_mask'), :]
-    available_mask = windows[:, self.t_cols.index('available_mask'), :]
-    sample_mask = windows[:, self.t_cols.index('sample_mask'), :]
-
-    batch = {'S': S, 'Y': Y, 'X': X,
-             'available_mask': available_mask,
-             'sample_mask': sample_mask}
-    return batch
-
-# Cell
-@patch
-def _create_windows_tensor_rnn(self: TimeSeriesLoader,
-                               ts_idxs: Optional[Collection[int]] = None) -> Tuple[t.Tensor,
-                                                                                   t.Tensor]:
-    """Creates windows tensor for RNN models.
-
-    Parameters
-    ----------
-    ts_idxs: Optional[Collection[int]]
-        Indexes of time series to consider.
-        Default None: returns all ts.
-
-    Returns
-    -------
-    Tuple of two elements:
-        - Windows tensor of shape (windows, channels, self.len_sample_chunks)
-        - Static variables tensor of shape (windows, series, n_static)
-    """
-    # Default ts_idxs=ts_idxs sends all the data, otherwise filters series
-    tensor, right_padding = self.ts_dataset.get_filtered_ts_tensor(output_size=self.output_size,
-                                                                   window_sampling_limit=self.window_sampling_limit,
-                                                                   ts_idxs=ts_idxs)
-    tensor = t.Tensor(tensor)
-
-    padder = t.nn.ConstantPad1d(padding=(0, 0), value=0)
-    tensor = padder(tensor)
-
-    # Creating rolling windows and 'flattens' them
-    #windows = tensor.unfold(dimension=-1, size=self.input_size + self.output_size, step=self.idx_to_sample_freq)
-    windows = tensor.unfold(dimension=-1, size=self.len_sample_chunks, step=self.idx_to_sample_freq)
-
-    # n_serie, n_channel, n_time, window_size -> n_serie, n_time, n_channel, window_size
-    #print(f'n_serie, n_channel, n_time, window_size = {windows.shape}')
-    windows = windows.permute(0,2,1,3)
-    #print(f'n_serie, n_time, n_channel, window_size = {windows.shape}')
-    windows = windows.reshape(-1, self.ts_dataset.n_channels, self.len_sample_chunks)
-
-    # Broadcast s_matrix: This works because unfold in windows_tensor, orders: serie, time
-    s_matrix = self.ts_dataset.s_matrix[ts_idxs]
-    n_ts = self.ts_dataset.n_series if ts_idxs is None else len(ts_idxs)
-    windows_per_serie = len(windows) // n_ts
-    s_matrix = s_matrix.repeat(repeats=windows_per_serie, axis=0)
-    idxs = ts_idxs.repeat(repeats=windows_per_serie)
-
-    return windows, s_matrix, idxs
-
-# Cell
-@patch
-def _windows_batch_rnn(self: TimeSeriesLoader,
-                       index: Collection[int]) -> Dict[str, t.Tensor]:
-    """Creates batch based on index. Works with RNN models.
-
-    Parameters
-    ----------
-    index: Collection[int]
-        Indexes of time series to consider.
-
-    Returns
-    -------
-    Dictionary with keys:
-        - S
-        - Y
-        - X
-        - available_mask
-        - sample_mask
-        - idxs
-    """
-    # Create windows for each sampled ts and sample random unmasked windows from each ts
-    windows, s_matrix, idxs = self._create_windows_tensor_rnn(ts_idxs=index)
-    sampleable_windows = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
-
-    # Get sample windows_idxs of batch
-    if self.shuffle:
-        windows_idxs = np.random.choice(sampleable_windows, self.batch_size, replace=True)
-    else:
-        windows_idxs = np.array(sampleable_windows)
-
-    # Index the windows and s_matrix tensors of batch
-    windows = windows[windows_idxs]
-    S = s_matrix[windows_idxs]
-    idx = idxs[windows_idxs]
-
-    # Parse windows to elements of batch
-    Y = windows[:, self.t_cols.index('y'), :]
-    X = windows[:, self.t_cols.index('y')+1:self.t_cols.index('available_mask'), :]
+    X = windows[:, (self.t_cols.index('y') + 1):self.t_cols.index('available_mask'), :]
     available_mask = windows[:, self.t_cols.index('available_mask'), :]
     sample_mask = windows[:, self.t_cols.index('sample_mask'), :]
 
     batch = {'S': S, 'Y': Y, 'X': X,
              'available_mask': available_mask,
              'sample_mask': sample_mask,
-             'idxs': idx}
-    return batch
-
-# Cell
-@patch
-def _full_series_batch(self: TimeSeriesLoader,
-                       index: Collection[int]) -> Dict[str, t.Tensor]:
-    """Creates batch based on index. Works with RNN models.
-
-    Parameters
-    ----------
-    index: Collection[int]
-        Indexes of time series to consider.
-
-    Returns
-    -------
-    Dictionary with keys:
-        - s_matrix
-        - insample_y
-        - insample_x
-        - idxs
-    """
-    #TODO: think masks, do they make sense for ESRNN and RNN??
-    #TODO: padding preventivo
-    ts_tensor, _ = self.ts_dataset.get_filtered_ts_tensor(output_size=self.output_size,
-                                                          window_sampling_limit=self.window_sampling_limit,
-                                                          ts_idxs=index)
-    ts_tensor = t.Tensor(ts_tensor)
-
-    # Trim batch to shorter time series TO AVOID ZERO PADDING, remove non sampleable ts
-    # shorter time series is driven by the last ts_idx which is available
-    # non-sampleable ts is driver by the first ts_idx which stops beeing sampleable
-    available_mask_tensor = ts_tensor[:, self.t_cols.index('available_mask'), :]
-    min_time_stamp = int(t.nonzero(t.min(available_mask_tensor, axis=0).values).min())
-    sample_mask_tensor = ts_tensor[:, self.t_cols.index('sample_mask'), :]
-
-    max_time_stamp = int(t.nonzero(t.min(sample_mask_tensor, axis=0).values).max())
-
-    available_ts = max_time_stamp - min_time_stamp
-    assert available_ts >= self.input_size + self.output_size, (
-        f'Time series too short for given input size '
-        f'{self.input_size} and output size {self.output_size}.'
-    )
-
-    insample_y = ts_tensor[:, self.t_cols.index('y'), :]
-    insample_y = insample_y[:, min_time_stamp:max_time_stamp+1] #+1 because is not inclusive
-
-    insample_x = ts_tensor[:, self.t_cols.index('y')+1:self.t_cols.index('available_mask'), :]
-    insample_x = insample_x[:, min_time_stamp:max_time_stamp+1] #+1 because is not inclusive
-
-    s_matrix = self.ts_dataset.s_matrix[index]
-
-    batch = {'insample_y': insample_y,
-             'idxs': index,
-             'insample_x': insample_x,
-             's_matrix': s_matrix}
+             'idxs': ts_idxs}
 
     return batch
 
 # Cell
 @patch
 def __getitem__(self: TimeSeriesLoader,
-            index: Collection[int]) -> Dict[str, t.Tensor]:
-    """Gets batch based on index
+                index: Collection[int]) -> Dict[str, t.Tensor]:
+    """Gets batch based on index.
 
     Parameters
     ----------
@@ -419,17 +292,10 @@ def __getitem__(self: TimeSeriesLoader,
 
     Returns
     -------
-    Batch corresponding to self.model and index.
+    Batch corresponding to index.
     """
 
-    if self.model in ['nbeats']:
-        return self._windows_batch(index=index)
-    elif self.model in ['esrnn']:
-        return self._full_series_batch(index=index)
-    elif self.model in ['new_rnn', 'mqesrnn']:
-        return self._windows_batch_rnn(index=index)
-    else:
-        assert 1<0, f'There is no batch strategy for {self.model}'
+    return self._windows_batch(index=np.array(index))
 
 # Cell
 @patch

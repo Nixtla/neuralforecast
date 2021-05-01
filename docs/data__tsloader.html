@@ -47,8 +47,13 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="TimeSeriesLoader" class="doc_header"><code>class</code> <code>TimeSeriesLoader</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L21" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesLoader</code>(<strong><code>ts_dataset</code></strong>:<a href="/nixtla/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>model</code></strong>:<code>Literal</code>[<code>nbeats</code>, <code>esrnn</code>, <code>rnn</code>, <code>new_rnn</code>], <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>input_size</code></strong>:<code>int</code>, <strong><code>output_size</code></strong>:<code>int</code>, <strong><code>idx_to_sample_freq</code></strong>:<code>int</code>, <strong><code>batch_size</code></strong>:<code>int</code>, <strong><code>complete_inputs</code></strong>:<code>bool</code>, <strong><code>complete_sample</code></strong>:<code>bool</code>, <strong><code>shuffle</code></strong>:<code>bool</code>, <strong><code>len_sample_chunks</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>n_series_per_batch</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h2 id="TimeSeriesLoader" class="doc_header"><code>class</code> <code>TimeSeriesLoader</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L21" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesLoader</code>(<strong><code>ts_dataset</code></strong>:<a href="/nixtla/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>model</code></strong>:<code>Literal</code>[<code>nbeats</code>, <code>esrnn</code>], <strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>input_size</code></strong>:<code>int</code>, <strong><code>output_size</code></strong>:<code>int</code>, <strong><code>idx_to_sample_freq</code></strong>:<code>int</code>, <strong><code>batch_size</code></strong>:<code>int</code>, <strong><code>complete_inputs</code></strong>:<code>bool</code>, <strong><code>complete_sample</code></strong>:<code>bool</code>, <strong><code>shuffle</code></strong>:<code>bool</code>, <strong><code>len_sample_chunks</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>n_series_per_batch</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
+<h2 id="Attributes">Attributes<a class="anchor-link" href="#Attributes"> </a></h2><p>windows_size: int
+    Size of the windows.
+padding: Tuple[int, int]
+    Tuple of left and right sizes of the padding.
+    Used to pad the ts_tensor with 0.</p>
 
 </div>
 
@@ -56,27 +61,6 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 </div>
 </div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
 
 </div>
     {% endraw %}
@@ -127,12 +111,12 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.__getitem__" class="doc_header"><code>TimeSeriesLoader.__getitem__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L410" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__getitem__</code>(<strong><code>index</code></strong>:<code>Collection</code>[<code>int</code>])</p>
+<h4 id="TimeSeriesLoader.__getitem__" class="doc_header"><code>TimeSeriesLoader.__getitem__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L283" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__getitem__</code>(<strong><code>index</code></strong>:<code>Collection</code>[<code>int</code>])</p>
 </blockquote>
-<p>Gets batch based on index</p>
+<p>Gets batch based on index.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>index: Collection[int]
     Indexes of time series to consider.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Batch corresponding to self.model and index.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Batch corresponding to index.</p>
 
 </div>
 
@@ -162,7 +146,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.__iter__" class="doc_header"><code>TimeSeriesLoader.__iter__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L435" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__iter__</code>()</p>
+<h4 id="TimeSeriesLoader.__iter__" class="doc_header"><code>TimeSeriesLoader.__iter__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L301" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.__iter__</code>()</p>
 </blockquote>
 <p>Batch iterator.</p>
 
@@ -194,7 +178,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_variables" class="doc_header"><code>TimeSeriesLoader.get_n_variables</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L458" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_variables</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_variables" class="doc_header"><code>TimeSeriesLoader.get_n_variables</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L324" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_variables</code>()</p>
 </blockquote>
 <p>Gets number of exogenous and static variables.</p>
 
@@ -219,7 +203,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_series" class="doc_header"><code>TimeSeriesLoader.get_n_series</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L463" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_series</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_series" class="doc_header"><code>TimeSeriesLoader.get_n_series</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L329" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_series</code>()</p>
 </blockquote>
 <p>Gets number of time series.</p>
 
@@ -244,7 +228,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_max_len" class="doc_header"><code>TimeSeriesLoader.get_max_len</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L468" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_max_len</code>()</p>
+<h4 id="TimeSeriesLoader.get_max_len" class="doc_header"><code>TimeSeriesLoader.get_max_len</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L334" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_max_len</code>()</p>
 </blockquote>
 <p>Gets max len of time series.</p>
 
@@ -269,7 +253,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_n_channels" class="doc_header"><code>TimeSeriesLoader.get_n_channels</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L473" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_channels</code>()</p>
+<h4 id="TimeSeriesLoader.get_n_channels" class="doc_header"><code>TimeSeriesLoader.get_n_channels</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L339" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_n_channels</code>()</p>
 </blockquote>
 <p>Gets number of channels considered.</p>
 
@@ -294,7 +278,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.get_frequency" class="doc_header"><code>TimeSeriesLoader.get_frequency</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L478" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_frequency</code>()</p>
+<h4 id="TimeSeriesLoader.get_frequency" class="doc_header"><code>TimeSeriesLoader.get_frequency</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L344" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.get_frequency</code>()</p>
 </blockquote>
 <p>Gets infered frequency.</p>
 
@@ -319,7 +303,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.train" class="doc_header"><code>TimeSeriesLoader.train</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L483" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.train</code>()</p>
+<h4 id="TimeSeriesLoader.train" class="doc_header"><code>TimeSeriesLoader.train</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L349" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.train</code>()</p>
 </blockquote>
 <p>Sets train mode.</p>
 
@@ -344,7 +328,7 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesLoader.eval" class="doc_header"><code>TimeSeriesLoader.eval</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L488" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.eval</code>()</p>
+<h4 id="TimeSeriesLoader.eval" class="doc_header"><code>TimeSeriesLoader.eval</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsloader.py#L354" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesLoader.eval</code>()</p>
 </blockquote>
 <p>Sets validation mode</p>
 
@@ -367,11 +351,103 @@ nb_path: "nbs/data__tsloader.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Checks-for-TimeSeriesLoader's-methods">Checks for TimeSeriesLoader's methods<a class="anchor-link" href="#Checks-for-TimeSeriesLoader's-methods"> </a></h1><p>Synthetic data, RNN-like windows</p>
+<h2 id="Test-for-TimeSeriesLoader's-methods">Test for TimeSeriesLoader's methods<a class="anchor-link" href="#Test-for-TimeSeriesLoader's-methods"> </a></h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Sampleable-ts-idxs">Sampleable ts idxs<a class="anchor-link" href="#Sampleable-ts-idxs"> </a></h3>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
+
+<span class="n">n_ts</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">create_synthetic_tsdata</span><span class="p">(</span><span class="n">n_ts</span><span class="o">=</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">is_test</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
 
 </div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span>
+                            <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> 
+                            <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
+</pre></div>
+
+    </div>
 </div>
 </div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+                          <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span>
+                          <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span>
+                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                          <span class="n">batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+                          <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                          <span class="n">complete_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                          <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                          <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">sizes</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+<span class="n">e_sampleable_ts_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sizes</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="n">ds_in_test</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">test_eq</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">sampleable_ts_idxs</span><span class="p">,</span> <span class="n">e_sampleable_ts_idxs</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -482,6 +558,7 @@ Y.shape torch.Size([256, 10])
 X.shape torch.Size([256, 2, 10])
 available_mask.shape torch.Size([256, 10])
 sample_mask.shape torch.Size([256, 10])
+idxs.shape (256,)
 </pre>
 </div>
 </div>
@@ -548,7 +625,7 @@ sample_mask.shape torch.Size([256, 10])
 <span class="n">ts_dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">ts_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">ts_dataset</span><span class="p">,</span>
-                             <span class="n">model</span><span class="o">=</span><span class="s1">&#39;new_rnn&#39;</span><span class="p">,</span>
+                             <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span>
                              <span class="c1">#model=&#39;nbeats&#39;,</span>
                              <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">ts_dataset</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span> 
                              <span class="n">input_size</span><span class="o">=</span><span class="mi">24</span><span class="o">*</span><span class="mi">7</span><span class="p">,</span>
@@ -578,27 +655,6 @@ sample_mask.shape torch.Size([256, 10])
 >
 </div>
 
-</div>
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:root:Train Validation splits
-
-INFO:root:                              ds                    
-                             min                 max
-unique_id sample_mask                               
-NP        0           2016-12-27 2018-12-24 23:00:00
-          1           2013-01-01 2016-12-26 23:00:00
-INFO:root:
-Total data 			52416 time stamps 
-Available percentage=100.0, 	52416 time stamps 
-Insample  percentage=66.67, 	34944 time stamps 
-Outsample percentage=33.33, 	17472 time stamps 
-
-WARNING:root:Batch size will be ignored (shuffle=False). All windows constructed will be used to train.
-</pre>
-</div>
 </div>
 
 </div>
@@ -888,6 +944,7 @@ Y.shape torch.Size([256, 10])
 X.shape torch.Size([256, 2, 10])
 available_mask.shape torch.Size([256, 10])
 sample_mask.shape torch.Size([256, 10])
+idxs.shape (256,)
 </pre>
 </div>
 </div>
@@ -922,13 +979,13 @@ sample_mask.shape torch.Size([256, 10])
 <div class="output_text output_subarea output_execute_result">
 <pre>array([[1, 0],
        [0, 1],
-       [1, 0],
-       [0, 1],
-       [0, 1],
-       [0, 1],
        [0, 1],
        [1, 0],
+       [0, 1],
+       [0, 1],
+       [0, 1],
        [1, 0],
+       [0, 1],
        [0, 1]])</pre>
 </div>
 
@@ -962,13 +1019,13 @@ sample_mask.shape torch.Size([256, 10])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[  43.,   44.,   45.,  ...,   50.,   51.,   52.],
-        [1630., 1640., 1650.,  ..., 1700., 1710., 1720.],
-        [ 307.,  308.,  309.,  ...,  314.,  315.,  316.],
-        ...,
-        [1390., 1400., 1410.,  ..., 1460., 1470., 1480.],
+<pre>tensor([[ 211.,  212.,  213.,  ...,  218.,  219.,  220.],
+        [1870., 1880., 1890.,  ..., 1940., 1950., 1960.],
         [2350., 2360., 2370.,  ..., 2420., 2430., 2440.],
-        [ 190.,  200.,  210.,  ...,  260.,  270.,  280.]])</pre>
+        ...,
+        [1870., 1880., 1890.,  ..., 1940., 1950., 1960.],
+        [ 259.,  260.,  261.,  ...,  266.,  267.,  268.],
+        [ 910.,  920.,  930.,  ...,  980.,  990., 1000.]])</pre>
 </div>
 
 </div>
@@ -1001,10 +1058,10 @@ sample_mask.shape torch.Size([256, 10])
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>tensor([[-4.3000e+01, -4.4000e+01, -4.5000e+01, -4.6000e+01, -4.7000e+01,
-         -4.8000e+01, -4.9000e+01, -5.0000e+01, -5.1000e+01, -5.2000e+01],
-        [ 2.2727e-02,  2.2222e-02,  2.1739e-02,  2.1277e-02,  2.0833e-02,
-          2.0408e-02,  2.0000e-02,  1.9608e-02,  1.9231e-02,  1.8868e-02]])</pre>
+<pre>tensor([[-2.1100e+02, -2.1200e+02, -2.1300e+02, -2.1400e+02, -2.1500e+02,
+         -2.1600e+02, -2.1700e+02, -2.1800e+02, -2.1900e+02, -2.2000e+02],
+        [ 4.7170e-03,  4.6948e-03,  4.6729e-03,  4.6512e-03,  4.6296e-03,
+          4.6083e-03,  4.5872e-03,  4.5662e-03,  4.5455e-03,  4.5249e-03]])</pre>
 </div>
 
 </div>
