@@ -9,11 +9,12 @@ import numpy as np
 import pandas as pd
 
 # Cell
-def create_synthetic_tsdata(n_ts: int = 64) -> Tuple[pd.DataFrame,
-                                                     pd.DataFrame,
-                                                     pd.DataFrame]:
+def create_synthetic_tsdata(n_ts: int = 64,
+                            sort: bool = False) -> Tuple[pd.DataFrame,
+                                                         pd.DataFrame,
+                                                         pd.DataFrame]:
     """Creates synthetic time serie data."""
-    uids = np.array([f'uid_{i}' for i in range(n_ts)])
+    uids = np.array([f'uid_{i + 1}' for i in range(n_ts)])
     dss = pd.date_range(end='2020-12-31', periods=n_ts)
 
     df = []
@@ -27,6 +28,8 @@ def create_synthetic_tsdata(n_ts: int = 64) -> Tuple[pd.DataFrame,
     df['day_of_week'] = df['ds'].dt.day_of_week
     df['future_1'] = df['y'] + 1
     df['id_ts'] = df['unique_id'].astype('category').cat.codes
+    if sort:
+        df = df.sort_values(['unique_id', 'ds'])
 
     Y_df = df.filter(items=['unique_id', 'ds', 'y'])
     X_df = df.filter(items=['unique_id', 'ds', 'day_of_week', 'future_1'])
