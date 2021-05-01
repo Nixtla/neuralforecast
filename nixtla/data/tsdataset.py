@@ -383,10 +383,13 @@ def get_default_mask_df(Y_df: pd.DataFrame,
     mask_df = Y_df[['unique_id', 'ds']].copy()
     mask_df['available_mask'] = 1
     mask_df['sample_mask'] = 1
+    mask_df = mask_df.set_index(['unique_id', 'ds'])
 
     mask_df_s = mask_df.sort_values(by=['unique_id', 'ds'])
     zero_idx = mask_df_s.groupby('unique_id').tail(ds_in_test).index
     mask_df.loc[zero_idx, 'sample_mask'] = 0
+    mask_df = mask_df.reset_index()
+    mask_df.index = Y_df.index
 
     assert len(mask_df)==len(Y_df), \
         f'The mask_df length {len(mask_df)} is not equal to Y_df length {len(Y_df)}'
