@@ -75,6 +75,7 @@ class TimeSeriesLoader(object):
         len_sample_chunks: Optional[int] = None
             Size of complete windows.
             Only used for model = 'esrnn'!
+            Default None, equls to input_size + ouput_size.
         n_series_per_batch: Optional[int] = None
             Number of time series per batch.
         verbose: bool = False
