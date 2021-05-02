@@ -7,7 +7,7 @@ import copy
 import logging
 import random
 from collections import defaultdict
-from typing import Collection, Dict, List, Optional, Tuple
+from typing import Collection, Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
 import numpy as np
@@ -122,10 +122,17 @@ class TimeSeriesLoader(object):
             f'to be smaller than n_series {self.ts_dataset.n_series}'
         )
 
+        # Sampleable time series
         sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')] \
                               .sum(axis=1)
         self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0].tolist()
+        self.n_sampleable_ts = len(self.sampleable_ts_idxs)
 
+        # Loader iterations attributes
+        self.n_batches = int(np.ceil(self.n_sampleable_ts / self.n_series_per_batch)) # Must be multiple of batch_size for paralel gpu
+
+
+        # Defining windows attributes by model
         self.windows_size: int
         self.padding: Tuple[int, int]
 
@@ -146,7 +153,7 @@ def _define_attributes_by_model(self: TimeSeriesLoader):
 # Cell
 @patch
 def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
-                                 ts_windows_flatten: t.Tensor) -> List[int]:
+                                 ts_windows_flatten: t.Tensor) -> np.ndarray:
     """Gets indexes of windows that fulfills conditions.
 
     Parameters
@@ -156,7 +163,7 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
 
     Returns
     -------
-    List of indexes of ts_windows_flatten that fulfills conditions.
+    Numpy array of indexes of ts_windows_flatten that fulfills conditions.
     """
     if not self.complete_sample:
         sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:], axis=1)
@@ -168,11 +175,11 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
             sampling_idx = t.nonzero(available_condition * sample_condition > 0)
     else:
         sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:], axis=1)
-        sample_condition = (sample_condition == (self.output_size)) * 1
+        sample_condition = (sample_condition == self.output_size) * 1
         sampling_idx = t.nonzero(sample_condition)
 
-    sampling_idx = list(sampling_idx.flatten().numpy())
-    assert len(sampling_idx)>0, (
+    sampling_idx = sampling_idx.flatten().numpy()
+    assert sampling_idx.size > 0, (
         'Check the data and masks as sample_idxs are empty, '
         'check window_sampling_limit, input_size, output_size, masks'
     )
@@ -282,7 +289,7 @@ def _windows_batch(self: TimeSeriesLoader,
 # Cell
 @patch
 def __getitem__(self: TimeSeriesLoader,
-                index: Collection[int]) -> Dict[str, t.Tensor]:
+                index: Union[Collection[int], np.ndarray]) -> Dict[str, t.Tensor]:
     """Gets batch based on index.
 
     Parameters
@@ -301,20 +308,16 @@ def __getitem__(self: TimeSeriesLoader,
 @patch
 def __iter__(self: TimeSeriesLoader) -> Dict[str, t.Tensor]:
     """Batch iterator."""
-    n_series = len(self.sampleable_ts_idxs)
-    # Shuffle idx before epoch if self._is_train
     # Hierarchical sampling
     # 1. Sampling series
     if self.shuffle:
         sample_idxs = np.random.choice(a=self.sampleable_ts_idxs,
-                                       size=n_series,
+                                       size=self.n_sampleable_ts,
                                        replace=False)
     else:
         sample_idxs = np.array(self.sampleable_ts_idxs)
 
-    n_batches = int(np.ceil(n_series / self.n_series_per_batch)) # Must be multiple of batch_size for paralel gpu
-
-    for idx in range(n_batches):
+    for idx in range(self.n_batches):
         ts_idxs = sample_idxs[(idx * self.n_series_per_batch) : (idx + 1) * self.n_series_per_batch]
         # 2. Sampling windows
         batch = self[ts_idxs]
