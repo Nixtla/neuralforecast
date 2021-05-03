@@ -217,7 +217,11 @@ def _define_attributes_by_model(self: TimeSeriesLoader):
 def _define_sampleable_ts_idxs(self: TimeSeriesLoader):
     sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')] \
                               .sum(axis=1)
-    self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0]
+    if self.complete_inputs:
+        min_mask = self.windows_size
+    else:
+        min_mask = self.output_size
+    self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > min_mask).reshape(1, -1)[0]
     self.n_sampleable_ts = self.sampleable_ts_idxs.size
 
 # Cell
