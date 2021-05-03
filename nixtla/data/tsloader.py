@@ -20,14 +20,73 @@ from .tsdataset import TimeSeriesDataset
 # Cell
 class TimeSeriesLoader(object):
     """
+    DataLoader for Time Series data.
 
     Attributes
     ----------
+    ts_dataset: TimeSeriesDataset
+        Object of class TimeSeriesDataset.
+    t_cols: list
+        List of temporal variables (mask variables included).
+    f_cols: list
+        List of exogenous variables of the future.
+    model: str
+        Model to be used.
+        One of ['nbeats', 'esrnn'].
+    window_sampling_limit: int
+        Max size of observations to consider, including output_size.
+    input_size: int
+        Size of the training sets.
+    output_size: int
+        Forecast horizon.
+    idx_to_sample_freq: int
+        Step size to construct windows.
+        Ej. if idx_to_sample_freq=7, each 7 timestamps
+        a window will be constructed.
+    batch_size: int
+        Number of samples considered in each iteration.
+    complete_inputs: bool
+        Whether consider only windows of length equals to input_size.
+    shuffle: bool
+        Shuffled batch.
+        If False, batch size will be ignored and
+        all windows will be used when training.
+    len_sample_chunks: Optional[int] = None
+        Size of complete windows.
+        Only used for model = 'esrnn'!
+        Default None, equls to input_size + ouput_size.
+    n_series_per_batch: Optional[int] = None
+        Number of time series per batch.
+    verbose: bool = False
+        Whether display informative messages.
     windows_size: int
         Size of the windows.
+        For model='nbeats', window_size=input_size + output_size.
+        For model='esrnn', window_size=len_sample_chunks.
     padding: Tuple[int, int]
         Tuple of left and right sizes of the padding.
         Used to pad the ts_tensor with 0.
+        For model='nbeats', padding=(input_size, output_size).
+        For model='esrnn', padding=(0, 0).
+    sampleable_ts_idxs: np.ndarray
+        Indexes of sampleable time series.
+    n_sampleable_ts_idxs: int
+        Number of sampleable time series.
+    n_batches:
+        Number of batches given conditions.
+
+    Methods
+    -------
+    get_n_variables()
+        Returns Tuple of number of exogenous and static variables.
+    get_n_series()
+        Returns number of time series.
+    get_max_len()
+        Returns max length of the time series.
+    get_n_channels()
+        Returns number of channels.
+    get_frequency()
+        Returns infered frequency.
     """
     def __init__(self,
                  ts_dataset: TimeSeriesDataset,
@@ -38,7 +97,6 @@ class TimeSeriesLoader(object):
                  idx_to_sample_freq: int,
                  batch_size: int,
                  complete_inputs: bool,
-                 complete_sample: bool,
                  shuffle: bool,
                  len_sample_chunks: Optional[int] = None,
                  n_series_per_batch: Optional[int] = None,
@@ -65,9 +123,14 @@ class TimeSeriesLoader(object):
         batch_size: int
             Number of samples considered in each iteration.
         complete_inputs: bool
-            Whether consider only windows of length equals to input_size.
-        complete_sample: bool
-            Whether consider only windows with complete output_size.
+            If complete_input=True
+            return all windows which its ouput_size
+            has complete sample_mask and its input_size
+            has complete available_mask.
+            If complete_input=False
+            returns all windows which its
+            output_size has complete sample_mask.
+            This avoids leakage.
         shuffle: bool
             Shuffled batch.
             If False, batch size will be ignored and
@@ -88,7 +151,6 @@ class TimeSeriesLoader(object):
         self.output_size = output_size
         self.batch_size = batch_size
         self.complete_inputs = complete_inputs
-        self.complete_sample = complete_sample
         self.idx_to_sample_freq = idx_to_sample_freq
         self.ts_dataset = ts_dataset
         self.t_cols = self.ts_dataset.t_cols
@@ -105,13 +167,12 @@ class TimeSeriesLoader(object):
         else:
             self.len_sample_chunks = input_size + output_size
 
-        self.windows_per_serie = self.batch_size // self.n_series_per_batch
         self.shuffle = shuffle
         self.verbose = verbose
 
-        if not shuffle and model not in ['esrnn']:
+        if not shuffle:
             logging.warning('Batch size will be ignored (shuffle=False). '
-                            'All windows constructed will be used to train.')
+                            'All constructed windows will be used to train.')
 
         # Dataloader protections
         assert self.batch_size % self.n_series_per_batch == 0, (
@@ -123,21 +184,21 @@ class TimeSeriesLoader(object):
             f'to be smaller than n_series {self.ts_dataset.n_series}'
         )
 
-        # Sampleable time series
-        sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')] \
-                              .sum(axis=1)
-        self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0].tolist()
-        self.n_sampleable_ts = len(self.sampleable_ts_idxs)
-
-        # Loader iterations attributes
-        self.n_batches = int(np.ceil(self.n_sampleable_ts / self.n_series_per_batch)) # Must be multiple of batch_size for paralel gpu
-
-
         # Defining windows attributes by model
         self.windows_size: int
         self.padding: Tuple[int, int]
 
         self._define_attributes_by_model()
+
+        # Defining sampleable time series
+        self.sampleable_ts_idxs: np.ndarray
+        self.n_sampleable_ts: int
+
+        self._define_sampleable_ts_idxs()
+
+         # Loader iterations attributes
+        self.n_batches = int(np.ceil(self.n_sampleable_ts / self.n_series_per_batch)) # Must be multiple of batch_size for paralel gpu
+
 
 # Cell
 @patch
@@ -153,6 +214,14 @@ def _define_attributes_by_model(self: TimeSeriesLoader):
 
 # Cell
 @patch
+def _define_sampleable_ts_idxs(self: TimeSeriesLoader):
+    sum_sample_mask = self.ts_dataset.ts_tensor[:, self.t_cols.index('sample_mask')] \
+                              .sum(axis=1)
+    self.sampleable_ts_idxs = np.argwhere(sum_sample_mask > 1).reshape(1, -1)[0]
+    self.n_sampleable_ts = self.sampleable_ts_idxs.size
+
+# Cell
+@patch
 def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
                                  ts_windows_flatten: t.Tensor) -> np.ndarray:
     """Gets indexes of windows that fulfills conditions.
@@ -164,19 +233,27 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
 
     Returns
     -------
-    Numpy array of indexes of ts_windows_flatten that fulfills conditions.
+    Numpy array of indexes of ts_windows_flatten that
+    fulfills conditions.
+
+    Notes
+    -----
+    [1] If complete_input=True
+    return all windows which its ouput_size
+    has complete sample_mask and its input_size
+    has complete available_mask.
+    [2] If complete_input=False
+    returns all windows which its
+    output_size has complete sample_mask.
+    This avoids leakage.
     """
-    if not self.complete_sample:
-        sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:], axis=1)
-        available_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('available_mask'), :self.input_size], axis=1)
-        if self.complete_inputs:
-            completely_available_condition = 1 * (available_condition == self.input_size)
-            sampling_idx = t.nonzero(completely_available_condition * sample_condition > 0)
-        else:
-            sampling_idx = t.nonzero(available_condition * sample_condition > 0)
+    sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -(self.output_size + 1):], axis=1)
+    sample_condition = (sample_condition > self.output_size) * 1
+    if self.complete_inputs:
+        available_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('available_mask'), :-self.output_size], axis=1)
+        available_condition = (available_condition == self.windows_size - self.output_size) * 1
+        sampling_idx = t.nonzero(available_condition * sample_condition > 0)
     else:
-        sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:], axis=1)
-        sample_condition = (sample_condition == self.output_size) * 1
         sampling_idx = t.nonzero(sample_condition)
 
     sampling_idx = sampling_idx.flatten().numpy()
@@ -349,13 +426,3 @@ def get_n_channels(self: TimeSeriesLoader) -> int:
 def get_frequency(self: TimeSeriesLoader) -> str:
     """Gets infered frequency."""
     return self.ts_dataset.frequency
-
-@patch
-def train(self: TimeSeriesLoader) -> None:
-    """Sets train mode."""
-    self._is_train = True
-
-@patch
-def eval(self: TimeSeriesLoader) -> None:
-    """Sets validation mode"""
-    self._is_train = False
