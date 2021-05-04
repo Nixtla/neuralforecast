@@ -18,7 +18,7 @@ dependencies:
   - openpyxl
   - pip:
     - torchinfo
-    - nbdev
+    - nbdev==1.1.13
     - tabulate
     - python-dotenv
     - fsspec
