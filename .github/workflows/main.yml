@@ -63,4 +63,6 @@ jobs:
       - name: Run tests
         shell: bash -l {0}
         working-directory: nixtla
-        run: nbdev_test_nbs
+        run: |
+          nbdev_test_nbs --fname "nbs/data_datasets__*"
+          nbdev_test_nbs --timing True
