@@ -488,7 +488,6 @@ class ESRNN(object):
                                      idx_to_sample_freq=self.output_size,
                                      batch_size=1024,
                                      complete_inputs=False,
-                                     complete_sample=True,
                                      shuffle=False)
 
         y_true, y_hat, _ = self.predict(ts_loader=ts_loader,

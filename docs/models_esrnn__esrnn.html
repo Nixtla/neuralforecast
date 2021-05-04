@@ -195,7 +195,6 @@ device: str
                                    <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
                                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">3</span><span class="o">*</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span>
                                    <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                   <span class="n">complete_sample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                    <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
                                    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -207,7 +206,6 @@ device: str
                                  <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
                                  <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">4</span><span class="o">*</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span>
                                  <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                 <span class="n">complete_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                  <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                  <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
@@ -248,6 +246,7 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=33.33, 	17472 time stamps 
 Outsample percentage=66.67, 	34944 time stamps 
 
+WARNING:root:Batch size will be ignored (shuffle=False). All constructed windows will be used to train.
 </pre>
 </div>
 </div>
@@ -327,7 +326,7 @@ Outsample percentage=66.67, 	34944 time stamps
 <pre>
 
 ============================== Start fitting ==============================
-Step: 5, Time: 1.451, Insample SMYL: 0.03181, Outsample MAE: 3.63654
+Step: 5, Time: 0.694, Insample SMYL: 0.03181, Outsample MAE: 3.63922
 ==============================  End fitting  ==============================
 
 
@@ -359,6 +358,20 @@ Step: 5, Time: 1.451, Insample SMYL: 0.03181, Outsample MAE: 3.63654
 </pre></div>
 
     </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>WARNING:root:Batch size will be ignored (shuffle=False). All constructed windows will be used to train.
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 
@@ -556,30 +569,42 @@ model.training_percentile 51
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">train_ts_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">train_ts_dataset</span><span class="p">,</span>
                                    <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span>
-                                   <span class="n">window_sampling_limit</span><span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span> <span class="c1"># To limit backprop time</span>
+                                   <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span> <span class="c1"># To limit backprop time</span>
                                    <span class="n">input_size</span><span class="o">=</span><span class="mi">6</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
                                    <span class="n">output_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
                                    <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">6</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
                                    <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                   <span class="n">complete_sample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                    <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
                                    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">val_ts_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">outsample_ts_dataset</span><span class="p">,</span>
                                  <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span>
-                                 <span class="n">window_sampling_limit</span><span class="o">=</span> <span class="mi">500_000</span><span class="p">,</span> 
+                                 <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span> 
                                  <span class="n">input_size</span><span class="o">=</span><span class="mi">6</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
                                  <span class="n">output_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
                                  <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                  <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">6</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
                                  <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                 <span class="n">complete_sample</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                  <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                  <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
     </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>WARNING:root:Batch size will be ignored (shuffle=False). All constructed windows will be used to train.
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 
@@ -645,7 +670,7 @@ idxs.shape (32,)
               <span class="n">gradient_eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
               <span class="n">gradient_clipping_threshold</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
               <span class="n">rnn_weight_decay</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-              <span class="n">n_iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="c1">#00,#00,</span>
+              <span class="n">n_iterations</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="c1">#00,#00,</span>
               <span class="n">early_stopping</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
               <span class="n">noise_std</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
               <span class="n">level_variability_penalty</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
@@ -697,7 +722,7 @@ idxs.shape (32,)
 <pre>
 
 ============================== Start fitting ==============================
-Step: 17, Time: 1.051, Insample SMYL: 0.34308, Outsample MAE: 5.75219
+Step: 11, Time: 0.195, Insample SMYL: 0.41107, Outsample MAE: 3.00688
 ==============================  End fitting  ==============================
 
 
@@ -734,9 +759,9 @@ Step: 17, Time: 1.051, Insample SMYL: 0.34308, Outsample MAE: 5.75219
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>y_true.shape (17467, 6)
-y_hat.shape (17467, 6)
-y_mask.shape (17467, 6)
+<pre>y_true.shape (17466, 6)
+y_hat.shape (17466, 6)
+y_mask.shape (17466, 6)
 </pre>
 </div>
 </div>

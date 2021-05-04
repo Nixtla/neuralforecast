@@ -178,7 +178,6 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
                                     batch_size=int(mc['batch_size']),
                                     n_series_per_batch=mc['n_series_per_batch'],
                                     complete_inputs=mc['complete_inputs'],
-                                    complete_sample=mc['complete_sample'],
                                     shuffle=True)
     if val_dataset is not None:
         val_loader = TimeSeriesLoader(ts_dataset=val_dataset,
@@ -191,7 +190,6 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
                                       batch_size=1,
                                       n_series_per_batch=mc['n_series_per_batch'],
                                       complete_inputs=mc['complete_inputs'],
-                                      complete_sample=True,
                                       shuffle=False)
 
     else:
@@ -208,7 +206,6 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
                                        batch_size=1,
                                        n_series_per_batch=mc['n_series_per_batch'],
                                        complete_inputs=False,
-                                       complete_sample=False, #TODO: this may be true by default, think interaction with sample_freq
                                        shuffle=False)
     else:
         test_loader = None

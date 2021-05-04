@@ -251,8 +251,8 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
     output_size has complete sample_mask.
     This avoids leakage.
     """
-    sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -(self.output_size + 1):], axis=1)
-    sample_condition = (sample_condition > self.output_size) * 1
+    sample_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:], axis=1)
+    sample_condition = (sample_condition == self.output_size) * 1
     if self.complete_inputs:
         available_condition = t.sum(ts_windows_flatten[:, self.t_cols.index('available_mask'), :-self.output_size], axis=1)
         available_condition = (available_condition == self.windows_size - self.output_size) * 1
