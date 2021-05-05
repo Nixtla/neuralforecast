@@ -17,7 +17,7 @@ from pathlib import Path
 from functools import partial
 
 from ...data.tsdataset import TimeSeriesDataset
-from ...data.tsloader_general import TimeSeriesLoader
+from ...data.tsloader import TimeSeriesLoader
 from .nbeats_model import NBeats, NBeatsBlock, IdentityBasis, TrendBasis, SeasonalityBasis
 from .nbeats_model import ExogenousBasisInterpretable, ExogenousBasisWavenet, ExogenousBasisTCN
 from ...losses.pytorch import MAPELoss, MASELoss, SMAPELoss, MSELoss, MAELoss, PinballLoss
@@ -590,7 +590,6 @@ class Nbeats(object):
                                      idx_to_sample_freq=self.output_size,
                                      batch_size=1024,
                                      complete_inputs=False,
-                                     complete_sample=True,
                                      shuffle=False)
 
         # Model prediction
@@ -614,7 +613,6 @@ class Nbeats(object):
         # Reshaping model outputs
         y_true = y_true.reshape(-1)
         y_hat  = y_hat.reshape(-1)
-
         Y_hat_df = pd.DataFrame({'unique_id': Y_df.unique_id.values,
                                  'ds': Y_df.ds.values,
                                  'y': Y_df.y.values,

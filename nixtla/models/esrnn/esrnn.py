@@ -480,7 +480,7 @@ class ESRNN(object):
         ts_dataset = TimeSeriesDataset(Y_df=Y_df, X_df=X_df,
                                        mask_df=mask_df, f_cols=f_cols, verbose=False)
 
-        ts_loader = TimeSeriesLoader(model='new_rnn',
+        ts_loader = TimeSeriesLoader(model='esrnn',
                                      ts_dataset=ts_dataset,
                                      window_sampling_limit=500_000,
                                      input_size=self.input_size,
@@ -488,7 +488,6 @@ class ESRNN(object):
                                      idx_to_sample_freq=self.output_size,
                                      batch_size=1024,
                                      complete_inputs=False,
-                                     complete_sample=True,
                                      shuffle=False)
 
         y_true, y_hat, _ = self.predict(ts_loader=ts_loader,
