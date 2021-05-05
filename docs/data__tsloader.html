@@ -364,7 +364,7 @@ get_frequency()
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Test-for-TimeSeriesLoader's-methods">Test for TimeSeriesLoader's methods<a class="anchor-link" href="#Test-for-TimeSeriesLoader's-methods"> </a></h2>
+<h2 id="Check-for-TimeSeriesLoader's-methods">Check for TimeSeriesLoader's methods<a class="anchor-link" href="#Check-for-TimeSeriesLoader's-methods"> </a></h2>
 </div>
 </div>
 </div>
@@ -412,6 +412,13 @@ get_frequency()
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> 
                        <span class="n">len_sample_chunks</span><span class="p">,</span>
                        <span class="n">complete_inputs</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This function checks that the sample conditions of the loader </span>
+<span class="sd">    match the expected ones.</span>
+<span class="sd">    Assumptions for the test:</span>
+<span class="sd">    - Full sample mask.</span>
+<span class="sd">    - Positive time series.</span>
+<span class="sd">    These assumptions are satisfied by the function create_synthetic_tsdata.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
                               <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
                               <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span>
@@ -450,7 +457,8 @@ get_frequency()
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                   <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
                    <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -469,7 +477,8 @@ get_frequency()
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                   <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span> <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
                    <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -488,7 +497,8 @@ get_frequency()
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                   <span class="n">model</span><span class="o">=</span><span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
                    <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -507,7 +517,8 @@ get_frequency()
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_sampleable_ts</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                   <span class="n">model</span><span class="o">=</span><span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                    <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
                    <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -526,6 +537,32 @@ get_frequency()
 </div>
 </div>
 </div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">ts_dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+                          <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span>
+                          <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span>
+                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                          <span class="n">batch_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                          <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                          <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+                          <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -926,6 +963,7 @@ For <code>nbeats</code> the windows size should be <code>input_size + output_siz
 <span class="k">def</span> <span class="nf">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> 
                             <span class="n">len_sample_chunks</span><span class="p">,</span> <span class="n">window_step</span><span class="p">,</span> 
                             <span class="n">complete_inputs</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Final test to verify that the batch (of windows) is well constructed.&quot;&quot;&quot;</span>
     
     <span class="n">wsl</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">max_len</span>
     
@@ -988,7 +1026,8 @@ For <code>nbeats</code> the windows size should be <code>input_size + output_siz
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
                         <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                         <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
@@ -1022,7 +1061,8 @@ For <code>nbeats</code> the windows size should be <code>input_size + output_siz
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
                         <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                         <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -1055,7 +1095,8 @@ For <code>nbeats</code> the windows size should be <code>input_size + output_siz
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;esrnn&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
                         <span class="n">len_sample_chunks</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                         <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 </pre></div>
@@ -1088,7 +1129,8 @@ For <code>nbeats</code> the windows size should be <code>input_size + output_siz
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> 
+                        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;nbeats&#39;</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
                         <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">window_step</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
                         <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                         <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
