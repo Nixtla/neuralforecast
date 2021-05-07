@@ -272,7 +272,8 @@ def _get_sampleable_windows_idxs(self: TimeSeriesLoader,
 @patch
 def _create_windows_tensor(self: TimeSeriesLoader,
                            index: Optional[np.ndarray] = None) -> Tuple[t.Tensor,
-                                                                               t.Tensor]:
+                                                                        t.Tensor,
+                                                                        t.Tensor]:
     """Creates windows of size windows_size from
     the ts_tensor of the TimeSeriesDataset filtered by
     window_sampling_limit and ts_idxs. The step of each window
@@ -315,6 +316,10 @@ def _create_windows_tensor(self: TimeSeriesLoader,
     windows_per_serie = len(windows) / n_ts
     s_matrix = s_matrix.repeat(repeats=windows_per_serie, axis=0)
     ts_idxs = index.repeat(repeats=windows_per_serie)
+
+    s_matrix = t.Tensor(s_matrix)
+    ts_idxs = t.as_tensor(ts_idxs, dtype=t.long)
+
 
     return windows, s_matrix, ts_idxs
 
