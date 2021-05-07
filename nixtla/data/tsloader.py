@@ -318,7 +318,7 @@ def _create_windows_tensor(self: TimeSeriesLoader,
     ts_idxs = index.repeat(repeats=windows_per_serie)
 
     s_matrix = t.Tensor(s_matrix)
-    ts_idxs = t.Tensor(ts_idxs)
+    ts_idxs = t.as_tensor(ts_idxs, dtype=t.long)
 
 
     return windows, s_matrix, ts_idxs
