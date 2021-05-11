@@ -13,9 +13,6 @@ entries:
       title: Title
       url: models_nbeats__nbeats_model.html
     - output: web,pdf
-      title: Default mask example and tests
-      url: data__tsdataset.html
-    - output: web,pdf
       title: TimeSeriesLoader
       url: data__tsloader.html
     - output: web,pdf

@@ -262,13 +262,13 @@ class ESRNN(object):
         random.seed(self.random_seed) #TODO: interaccion rara con window_sampling de validacion
 
         # Exogenous variables
-        self.n_x_t, self.n_x_s = train_ts_loader.get_n_variables()
-        self.frequency = train_ts_loader.get_frequency()
+        self.n_x_t, self.n_x_s = train_ts_loader.dataset.get_n_variables()
+        self.frequency = train_ts_loader.dataset.get_frequency()
 
         #if verbose: print("Infered frequency: {}".format(self.frequency))
 
         # Initialize model
-        self.n_series = train_ts_loader.get_n_series()
+        self.n_series = train_ts_loader.dataset.get_n_series()
         self.model = _ESRNN(n_series=self.n_series,
                             input_size=self.input_size,
                             output_size=self.output_size,
@@ -347,7 +347,7 @@ class ESRNN(object):
                 idxs = self.to_tensor(x=batch['idxs'], dtype=t.long)
 
                 outsample_y, forecast, levels = self.model(S=S, Y=Y, X=X, idxs=idxs,
-                                                           step_size=train_ts_loader.idx_to_sample_freq)
+                                                           step_size=train_ts_loader.dataset.idx_to_sample_freq)
 
                 outsample_mask = self.to_tensor(t.ones(forecast.shape))
 
@@ -425,7 +425,7 @@ class ESRNN(object):
     def predict(self, ts_loader, return_decomposition=False):
         assert self._fitted, "Model not fitted yet"
         self.model.eval()
-        assert not ts_loader.shuffle, 'ts_loader must have shuffle as False.'
+        #assert not ts_loader.shuffle, 'ts_loader must have shuffle as False.'
 
         forecasts = []
         outsample_ys = []
@@ -443,7 +443,7 @@ class ESRNN(object):
                 #print("insample_y.shape", insample_y.shape)
 
                 outsample_y, forecast = self.model.predict(S=S, Y=Y, X=X, idxs=idxs,
-                                                           step_size=ts_loader.idx_to_sample_freq)
+                                                           step_size=ts_loader.dataset.idx_to_sample_freq)
 
                 #print("outsample_y.shape", outsample_y.shape)
                 #print("forecast.shape", forecast.shape)
@@ -478,16 +478,19 @@ class ESRNN(object):
 
         # Model inputs
         ts_dataset = TimeSeriesDataset(Y_df=Y_df, X_df=X_df,
-                                       mask_df=mask_df, f_cols=f_cols, verbose=False)
+                                       mask_df=mask_df,
+                                       f_cols=f_cols,
+                                       window_sampling_limit=500_000,
+                                       input_size=self.input_size,
+                                       output_size=self.output_size,
+                                       idx_to_sample_freq=self.output_size,
+                                       complete_inputs=False,
+                                       complete_outputs=False,
+                                       mode='full',
+                                       verbose=False)
 
-        ts_loader = TimeSeriesLoader(model='esrnn',
-                                     ts_dataset=ts_dataset,
-                                     window_sampling_limit=500_000,
-                                     input_size=self.input_size,
-                                     output_size=self.output_size,
-                                     idx_to_sample_freq=self.output_size,
+        ts_loader = TimeSeriesLoader(dataset=ts_dataset,
                                      batch_size=1024,
-                                     complete_inputs=False,
                                      shuffle=False)
 
         y_true, y_hat, _ = self.predict(ts_loader=ts_loader,

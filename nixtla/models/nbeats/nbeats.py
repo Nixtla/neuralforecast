@@ -390,8 +390,8 @@ class Nbeats(object):
 
     def fit(self, train_ts_loader, val_ts_loader=None, n_iterations=None, verbose=True, eval_freq=1):
         # TODO: Indexes hardcoded, information duplicated in train and val datasets
-        assert (self.input_size)==train_ts_loader.input_size, \
-            f'model input_size {self.input_size} data input_size {train_ts_loader.input_size}'
+        assert (self.input_size)==train_ts_loader.dataset.input_size, \
+            f'model input_size {self.input_size} data input_size {train_ts_loader.dataset.input_size}'
 
         # Random Seeds (model initialization)
         t.manual_seed(self.random_seed)
@@ -399,7 +399,7 @@ class Nbeats(object):
         random.seed(self.random_seed) #TODO: interaccion rara con window_sampling de validacion
 
         # Attributes of ts_dataset
-        self.n_x_t, self.n_x_s = train_ts_loader.get_n_variables()
+        self.n_x_t, self.n_x_s = train_ts_loader.dataset.get_n_variables()
 
         # Instantiate model
         if not self._is_instantiated:
@@ -526,7 +526,7 @@ class Nbeats(object):
 
     def predict(self, ts_loader, return_decomposition=False):
         self.model.eval()
-        assert not ts_loader.shuffle, 'ts_loader must have shuffle as False.'
+        #assert not ts_loader.shuffle, 'ts_loader must have shuffle as False.'
 
         forecasts = []
         block_forecasts = []
@@ -555,7 +555,7 @@ class Nbeats(object):
         outsample_ys = np.vstack(outsample_ys)
         outsample_masks = np.vstack(outsample_masks)
 
-        n_series = ts_loader.ts_dataset.n_series
+        n_series = ts_loader.dataset.n_series
         _, n_components, _ = block_forecast.size() #(n_windows, n_components, output_size)
         n_fcds = len(outsample_ys) // n_series
         outsample_ys = outsample_ys.reshape(n_series, n_fcds, self.output_size)
@@ -580,16 +580,18 @@ class Nbeats(object):
 
         # Model inputs
         ts_dataset = TimeSeriesDataset(Y_df=Y_df, X_df=X_df,
-                                       mask_df=mask_df, f_cols=f_cols, verbose=False)
+                                       mask_df=mask_df, f_cols=f_cols,
+                                       verbose=False,
+                                       mode='simple',
+                                       window_sampling_limit=500_000,
+                                       input_size=self.input_size,
+                                       output_size=self.output_size,
+                                       idx_to_sample_freq=self.output_size,
+                                       complete_outputs=False,
+                                       complete_inputs=False)
 
-        ts_loader = TimeSeriesLoader(model='nbeats',
-                                     ts_dataset=ts_dataset,
-                                     window_sampling_limit=500_000,
-                                     input_size=self.input_size,
-                                     output_size=self.output_size,
-                                     idx_to_sample_freq=self.output_size,
+        ts_loader = TimeSeriesLoader(dataset=ts_dataset,
                                      batch_size=1024,
-                                     complete_inputs=False,
                                      shuffle=False)
 
         # Model prediction

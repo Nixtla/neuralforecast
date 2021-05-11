@@ -1,6 +1,6 @@
 ---
 
-title: Default mask example and tests
+title: Title
 
 
 keywords: fastai
@@ -55,56 +55,9 @@ nb_path: "nbs/data__tsdataset.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="TimeSeriesDataset" class="doc_header"><code>class</code> <code>TimeSeriesDataset</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L22" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
+<h2 id="TimeSeriesDataset" class="doc_header"><code>class</code> <code>TimeSeriesDataset</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L18" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TimeSeriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
 </blockquote>
 <p>A class used to store Time Series data.</p>
-<h2 id="Attributes">Attributes<a class="anchor-link" href="#Attributes"> </a></h2><p>ts_tensor: np.ndarray
-    Numpy array of shape (n_series, n_channels, max_len)
-    where n_channels = t_cols + masks.
-    Left-padded time series tensor.
-    This tensor is NOT sorted according to Y_df.
-    If Y_df is not sorted, the order of the
-    first dimension can change.
-s_matrix: np.ndarray
-    Numpy array of shape (n_series, n_s).
-    Matrix of static variables.
-meta_data: list
-    List of meta data. Each element of the list is a
-    numpy array of shape (lenght of the time series, 2)
-    and corresponds to unique_id, ds.
-n_series: int
-    Number of time series.
-len_series: list
-    List of length of each time series.
-max_len: int
-    Length of the longest time series.
-n_x: int
-    Number of exogenous time series
-    (exogenous variables).
-n_s: int
-    Number of static variables.
-n_channels: int
-    Number of temporal variables (including target
-    and mask variables).
-frequency: str
-    Infered frequency using pd.infer_freq
-    over the ds column from the DataFrame.
-t_cols: list
-    List of temporal variables (mask variables included).
-f_cols: list
-    List of exogenous variables of the future.
-s_cols:
-    List of static variables.
-f_idxs: list
-    List of idxs of the exogenous
-    variables of the future.</p>
-<h2 id="Methods">Methods<a class="anchor-link" href="#Methods"> </a></h2><p>get_filtered_ts_tensor(output_size,
-                       window_sampling_limit,
-                       ts_idxs)
-    Gets ts tensor filtered based on output_size, window_sampling_limit and
-    ts_idxs.
-get_f_idxs(cols)
-    Gets indexes of exogenous variables.</p>
 
 </div>
 
@@ -112,6 +65,41 @@ get_f_idxs(cols)
 
 </div>
 </div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
 
 </div>
     {% endraw %}
@@ -148,21 +136,19 @@ get_f_idxs(cols)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_filtered_ts_tensor" class="doc_header"><code>TimeSeriesDataset.get_filtered_ts_tensor</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L306" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_filtered_ts_tensor</code>(<strong><code>window_sampling_limit</code></strong>:<code>int</code>, <strong><code>ts_idxs</code></strong>:<code>Optional</code>[<code>Collection</code>[<code>int</code>]]=<em><code>None</code></em>, <strong><code>output_size</code></strong>:<code>int</code>=<em><code>0</code></em>)</p>
+<h4 id="TimeSeriesDataset.__getitem__" class="doc_header"><code>TimeSeriesDataset.__getitem__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L479" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.__getitem__</code>(<strong><code>idx</code></strong>:<code>Union</code>[<code>slice</code>, <code>int</code>])</p>
 </blockquote>
-<p>Filters the last window_sampling_limit observations from ts_tensor for
-the time series indexed by ts_idxs. The output_size
-parameter is returned as the right_padding.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>window_sampling_limit: int
-    Max size of observations to consider, including output_size.
-    If window_sampling_limit &gt; max_len of the time series,
-    the full tensor is returned.
-ts_idxs: Collection
-    Indexes of time series to consider.
-    Default None: returns all ts.
-output_size: int
-    Forecast horizon default 0.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Tuple of filtered tensor and right_padding size (output_size).</p>
+<p>Creates batch based on index.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>index: np.ndarray
+    Indexes of time series to consider.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Dictionary with keys:</p>
+
+<pre><code>- S
+- Y
+- X
+- available_mask
+- sample_mask
+- idxs</code></pre>
 
 </div>
 
@@ -192,12 +178,8 @@ output_size: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="TimeSeriesDataset.get_f_idxs" class="doc_header"><code>TimeSeriesDataset.get_f_idxs</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L340" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_f_idxs</code>(<strong><code>cols</code></strong>:<code>List</code>[<code>str</code>])</p>
+<h4 id="TimeSeriesDataset.__len__" class="doc_header"><code>TimeSeriesDataset.__len__</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L541" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.__len__</code>()</p>
 </blockquote>
-<p>Gets indexes of exogenous variables.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>cols: List[str]
-    Interest exogenous variables.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Indexes of cols variables.</p>
 
 </div>
 
@@ -227,7 +209,139 @@ output_size: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L364" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
+<h4 id="TimeSeriesDataset.get_n_variables" class="doc_header"><code>TimeSeriesDataset.get_n_variables</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L546" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_n_variables</code>()</p>
+</blockquote>
+<p>Gets number of exogenous and static variables.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_n_series" class="doc_header"><code>TimeSeriesDataset.get_n_series</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L551" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_n_series</code>()</p>
+</blockquote>
+<p>Gets number of time series.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_max_len" class="doc_header"><code>TimeSeriesDataset.get_max_len</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L556" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_max_len</code>()</p>
+</blockquote>
+<p>Gets max len of time series.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_n_channels" class="doc_header"><code>TimeSeriesDataset.get_n_channels</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L561" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_n_channels</code>()</p>
+</blockquote>
+<p>Gets number of channels considered.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="TimeSeriesDataset.get_frequency" class="doc_header"><code>TimeSeriesDataset.get_frequency</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L566" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>TimeSeriesDataset.get_frequency</code>()</p>
+</blockquote>
+<p>Gets infered frequency.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="get_default_mask_df" class="doc_header"><code>get_default_mask_df</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/tsdataset.py#L572" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_default_mask_df</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>is_test</code></strong>:<code>bool</code>)</p>
 </blockquote>
 <p>Constructs default mask df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -256,6 +370,12 @@ is_test: bool
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Default-mask-example-and-tests">Default mask example and tests<a class="anchor-link" href="#Default-mask-example-and-tests"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -358,7 +478,7 @@ is_test: bool
 
 
 <div class="output_text output_subarea output_execute_result">
-<pre>[&lt;matplotlib.lines.Line2D at 0x7f9c771de510&gt;]</pre>
+<pre>[&lt;matplotlib.lines.Line2D at 0x7f81e88aa050&gt;]</pre>
 </div>
 
 </div>
@@ -422,9 +542,27 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                        <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">input_size</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span>
+                        <span class="n">output_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+                        <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">complete_outputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">len_sample_chunks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;simple&#39;</span><span class="p">):</span>
     <span class="n">mask_df</span> <span class="o">=</span> <span class="n">get_default_mask_df</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">TimeSeriesDataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> 
+                                <span class="n">mask_df</span><span class="o">=</span><span class="n">mask_df</span><span class="p">,</span> 
+                                <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+                                <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+                                <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">window_sampling_limit</span><span class="p">,</span>
+                                <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="n">idx_to_sample_freq</span><span class="p">,</span>
+                                <span class="n">complete_inputs</span><span class="o">=</span><span class="n">complete_inputs</span><span class="p">,</span>
+                                <span class="n">complete_outputs</span><span class="o">=</span><span class="n">complete_outputs</span><span class="p">,</span>
+                                <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span>
+                                <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span>
 </pre></div>
@@ -497,7 +635,7 @@ is_test: bool
                                            <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> 
                                            <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
     
-    <span class="k">assert</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_f_idxs</span><span class="p">(</span><span class="n">f_cols</span><span class="p">)</span> <span class="o">==</span> <span class="n">expected_f_idxs</span>
+    <span class="k">assert</span> <span class="n">dataset</span><span class="o">.</span><span class="n">_get_f_idxs</span><span class="p">(</span><span class="n">f_cols</span><span class="p">)</span> <span class="o">==</span> <span class="n">expected_f_idxs</span>
 </pre></div>
 
     </div>
@@ -514,37 +652,110 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">,</span> 
-                                <span class="n">window_samplig_limit</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">,</span> <span class="n">output_size</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="p">,</span> 
+                   <span class="n">window_sampling_limit</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">):</span>
     <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span> <span class="o">=</span> <span class="n">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> 
                                            <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> 
-                                           <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">)</span>
+                                           <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
+                                           <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+                                           <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+                                           <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">window_sampling_limit</span><span class="p">)</span>
     
     <span class="n">min_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">len_series</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">window_samplig_limit</span> <span class="o">&gt;</span> <span class="n">min_len</span><span class="p">:</span>
+    <span class="n">wsl</span> <span class="o">=</span> <span class="n">window_sampling_limit</span>
+    <span class="k">if</span> <span class="n">wsl</span> <span class="o">&gt;</span> <span class="n">min_len</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;This test only works for window_sampling_limit &#39;</span>
                         <span class="s1">&#39;lower than the size of the shortest time series.&#39;</span><span class="p">)</span>
     
     <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">mask_df</span><span class="p">]</span>
     <span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">dfs</span><span class="p">]</span>
     <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dfs</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-    <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">window_samplig_limit</span><span class="p">)</span>
+    <span class="n">dfs</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">wsl</span><span class="p">)</span>
     <span class="c1"># This process only works for balanced datasets.</span>
 
     <span class="n">n_ts</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">n_x</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">wsl</span> <span class="o">=</span> <span class="n">window_samplig_limit</span>
     <span class="n">idxs</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_ts</span><span class="p">)</span> <span class="k">if</span> <span class="n">ts_idxs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ts_idxs</span>
 
     <span class="n">e_filtered_tensor</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_ts</span><span class="p">,</span> <span class="n">wsl</span><span class="p">,</span> <span class="n">n_x</span><span class="p">))[</span><span class="n">idxs</span><span class="p">]</span>
     <span class="n">e_filtered_tensor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">e_filtered_tensor</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">filtered_tensor</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_filtered_ts_tensor</span><span class="p">(</span><span class="n">window_samplig_limit</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+    <span class="n">filtered_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">ts_tensor</span><span class="p">[</span><span class="n">ts_idxs</span><span class="p">,</span> <span class="p">:,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">first_ds</span><span class="p">:]</span>
     
     <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">e_filtered_tensor</span><span class="p">,</span> <span class="n">filtered_tensor</span><span class="p">),</span> <span class="p">(</span>
         <span class="s2">&quot;Expected and dataset filtered_tensor are different. Check.&quot;</span>
     <span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
     
-    <span class="k">assert</span> <span class="n">output_size</span> <span class="o">==</span> <span class="n">rp</span><span class="p">,</span> <span class="s1">&#39;Output size and right padding are different. Check.&#39;</span>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">numpy.lib.stride_tricks</span> <span class="kn">import</span> <span class="n">sliding_window_view</span>
+
+<span class="c1"># This test only works for the synthetic dataset constructed </span>
+<span class="c1"># using create_synthetic_tsdata</span>
+<span class="c1"># and for the 21 time series</span>
+<span class="k">def</span> <span class="nf">test_batch_construction</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="p">,</span> 
+                            <span class="n">is_test</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> 
+                            <span class="n">len_sample_chunks</span><span class="p">,</span> <span class="n">window_step</span><span class="p">,</span> 
+                            <span class="n">complete_inputs</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test to verify that the batch (of windows) is well constructed.&quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;simple&#39;</span><span class="p">:</span>
+        <span class="n">windows_size</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">+</span> <span class="n">output_size</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+        <span class="n">windows_size</span> <span class="o">=</span> <span class="n">len_sample_chunks</span> <span class="ow">or</span> <span class="n">input_size</span> <span class="o">+</span> <span class="n">output_size</span>
+    
+    <span class="n">wsl</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="n">dataset</span><span class="p">,</span> <span class="n">mask_df</span> <span class="o">=</span> <span class="n">instantiate_dataset</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> 
+                                           <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
+                                           <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+                                           <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+                                           <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span>
+                                           <span class="n">idx_to_sample_freq</span><span class="o">=</span><span class="n">window_step</span><span class="p">,</span>
+                                           <span class="n">complete_inputs</span><span class="o">=</span><span class="n">complete_inputs</span><span class="p">,</span>
+                                           <span class="n">complete_outputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                           <span class="n">window_sampling_limit</span><span class="o">=</span><span class="n">wsl</span><span class="p">,</span>
+                                           <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+    <span class="n">windows</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">20</span><span class="p">][</span><span class="s1">&#39;Y&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    
+    <span class="c1">#Expected windows</span>
+    <span class="n">uid</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()[</span><span class="mi">20</span><span class="p">]</span>
+    <span class="n">Y_original</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;unique_id == @uid&#39;</span><span class="p">)[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">Y_original</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">Y_sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">wsl</span><span class="p">)</span>
+    <span class="n">Y_sample</span><span class="p">[</span><span class="o">-</span><span class="n">size</span><span class="p">:]</span> <span class="o">=</span> <span class="n">Y_original</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;simple&#39;</span><span class="p">:</span>
+        <span class="n">Y_sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">Y_sample</span><span class="p">,</span> <span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">))</span>
+        
+    <span class="n">e_windows</span> <span class="o">=</span> <span class="n">sliding_window_view</span><span class="p">(</span><span class="n">Y_sample</span><span class="p">,</span> <span class="n">window_shape</span><span class="o">=</span><span class="n">windows_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;simple&#39;</span><span class="p">:</span>
+        <span class="n">e_windows</span> <span class="o">=</span> <span class="n">e_windows</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="p">(</span><span class="n">ds_in_test</span> <span class="o">+</span> <span class="n">output_size</span><span class="p">):</span><span class="n">window_step</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+        <span class="n">e_windows</span> <span class="o">=</span> <span class="n">e_windows</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="n">ds_in_test</span><span class="p">:</span><span class="n">window_step</span><span class="p">]</span>
+    <span class="c1"># This test works assuming there are no series with values of zero.</span>
+    <span class="k">if</span> <span class="n">complete_inputs</span><span class="p">:</span>
+        <span class="n">sampleable_windows_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">e_windows</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">windows_size</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sampleable_windows_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">e_windows</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">ds_in_test</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+    <span class="n">e_windows</span> <span class="o">=</span> <span class="n">e_windows</span><span class="p">[</span><span class="n">sampleable_windows_idxs</span><span class="p">]</span>
+    
+    <span class="c1">#Comparison</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">windows</span><span class="p">,</span> <span class="n">e_windows</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s1">&#39;Expected and actual windows are different&#39;</span>
+    <span class="p">)</span>
 </pre></div>
 
     </div>
@@ -556,7 +767,7 @@ is_test: bool
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Test-for-not-sorted-datasets">Test for not sorted datasets<a class="anchor-link" href="#Test-for-not-sorted-datasets"> </a></h3>
+<h3 id="Test-for-not-sorted-datasets-with-more-than-two-time-series">Test for not sorted datasets with more than two time series<a class="anchor-link" href="#Test-for-not-sorted-datasets-with-more-than-two-time-series"> </a></h3>
 </div>
 </div>
 </div>
@@ -574,6 +785,7 @@ is_test: bool
 <span class="n">is_test</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;future_1&#39;</span><span class="p">]</span>
 <span class="n">expected_f_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">len_sample_chunks</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1">#only for ESRNN</span>
 </pre></div>
 
     </div>
@@ -633,13 +845,127 @@ is_test: bool
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">_fail_non_sorted</span><span class="p">():</span> 
-    <span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> 
-                                <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> 
-                                <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
-                                <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
-                                <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> 
-                                <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
+    <span class="n">test_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> 
+                   <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> 
+                   <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
+                   <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
+                   <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> 
+                   <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
 <span class="n">test_fail</span><span class="p">(</span><span class="n">_fail_non_sorted</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h4 id="Test-using-sorted-synthtic-ts-data">Test using sorted synthtic ts data<a class="anchor-link" href="#Test-using-sorted-synthtic-ts-data"> </a></h4>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
+
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">create_synthetic_tsdata</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">is_test</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;future_1&#39;</span><span class="p">]</span>
+<span class="n">expected_f_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<span class="n">len_sample_chunks</span> <span class="o">=</span> <span class="mi">15</span> <span class="c1">#only for ESRNN</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span>
+                        <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span> 
+                        <span class="n">window_step</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;full&#39;</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span>
+                        <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span> 
+                        <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;full&#39;</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span>
+                        <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span> 
+                        <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;simple&#39;</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_batch_construction</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span>
+                        <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">len_sample_chunks</span><span class="o">=</span><span class="n">len_sample_chunks</span><span class="p">,</span> 
+                        <span class="n">window_step</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                        <span class="n">complete_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;simple&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -702,9 +1028,9 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
-                            <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">2_000</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> 
-                            <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="n">f_cols</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="n">is_test</span><span class="p">,</span>
+               <span class="n">input_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">ds_in_test</span><span class="p">,</span>
+               <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">50_000</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
 </pre></div>
 
     </div>
@@ -734,7 +1060,7 @@ is_test: bool
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Test-for-datasets-with-more-than-two-time-series">Test for datasets with more than two time series<a class="anchor-link" href="#Test-for-datasets-with-more-than-two-time-series"> </a></h3>
+<h3 id="Test-for-already-sorted-datasets-with-more-than-two-time-series">Test for already sorted datasets with more than two time series<a class="anchor-link" href="#Test-for-already-sorted-datasets-with-more-than-two-time-series"> </a></h3>
 </div>
 </div>
 </div>
@@ -788,8 +1114,9 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_get_filtered_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                            <span class="n">window_samplig_limit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">],</span> <span class="n">output_size</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_ts_tensor</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">S_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">window_sampling_limit</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> 
+               <span class="n">output_size</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">horizon</span><span class="p">,</span> <span class="n">ts_idxs</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">])</span>
 </pre></div>
 
     </div>

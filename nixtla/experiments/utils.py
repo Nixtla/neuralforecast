@@ -157,9 +157,36 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       normalizer_y=mc['normalizer_y'], normalizer_x=mc['normalizer_x'])
 
     #----------------------------------------- Declare Dataset and Loaders ----------------------------------#
-    train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=train_mask_df, f_cols=f_cols, verbose=True)
-    val_dataset   = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=val_mask_df, f_cols=f_cols, verbose=True)
-    test_dataset  = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df, mask_df=test_mask_df, f_cols=f_cols, verbose=True)
+    train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                      mask_df=train_mask_df, f_cols=f_cols,
+                                      mode=mc['mode'],
+                                      window_sampling_limit=int(mc['window_sampling_limit']),
+                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
+                                      output_size=int(mc['output_size']),
+                                      idx_to_sample_freq=int(mc['idx_to_sample_freq']),
+                                      len_sample_chunks=mc['len_sample_chunks'],
+                                      complete_inputs=mc['complete_inputs'],
+                                      verbose=True)
+    val_dataset   = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                      mask_df=val_mask_df, f_cols=f_cols,
+                                      mode=mc['mode'],
+                                      window_sampling_limit=int(mc['window_sampling_limit']),
+                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
+                                      output_size=int(mc['output_size']),
+                                      idx_to_sample_freq=int(mc['val_idx_to_sample_freq']),
+                                      len_sample_chunks=mc['len_sample_chunks'],
+                                      complete_inputs=mc['complete_inputs'],
+                                      verbose=True)
+    test_dataset  = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                      mask_df=test_mask_df, f_cols=f_cols,
+                                      mode=mc['mode'],
+                                      window_sampling_limit=int(mc['window_sampling_limit']),
+                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
+                                      output_size=int(mc['output_size']),
+                                      idx_to_sample_freq=mc['val_idx_to_sample_freq'],
+                                      len_sample_chunks=mc['len_sample_chunks'],
+                                      complete_inputs=False,
+                                      verbose=True)
 
     if ds_in_test == 0:
         test_dataset = None
@@ -168,44 +195,20 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
 
 # Cell
 def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
-    train_loader = TimeSeriesLoader(ts_dataset=train_dataset,
-                                    model=mc['model'],
-                                    window_sampling_limit=int(mc['window_sampling_limit']),
-                                    input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                    output_size=int(mc['output_size']),
-                                    idx_to_sample_freq=int(mc['idx_to_sample_freq']),
-                                    len_sample_chunks=mc['len_sample_chunks'],
+    train_loader = TimeSeriesLoader(dataset=train_dataset,
                                     batch_size=int(mc['batch_size']),
-                                    n_series_per_batch=mc['n_series_per_batch'],
-                                    complete_inputs=mc['complete_inputs'],
                                     shuffle=True)
     if val_dataset is not None:
-        val_loader = TimeSeriesLoader(ts_dataset=val_dataset,
-                                      model=mc['model'],
-                                      window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                      output_size=int(mc['output_size']),
-                                      idx_to_sample_freq=int(mc['val_idx_to_sample_freq']),
-                                      len_sample_chunks=mc['len_sample_chunks'],
+        val_loader = TimeSeriesLoader(dataset=val_dataset,
                                       batch_size=1,
-                                      n_series_per_batch=mc['n_series_per_batch'],
-                                      complete_inputs=mc['complete_inputs'],
                                       shuffle=False)
 
     else:
         val_loader = None
 
     if test_dataset is not None:
-        test_loader = TimeSeriesLoader(ts_dataset=test_dataset,
-                                       model=mc['model'],
-                                       window_sampling_limit=int(mc['window_sampling_limit']),
-                                       input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                       output_size=int(mc['output_size']),
-                                       idx_to_sample_freq=mc['val_idx_to_sample_freq'],
-                                       len_sample_chunks=mc['len_sample_chunks'],
+        test_loader = TimeSeriesLoader(dataset=test_dataset,
                                        batch_size=1,
-                                       n_series_per_batch=mc['n_series_per_batch'],
-                                       complete_inputs=False,
                                        shuffle=False)
     else:
         test_loader = None
@@ -350,10 +353,10 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
     # Predict test if available
     if ds_in_test > 0:
         y_true, y_hat, mask = model.predict(ts_loader=test_loader, return_decomposition=False)
-        meta_data = test_loader.ts_dataset.meta_data
+        meta_data = test_loader.dataset.meta_data
     else:
         y_true, y_hat, mask = model.predict(ts_loader=val_loader, return_decomposition=False)
-        meta_data = val_loader.ts_dataset.meta_data
+        meta_data = val_loader.dataset.meta_data
 
     # Scale to original scale
     if mc['normalizer_y'] is not None:
