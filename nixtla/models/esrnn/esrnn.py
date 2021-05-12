@@ -210,7 +210,7 @@ class ESRNN(pl.LightningModule):
         es_opt.step()
         rnn_opt.step()
 
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, prog_bar=True)
 
         return loss
 
@@ -229,7 +229,7 @@ class ESRNN(pl.LightningModule):
         loss = self.val_loss_fn(y=forecast,
                                 y_hat=target,
                                 y_insample=Y)
-        self.log('val_loss', loss)
+        self.log('val_loss', loss,  prog_bar=True)
 
         return loss
 
