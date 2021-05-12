@@ -115,6 +115,11 @@ class M4(TimeSeriesDataclass):
             M4.download(directory)
             path = f'{directory}/m4/datasets'
             class_group = M4Info[group]
+            S_df = pd.read_csv(f'{directory}/m4/datasets/M4-info.csv',
+                               usecols=['M4id','category'])
+            S_df['category'] = S_df['category'].astype('category').cat.codes
+            S_df.rename({'M4id': 'unique_id'}, axis=1, inplace=True)
+            S_df = S_df[S_df['unique_id'].str.startswith(class_group.name[0])]
 
             def read_and_melt(file):
                 df = pd.read_csv(file)
@@ -136,7 +141,9 @@ class M4(TimeSeriesDataclass):
             df = pd.concat([df_train, df_test])
             df = df.sort_values(['unique_id', 'ds']).reset_index(drop=True)
 
-        return df, None, None
+            S_df = S_df.sort_values('unique_id').reset_index(drop=True)
+
+        return df, None, S_df
 
     @staticmethod
     def download(directory: str) -> None:
