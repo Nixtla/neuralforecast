@@ -44,6 +44,8 @@ def MAPELoss(y, y_hat, mask=None):
     mape:
     Mean absolute percentage error.
     """
+    if mask is None: mask = t.ones_like(y_hat)
+
     mask = divide_no_nan(mask, t.abs(y))
     mape = t.abs(y - y_hat) * mask
     mape = t.mean(mape)
@@ -75,6 +77,8 @@ def MSELoss(y, y_hat, mask=None):
     mse:
     Mean Squared Error.
     """
+    if mask is None: mask = t.ones_like(y_hat)
+
     mse = (y - y_hat)**2
     mse = mask * mse
     mse = t.mean(mse)
@@ -106,6 +110,8 @@ def RMSELoss(y, y_hat, mask=None):
     rmse:
     Root Mean Squared Error.
     """
+    if mask is None: mask = t.ones_like(y_hat)
+
     rmse = (y - y_hat)**2
     rmse = mask * rmse
     rmse = t.sqrt(t.mean(rmse))
@@ -141,8 +147,8 @@ def SMAPELoss(y, y_hat, mask=None):
     ----------
     [1] https://robjhyndman.com/hyndsight/smape/ (Makridakis 1993)
     """
-    if mask is None:
-        mask = t.ones(y_hat.size())
+    if mask is None: mask = t.ones_like(y_hat)
+
     delta_y = t.abs((y - y_hat))
     scale = t.abs(y) + t.abs(y_hat)
     smape = divide_no_nan(delta_y, scale)
@@ -181,8 +187,8 @@ def MASELoss(y, y_hat, y_insample, seasonality, mask=None) :
     ----------
     [1] https://robjhyndman.com/papers/mase.pdf
     """
-    if mask is None:
-        mask = t.ones(y_hat.size())
+    if mask is None: mask = t.ones_like(y_hat)
+
     delta_y = t.abs(y - y_hat)
     scale = t.mean(t.abs(y_insample[:, seasonality:] - \
                             y_insample[:, :-seasonality]), axis=1)
@@ -217,6 +223,8 @@ def MAELoss(y, y_hat, mask=None):
     mae:
     Mean absolute error.
     """
+    if mask is None: mask = t.ones_like(y_hat)
+
     mae = t.abs(y - y_hat) * mask
     mae = t.mean(mae)
     return mae
@@ -242,8 +250,8 @@ def PinballLoss(y, y_hat, mask=None, tau=0.5):
     pinball:
         average accuracy for the predicted quantile
     """
-    if mask is None:
-        mask = t.ones(y_hat.size())
+    if mask is None: mask = t.ones_like(y_hat)
+
     delta_y = t.sub(y, y_hat)
     pinball = t.max(t.mul(tau, delta_y), t.mul((tau - 1), delta_y))
     pinball = pinball * mask
@@ -295,7 +303,8 @@ def SmylLoss(y, y_hat, levels, mask, tau, level_variability_penalty=0.0):
     return: smyl_loss.
     """
 
-    if mask is None: mask = t.ones(y_hat.size())
+    if mask is None: mask = t.ones_like(y_hat)
+
     smyl_loss = PinballLoss(y, y_hat, mask, tau)
 
     if level_variability_penalty > 0:
