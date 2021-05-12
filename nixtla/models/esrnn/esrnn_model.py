@@ -8,7 +8,6 @@ import torch as t
 import torch.nn as nn
 
 from ..components.drnn import DRNN
-# from nixtla.models.components.tcn import _TemporalConvNet as TCN
 
 # Cell
 #TODO: rnn con canales
@@ -16,7 +15,7 @@ from ..components.drnn import DRNN
 class _ES(nn.Module):
     def __init__(self, n_series: int, input_size: int, output_size: int,
                  output_size_m: int,
-                 n_t: int, n_s: int, seasonality: list, noise_std: float, device: str):
+                 n_t: int, n_s: int, seasonality: list, noise_std: float):
         super(_ES, self).__init__()
 
         self.n_series = n_series
@@ -30,7 +29,6 @@ class _ES(nn.Module):
 
         self.noise_std = noise_std
 
-        self.device = device
 
     def gaussian_noise(self, Y: t.Tensor, std: float=0.2):
         size = Y.size()
@@ -70,9 +68,9 @@ class _ES(nn.Module):
         # Initialize windows, levels and seasonalities
         levels, seasonalities = self.compute_levels_seasons(Y=Y, idxs=idxs)
         windows_y_insample = t.zeros((n_windows, batch_size, context_size),
-                                          device=self.device)
+                                     device=Y.device)
         windows_y_outsample = t.zeros((n_windows, batch_size, output_size),
-                                           device=self.device)
+                                      device=Y.device)
 
         for i, window in enumerate(windows_range):
             # Windows yhat
@@ -118,15 +116,15 @@ class _ES(nn.Module):
 class _ESI(_ES):
     def __init__(self, n_series: int, input_size: int, output_size: int,
                  output_size_m: int,
-                 n_t: int, n_s: int, seasonality: list, noise_std: float, device: str):
+                 n_t: int, n_s: int, seasonality: list, noise_std: float):
         super(_ESI, self).__init__(n_series, input_size, output_size,
                                    output_size_m,
-                                   n_t, n_s, seasonality, noise_std, device)
+                                   n_t, n_s, seasonality, noise_std)
         self.W = t.nn.Parameter(t.randn(1))
         self.W.requires_grad = False
 
     def compute_levels_seasons(self, Y: t.Tensor, idxs: t.Tensor):
-        levels = t.ones(Y.shape)
+        levels = t.ones(Y.shape, device=Y.device)
         seasonalities = None
         return levels, None
 
@@ -142,9 +140,9 @@ class _ESI(_ES):
 class _MedianResidual(_ES):
     def __init__(self, n_series: int, input_size: int, output_size: int,
                  output_size_m: int,
-                 n_t: int, n_s: int, seasonality: list, noise_std: float, device: str):
+                 n_t: int, n_s: int, seasonality: list, noise_std: float):
         super(_MedianResidual, self).__init__(n_series, input_size, output_size, output_size_m,
-                                   n_t, n_s, seasonality, noise_std, device)
+                                   n_t, n_s, seasonality, noise_std)
         self.W = t.nn.Parameter(t.randn(1))
         self.W.requires_grad = False
 
@@ -177,10 +175,10 @@ class _MedianResidual(_ES):
 class _ESM(_ES):
     def __init__(self, n_series: int, input_size: int, output_size: int,
                  output_size_m: int,
-                 n_t: int, n_s: int, seasonality: list, noise_std: float, device: str):
+                 n_t: int, n_s: int, seasonality: list, noise_std: float):
         super(_ESM, self).__init__(n_series, input_size, output_size,
                                    output_size_m,
-                                   n_t, n_s, seasonality, noise_std, device)
+                                   n_t, n_s, seasonality, noise_std)
         # Level and Seasonality Smoothing parameters
         # 1 level, S seasonalities, S init_seas
         embeds_size = 1 + len(self.seasonality) + sum(self.seasonality)
@@ -199,11 +197,11 @@ class _ESM(_ES):
         lev_sms = t.sigmoid(embeds[:, 0])
 
         # Initialize seasonalities
-        seas_prod = t.ones(len(Y[:,0])).to(Y.device)
+        seas_prod = t.ones(len(Y[:,0]), device=Y.device)
         seasonalities1 = []
         seasonalities2 = []
-        seas_sms1 = t.ones(1).to(Y.device)
-        seas_sms2 = t.ones(1).to(Y.device)
+        seas_sms1 = t.ones(1, device=Y.device)
+        seas_sms2 = t.ones(1, device=Y.device)
 
         if len(self.seasonality)>0:
             seas_sms1 = t.sigmoid(embeds[:, 1])
@@ -233,7 +231,7 @@ class _ESM(_ES):
         ys = Y.unbind(1)
         n_time = len(ys)
         for t_idx in range(1, n_time):
-            seas_prod_t = t.ones(len(Y[:,t_idx])).to(Y.device)
+            seas_prod_t = t.ones(len(Y[:,t_idx]), device=Y.device)
             if len(self.seasonality)>0:
                 seas_prod_t = seas_prod_t * seasonalities1[t_idx]
             if len(self.seasonality)==2:
@@ -359,7 +357,7 @@ class _ESRNN(nn.Module):
     def __init__(self, n_series, input_size, output_size,
                  output_size_m, n_t, n_s,
                  es_component, seasonality, noise_std, cell_type,
-                 dilations, state_hsize, add_nl_layer, device):
+                 dilations, state_hsize, add_nl_layer):
         super(_ESRNN, self).__init__()
         allowed_componets = ['multiplicative', 'identity', 'median_residual']
         assert es_component in allowed_componets, f'es_component {es_component} not valid.'
@@ -368,25 +366,22 @@ class _ESRNN(nn.Module):
         if es_component == 'multiplicative':
             self.es = _ESM(n_series=n_series, input_size=input_size, output_size=output_size,
                            output_size_m=output_size_m, n_t=n_t, n_s=n_s,
-                           seasonality=seasonality, noise_std=noise_std,
-                           device=device).to(device)
+                           seasonality=seasonality, noise_std=noise_std)
         elif es_component == 'identity':
             self.es = _ESI(n_series=n_series, input_size=input_size, output_size=output_size,
                            output_size_m=output_size_m, n_t=n_t, n_s=n_s,
-                           seasonality=seasonality, noise_std=noise_std,
-                           device=device).to(device)
+                           seasonality=seasonality, noise_std=noise_std)
         elif es_component == 'median_residual':
             self.es = _MedianResidual(n_series=n_series, input_size=input_size, output_size=output_size,
                                       output_size_m=output_size_m, n_t=n_t, n_s=n_s,
-                                      seasonality=seasonality, noise_std=noise_std,
-                                      device=device).to(device)
+                                      seasonality=seasonality, noise_std=noise_std)
 
         self.rnn = _RNN(input_size=input_size, output_size=output_size,
                         output_size_m=output_size_m,
                         n_t=n_t, n_s=n_s,
                         cell_type=cell_type, dilations=dilations,
                         state_hsize=state_hsize,
-                        add_nl_layer=add_nl_layer).to(device)
+                        add_nl_layer=add_nl_layer)
 
     def forward(self, S: t.Tensor, Y: t.Tensor, X: t.Tensor, idxs: t.Tensor, step_size: int):
         # Multiplicative model protection

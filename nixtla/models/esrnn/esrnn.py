@@ -180,8 +180,7 @@ class ESRNN(pl.LightningModule):
                             cell_type=self.cell_type,
                             dilations=self.dilations,
                             state_hsize=self.state_hsize,
-                            add_nl_layer=self.add_nl_layer,
-                            device=self.device).to(self.device)
+                            add_nl_layer=self.add_nl_layer)
 
         self.automatic_optimization = False
 
