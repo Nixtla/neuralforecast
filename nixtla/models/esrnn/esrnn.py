@@ -195,8 +195,8 @@ class ESRNN(pl.LightningModule):
 
         target, forecast, levels = self.esrnn(S=S, Y=Y, X=X, idxs=idxs,
                                               step_size=self.idx_to_sample_freq)
-        loss = self.loss_fn(y=forecast,
-                            y_hat=target,
+        loss = self.loss_fn(y=target,
+                            y_hat=forecast,
                             y_insample=Y,
                             levels=levels)
 
@@ -210,7 +210,7 @@ class ESRNN(pl.LightningModule):
         es_opt.step()
         rnn_opt.step()
 
-        self.log('train_loss', loss, prog_bar=True)
+        self.log('train_loss', loss, prog_bar=True, on_epoch=True)
 
         return loss
 
@@ -226,8 +226,8 @@ class ESRNN(pl.LightningModule):
 
         target, forecast = self.esrnn.predict(S=S, Y=Y, X=X, idxs=idxs,
                                               step_size=self.idx_to_sample_freq)
-        loss = self.val_loss_fn(y=forecast,
-                                y_hat=target,
+        loss = self.val_loss_fn(y=target,
+                                y_hat=forecast,
                                 y_insample=Y)
         self.log('val_loss', loss,  prog_bar=True)
 
