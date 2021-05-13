@@ -141,6 +141,13 @@ class TimeSeriesDataset(Dataset):
             dataset_info += f'Outsample percentage={out_prc}, \t{n_out} time stamps \n'
             logging.info(dataset_info)
 
+        if len_sample_chunks is not None:
+            if len_sample_chunks < input_size + output_size:
+                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
+            self.len_sample_chunks = len_sample_chunks
+        else:
+            self.len_sample_chunks = input_size + output_size
+
         self.ts_data, self.s_data, self.meta_data, self.t_cols, self.s_cols \
                          = self._df_to_lists(Y_df=Y_df, S_df=S_df, X_df=X_df, mask_df=mask_df)
 
@@ -160,12 +167,6 @@ class TimeSeriesDataset(Dataset):
         self.mode = mode
         self.skip_nonsamplable = skip_nonsamplable
         self.last_samplable_window = last_samplable_window
-        if len_sample_chunks is not None:
-            if len_sample_chunks < self.input_size + self.output_size:
-                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
-            self.len_sample_chunks = len_sample_chunks
-        else:
-            self.len_sample_chunks = input_size + output_size
         self.first_ds = max(self.max_len - self.window_sampling_limit, 0)
 
         # Number of X and S features
