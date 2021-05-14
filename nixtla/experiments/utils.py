@@ -21,6 +21,8 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
+import torch as t
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
 from ..data.scalers import Scaler
@@ -197,6 +199,7 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
 def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
     train_loader = TimeSeriesLoader(dataset=train_dataset,
                                     batch_size=int(mc['batch_size']),
+                                    eq_batch_size=mc.get('eq_batch_size') or True,
                                     shuffle=True)
     if val_dataset is not None:
         val_loader = TimeSeriesLoader(dataset=val_dataset,
@@ -253,6 +256,10 @@ def instantiate_nbeats(mc):
 # Cell
 def instantiate_esrnn(mc):
     model = ESRNN(# Architecture parameters
+                  n_series=mc['n_series'],
+                  n_x=mc['n_x'],
+                  n_s=mc['n_s'],
+                  idx_to_sample_freq=int(mc['idx_to_sample_freq']),
                   input_size=int(mc['input_size_multiplier']*mc['output_size']),
                   output_size=int(mc['output_size']),
                   es_component=mc['es_component'],
@@ -261,8 +268,6 @@ def instantiate_esrnn(mc):
                   dilations=mc['dilations'],
                   add_nl_layer=mc['add_nl_layer'],
                   # Optimization parameters
-                  n_iterations=int(mc['n_iterations']),
-                  early_stopping=int(mc['early_stopping']),
                   learning_rate=mc['learning_rate'],
                   lr_scheduler_step_size=int(mc['lr_scheduler_step_size']),
                   lr_decay=mc['lr_decay'],
@@ -276,15 +281,16 @@ def instantiate_esrnn(mc):
                   training_percentile=mc['training_percentile'],
                   loss=mc['loss'],
                   val_loss=mc['val_loss'],
-                  seasonality=mc['seasonality'],
-                  random_seed=int(mc['random_seed'])
-                  # Data parameters
-                  )
+                  seasonality=mc['seasonality'])
     return model
 
 # Cell
 def instantiate_mqesrnn(mc):
     model = MQESRNN(# Architecture parameters
+                    n_series=mc['n_series'],
+                    n_x=mc['n_x'],
+                    n_s=mc['n_s'],
+                    idx_to_sample_freq=int(mc['idx_to_sample_freq']),
                     input_size=int(mc['input_size_multiplier']*mc['output_size']),
                     output_size=int(mc['output_size']),
                     es_component=mc['es_component'],
@@ -293,8 +299,6 @@ def instantiate_mqesrnn(mc):
                     dilations=mc['dilations'],
                     add_nl_layer=mc['add_nl_layer'],
                     # Optimization parameters
-                    n_iterations=int(mc['n_iterations']),
-                    early_stopping=int(mc['early_stopping']),
                     learning_rate=mc['learning_rate'],
                     lr_scheduler_step_size=int(mc['lr_scheduler_step_size']),
                     lr_decay=mc['lr_decay'],
@@ -305,10 +309,7 @@ def instantiate_mqesrnn(mc):
                     testing_percentiles=list(mc['testing_percentiles']),
                     training_percentiles=list(mc['training_percentiles']),
                     loss=mc['loss'],
-                    val_loss=mc['val_loss'],
-                    random_seed=int(mc['random_seed'])
-                    # Data parameters
-                  )
+                    val_loss=mc['val_loss'])
     return model
 
 # Cell
@@ -347,15 +348,38 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
                                                                 val_dataset=val_dataset,
                                                                 test_dataset=test_dataset)
     model = instantiate_model(mc=mc)
-    model.fit(train_ts_loader=train_loader, val_ts_loader=val_loader, verbose=True, eval_freq=mc['eval_freq'])
+    if mc['model'] in ['esrnn', 'mqesrnn']:
+        callbacks = []
+        if mc['early_stopping']:
+            early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
+                                                        patience=mc['early_stopping'],
+                                                        verbose=True,
+                                                        mode='min')
+            callbacks=[early_stopping]
+
+        gpus = -1 if t.cuda.is_available() else 0
+        trainer = pl.Trainer(max_epochs=mc['n_iterations'], callbacks=callbacks)
+        trainer.fit(model, train_loader, val_loader)
+    else:
+        model.fit(train_ts_loader=train_loader, val_ts_loader=val_loader, verbose=True, eval_freq=mc['eval_freq'])
 
     #------------------------------------------------ Predict ------------------------------------------------#
     # Predict test if available
     if ds_in_test > 0:
-        y_true, y_hat, mask = model.predict(ts_loader=test_loader, return_decomposition=False)
+        if mc['model'] in ['esrnn', 'mqesrnn']:
+            outputs = trainer.predict(model, test_loader)
+            y_true, y_hat = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+            mask = np.ones_like(y_hat)
+        else:
+            y_true, y_hat, mask = model.predict(ts_loader=test_loader, return_decomposition=False)
         meta_data = test_loader.dataset.meta_data
     else:
-        y_true, y_hat, mask = model.predict(ts_loader=val_loader, return_decomposition=False)
+        if mc['model'] in ['esrnn', 'mqesrnn']:
+            outputs = trainer.predict(model, val_loader)
+            y_true, y_hat = [t.cat(output).cpu().numpy()[:, -1] for output in zip(*outputs)]
+            mask = np.ones_like(y_hat)
+        else:
+            y_true, y_hat, mask = model.predict(ts_loader=val_loader, return_decomposition=False)
         meta_data = val_loader.dataset.meta_data
 
     # Scale to original scale
@@ -414,7 +438,6 @@ def evaluate_model(mc, loss_function,
                'mc': mc,
                'y_true': y_true,
                'y_hat': y_hat,
-               'trajectories': model.trajectories,
                'run_time': run_time,
                'status': STATUS_OK}
     return result
