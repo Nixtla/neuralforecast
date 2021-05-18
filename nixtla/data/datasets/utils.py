@@ -5,7 +5,7 @@ __all__ = ['logger', 'download_file', 'Info', 'TimeSeriesDataclass', 'get_holida
 
 # Cell
 import logging
-import zipfile
+import requests
 import subprocess
 from pathlib import Path
 from dataclasses import dataclass
@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-import requests
+from patoolib import extract_archive
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
@@ -61,9 +61,7 @@ def download_file(directory: str, source_url: str, decompress: bool = False) -> 
     logger.info(f'Successfully downloaded {filename}, {size}, bytes.')
 
     if decompress:
-        with zipfile.ZipFile(filepath, 'r') as zip_ref:
-            zip_ref.extractall(directory)
-
+        extract_archive(filepath, outdir=directory)
         logger.info(f'Successfully decompressed {filepath}')
 
 # Cell
