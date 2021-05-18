@@ -187,7 +187,10 @@ def smape(y: np.ndarray, y_hat: np.ndarray,
     smape = divide_no_nan(delta_y, scale)
     smape = 200 * np.average(smape, weights=weights, axis=axis)
 
-    assert all(smape <= 200), 'SMAPE should be lower than 200'
+    if isinstance(smape, float):
+        assert smape <= 200, 'SMAPE should be lower than 200'
+    else:
+        assert all(smape <= 200), 'SMAPE should be lower than 200'
 
     return smape
 
@@ -240,7 +243,7 @@ def mase(y: np.ndarray, y_hat: np.ndarray,
     scale = np.abs(y_train[:-seasonality] - y_train[seasonality:])
     scale = np.average(scale, axis=axis)
 
-    mase = dividide_no_nan(delta_y, scale)
+    mase = delta_y / scale
 
     return mase
 
