@@ -26,7 +26,7 @@ from ...losses.pytorch import (
 from ...losses.numpy import (
     mae, mse, mape,
     smape, rmse,
-    pinball_loss, mqloss, wmqloss
+    pinball_loss, mqloss
 )
 
 # Cell
