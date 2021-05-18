@@ -86,9 +86,10 @@ class M4:
 
     @staticmethod
     def load(directory: str,
-             group: str) -> Tuple[pd.DataFrame,
-                                  Optional[pd.DataFrame],
-                                  Optional[pd.DataFrame]]:
+             group: str,
+             cache: bool = True) -> Tuple[pd.DataFrame,
+                                          Optional[pd.DataFrame],
+                                          Optional[pd.DataFrame]]:
         """Downloads and loads M4 data.
 
         Parameters
@@ -99,11 +100,21 @@ class M4:
             Group name.
             Allowed groups: 'Yearly', 'Quarterly', 'Monthly',
                             'Weekly', 'Daily', 'Hourly'.
+        cache: bool
+            If `True` saves and loads
 
         Notes
         -----
         [1] Returns train+test sets.
         """
+        path = f'{directory}/m4/datasets'
+        file_cache = f'{path}/{group}.p'
+
+        if os.path.exists(file_cache) and cache:
+            df, X_df, S_df = pd.read_pickle(file_cache)
+
+            return df, X_df, S_df
+
         if group == 'Other':
             #Special case.
             included_dfs = [M4.load(directory, gr) \
@@ -111,7 +122,6 @@ class M4:
             df, *_ = zip(*included_dfs)
             df = pd.concat(df)
         else:
-
             M4.download(directory)
             path = f'{directory}/m4/datasets'
             class_group = M4Info[group]
@@ -136,7 +146,13 @@ class M4:
             df = pd.concat([df_train, df_test])
             df = df.sort_values(['unique_id', 'ds']).reset_index(drop=True)
 
-        return df, None, None
+        X_df = None
+        S_df = None
+
+        if cache:
+            pd.to_pickle((df, X_df, S_df), file_cache)
+
+        return df, X_df, S_df
 
     @staticmethod
     def download(directory: str) -> None:
