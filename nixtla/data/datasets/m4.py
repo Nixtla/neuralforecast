@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from .utils import download_file, Info, TimeSeriesDataclass
-from ..tsdataset import TimeSeriesDataset
+from .utils import download_file, Info
+from ...losses.numpy import smape, mase
 
 # Cell
 @dataclass
@@ -79,17 +79,17 @@ M4Info = Info(groups=('Yearly', 'Quarterly', 'Monthly', 'Weekly', 'Daily', 'Hour
 
 # Cell
 @dataclass
-class M4(TimeSeriesDataclass):
+class M4:
 
-    source_url = 'https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/'
+    source_url: str = 'https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/'
+    naive2_forecast_url: str = 'https://github.com/M4Competition/M4-methods/raw/master/Point%20Forecasts/submission-Naive2.rar'
 
     @staticmethod
     def load(directory: str,
              group: str) -> Tuple[pd.DataFrame,
                                   Optional[pd.DataFrame],
                                   Optional[pd.DataFrame]]:
-        """
-        Downloads and loads M4 data.
+        """Downloads and loads M4 data.
 
         Parameters
         ----------
@@ -147,3 +147,4 @@ class M4(TimeSeriesDataclass):
                 download_file(path, f'{M4.source_url}/Train/{group}-train.csv')
                 download_file(path, f'{M4.source_url}/Test/{group}-test.csv')
             download_file(path, f'{M4.source_url}/M4-info.csv')
+            download_file(path, M4.naive2_forecast_url, decompress=True)
