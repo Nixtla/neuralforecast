@@ -22,7 +22,7 @@ def divide_no_nan(a, b):
 # Cell
 def metric_protections(y: np.ndarray, y_hat: np.ndarray, weights: np.ndarray):
     assert (weights is None) or (np.sum(weights) > 0), 'Sum of weights cannot be 0'
-    assert (weights is None) or (weights.shape == y_hat.shape), 'y_hat and weights dimension should be equal'
+    assert (weights is None) or (weights.shape == y_hat.shape), 'Wrong weight dimension'
 
 # Cell
 def mape(y: np.ndarray, y_hat: np.ndarray,
@@ -234,7 +234,15 @@ def mase(y: np.ndarray, y_hat: np.ndarray,
     ----------
     [1] https://robjhyndman.com/papers/mase.pdf
     """
-    print("Not implemented yet")
+    delta_y = np.abs(y - y_hat)
+    delta_y = np.average(delta_y, weights=weights, axis=axis)
+
+    scale = np.abs(y_train[:-seasonality] - y_train[seasonality:])
+    scale = np.average(scale, axis=axis)
+
+    mase = dividide_no_nan(delta_y, scale)
+
+    return mase
 
 # Cell
 def mae(y: np.ndarray, y_hat: np.ndarray,
