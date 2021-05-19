@@ -62,7 +62,8 @@ def download_file(directory: str, source_url: str, decompress: bool = False) -> 
     logger.info(f'Successfully downloaded {filename}, {size}, bytes.')
 
     if decompress:
-        if filepath.suffix == '.zip':
+        if '.zip' in filepath.suffix:
+            logger.info('Decompressing zip file...')
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
                 zip_ref.extractall(directory)
         else:
