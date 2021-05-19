@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - dev
+  workflow_dispatch:
 
 jobs:
   linux:
