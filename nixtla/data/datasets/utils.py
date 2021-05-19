@@ -7,6 +7,7 @@ __all__ = ['logger', 'download_file', 'Info', 'TimeSeriesDataclass', 'get_holida
 import logging
 import requests
 import subprocess
+import zipfile
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
@@ -61,7 +62,11 @@ def download_file(directory: str, source_url: str, decompress: bool = False) -> 
     logger.info(f'Successfully downloaded {filename}, {size}, bytes.')
 
     if decompress:
-        extract_archive(filepath, outdir=directory)
+        if filepath.suffix == '.zip':
+            with zipfile.ZipFile(filepath, 'r') as zip_ref:
+                zip_ref.extractall(directory)
+        else:
+            extract_archive(filepath, outdir=directory)
         logger.info(f'Successfully decompressed {filepath}')
 
 # Cell
