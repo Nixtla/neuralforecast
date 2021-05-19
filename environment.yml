@@ -16,7 +16,7 @@ dependencies:
   - tqdm
   - xlrd
   - openpyxl
-  - unrar
+  - p7zip
   - pip:
     - torchinfo
     - nbdev
