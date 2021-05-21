@@ -5,86 +5,38 @@ __all__ = ['TimeSeriesDataset', 'get_default_mask_df']
 # Cell
 import gc
 import logging
-import random
-import time
-from collections import defaultdict
-from typing import Collection, Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
 import torch as t
 from fastcore.foundation import patch
-
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 # Cell
 class TimeSeriesDataset(Dataset):
     """
     A class used to store Time Series data.
-
-    Attributes
-    ----------
-    ts_tensor: np.ndarray
-        Numpy array of shape (n_series, n_channels, max_len)
-        where n_channels = t_cols + masks.
-        Left-padded time series tensor.
-        This tensor is NOT sorted according to Y_df.
-        If Y_df is not sorted, the order of the
-        first dimension can change.
-    s_matrix: np.ndarray
-        Numpy array of shape (n_series, n_s).
-        Matrix of static variables.
-    meta_data: list
-        List of meta data. Each element of the list is a
-        numpy array of shape (lenght of the time series, 2)
-        and corresponds to unique_id, ds.
-    n_series: int
-        Number of time series.
-    len_series: list
-        List of length of each time series.
-    max_len: int
-        Length of the longest time series.
-    n_x: int
-        Number of exogenous time series
-        (exogenous variables).
-    n_s: int
-        Number of static variables.
-    n_channels: int
-        Number of temporal variables (including target
-        and mask variables).
-    frequency: str
-        Infered frequency using pd.infer_freq
-        over the ds column from the DataFrame.
-    t_cols: list
-        List of temporal variables (mask variables included).
-    f_cols: list
-        List of exogenous variables of the future.
-    s_cols:
-        List of static variables.
-    f_idxs: list
-        List of idxs of the exogenous
-        variables of the future.
-
-    Methods
-    -------
-    get_filtered_ts_tensor(output_size,
-                           window_sampling_limit,
-                           ts_idxs)
-        Gets ts tensor filtered based on output_size, window_sampling_limit and
-        ts_idxs.
-    get_f_idxs(cols)
-        Gets indexes of exogenous variables.
     """
 
     def __init__(self,
                  Y_df: pd.DataFrame,
-                 X_df: pd.DataFrame = None,
-                 S_df: pd.DataFrame = None,
+                 X_df: Optional[pd.DataFrame] = None,
+                 S_df: Optional[pd.DataFrame] = None,
+                 f_cols: Optional[List] = None,
                  mask_df: Optional[pd.DataFrame] = None,
                  ds_in_test: int = 0,
                  is_test: bool = False,
-                 f_cols: Optional[List] = [],
+                 input_size: int = 15,
+                 output_size: int = 1,
+                 window_sampling_limit: int = 20,
+                 idx_to_sample_freq: int = 1,
+                 complete_inputs: bool = False,
+                 complete_outputs: bool = True,
+                 len_sample_chunks: Optional[int] = None,
+                 mode: Literal['simple', 'full'] = 'simple',
+                 skip_nonsamplable: bool = False,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
         Parameters
@@ -96,6 +48,8 @@ class TimeSeriesDataset(Dataset):
         S_df: pd.DataFrame
             Static exogenous variables with columns ['unique_id', 'ds']
             and static variables.
+        f_cols: list
+            List of exogenous variables of the future.
         mask_df: pd.DataFrame
             Outsample mask with columns ['unique_id', 'ds', 'sample_mask']
             and optionally 'available_mask'.
@@ -106,8 +60,36 @@ class TimeSeriesDataset(Dataset):
         is_test: bool
             Only used when mask_df = None.
             Wheter target time series belongs to test set.
-        f_cols: list
-            List of exogenous variables of the future.
+        input_size: int
+            Size of the training sets.
+        output_size: int
+            Forecast horizon.
+        window_sampling_limit: int
+            Max size of observations to consider, including output_size.
+        idx_to_sample_freq: int
+            Step size to construct windows.
+            Ej. if idx_to_sample_freq=7, each 7 timestamps
+            a window will be constructed.
+        complete_inputs: bool
+            Whether consider only windows with available window_size.
+            Default False.
+        complete_outputs: bool
+            Whether consider only windows with available output_size + 1.
+            Default True.
+        len_sample_chunks: Optional[int] = None
+            Size of complete windows.
+            Only used for mode = 'full'!
+            Default None, equals to input_size + ouput_size.
+        mode: str
+            Mode to be used.
+            One of ['simple', 'full'].
+            If 'simple', windows of size input_size + output_size
+            will be constrcuted. If 'full', windows of size
+            len_sample_chunks will be constructed.
+        skip_nonsamplable: bool
+            If `True`, the method `__getitem__` will skip
+            non-samplable series and return windows of
+            samplable series selected randomly.
         verbose: bool
             Wheter or not log outputs.
         """
@@ -163,7 +145,22 @@ class TimeSeriesDataset(Dataset):
         self.n_channels = len(self.t_cols) # t_cols insample_mask and outsample_mask
         self.frequency = pd.infer_freq(Y_df.head()['ds'])
         self.f_cols = f_cols
-        self.f_idxs = self.get_f_idxs(f_cols)
+        self.f_idxs = self._get_f_idxs(f_cols) if f_cols else []
+        self.window_sampling_limit = window_sampling_limit
+        self.input_size = input_size
+        self.output_size = output_size
+        self.complete_inputs = complete_inputs
+        self.complete_outputs = complete_outputs
+        self.idx_to_sample_freq = idx_to_sample_freq
+        self.mode = mode
+        self.skip_nonsamplable = skip_nonsamplable
+        if len_sample_chunks is not None:
+            if len_sample_chunks < self.input_size + self.output_size:
+                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
+            self.len_sample_chunks = len_sample_chunks
+        else:
+            self.len_sample_chunks = input_size + output_size
+        self.first_ds = max(self.max_len - self.window_sampling_limit, 0)
 
         # Number of X and S features
         self.n_x = 0 if X_df is None else X_df.shape[1] - 2 # -2 for unique_id and ds
@@ -173,6 +170,48 @@ class TimeSeriesDataset(Dataset):
         # numpy  s_matrix of shape (n_series, n_s)
         # numpy ts_tensor of shape (n_series, n_channels, max_len) n_channels = t_cols + masks
         self.ts_tensor, self.s_matrix, self.len_series = self._create_tensor(self.ts_data, self.s_data)
+
+        # Defining windows attributes by model
+        self.windows_size: int
+        self.padding: Tuple[int, int]
+
+        self._define_attributes_by_mode()
+
+        # Defining sampleable time series
+        self.ts_idxs = np.arange(self.n_series)
+        self.samplable_ts_idxs: np.ndarray
+        self.n_samplable_ts: int
+
+        self._define_samplable_ts_idxs()
+
+# Cell
+@patch
+def _define_attributes_by_mode(self: TimeSeriesDataset):
+    if self.mode in ['simple']:
+        self.windows_size = self.input_size + self.output_size
+        self.padding = (self.input_size, self.output_size)
+    elif self.mode in ['full']:
+        self.windows_size = self.len_sample_chunks
+        self.padding = (0, 0)
+    else:
+        raise Exception(f'There is no window strategy for {self.mode}')
+
+    assert self.windows_size <= self.window_sampling_limit, (
+        'Window sampling limit should be at least input_size + output_size '
+        'for simple mode or at least len_sample_chunks for full mode.'
+    )
+
+# Cell
+@patch
+def _define_samplable_ts_idxs(self: TimeSeriesDataset):
+    sum_sample_mask = self.ts_tensor[:, self.t_cols.index('sample_mask')] \
+                          .sum(axis=1)
+    if self.complete_inputs:
+        min_mask = self.windows_size
+    else:
+        min_mask = self.output_size
+    self.samplable_ts_idxs = np.argwhere(sum_sample_mask > min_mask).reshape(1, -1)[0]
+    self.n_samplable_ts = self.samplable_ts_idxs.size
 
 # Cell
 @patch
@@ -291,9 +330,8 @@ def _create_tensor(self: TimeSeriesDataset,
     ts_tensor = np.zeros((self.n_series, self.n_channels, self.max_len))
 
     len_series = []
-    for idx in range(self.n_series):
+    for idx, ts_idx in enumerate(ts_data):
         # Left padded time series tensor
-        ts_idx = ts_data[idx]
         ts_tensor[idx, :, -ts_idx.shape[0]:] = ts_idx.T
         len_series.append(ts_idx.shape[0])
 
@@ -304,41 +342,7 @@ def _create_tensor(self: TimeSeriesDataset,
 
 # Cell
 @patch
-def get_filtered_ts_tensor(self: TimeSeriesDataset,
-                           window_sampling_limit: int,
-                           ts_idxs: Optional[Collection[int]] = None,
-                           output_size: int = 0) -> Tuple[t.Tensor, int]:
-    """Filters the last window_sampling_limit observations from ts_tensor for
-    the time series indexed by ts_idxs. The output_size
-    parameter is returned as the right_padding.
-
-    Parameters
-    ----------
-    window_sampling_limit: int
-        Max size of observations to consider, including output_size.
-        If window_sampling_limit > max_len of the time series,
-        the full tensor is returned.
-    ts_idxs: Collection
-        Indexes of time series to consider.
-        Default None: returns all ts.
-    output_size: int
-        Forecast horizon default 0.
-
-    Returns
-    -------
-    Tuple of filtered tensor and right_padding size (output_size).
-    """
-    first_ds = max(self.max_len - window_sampling_limit, 0)
-
-    idxs = range(self.n_series) if ts_idxs is None else ts_idxs
-    filtered_ts_tensor = self.ts_tensor[idxs, :, first_ds:]
-    right_padding = output_size #To padd with zeros if there is "nothing" to the right
-
-    return filtered_ts_tensor, right_padding
-
-# Cell
-@patch
-def get_f_idxs(self: TimeSeriesDataset,
+def _get_f_idxs(self: TimeSeriesDataset,
                cols: List[str]) -> List:
     """Gets indexes of exogenous variables.
 
@@ -359,6 +363,210 @@ def get_f_idxs(self: TimeSeriesDataset,
     f_idxs = [self.t_cols.index(col) for col in cols]
 
     return f_idxs
+
+# Cell
+@patch
+def _create_windows_tensor(self: TimeSeriesDataset,
+                           idx: slice) -> Tuple[t.Tensor, t.Tensor, t.Tensor]:
+    """Creates windows of size windows_size from
+    the ts_tensor of the TimeSeriesDataset filtered by
+    window_sampling_limit and ts_idxs. The step of each window
+    is defined by idx_to_sample_freq.
+
+    Parameters
+    ----------
+    index: slice
+        Indexes of time series to consider.
+
+    Returns
+    -------
+    Tuple of three elements:
+        - Windows tensor of shape (windows, channels, input_size + output_size)
+        - Static variables tensor of shape (windows * series, n_static)
+        - Time Series indexes for each window.
+    """
+    # Default ts_idxs=ts_idxs sends all the data, otherwise filters series
+    tensor = self.ts_tensor[idx, :, self.first_ds:]
+    tensor = t.Tensor(tensor)
+
+    padder = t.nn.ConstantPad1d(padding=self.padding, value=0)
+    tensor = padder(tensor)
+
+    # Creating rolling windows and 'flattens' them
+    windows = tensor.unfold(dimension=-1,
+                            size=self.windows_size,
+                            step=self.idx_to_sample_freq)
+    # n_serie, n_channel, n_time, window_size -> n_serie, n_time, n_channel, window_size
+    windows = windows.permute(0, 2, 1, 3)
+    windows = windows.reshape(-1, self.n_channels, self.windows_size)
+
+    # Broadcast s_matrix: This works because unfold in windows_tensor, orders: serie, time
+
+    ts_idxs = self.ts_idxs[idx]
+    n_ts = len(ts_idxs)
+    windows_per_serie = len(windows) / n_ts
+
+    ts_idxs = ts_idxs.repeat(repeats=windows_per_serie)
+    s_matrix = self.s_matrix[idx]
+    s_matrix = s_matrix.repeat(repeats=windows_per_serie, axis=0)
+
+    s_matrix = t.Tensor(s_matrix)
+    ts_idxs = t.as_tensor(ts_idxs, dtype=t.long)
+
+    return windows, s_matrix, ts_idxs
+
+# Cell
+@patch
+def _get_samplable_windows_idxs(self: TimeSeriesDataset,
+                                ts_windows_flatten: t.Tensor) -> np.ndarray:
+    """Gets indexes of windows that fulfills conditions.
+
+    Parameters
+    ----------
+    ts_windows_flatten: t.Tensor
+        Tensor of shape (windows, n_channels, windows_size)
+
+    Returns
+    -------
+    Numpy array of indexes of ts_windows_flatten that
+    fulfills conditions.
+
+    Notes
+    -----
+    [1] If complete_inputs=True
+        return all windows which its ouput_size
+        has complete sample_mask and its input_size
+        has complete available_mask.
+    [2] If complete_inputs=False
+        returns all windows which its
+        output_size has complete sample_mask.
+        This avoids leakage.
+    [3] If complete_outputs=False
+        returns all windows which its
+        output_size has complete sample_mask.
+        This avoids leakage.
+    [4] If complete_outputs=True
+        return all windows which its ouput_size
+        has complete sample_mask and its output_size
+        has complete available_mask.
+    """
+    sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:]
+    sample_condition = t.sum(sample_condition, axis=1)
+    sample_condition = (sample_condition == self.output_size) * 1
+    if self.complete_inputs:
+        av_condition_in = ts_windows_flatten[:, self.t_cols.index('available_mask'),
+                                                 :-self.output_size]
+        av_condition_in = t.sum(av_condition_in, axis=1)
+        av_condition_in = (av_condition_in == self.windows_size - self.output_size) * 1
+    else:
+        av_condition_in = sample_condition
+
+    if self.complete_outputs:
+        av_condition_out = ts_windows_flatten[:, self.t_cols.index('available_mask'),
+                                              -(self.output_size + 1):]
+        av_condition_out = t.sum(av_condition_out, axis=1)
+        av_condition_out = (av_condition_out == self.output_size + 1) * 1
+    else:
+        av_condition_out = sample_condition
+
+    sampling_idx = t.nonzero(av_condition_in * av_condition_out * sample_condition > 0)
+
+    sampling_idx = sampling_idx.flatten().numpy()
+
+    return sampling_idx
+
+# Cell
+@patch
+def __getitem__(self: TimeSeriesDataset,
+                idx: Union[slice, int]) -> Dict[str, t.Tensor]:
+    """Creates batch based on index.
+
+    Parameters
+    ----------
+    index: np.ndarray
+        Indexes of time series to consider.
+
+    Returns
+    -------
+    Dictionary with keys:
+        - S
+        - Y
+        - X
+        - available_mask
+        - sample_mask
+        - idxs
+    """
+    # Checks for idx
+    if isinstance(idx, int):
+        idx = [idx]
+    elif isinstance(idx, slice) or isinstance(idx, list):
+        pass
+    else:
+        raise Exception('Use slices, int or list for getitem.')
+
+    # Create windows for each sampled ts and sample random unmasked windows from each ts
+    windows, s_matrix, ts_idxs = self._create_windows_tensor(idx=idx)
+    windows_idxs = self._get_samplable_windows_idxs(ts_windows_flatten=windows)
+    if not windows_idxs.size:
+        if self.skip_nonsamplable:
+            n_ts = len(idx) if isinstance(idx, list) else len(range(*idx.indices(self.n_series)))
+            idx = np.random.choice(self.samplable_ts_idxs, size=n_ts).tolist()
+            return self[idx]
+
+        raise Exception(
+            f'Time Series {idx} are not samplable. '
+            'Check the data, masks, window_sampling_limit, '
+            'input_size, output_size, masks.'
+        )
+
+    # Index the windows and s_matrix tensors of batch
+    windows = windows[windows_idxs]
+    S = s_matrix[windows_idxs]
+    ts_idxs = ts_idxs[windows_idxs]
+
+    # Parse windows to elements of batch
+    Y = windows[:, self.t_cols.index('y'), :]
+    X = windows[:, (self.t_cols.index('y') + 1):self.t_cols.index('available_mask'), :]
+    available_mask = windows[:, self.t_cols.index('available_mask'), :]
+    sample_mask = windows[:, self.t_cols.index('sample_mask'), :]
+
+    batch = {'S': S, 'Y': Y, 'X': X,
+             'available_mask': available_mask,
+             'sample_mask': sample_mask,
+             'idxs': ts_idxs}
+
+    return batch
+
+# Cell
+@patch
+def __len__(self: TimeSeriesDataset):
+    return self.n_series
+
+# Cell
+@patch
+def get_n_variables(self: TimeSeriesDataset) -> Tuple[int, int]:
+    """Gets number of exogenous and static variables."""
+    return self.n_x, self.n_s
+
+@patch
+def get_n_series(self: TimeSeriesDataset) -> int:
+    """Gets number of time series."""
+    return self.n_series
+
+@patch
+def get_max_len(self: TimeSeriesDataset) -> int:
+    """Gets max len of time series."""
+    return self.max_len
+
+@patch
+def get_n_channels(self: TimeSeriesDataset) -> int:
+    """Gets number of channels considered."""
+    return self.n_channels
+
+@patch
+def get_frequency(self: TimeSeriesDataset) -> str:
+    """Gets infered frequency."""
+    return self.frequency
 
 # Cell
 def get_default_mask_df(Y_df: pd.DataFrame,

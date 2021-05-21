@@ -2,7 +2,6 @@
   "nixtla": {
     "Overview": "/",
     "Title": "models_nbeats__nbeats_model.html",
-    "Default mask example and tests": "data__tsdataset.html",
     "TimeSeriesLoader": "data__tsloader.html",
     "EPF dataset": "data_datasets__epf.html",
     "GEFCom2012": "data_datasets__gefcom2012.html",
