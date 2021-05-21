@@ -6,8 +6,8 @@ title: M4 dataset
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "API details."
-description: "API details."
+summary: "Download and evaluate the M4 dataset."
+description: "Download and evaluate the M4 dataset."
 nb_path: "nbs/data_datasets__m4.ipynb"
 ---
 <!--
@@ -38,8 +38,7 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>M4 meta information</p>
-
+<h2 id="M4-meta-information">M4 meta information<a class="anchor-link" href="#M4-meta-information"> </a></h2>
 </div>
 </div>
 </div>
@@ -232,6 +231,12 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Download-data-class">Download data class<a class="anchor-link" href="#Download-data-class"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -243,9 +248,9 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="M4" class="doc_header"><code>class</code> <code>M4</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/datasets/m4.py#L82" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>M4</code>(<strong><code>S</code></strong>:<code>DataFrame</code>, <strong><code>X</code></strong>:<code>DataFrame</code>, <strong><code>Y</code></strong>:<code>DataFrame</code>, <strong><code>idx_categorical_static</code></strong>:<code>Optional</code>[<code>List</code>[<code>T</code>]]=<em><code>None</code></em>, <strong><code>group</code></strong>:<code>Union</code>[<code>str</code>, <code>List</code>[<code>str</code>]]=<em><code>None</code></em>) :: <a href="/nixtla/data_datasets__utils.html#TimeSeriesDataclass"><code>TimeSeriesDataclass</code></a></p>
+<h2 id="M4" class="doc_header"><code>class</code> <code>M4</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/datasets/m4.py#L82" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>M4</code>(<strong><code>source_url</code></strong>:<code>str</code>=<em><code>'https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/'</code></em>, <strong><code>naive2_forecast_url</code></strong>:<code>str</code>=<em><code>'https://github.com/M4Competition/M4-methods/raw/master/Point%20Forecasts/submission-Naive2.rar'</code></em>)</p>
 </blockquote>
-<p>M4(S: pandas.core.frame.DataFrame, X: pandas.core.frame.DataFrame, Y: pandas.core.frame.DataFrame, idx_categorical_static: Union[List, NoneType] = None, group: Union[str, List[str]] = None)</p>
+<p>M4(source_url: str = '<a href="https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/">https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/</a>', naive2_forecast_url: str = '<a href="https://github.com/M4Competition/M4-methods/raw/master/Point%20Forecasts/submission-Naive2.rar">https://github.com/M4Competition/M4-methods/raw/master/Point%20Forecasts/submission-Naive2.rar</a>')</p>
 
 </div>
 
@@ -271,15 +276,15 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;Hourly&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="n">M4Info</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">group</span> <span class="o">!=</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">:</span>
+        <span class="k">continue</span>
+    <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
+    <span class="n">n_series</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">unique_id</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
 
-<span class="c1"># for group, meta in M4Info:</span>
-<span class="c1">#     df, *_ = M4.load(directory=&#39;data&#39;, group=group)</span>
-<span class="c1">#     n_series = len(np.unique(df.unique_id.values))</span>
-    
-<span class="c1">#     display_str  = f&#39;Group: {group} &#39;</span>
-<span class="c1">#     display_str += f&#39;n_series: {n_series}&#39;</span>
-<span class="c1">#     print(display_str)</span>
+    <span class="n">display_str</span>  <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Group: </span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s1"> &#39;</span>
+    <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;n_series: </span><span class="si">{</span><span class="n">n_series</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">display_str</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -291,52 +296,209 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 
 <div class="output_area">
 
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>25.4MiB [00:00, 44.0MiB/s]                  
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Yearly-train.csv, 25355736, bytes.
-1.49MiB [00:00, 5.62MiB/s]                         
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Yearly-test.csv, 1486434, bytes.
-38.8MiB [00:01, 37.3MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Quarterly-train.csv, 38788547, bytes.
-1.97MiB [00:00, 10.8MiB/s]                 
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Quarterly-test.csv, 1971754, bytes.
-91.7MiB [00:02, 34.3MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Monthly-train.csv, 91655432, bytes.
-7.94MiB [00:00, 21.2MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Monthly-test.csv, 7942698, bytes.
-4.02MiB [00:00, 17.3MiB/s]                  
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Weekly-train.csv, 4015067, bytes.
-44.2kiB [00:00, 1.29MiB/s]                  
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Weekly-test.csv, 44247, bytes.
-95.8MiB [00:02, 34.7MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Daily-train.csv, 95765153, bytes.
-576kiB [00:00, 9.50MiB/s]                  
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Daily-test.csv, 576459, bytes.
-2.35MiB [00:00, 19.3MiB/s]                 
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Hourly-train.csv, 2347115, bytes.
-133kiB [00:00, 5.58MiB/s]                   
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Hourly-test.csv, 132820, bytes.
-100%|██████████| 14.0/14.0 [00:00&lt;00:00, 942iB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded Other-train.csv, 14, bytes.
-100%|██████████| 14.0/14.0 [00:00&lt;00:00, 891iB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded Other-test.csv, 14, bytes.
-4.34MiB [00:00, 37.2MiB/s]                 
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded M4-info.csv, 4335598, bytes.
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Group: Hourly n_series: 414
 </pre>
 </div>
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Evaluation-class">Evaluation class<a class="anchor-link" href="#Evaluation-class"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="M4Evaluation" class="doc_header"><code>class</code> <code>M4Evaluation</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/datasets/m4.py#L169" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>M4Evaluation</code>()</p>
+</blockquote>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="URL-based-evaluation">URL-based evaluation<a class="anchor-link" href="#URL-based-evaluation"> </a></h3><p>The method <code>evaluate</code> from the class <a href="/nixtla/data_datasets__m4.html#M4Evaluation"><code>M4Evaluation</code></a> can receive a url of a <a href="https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts">benchmark uploaded to the M4 competiton</a>.</p>
+<p>The results compared to the on-the-fly evaluation were obtained from the <a href="https://github.com/Mcompetitions/M4-methods/blob/master/Evaluation%20and%20Ranks.xlsx">official evaluation</a>.</p>
+
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">esrnn_url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/Mcompetitions/M4-methods/raw/master/Point</span><span class="si">%20F</span><span class="s1">orecasts/submission-118.rar&#39;</span>
+<span class="n">esrnn_evaluation</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">esrnn_url</span><span class="p">)</span>
+<span class="c1"># Test of the same evaluation as the original one</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;SMAPE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">9.328</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;MASE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.893</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;OWA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.440</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">esrnn_evaluation</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>SMAPE</th>
+      <th>MASE</th>
+      <th>OWA</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Hourly</th>
+      <td>9.328443</td>
+      <td>0.893046</td>
+      <td>0.440163</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Numpy-based-evaluation">Numpy-based evaluation<a class="anchor-link" href="#Numpy-based-evaluation"> </a></h3>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Also the method <code>evaluate</code> can recevie a numpy array of forecasts.</p>
+
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">fforma_url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/Mcompetitions/M4-methods/raw/master/Point</span><span class="si">%20F</span><span class="s1">orecasts/submission-245.rar&#39;</span>
+<span class="n">fforma_forecasts</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">load_benchmark</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">fforma_url</span><span class="p">)</span>
+<span class="n">fforma_evaluation</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">fforma_forecasts</span><span class="p">)</span>
+<span class="c1"># Test of the same evaluation as the original one</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;SMAPE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">11.506</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;MASE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.819</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;OWA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.484</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">fforma_evaluation</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>SMAPE</th>
+      <th>MASE</th>
+      <th>OWA</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Hourly</th>
+      <td>11.505702</td>
+      <td>0.818598</td>
+      <td>0.483841</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
 </div>
 
 </div>

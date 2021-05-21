@@ -4,9 +4,6 @@ __all__ = ['NP', 'PJM', 'BE', 'FR', 'DE', 'EPFInfo', 'EPF', 'epf_naive_forecast'
 
 # Cell
 import os
-if not os.path.exists('./results/'):
-    os.makedirs('./results/')
-
 from datetime import timedelta
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
