@@ -317,124 +317,37 @@ nb_path: "nbs/data_datasets__m4.ipynb"
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-<div class="input">
 
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">M4Evaluation</span><span class="p">:</span>
-    
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">load_benchmark</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                       <span class="n">source_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Downloads and loads a bechmark forecasts.</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        directory: str</span>
-<span class="sd">            Directory where data will be downloaded.</span>
-<span class="sd">        group: str</span>
-<span class="sd">            Group name.</span>
-<span class="sd">            Allowed groups: &#39;Yearly&#39;, &#39;Quarterly&#39;, &#39;Monthly&#39;, </span>
-<span class="sd">                            &#39;Weekly&#39;, &#39;Daily&#39;, &#39;Hourly&#39;.</span>
-<span class="sd">        source_url: str, optional</span>
-<span class="sd">            Optional benchmark url obtained from </span>
-<span class="sd">            https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts.</span>
-<span class="sd">            If `None` returns Naive2. </span>
-<span class="sd">        </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        benchmark: numpy array</span>
-<span class="sd">            Numpy array of shape (n_series, horizon).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s1">/m4/datasets/&#39;</span>
-        <span class="n">initial</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">source_url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">filename</span> <span class="o">=</span> <span class="n">source_url</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.rar&#39;</span><span class="p">,</span> <span class="s1">&#39;.csv&#39;</span><span class="p">)</span>
-            <span class="n">filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">&#39;</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
-                <span class="n">download_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">source_url</span><span class="p">,</span> <span class="n">decompress</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">/submission-Naive2.csv&#39;</span>
-        
-        <span class="n">benchmark</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
-        <span class="n">benchmark</span> <span class="o">=</span> <span class="n">benchmark</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;id.str.startswith(@initial)&#39;</span><span class="p">)</span>
-        <span class="n">benchmark</span> <span class="o">=</span> <span class="n">benchmark</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">benchmark</span> <span class="o">=</span> <span class="n">benchmark</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
-        
-        <span class="k">return</span> <span class="n">benchmark</span>
-    
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
-                 <span class="n">y_hat</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Evaluates y_hat according to M4 methodology.</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        directory: str</span>
-<span class="sd">            Directory where data will be downloaded.</span>
-<span class="sd">        group: str</span>
-<span class="sd">            Group name.</span>
-<span class="sd">            Allowed groups: &#39;Yearly&#39;, &#39;Quarterly&#39;, &#39;Monthly&#39;, </span>
-<span class="sd">                            &#39;Weekly&#39;, &#39;Daily&#39;, &#39;Hourly&#39;.</span>
-<span class="sd">        y_hat: numpy array, str</span>
-<span class="sd">            Group forecasts as numpy array or</span>
-<span class="sd">            benchmark url from</span>
-<span class="sd">            https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts.</span>
-<span class="sd">            </span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        evaluation: pandas dataframe</span>
-<span class="sd">            DataFrame with columns OWA, SMAPE, MASE</span>
-<span class="sd">            and group as index.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y_hat</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">y_hat</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">load_benchmark</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">)</span>
-        
-        <span class="n">initial</span> <span class="o">=</span> <span class="n">group</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">class_group</span> <span class="o">=</span> <span class="n">M4Info</span><span class="p">[</span><span class="n">group</span><span class="p">]</span>
-        <span class="n">horizon</span> <span class="o">=</span> <span class="n">class_group</span><span class="o">.</span><span class="n">horizon</span>
-        <span class="n">seasonality</span> <span class="o">=</span> <span class="n">class_group</span><span class="o">.</span><span class="n">seasonality</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s1">/m4/datasets&#39;</span>
-        <span class="n">y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
-        
-        <span class="n">y_train</span> <span class="o">=</span> <span class="n">y_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> 
-        <span class="n">y_train</span> <span class="o">=</span> <span class="n">y_train</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="o">-</span><span class="n">horizon</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-        <span class="n">y_train</span> <span class="o">=</span> <span class="n">y_train</span><span class="o">.</span><span class="n">values</span>
-        
-        <span class="n">y_test</span> <span class="o">=</span> <span class="n">y_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">)[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span>
-        <span class="n">y_test</span> <span class="o">=</span> <span class="n">y_test</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">horizon</span><span class="p">)</span>
-        <span class="n">y_test</span> <span class="o">=</span> <span class="n">y_test</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon</span><span class="p">)</span>    
+<div class="output_wrapper">
+<div class="output">
 
-        <span class="n">naive2</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">load_benchmark</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
-        <span class="n">smape_y_hat</span> <span class="o">=</span> <span class="n">smape</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">y_hat</span><span class="p">)</span>
-        <span class="n">smape_naive2</span> <span class="o">=</span> <span class="n">smape</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">naive2</span><span class="p">)</span>
-        
-        <span class="n">mase_y_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">mase</span><span class="p">(</span><span class="n">y_test</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">y_hat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">y_train</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">seasonality</span><span class="p">)</span>
-                              <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">class_group</span><span class="o">.</span><span class="n">n_ts</span><span class="p">)])</span>
-        <span class="n">mase_naive2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">mase</span><span class="p">(</span><span class="n">y_test</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">naive2</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">y_train</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">seasonality</span><span class="p">)</span>
-                               <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">class_group</span><span class="o">.</span><span class="n">n_ts</span><span class="p">)])</span>
-        
-        <span class="n">owa</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">mase_y_hat</span> <span class="o">/</span> <span class="n">mase_naive2</span> <span class="o">+</span> <span class="n">smape_y_hat</span> <span class="o">/</span> <span class="n">smape_naive2</span><span class="p">)</span>
-        
-        <span class="n">evaluation</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;SMAPE&#39;</span><span class="p">:</span> <span class="n">smape_y_hat</span><span class="p">,</span>
-                                   <span class="s1">&#39;MASE&#39;</span><span class="p">:</span> <span class="n">mase_y_hat</span><span class="p">,</span>
-                                   <span class="s1">&#39;OWA&#39;</span><span class="p">:</span> <span class="n">owa</span><span class="p">},</span>
-                                   <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">group</span><span class="p">])</span>
-        
-        <span class="k">return</span> <span class="n">evaluation</span>
-</pre></div>
+<div class="output_area">
 
-    </div>
+
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="M4Evaluation" class="doc_header"><code>class</code> <code>M4Evaluation</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/data/datasets/m4.py#L169" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>M4Evaluation</code>()</p>
+</blockquote>
+
+</div>
+
+</div>
+
 </div>
 </div>
 
 </div>
     {% endraw %}
 
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="URL-based-evaluation">URL-based evaluation<a class="anchor-link" href="#URL-based-evaluation"> </a></h3><p>The method <code>evaluate</code> from the class <code>M4Evaluation</code> can receive a url of a <a href="https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts">benchmark uploaded to the M4 competiton</a>.</p>
+<h3 id="URL-based-evaluation">URL-based evaluation<a class="anchor-link" href="#URL-based-evaluation"> </a></h3><p>The method <code>evaluate</code> from the class <a href="/nixtla/data_datasets__m4.html#M4Evaluation"><code>M4Evaluation</code></a> can receive a url of a <a href="https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts">benchmark uploaded to the M4 competiton</a>.</p>
 <p>The results compared to the on-the-fly evaluation were obtained from the <a href="https://github.com/Mcompetitions/M4-methods/blob/master/Evaluation%20and%20Ranks.xlsx">official evaluation</a>.</p>
 
 </div>
