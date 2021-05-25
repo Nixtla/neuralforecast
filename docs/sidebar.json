@@ -5,7 +5,7 @@
     "TimeSeriesLoader": "data__tsloader.html",
     "EPF dataset": "data_datasets__epf.html",
     "GEFCom2012": "data_datasets__gefcom2012.html",
-    "data_datasets__gefcom2014": "data_datasets__gefcom2014.html",
+    "GEFCom 2014 dataset": "data_datasets__gefcom2014.html",
     "M3 dataset": "data_datasets__m3.html",
     "M4 dataset": "data_datasets__m4.html",
     "Tourism dataset": "data_datasets__tourism.html",
