@@ -5,11 +5,16 @@ on:
     branches:
       - master
       - dev
+  workflow_dispatch:
 
 jobs:
-  job:
+  linux:
+    name: Test - Ubuntu
     runs-on: ubuntu-latest
     steps:
+      - name: Install rar
+        run: sudo apt-get -y install unrar
+
       - name: Clone nixtla
         uses: actions/checkout@v2
         with:

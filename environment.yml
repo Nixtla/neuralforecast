@@ -16,6 +16,7 @@ dependencies:
   - tqdm
   - xlrd
   - openpyxl
+  - p7zip
   - pip:
     - torchinfo
     - nbdev
@@ -24,3 +25,4 @@ dependencies:
     - fsspec
     - s3fs
     - pytorch-lightning>=1.3.0
+    - patool

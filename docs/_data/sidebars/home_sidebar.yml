@@ -22,7 +22,7 @@ entries:
       title: GEFCom2012
       url: data_datasets__gefcom2012.html
     - output: web,pdf
-      title: GEFCom 2014 dataset
+      title: data_datasets__gefcom2014
       url: data_datasets__gefcom2014.html
     - output: web,pdf
       title: M3 dataset

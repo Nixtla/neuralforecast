@@ -4,7 +4,6 @@ __all__ = ['Yearly', 'Quarterly', 'Monthly', 'TourismInfo', 'Tourism']
 
 # Cell
 import os
-
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -13,7 +12,6 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
 from .utils import download_file, Info, TimeSeriesDataclass
-from ..tsdataset import TimeSeriesDataset
 
 # Cell
 @dataclass
