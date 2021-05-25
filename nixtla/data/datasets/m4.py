@@ -152,6 +152,10 @@ class M4:
 
             S_df = S_df.sort_values('unique_id').reset_index(drop=True)
 
+        X_df = None
+        if cache:
+            pd.to_pickle((df, X_df, S_df), file_cache)
+
         return df, None, S_df
 
     @staticmethod
