@@ -37,7 +37,7 @@ class TimeSeriesLoader(DataLoader):
             while `False` or `batch_size=None` returns all windows.
         """
         if 'collate_fn' in kwargs.keys():
-            raise Exeption(
+            raise Exception(
                 'This class wraps the pytorch `DataLoader` with a '
                 'special collate function. If you want to use yours '
                 'simply use `DataLoader`'
