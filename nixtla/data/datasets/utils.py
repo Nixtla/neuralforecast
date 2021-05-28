@@ -8,13 +8,14 @@ import logging
 import requests
 import subprocess
 import zipfile
+import pyunpack
+# from patoolib import extract_archive
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from patoolib import extract_archive
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
@@ -67,7 +68,8 @@ def download_file(directory: str, source_url: str, decompress: bool = False) -> 
             with zipfile.ZipFile(filepath, 'r') as zip_ref:
                 zip_ref.extractall(directory)
         else:
-            extract_archive(filepath, outdir=directory)
+            #extract_archive(filepath, outdir=directory)
+            pyunpack.Archive(filepath).extractall(directory)
         logger.info(f'Successfully decompressed {filepath}')
 
 # Cell
