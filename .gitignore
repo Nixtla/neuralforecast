@@ -18,6 +18,9 @@ __pycache__/
 # C extensions
 *.so
 
+# PyTorch lightning
+*lightning_logs/
+
 # Distribution / packaging
 .Python
 env/

@@ -4,6 +4,7 @@
     "Title": "models_nbeats__nbeats_model.html",
     "TimeSeriesLoader": "data__tsloader.html",
     "EPF dataset": "data_datasets__epf.html",
+    "Kaggle-Competition-Favorita": "data_datasets__favorita.html",
     "GEFCom2012": "data_datasets__gefcom2012.html",
     "GEFCom 2014 dataset": "data_datasets__gefcom2014.html",
     "M3 dataset": "data_datasets__m3.html",

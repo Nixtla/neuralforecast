@@ -16,7 +16,6 @@ dependencies:
   - tqdm
   - xlrd
   - openpyxl
-  - p7zip
   - pip:
     - torchinfo
     - nbdev
@@ -25,3 +24,4 @@ dependencies:
     - fsspec
     - s3fs
     - patool
+    - py7zr
