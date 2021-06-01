@@ -8,6 +8,10 @@ from .esrnn import ESRNN
 # Cell
 class MQESRNN(ESRNN):
     def __init__(self,
+                 n_series,
+                 n_x,
+                 n_s,
+                 idx_to_sample_freq,
                  input_size,
                  output_size,
                  es_component,
@@ -21,16 +25,11 @@ class MQESRNN(ESRNN):
                  gradient_eps,
                  gradient_clipping_threshold,
                  rnn_weight_decay,
-                 n_iterations,
-                 early_stopping,
                  noise_std,
                  testing_percentiles,
                  training_percentiles,
                  loss,
-                 val_loss,
-                 random_seed,
-                 device=None,
-                 root_dir='./'):
+                 val_loss):
 
         allowed_losses = ['MQ', 'wMQ']
         if loss not in allowed_losses:
@@ -47,7 +46,11 @@ class MQESRNN(ESRNN):
         level_variability_penalty = 0
         seasonality = []
         per_series_lr_multip = 1
-        super(MQESRNN, self).__init__(input_size=input_size,
+        super(MQESRNN, self).__init__(n_series=n_series,
+                                      n_s=n_s,
+                                      n_x=n_x,
+                                      idx_to_sample_freq=idx_to_sample_freq,
+                                      input_size=input_size,
                                       output_size=output_size,
                                       es_component=es_component,
                                       cell_type=cell_type,
@@ -62,14 +65,9 @@ class MQESRNN(ESRNN):
                                       gradient_eps=gradient_eps,
                                       gradient_clipping_threshold=gradient_clipping_threshold,
                                       rnn_weight_decay=rnn_weight_decay,
-                                      n_iterations=n_iterations,
-                                      early_stopping=early_stopping,
                                       noise_std=noise_std,
                                       level_variability_penalty=level_variability_penalty,
                                       testing_percentile=testing_percentiles,
                                       training_percentile=training_percentiles,
                                       loss=loss,
-                                      val_loss=val_loss,
-                                      random_seed=random_seed,
-                                      device=device,
-                                      root_dir=root_dir)
+                                      val_loss=val_loss)

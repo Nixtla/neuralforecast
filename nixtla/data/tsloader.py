@@ -3,6 +3,7 @@
 __all__ = ['TimeSeriesLoader', 'FastTimeSeriesLoader']
 
 # Cell
+import warnings
 from collections.abc import Mapping
 from typing import Dict, List, Union
 
@@ -37,11 +38,13 @@ class TimeSeriesLoader(DataLoader):
             while `False` or `batch_size=None` returns all windows.
         """
         if 'collate_fn' in kwargs.keys():
-            raise Exeption(
+            warnings.warn(
                 'This class wraps the pytorch `DataLoader` with a '
                 'special collate function. If you want to use yours '
-                'simply use `DataLoader`'
+                'simply use `DataLoader`. Removing collate_fn'
             )
+            kwargs.pop('collate_fn')
+
         kwargs_ = {**kwargs, **dict(collate_fn=self._collate_fn)}
         DataLoader.__init__(self, dataset=dataset, **kwargs_)
         self.eq_batch_size = eq_batch_size

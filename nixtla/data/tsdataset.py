@@ -37,6 +37,7 @@ class TimeSeriesDataset(Dataset):
                  len_sample_chunks: Optional[int] = None,
                  mode: Literal['simple', 'full'] = 'simple',
                  skip_nonsamplable: bool = False,
+                 last_samplable_window: bool = False,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
         Parameters
@@ -90,6 +91,10 @@ class TimeSeriesDataset(Dataset):
             If `True`, the method `__getitem__` will skip
             non-samplable series and return windows of
             samplable series selected randomly.
+        last_samplable_window: bool
+            If `True` returns the last samplable
+            window.
+            Default `False`.
         verbose: bool
             Wheter or not log outputs.
         """
@@ -136,6 +141,13 @@ class TimeSeriesDataset(Dataset):
             dataset_info += f'Outsample percentage={out_prc}, \t{n_out} time stamps \n'
             logging.info(dataset_info)
 
+        if len_sample_chunks is not None:
+            if len_sample_chunks < input_size + output_size:
+                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
+            self.len_sample_chunks = len_sample_chunks
+        else:
+            self.len_sample_chunks = input_size + output_size
+
         self.ts_data, self.s_data, self.meta_data, self.t_cols, self.s_cols \
                          = self._df_to_lists(Y_df=Y_df, S_df=S_df, X_df=X_df, mask_df=mask_df)
 
@@ -154,12 +166,7 @@ class TimeSeriesDataset(Dataset):
         self.idx_to_sample_freq = idx_to_sample_freq
         self.mode = mode
         self.skip_nonsamplable = skip_nonsamplable
-        if len_sample_chunks is not None:
-            if len_sample_chunks < self.input_size + self.output_size:
-                raise Exception(f'Insufficient len of sample chunks {len_sample_chunks}')
-            self.len_sample_chunks = len_sample_chunks
-        else:
-            self.len_sample_chunks = input_size + output_size
+        self.last_samplable_window = last_samplable_window
         self.first_ds = max(self.max_len - self.window_sampling_limit, 0)
 
         # Number of X and S features
@@ -523,6 +530,13 @@ def __getitem__(self: TimeSeriesDataset,
     windows = windows[windows_idxs]
     S = s_matrix[windows_idxs]
     ts_idxs = ts_idxs[windows_idxs]
+    if self.last_samplable_window:
+        _, idxs_counts = t.unique(ts_idxs, return_counts=True)
+        last_idxs = idxs_counts.cumsum(0) - 1
+        windows = windows[last_idxs]
+        S = s_matrix[last_idxs]
+        ts_idxs = ts_idxs[last_idxs]
+
 
     # Parse windows to elements of batch
     Y = windows[:, self.t_cols.index('y'), :]

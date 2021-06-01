@@ -15,6 +15,7 @@
     "Giacomini-White Test": "losses__gw_test.html",
     "NumPy Evaluation Metrics": "losses__numpy.html",
     "PyTorch Train Losses ": "losses__pytorch.html",
+    "Losses utils ": "losses__utils.html",
     "Chomp1d": "models_components__common.html",
     "Dilated Recurrent Neural Networks": "models_components__drnn.html",
     "ES-RNN: Exponential Smoothing Recurrent Neural Network": "models_esrnn__esrnn.html",

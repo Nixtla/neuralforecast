@@ -4,7 +4,6 @@ __all__ = ['Yearly', 'Quarterly', 'Monthly', 'Weekly', 'Daily', 'Hourly', 'Other
 
 # Cell
 import os
-
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -125,6 +124,11 @@ class M4:
             M4.download(directory)
             path = f'{directory}/m4/datasets'
             class_group = M4Info[group]
+            S_df = pd.read_csv(f'{directory}/m4/datasets/M4-info.csv',
+                               usecols=['M4id','category'])
+            S_df['category'] = S_df['category'].astype('category').cat.codes
+            S_df.rename({'M4id': 'unique_id'}, axis=1, inplace=True)
+            S_df = S_df[S_df['unique_id'].str.startswith(class_group.name[0])]
 
             def read_and_melt(file):
                 df = pd.read_csv(file)
@@ -146,13 +150,13 @@ class M4:
             df = pd.concat([df_train, df_test])
             df = df.sort_values(['unique_id', 'ds']).reset_index(drop=True)
 
-        X_df = None
-        S_df = None
+            S_df = S_df.sort_values('unique_id').reset_index(drop=True)
 
+        X_df = None
         if cache:
             pd.to_pickle((df, X_df, S_df), file_cache)
 
-        return df, X_df, S_df
+        return df, None, S_df
 
     @staticmethod
     def download(directory: str) -> None:
@@ -191,7 +195,7 @@ class M4Evaluation:
         benchmark: numpy array
             Numpy array of shape (n_series, horizon).
         """
-        path = f'{directory}/m4/datasets/'
+        path = f'{directory}/m4/datasets'
         initial = group[0]
         if source_url is not None:
             filename = source_url.split('/')[-1].replace('.rar', '.csv')

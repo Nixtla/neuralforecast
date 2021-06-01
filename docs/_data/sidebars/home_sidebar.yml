@@ -52,6 +52,9 @@ entries:
       title: 'PyTorch Train Losses '
       url: losses__pytorch.html
     - output: web,pdf
+      title: 'Losses utils '
+      url: losses__utils.html
+    - output: web,pdf
       title: Chomp1d
       url: models_components__common.html
     - output: web,pdf
