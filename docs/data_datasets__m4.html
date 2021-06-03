@@ -431,12 +431,13 @@ Group: Hourly n_series: 414
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># esrnn_evaluation = M4Evaluation.evaluate(&#39;data&#39;, &#39;Hourly&#39;, esrnn_url)</span>
-<span class="c1"># # Test of the same evaluation as the original one</span>
-<span class="c1"># test_close(esrnn_evaluation[&#39;SMAPE&#39;].item(), 9.328, eps=1e-3)</span>
-<span class="c1"># test_close(esrnn_evaluation[&#39;MASE&#39;].item(), 0.893, eps=1e-3)</span>
-<span class="c1"># test_close(esrnn_evaluation[&#39;OWA&#39;].item(), 0.440, eps=1e-3)</span>
-<span class="c1"># esrnn_evaluation</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">esrnn_url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/Mcompetitions/M4-methods/raw/master/Point</span><span class="si">%20F</span><span class="s1">orecasts/submission-118.rar&#39;</span>
+<span class="n">esrnn_evaluation</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">esrnn_url</span><span class="p">)</span>
+<span class="c1"># Test of the same evaluation as the original one</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;SMAPE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">9.328</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;MASE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.893</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">esrnn_evaluation</span><span class="p">[</span><span class="s1">&#39;OWA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.440</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">esrnn_evaluation</span>
 </pre></div>
 
     </div>
@@ -548,13 +549,14 @@ patool:     with cwd=&#39;data/m4/datasets&#39;
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># fforma_forecasts = M4Evaluation.load_benchmark(&#39;data&#39;, &#39;Hourly&#39;, fforma_url)</span>
-<span class="c1"># fforma_evaluation = M4Evaluation.evaluate(&#39;data&#39;, &#39;Hourly&#39;, fforma_forecasts)</span>
-<span class="c1"># # Test of the same evaluation as the original one</span>
-<span class="c1"># test_close(fforma_evaluation[&#39;SMAPE&#39;].item(), 11.506, eps=1e-3)</span>
-<span class="c1"># test_close(fforma_evaluation[&#39;MASE&#39;].item(), 0.819, eps=1e-3)</span>
-<span class="c1"># test_close(fforma_evaluation[&#39;OWA&#39;].item(), 0.484, eps=1e-3)</span>
-<span class="c1"># fforma_evaluation</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">fforma_url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/Mcompetitions/M4-methods/raw/master/Point</span><span class="si">%20F</span><span class="s1">orecasts/submission-245.rar&#39;</span>
+<span class="n">fforma_forecasts</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">load_benchmark</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">fforma_url</span><span class="p">)</span>
+<span class="n">fforma_evaluation</span> <span class="o">=</span> <span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Hourly&#39;</span><span class="p">,</span> <span class="n">fforma_forecasts</span><span class="p">)</span>
+<span class="c1"># Test of the same evaluation as the original one</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;SMAPE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">11.506</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;MASE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.819</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">test_close</span><span class="p">(</span><span class="n">fforma_evaluation</span><span class="p">[</span><span class="s1">&#39;OWA&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="mf">0.484</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="n">fforma_evaluation</span>
 </pre></div>
 
     </div>
