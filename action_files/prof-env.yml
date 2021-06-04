@@ -2,9 +2,10 @@ channels:
   - conda-forge
   - pytorch
 dependencies:
-  - pandas
-  - pytorch
   - cpuonly
+  - pandas
+  - pip
+  - pytorch
   - pip:
     - beautifulsoup4
     - fastcore

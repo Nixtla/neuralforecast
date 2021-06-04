@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Chatop
         uses: machine-learning-apps/actions-chatops@master
+        with:
+          TRIGGER_PHRASE: '/ds-prof'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: comment
@@ -24,20 +26,25 @@ jobs:
           ref: ${{ steps.comment.outputs.SHA }}
           path: pr
 
+      - name: Install rar
+        run: sudo apt-get -y install unrar
+
       - name: Set up environment
         uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: 3.8
-          environment-file: pr/action_files/prof-env.yml
+          environment-file: master/action_files/prof-env.yml
 
       - name: Run profiles
         shell: bash -l {0}
         run: |
-          pip install master/
-          scalene master/action_files/prof.py --reduced-profile --html --outfile master.html
-          pip uninstall -y nixtla
-          pip install pr/
-          scalene master/action_files/prof.py --reduced-profile --html --outfile pr.html
+          cd pr/
+          python -c 'from nixtla.data.datasets.m4 import M4; M4.load("data", group="Yearly")'
+          scalene action_files/prof.py --program-path . --reduced-profile --html --outfile ../pr.html
+          cp -r data/ ../master/data/
+          cd ../master/
+          scalene action_files/prof.py --program-path . --reduced-profile --html --outfile ../master.html
+          cd ..
           python master/action_files/comment_reports.py master.html pr.html
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
