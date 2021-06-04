@@ -148,7 +148,7 @@ class TimeSeriesDataset(Dataset):
         else:
             self.len_sample_chunks = input_size + output_size
 
-        self.ts_data, self.s_data, self.meta_data, self.t_cols, self.s_cols \
+        self.ts_data, self.s_matrix, self.meta_data, self.t_cols, self.s_cols \
                          = self._df_to_lists(Y_df=Y_df, S_df=S_df, X_df=X_df, mask_df=mask_df)
 
         # Dataset attributes
@@ -176,7 +176,7 @@ class TimeSeriesDataset(Dataset):
         # Balances panel and creates
         # numpy  s_matrix of shape (n_series, n_s)
         # numpy ts_tensor of shape (n_series, n_channels, max_len) n_channels = t_cols + masks
-        self.ts_tensor, self.s_matrix, self.len_series = self._create_tensor(self.ts_data, self.s_data)
+        self._create_tensor()
 
         # Defining windows attributes by model
         self.windows_size: int
@@ -284,26 +284,26 @@ def _df_to_lists(self: TimeSeriesDataset,
     X.drop(['unique_id', 'ds'], 1, inplace=True)
     G = Y.join(X).join(M)
 
-    S = S_df.sort_values(by=['unique_id']).copy()
+    S = S_df.sort_values('unique_id')
 
     # time columns and static columns for future indexing
     t_cols = list(G.columns[2:]) # avoid unique_id and ds
     s_cols = list(S.columns[1:]) # avoid unique_id
 
-    G = G.groupby(['unique_id'])
-    S = S.groupby(['unique_id'])
-
+    grouped = G.groupby('unique_id')
+    meta = G[['unique_id', 'ds']].values
+    data = G.drop(columns=['unique_id', 'ds']).values
+    sizes = grouped.size()
+    idxs = np.append(0, sizes.cumsum())
     ts_data = []
     meta_data = []
-    for idx, group in G:
-        group = group.reset_index(drop=True)
-        meta_data.append(group.values[:, :2]) # save unique_id and ds
-        ts_data.append(group.values[:, 2:]) # avoid unique_id and ds
+    for start, end in zip(idxs[:-1], idxs[1:]):
+        ts_data.append(data[start:end])
+        meta_data.append(meta[start:end])
 
-    s_data = []
-    for idx, group in S:
-        s_data.append(group.iloc[:, 1:].values) # avoid unique_id
-        assert len(s_data[-1])==1, 'Check repetitions of unique_ids'
+    if S['unique_id'].value_counts().max() > 1:
+        raise ValueError('Found duplicated unique_ids in S_df')
+    s_data = S.drop(columns='unique_id').values
 
     del S, Y, X, M, G
     gc.collect()
@@ -312,40 +312,15 @@ def _df_to_lists(self: TimeSeriesDataset,
 
 # Cell
 @patch
-def _create_tensor(self: TimeSeriesDataset,
-                   ts_data: List[Dict[str, np.ndarray]],
-                   s_data: List[Dict[str, np.ndarray]]) -> Tuple[np.ndarray,
-                                                                 np.ndarray,
-                                                                 np.ndarray]:
-    """Transforms outputs from self._df_to_lists to numpy arrays.
+def _create_tensor(self: TimeSeriesDataset) -> None:
+    """Transforms outputs from self._df_to_lists to numpy arrays."""
+    self.ts_tensor = np.zeros((self.n_series, self.n_channels, self.max_len))
 
-    Parameters
-    ----------
-    ts_data: List[Dict[str, np.ndarray]]
-        Each element of the list is a dictionary with target, exogenous
-        and mask values.
-    s_data: List[Dict[str, np.ndarray]]
-        Each element of the list is a dictionary with static variables.
-
-    Returns
-    -------
-    Tuple of three elements:
-        - ts_tensor of shape (n_series, n_channels, max_len) n_channels = t_cols + masks
-        - s_matrix of shape (n_series, n_s)
-        - len_series: numpy array with series lenghts.
-    """
-    ts_tensor = np.zeros((self.n_series, self.n_channels, self.max_len))
-
-    len_series = []
-    for idx, ts_idx in enumerate(ts_data):
+    self.len_series = np.empty(self.n_series, dtype=np.int32)
+    for idx, ts_idx in enumerate(self.ts_data):
         # Left padded time series tensor
-        ts_tensor[idx, :, -ts_idx.shape[0]:] = ts_idx.T
-        len_series.append(ts_idx.shape[0])
-
-    s_matrix = np.vstack(s_data)
-    len_series = np.array(len_series)
-
-    return ts_tensor, s_matrix, len_series
+        self.ts_tensor[idx, :, -ts_idx.shape[0]:] = ts_idx.T
+        self.len_series[idx] = ts_idx.shape[0]
 
 # Cell
 @patch
