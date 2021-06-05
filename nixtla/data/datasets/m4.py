@@ -207,7 +207,7 @@ class M4Evaluation:
             filepath = f'{path}/submission-Naive2.csv'
 
         benchmark = pd.read_csv(filepath)
-        benchmark = benchmark.query('id.str.startswith(@initial)')
+        benchmark = benchmark[benchmark['id'].str.startswith(initial)]
         benchmark = benchmark.set_index('id').dropna(1)
         benchmark = benchmark.sort_values('id').values
 
