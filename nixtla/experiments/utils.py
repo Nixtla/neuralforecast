@@ -30,7 +30,7 @@ from ..data.tsdataset import TimeSeriesDataset
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
-from ..models.nbeats.nbeats import Nbeats
+from ..models.nbeats.nbeats import NBEATS
 
 # Cell
 def get_mask_dfs(Y_df, ds_in_val, ds_in_test):
@@ -163,8 +163,8 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       mask_df=train_mask_df, f_cols=f_cols,
                                       mode=mc['mode'],
                                       window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                      output_size=int(mc['output_size']),
+                                      input_size=int(mc['n_time_in']),
+                                      output_size=int(mc['n_time_out']),
                                       idx_to_sample_freq=int(mc['idx_to_sample_freq']),
                                       len_sample_chunks=mc['len_sample_chunks'],
                                       complete_inputs=mc['complete_inputs'],
@@ -173,8 +173,8 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       mask_df=val_mask_df, f_cols=f_cols,
                                       mode=mc['mode'],
                                       window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                      output_size=int(mc['output_size']),
+                                      input_size=int(mc['n_time_in']),
+                                      output_size=int(mc['n_time_out']),
                                       idx_to_sample_freq=int(mc['val_idx_to_sample_freq']),
                                       len_sample_chunks=mc['len_sample_chunks'],
                                       complete_inputs=mc['complete_inputs'],
@@ -183,8 +183,8 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       mask_df=test_mask_df, f_cols=f_cols,
                                       mode=mc['mode'],
                                       window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                                      output_size=int(mc['output_size']),
+                                      input_size=int(mc['n_time_in']),
+                                      output_size=int(mc['n_time_out']),
                                       idx_to_sample_freq=mc['val_idx_to_sample_freq'],
                                       len_sample_chunks=mc['len_sample_chunks'],
                                       complete_inputs=False,
@@ -220,37 +220,34 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 
 # Cell
 def instantiate_nbeats(mc):
-    mc['n_hidden_list'] = len(mc['stack_types']) * [ mc['n_layers'][0]*[int(mc['n_hidden'])] ]
-    model = Nbeats(input_size_multiplier=mc['input_size_multiplier'],
-                   output_size=int(mc['output_size']),
+    mc['n_theta_hidden'] = len(mc['stack_types']) * [ [int(mc['n_hidden']), int(mc['n_hidden'])] ]
+    model = NBEATS(n_time_in=int(mc['n_time_in']),
+                   n_time_out=int(mc['n_time_out']),
+                   n_x=mc['n_x'],
+                   n_s=mc['n_s'],
+                   n_s_hidden=int(mc['n_s_hidden']),
+                   n_x_hidden=int(mc['n_x_hidden']),
                    shared_weights=mc['shared_weights'],
                    initialization=mc['initialization'],
                    activation=mc['activation'],
                    stack_types=mc['stack_types'],
                    n_blocks=mc['n_blocks'],
                    n_layers=mc['n_layers'],
-                   n_hidden=mc['n_hidden_list'],
+                   n_theta_hidden=mc['n_theta_hidden'],
                    n_harmonics=int(mc['n_harmonics']),
                    n_polynomials=int(mc['n_polynomials']),
-                   x_s_n_hidden=int(mc['x_s_n_hidden']),
-                   exogenous_n_channels=int(mc['exogenous_n_channels']),
                    batch_normalization = mc['batch_normalization'],
                    dropout_prob_theta=mc['dropout_prob_theta'],
-                   dropout_prob_exogenous=mc['dropout_prob_exogenous'],
                    learning_rate=float(mc['learning_rate']),
                    lr_decay=float(mc['lr_decay']),
-                   n_lr_decay_steps=float(mc['n_lr_decay_steps']),
+                   lr_decay_step_size=float(mc['lr_decay_step_size']),
                    weight_decay=mc['weight_decay'],
-                   l1_theta=mc['l1_theta'],
-                   n_iterations=int(mc['n_iterations']),
-                   early_stopping=int(mc['early_stopping']),
-                   loss=mc['loss'],
+                   loss_train=mc['loss_train'],
                    loss_hypar=float(mc['loss_hypar']),
-                   val_loss=mc['val_loss'],
+                   loss_valid=mc['loss_valid'],
                    frequency=mc['frequency'],
                    seasonality=int(mc['seasonality']),
-                   random_seed=int(mc['random_seed']),
-                   device=mc['device'])
+                   random_seed=int(mc['random_seed']))
     return model
 
 # Cell
@@ -260,8 +257,8 @@ def instantiate_esrnn(mc):
                   n_x=mc['n_x'],
                   n_s=mc['n_s'],
                   idx_to_sample_freq=int(mc['idx_to_sample_freq']),
-                  input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                  output_size=int(mc['output_size']),
+                  input_size=int(mc['n_time_in']),
+                  output_size=int(mc['n_time_out']),
                   es_component=mc['es_component'],
                   cell_type=mc['cell_type'],
                   state_hsize=int(mc['state_hsize']),
@@ -269,7 +266,7 @@ def instantiate_esrnn(mc):
                   add_nl_layer=mc['add_nl_layer'],
                   # Optimization parameters
                   learning_rate=mc['learning_rate'],
-                  lr_scheduler_step_size=int(mc['lr_scheduler_step_size']),
+                  lr_scheduler_step_size=int(mc['lr_decay_step_size']),
                   lr_decay=mc['lr_decay'],
                   per_series_lr_multip=mc['per_series_lr_multip'],
                   gradient_eps=mc['gradient_eps'],
@@ -279,8 +276,8 @@ def instantiate_esrnn(mc):
                   level_variability_penalty=mc['level_variability_penalty'],
                   testing_percentile=mc['testing_percentile'],
                   training_percentile=mc['training_percentile'],
-                  loss=mc['loss'],
-                  val_loss=mc['val_loss'],
+                  loss=mc['loss_train'],
+                  val_loss=mc['loss_valid'],
                   seasonality=mc['seasonality'])
     return model
 
@@ -291,8 +288,8 @@ def instantiate_mqesrnn(mc):
                     n_x=mc['n_x'],
                     n_s=mc['n_s'],
                     idx_to_sample_freq=int(mc['idx_to_sample_freq']),
-                    input_size=int(mc['input_size_multiplier']*mc['output_size']),
-                    output_size=int(mc['output_size']),
+                    input_size=int(mc['n_time_in']),
+                    output_size=int(mc['n_time_out']),
                     es_component=mc['es_component'],
                     cell_type=mc['cell_type'],
                     state_hsize=int(mc['state_hsize']),
@@ -300,7 +297,7 @@ def instantiate_mqesrnn(mc):
                     add_nl_layer=mc['add_nl_layer'],
                     # Optimization parameters
                     learning_rate=mc['learning_rate'],
-                    lr_scheduler_step_size=int(mc['lr_scheduler_step_size']),
+                    lr_scheduler_step_size=int(mc['lr_decay_step_size']),
                     lr_decay=mc['lr_decay'],
                     gradient_eps=mc['gradient_eps'],
                     gradient_clipping_threshold=mc['gradient_clipping_threshold'],
@@ -308,8 +305,8 @@ def instantiate_mqesrnn(mc):
                     noise_std=mc['noise_std'],
                     testing_percentiles=list(mc['testing_percentiles']),
                     training_percentiles=list(mc['training_percentiles']),
-                    loss=mc['loss'],
-                    val_loss=mc['val_loss'])
+                    loss=mc['loss_train'],
+                    val_loss=mc['loss_valid'])
     return model
 
 # Cell
@@ -341,6 +338,7 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
                                                                          n_uids=n_uids,
                                                                          n_val_windows=n_val_windows,
                                                                          freq=freq, is_val_random=is_val_random)
+    mc['n_x'], mc['n_s'] = train_dataset.get_n_variables()
 
     #------------------------------------------- Instantiate & fit -------------------------------------------#
     train_loader, val_loader, test_loader = instantiate_loaders(mc=mc,
@@ -348,38 +346,29 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
                                                                 val_dataset=val_dataset,
                                                                 test_dataset=test_dataset)
     model = instantiate_model(mc=mc)
-    if mc['model'] in ['esrnn', 'mqesrnn']:
-        callbacks = []
-        if mc['early_stopping']:
-            early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
-                                                        patience=mc['early_stopping'],
-                                                        verbose=True,
-                                                        mode='min')
-            callbacks=[early_stopping]
+    callbacks = []
+    if mc['early_stop_patience']:
+        early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
+                                                    patience=mc['early_stop_patience'],
+                                                    verbose=True,
+                                                    mode='min')
+        callbacks=[early_stopping]
 
-        gpus = -1 if t.cuda.is_available() else 0
-        trainer = pl.Trainer(max_epochs=mc['n_iterations'], callbacks=callbacks)
-        trainer.fit(model, train_loader, val_loader)
-    else:
-        model.fit(train_ts_loader=train_loader, val_ts_loader=val_loader, verbose=True, eval_freq=mc['eval_freq'])
+    gpus = -1 if t.cuda.is_available() else 0
+    trainer = pl.Trainer(max_epochs=mc['max_epochs'],
+                         max_steps=mc['max_steps'],
+                         callbacks=callbacks)
+    trainer.fit(model, train_loader, val_loader)
 
     #------------------------------------------------ Predict ------------------------------------------------#
     # Predict test if available
     if ds_in_test > 0:
-        if mc['model'] in ['esrnn', 'mqesrnn']:
-            outputs = trainer.predict(model, test_loader)
-            y_true, y_hat = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
-            mask = np.ones_like(y_hat)
-        else:
-            y_true, y_hat, mask = model.predict(ts_loader=test_loader, return_decomposition=False)
+        outputs = trainer.predict(model, test_loader)
+        y_true, y_hat, mask = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
         meta_data = test_loader.dataset.meta_data
     else:
-        if mc['model'] in ['esrnn', 'mqesrnn']:
-            outputs = trainer.predict(model, val_loader)
-            y_true, y_hat = [t.cat(output).cpu().numpy()[:, -1] for output in zip(*outputs)]
-            mask = np.ones_like(y_hat)
-        else:
-            y_true, y_hat, mask = model.predict(ts_loader=val_loader, return_decomposition=False)
+        outputs = trainer.predict(model, val_loader)
+        y_true, y_hat, mask = [t.cat(output).cpu().numpy()[:, -1] for output in zip(*outputs)]
         meta_data = val_loader.dataset.meta_data
 
     # Scale to original scale

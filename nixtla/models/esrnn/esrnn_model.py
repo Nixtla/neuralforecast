@@ -417,4 +417,6 @@ class _ESRNN(nn.Module):
             n_ts, n_w, _ = windows_y_outsample.shape
             y_hat = y_hat.view(n_ts, n_w, -1, self.rnn.output_size_m)
 
-        return windows_y_outsample, y_hat
+        outsample_mask = t.ones_like(y_hat) # TODO: improve on this emporal hack
+
+        return windows_y_outsample, y_hat, outsample_mask
