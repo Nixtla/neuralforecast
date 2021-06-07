@@ -11,7 +11,7 @@ entries:
       url: /
     - output: web,pdf
       title: Title
-      url: models_nbeats__nbeats_model.html
+      url: models_esrnn__esrnn_model.html
     - output: web,pdf
       title: TimeSeriesLoader
       url: data__tsloader.html

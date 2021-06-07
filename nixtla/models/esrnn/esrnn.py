@@ -221,8 +221,9 @@ class ESRNN(pl.LightningModule):
         X = batch['X']
         idxs = batch['idxs']
 
-        target, forecast = self.esrnn.predict(S=S, Y=Y, X=X, idxs=idxs,
-                                              step_size=self.idx_to_sample_freq)
+        # TODO: improve temporal hack, mask is not used in loss yet
+        target, forecast, _ = self.esrnn.predict(S=S, Y=Y, X=X, idxs=idxs,
+                                                 step_size=self.idx_to_sample_freq)
         loss = self.val_loss_fn(y=target,
                                 y_hat=forecast,
                                 y_insample=Y)
@@ -236,10 +237,10 @@ class ESRNN(pl.LightningModule):
         X = batch['X']
         idxs = batch['idxs']
 
-        target, forecast = self.esrnn.predict(S=S, Y=Y, X=X, idxs=idxs,
-                                              step_size=self.idx_to_sample_freq)
+        target, forecast, outsample_mask = self.esrnn.predict(S=S, Y=Y, X=X, idxs=idxs,
+                                                              step_size=self.idx_to_sample_freq)
 
-        return target, forecast
+        return target, forecast, outsample_mask
 
     def configure_optimizers(self):
         es_optimizer = Adam(params=self.esrnn.es.parameters(),
