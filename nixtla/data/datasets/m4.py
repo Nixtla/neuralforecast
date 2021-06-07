@@ -81,7 +81,7 @@ M4Info = Info(groups=('Yearly', 'Quarterly', 'Monthly', 'Weekly', 'Daily', 'Hour
 class M4:
 
     source_url: str = 'https://raw.githubusercontent.com/Mcompetitions/M4-methods/master/Dataset/'
-    naive2_forecast_url: str = 'https://github.com/M4Competition/M4-methods/raw/master/Point%20Forecasts/submission-Naive2.rar'
+    naive2_forecast_url: str = 'https://github.com/Nixtla/m4-forecasts/raw/master/forecasts/submission-Naive2.zip'
 
     @staticmethod
     def load(directory: str,
@@ -187,7 +187,7 @@ class M4Evaluation:
                             'Weekly', 'Daily', 'Hourly'.
         source_url: str, optional
             Optional benchmark url obtained from
-            https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts.
+            https://github.com/Nixtla/m4-forecasts/tree/master/forecasts.
             If `None` returns Naive2.
 
         Returns
@@ -229,7 +229,7 @@ class M4Evaluation:
         y_hat: numpy array, str
             Group forecasts as numpy array or
             benchmark url from
-            https://github.com/Mcompetitions/M4-methods/tree/master/Point%20Forecasts.
+            https://github.com/Nixtla/m4-forecasts/tree/master/forecasts.
 
         Returns
         -------
