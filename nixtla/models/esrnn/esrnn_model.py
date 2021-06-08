@@ -29,7 +29,6 @@ class _ES(nn.Module):
 
         self.noise_std = noise_std
 
-
     def gaussian_noise(self, Y: t.Tensor, std: float=0.2):
         size = Y.size()
         noise = t.autograd.Variable(Y.data.new(size).normal_(0, std))
@@ -284,8 +283,14 @@ class _ESM(_ES):
         # Seasonalities are unfolded, because each element of trends must be multiplied
         # by the corresponding seasonality.
         for i in range(len(seasonalities)):
-            seasonalities[i] = seasonalities[i][:, self.input_size : -self.seasonality[i]]
-            seasonalities[i] = seasonalities[i].unfold(dimension=-1, size=self.output_size, step=step_size)
+            seasonalities[i] = seasonalities[i][:, self.seasonality[i]:]
+            seasonalities[i] = seasonalities[i].unfold(dimension=-1, size=self.input_size + self.output_size,
+                                                       step=step_size)
+            seasonalities[i] = seasonalities[i][:,:,:self.input_size] #avoid leakage
+            if self.output_size > self.seasonality[i]:
+                repetitions = int(np.ceil(self.output_size / self.seasonality[i]))-1
+                seasonalities[i] = seasonalities[i].repeat((1, 1, repetitions))
+            seasonalities[i] = seasonalities[i][:, :, :self.output_size]
 
         # Denormalize
         trends = t.exp(trends)
