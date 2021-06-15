@@ -9,7 +9,9 @@ entries:
     - output: web,pdf
       title: Overview
       url: /
-    - output: web
+    output: web
+    title: Getting started
+  - folderitems:
       subfolders:
       - output: web
         subfolderitems:
@@ -38,12 +40,12 @@ entries:
           title: Utils
           url: data_datasets__utils.html
         title: Datasets
-      - output: web,pdf
-        title: Time Series Datasets
-        url: data__tsdataset.html
-      - output: web,pdf
-        title: Time Series Loaders
-        url: data__tsloader.html
+    - output: web,pdf
+      title: Time Series Datasets
+      url: data__tsdataset.html
+    - output: web,pdf
+      title: Time Series Loaders
+      url: data__tsloader.html
       - output: web
         subfolderitems:
         - output: web,pdf
@@ -53,18 +55,19 @@ entries:
           title: Scalers
           url: data__scalers.html
         title: Dataset utils
-      title: Data
-    - output: web
+    output: web
+    title: Data
+  - folderitems:
+    - output: web,pdf
+      title: ESRNN
+      url: models_esrnn__esrnn.html
+    - output: web,pdf
+      title: NBEATS
+      url: models_nbeats__nbeats.html
+    - output: web,pdf
+      title: MQESRNN
+      url: models_esrnn__mqesrnn.html
       subfolders:
-      - output: web,pdf
-        title: ESRNN
-        url: models_esrnn__esrnn.html
-      - output: web,pdf
-        title: NBEATS
-        url: models_nbeats__nbeats.html
-      - output: web,pdf
-        title: MQESRNN
-        url: models_esrnn__mqesrnn.html
       - output: web
         subfolderitems:
         - output: web,pdf
@@ -83,26 +86,25 @@ entries:
           title: Common
           url: models_components__common.html
         title: Components
-      title: Models
-    - output: web
-      subfolders:
-      - output: web,pdf
-        title: NumPy Evaluation Metrics
-        url: losses__numpy.html
-      - output: web,pdf
-        title: PyTorch Train Losses
-        url: losses__pytorch.html
-      - output: web,pdf
-        title: Statistical Tests
-        url: losses__gw_test.html
-      - output: web,pdf
-        title: Utils
-        url: losses__utils.html
-      title: Evaluation
-    - output: web,pdf
-      title: Experiments
-      url: experiments__utils.html
     output: web
-    title: nixtlats
+    title: Models
+  - folderitems:
+    - output: web,pdf
+      title: NumPy Evaluation Metrics
+      url: losses__numpy.html
+    - output: web,pdf
+      title: PyTorch Train Losses
+      url: losses__pytorch.html
+    - output: web,pdf
+      title: Statistical Tests
+      url: losses__gw_test.html
+    - output: web,pdf
+      title: Utils
+      url: losses__utils.html
+    output: web
+    title: Evaluation
+  - output: web,pdf
+    title: Experiments
+    url: experiments__utils.html
   output: web
   title: Sidebar
