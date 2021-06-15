@@ -12,6 +12,12 @@ entries:
     output: web
     title: Getting started
   - folderitems:
+    - output: web,pdf
+      title: Time Series Datasets
+      url: data__tsdataset.html
+    - output: web,pdf
+      title: Time Series Loaders
+      url: data__tsloader.html
       subfolders:
       - output: web
         subfolderitems:
@@ -40,12 +46,6 @@ entries:
           title: Utils
           url: data_datasets__utils.html
         title: Datasets
-    - output: web,pdf
-      title: Time Series Datasets
-      url: data__tsdataset.html
-    - output: web,pdf
-      title: Time Series Loaders
-      url: data__tsloader.html
       - output: web
         subfolderitems:
         - output: web,pdf
@@ -103,8 +103,11 @@ entries:
       url: losses__utils.html
     output: web
     title: Evaluation
-  - output: web,pdf
+  - folderitems:
+    - output: web,pdf
+      title: Utils
+      url: experiments__utils.html
+    output: web
     title: Experiments
-    url: experiments__utils.html
   output: web
   title: Sidebar

@@ -3,6 +3,8 @@
     "Overview": "/"
   },
   "Data": {
+    "Time Series Datasets": "data__tsdataset.html",
+    "Time Series Loaders": "data__tsloader.html",
     "": {
       "Datasets": {
         "EPF": "data_datasets__epf.html",
@@ -15,9 +17,7 @@
         "Utils": "data_datasets__utils.html"
       }
     },
-    "Time Series Datasets": "data__tsdataset.html",
-    "Time Series Loaders": "data__tsloader.html",
-    "empty1": {
+    "empty2": {
       "Dataset utils": {
         "Utils": "data__utils.html",
         "Scalers": "data__scalers.html"
@@ -47,5 +47,7 @@
       "Statistical Tests": "losses__gw_test.html",
       "Utils": "losses__utils.html"
   },
-  "Experiments": "experiments__utils.html"
+  "Experiments": {
+      "Utils": "experiments__utils.html"
+  }
 }
