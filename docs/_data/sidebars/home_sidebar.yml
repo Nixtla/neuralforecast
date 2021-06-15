@@ -83,6 +83,9 @@ entries:
           title: ESRNN
           url: models_esrnn__esrnn_model.html
         - output: web,pdf
+          title: TCN
+          url: models_components__tcn.html
+        - output: web,pdf
           title: Common
           url: models_components__common.html
         title: Components

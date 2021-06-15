@@ -37,6 +37,7 @@
       "Components": {
         "DRNN": "models_components__drnn.html",
         "ESRNN": "models_esrnn__esrnn_model.html",
+        "TCN": "models_components__tcn.html",
         "Common": "models_components__common.html"
       }
     }
