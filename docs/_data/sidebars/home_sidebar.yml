@@ -9,70 +9,100 @@ entries:
     - output: web,pdf
       title: Overview
       url: /
+    - output: web
+      subfolders:
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: EPF
+          url: data_datasets__epf.html
+        - output: web,pdf
+          title: Favorita
+          url: data_datasets__favorita.html
+        - output: web,pdf
+          title: GEFCom 2012
+          url: data_datasets__gefcom2012.html
+        - output: web,pdf
+          title: GEFCom 2014
+          url: data_datasets__gefcom2014.html
+        - output: web,pdf
+          title: M3
+          url: data_datasets__m3.html
+        - output: web,pdf
+          title: M4
+          url: data_datasets__m4.html
+        - output: web,pdf
+          title: Tourism
+          url: data_datasets__tourism.html
+        - output: web,pdf
+          title: Utils
+          url: data_datasets__utils.html
+        title: Datasets
+      - output: web,pdf
+        title: Time Series Datasets
+        url: data__tsdataset.html
+      - output: web,pdf
+        title: Time Series Loaders
+        url: data__tsloader.html
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: Utils
+          url: data__utils.html
+        - output: web,pdf
+          title: Scalers
+          url: data__scalers.html
+        title: Dataset utils
+      title: Data
+    - output: web
+      subfolders:
+      - output: web,pdf
+        title: ESRNN
+        url: models_esrnn__esrnn.html
+      - output: web,pdf
+        title: NBEATS
+        url: models_nbeats__nbeats.html
+      - output: web,pdf
+        title: MQESRNN
+        url: models_esrnn__mqesrnn.html
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: Naive2
+          url: models_naive2__naive2.html
+        title: Benchmarks
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: DRNN
+          url: models_components__drnn.html
+        - output: web,pdf
+          title: ESRNN
+          url: models_esrnn__esrnn_model.html
+        - output: web,pdf
+          title: Common
+          url: models_components__common.html
+        title: Components
+      title: Models
+    - output: web
+      subfolders:
+      - output: web,pdf
+        title: NumPy Evaluation Metrics
+        url: losses__numpy.html
+      - output: web,pdf
+        title: PyTorch Train Losses
+        url: losses__pytorch.html
+      - output: web,pdf
+        title: Statistical Tests
+        url: losses__gw_test.html
+      - output: web,pdf
+        title: Utils
+        url: losses__utils.html
+      title: Evaluation
     - output: web,pdf
-      title: Title
-      url: models_esrnn__esrnn_model.html
-    - output: web,pdf
-      title: TimeSeriesLoader
-      url: data__tsloader.html
-    - output: web,pdf
-      title: EPF dataset
-      url: data_datasets__epf.html
-    - output: web,pdf
-      title: Kaggle-Competition-Favorita
-      url: data_datasets__favorita.html
-    - output: web,pdf
-      title: GEFCom2012
-      url: data_datasets__gefcom2012.html
-    - output: web,pdf
-      title: GEFCom 2014 dataset
-      url: data_datasets__gefcom2014.html
-    - output: web,pdf
-      title: M3 dataset
-      url: data_datasets__m3.html
-    - output: web,pdf
-      title: M4 dataset
-      url: data_datasets__m4.html
-    - output: web,pdf
-      title: Tourism dataset
-      url: data_datasets__tourism.html
-    - output: web,pdf
-      title: Dataset Utils
-      url: data_datasets__utils.html
-    - output: web,pdf
-      title: Experiment Utils
+      title: Experiments
       url: experiments__utils.html
-    - output: web,pdf
-      title: Giacomini-White Test
-      url: losses__gw_test.html
-    - output: web,pdf
-      title: NumPy Evaluation Metrics
-      url: losses__numpy.html
-    - output: web,pdf
-      title: 'PyTorch Train Losses '
-      url: losses__pytorch.html
-    - output: web,pdf
-      title: 'Losses utils '
-      url: losses__utils.html
-    - output: web,pdf
-      title: Chomp1d
-      url: models_components__common.html
-    - output: web,pdf
-      title: Dilated Recurrent Neural Networks
-      url: models_components__drnn.html
-    - output: web,pdf
-      title: 'ES-RNN: Exponential Smoothing Recurrent Neural Network'
-      url: models_esrnn__esrnn.html
-    - output: web,pdf
-      title: MQESRNN model
-      url: models_esrnn__mqesrnn.html
-    - output: web,pdf
-      title: Naive Benchmark Model
-      url: models_naive2__naive2.html
-    - output: web,pdf
-      title: 'N-BEATS: Neural Basis Expansion Analysis'
-      url: models_nbeats__nbeats.html
     output: web
-    title: nixtla
+    title: nixtlats
   output: web
   title: Sidebar

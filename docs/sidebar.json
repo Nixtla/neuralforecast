@@ -1,26 +1,43 @@
 {
-  "nixtla": {
+  "nixtlats": {
     "Overview": "/",
-    "Title": "models_esrnn__esrnn_model.html",
-    "TimeSeriesLoader": "data__tsloader.html",
-    "EPF dataset": "data_datasets__epf.html",
-    "Kaggle-Competition-Favorita": "data_datasets__favorita.html",
-    "GEFCom2012": "data_datasets__gefcom2012.html",
-    "GEFCom 2014 dataset": "data_datasets__gefcom2014.html",
-    "M3 dataset": "data_datasets__m3.html",
-    "M4 dataset": "data_datasets__m4.html",
-    "Tourism dataset": "data_datasets__tourism.html",
-    "Dataset Utils": "data_datasets__utils.html",
-    "Experiment Utils": "experiments__utils.html",
-    "Giacomini-White Test": "losses__gw_test.html",
-    "NumPy Evaluation Metrics": "losses__numpy.html",
-    "PyTorch Train Losses ": "losses__pytorch.html",
-    "Losses utils ": "losses__utils.html",
-    "Chomp1d": "models_components__common.html",
-    "Dilated Recurrent Neural Networks": "models_components__drnn.html",
-    "ES-RNN: Exponential Smoothing Recurrent Neural Network": "models_esrnn__esrnn.html",
-    "MQESRNN model": "models_esrnn__mqesrnn.html",
-    "Naive Benchmark Model": "models_naive2__naive2.html",
-    "N-BEATS: Neural Basis Expansion Analysis": "models_nbeats__nbeats.html"
+    "Data": {
+      "Datasets": {
+        "EPF": "data_datasets__epf.html",
+        "Favorita": "data_datasets__favorita.html",
+        "GEFCom 2012": "data_datasets__gefcom2012.html",
+        "GEFCom 2014": "data_datasets__gefcom2014.html",
+        "M3": "data_datasets__m3.html",
+        "M4": "data_datasets__m4.html",
+        "Tourism": "data_datasets__tourism.html",
+        "Utils": "data_datasets__utils.html"
+      },
+      "Time Series Datasets": "data__tsdataset.html",
+      "Time Series Loaders": "data__tsloader.html",
+      "Dataset utils": {
+        "Utils": "data__utils.html",
+        "Scalers": "data__scalers.html"
+      }
+    },
+    "Models": {
+      "ESRNN": "models_esrnn__esrnn.html",
+      "NBEATS": "models_nbeats__nbeats.html",
+      "MQESRNN": "models_esrnn__mqesrnn.html",
+      "Benchmarks": {
+        "Naive2": "models_naive2__naive2.html"
+      },
+      "Components": {
+        "DRNN": "models_components__drnn.html",
+        "ESRNN": "models_esrnn__esrnn_model.html",
+        "Common": "models_components__common.html"
+      }
+    },
+    "Evaluation": {
+      "NumPy Evaluation Metrics": "losses__numpy.html",
+      "PyTorch Train Losses": "losses__pytorch.html",
+      "Statistical Tests": "losses__gw_test.html",
+      "Utils": "losses__utils.html"
+    },
+    "Experiments": "experiments__utils.html"
   }
 }
