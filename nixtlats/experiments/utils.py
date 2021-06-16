@@ -25,12 +25,12 @@ import pytorch_lightning as pl
 import torch as t
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
-from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset
-from ..data.tsloader import TimeSeriesLoader
-from ..models.esrnn.esrnn import ESRNN
-from ..models.esrnn.mqesrnn import MQESRNN
-from ..models.nbeats.nbeats import NBEATS
+from nixtla.data.scalers import Scaler
+from nixtla.data.tsdataset import TimeSeriesDataset
+from nixtla.data.tsloader import TimeSeriesLoader
+from nixtla.models.esrnn.esrnn import ESRNN
+from nixtla.models.esrnn.mqesrnn import MQESRNN
+from nixtla.models.nbeats.nbeats import NBEATS
 
 # Cell
 def get_mask_dfs(Y_df, ds_in_val, ds_in_test):

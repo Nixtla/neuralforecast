@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-from .utils import download_file, Info, TimeSeriesDataclass
-from ..tsdataset import TimeSeriesDataset
+from nixtla.data.datasets.utils import download_file, Info, TimeSeriesDataclass
+from nixtla.data.tsdataset import TimeSeriesDataset
 
 # Cell
 @dataclass

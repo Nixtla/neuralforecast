@@ -8,7 +8,7 @@ from typing import Union, List, Optional
 import torch as t
 from fastcore.foundation import patch
 
-from .pytorch import (
+from nixtla.losses.pytorch import (
     MAPELoss, MASELoss, SMAPELoss,
     MSELoss, MAELoss, SmylLoss,
     PinballLoss, MQLoss, wMQLoss

@@ -7,7 +7,7 @@ import numpy as np
 import torch as t
 import torch.nn as nn
 
-from ..components.drnn import DRNN
+from nixtla.models.components.drnn import DRNN
 
 # Cell
 #TODO: rnn con canales

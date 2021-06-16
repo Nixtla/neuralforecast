@@ -13,8 +13,8 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 
-from .esrnn_model import _ESRNN
-from ...losses.utils import LossFunction
+from nixtla.models.esrnn.esrnn_model import _ESRNN
+from nixtla.losses.utils import LossFunction
 
 # Cell
 class ESRNN(pl.LightningModule):

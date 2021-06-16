@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from .utils import download_file, Info, TimeSeriesDataclass
+from nixtla.data.datasets.utils import download_file, Info, TimeSeriesDataclass
 
 # Cell
 @dataclass

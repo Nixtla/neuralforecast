@@ -3,7 +3,7 @@
 __all__ = ['MQESRNN']
 
 # Cell
-from .esrnn import ESRNN
+from nixtla.models.esrnn.esrnn import ESRNN
 
 # Cell
 class MQESRNN(ESRNN):

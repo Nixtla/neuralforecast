@@ -250,8 +250,8 @@ modules = ["data/scalers.py",
            "models/naive2/naive2.py",
            "models/nbeats/nbeats.py"]
 
-doc_url = "https://Grupo-Abraxas.github.io/nixtla/"
+doc_url = "https://Nixtla.github.io/nixtlats/"
 
-git_url = "https://github.com/Grupo-Abraxas/nixtla/tree/master/"
+git_url = "https://github.com/Nixtla/nixtlats/tree/master/"
 
 def custom_doc_links(name): return None

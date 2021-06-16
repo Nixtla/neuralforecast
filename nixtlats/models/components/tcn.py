@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 from torch.nn.utils import weight_norm
 
-from .common import Chomp1d
-from .common import CausalConv1d
+from nixtla.models.components.common import Chomp1d
+from nixtla.models.components.common import CausalConv1d
 
 # Cell
 # https://github.com/locuslab/TCN

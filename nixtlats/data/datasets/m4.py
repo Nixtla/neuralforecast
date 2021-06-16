@@ -10,8 +10,8 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from .utils import download_file, Info
-from ...losses.numpy import smape, mase
+from nixtla.data.datasets.utils import download_file, Info
+from nixtla.losses.numpy import smape, mase
 
 # Cell
 @dataclass
@@ -40,7 +40,7 @@ class Monthly:
 
 @dataclass
 class Weekly:
-    seasonality: int = 52
+    seasonality: int = 1
     horizon: int = 13
     freq: str = 'W'
     name: str = 'Weekly'
@@ -48,7 +48,7 @@ class Weekly:
 
 @dataclass
 class Daily:
-    seasonality: int = 7
+    seasonality: int = 1
     horizon: int = 14
     freq: str = 'D'
     name: str = 'Daily'

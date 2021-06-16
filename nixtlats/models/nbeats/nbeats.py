@@ -13,8 +13,8 @@ import torch.nn as nn
 from typing import Tuple
 from functools import partial
 
-from ..components.tcn import _TemporalConvNet
-from ..components.common import Chomp1d, RepeatVector
+from nixtla.models.components.tcn import _TemporalConvNet
+from nixtla.models.components.common import Chomp1d, RepeatVector
 
 # Cell
 class _StaticFeaturesEncoder(nn.Module):
@@ -479,16 +479,16 @@ from collections import defaultdict
 from torch import optim
 import pytorch_lightning as pl
 
-from ...losses.pytorch import (
+from nixtla.losses.pytorch import (
     MAPELoss, MASELoss, SMAPELoss,
     MSELoss, MAELoss, PinballLoss
 )
-from ...losses.numpy import (
+from nixtla.losses.numpy import (
     mae, mse, mape,
     smape, rmse, pinball_loss
 )
 
-from ...data.tsdataset import TimeSeriesDataset
+from nixtla.data.tsdataset import TimeSeriesDataset
 
 # Cell
 class NBEATS(pl.LightningModule):

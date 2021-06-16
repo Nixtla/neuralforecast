@@ -22,14 +22,14 @@ from datetime import datetime
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
 
-from .utils import (
+from nixtla.data.datasets.utils import (
     download_file,
     Info,
     TimeSeriesDataclass,
     create_calendar_variables,
     create_us_holiday_distance_variables,
 )
-from ..tsdataset import TimeSeriesDataset
+from nixtla.data.tsdataset import TimeSeriesDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
