@@ -6,8 +6,8 @@ title: NumPy Evaluation Metrics
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "API details."
-description: "API details."
+summary: "Metrics for evaluation."
+description: "Metrics for evaluation."
 nb_path: "nbs/losses__numpy.ipynb"
 ---
 <!--
@@ -47,7 +47,7 @@ nb_path: "nbs/losses__numpy.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="divide_no_nan" class="doc_header"><code>divide_no_nan</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L13" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>divide_no_nan</code>(<strong><code>a</code></strong>, <strong><code>b</code></strong>)</p>
+<h4 id="divide_no_nan" class="doc_header"><code>divide_no_nan</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L13" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>divide_no_nan</code>(<strong><code>a</code></strong>, <strong><code>b</code></strong>)</p>
 </blockquote>
 <p>Auxiliary funtion to handle divide by 0</p>
 
@@ -79,7 +79,7 @@ nb_path: "nbs/losses__numpy.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="metric_protections" class="doc_header"><code>metric_protections</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L23" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>metric_protections</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>ndarray</code>)</p>
+<h4 id="metric_protections" class="doc_header"><code>metric_protections</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L23" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>metric_protections</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>ndarray</code>)</p>
 </blockquote>
 
 </div>
@@ -110,7 +110,7 @@ nb_path: "nbs/losses__numpy.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L28" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L28" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Mean Absolute Percentage Error.</p>
 <p>MAPE measures the relative prediction accuracy of a
@@ -160,7 +160,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L69" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L69" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Mean Squared Error.</p>
 <p>MSE measures the prediction accuracy of a
@@ -210,7 +210,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L112" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L112" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Root Mean Squared Error.</p>
 <p>RMSE measures the prediction accuracy of a
@@ -263,7 +263,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L149" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L149" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Symmetric Mean Absolute Percentage Error.</p>
 <p>SMAPE measures the relative prediction accuracy of a
@@ -317,7 +317,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L198" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L198" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates the Mean Absolute Scaled Error.</p>
 <p>MASE measures the relative prediction accuracy of a
@@ -374,7 +374,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mae" class="doc_header"><code>mae</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L251" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mae" class="doc_header"><code>mae</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L251" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Mean Absolute Error.</p>
 <p>The mean absolute error</p>
@@ -421,7 +421,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="pinball_loss" class="doc_header"><code>pinball_loss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L291" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>pinball_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="pinball_loss" class="doc_header"><code>pinball_loss</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L291" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>pinball_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates the Pinball Loss.</p>
 <p>The Pinball loss measures the deviation of a quantile forecast.
@@ -473,7 +473,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L338" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L338" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates Relative Mean Absolute Error.</p>
 <p>The relative mean absolute error of two forecasts.
@@ -531,7 +531,7 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/losses/numpy.py#L377" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L377" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates the MultiQuantile loss.</p>
 <p>Calculates Average Multi-quantile Loss function, for

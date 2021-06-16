@@ -40,7 +40,7 @@ class Monthly:
 
 @dataclass
 class Weekly:
-    seasonality: int = 52
+    seasonality: int = 1
     horizon: int = 13
     freq: str = 'W'
     name: str = 'Weekly'
@@ -48,7 +48,7 @@ class Weekly:
 
 @dataclass
 class Daily:
-    seasonality: int = 7
+    seasonality: int = 1
     horizon: int = 14
     freq: str = 'D'
     name: str = 'Daily'

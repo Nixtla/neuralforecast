@@ -1,8 +1,13 @@
-# Deep Learning for Time Series Forecasting
+# `nixtlats`:Deep Learning for Time Series Forecasting
 > [nikstla] (noun, nahuatl) Period of time.
 
 
-<img src="https://github.com/Nixtla/nixtlats/blob/master/nbs/indx_imgs/nixtla_logo.png">
+<img src="https://raw.githubusercontent.com/Nixtla/nixtlats/master/nbs/indx_imgs/nixtla_logo.png">
+
+[![CI](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/pypi/pyversions/nixtlats)](https://pypi.org/project/nixtlats/)
+[![PyPi](https://img.shields.io/pypi/v/nixtlats?color=blue)](https://pypi.org/project/nixtlats/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/nixtlats/blob/master/LICENSE)
 
 State-of-the-art time series forecasting for pytorch.
 
@@ -11,7 +16,7 @@ It provides dataset loading utilities, evaluation functions and pytorch implemen
 
 
 ## Documentation
-XXX Here is a link to the [documentation](https://pypi.org).
+Here is a link to the [documentation](https://nixtla.github.io/nixtlats/).
 
 
 ## Installation
@@ -19,12 +24,12 @@ XXX Here is a link to the [documentation](https://pypi.org).
 ### Stable version
 
 This code is a work in progress, any contributions or issues are welcome on
-GitHub at: https://github.com/Nixtla/nixtla.
+GitHub at: https://github.com/Nixtla/nixtlats.
 
-You can install the *released version* of `Nixtla` from the [Python package index](https://pypi.org) with:
+You can install the *released version* of `nixtlats` from the [Python package index](https://pypi.org) with:
 
 ```python
-pip install nixtla
+pip install nixtlats
 ```
 
 (installing inside a python virtualenvironment or a conda environment is recommended).
@@ -34,8 +39,8 @@ pip install nixtla
 If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:
 
 ```bash
-git clone https://github.com/Nixtla/nixtla.git
-cd nixtla
+git clone https://github.com/Nixtla/nixtlats.git
+cd nixtlats
 pip install -e .
 ```
 
@@ -64,7 +69,7 @@ the following references to the related papers:
 ```bibtex
 @article{nixtla_arxiv,
   author  = {XXXX},
-  title   = {{Nixtla: Deep Learning for Time Series Forecasting}},
+  title   = {{nixtlats: Deep Learning for Time Series Forecasting}},
   journal = {arXiv preprint arXiv:XXX.XXX},
   year    = {2021}
 }

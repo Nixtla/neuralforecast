@@ -6,8 +6,8 @@ title: ES-RNN: Exponential Smoothing Recurrent Neural Network
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "API details."
-description: "API details."
+summary: "ESRNN model."
+description: "ESRNN model."
 nb_path: "nbs/models_esrnn__esrnn.ipynb"
 ---
 <!--
@@ -47,7 +47,7 @@ nb_path: "nbs/models_esrnn__esrnn.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="ESRNN" class="doc_header"><code>class</code> <code>ESRNN</code><a href="https://github.com/Grupo-Abraxas/nixtla/tree/master/nixtla/models/esrnn/esrnn.py#L20" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ESRNN</code>(<strong><code>n_series</code></strong>:<code>int</code>, <strong><code>n_x</code></strong>:<code>int</code>, <strong><code>n_s</code></strong>:<code>int</code>, <strong><code>input_size</code></strong>:<code>int</code>, <strong><code>output_size</code></strong>:<code>int</code>, <strong><code>idx_to_sample_freq</code></strong>:<code>int</code>, <strong><code>es_component</code></strong>:<code>str</code>=<em><code>'multiplicative'</code></em>, <strong><code>cell_type</code></strong>:<code>str</code>=<em><code>'LSTM'</code></em>, <strong><code>state_hsize</code></strong>:<code>int</code>=<em><code>50</code></em>, <strong><code>dilations</code></strong>:<code>List</code>[<code>List</code>[<code>int</code>]]=<em><code>[[1, 2], [4, 8]]</code></em>, <strong><code>add_nl_layer</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>seasonality</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[]</code></em>, <strong><code>learning_rate</code></strong>:<code>float</code>=<em><code>0.001</code></em>, <strong><code>lr_scheduler_step_size</code></strong>:<code>int</code>=<em><code>9</code></em>, <strong><code>lr_decay</code></strong>:<code>float</code>=<em><code>0.9</code></em>, <strong><code>per_series_lr_multip</code></strong>:<code>float</code>=<em><code>1.0</code></em>, <strong><code>gradient_eps</code></strong>:<code>float</code>=<em><code>1e-08</code></em>, <strong><code>gradient_clipping_threshold</code></strong>:<code>float</code>=<em><code>20.0</code></em>, <strong><code>rnn_weight_decay</code></strong>:<code>float</code>=<em><code>0.0</code></em>, <strong><code>noise_std</code></strong>:<code>float</code>=<em><code>0.001</code></em>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>=<em><code>20.0</code></em>, <strong><code>testing_percentile</code></strong>:<code>Union</code>[<code>int</code>, <code>List</code>[<code>T</code>]]=<em><code>50</code></em>, <strong><code>training_percentile</code></strong>:<code>Union</code>[<code>int</code>, <code>List</code>[<code>T</code>]]=<em><code>50</code></em>, <strong><code>loss</code></strong>:<code>str</code>=<em><code>'SMYL'</code></em>, <strong><code>val_loss</code></strong>:<code>str</code>=<em><code>'MAE'</code></em>) :: <code>LightningModule</code></p>
+<h2 id="ESRNN" class="doc_header"><code>class</code> <code>ESRNN</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/esrnn/esrnn.py#L20" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ESRNN</code>(<strong><code>n_series</code></strong>:<code>int</code>, <strong><code>n_x</code></strong>:<code>int</code>, <strong><code>n_s</code></strong>:<code>int</code>, <strong><code>input_size</code></strong>:<code>int</code>, <strong><code>output_size</code></strong>:<code>int</code>, <strong><code>idx_to_sample_freq</code></strong>:<code>int</code>, <strong><code>es_component</code></strong>:<code>str</code>=<em><code>'multiplicative'</code></em>, <strong><code>cell_type</code></strong>:<code>str</code>=<em><code>'LSTM'</code></em>, <strong><code>state_hsize</code></strong>:<code>int</code>=<em><code>50</code></em>, <strong><code>dilations</code></strong>:<code>List</code>[<code>List</code>[<code>int</code>]]=<em><code>[[1, 2], [4, 8]]</code></em>, <strong><code>add_nl_layer</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>seasonality</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[]</code></em>, <strong><code>learning_rate</code></strong>:<code>float</code>=<em><code>0.001</code></em>, <strong><code>lr_scheduler_step_size</code></strong>:<code>int</code>=<em><code>9</code></em>, <strong><code>lr_decay</code></strong>:<code>float</code>=<em><code>0.9</code></em>, <strong><code>per_series_lr_multip</code></strong>:<code>float</code>=<em><code>1.0</code></em>, <strong><code>gradient_eps</code></strong>:<code>float</code>=<em><code>1e-08</code></em>, <strong><code>gradient_clipping_threshold</code></strong>:<code>float</code>=<em><code>20.0</code></em>, <strong><code>rnn_weight_decay</code></strong>:<code>float</code>=<em><code>0.0</code></em>, <strong><code>noise_std</code></strong>:<code>float</code>=<em><code>0.001</code></em>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>=<em><code>20.0</code></em>, <strong><code>testing_percentile</code></strong>:<code>Union</code>[<code>int</code>, <code>List</code>[<code>T</code>]]=<em><code>50</code></em>, <strong><code>training_percentile</code></strong>:<code>Union</code>[<code>int</code>, <code>List</code>[<code>T</code>]]=<em><code>50</code></em>, <strong><code>loss</code></strong>:<code>str</code>=<em><code>'SMYL'</code></em>, <strong><code>val_loss</code></strong>:<code>str</code>=<em><code>'MAE'</code></em>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Helper class that provides a standard way to create an ABC using
 inheritance.</p>
@@ -84,9 +84,9 @@ inheritance.</p>
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
-<span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
-<span class="kn">from</span> <span class="nn">nixtla.data.tsdataset</span> <span class="kn">import</span> <span class="n">TimeSeriesDataset</span>
-<span class="kn">from</span> <span class="nn">nixtla.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
+<span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+<span class="kn">from</span> <span class="nn">nixtlats.data.tsdataset</span> <span class="kn">import</span> <span class="n">TimeSeriesDataset</span>
+<span class="kn">from</span> <span class="nn">nixtlats.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
 </pre></div>
 
     </div>
@@ -334,8 +334,8 @@ Metric val_loss improved by 0.024 &gt;= min_delta = 0.0001. New best score: 3.38
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
-<span class="kn">from</span> <span class="nn">nixtla.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span><span class="p">,</span> <span class="n">rmae</span><span class="p">,</span> <span class="n">smape</span><span class="p">,</span> <span class="n">rmse</span>
-<span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">epf_naive_forecast</span>
+<span class="kn">from</span> <span class="nn">nixtlats.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span><span class="p">,</span> <span class="n">rmae</span><span class="p">,</span> <span class="n">smape</span><span class="p">,</span> <span class="n">rmse</span>
+<span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">epf_naive_forecast</span>
 
 <span class="n">Y_naive_df</span> <span class="o">=</span> <span class="n">epf_naive_forecast</span><span class="p">(</span><span class="n">Y_df</span><span class="p">)</span>
 
@@ -465,7 +465,7 @@ model.training_percentile 51
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">TourismInfo</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>

@@ -2,7 +2,7 @@ topnav:
 - title: Topnav
   items:
     - title: github
-      external_url: https://github.com/Grupo-Abraxas/nixtla/tree/master/
+      external_url: https://github.com/Nixtla/nixtlats/tree/master/
 
 #Topnav dropdowns
 topnav_dropdowns:
