@@ -14,6 +14,7 @@ dependencies:
   - statsmodels
   - scikit-learn
   - tqdm
+  - xlrd
   - openpyxl
   - pip:
     - nbdev
