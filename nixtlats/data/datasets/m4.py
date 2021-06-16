@@ -10,8 +10,8 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from nixtla.data.datasets.utils import download_file, Info
-from nixtla.losses.numpy import smape, mase
+from .utils import download_file, Info
+from ...losses.numpy import smape, mase
 
 # Cell
 @dataclass

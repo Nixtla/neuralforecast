@@ -427,7 +427,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">create_synthetic_tsdata</span><span class="p">()</span>
 <span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">2</span>
@@ -457,7 +457,7 @@ is_test: bool
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
-<span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+<span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
 <span class="n">test_default_mask</span><span class="p">(</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span> <span class="o">*</span> <span class="mi">24</span><span class="p">,</span> <span class="n">is_test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -514,7 +514,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
 
 <span class="n">meta</span> <span class="o">=</span> <span class="n">TourismInfo</span><span class="p">[</span><span class="s1">&#39;Yearly&#39;</span><span class="p">]</span>
 <span class="n">Y_df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -778,7 +778,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">create_synthetic_tsdata</span><span class="p">()</span>
 <span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">2</span>
@@ -874,7 +874,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.utils</span> <span class="kn">import</span> <span class="n">create_synthetic_tsdata</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">create_synthetic_tsdata</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">ds_in_test</span> <span class="o">=</span> <span class="mi">2</span>
@@ -988,7 +988,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;PJM&#39;</span><span class="p">])</span>
 <span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">]</span>
@@ -1071,7 +1071,7 @@ is_test: bool
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtla.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.datasets.tourism</span> <span class="kn">import</span> <span class="n">Tourism</span><span class="p">,</span> <span class="n">TourismInfo</span>
 
 <span class="n">meta</span> <span class="o">=</span> <span class="n">TourismInfo</span><span class="p">[</span><span class="s1">&#39;Yearly&#39;</span><span class="p">]</span>
 <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">Tourism</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">meta</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>

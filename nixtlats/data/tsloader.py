@@ -12,7 +12,7 @@ import torch as t
 from fastcore.foundation import patch
 from torch.utils.data import DataLoader
 
-from nixtla.data.tsdataset import TimeSeriesDataset
+from .tsdataset import TimeSeriesDataset
 
 # Cell
 class TimeSeriesLoader(DataLoader):
