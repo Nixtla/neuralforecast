@@ -1,8 +1,8 @@
-# `nixtlats`: Deep Learning for Time Series Forecasting
+# `nixtlats`:Deep Learning for Time Series Forecasting
 > [nikstla] (noun, nahuatl) Period of time.
 
 
-<img src="https://github.com/Nixtla/nixtlats/blob/master/nbs/indx_imgs/nixtla_logo.png">
+<img src="https://raw.githubusercontent.com/Nixtla/nixtlats/master/nbs/indx_imgs/nixtla_logo.png">
 
 [![CI](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/pypi/pyversions/nixtlats)](https://pypi.org/project/nixtlats/)
