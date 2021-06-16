@@ -8,7 +8,6 @@ from datetime import timedelta
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
-import s3fs
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
