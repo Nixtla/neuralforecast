@@ -1,9 +1,9 @@
-repository: Grupo-Abraxas/nixtla
+repository: Nixtla/nixtlats
 output: web
-topnav_title: nixtla
-site_title: nixtla
-company_name: Grupo Abraxas
-description: Machine learning for time series forecasting
+topnav_title: nixtlats
+site_title: nixtlats
+company_name: Nixtla
+description: Deep Leearning for Time Series Forecasting
 # Set to false to disable KaTeX math
 use_math: true
 # Add Google analytics id if you have one and want to use it here
@@ -20,7 +20,7 @@ exclude:
   - .idea/
   - .gitignore
   - vendor
- 
+
 exclude: [vendor]
 
 highlighter: rouge
