@@ -1,6 +1,6 @@
 .summary {
     color: #808080;
-    border-left: 5px solid #ED1951;
+    border-left: 5px solid #FFCC00;
     font-size:16px;
 }
 
@@ -37,9 +37,10 @@ a[data-toggle="tooltip"] {
     cursor: default;
 }
 
+
 .navbar-inverse {
-    background-color: #347DBE;
-    border-color: #015CAE;
+    background-color: #0E1652;
+    border-color: #0E1652;
 }
 .navbar-inverse .navbar-nav>li>a, .navbar-inverse .navbar-brand {
     color: white;
