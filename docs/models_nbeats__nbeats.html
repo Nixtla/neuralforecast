@@ -6,8 +6,8 @@ title: N-BEATS: Neural Basis Expansion Analysis
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "N-BEATS model."
-description: "N-BEATS model."
+summary: "API details."
+description: "API details."
 nb_path: "nbs/models_nbeats__nbeats.ipynb"
 ---
 <!--
@@ -25,6 +25,46 @@ nb_path: "nbs/models_nbeats__nbeats.ipynb"
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># from google.colab import drive</span>
+<span class="c1"># drive.mount(&#39;/content/drive&#39;)</span>
+<span class="c1"># os.chdir(&#39;./drive/MyDrive/nixtlats&#39;)</span>
+<span class="c1"># print(os.getcwd())</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># !pip install torchinfo</span>
+<span class="c1"># !pip install fastcore</span>
+<span class="c1"># !pip install s3fs</span>
+<span class="c1"># !pip install patool</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
 
 </div>
     {% endraw %}
@@ -397,7 +437,26 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">_NBEATS</span><span class="p">(</span><span class="n">n_time_in</span><span class="o">=</span><span class="mi">168</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span> 
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torchinfo</span> <span class="kn">import</span> <span class="n">summary</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">_NBEATS</span><span class="p">(</span><span class="n">n_time_in</span><span class="o">=</span><span class="mi">168</span><span class="p">,</span>
                 <span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
                 <span class="n">n_s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">n_x</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
@@ -414,6 +473,13 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
                 <span class="n">initialization</span><span class="o">=</span><span class="s1">&#39;lecun_normal&#39;</span><span class="p">,</span>
                 <span class="n">batch_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">shared_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># inputs: S, Y, X, insample_mask</span>
+<span class="c1"># S.shape (n_batch,n_s)</span>
+<span class="c1"># Y.shape (n_batch,n_time_in+n_time_out) </span>
+<span class="c1"># X.shape (n_batch,n_x,n_time_in+n_time_out)</span>
+<span class="c1"># insample_mask.shape (n_batch,n_time_in+n_time_out)</span>
+<span class="c1"># summary(model, input_size=[(256, 1), (256, 168+24), (256, 10, 168+24), (256, 168+24)])</span>
 </pre></div>
 
     </div>
