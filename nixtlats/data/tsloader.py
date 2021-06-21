@@ -12,12 +12,13 @@ import torch as t
 from fastcore.foundation import patch
 from torch.utils.data import DataLoader
 
-from .tsdataset import TimeSeriesDataset
+from .tsdataset import TimeSeriesDataset, WindowsDataset
 
 # Cell
 class TimeSeriesLoader(DataLoader):
 
-    def __init__(self, dataset: TimeSeriesDataset, eq_batch_size: bool = False,
+    def __init__(self, dataset: Union[TimeSeriesDataset, WindowsDataset],
+                 eq_batch_size: bool = False,
                  **kwargs) -> 'TimeSeriesLoader':
         """Wraps the pytorch `DataLoader` with a special collate function
         for the `TimeSeriesDataset` ouputs.
@@ -74,6 +75,7 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
         return {key: self._check_batch_size(elem[key]) for key in elem}
 
     elem_type = type(elem)
+
     if isinstance(elem, t.Tensor):
         out = None
         if t.utils.data.get_worker_info() is not None:

@@ -282,8 +282,8 @@ nb_path: "nbs/data_datasets__m4.ipynb"
     <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
     <span class="n">n_series</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">unique_id</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
 
-    <span class="n">display_str</span>  <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Group: </span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s1"> &#39;</span>
-    <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;n_series: </span><span class="si">{</span><span class="n">n_series</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="n">display_str</span>  <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Group: </span><span class="si">{group}</span><span class="s1"> &#39;</span>
+    <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;n_series: </span><span class="si">{n_series}</span><span class="s1">&#39;</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">display_str</span><span class="p">)</span>
 </pre></div>
 
@@ -293,60 +293,6 @@ nb_path: "nbs/data_datasets__m4.ipynb"
 
 <div class="output_wrapper">
 <div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>25.4MiB [00:21, 1.18MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Yearly-train.csv, 25355736, bytes.
-1.49MiB [00:01, 867kiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Yearly-test.csv, 1486434, bytes.
-38.8MiB [00:09, 4.25MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Quarterly-train.csv, 38788547, bytes.
-1.97MiB [00:01, 1.20MiB/s]                         
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Quarterly-test.csv, 1971754, bytes.
-91.7MiB [00:16, 5.68MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Monthly-train.csv, 91655432, bytes.
-7.94MiB [00:01, 7.27MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Monthly-test.csv, 7942698, bytes.
-4.02MiB [00:00, 7.46MiB/s]                          
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Weekly-train.csv, 4015067, bytes.
-44.2kiB [00:00, 6.79MiB/s]                  
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Weekly-test.csv, 44247, bytes.
-95.8MiB [00:12, 7.88MiB/s]                           
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Daily-train.csv, 95765153, bytes.
-576kiB [00:02, 253kiB/s]                          
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Daily-test.csv, 576459, bytes.
-2.35MiB [00:00, 3.23MiB/s]                         
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Hourly-train.csv, 2347115, bytes.
-133kiB [00:00, 16.1MiB/s]                   
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded Hourly-test.csv, 132820, bytes.
-100%|██████████| 14.0/14.0 [00:00&lt;00:00, 8.18kiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded Other-train.csv, 14, bytes.
-100%|██████████| 14.0/14.0 [00:00&lt;00:00, 11.1kiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded Other-test.csv, 14, bytes.
-4.34MiB [00:03, 1.10MiB/s]                 
-ERROR:nixtla.data.datasets.utils:ERROR, something went wrong downloading data
-INFO:nixtla.data.datasets.utils:Successfully downloaded M4-info.csv, 4335598, bytes.
-100%|██████████| 3.56M/3.56M [00:02&lt;00:00, 1.27MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded submission-Naive2.zip, 3564691, bytes.
-INFO:nixtla.data.datasets.utils:Decompressing zip file...
-INFO:nixtla.data.datasets.utils:Successfully decompressed data/m4/datasets/submission-Naive2.zip
-</pre>
-</div>
-</div>
 
 <div class="output_area">
 
@@ -432,17 +378,6 @@ INFO:nixtla.data.datasets.utils:Successfully decompressed data/m4/datasets/submi
 
 <div class="output_area">
 
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>100%|██████████| 6.35M/6.35M [00:01&lt;00:00, 3.65MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded submission-118.zip, 6347201, bytes.
-INFO:nixtla.data.datasets.utils:Decompressing zip file...
-INFO:nixtla.data.datasets.utils:Successfully decompressed data/m4/datasets/submission-118.zip
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <div>
@@ -524,17 +459,6 @@ INFO:nixtla.data.datasets.utils:Successfully decompressed data/m4/datasets/submi
 
 <div class="output_wrapper">
 <div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>100%|██████████| 11.2M/11.2M [00:04&lt;00:00, 2.75MiB/s]
-INFO:nixtla.data.datasets.utils:Successfully downloaded submission-245.zip, 11244083, bytes.
-INFO:nixtla.data.datasets.utils:Decompressing zip file...
-INFO:nixtla.data.datasets.utils:Successfully decompressed data/m4/datasets/submission-245.zip
-</pre>
-</div>
-</div>
 
 <div class="output_area">
 

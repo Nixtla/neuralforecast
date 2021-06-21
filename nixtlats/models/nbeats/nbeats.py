@@ -488,7 +488,7 @@ from ...losses.numpy import (
     smape, rmse, pinball_loss
 )
 
-from ...data.tsdataset import TimeSeriesDataset
+from ...data.tsdataset import WindowsDataset
 
 # Cell
 class NBEATS(pl.LightningModule):

@@ -26,7 +26,7 @@ import torch as t
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
 from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset
+from ..data.tsdataset import TimeSeriesDataset, WindowsDataset
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
@@ -143,57 +143,68 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                     is_val_random):
     #------------------------------------- Available and Validation Mask ------------------------------------#
     if is_val_random:
-        train_mask_df, val_mask_df, test_mask_df = get_random_mask_dfs(Y_df=Y_df,
-                                                                       ds_in_test=ds_in_test,
-                                                                       n_uids=n_uids,
-                                                                       n_val_windows=n_val_windows,
-                                                                       n_ds_val_window=ds_in_val//n_val_windows,
-                                                                       freq=freq)
+        train_mask_df, valid_mask_df, test_mask_df = get_random_mask_dfs(Y_df=Y_df,
+                                                                         ds_in_test=ds_in_test,
+                                                                         n_uids=n_uids,
+                                                                         n_val_windows=n_val_windows,
+                                                                         n_ds_val_window=ds_in_val//n_val_windows,
+                                                                         freq=freq)
     else:
-        train_mask_df, val_mask_df, test_mask_df = get_mask_dfs(Y_df=Y_df,
-                                                                ds_in_test=ds_in_test,
-                                                                ds_in_val=ds_in_val)
+        train_mask_df, valid_mask_df, test_mask_df = get_mask_dfs(Y_df=Y_df,
+                                                                  ds_in_test=ds_in_test,
+                                                                  ds_in_val=ds_in_val)
 
     #---------------------------------------------- Scale Data ----------------------------------------------#
     Y_df, X_df, scaler_y = scale_data(Y_df=Y_df, X_df=X_df, mask_df=train_mask_df,
                                       normalizer_y=mc['normalizer_y'], normalizer_x=mc['normalizer_x'])
 
     #----------------------------------------- Declare Dataset and Loaders ----------------------------------#
-    train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                      mask_df=train_mask_df, f_cols=f_cols,
-                                      mode=mc['mode'],
-                                      window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['n_time_in']),
-                                      output_size=int(mc['n_time_out']),
-                                      idx_to_sample_freq=int(mc['idx_to_sample_freq']),
-                                      len_sample_chunks=mc['len_sample_chunks'],
-                                      complete_inputs=mc['complete_inputs'],
-                                      verbose=True)
-    val_dataset   = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                      mask_df=val_mask_df, f_cols=f_cols,
-                                      mode=mc['mode'],
-                                      window_sampling_limit=int(mc['window_sampling_limit']),
-                                      input_size=int(mc['n_time_in']),
-                                      output_size=int(mc['n_time_out']),
-                                      idx_to_sample_freq=int(mc['val_idx_to_sample_freq']),
-                                      len_sample_chunks=mc['len_sample_chunks'],
-                                      complete_inputs=mc['complete_inputs'],
-                                      verbose=True)
-    test_dataset  = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+
+    if mc['mode'] == 'simple':
+        train_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                       mask_df=train_mask_df, f_cols=f_cols,
+                                       input_size=int(mc['n_time_in']),
+                                       output_size=int(mc['n_time_out']),
+                                       sample_freq=int(mc['idx_to_sample_freq']),
+                                       verbose=True)
+
+        valid_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                       mask_df=valid_mask_df, f_cols=f_cols,
+                                       input_size=int(mc['n_time_in']),
+                                       output_size=int(mc['n_time_out']),
+                                       sample_freq=int(mc['val_idx_to_sample_freq']),
+                                       verbose=True)
+
+        test_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                       mask_df=test_mask_df, f_cols=f_cols,
-                                      mode=mc['mode'],
-                                      window_sampling_limit=int(mc['window_sampling_limit']),
                                       input_size=int(mc['n_time_in']),
                                       output_size=int(mc['n_time_out']),
-                                      idx_to_sample_freq=mc['val_idx_to_sample_freq'],
-                                      len_sample_chunks=mc['len_sample_chunks'],
-                                      complete_inputs=False,
+                                      sample_freq=int(mc['val_idx_to_sample_freq']),
+                                      verbose=True)
+
+    if mc['mode'] == 'full':
+        train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                       mask_df=train_mask_df, f_cols=f_cols,
+                                       input_size=int(mc['n_time_in']),
+                                       output_size=int(mc['n_time_out']),
+                                       verbose=True)
+
+        valid_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                       mask_df=valid_mask_df, f_cols=f_cols,
+                                       input_size=int(mc['n_time_in']),
+                                       output_size=int(mc['n_time_out']),
+                                       verbose=True)
+
+        test_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                      mask_df=test_mask_df, f_cols=f_cols,
+                                      input_size=int(mc['n_time_in']),
+                                      output_size=int(mc['n_time_out']),
                                       verbose=True)
 
     if ds_in_test == 0:
         test_dataset = None
 
-    return train_dataset, val_dataset, test_dataset, scaler_y
+    return train_dataset, valid_dataset, test_dataset, scaler_y
 
 # Cell
 def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
@@ -256,7 +267,7 @@ def instantiate_esrnn(mc):
                   n_series=mc['n_series'],
                   n_x=mc['n_x'],
                   n_s=mc['n_s'],
-                  idx_to_sample_freq=int(mc['idx_to_sample_freq']),
+                  sample_freq=int(mc['sample_freq']),
                   input_size=int(mc['n_time_in']),
                   output_size=int(mc['n_time_out']),
                   es_component=mc['es_component'],
