@@ -442,7 +442,7 @@ sample_mask.shape torch.Size([1, 2712])
 <span class="nb">print</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">y_true</span><span class="o">-</span><span class="n">y_hat</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;model.training_percentile </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">training_percentile</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;model.training_percentile </span><span class="si">{model.training_percentile}</span><span class="s1">&#39;</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">sample_mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>

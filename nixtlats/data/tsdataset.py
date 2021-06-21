@@ -22,24 +22,16 @@ class BaseDataset(Dataset):
 
     def __init__(self,
                  Y_df: pd.DataFrame,
-                 input_size: int,
-                 output_size: int,
                  X_df: Optional[pd.DataFrame] = None,
                  S_df: Optional[pd.DataFrame] = None,
                  f_cols: Optional[List] = None,
                  mask_df: Optional[pd.DataFrame] = None,
                  ds_in_test: int = 0,
                  is_test: bool = False,
-                 #window_sampling_limit: int = 20,
-                 #idx_to_sample_freq: int = 1,
+                 input_size: int = None,
+                 output_size: int = None,
                  complete_windows: bool = True,
-                 #complete_inputs: bool = False,
-                 #complete_outputs: bool = True,
-                 #len_sample_chunks: Optional[int] = None,
-                 #mode: Literal['simple', 'full'] = 'simple',
-                 #skip_nonsamplable: bool = False,
-                 #last_samplable_window: bool = False,
-                 verbose: bool = False) -> 'NixtlaDataset':
+                 verbose: bool = False) -> 'BaseDataset':
         """
         Parameters
         ----------
@@ -66,36 +58,9 @@ class BaseDataset(Dataset):
             Size of the training sets.
         output_size: int
             Forecast horizon.
-        window_sampling_limit: int
-            Max size of observations to consider, including output_size.
-        idx_to_sample_freq: int
-            Step size to construct windows.
-            Ej. if idx_to_sample_freq=7, each 7 timestamps
-            a window will be constructed.
-        complete_inputs: bool
+        complete_windows: bool
             Whether consider only windows with available window_size.
             Default False.
-        complete_outputs: bool
-            Whether consider only windows with available output_size + 1.
-            Default True.
-        len_sample_chunks: Optional[int] = None
-            Size of complete windows.
-            Only used for mode = 'full'!
-            Default None, equals to input_size + ouput_size.
-        mode: str
-            Mode to be used.
-            One of ['simple', 'full'].
-            If 'simple', windows of size input_size + output_size
-            will be constrcuted. If 'full', windows of size
-            len_sample_chunks will be constructed.
-        skip_nonsamplable: bool
-            If `True`, the method `__getitem__` will skip
-            non-samplable series and return windows of
-            samplable series selected randomly.
-        last_samplable_window: bool
-            If `True` returns the last samplable
-            window.
-            Default `False`.
         verbose: bool
             Wheter or not log outputs.
         """
@@ -280,7 +245,7 @@ def _df_to_lists(self: BaseDataset,
 
 # Cell
 @patch
-def _create_tensor(self: BaseDataset) -> None:
+def _create_tensor(self: BaseDataset) -> Tuple[np.array, t.Tensor]:
     """Transforms outputs from self._df_to_lists to numpy arrays."""
     ts_tensor = np.zeros((self.n_series, self.n_channels, self.max_len))
 

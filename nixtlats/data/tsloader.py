@@ -17,7 +17,8 @@ from .tsdataset import TimeSeriesDataset, WindowsDataset
 # Cell
 class TimeSeriesLoader(DataLoader):
 
-    def __init__(self, dataset: TimeSeriesDataset, eq_batch_size: bool = False,
+    def __init__(self, dataset: Union[TimeSeriesDataset, WindowsDataset],
+                 eq_batch_size: bool = False,
                  **kwargs) -> 'TimeSeriesLoader':
         """Wraps the pytorch `DataLoader` with a special collate function
         for the `TimeSeriesDataset` ouputs.
