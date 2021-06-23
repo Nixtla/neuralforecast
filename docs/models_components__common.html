@@ -445,8 +445,8 @@ Y.shape (1000, 1)
             <span class="n">training_trajectory</span><span class="p">[</span><span class="s1">&#39;train_loss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
 
             
-            <span class="n">display_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;epoch: </span><span class="si">{epoch}</span><span class="s1"> step: </span><span class="si">{step}</span><span class="s1"> time: {time.time()-start:03.3f} ** &#39;</span>
-            <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;train_loss: </span><span class="si">{train_loss:.4f}</span><span class="s1">&#39;</span>
+            <span class="n">display_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;epoch: </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s1"> step: </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s1"> time: </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">start</span><span class="si">:</span><span class="s1">03.3f</span><span class="si">}</span><span class="s1"> ** &#39;</span>
+            <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;train_loss: </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">display_str</span><span class="p">)</span>
             
     <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">training_trajectory</span>

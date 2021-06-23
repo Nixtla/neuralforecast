@@ -621,10 +621,7 @@ class ESRNN(pl.LightningModule):
 
         self.automatic_optimization = False
 
-    def training_step(self, batch, batch_idx):
-        es_opt, rnn_opt = self.optimizers()
-
-        #Parsing batch
+    def parse_batch(self, batch):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
@@ -632,12 +629,41 @@ class ESRNN(pl.LightningModule):
         sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
+        av_condition = t.nonzero(t.min(available_mask, axis=0).values)
+        min_time_stamp = int(av_condition.min())
+        sample_condition = t.nonzero(t.min(sample_mask, axis=0).values)
+
+        if sample_condition.nelement() == 0:
+            max_time_stamp = int(av_condition.max())
+        else:
+            max_time_stamp = int(sample_condition.max())
+        available_ts = max_time_stamp - min_time_stamp
+        if available_ts < self.input_size + self.output_size:
+            raise Exception(
+                'Time series too short for given input and output size. \n'
+                f'Available timestamps: {available_ts}'
+            )
+
+        Y = Y[:, min_time_stamp:max_time_stamp + 1] #+1 because is not inclusive
+        X = X[:, :, min_time_stamp:max_time_stamp + 1]
+        sample_mask = sample_mask[:, min_time_stamp:max_time_stamp + 1]
+        available_mask = available_mask[:, min_time_stamp:max_time_stamp + 1]
+
+        return S, Y, X, idxs, sample_mask, available_mask
+
+    def training_step(self, batch, batch_idx):
+        es_opt, rnn_opt = self.optimizers()
+
+        # Parsing batch
+        S, Y, X, idxs, sample_mask, available_mask = self.parse_batch(batch)
+
         target, forecast, levels, sample_mask = self.model(S=S, Y=Y, X=X, idxs=idxs,
                                                            sample_mask=sample_mask)
         loss = self.loss_fn(y=target,
                             y_hat=forecast,
                             y_insample=Y,
-                            levels=levels)
+                            levels=levels,
+                            mask=sample_mask)
 
         es_opt.zero_grad()
         rnn_opt.zero_grad()
@@ -658,11 +684,8 @@ class ESRNN(pl.LightningModule):
             lr_scheduler.step()
 
     def validation_step(self, batch, idx):
-        S = batch['S']
-        Y = batch['Y']
-        X = batch['X']
-        idxs = batch['idxs']
-        sample_mask = batch['sample_mask']
+        # Parsing batch
+        S, Y, X, idxs, sample_mask, available_mask = self.parse_batch(batch)
 
         y_true, y_hat, sample_mask = self.model.predict(S=S, Y=Y, X=X, idxs=idxs,
                                                         sample_mask=sample_mask)
@@ -670,11 +693,6 @@ class ESRNN(pl.LightningModule):
         y_true = y_true[:, ::self.sample_freq]
         y_hat = y_hat[:, ::self.sample_freq]
         sample_mask = sample_mask[:, ::self.sample_freq]
-
-        #print("Original")
-        #print("y_true.shape", y_true.shape)
-        #print("y_hat.shape", y_hat.shape)
-        #print("sample_mask.shape", sample_mask.shape)
 
         loss = self.val_loss_fn(y=y_true,
                                 y_hat=y_hat,
@@ -684,11 +702,8 @@ class ESRNN(pl.LightningModule):
         return loss
 
     def forward(self, batch):
-        S = batch['S']
-        Y = batch['Y']
-        X = batch['X']
-        idxs = batch['idxs']
-        sample_mask = batch['sample_mask']
+        # Parsing batch
+        S, Y, X, idxs, sample_mask, available_mask = self.parse_batch(batch)
 
         y_true, y_hat, sample_mask = self.model.predict(S=S, Y=Y, X=X, idxs=idxs,
                                                         sample_mask=sample_mask)
@@ -716,17 +731,3 @@ class ESRNN(pl.LightningModule):
                         gamma=self.lr_decay)
 
         return [es_optimizer, rnn_optimizer], [lr_es, lr_rnn]
-
-# TODO: include availability condition
-# available_mask_tensor = ts_tensor[:, self.t_cols.index('available_mask'), :]
-# min_time_stamp = int(t.nonzero(t.min(available_mask_tensor, axis=0).values).min())
-# sample_mask_tensor = ts_tensor[:, self.t_cols.index('sample_mask'), :]
-# max_time_stamp = int(t.nonzero(t.min(sample_mask_tensor, axis=0).values).max())
-# available_ts = max_time_stamp - min_time_stamp
-# assert available_ts >= self.input_size + self.output_size, 'Time series too short for given input and output size'
-
-# insample_y = ts_tensor[:, self.t_cols.index('y'), :]
-# insample_y = insample_y[:, min_time_stamp:max_time_stamp+1] #+1 because is not inclusive
-
-# TODO: mask the train_loss or include sampleability condition also.
-# I think masked train_loss is easier, in case. Hyndman masks.
