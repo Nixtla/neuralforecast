@@ -282,8 +282,8 @@ nb_path: "nbs/data_datasets__m4.ipynb"
     <span class="n">df</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">M4</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">)</span>
     <span class="n">n_series</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">unique_id</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
 
-    <span class="n">display_str</span>  <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Group: </span><span class="si">{group}</span><span class="s1"> &#39;</span>
-    <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;n_series: </span><span class="si">{n_series}</span><span class="s1">&#39;</span>
+    <span class="n">display_str</span>  <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;Group: </span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s1"> &#39;</span>
+    <span class="n">display_str</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;n_series: </span><span class="si">{</span><span class="n">n_series</span><span class="si">}</span><span class="s1">&#39;</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">display_str</span><span class="p">)</span>
 </pre></div>
 
