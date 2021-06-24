@@ -411,7 +411,8 @@ class _ESRNN(nn.Module):
         if self.es_component == 'multiplicative' and t.min(Y) == 0:
             raise Exception(
                 'Check your Y data, multiplicative model only deals with Y>0. \n'
-                f'Series: {idxs}'
+                f'Series: {idxs} \n'
+                f'Min Y: {t.min(Y)}'
             )
 
         # ES Forward
