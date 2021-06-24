@@ -408,8 +408,11 @@ class _ESRNN(nn.Module):
     def forward(self, S: t.Tensor, Y: t.Tensor, X: t.Tensor,
                 idxs: t.Tensor, sample_mask: t.Tensor):
         # Multiplicative model protection
-        if self.es_component == 'multiplicative':
-            assert t.min(Y)>0, 'Check your Y data, multiplicative model only deals with Y>0.'
+        if self.es_component == 'multiplicative' and t.min(Y) == 0:
+            raise Exception(
+                'Check your Y data, multiplicative model only deals with Y>0. \n'
+                f'Series: {idxs}'
+            )
 
         # ES Forward
         y_in, y_out, levels, seasonalities, sample_mask = self.es(S=S,Y=Y,X=X,idxs=idxs,
