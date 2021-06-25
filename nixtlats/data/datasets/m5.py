@@ -7,7 +7,6 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
-from numba import njit
 import numpy as np
 import pandas as pd
 
@@ -110,11 +109,10 @@ class M5:
         long = long.merge(prices, on=['store_id', 'item_id', 'wm_yr_wk'])
         long = long.drop(columns=['d', 'wm_yr_wk'])
 
-        @njit
-        def first_nz_mask(x):
+        def first_nz_mask(values, index):
             """Return a boolean mask where the True starts at the first non-zero value."""
-            mask = np.full(x.size, True)
-            for idx, value in enumerate(x):
+            mask = np.full(values.size, True)
+            for idx, value in enumerate(values):
                 if value == 0:
                     mask[idx] = False
                 else:
@@ -122,8 +120,8 @@ class M5:
             return mask
 
         long = long.sort_values(['id', 'date'], ignore_index=True)
-        keep_mask = long.groupby('id')['y'].transform(lambda x: first_nz_mask(x.values))
-        long = long[keep_mask]
+        keep_mask = long.groupby('id')['y'].transform(first_nz_mask, engine='numba')
+        long = long[keep_mask.astype(bool)]
         long.rename(columns={'id': 'unique_id', 'date': 'ds'}, inplace=True)
         Y_df = long.filter(items=['unique_id', 'ds', 'y'])
         cats = ['item_id', 'dept_id', 'cat_id', 'store_id', 'state_id']
