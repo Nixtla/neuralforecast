@@ -5,22 +5,22 @@
 /* Fonts */
 @font-face {
     font-family: Lato-Bold;
-    src: url(docs/fonts/Lato-Bold.ttf);
+    src: url(/fonts/Lato-Bold.ttf);
 }
   
   @font-face {
     font-family: Lato-Light;
-    src: url(docs/fonts/Lato-Light.ttf);
+    src: url(/fonts/Lato-Light.ttf);
 }
   
   @font-face {
     font-family: Lato-Regular;
-    src: url(docs/fonts/Lato-Regular.ttf);
+    src: url(/fonts/Lato-Regular.ttf);
 }
 
 @font-face{
     font-family: Montserrat-Medium;
-    src: url(docs/fonts/Montserrat-Medium.ttf)
+    src: url(/fonts/Montserrat-Medium.ttf)
 }
 /*  */
 
