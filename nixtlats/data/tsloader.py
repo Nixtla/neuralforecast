@@ -5,7 +5,7 @@ __all__ = ['TimeSeriesLoader', 'FastTimeSeriesLoader']
 # Cell
 import warnings
 from collections.abc import Mapping
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch as t
@@ -49,16 +49,15 @@ class TimeSeriesLoader(DataLoader):
         kwargs_ = {**kwargs, **dict(collate_fn=self._collate_fn)}
         DataLoader.__init__(self, dataset=dataset, **kwargs_)
         self.eq_batch_size = eq_batch_size
+        self.w_idxs: Optional[np.ndarray] = None
 
 # Cell
 @patch
 def _check_batch_size(self: TimeSeriesLoader, batch: t.Tensor):
     complete_batch = batch
-    if self.eq_batch_size and self.batch_size is not None:
-        n_windows = batch.size(0)
-        idxs = np.random.choice(n_windows, size=self.batch_size,
-                                replace=(n_windows < self.batch_size))
-        complete_batch = batch[idxs]
+    if self.w_idxs is not None:
+        complete_batch = batch[self.w_idxs]
+
     return complete_batch
 
 # Cell
@@ -88,6 +87,10 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
         return self._check_batch_size(complete_batch)
 
     elif isinstance(elem, Mapping):
+        n_windows = elem['Y'].size(0)
+        if self.eq_batch_size and self.batch_size is not None:
+            self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
+                                           replace=(n_windows < self.batch_size))
         return {key: self.collate_fn([d[key] for d in batch]) for key in elem}
 
     raise TypeError(f'Unknown {elem_type}')
@@ -138,7 +141,7 @@ class FastTimeSeriesLoader:
         if remainder > 0:
             n_batches += 1
         self.n_batches = n_batches
-
+        self.w_idxs: Optional[np.ndarray] = None
 
 # Cell
 @patch
@@ -153,11 +156,8 @@ def __iter__(self: FastTimeSeriesLoader):
 @patch
 def _check_batch_size(self: FastTimeSeriesLoader, batch: t.Tensor):
     complete_batch = batch
-    if self.eq_batch_size and self.batch_size is not None:
-        n_windows = batch.size(0)
-        idxs = np.random.choice(n_windows, size=self.batch_size,
-                                replace=(n_windows < self.batch_size))
-        complete_batch = batch[idxs]
+    if self.w_idxs is not None:
+        complete_batch = batch[self.w_idxs]
     return complete_batch
 
 # Cell
@@ -168,6 +168,12 @@ def __next__(self: FastTimeSeriesLoader):
     idxs = self.idxs[self.i:(self.i + self.batch_size)].tolist()
     batch = self.dataset[idxs]
     self.i += self.batch_size
+
+    n_windows = batch['Y'].size(0)
+    if self.eq_batch_size and self.batch_size is not None:
+        self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
+                                     replace=(n_windows < self.batch_size))
+
     return {key: self._check_batch_size(batch[key]) for key in batch}
 
 # Cell

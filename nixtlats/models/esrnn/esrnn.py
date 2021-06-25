@@ -304,8 +304,8 @@ class _ESM(_ES):
             seasonalities[i] = seasonalities[i][:,:,:self.input_size] #avoid leakage
 
             # Fill seasonalities with NaiveSeasonal, to avoid leakage.
-            if self.output_size > self.seasonality[i]:
-                repetitions = int(np.ceil(self.output_size / self.seasonality[i]))-1
+            if self.output_size > seasonalities[i].shape[2]:
+                repetitions = int(np.ceil(self.output_size / seasonalities[i].shape[2]))
                 seasonalities[i] = seasonalities[i].repeat((1, 1, repetitions))
             seasonalities[i] = seasonalities[i][:, :, :self.output_size]
 
@@ -408,8 +408,12 @@ class _ESRNN(nn.Module):
     def forward(self, S: t.Tensor, Y: t.Tensor, X: t.Tensor,
                 idxs: t.Tensor, sample_mask: t.Tensor):
         # Multiplicative model protection
-        if self.es_component == 'multiplicative':
-            assert t.min(Y)>0, 'Check your Y data, multiplicative model only deals with Y>0.'
+        if self.es_component == 'multiplicative' and t.min(Y) == 0:
+            raise Exception(
+                'Check your Y data, multiplicative model only deals with Y>0. \n'
+                f'Series: {idxs} \n'
+                f'Min Y: {t.min(Y)}'
+            )
 
         # ES Forward
         y_in, y_out, levels, seasonalities, sample_mask = self.es(S=S,Y=Y,X=X,idxs=idxs,
