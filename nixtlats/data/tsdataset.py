@@ -140,16 +140,7 @@ class BaseDataset(Dataset):
 
 # Cell
 @patch
-# TODO: think this. porque sample_mask? no cuenta el input... ademas que pasa con random validation...
 def _define_sampleable_ts_idxs(self: BaseDataset):
-    # sum_sample_mask = self.ts_tensor[:, self.t_cols.index('sample_mask')] \
-    #                       .sum(axis=1)
-    # if self.complete_inputs:
-    #     min_mask = self.windows_size
-    # else:
-    #     min_mask = self.output_size
-    # self.samplable_ts_idxs = np.argwhere(sum_sample_mask > min_mask).reshape(1, -1)[0]
-    # self.n_samplable_ts = self.samplable_ts_idxs.size
     self.n_sampleable_ts = len(self.ts_tensor)
     self.sampleable_ts_idxs = self.ts_idxs.copy()
 
