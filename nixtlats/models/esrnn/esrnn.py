@@ -304,8 +304,8 @@ class _ESM(_ES):
             seasonalities[i] = seasonalities[i][:,:,:self.input_size] #avoid leakage
 
             # Fill seasonalities with NaiveSeasonal, to avoid leakage.
-            if self.output_size > self.seasonality[i]:
-                repetitions = int(np.ceil(self.output_size / self.seasonality[i]))
+            if self.output_size > seasonalities[i].shape[2]:
+                repetitions = int(np.ceil(self.output_size / seasonalities[i].shape[2]))
                 seasonalities[i] = seasonalities[i].repeat((1, 1, repetitions))
             seasonalities[i] = seasonalities[i][:, :, :self.output_size]
 
