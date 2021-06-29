@@ -641,7 +641,7 @@ class ESRNN(pl.LightningModule):
             max_time_stamp = int(av_condition.max())
         else:
             max_time_stamp = int(sample_condition.max())
-        available_ts = max_time_stamp - min_time_stamp
+        available_ts = max_time_stamp - min_time_stamp + 1 # +1, inclusive counting
         if available_ts < self.input_size + self.output_size:
             raise Exception(
                 'Time series too short for given input and output size. \n'
