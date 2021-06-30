@@ -40,6 +40,9 @@ entries:
           title: M4
           url: data_datasets__m4.html
         - output: web,pdf
+          title: M5
+          url: data_datasets__m5.html
+        - output: web,pdf
           title: Tourism
           url: data_datasets__tourism.html
         - output: web,pdf
