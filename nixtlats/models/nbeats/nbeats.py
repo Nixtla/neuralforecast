@@ -265,7 +265,7 @@ class _NBEATSBlock(nn.Module):
                 outsample_x_t: t.Tensor, x_s: t.Tensor) -> Tuple[t.Tensor, t.Tensor]:
 
         batch_size = len(insample_y)
-        if self.n_x>0:
+        if self.n_x > 0:
             insample_y = t.cat(( insample_y, insample_x_t.reshape(batch_size, -1) ), 1)
             insample_y = t.cat(( insample_y, outsample_x_t.reshape(batch_size, -1) ), 1)
 
@@ -401,17 +401,18 @@ class _NBEATS(nn.Module):
         return block_list
 
     def forward(self, S: t.Tensor, Y: t.Tensor, X: t.Tensor,
-                insample_mask: t.Tensor, return_decomposition: bool=False):
+                insample_mask: t.Tensor, outsample_mask: t.Tensor,
+                return_decomposition: bool=False):
 
         # insample
         insample_y    = Y[:, :-self.n_time_out]
         insample_x_t  = X[:, :, :-self.n_time_out]
         insample_mask = insample_mask[:, :-self.n_time_out]
-        outsample_mask = insample_mask[:, -self.n_time_out:]
 
         # outsample
         outsample_y   = Y[:, -self.n_time_out:]
         outsample_x_t = X[:, :, -self.n_time_out:]
+        outsample_mask = outsample_mask[:, -self.n_time_out:]
 
         if return_decomposition:
             forecast, block_forecasts = self.forecast_decomposition(insample_y=insample_y,
@@ -664,10 +665,12 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
 
         loss = self.loss_fn_train(y=outsample_y,
@@ -683,10 +686,12 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
 
         loss = self.loss_fn_valid(y=outsample_y,
@@ -707,17 +712,19 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
-        outsample_mask = batch['sample_mask'][:, -self.n_time_out:]
 
         if self.return_decomposition:
             outsample_y, forecast, block_forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                                      insample_mask=available_mask,
+                                                                     outsample_mask=sample_mask,
                                                                      return_decomposition=True)
             return outsample_y, forecast, block_forecast, outsample_mask
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
         return outsample_y, forecast, outsample_mask
 
