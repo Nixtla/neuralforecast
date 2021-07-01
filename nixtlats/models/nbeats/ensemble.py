@@ -215,8 +215,10 @@ def NBEATS_instantiate(hparams):
 # Cell
 def show_tensorboard(logs_path, model_path):
     logs_model_path = f'{logs_path}/{model_path}'
-    %load_ext tensorboard
-    %tensorboard --logdir $logs_model_path
+    #%load_ext tensorboard
+    #%tensorboard --logdir $logs_model_path
+    os.system('load_ext tensorboard')
+    os.system('tensorboard --logdir $logs_model_path')
 
 # Cell
 class NBEATSEnsemble:
