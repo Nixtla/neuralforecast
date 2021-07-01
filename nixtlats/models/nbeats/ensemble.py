@@ -65,11 +65,11 @@ common_grid['batch_normalization'] = [False] # No batch_normalization in the ori
 # Data Parameters
 common_grid['complete_inputs'] = [False] # ???
 common_grid['mode'] = ['simple'] # ???
-lookbacks = list(range(6, 8)) # Change to range(2, 8). Oreshkin
+lookbacks = list(range(2, 8)) # Change to range(2, 8). Oreshkin
 
 ensemble_grid = {'loss_train': ['MAPE', 'SMAPE', 'MASE'],
-                 'n_steps': [250],
-                 'random_seed': list(range(2))}
+                 'n_steps': [1_000],
+                 'random_seed': list(range(1))}
 
 @dataclass
 class Yearly:
@@ -78,8 +78,7 @@ class Yearly:
     grid_freq = {}
     grid_freq['n_time_in'] = [M4Info['Yearly'].horizon * i for i in lookbacks]
     grid_freq['n_time_out'] = [group.horizon]
-    grid_freq['idx_to_sample_freq'] = [1] # ???
-    grid_freq['val_idx_to_sample_freq'] = [1] # ???
+    grid_freq['train_sample_freq'] = [1] # ???
     grid_freq['frequency'] = ['Y'] # ???
     grid_freq['seasonality'] = [1] # ???
     grid_freq['l_h'] = [1.5] # Oreshkin
@@ -95,8 +94,7 @@ class Quarterly:
     grid_freq = {}
     grid_freq['n_time_in'] = [M4Info['Quarterly'].horizon * i for i in lookbacks]
     grid_freq['n_time_out'] = [group.horizon]
-    grid_freq['idx_to_sample_freq'] = [1] # ???
-    grid_freq['val_idx_to_sample_freq'] = [1] # ???
+    grid_freq['train_sample_freq'] = [1] # ???
     grid_freq['frequency'] = ['Q'] # ???
     grid_freq['seasonality'] = [4] # ???
     grid_freq['l_h'] = [1.5] # Oreshkin
@@ -112,8 +110,7 @@ class Monthly:
     grid_freq = {}
     grid_freq['n_time_in'] = [M4Info['Monthly'].horizon * i for i in lookbacks]
     grid_freq['n_time_out'] = [group.horizon]
-    grid_freq['idx_to_sample_freq'] = [1] # ???
-    grid_freq['val_idx_to_sample_freq'] = [1] # ???
+    grid_freq['train_sample_freq'] = [1] # ???
     grid_freq['frequency'] = ['M'] # ???
     grid_freq['seasonality'] = [12] # ???
     grid_freq['l_h'] = [1.5] # Oreshkin
@@ -142,20 +139,20 @@ def create_loaders_M4(Y_df, S_df, hparams, num_workers):
 
     train_dataset = WindowsDataset(Y_df=Y_df, S_df=S_df,
                                    mask_df=train_mask_df,
-                                   #window_sampling_limit= hparams['n_time_in'] + \
-                                   #            int(hparams['n_time_out'] * hparams['l_h']),
+                                #    window_sampling_limit= hparams['n_time_in'] + \
+                                #               int(hparams['n_time_out'] * hparams['l_h']),
                                    input_size=hparams['n_time_in'],
                                    output_size=hparams['n_time_out'],
-                                   sample_freq=hparams['idx_to_sample_freq'],
+                                   sample_freq=hparams['train_sample_freq'],
                                    complete_windows=hparams['complete_inputs'])
 
     valid_dataset = WindowsDataset(Y_df=Y_df, S_df=S_df,
                                    mask_df=valid_mask_df,
-                                   #window_sampling_limit= hparams['n_time_in'] + \
-                                   #            int(hparams['n_time_out'] * hparams['l_h']),
+                                #    window_sampling_limit= hparams['n_time_in'] + \
+                                #               int(hparams['n_time_out'] * hparams['l_h']),
                                    input_size=hparams['n_time_in'],
                                    output_size=hparams['n_time_out'],
-                                   sample_freq=hparams['idx_to_sample_freq'],
+                                   sample_freq=hparams['train_sample_freq'],
                                    complete_windows=hparams['complete_inputs'])
 
     train_loader = TimeSeriesLoader(dataset=train_dataset,
@@ -170,11 +167,17 @@ def create_loaders_M4(Y_df, S_df, hparams, num_workers):
                                     num_workers=num_workers,
                                     shuffle=False)
 
+    sample_window_set = valid_dataset.__getitem__(0)['Y'][:,-hparams['n_time_out']:]
+    n_windows = sample_window_set.shape[0]
+    last_non_padded_window_mod_idx = int(torch.where((sample_window_set != 0).all(axis=1) == True)[0][-1].detach().numpy())
+    last_non_padded_window_idxs = \
+        np.arange(last_non_padded_window_mod_idx, n_windows * len(valid_dataset), n_windows)
+
     print('Data loaders ready.\n')
 
     del train_dataset, valid_dataset
 
-    return train_loader, valid_loader
+    return train_loader, valid_loader, last_non_padded_window_idxs
 
 # Cell
 def NBEATS_instantiate(hparams):
@@ -244,10 +247,10 @@ class NBEATSEnsemble:
 
             for idx_hparams, row_hparams in freq_grid.iterrows():
                 hparams = row_hparams.to_dict()
-                train_loader, test_loader = create_loaders_M4(Y_df=Y_df,
-                                                              S_df=S_df,
-                                                              hparams=hparams,
-                                                              num_workers=num_workers)
+                train_loader, test_loader, last_non_padded_window_idxs = create_loaders_M4(Y_df=Y_df,
+                                                                                           S_df=S_df,
+                                                                                           hparams=hparams,
+                                                                                           num_workers=num_workers)
 
                 ensemble_grid = _parameter_grid(freq.ensemble_grid)
 
@@ -275,6 +278,7 @@ class NBEATSEnsemble:
                     outputs = trainer.predict(model, test_loader)
 
                     outputs_df = self.outputs_to_df(outputs, idx_ensemble)
+                    outputs_df = outputs_df.iloc[last_non_padded_window_idxs, :]
                     forecasts.append(outputs_df.copy())
 
                     del trainer, model, outputs, outputs_df
