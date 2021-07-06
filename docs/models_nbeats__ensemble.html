@@ -314,7 +314,7 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NBEATSEnsemble" class="doc_header"><code>class</code> <code>NBEATSEnsemble</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nbeats/ensemble.py#L216" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATSEnsemble</code>()</p>
+<h2 id="NBEATSEnsemble" class="doc_header"><code>class</code> <code>NBEATSEnsemble</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nbeats/ensemble.py#L216" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATSEnsemble</code>(<strong><code>use_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>gpus</code></strong>:<code>int</code>=<em><code>None</code></em>, <strong><code>auto_select_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 
 </div>
@@ -348,11 +348,11 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">LOGS_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;lightning_logs&#39;</span><span class="p">)</span>
-<span class="n">val_freq_steps</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">val_freq_steps</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="n">tensorboard_logs</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="n">NUM_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
 
-<span class="n">frequencies</span> <span class="o">=</span> <span class="p">[</span><span class="n">Quarterly</span><span class="p">]</span>
+<span class="n">frequencies</span> <span class="o">=</span> <span class="p">[</span><span class="n">Yearly</span><span class="p">]</span>
 <span class="n">print_models_list</span><span class="p">(</span><span class="n">frequencies</span><span class="o">=</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">table_width</span><span class="o">=</span><span class="mi">75</span><span class="p">)</span>
 </pre></div>
 
@@ -367,7 +367,7 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>
-Quarterly grid (# of different model configurations = 1):
+Yearly grid (# of different model configurations = 18):
 ===========================================================================
 activation                                                        [ReLU]
 n_x                                                                  [0]
@@ -392,14 +392,14 @@ batch_size                                                        [1024]
 batch_normalization                                              [False]
 complete_inputs                                                  [False]
 mode                                                            [simple]
-n_time_in                                                           [16]
-n_time_out                                                           [8]
+n_time_in                                       [12, 18, 24, 30, 36, 42]
+n_time_out                                                           [6]
 train_sample_freq                                                    [1]
-frequency                                                            [Q]
-seasonality                                                          [4]
+frequency                                                            [Y]
+seasonality                                                          [1]
 l_h                                                                [1.5]
-loss_train                                                       [SMAPE]
-n_steps                                                             [50]
+loss_train                                           [MAPE, SMAPE, MASE]
+n_steps                                                            [260]
 random_seed                                                          [0]
 dtype: object
 ===========================================================================
@@ -421,7 +421,9 @@ dtype: object
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">NBEATSEnsemble</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">NBEATSEnsemble</span><span class="p">(</span><span class="n">use_gpus</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span> 
+                          <span class="n">gpus</span><span class="o">=-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> 
+                          <span class="n">auto_select_gpus</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span>
 
 <span class="n">forecasts</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">frequencies</span><span class="o">=</span><span class="n">frequencies</span><span class="p">,</span>
                          <span class="n">loader</span><span class="o">=</span><span class="n">TimeSeriesLoader</span><span class="p">,</span>  
@@ -440,47 +442,12 @@ dtype: object
 
 <div class="output_area">
 
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>GPU available: True, used: True
-TPU available: False, using: 0 TPU cores
-LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 
-  | Name  | Type    | Params
-----------------------------------
-0 | model | _NBEATS | 12.9 M
-----------------------------------
-12.9 M    Trainable params
-264       Non-trainable params
-12.9 M    Total params
-51.441    Total estimated model params size (MB)
-</pre>
-</div>
+
+<div class="output_text output_subarea ">
+<pre>Output hidden; open in https://colab.research.google.com to view.</pre>
 </div>
 
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>
-Quarterly (1/1) - loss: SMAPE, lookback length: 2, random_seed: 0
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>
-
-</pre>
-</div>
 </div>
 
 </div>
@@ -496,7 +463,7 @@ Quarterly (1/1) - loss: SMAPE, lookback length: 2, random_seed: 0
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Quarterly&#39;</span><span class="p">,</span> <span class="n">forecasts</span><span class="p">[</span><span class="s1">&#39;Quarterly&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Yearly&#39;</span><span class="p">,</span> <span class="n">forecasts</span><span class="p">[</span><span class="s1">&#39;Yearly&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
 </pre></div>
 
     </div>
@@ -535,10 +502,10 @@ Quarterly (1/1) - loss: SMAPE, lookback length: 2, random_seed: 0
   </thead>
   <tbody>
     <tr>
-      <th>Quarterly</th>
-      <td>11.335473</td>
-      <td>1.678754</td>
-      <td>1.126774</td>
+      <th>Yearly</th>
+      <td>17.448574</td>
+      <td>5.438234</td>
+      <td>1.218016</td>
     </tr>
   </tbody>
 </table>

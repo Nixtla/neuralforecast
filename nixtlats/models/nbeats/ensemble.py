@@ -65,11 +65,11 @@ common_grid['batch_normalization'] = [False] # No batch_normalization in the ori
 # Data Parameters
 common_grid['complete_inputs'] = [False] # ???
 common_grid['mode'] = ['simple'] # ???
-lookbacks = list(range(2, 3)) # Change to range(2, 8). Oreshkin
+lookbacks = list(range(2, 8)) # Change to range(2, 8). Oreshkin
 
-ensemble_grid = {'loss_train': ['SMAPE'],
+ensemble_grid = {'loss_train': ['MAPE', 'SMAPE', 'MASE'],
                 #  'loss_train': ['MAPE', 'SMAPE', 'MASE'],
-                 'n_steps': [50],
+                 'n_steps': [260],
                  'random_seed': list(range(1))}
 
 @dataclass
@@ -207,16 +207,27 @@ def NBEATS_instantiate(hparams):
 # Cell
 def show_tensorboard(logs_path, model_path):
     logs_model_path = f'{logs_path}/{model_path}'
-    #%load_ext tensorboard
-    #%tensorboard --logdir $logs_model_path
+    # %load_ext tensorboard
+    # %tensorboard --logdir $logs_model_path
     os.system('load_ext tensorboard')
     os.system('tensorboard --logdir $logs_model_path')
 
 # Cell
 class NBEATSEnsemble:
 
-    def __init__(self):
-        pass
+    def __init__(self, use_gpus: bool=False, gpus: int=None, auto_select_gpus: bool=False):
+
+        if use_gpus:
+            assert isinstance(gpus, (int, list, str)), \
+                f'if use_gpus == True, gpus must be {int}, {list} or {str}, not {type(gpus)}.'
+            if (isinstance(gpus, int)):
+                assert gpus > 0 or gpus == -1, \
+                    f'if gpus is of type {int}, it must be either a positive integer or equal to -1.'
+        else:
+            assert gpus == None, f'if use_gpus == False, gpus must be {None}, not {type(gpus)}.'
+
+        self.gpus = gpus
+        self.auto_select_gpus = auto_select_gpus
 
     def fit(self,
             frequencies: List[type],
@@ -264,11 +275,11 @@ class NBEATSEnsemble:
                     trainer = pl.Trainer(max_steps=hparams_ensemble['n_steps'],
                                          gradient_clip_val=0,
                                          progress_bar_refresh_rate=50,
-                                         gpus=-1,
-                                         auto_select_gpus=True,
+                                         gpus=self.gpus,
+                                         auto_select_gpus=self.auto_select_gpus,
                                          check_val_every_n_epoch=val_freq_steps,
                                          logger=logger)
-                    trainer.fit(model, train_dataloader=train_loader, val_dataloaders=test_loader)
+                    trainer.fit(model, train_dataloader=train_loader, val_dataloaders=train_loader)
                     outputs = trainer.predict(model, test_loader)
 
                     outputs_df = self.outputs_to_df(outputs, idx_ensemble)
