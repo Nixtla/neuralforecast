@@ -347,13 +347,12 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">LOGS_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">&#39;lightning_logs&#39;</span><span class="p">)</span>
-<span class="n">val_freq_steps</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="n">tensorboard_logs</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="n">NUM_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># val_freq_steps = 2</span>
+<span class="c1"># tensorboard_logs = True</span>
+<span class="c1"># NUM_WORKERS = 4</span>
 
-<span class="n">frequencies</span> <span class="o">=</span> <span class="p">[</span><span class="n">Yearly</span><span class="p">]</span>
-<span class="n">print_models_list</span><span class="p">(</span><span class="n">frequencies</span><span class="o">=</span><span class="n">frequencies</span><span class="p">,</span> <span class="n">table_width</span><span class="o">=</span><span class="mi">75</span><span class="p">)</span>
+<span class="c1"># frequencies = [Yearly]</span>
+<span class="c1"># print_models_list(frequencies=frequencies, table_width=75)</span>
 </pre></div>
 
     </div>
@@ -421,16 +420,15 @@ dtype: object
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">ensemble</span> <span class="o">=</span> <span class="n">NBEATSEnsemble</span><span class="p">(</span><span class="n">use_gpus</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span> 
-                          <span class="n">gpus</span><span class="o">=-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> 
-                          <span class="n">auto_select_gpus</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#                           gpus=-1 if torch.cuda.is_available() else None, </span>
+<span class="c1">#                           auto_select_gpus=True if torch.cuda.is_available() else False)</span>
 
-<span class="n">forecasts</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">frequencies</span><span class="o">=</span><span class="n">frequencies</span><span class="p">,</span>
-                         <span class="n">loader</span><span class="o">=</span><span class="n">TimeSeriesLoader</span><span class="p">,</span>  
-                         <span class="n">val_freq_steps</span><span class="o">=</span><span class="n">val_freq_steps</span><span class="p">,</span>
-                         <span class="n">tensorboard_logs</span><span class="o">=</span><span class="n">tensorboard_logs</span><span class="p">,</span>
-                         <span class="n">logs_path</span><span class="o">=</span><span class="n">LOGS_PATH</span><span class="p">,</span>
-                         <span class="n">num_workers</span><span class="o">=</span><span class="n">NUM_WORKERS</span><span class="p">)</span>
+<span class="c1"># forecasts = ensemble.fit(frequencies=frequencies,</span>
+<span class="c1">#                          loader=TimeSeriesLoader,  </span>
+<span class="c1">#                          val_freq_steps=val_freq_steps,</span>
+<span class="c1">#                          tensorboard_logs=tensorboard_logs,</span>
+<span class="c1">#                          logs_path=LOGS_PATH,</span>
+<span class="c1">#                          num_workers=NUM_WORKERS)</span>
 </pre></div>
 
     </div>
@@ -463,7 +461,7 @@ dtype: object
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">M4Evaluation</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;Yearly&#39;</span><span class="p">,</span> <span class="n">forecasts</span><span class="p">[</span><span class="s1">&#39;Yearly&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+<div class=" highlight hl-ipython3"><pre><span></span> 
 </pre></div>
 
     </div>
