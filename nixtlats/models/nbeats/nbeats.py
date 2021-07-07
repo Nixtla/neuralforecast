@@ -15,6 +15,7 @@ from functools import partial
 
 from ..components.tcn import _TemporalConvNet
 from ..components.common import Chomp1d, RepeatVector
+from ...losses.utils import LossFunction
 
 # Cell
 class _StaticFeaturesEncoder(nn.Module):
@@ -264,7 +265,7 @@ class _NBEATSBlock(nn.Module):
                 outsample_x_t: t.Tensor, x_s: t.Tensor) -> Tuple[t.Tensor, t.Tensor]:
 
         batch_size = len(insample_y)
-        if self.n_x>0:
+        if self.n_x > 0:
             insample_y = t.cat(( insample_y, insample_x_t.reshape(batch_size, -1) ), 1)
             insample_y = t.cat(( insample_y, outsample_x_t.reshape(batch_size, -1) ), 1)
 
@@ -400,17 +401,18 @@ class _NBEATS(nn.Module):
         return block_list
 
     def forward(self, S: t.Tensor, Y: t.Tensor, X: t.Tensor,
-                insample_mask: t.Tensor, return_decomposition: bool=False):
+                insample_mask: t.Tensor, outsample_mask: t.Tensor,
+                return_decomposition: bool=False):
 
         # insample
         insample_y    = Y[:, :-self.n_time_out]
         insample_x_t  = X[:, :, :-self.n_time_out]
         insample_mask = insample_mask[:, :-self.n_time_out]
-        outsample_mask = insample_mask[:, -self.n_time_out:]
 
         # outsample
         outsample_y   = Y[:, -self.n_time_out:]
         outsample_x_t = X[:, :, -self.n_time_out:]
+        outsample_mask = outsample_mask[:, -self.n_time_out:]
 
         if return_decomposition:
             forecast, block_forecasts = self.forecast_decomposition(insample_y=insample_y,
@@ -622,8 +624,10 @@ class NBEATS(pl.LightningModule):
         self.loss_train = loss_train
         self.loss_hypar = loss_hypar
         self.loss_valid = loss_valid
-        self.loss_fn_train = self.__loss_fn(self.loss_train)
-        self.loss_fn_valid = self.__val_loss_fn(self.loss_valid) #Uses numpy losses
+        self.loss_fn_train = LossFunction(loss_train,
+                                          seasonality=self.loss_hypar)
+        self.loss_fn_valid = LossFunction(loss_valid,
+                                          seasonality=self.loss_hypar)
 
         # Regularization and optimization parameters
         self.batch_normalization = batch_normalization
@@ -661,17 +665,18 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
 
-        loss = self.loss_fn_train(x=Y, # TODO: eliminate only useful for MASE
-                                  loss_hypar=self.loss_hypar,
-                                  forecast=forecast,
-                                  target=outsample_y,
-                                  mask=outsample_mask)
+        loss = self.loss_fn_train(y=outsample_y,
+                                  y_hat=forecast,
+                                  mask=outsample_mask,
+                                  y_insample=Y)
 
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
 
@@ -681,15 +686,18 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
 
-        loss = self.loss_fn_valid(forecast=forecast,
-                                  target=outsample_y,
-                                  weights=outsample_mask)
+        loss = self.loss_fn_valid(y=outsample_y,
+                                  y_hat=forecast,
+                                  mask=outsample_mask,
+                                  y_insample=Y)
 
         self.log('val_loss', loss, prog_bar=True)
 
@@ -704,17 +712,19 @@ class NBEATS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
-        outsample_mask = batch['sample_mask'][:, -self.n_time_out:]
 
         if self.return_decomposition:
             outsample_y, forecast, block_forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                                      insample_mask=available_mask,
+                                                                     outsample_mask=sample_mask,
                                                                      return_decomposition=True)
             return outsample_y, forecast, block_forecast, outsample_mask
 
         outsample_y, forecast, outsample_mask = self.model(S=S, Y=Y, X=X,
                                                            insample_mask=available_mask,
+                                                           outsample_mask=sample_mask,
                                                            return_decomposition=False)
         return outsample_y, forecast, outsample_mask
 
@@ -728,45 +738,3 @@ class NBEATS(pl.LightningModule):
                                                  gamma=self.lr_decay)
 
         return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
-
-    def __loss_fn(self, loss_name: str):
-        def loss(x, loss_hypar, forecast, target, mask):
-            if loss_name == 'MAPE':
-                return MAPELoss(y=target, y_hat=forecast, mask=mask)
-            elif loss_name == 'MASE':
-                return MASELoss(y=target, y_hat=forecast, y_insample=x,
-                                seasonality=loss_hypar, mask=mask)
-            elif loss_name == 'SMAPE':
-                return SMAPELoss(y=target, y_hat=forecast, mask=mask)
-            elif loss_name == 'MSE':
-                return MSELoss(y=target, y_hat=forecast, mask=mask)
-            elif loss_name == 'MAE':
-                return MAELoss(y=target, y_hat=forecast, mask=mask)
-            elif loss_name == 'PINBALL':
-                return PinballLoss(y=target, y_hat=forecast, mask=mask, tau=loss_hypar)
-            else:
-                raise Exception(f'Unknown loss function: {loss_name}')
-        return loss
-
-    def __val_loss_fn(self, loss_name: str):
-        #TODO: mase not implemented
-        def loss(forecast, target, weights):
-            forecast = forecast.detach().numpy()
-            target = target.detach().numpy()
-            weights = weights.detach().numpy()
-
-            if loss_name == 'MAPE':
-                return mape(y=target, y_hat=forecast, weights=weights)
-            elif loss_name == 'SMAPE':
-                return smape(y=target, y_hat=forecast, weights=weights)
-            elif loss_name == 'MSE':
-                return mse(y=target, y_hat=forecast, weights=weights)
-            elif loss_name == 'RMSE':
-                return rmse(y=target, y_hat=forecast, weights=weights)
-            elif loss_name == 'MAE':
-                return mae(y=target, y_hat=forecast, weights=weights)
-            elif loss_name == 'PINBALL':
-                return pinball_loss(y=target, y_hat=forecast, weights=weights, tau=0.5)
-            else:
-                raise Exception(f'Unknown loss function: {loss_name}')
-        return loss

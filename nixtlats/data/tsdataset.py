@@ -485,6 +485,7 @@ class WindowsDataset(BaseDataset):
                  is_test: bool = False,
                  sample_freq: int = 1,
                  complete_windows: bool = True,
+                 last_window: bool = False,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
         Parameters
@@ -512,6 +513,9 @@ class WindowsDataset(BaseDataset):
         is_test: bool
             Only used when mask_df = None.
             Wheter target time series belongs to test set.
+        last_window: bool
+            Only used for forecast (test)
+            Wheter the dataset will include only last window for each time serie.
         verbose: bool
             Wheter or not log outputs.
         """
@@ -525,6 +529,7 @@ class WindowsDataset(BaseDataset):
         self.windows_size = self.input_size + self.output_size
         self.padding = (self.input_size, self.output_size)
         self.sample_freq = sample_freq
+        self.last_window = last_window
 
 # Cell
 @patch
@@ -574,13 +579,30 @@ def _create_windows_tensor(self: WindowsDataset,
     s_matrix = t.Tensor(s_matrix)
     ts_idxs = t.as_tensor(ts_idxs, dtype=t.long)
 
+    windows_idxs = self._get_sampleable_windows_idxs(ts_windows_flatten=windows,
+                                                     ts_idxs=ts_idxs)
+
+    # Raise error if nothing to sample from
+    if not windows_idxs.size:
+        raise Exception(
+            f'Time Series {idx} are not sampleable. '
+            'Check the data, masks, window_sampling_limit, '
+            'input_size, output_size, masks.'
+        )
+
+    # Index the windows and s_matrix tensors of batch
+    windows = windows[windows_idxs]
+    s_matrix = s_matrix[windows_idxs]
+    ts_idxs = ts_idxs[windows_idxs]
+
     return windows, s_matrix, ts_idxs
 
 # Cell
 @patch
 #TODO: do we want complete? inputs seems irrelevant, NBEATS dont use it, for now is our only model
 def _get_sampleable_windows_idxs(self: WindowsDataset,
-                                 ts_windows_flatten: t.Tensor) -> np.ndarray:
+                                 ts_windows_flatten: t.Tensor,
+                                 ts_idxs: t.Tensor) -> np.ndarray:
     """Gets indexes of windows that fulfills conditions.
 
     Parameters
@@ -596,15 +618,22 @@ def _get_sampleable_windows_idxs(self: WindowsDataset,
     Notes
     -----
     """
-    sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:]
-    sample_condition = t.sum(sample_condition, axis=1)
-    sample_condition = (sample_condition > 0) * 1
 
-    sampling_idx = t.nonzero(sample_condition > 0)
+    if self.last_window:
+        _, idxs_counts = t.unique(ts_idxs, return_counts=True)
+        last_idxs = idxs_counts.cumsum(0) - 1
+        last_idxs = last_idxs.numpy()
 
-    sampling_idx = sampling_idx.flatten().numpy()
+        return last_idxs
 
-    return sampling_idx
+    else:
+        sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:]
+        sample_condition = t.sum(sample_condition, axis=1)
+        sample_condition = (sample_condition > 0) * 1
+        sampling_idx = t.nonzero(sample_condition > 0)
+        sampling_idx = sampling_idx.flatten().numpy()
+
+        return sampling_idx
 
 # Cell
 @patch
@@ -636,21 +665,7 @@ def __getitem__(self: WindowsDataset,
         raise Exception('Use slices, int or list for getitem.')
 
     # Create windows for each sampled ts and sample random unmasked windows from each ts
-    windows, s_matrix, ts_idxs = self._create_windows_tensor(idx=idx)
-    windows_idxs = self._get_sampleable_windows_idxs(ts_windows_flatten=windows)
-
-    # Raise error if nothing to sample from
-    if not windows_idxs.size:
-        raise Exception(
-            f'Time Series {idx} are not sampleable. '
-            'Check the data, masks, window_sampling_limit, '
-            'input_size, output_size, masks.'
-        )
-
-    # Index the windows and s_matrix tensors of batch
-    windows = windows[windows_idxs]
-    S = s_matrix[windows_idxs]
-    ts_idxs = ts_idxs[windows_idxs]
+    windows, S, ts_idxs = self._create_windows_tensor(idx=idx)
 
     # Parse windows to elements of batch
     Y = windows[:, self.t_cols.index('y'), :]
