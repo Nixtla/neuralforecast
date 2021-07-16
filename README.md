@@ -54,9 +54,6 @@ pip install -e .
 * [Neural Basis Expansion Analysis with Exogenous Variables (N-BEATSx)](https://arxiv.org/abs/2104.05522): The neural basis expansion with exogenous variables is an extension to the original N-BEATS that allows it to include time dependent covariates.
 
 
-## Authors
-This repository began with joint efforts from AutonLab researchers at Carnegie Mellon University and Abraxas data scientists.
-
 ## License
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/nixtlats/blob/master/LICENSE) file for details.
 
