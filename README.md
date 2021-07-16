@@ -57,6 +57,10 @@ pip install -e .
 ## License
 This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/nixtlats/blob/master/LICENSE) file for details.
 
+## How to contribute
+
+See [CONTRIBUTING.md](https://github.com/Nixtla/nixtlats/blob/master/CONTRIBUTING.md).
+
 ## How to cite
 
 If you use `Nixtla` in a scientific publication, we encourage you to add
