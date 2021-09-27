@@ -87,7 +87,8 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
         return self._check_batch_size(complete_batch)
 
     elif isinstance(elem, Mapping):
-        n_windows = elem['Y'].size(0)
+        n_windows = [elem_['Y'].size(0) for elem_ in batch]
+        n_windows = sum(n_windows)
         if self.eq_batch_size and self.batch_size is not None:
             self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
                                            replace=(n_windows < self.batch_size))
