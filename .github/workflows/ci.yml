@@ -70,4 +70,4 @@ jobs:
         working-directory: nixtlats
         run: |
           nbdev_test_nbs --fname "nbs/data_datasets__*"
-          nbdev_test_nbs --timing True
+          nbdev_test_nbs --timing
