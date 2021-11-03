@@ -22,3 +22,4 @@ dependencies:
     - pytorch-lightning>=1.3.0
     - torchinfo
     - py7zr
+    - gdown
