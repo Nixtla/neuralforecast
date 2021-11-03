@@ -15,28 +15,24 @@ from .utils import download_file, Info, time_features_from_frequency_str
 # Cell
 @dataclass
 class ETTh1:
-    horizon: int = 6
     freq: str = 'H'
     name: str = 'ETTh1'
     n_ts: int = 7
 
 @dataclass
 class ETTh2:
-    horizon: int = 8
     freq: str = 'H'
     name: str = 'ETTh2'
     n_ts: int = 7
 
 @dataclass
 class ETTm1:
-    horizon: int = 6
     freq: str = '15T'
     name: str = 'ETTm1'
     n_ts: int = 7
 
 @dataclass
 class ETTm2:
-    horizon: int = 8
     freq: str = '15T'
     name: str = 'ETTm2'
     n_ts: int = 7
