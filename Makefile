@@ -40,4 +40,4 @@ nbdev_flow:
 				&& nbdev_clean_nbs \
 				&& nbdev_diff_nbs \
 				&& nbdev_test_nbs --fname "nbs/data_datasets__*" \
-				&& nbdev_test_nbs --timing True
+				&& nbdev_test_nbs --timing
