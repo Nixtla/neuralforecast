@@ -93,6 +93,9 @@ loading order and optional automatic batching (collation) and memory pinning.</p
     worker_init_fn (callable, optional): If not <code>None</code>, this will be called on each
         worker subprocess with the worker id (an int in <code>[0, num_workers - 1]</code>) as
         input, after seeding and before data loading. (default: <code>None</code>)
+    generator (torch.Generator, optional): If not <code>None</code>, this RNG will be used
+        by RandomSampler to generate random indexes and multiprocessing to generate
+        <code>base_seed</code> for workers. (default: <code>None</code>)
     prefetch_factor (int, optional, keyword-only arg): Number of samples loaded
         in advance by each worker. <code>2</code> means there will be a total of
         2 * num_workers samples prefetched across all workers. (default: <code>2</code>)
