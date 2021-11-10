@@ -402,7 +402,8 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <div class="output_markdown rendered_html output_subarea ">
 <h2 id="DeepMIDAS" class="doc_header"><code>class</code> <code>DeepMIDAS</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/deepmidas/deepmidas.py#L466" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>DeepMIDAS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_theta_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>, <strong><code>seasonality</code></strong>) :: <code>LightningModule</code></p>
 </blockquote>
-<p>Hooks to be used in LightningModule.</p>
+<p>Helper class that provides a standard way to create an ABC using
+inheritance.</p>
 
 </div>
 
@@ -502,7 +503,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">mc</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nbeats&#39;</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;deepmidas&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;simple&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;activation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;SELU&#39;</span>
 
@@ -546,14 +547,12 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;random_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 
 <span class="c1"># Data Parameters</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;len_sample_chunks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;idx_to_sample_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;val_idx_to_sample_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">7</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;val_idx_to_sample_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_val_weeks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">52</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;window_sampling_limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500_000</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;median&#39;</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;complete_inputs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;complete_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;seasonality&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
 
@@ -575,7 +574,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>=================================================================
-model                                             nbeats
+model                                          deepmidas
 mode                                              simple
 activation                                          SELU
 n_time_in                                            168
@@ -607,14 +606,12 @@ loss_train                                           MAE
 loss_hypar                                           0.5
 loss_valid                                           MAE
 random_seed                                            1
-len_sample_chunks                                   None
 idx_to_sample_freq                                     1
-val_idx_to_sample_freq                               168
+val_idx_to_sample_freq                                 1
 n_val_weeks                                           52
-window_sampling_limit                             500000
 normalizer_y                                        None
 normalizer_x                                      median
-complete_inputs                                    False
+complete_windows                                   False
 frequency                                              H
 seasonality                                           24
 dtype: object
@@ -648,9 +645,7 @@ dtype: object
                                                                      <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
                                                                      <span class="n">f_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">],</span>
                                                                      <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">294</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span>
-                                                                     <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span>
-                                                                     <span class="n">n_uids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_val_windows</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">freq</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-                                                                     <span class="n">is_val_random</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                                                                     <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span>
 
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
@@ -839,7 +834,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>                                                              </pre>
+<pre>Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]</pre>
 </div>
 </div>
 
@@ -848,7 +843,21 @@ IPU available: False, using: 0 IPUs
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>/Users/cchallu/anaconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:106: UserWarning: The dataloader, val dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/cchallu/anaconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:106: UserWarning: The dataloader, train dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>                                                                      </pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/anaconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:106: UserWarning: The dataloader, train dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 /Users/cchallu/anaconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:323: UserWarning: The number of training samples (1) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
   f&#34;The number of training samples ({self.num_training_batches}) is smaller than the logging interval&#34;
@@ -859,7 +868,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Epoch 0:   0%|          | 0/2 [00:00&lt;00:00, 996.98it/s]   </pre>
+<pre>Epoch 0:   0%|          | 0/2 [00:00&lt;00:00, 1333.22it/s]  </pre>
 </div>
 </div>
 
@@ -875,7 +884,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Epoch 0: 100%|██████████| 2/2 [00:05&lt;00:00,  1.67s/it, loss=5.03, v_num=10, train_loss_step=5.030, val_loss=3.030]
+<pre>Epoch 0: 100%|██████████| 2/2 [00:04&lt;00:00,  1.58s/it, loss=4.96, v_num=81, train_loss_step=4.960, val_loss=3.530]
 </pre>
 </div>
 </div>
@@ -899,7 +908,7 @@ IPU available: False, using: 0 IPUs
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">return_decomposition</span> <span class="o">=</span> <span class="kc">True</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">return_decomposition</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">outputs</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;outputs[0][0].shape&quot;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
@@ -927,9 +936,9 @@ IPU available: False, using: 0 IPUs
 
 <div class="output_subarea output_stream output_stdout output_text">
 <pre>Predicting: 100%|██████████| 1/1 [00:00&lt;?, ?it/s]
-outputs[0][0].shape torch.Size([42, 168])
-outputs[0][1].shape torch.Size([42, 168])
-outputs[0][2].shape torch.Size([42, 4, 168])
+outputs[0][0].shape torch.Size([6889, 168])
+outputs[0][1].shape torch.Size([6889, 168])
+outputs[0][2].shape torch.Size([6889, 168])
 </pre>
 </div>
 </div>

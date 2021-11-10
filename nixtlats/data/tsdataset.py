@@ -59,7 +59,7 @@ class BaseDataset(Dataset):
         output_size: int
             Forecast horizon.
         complete_windows: bool
-            Whether consider only windows with available window_size.
+            Whether consider only windows with sample_mask equal to output_size.
             Default False.
         verbose: bool
             Wheter or not log outputs.
@@ -484,7 +484,7 @@ class WindowsDataset(BaseDataset):
                  ds_in_test: int = 0,
                  is_test: bool = False,
                  sample_freq: int = 1,
-                 complete_windows: bool = True,
+                 complete_windows: bool = False,
                  last_window: bool = False,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
@@ -626,14 +626,22 @@ def _get_sampleable_windows_idxs(self: WindowsDataset,
 
         return last_idxs
 
+    if self.complete_windows:
+        sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -(self.output_size):]
+        sample_condition = (sample_condition > 0) * 1 # Converts continuous sample_mask (with weights) to 0-1
+        sample_condition = t.sum(sample_condition, axis=1)
+        sample_condition = (sample_condition == self.output_size) * 1
+
     else:
         sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:]
+        sample_condition = (sample_condition > 0) * 1 # Converts continuous sample_mask (with weights) to 0-1
         sample_condition = t.sum(sample_condition, axis=1)
         sample_condition = (sample_condition > 0) * 1
-        sampling_idx = t.nonzero(sample_condition > 0)
-        sampling_idx = sampling_idx.flatten().numpy()
 
-        return sampling_idx
+    sampling_idx = t.nonzero(sample_condition > 0)
+    sampling_idx = sampling_idx.flatten().numpy()
+
+    return sampling_idx
 
 # Cell
 @patch

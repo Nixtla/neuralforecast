@@ -2,7 +2,7 @@
 
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_mqesrnn', 'instantiate_deepmidas',
-           'instantiate_model', 'model_fit_predict', 'evaluate_model', 'hyperopt_tunning']
+           'instantiate_model', 'predict', 'model_fit_predict', 'evaluate_model', 'hyperopt_tunning']
 
 # Cell
 ENV_VARS = dict(OMP_NUM_THREADS='2',
@@ -139,21 +139,11 @@ def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x):
 
 # Cell
 def create_datasets(mc, S_df, Y_df, X_df, f_cols,
-                    ds_in_test, ds_in_val,
-                    n_uids, n_val_windows, freq,
-                    is_val_random):
+                    ds_in_test, ds_in_val):
     #------------------------------------- Available and Validation Mask ------------------------------------#
-    if is_val_random:
-        train_mask_df, valid_mask_df, test_mask_df = get_random_mask_dfs(Y_df=Y_df,
-                                                                         ds_in_test=ds_in_test,
-                                                                         n_uids=n_uids,
-                                                                         n_val_windows=n_val_windows,
-                                                                         n_ds_val_window=ds_in_val//n_val_windows,
-                                                                         freq=freq)
-    else:
-        train_mask_df, valid_mask_df, test_mask_df = get_mask_dfs(Y_df=Y_df,
-                                                                  ds_in_test=ds_in_test,
-                                                                  ds_in_val=ds_in_val)
+    train_mask_df, valid_mask_df, test_mask_df = get_mask_dfs(Y_df=Y_df,
+                                                              ds_in_val=ds_in_val,
+                                                              ds_in_test=ds_in_test)
 
     #---------------------------------------------- Scale Data ----------------------------------------------#
     Y_df, X_df, scaler_y = scale_data(Y_df=Y_df, X_df=X_df, mask_df=train_mask_df,
@@ -167,6 +157,7 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                        input_size=int(mc['n_time_in']),
                                        output_size=int(mc['n_time_out']),
                                        sample_freq=int(mc['idx_to_sample_freq']),
+                                       complete_windows=mc['complete_windows'],
                                        verbose=True)
 
         valid_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
@@ -174,6 +165,7 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                        input_size=int(mc['n_time_in']),
                                        output_size=int(mc['n_time_out']),
                                        sample_freq=int(mc['val_idx_to_sample_freq']),
+                                       complete_windows=True,
                                        verbose=True)
 
         test_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
@@ -181,26 +173,27 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       input_size=int(mc['n_time_in']),
                                       output_size=int(mc['n_time_out']),
                                       sample_freq=int(mc['val_idx_to_sample_freq']),
+                                      complete_windows=True,
                                       verbose=True)
 
     if mc['mode'] == 'full':
         train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                       mask_df=train_mask_df, f_cols=f_cols,
-                                       input_size=int(mc['n_time_in']),
-                                       output_size=int(mc['n_time_out']),
-                                       verbose=True)
+                                          mask_df=train_mask_df, f_cols=f_cols,
+                                          input_size=int(mc['n_time_in']),
+                                          output_size=int(mc['n_time_out']),
+                                          verbose=True)
 
         valid_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                       mask_df=valid_mask_df, f_cols=f_cols,
-                                       input_size=int(mc['n_time_in']),
-                                       output_size=int(mc['n_time_out']),
-                                       verbose=True)
+                                          mask_df=valid_mask_df, f_cols=f_cols,
+                                          input_size=int(mc['n_time_in']),
+                                          output_size=int(mc['n_time_out']),
+                                          verbose=True)
 
         test_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                      mask_df=test_mask_df, f_cols=f_cols,
-                                      input_size=int(mc['n_time_in']),
-                                      output_size=int(mc['n_time_out']),
-                                      verbose=True)
+                                         mask_df=test_mask_df, f_cols=f_cols,
+                                         input_size=int(mc['n_time_in']),
+                                         output_size=int(mc['n_time_out']),
+                                         verbose=True)
 
     if ds_in_test == 0:
         test_dataset = None
@@ -217,7 +210,6 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
         val_loader = TimeSeriesLoader(dataset=val_dataset,
                                       batch_size=1,
                                       shuffle=False)
-
     else:
         val_loader = None
 
@@ -363,10 +355,24 @@ def instantiate_model(mc):
     return MODEL_DICT[mc['model']](mc)
 
 # Cell
-def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
-                      ds_in_test, ds_in_val,
-                      n_uids, n_val_windows, freq,
-                      is_val_random):
+def predict(mc, model, trainer, loader, scaler_y):
+   outputs = trainer.predict(model, loader)
+   y_true, y_hat, mask = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+   meta_data = loader.dataset.meta_data
+
+   # Scale to original scale
+   if mc['normalizer_y'] is not None:
+        y_true_shape = y_true.shape
+        y_true = scaler_y.inv_scale(x=y_true.flatten())
+        y_true = np.reshape(y_true, y_true_shape)
+
+        y_hat = scaler_y.inv_scale(x=y_hat.flatten())
+        y_hat = np.reshape(y_hat, y_true_shape)
+
+   return y_true, y_hat, mask, meta_data
+
+# Cell
+def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
 
     # Protect inplace modifications
     Y_df = Y_df.copy()
@@ -379,11 +385,8 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
     train_dataset, val_dataset, test_dataset, scaler_y = create_datasets(mc=mc,
                                                                          S_df=S_df, Y_df=Y_df, X_df=X_df,
                                                                          f_cols=f_cols,
-                                                                         ds_in_test=ds_in_test,
                                                                          ds_in_val=ds_in_val,
-                                                                         n_uids=n_uids,
-                                                                         n_val_windows=n_val_windows,
-                                                                         freq=freq, is_val_random=is_val_random)
+                                                                         ds_in_test=ds_in_test)
     mc['n_x'], mc['n_s'] = train_dataset.get_n_variables()
 
     #------------------------------------------- Instantiate & fit -------------------------------------------#
@@ -403,40 +406,41 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols,
     gpus = -1 if t.cuda.is_available() else 0
     trainer = pl.Trainer(max_epochs=mc['max_epochs'],
                          max_steps=mc['max_steps'],
+                         check_val_every_n_epoch=mc['eval_freq'],
+                         progress_bar_refresh_rate=1,
+                         gpus=gpus,
                          callbacks=callbacks)
     trainer.fit(model, train_loader, val_loader)
 
     #------------------------------------------------ Predict ------------------------------------------------#
+    results = {}
+
+    if ds_in_val > 0:
+        y_true, y_hat, mask, meta_data = predict(mc, model, trainer, val_loader, scaler_y)
+        val_values = (('val_y_true', y_true), ('val_y_hat', y_hat), ('val_mask', mask), ('val_meta_data', meta_data))
+        results.update(val_values)
+
+        print(f"VAL y_true.shape: {y_true.shape}")
+        print(f"VAL y_hat.shape: {y_hat.shape}")
+        print("\n")
+
     # Predict test if available
     if ds_in_test > 0:
-        outputs = trainer.predict(model, test_loader)
-        y_true, y_hat, mask = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
-        meta_data = test_loader.dataset.meta_data
-    else:
-        outputs = trainer.predict(model, val_loader)
-        y_true, y_hat, mask = [t.cat(output).cpu().numpy()[:, -1] for output in zip(*outputs)]
-        meta_data = val_loader.dataset.meta_data
+        y_true, y_hat, mask, meta_data = predict(mc, model, trainer, test_loader, scaler_y)
+        test_values = (('test_y_true', y_true), ('test_y_hat', y_hat), ('test_mask', mask), ('test_meta_data', meta_data))
+        results.update(test_values)
 
-    # Scale to original scale
-    if mc['normalizer_y'] is not None:
-        y_true_shape = y_true.shape
-        y_true = scaler_y.inv_scale(x=y_true.flatten())
-        y_true = np.reshape(y_true, y_true_shape)
+        print(f"TEST y_true.shape: {y_true.shape}")
+        print(f"TEST y_hat.shape: {y_hat.shape}")
+        print("\n")
 
-        y_hat = scaler_y.inv_scale(x=y_hat.flatten())
-        y_hat = np.reshape(y_hat, y_true_shape)
-
-    print(f"y_true.shape (#n_series, #n_fcds, #lt): {y_true.shape}")
-    print(f"y_hat.shape (#n_series, #n_fcds, #lt): {y_hat.shape}")
-    print("\n")
-    return y_true, y_hat, mask, meta_data, model
+    return results
 
 # Cell
-def evaluate_model(mc, loss_function,
+def evaluate_model(mc, loss_function_val, loss_functions_test,
                    S_df, Y_df, X_df, f_cols,
-                   ds_in_test, ds_in_val,
-                   n_uids, n_val_windows, freq,
-                   is_val_random,
+                   ds_in_val, ds_in_test,
+                   return_forecasts,
                    loss_kwargs):
 
     print(47*'=' + '\n')
@@ -453,44 +457,48 @@ def evaluate_model(mc, loss_function,
 
     # Make predictions
     start = time.time()
-    y_true, y_hat, mask, meta_data, model = model_fit_predict(mc=mc,
-                                                              S_df=S_df,
-                                                              Y_df=Y_df,
-                                                              X_df=X_df,
-                                                              f_cols=f_cols,
-                                                              ds_in_test=ds_in_test,
-                                                              ds_in_val=ds_in_val,
-                                                              n_uids=n_uids,
-                                                              n_val_windows=n_val_windows,
-                                                              freq=freq,
-                                                              is_val_random=is_val_random)
+    results = model_fit_predict(mc=mc,
+                                S_df=S_df,
+                                Y_df=Y_df,
+                                X_df=X_df,
+                                f_cols=f_cols,
+                                ds_in_val=ds_in_val,
+                                ds_in_test=ds_in_test)
     run_time = time.time() - start
 
     # Evaluate predictions
-    loss = loss_function(y=y_true, y_hat=y_hat, weights=mask, **loss_kwargs)
+    val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'], weights=results['val_mask'], **loss_kwargs)
 
-    result =  {'loss': loss,
-               'mc': mc,
-               'y_true': y_true,
-               'y_hat': y_hat,
-               'run_time': run_time,
-               'status': STATUS_OK}
-    return result
+    results_output = {'loss': val_loss,
+                      'mc': mc,
+                      'run_time': run_time,
+                      'status': STATUS_OK}
+
+    # Evaluation in test (if provided)
+    if ds_in_test > 0:
+        test_loss_dict = {}
+        for loss_name, loss_function in loss_functions_test.items():
+            test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'], weights=results['test_mask'])
+        results_output['test_losses'] = test_loss_dict
+
+    if return_forecasts:
+        results_output['run_forecasts'] = results
+
+    return results_output
 
 # Cell
-def hyperopt_tunning(space, hyperopt_max_evals, loss_function,
+def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_functions_test,
                      S_df, Y_df, X_df, f_cols,
-                     ds_in_val,
-                     n_uids, n_val_windows, freq,
-                     is_val_random,
-                     save_trials=False,
+                     ds_in_val, ds_in_test,
+                     return_forecasts,
                      loss_kwargs=None):
+    assert ds_in_val > 0, 'Validation set is needed for tunning!'
+
     trials = Trials()
-    fmin_objective = partial(evaluate_model, loss_function=loss_function,
+    fmin_objective = partial(evaluate_model, loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
                              S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=f_cols,
-                             ds_in_test=0, ds_in_val=ds_in_val,
-                             n_uids=n_uids, n_val_windows=n_val_windows, freq=freq,
-                             is_val_random=is_val_random,
+                             ds_in_val=ds_in_val, ds_in_test=ds_in_test,
+                             return_forecasts=return_forecasts,
                              loss_kwargs=loss_kwargs or {})
 
     fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=True)

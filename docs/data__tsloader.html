@@ -258,6 +258,21 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/NIXTLA/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
 </div>
     {% endraw %}
 
@@ -312,7 +327,8 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">WindowsDataset</span><span class="p">(</span><span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                          <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">complete_windows</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">dataloader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
                               <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -574,7 +590,8 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">WindowsDataset</span><span class="p">(</span><span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                          <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">complete_windows</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">dataloader</span> <span class="o">=</span> <span class="n">FastTimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
                                   <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
@@ -659,6 +676,20 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>34.9 ms ± 856 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
 </div>
     {% endraw %}
 
@@ -673,6 +704,20 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </pre></div>
 
     </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>7.48 ms ± 312 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 
