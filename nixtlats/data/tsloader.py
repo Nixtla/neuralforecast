@@ -70,8 +70,8 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
     [1] Adapted from https://github.com/pytorch/pytorch/blob/master/torch/utils/data/_utils/collate.py.
     """
     elem = batch[0]
-    if len(batch) == 1:
-        return {key: self._check_batch_size(elem[key]) for key in elem}
+    # if len(batch) == 1:
+    #     return {key: self._check_batch_size(elem[key]) for key in elem}
 
     elem_type = type(elem)
 

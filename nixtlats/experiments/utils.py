@@ -225,6 +225,12 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 # Cell
 def instantiate_nbeats(mc):
     mc['n_theta_hidden'] = len(mc['stack_types']) * [ [int(mc['n_hidden']), int(mc['n_hidden'])] ]
+
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+
     model = NBEATS(n_time_in=int(mc['n_time_in']),
                    n_time_out=int(mc['n_time_out']),
                    n_x=mc['n_x'],
@@ -244,7 +250,7 @@ def instantiate_nbeats(mc):
                    dropout_prob_theta=mc['dropout_prob_theta'],
                    learning_rate=float(mc['learning_rate']),
                    lr_decay=float(mc['lr_decay']),
-                   lr_decay_step_size=float(mc['lr_decay_step_size']),
+                   lr_decay_step_size=lr_decay_step_size,
                    weight_decay=mc['weight_decay'],
                    loss_train=mc['loss_train'],
                    loss_hypar=float(mc['loss_hypar']),
@@ -256,6 +262,10 @@ def instantiate_nbeats(mc):
 
 # Cell
 def instantiate_esrnn(mc):
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
     model = ESRNN(# Architecture parameters
                   n_series=mc['n_series'],
                   n_x=mc['n_x'],
@@ -270,7 +280,7 @@ def instantiate_esrnn(mc):
                   add_nl_layer=mc['add_nl_layer'],
                   # Optimization parameters
                   learning_rate=mc['learning_rate'],
-                  lr_scheduler_step_size=int(mc['lr_decay_step_size']),
+                  lr_scheduler_step_size=lr_decay_step_size,
                   lr_decay=mc['lr_decay'],
                   per_series_lr_multip=mc['per_series_lr_multip'],
                   gradient_eps=mc['gradient_eps'],
@@ -287,6 +297,10 @@ def instantiate_esrnn(mc):
 
 # Cell
 def instantiate_mqesrnn(mc):
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
     model = MQESRNN(# Architecture parameters
                     n_series=mc['n_series'],
                     n_x=mc['n_x'],
@@ -301,7 +315,7 @@ def instantiate_mqesrnn(mc):
                     add_nl_layer=mc['add_nl_layer'],
                     # Optimization parameters
                     learning_rate=mc['learning_rate'],
-                    lr_scheduler_step_size=int(mc['lr_decay_step_size']),
+                    lr_scheduler_step_size=lr_decay_step_size,
                     lr_decay=mc['lr_decay'],
                     gradient_eps=mc['gradient_eps'],
                     gradient_clipping_threshold=mc['gradient_clipping_threshold'],
@@ -316,6 +330,11 @@ def instantiate_mqesrnn(mc):
 # Cell
 def instantiate_deepmidas(mc):
     mc['n_theta_hidden'] = len(mc['stack_types']) * [ [int(mc['n_hidden']), int(mc['n_hidden'])] ]
+
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
 
     model = DeepMIDAS(n_time_in=int(mc['n_time_in']),
                       n_time_out=int(mc['n_time_out']),
@@ -336,7 +355,7 @@ def instantiate_deepmidas(mc):
                       dropout_prob_theta=mc['dropout_prob_theta'],
                       learning_rate=float(mc['learning_rate']),
                       lr_decay=float(mc['lr_decay']),
-                      lr_decay_step_size=float(mc['lr_decay_step_size']),
+                      lr_decay_step_size=lr_decay_step_size,
                       weight_decay=mc['weight_decay'],
                       loss_train=mc['loss_train'],
                       loss_hypar=float(mc['loss_hypar']),
@@ -482,7 +501,11 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
         results_output['test_losses'] = test_loss_dict
 
     if return_forecasts:
-        results_output['run_forecasts'] = results
+        forecasts_test = {}
+        test_values = (('test_y_true', results['test_y_true']), ('test_y_hat', results['test_y_hat']),
+                        ('test_mask', results['test_mask']), ('test_meta_data', results['test_meta_data']))
+        forecasts_test.update(test_values)
+        results_output['forecasts_test'] = forecasts_test
 
     return results_output
 
