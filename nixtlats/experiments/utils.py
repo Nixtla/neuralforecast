@@ -13,6 +13,7 @@ ENV_VARS = dict(OMP_NUM_THREADS='2',
 
 # Cell
 import os
+import pickle
 # Limit number of threads in numpy and others to avoid throttling
 os.environ.update(ENV_VARS)
 import random
@@ -460,7 +461,14 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
                    S_df, Y_df, X_df, f_cols,
                    ds_in_val, ds_in_test,
                    return_forecasts,
+                   save_progress,
+                   trials,
+                   results_file,
                    loss_kwargs):
+
+    if (save_progress) and (len(trials) % 5 == 0):
+        with open(results_file, "wb") as f:
+            pickle.dump(trials, f)
 
     print(47*'=' + '\n')
     print(pd.Series(mc))
@@ -514,6 +522,8 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
                      S_df, Y_df, X_df, f_cols,
                      ds_in_val, ds_in_test,
                      return_forecasts,
+                     save_progress,
+                     results_file,
                      loss_kwargs=None):
     assert ds_in_val > 0, 'Validation set is needed for tunning!'
 
@@ -521,7 +531,8 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
     fmin_objective = partial(evaluate_model, loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
                              S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=f_cols,
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
-                             return_forecasts=return_forecasts,
+                             return_forecasts=return_forecasts, save_progress=save_progress, trials=trials,
+                             results_file=results_file,
                              loss_kwargs=loss_kwargs or {})
 
     fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=True)
