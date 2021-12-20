@@ -530,6 +530,7 @@ class WindowsDataset(BaseDataset):
         self.padding = (self.input_size, self.output_size)
         self.sample_freq = sample_freq
         self.last_window = last_window
+        self.device = 'cuda' if t.cuda.is_available() else 'cpu'
 
 # Cell
 @patch
@@ -559,6 +560,7 @@ def _create_windows_tensor(self: WindowsDataset,
     tensor = padder(tensor)
 
     # Creating rolling windows and 'flattens' them
+    tensor = tensor.to(self.device)
     windows = tensor.unfold(dimension=-1,
                             size=self.windows_size,
                             step=self.sample_freq)
@@ -639,7 +641,8 @@ def _get_sampleable_windows_idxs(self: WindowsDataset,
         sample_condition = (sample_condition > 0) * 1
 
     sampling_idx = t.nonzero(sample_condition > 0)
-    sampling_idx = sampling_idx.flatten().numpy()
+    sampling_idx = sampling_idx.cpu().detach().numpy()
+    sampling_idx = sampling_idx.flatten()
 
     return sampling_idx
 
