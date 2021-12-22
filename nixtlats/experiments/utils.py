@@ -429,7 +429,8 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
                          check_val_every_n_epoch=mc['eval_freq'],
                          progress_bar_refresh_rate=1,
                          gpus=gpus,
-                         callbacks=callbacks)
+                         callbacks=callbacks,
+                         logger=False)
     trainer.fit(model, train_loader, val_loader)
 
     #------------------------------------------------ Predict ------------------------------------------------#
