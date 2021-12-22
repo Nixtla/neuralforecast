@@ -59,7 +59,7 @@ class BaseDataset(Dataset):
         output_size: int
             Forecast horizon.
         complete_windows: bool
-            Whether consider only windows with sample_mask equal to output_size.
+            Whether consider only windows with available window_size.
             Default False.
         verbose: bool
             Wheter or not log outputs.
@@ -484,7 +484,9 @@ class WindowsDataset(BaseDataset):
                  ds_in_test: int = 0,
                  is_test: bool = False,
                  sample_freq: int = 1,
-                 complete_windows: bool = False,
+                 complete_windows: bool = True,
+                 max_windows: Optional[int] = None,
+                 random_cutoff_limits: Optional[Tuple[int, int]] = None,
                  last_window: bool = False,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
@@ -513,6 +515,12 @@ class WindowsDataset(BaseDataset):
         is_test: bool
             Only used when mask_df = None.
             Wheter target time series belongs to test set.
+        max_windows: int
+            Maximum number of windows per series.
+            Sampled randomly.
+        random_cutoff_limits: Tuple[int, int]
+            If None, creates a random cutoff between
+            the limits provided.
         last_window: bool
             Only used for forecast (test)
             Wheter the dataset will include only last window for each time serie.
@@ -529,8 +537,9 @@ class WindowsDataset(BaseDataset):
         self.windows_size = self.input_size + self.output_size
         self.padding = (self.input_size, self.output_size)
         self.sample_freq = sample_freq
+        self.max_windows = max_windows
+        self.random_cutoff_limits = random_cutoff_limits
         self.last_window = last_window
-        self.device = 'cuda' if t.cuda.is_available() else 'cpu'
 
 # Cell
 @patch
@@ -543,7 +552,7 @@ def _create_windows_tensor(self: WindowsDataset,
 
     Parameters
     ----------
-    index: slice
+    idx: slice
         Indexes of time series to consider.
 
     Returns
@@ -559,8 +568,11 @@ def _create_windows_tensor(self: WindowsDataset,
     padder = t.nn.ConstantPad1d(padding=self.padding, value=0)
     tensor = padder(tensor)
 
+    if self.random_cutoff_limits is not None:
+        cutoff = np.random.choice(range(*self.random_cutoff_limits))
+        tensor = tensor[:, cutoff:]
+
     # Creating rolling windows and 'flattens' them
-    tensor = tensor.to(self.device)
     windows = tensor.unfold(dimension=-1,
                             size=self.windows_size,
                             step=self.sample_freq)
@@ -597,6 +609,17 @@ def _create_windows_tensor(self: WindowsDataset,
     s_matrix = s_matrix[windows_idxs]
     ts_idxs = ts_idxs[windows_idxs]
 
+    if self.max_windows is not None:
+        _, counts = t.unique(ts_idxs, return_counts=True)
+        split_ts_idxs = t.split(t.arange(len(ts_idxs)), counts.tolist())
+        max_windows_idxs = [np.random.choice(idx_, size=min(len(idx_), self.max_windows), replace=False) \
+                            for idx_ in split_ts_idxs]
+        max_windows_idxs = np.concatenate(max_windows_idxs)
+
+        windows = windows[max_windows_idxs]
+        s_matrix = s_matrix[max_windows_idxs]
+        ts_idxs = ts_idxs[max_windows_idxs]
+
     return windows, s_matrix, ts_idxs
 
 # Cell
@@ -628,23 +651,14 @@ def _get_sampleable_windows_idxs(self: WindowsDataset,
 
         return last_idxs
 
-    if self.complete_windows:
-        sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -(self.output_size):]
-        sample_condition = (sample_condition > 0) * 1 # Converts continuous sample_mask (with weights) to 0-1
-        sample_condition = t.sum(sample_condition, axis=1)
-        sample_condition = (sample_condition == self.output_size) * 1
-
     else:
         sample_condition = ts_windows_flatten[:, self.t_cols.index('sample_mask'), -self.output_size:]
-        sample_condition = (sample_condition > 0) * 1 # Converts continuous sample_mask (with weights) to 0-1
         sample_condition = t.sum(sample_condition, axis=1)
         sample_condition = (sample_condition > 0) * 1
+        sampling_idx = t.nonzero(sample_condition > 0)
+        sampling_idx = sampling_idx.flatten().numpy()
 
-    sampling_idx = t.nonzero(sample_condition > 0)
-    sampling_idx = sampling_idx.cpu().detach().numpy()
-    sampling_idx = sampling_idx.flatten()
-
-    return sampling_idx
+        return sampling_idx
 
 # Cell
 @patch
