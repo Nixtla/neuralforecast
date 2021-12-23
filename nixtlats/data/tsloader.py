@@ -118,6 +118,7 @@ class FastTimeSeriesLoader:
     """
     def __init__(self, dataset: TimeSeriesDataset, batch_size: int = 32,
                  eq_batch_size: bool = False,
+                 n_windows: Optional[int] = None,
                  shuffle: bool = False) -> 'FastTimeSeriesLoader':
         """Initialize a FastTimeSeriesLoader.
 
@@ -134,6 +135,9 @@ class FastTimeSeriesLoader:
             Stored time series.
         batch_size: int
             Batch size to load.
+        n_windows: int
+            Number of windows to sample after
+            batching batch_size series.
         shuffle: bool
             If `True`, shuffle the data *in-place* whenever an
             iterator is created out of this object.
@@ -141,7 +145,8 @@ class FastTimeSeriesLoader:
         self.dataset = dataset
         self.dataset_len = len(dataset)
         self.batch_size = batch_size
-        self.eq_batch_size = batch_size
+        self.eq_batch_size = eq_batch_size
+        self.n_windows = n_windows
         self.shuffle = shuffle
         self.idxs = np.arange(self.dataset_len)
 
@@ -181,7 +186,11 @@ def __next__(self: FastTimeSeriesLoader):
     n_windows = batch['Y'].size(0)
     if self.eq_batch_size and self.batch_size is not None:
         self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
-                                     replace=(n_windows < self.batch_size))
+                                       replace=(n_windows < self.batch_size))
+
+    if not self.eq_batch_size and self.n_windows is not None:
+        self.w_idxs = np.random.choice(n_windows, size=self.n_windows,
+                                       replace=(n_windows < self.n_windows))
 
     return {key: self._check_batch_size(batch[key]) for key in batch}
 
