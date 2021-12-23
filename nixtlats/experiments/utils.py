@@ -205,7 +205,8 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
 def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
     train_loader = TimeSeriesLoader(dataset=train_dataset,
                                     batch_size=int(mc['batch_size']),
-                                    eq_batch_size=mc.get('eq_batch_size') or True,
+                                    n_windows=int(mc['n_windows']),
+                                    eq_batch_size=False,
                                     shuffle=True)
     if val_dataset is not None:
         val_loader = TimeSeriesLoader(dataset=val_dataset,
