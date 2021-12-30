@@ -27,7 +27,7 @@ import torch as t
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
 from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset, WindowsDataset
+from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
@@ -176,6 +176,24 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
                                       sample_freq=int(mc['val_idx_to_sample_freq']),
                                       complete_windows=True,
                                       verbose=True)
+    if mc['mode'] == 'iterate_windows':
+        train_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                              mask_df=train_mask_df, f_cols=f_cols,
+                                              input_size=int(mc['n_time_in']),
+                                              output_size=int(mc['n_time_out']),
+                                              verbose=True)
+
+        valid_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                              mask_df=valid_mask_df, f_cols=f_cols,
+                                              input_size=int(mc['n_time_in']),
+                                              output_size=int(mc['n_time_out']),
+                                              verbose=True)
+
+        test_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                             mask_df=test_mask_df, f_cols=f_cols,
+                                             input_size=int(mc['n_time_in']),
+                                             output_size=int(mc['n_time_out']),
+                                             verbose=True)
 
     if mc['mode'] == 'full':
         train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
