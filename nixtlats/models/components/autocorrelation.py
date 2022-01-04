@@ -42,7 +42,7 @@ class AutoCorrelation(nn.Module):
         tmp_corr = torch.softmax(weights, dim=-1)
         # aggregation
         tmp_values = values
-        delays_agg = torch.zeros_like(values).float()
+        delays_agg = torch.zeros_like(values, dtype=torch.float, device=values.device)
         for i in range(top_k):
             pattern = torch.roll(tmp_values, -int(index[i]), -1)
             delays_agg = delays_agg + pattern * \
@@ -59,7 +59,7 @@ class AutoCorrelation(nn.Module):
         channel = values.shape[2]
         length = values.shape[3]
         # index init
-        init_index = torch.arange(length).unsqueeze(0).unsqueeze(0).unsqueeze(0).repeat(batch, head, channel, 1)
+        init_index = torch.arange(length, device=values.device).unsqueeze(0).unsqueeze(0).unsqueeze(0).repeat(batch, head, channel, 1)
         # find top k
         top_k = int(self.factor * math.log(length))
         mean_value = torch.mean(torch.mean(corr, dim=1), dim=1)
@@ -69,7 +69,7 @@ class AutoCorrelation(nn.Module):
         tmp_corr = torch.softmax(weights, dim=-1)
         # aggregation
         tmp_values = values.repeat(1, 1, 1, 2)
-        delays_agg = torch.zeros_like(values).float()
+        delays_agg = torch.zeros_like(values, dtype=torch.float, device=values.device)
         for i in range(top_k):
             tmp_delay = init_index + delay[:, i].unsqueeze(1).unsqueeze(1).unsqueeze(1).repeat(1, head, channel, length)
             pattern = torch.gather(tmp_values, dim=-1, index=tmp_delay)
@@ -86,7 +86,7 @@ class AutoCorrelation(nn.Module):
         channel = values.shape[2]
         length = values.shape[3]
         # index init
-        init_index = torch.arange(length).unsqueeze(0).unsqueeze(0).unsqueeze(0).repeat(batch, head, channel, 1)
+        init_index = torch.arange(length, device=values.device).unsqueeze(0).unsqueeze(0).unsqueeze(0).repeat(batch, head, channel, 1)
         # find top k
         top_k = int(self.factor * math.log(length))
         weights = torch.topk(corr, top_k, dim=-1)[0]
@@ -95,7 +95,7 @@ class AutoCorrelation(nn.Module):
         tmp_corr = torch.softmax(weights, dim=-1)
         # aggregation
         tmp_values = values.repeat(1, 1, 1, 2)
-        delays_agg = torch.zeros_like(values).float()
+        delays_agg = torch.zeros_like(values, dtype=torch.float, device=values.device)
         for i in range(top_k):
             tmp_delay = init_index + delay[..., i].unsqueeze(-1)
             pattern = torch.gather(tmp_values, dim=-1, index=tmp_delay)
@@ -106,7 +106,7 @@ class AutoCorrelation(nn.Module):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
         if L > S:
-            zeros = torch.zeros_like(queries[:, :(L - S), :]).float()
+            zeros = torch.zeros_like(queries[:, :(L - S), :], dtype=torch.float, device=queries.device)
             values = torch.cat([values, zeros], dim=1)
             keys = torch.cat([keys, zeros], dim=1)
         else:

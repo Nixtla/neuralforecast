@@ -98,7 +98,7 @@ class _Autoformer(nn.Module):
                 enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
         # decomp init
         mean = torch.mean(x_enc, dim=1).unsqueeze(1).repeat(1, self.pred_len, 1)
-        zeros = torch.zeros([x_dec.shape[0], self.pred_len, x_dec.shape[2]])
+        zeros = torch.zeros([x_dec.shape[0], self.pred_len, x_dec.shape[2]], device=x_enc.device)
         seasonal_init, trend_init = self.decomp(x_enc)
         # decoder input
         trend_init = torch.cat([trend_init[:, -self.label_len:, :], mean], dim=1)
@@ -195,7 +195,7 @@ class Autoformer(pl.LightningModule):
         batch_y = Y[:, r_begin:r_end, :]
         batch_x_mark = X[:, s_begin:s_end, :]
         batch_y_mark = X[:, r_begin:r_end, :]
-        outsample_mask = sample_mask[: r_begin:r_end]
+        outsample_mask = sample_mask[:, r_begin:r_end, :]
 
         dec_inp = torch.zeros_like(batch_y[:, -self.pred_len:, :])
         dec_inp = torch.cat([batch_y[:, :self.label_len, :], dec_inp], dim=1)
