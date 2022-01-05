@@ -286,7 +286,9 @@ index = {"Scaler": "data__scalers.ipynb",
          "TrendBasis": "models_nbeats__nbeats.ipynb",
          "SeasonalityBasis": "models_nbeats__nbeats.ipynb",
          "NBEATS": "models_nbeats__nbeats.ipynb",
-         "Autoformer": "models_transformer__autoformer.ipynb"}
+         "Autoformer": "models_transformer__autoformer.ipynb",
+         "Informer": "models_transformer__informer.ipynb",
+         "Transformer": "models_transformer__transformer.ipynb"}
 
 modules = ["data/scalers.py",
            "data/tsdataset.py",
@@ -323,7 +325,9 @@ modules = ["data/scalers.py",
            "models/naive2/naive2.py",
            "models/nbeats/ensemble.py",
            "models/nbeats/nbeats.py",
-           "models/transformer/autoformer.py"]
+           "models/transformer/autoformer.py",
+           "models/transformer/informer.py",
+           "models/transformer/transformer.py"]
 
 doc_url = "https://Nixtla.github.io/nixtlats/"
 
