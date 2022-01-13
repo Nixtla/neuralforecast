@@ -522,6 +522,12 @@ class IterateWindowsDataset(BaseDataset):
                                                     is_test=is_test, complete_windows=True,
                                                     verbose=verbose)
 
+        self.first_sampleable_stamps = np.nonzero(self.ts_tensor[0, self.t_cols.index('sample_mask'), :])[0,0]
+        self.sampleable_stamps = t.sum(self.ts_tensor[0, self.t_cols.index('sample_mask'), :]) # TODO: now it assumes mask is correct
+
+        self.first_sampleable_stamps = int(self.first_sampleable_stamps.cpu().detach().numpy())
+        self.sampleable_stamps = int(self.sampleable_stamps.cpu().detach().numpy())
+
 # Cell
 @patch
 def __getitem__(self: IterateWindowsDataset,
@@ -547,6 +553,10 @@ def __getitem__(self: IterateWindowsDataset,
     if not isinstance(idx, int):
         raise Exception('idx should be an integer')
 
+    # Add first sampleable stamp and shift by input_size if possible (this will never happen during training)
+    if self.first_sampleable_stamps + 1 > self.input_size:
+        idx = idx + self.first_sampleable_stamps - self.input_size
+
     # Parse windows to elements of batch
     end = idx + self.input_size + self.output_size
     S = t.Tensor(self.s_matrix)
@@ -567,7 +577,10 @@ def __getitem__(self: IterateWindowsDataset,
 # Cell
 @patch
 def __len__(self: IterateWindowsDataset):
-    return self.max_len - self.input_size - self.output_size + 1
+    if self.first_sampleable_stamps + 1 > self.input_size:
+        return self.sampleable_stamps - self.output_size + 1 # We take the input_size chunk from the beginning, if possible
+    else:
+        return self.sampleable_stamps - self.input_size - self.output_size + 1
 
 # Cell
 class WindowsDataset(BaseDataset):

@@ -2,7 +2,8 @@
 
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_mqesrnn', 'instantiate_deepmidas',
-           'instantiate_model', 'predict', 'model_fit_predict', 'evaluate_model', 'hyperopt_tunning']
+           'instantiate_autoformer', 'instantiate_model', 'predict', 'model_fit_predict', 'evaluate_model',
+           'hyperopt_tunning']
 
 # Cell
 ENV_VARS = dict(OMP_NUM_THREADS='2',
@@ -25,6 +26,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch as t
 from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
+from torch.utils.data import DataLoader
 
 from ..data.scalers import Scaler
 from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset
@@ -33,6 +35,7 @@ from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
 from ..models.nbeats.nbeats import NBEATS
 from ..models.deepmidas.deepmidas import DeepMIDAS
+from ..models.transformer.autoformer import Autoformer
 
 # Cell
 def get_mask_dfs(Y_df, ds_in_val, ds_in_test):
@@ -221,24 +224,45 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
 
 # Cell
 def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
-    train_loader = TimeSeriesLoader(dataset=train_dataset,
-                                    batch_size=int(mc['batch_size']),
-                                    n_windows=int(mc['n_windows']),
-                                    eq_batch_size=False,
-                                    shuffle=True)
-    if val_dataset is not None:
-        val_loader = TimeSeriesLoader(dataset=val_dataset,
-                                      batch_size=1,
-                                      shuffle=False)
-    else:
-        val_loader = None
+    if mc['mode'] in ['simple', 'full'] :
+        train_loader = TimeSeriesLoader(dataset=train_dataset,
+                                        batch_size=int(mc['batch_size']),
+                                        n_windows=int(mc['n_windows']),
+                                        eq_batch_size=False,
+                                        shuffle=True)
+        if val_dataset is not None:
+            val_loader = TimeSeriesLoader(dataset=val_dataset,
+                                        batch_size=1,
+                                        shuffle=False)
+        else:
+            val_loader = None
 
-    if test_dataset is not None:
-        test_loader = TimeSeriesLoader(dataset=test_dataset,
-                                       batch_size=1,
-                                       shuffle=False)
-    else:
-        test_loader = None
+        if test_dataset is not None:
+            test_loader = TimeSeriesLoader(dataset=test_dataset,
+                                        batch_size=1,
+                                        shuffle=False)
+        else:
+            test_loader = None
+
+    elif mc['mode'] == 'iterate_windows':
+        train_loader =DataLoader(dataset=train_dataset,
+                                 batch_size=int(mc['batch_size']),
+                                 shuffle=True,
+                                 drop_last=True)
+
+        if val_dataset is not None:
+            val_loader = DataLoader(dataset=val_dataset,
+                                    batch_size=1,
+                                    shuffle=False)
+        else:
+            val_loader = None
+
+        if test_dataset is not None:
+            test_loader = DataLoader(dataset=test_dataset,
+                                     batch_size=1,
+                                     shuffle=False)
+        else:
+            test_loader = None
 
     return train_loader, val_loader, test_loader
 
@@ -386,11 +410,49 @@ def instantiate_deepmidas(mc):
     return model
 
 # Cell
+def instantiate_autoformer(mc):
+
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+
+    model = Autoformer(seq_len=int(mc['seq_len']),
+                       label_len=int(mc['label_len']),
+                       pred_len=int(mc['pred_len']),
+                       output_attention=mc['output_attention'],
+                       enc_in=int(mc['enc_in']),
+                       dec_in=int(mc['dec_in']),
+                       d_model=int(mc['d_model']),
+                       c_out=int(mc['c_out']),
+                       embed = mc['embed'],
+                       freq=mc['freq'],
+                       dropout=mc['dropout'],
+                       factor=mc['factor'],
+                       n_heads=int(mc['n_heads']),
+                       d_ff=int(mc['d_ff']),
+                       moving_avg=int(mc['moving_avg']),
+                       activation=mc['activation'],
+                       e_layers=int(mc['e_layers']),
+                       d_layers=int(mc['d_layers']),
+                       learning_rate=float(mc['learning_rate']),
+                       lr_decay=float(mc['lr_decay']),
+                       lr_decay_step_size=lr_decay_step_size,
+                       weight_decay=mc['weight_decay'],
+                       loss_train=mc['loss_train'],
+                       loss_hypar=float(mc['loss_hypar']),
+                       loss_valid=mc['loss_valid'],
+                       random_seed=int(mc['random_seed']))
+
+    return model
+
+# Cell
 def instantiate_model(mc):
     MODEL_DICT = {'nbeats': instantiate_nbeats,
                   'esrnn': instantiate_esrnn,
                   'mqesrnn': instantiate_mqesrnn,
-                  'deepmidas': instantiate_deepmidas}
+                  'deepmidas': instantiate_deepmidas,
+                  'autoformer': instantiate_autoformer}
     return MODEL_DICT[mc['model']](mc)
 
 # Cell
