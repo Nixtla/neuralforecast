@@ -225,12 +225,12 @@ class Autoformer(pl.LightningModule):
 
     def validation_step(self, batch, idx):
 
-        outsample_y, forecast, outsample_mask, Y = self(batch)
+        outsample_y, forecast, outsample_mask = self(batch)
 
         loss = self.loss_fn_valid(y=outsample_y,
                                   y_hat=forecast,
                                   mask=outsample_mask,
-                                  y_insample=Y)
+                                  y_insample= batch['Y'].permute(0, 2, 1))
 
         self.log('val_loss', loss, prog_bar=True)
 
