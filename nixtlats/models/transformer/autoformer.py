@@ -208,16 +208,16 @@ class Autoformer(pl.LightningModule):
         batch_y = batch_y[:, -self.pred_len:, :]
         outsample_mask = outsample_mask[:, -self.pred_len:, :]
 
-        return batch_y, forecast, outsample_mask, Y
+        return batch_y, forecast, outsample_mask
 
     def training_step(self, batch, batch_idx):
 
-        outsample_y, forecast, outsample_mask, Y = self(batch)
+        outsample_y, forecast, outsample_mask = self(batch)
 
         loss = self.loss_fn_train(y=outsample_y,
                                   y_hat=forecast,
                                   mask=outsample_mask,
-                                  y_insample=Y)
+                                  y_insample= batch['Y'].permute(0, 2, 1))
 
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
 
