@@ -395,6 +395,7 @@ def instantiate_deepmidas(mc):
                       n_theta_hidden=mc['n_theta_hidden'],
                       n_pool_kernel_size=mc['n_pool_kernel_size'],
                       n_freq_downsample=mc['n_freq_downsample'],
+                      interpolation_mode=mc['interpolation_mode'],
                       batch_normalization = mc['batch_normalization'],
                       dropout_prob_theta=mc['dropout_prob_theta'],
                       learning_rate=float(mc['learning_rate']),

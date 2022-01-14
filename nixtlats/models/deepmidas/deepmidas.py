@@ -48,10 +48,12 @@ class _sEncoder(nn.Module):
 
 # Cell
 class IdentityBasis(nn.Module):
-    def __init__(self, backcast_size: int, forecast_size: int):
+    def __init__(self, backcast_size: int, forecast_size: int, interpolation_mode: str):
         super().__init__()
+        assert interpolation_mode in ['linear','nearest','cubic']
         self.forecast_size = forecast_size
         self.backcast_size = backcast_size
+        self.interpolation_mode = interpolation_mode
 
     def forward(self, theta: t.Tensor, insample_x_t: t.Tensor, outsample_x_t: t.Tensor) -> Tuple[t.Tensor, t.Tensor]:
 
@@ -61,7 +63,15 @@ class IdentityBasis(nn.Module):
         #print('1 forecast.shape', forecast.shape)
         forecast = forecast.unsqueeze(1)
         #print('2 forecast.shape', forecast.shape)
-        forecast = F.interpolate(forecast, size=self.forecast_size, mode='linear', align_corners=True)
+        if self.interpolation_mode=='nearest':
+            forecast = F.interpolate(forecast, size=self.forecast_size, mode=self.interpolation_mode)
+        elif self.interpolation_mode=='linear':
+            forecast = F.interpolate(forecast, size=self.forecast_size, mode=self.interpolation_mode) #, align_corners=True)
+        elif self.interpolation_mode=='cubic':
+            forecast = forecast[:,:,None,:]
+            forecast = F.interpolate(forecast, size=self.forecast_size, mode='bicubic') #, align_corners=True)
+            forecast = forecast[:,:,0,:]
+
         #print('3 forecast.shape', forecast.shape)
         forecast = forecast.squeeze(1)
         #print('4 forecast.shape', forecast.shape)
@@ -278,6 +288,7 @@ class _DeepMIDAS(nn.Module):
                  n_theta_hidden: list,
                  n_pool_kernel_size: list,
                  n_freq_downsample: list,
+                 interpolation_mode,
                  dropout_prob_theta,
                  activation,
                  initialization,
@@ -299,6 +310,7 @@ class _DeepMIDAS(nn.Module):
                                    n_theta_hidden=n_theta_hidden,
                                    n_pool_kernel_size=n_pool_kernel_size,
                                    n_freq_downsample=n_freq_downsample,
+                                   interpolation_mode=interpolation_mode,
                                    batch_normalization=batch_normalization,
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation,
@@ -310,7 +322,7 @@ class _DeepMIDAS(nn.Module):
                      n_time_in, n_time_out,
                      n_x, n_x_hidden, n_s, n_s_hidden,
                      n_layers, n_theta_hidden,
-                     n_pool_kernel_size, n_freq_downsample,
+                     n_pool_kernel_size, n_freq_downsample, interpolation_mode,
                      batch_normalization, dropout_prob_theta,
                      activation, shared_weights, initialization):
 
@@ -332,7 +344,8 @@ class _DeepMIDAS(nn.Module):
                     if stack_types[i] == 'identity':
                         n_theta = (n_time_in + max(n_time_out//n_freq_downsample[i], 1) )
                         basis = IdentityBasis(backcast_size=n_time_in,
-                                              forecast_size=n_time_out)
+                                              forecast_size=n_time_out,
+                                              interpolation_mode=interpolation_mode)
 
                     elif stack_types[i] == 'exogenous':
                         n_theta = 2 * n_x
@@ -480,6 +493,7 @@ class DeepMIDAS(pl.LightningModule):
                  n_theta_hidden,
                  n_pool_kernel_size,
                  n_freq_downsample,
+                 interpolation_mode,
                  batch_normalization,
                  dropout_prob_theta,
                  learning_rate,
@@ -589,6 +603,7 @@ class DeepMIDAS(pl.LightningModule):
         self.n_theta_hidden = n_theta_hidden
         self.n_pool_kernel_size = n_pool_kernel_size
         self.n_freq_downsample = n_freq_downsample
+        self.interpolation_mode = interpolation_mode
 
         # Loss functions
         self.loss_train = loss_train
@@ -625,6 +640,7 @@ class DeepMIDAS(pl.LightningModule):
                              n_theta_hidden=self.n_theta_hidden,
                              n_pool_kernel_size=self.n_pool_kernel_size,
                              n_freq_downsample=self.n_freq_downsample,
+                             interpolation_mode=self.interpolation_mode,
                              dropout_prob_theta=self.dropout_prob_theta,
                              activation=self.activation,
                              initialization=self.initialization,
