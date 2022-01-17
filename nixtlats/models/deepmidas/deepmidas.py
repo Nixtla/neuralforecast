@@ -58,23 +58,23 @@ class IdentityBasis(nn.Module):
     def forward(self, theta: t.Tensor, insample_x_t: t.Tensor, outsample_x_t: t.Tensor) -> Tuple[t.Tensor, t.Tensor]:
 
         backcast = theta[:, :self.backcast_size]
-        forecast = theta[:, self.backcast_size:]
+        knots = theta[:, self.backcast_size:]
 
-        #print('1 forecast.shape', forecast.shape)
-        forecast = forecast.unsqueeze(1)
-        #print('2 forecast.shape', forecast.shape)
         if self.interpolation_mode=='nearest':
-            forecast = F.interpolate(forecast, size=self.forecast_size, mode=self.interpolation_mode)
+            knots = knots[:,None,:]
+            forecast = F.interpolate(knots, size=self.forecast_size, mode=self.interpolation_mode)
+            forecast = forecast[:,0,:]
         elif self.interpolation_mode=='linear':
-            forecast = F.interpolate(forecast, size=self.forecast_size, mode=self.interpolation_mode) #, align_corners=True)
+            knots = knots[:,None,:]
+            forecast = F.interpolate(knots, size=self.forecast_size, mode=self.interpolation_mode) #, align_corners=True)
+            forecast = forecast[:,0,:]
         elif self.interpolation_mode=='cubic':
-            forecast = forecast[:,:,None,:]
-            forecast = F.interpolate(forecast, size=self.forecast_size, mode='bicubic') #, align_corners=True)
-            forecast = forecast[:,:,0,:]
-
-        #print('3 forecast.shape', forecast.shape)
-        forecast = forecast.squeeze(1)
-        #print('4 forecast.shape', forecast.shape)
+            knots = knots[:,None,None,:]
+            n_batch = len(knots)
+            forecast = t.zeros((n_batch, self.forecast_size))
+            for i in range(n_batch):
+                forecast_i = F.interpolate(knots[[i]], size=self.forecast_size, mode='bicubic') #, align_corners=True)
+                forecast[i] += forecast_i[0,0,0,:]
 
         return backcast, forecast
 
