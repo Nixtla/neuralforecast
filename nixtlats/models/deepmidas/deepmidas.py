@@ -71,7 +71,7 @@ class IdentityBasis(nn.Module):
         elif self.interpolation_mode=='cubic':
             knots = knots[:,None,None,:]
             n_batch = len(knots)
-            forecast = t.zeros((n_batch, self.forecast_size))
+            forecast = t.zeros((n_batch, self.forecast_size)).to(knots.device)
             for i in range(n_batch):
                 forecast_i = F.interpolate(knots[[i]], size=self.forecast_size, mode='bicubic') #, align_corners=True)
                 forecast[i] += forecast_i[0,0,0,:]
