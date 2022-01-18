@@ -76,7 +76,7 @@ class IdentityBasis(nn.Module):
             for i in range(n_batches):
                 forecast_i = F.interpolate(knots[i*batch_size:(i+1)*batch_size], size=self.forecast_size, mode='bicubic') #, align_corners=True)
                 forecast[i*batch_size:(i+1)*batch_size] += forecast_i[:,0,0,:]
-            assert all(forecast.sum(dim=1))
+            #assert all(forecast.sum(dim=1))
 
         return backcast, forecast
 
