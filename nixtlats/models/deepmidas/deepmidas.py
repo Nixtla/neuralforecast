@@ -50,7 +50,7 @@ class _sEncoder(nn.Module):
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, interpolation_mode: str):
         super().__init__()
-        assert interpolation_mode in ['linear','nearest','cubic']
+        assert (interpolation_mode in ['linear','nearest']) or ('cubic' in interpolation_mode)
         self.forecast_size = forecast_size
         self.backcast_size = backcast_size
         self.interpolation_mode = interpolation_mode
@@ -68,13 +68,15 @@ class IdentityBasis(nn.Module):
             knots = knots[:,None,:]
             forecast = F.interpolate(knots, size=self.forecast_size, mode=self.interpolation_mode) #, align_corners=True)
             forecast = forecast[:,0,:]
-        elif self.interpolation_mode=='cubic':
+        elif 'cubic' in self.interpolation_mode:
+            batch_size = int(self.interpolation_mode.split('-')[-1])
             knots = knots[:,None,None,:]
-            n_batch = len(knots)
-            forecast = t.zeros((n_batch, self.forecast_size)).to(knots.device)
-            for i in range(n_batch):
-                forecast_i = F.interpolate(knots[[i]], size=self.forecast_size, mode='bicubic') #, align_corners=True)
-                forecast[i] += forecast_i[0,0,0,:]
+            forecast = t.zeros((len(knots), self.forecast_size)).to(knots.device)
+            n_batches = int(np.ceil(len(knots)/batch_size))
+            for i in range(n_batches):
+                forecast_i = F.interpolate(knots[i*batch_size:(i+1)*batch_size], size=self.forecast_size, mode='bicubic') #, align_corners=True)
+                forecast[i*batch_size:(i+1)*batch_size] += forecast_i[:,0,0,:]
+            assert all(forecast.sum(dim=1))
 
         return backcast, forecast
 
