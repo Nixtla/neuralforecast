@@ -198,11 +198,13 @@ class _DeepMidasBlock(nn.Module):
     """
     def __init__(self, n_time_in: int, n_time_out: int, n_x: int,
                  n_s: int, n_s_hidden: int, n_theta: int, n_theta_hidden: list,
-                 n_pool_kernel_size: int, basis: nn.Module,
+                 n_pool_kernel_size: int, pooling_mode: str, basis: nn.Module,
                  n_layers: int,  batch_normalization: bool, dropout_prob: float, activation: str):
         """
         """
         super().__init__()
+
+        assert (pooling_mode in ['max','average'])
 
         n_time_in_pooled = int(np.ceil(n_time_in/n_pool_kernel_size))
 
@@ -222,8 +224,12 @@ class _DeepMidasBlock(nn.Module):
         assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
         activ = getattr(nn, activation)()
 
-        self.pooling_layer = nn.MaxPool1d(kernel_size=self.n_pool_kernel_size,
-                                          stride=self.n_pool_kernel_size, ceil_mode=True)
+        if pooling_mode == 'max':
+            self.pooling_layer = nn.MaxPool1d(kernel_size=self.n_pool_kernel_size,
+                                              stride=self.n_pool_kernel_size, ceil_mode=True)
+        elif pooling_mode == 'average':
+            self.pooling_layer = nn.AvgPool1d(kernel_size=self.n_pool_kernel_size,
+                                              stride=self.n_pool_kernel_size, ceil_mode=True)
 
         hidden_layers = []
         for i in range(n_layers):
@@ -290,6 +296,7 @@ class _DeepMIDAS(nn.Module):
                  n_theta_hidden: list,
                  n_pool_kernel_size: list,
                  n_freq_downsample: list,
+                 pooling_mode,
                  interpolation_mode,
                  dropout_prob_theta,
                  activation,
@@ -312,6 +319,7 @@ class _DeepMIDAS(nn.Module):
                                    n_theta_hidden=n_theta_hidden,
                                    n_pool_kernel_size=n_pool_kernel_size,
                                    n_freq_downsample=n_freq_downsample,
+                                   pooling_mode=pooling_mode,
                                    interpolation_mode=interpolation_mode,
                                    batch_normalization=batch_normalization,
                                    dropout_prob_theta=dropout_prob_theta,
@@ -324,7 +332,7 @@ class _DeepMIDAS(nn.Module):
                      n_time_in, n_time_out,
                      n_x, n_x_hidden, n_s, n_s_hidden,
                      n_layers, n_theta_hidden,
-                     n_pool_kernel_size, n_freq_downsample, interpolation_mode,
+                     n_pool_kernel_size, n_freq_downsample, pooling_mode, interpolation_mode,
                      batch_normalization, dropout_prob_theta,
                      activation, shared_weights, initialization):
 
@@ -372,6 +380,7 @@ class _DeepMIDAS(nn.Module):
                                                    n_theta=n_theta,
                                                    n_theta_hidden=n_theta_hidden[i],
                                                    n_pool_kernel_size=n_pool_kernel_size[i],
+                                                   pooling_mode=pooling_mode,
                                                    basis=basis,
                                                    n_layers=n_layers[i],
                                                    batch_normalization=batch_normalization_block,
@@ -495,6 +504,7 @@ class DeepMIDAS(pl.LightningModule):
                  n_theta_hidden,
                  n_pool_kernel_size,
                  n_freq_downsample,
+                 pooling_mode,
                  interpolation_mode,
                  batch_normalization,
                  dropout_prob_theta,
@@ -605,6 +615,7 @@ class DeepMIDAS(pl.LightningModule):
         self.n_theta_hidden = n_theta_hidden
         self.n_pool_kernel_size = n_pool_kernel_size
         self.n_freq_downsample = n_freq_downsample
+        self.pooling_mode = pooling_mode
         self.interpolation_mode = interpolation_mode
 
         # Loss functions
@@ -642,6 +653,7 @@ class DeepMIDAS(pl.LightningModule):
                              n_theta_hidden=self.n_theta_hidden,
                              n_pool_kernel_size=self.n_pool_kernel_size,
                              n_freq_downsample=self.n_freq_downsample,
+                             pooling_mode=self.pooling_mode,
                              interpolation_mode=self.interpolation_mode,
                              dropout_prob_theta=self.dropout_prob_theta,
                              activation=self.activation,
