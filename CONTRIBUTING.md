@@ -28,9 +28,9 @@ Bug fixes and features are added through pull requests (PRs).
 ### Local setup for working on a PR
 
 #### 1. Clone the repository
-* HTTPS: `git clone https://github.com/Nixtla/nixtlats.git`
-* SSH: `git clone git@github.com:Nixtla/nixtlats.git`
-* GitHub CLI: `gh repo clone Nixtla/nixtlats`
+* HTTPS: `git clone https://github.com/Nixtla/neuralforecast.git`
+* SSH: `git clone git@github.com:Nixtla/neuralforecast.git`
+* GitHub CLI: `gh repo clone Nixtla/neuralforecast`
 
 #### 2. Set up a conda environment
 The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
