@@ -1,7 +1,7 @@
-repository: Nixtla/nixtlats
+repository: Nixtla/neuralforecast
 output: web
-topnav_title: nixtlats
-site_title: nixtlats
+topnav_title: neuralforecast
+site_title: neuralforecast
 company_name: Nixtla
 description: Deep Leearning for Time Series Forecasting
 # Set to false to disable KaTeX math
