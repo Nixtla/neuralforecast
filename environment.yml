@@ -1,4 +1,4 @@
-name: nixtla
+name: neuralforecast
 channels:
   - pytorch
   - conda-forge
