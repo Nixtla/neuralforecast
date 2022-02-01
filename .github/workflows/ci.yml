@@ -16,9 +16,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.6, 3.7, 3.8, 3.9]
     steps:
-      - name: Install rar
-        run: sudo apt-get -y install unrar
-
       - name: Clone repo
         uses: actions/checkout@v2
         with:
