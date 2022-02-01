@@ -1,4 +1,4 @@
-# `neuralforecast`:Deep Learning for Time Series Forecasting
+# `NeuralForecast`:Deep Learning for Time Series Forecasting
 > [nikstla] (noun, nahuatl) Period of time.
 
 
