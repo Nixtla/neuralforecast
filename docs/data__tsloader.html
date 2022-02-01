@@ -211,6 +211,28 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 
 <div class="inner_cell">
     <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_n_windows</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">n_windows</span><span class="p">,</span> <span class="n">loader_class</span><span class="p">):</span>
+    <span class="c1"># Check returns batch_size tensors</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">loader_class</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">n_windows</span><span class="o">=</span><span class="n">n_windows</span><span class="p">)</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">n_windows</span> <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">]</span>
+    
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="s1">&#39;Unexpected n_window sizes.&#39;</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">test_eq_batch_size_order</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">loader_class</span><span class="p">):</span>
     <span class="c1">#This test only works for TimeSeriesDataset class</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">loader_class</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -312,9 +334,11 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">WindowsDataset</span><span class="p">(</span><span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                          <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">complete_windows</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">dataloader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
-                              <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                              <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                              <span class="n">n_windows</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">dataloader</span><span class="p">:</span>
     <span class="n">batch</span>
@@ -344,6 +368,23 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 </div>
     {% endraw %}
 
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_n_windows</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">TimeSeriesLoader</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Faster-implemention">Faster implemention<a class="anchor-link" href="#Faster-implemention"> </a></h2>
@@ -361,7 +402,7 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="FastTimeSeriesLoader" class="doc_header"><code>class</code> <code>FastTimeSeriesLoader</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L100" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>FastTimeSeriesLoader</code>(<strong><code>dataset</code></strong>:<a href="/nixtlats/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>32</code></em>, <strong><code>eq_batch_size</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>shuffle</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h2 id="FastTimeSeriesLoader" class="doc_header"><code>class</code> <code>FastTimeSeriesLoader</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L108" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>FastTimeSeriesLoader</code>(<strong><code>dataset</code></strong>:<a href="/nixtlats/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>32</code></em>, <strong><code>eq_batch_size</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>n_windows</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>shuffle</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>A DataLoader-like object for a set of tensors that can be much faster than
 TensorDataset + DataLoader because dataloader grabs individual indices of
@@ -397,7 +438,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__iter__" class="doc_header"><code>FastTimeSeriesLoader.__iter__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L148" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__iter__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__iter__" class="doc_header"><code>FastTimeSeriesLoader.__iter__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L161" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__iter__</code>()</p>
 </blockquote>
 
 </div>
@@ -435,7 +476,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__next__" class="doc_header"><code>FastTimeSeriesLoader.__next__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L165" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__next__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__next__" class="doc_header"><code>FastTimeSeriesLoader.__next__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L178" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__next__</code>()</p>
 </blockquote>
 
 </div>
@@ -466,7 +507,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__len__" class="doc_header"><code>FastTimeSeriesLoader.__len__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L181" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__len__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__len__" class="doc_header"><code>FastTimeSeriesLoader.__len__</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/data/tsloader.py#L198" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__len__</code>()</p>
 </blockquote>
 
 </div>
@@ -574,9 +615,11 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">WindowsDataset</span><span class="p">(</span><span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
                          <span class="n">input_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
                          <span class="n">output_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                         <span class="n">sample_freq</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                         <span class="n">complete_windows</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">dataloader</span> <span class="o">=</span> <span class="n">FastTimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
-                                  <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                  <span class="n">eq_batch_size</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">n_windows</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -621,6 +664,23 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </div>
     {% endraw %}
 
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test_n_windows</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">FastTimeSeriesLoader</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h3 id="Performance-comparison">Performance comparison<a class="anchor-link" href="#Performance-comparison"> </a></h3>
@@ -634,8 +694,8 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">fast_dataloader</span> <span class="o">=</span> <span class="n">FastTimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">n_windows</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">fast_dataloader</span> <span class="o">=</span> <span class="n">FastTimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">n_windows</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -659,6 +719,20 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>10.5 ms ± 199 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
 </div>
     {% endraw %}
 
@@ -673,6 +747,20 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </pre></div>
 
     </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>2.45 ms ± 105 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 

@@ -19,6 +19,7 @@ class TimeSeriesLoader(DataLoader):
 
     def __init__(self, dataset: Union[TimeSeriesDataset, WindowsDataset],
                  eq_batch_size: bool = False,
+                 n_windows: Optional[int] = None,
                  **kwargs) -> 'TimeSeriesLoader':
         """Wraps the pytorch `DataLoader` with a special collate function
         for the `TimeSeriesDataset` ouputs.
@@ -37,6 +38,9 @@ class TimeSeriesLoader(DataLoader):
         eq_batch_size: bool
             If `True` samples `batch_size` windows randomly,
             while `False` or `batch_size=None` returns all windows.
+        n_windows: int
+            Number of windows to sample after
+            batching batch_size series.
         """
         if 'collate_fn' in kwargs.keys():
             warnings.warn(
@@ -49,6 +53,7 @@ class TimeSeriesLoader(DataLoader):
         kwargs_ = {**kwargs, **dict(collate_fn=self._collate_fn)}
         DataLoader.__init__(self, dataset=dataset, **kwargs_)
         self.eq_batch_size = eq_batch_size
+        self.n_windows = n_windows
         self.w_idxs: Optional[np.ndarray] = None
 
 # Cell
@@ -70,8 +75,8 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
     [1] Adapted from https://github.com/pytorch/pytorch/blob/master/torch/utils/data/_utils/collate.py.
     """
     elem = batch[0]
-    if len(batch) == 1:
-        return {key: self._check_batch_size(elem[key]) for key in elem}
+    # if len(batch) == 1:
+    #     return {key: self._check_batch_size(elem[key]) for key in elem}
 
     elem_type = type(elem)
 
@@ -92,6 +97,9 @@ def _collate_fn(self: TimeSeriesLoader, batch: Union[List, Dict[str, t.Tensor], 
         if self.eq_batch_size and self.batch_size is not None:
             self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
                                            replace=(n_windows < self.batch_size))
+        if not self.eq_batch_size and self.n_windows is not None:
+            self.w_idxs = np.random.choice(n_windows, size=self.n_windows,
+                                           replace=(n_windows < self.n_windows))
         return {key: self.collate_fn([d[key] for d in batch]) for key in elem}
 
     raise TypeError(f'Unknown {elem_type}')
@@ -110,6 +118,7 @@ class FastTimeSeriesLoader:
     """
     def __init__(self, dataset: TimeSeriesDataset, batch_size: int = 32,
                  eq_batch_size: bool = False,
+                 n_windows: Optional[int] = None,
                  shuffle: bool = False) -> 'FastTimeSeriesLoader':
         """Initialize a FastTimeSeriesLoader.
 
@@ -126,6 +135,9 @@ class FastTimeSeriesLoader:
             Stored time series.
         batch_size: int
             Batch size to load.
+        n_windows: int
+            Number of windows to sample after
+            batching batch_size series.
         shuffle: bool
             If `True`, shuffle the data *in-place* whenever an
             iterator is created out of this object.
@@ -133,7 +145,8 @@ class FastTimeSeriesLoader:
         self.dataset = dataset
         self.dataset_len = len(dataset)
         self.batch_size = batch_size
-        self.eq_batch_size = batch_size
+        self.eq_batch_size = eq_batch_size
+        self.n_windows = n_windows
         self.shuffle = shuffle
         self.idxs = np.arange(self.dataset_len)
 
@@ -173,7 +186,11 @@ def __next__(self: FastTimeSeriesLoader):
     n_windows = batch['Y'].size(0)
     if self.eq_batch_size and self.batch_size is not None:
         self.w_idxs = np.random.choice(n_windows, size=self.batch_size,
-                                     replace=(n_windows < self.batch_size))
+                                       replace=(n_windows < self.batch_size))
+
+    if not self.eq_batch_size and self.n_windows is not None:
+        self.w_idxs = np.random.choice(n_windows, size=self.n_windows,
+                                       replace=(n_windows < self.n_windows))
 
     return {key: self._check_batch_size(batch[key]) for key in batch}
 

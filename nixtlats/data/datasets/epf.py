@@ -12,8 +12,7 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 
-from .utils import download_file, Info, TimeSeriesDataclass
-from ..tsdataset import TimeSeriesDataset
+from .utils import download_file, Info
 
 # Cell
 @dataclass
