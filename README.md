@@ -11,7 +11,7 @@
 
 State-of-the-art time series forecasting for pytorch.
 
-`neuralforecast` is a python library for time series forecasting with deep learning. 
+`NeuralForecast` is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
 
 
@@ -26,7 +26,7 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 This code is a work in progress, any contributions or issues are welcome on
 GitHub at: https://github.com/Nixtla/neuralforecast.
 
-You can install the *released version* of `neuralforecast` from the [Python package index](https://pypi.org) with:
+You can install the *released version* of `NeuralForecast` from the [Python package index](https://pypi.org) with:
 
 ```python
 pip install neuralforecast
@@ -63,14 +63,14 @@ See [CONTRIBUTING.md](https://github.com/Nixtla/nixtlats/blob/master/CONTRIBUTIN
 
 ## How to cite
 
-If you use `neuralforecast` in a scientific publication, we encourage you to add
+If you use `NeuralForecast` in a scientific publication, we encourage you to add
 the following references to the related papers:
 
 
 ```bibtex
 @article{neuralforecast_arxiv,
   author  = {XXXX},
-  title   = {{neuralforecast: Deep Learning for Time Series Forecasting}},
+  title   = {{NeuralForecast: Deep Learning for Time Series Forecasting}},
   journal = {arXiv preprint arXiv:XXX.XXX},
   year    = {2022}
 }
