@@ -55,7 +55,7 @@ nb_path: "nbs/models_naive2__naive2.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Naive" class="doc_header"><code>class</code> <code>Naive</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L14" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Naive</code>()</p>
+<h2 id="Naive" class="doc_header"><code>class</code> <code>Naive</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L14" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Naive</code>()</p>
 </blockquote>
 <p>Naive model.
 This benchmark model produces a forecast that is equal to
@@ -97,7 +97,7 @@ the last observed value for a given time series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SeasonalNaive" class="doc_header"><code>class</code> <code>SeasonalNaive</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L36" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SeasonalNaive</code>()</p>
+<h2 id="SeasonalNaive" class="doc_header"><code>class</code> <code>SeasonalNaive</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L36" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SeasonalNaive</code>()</p>
 </blockquote>
 <p>Seasonal Naive model.
 This benchmark model produces a forecast that is equal to
@@ -144,7 +144,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="detrend" class="doc_header"><code>detrend</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L61" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>detrend</code>(<strong><code>insample_data</code></strong>)</p>
+<h4 id="detrend" class="doc_header"><code>detrend</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L61" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>detrend</code>(<strong><code>insample_data</code></strong>)</p>
 </blockquote>
 <p>Calculates a &amp; b parameters of LRL
 :param insample_data:
@@ -171,7 +171,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="deseasonalize" class="doc_header"><code>deseasonalize</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L71" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>deseasonalize</code>(<strong><code>original_ts</code></strong>, <strong><code>ppy</code></strong>)</p>
+<h4 id="deseasonalize" class="doc_header"><code>deseasonalize</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L71" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>deseasonalize</code>(<strong><code>original_ts</code></strong>, <strong><code>ppy</code></strong>)</p>
 </blockquote>
 <p>Calculates and returns seasonal indices
 :param original_ts: original data
@@ -199,7 +199,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="moving_averages" class="doc_header"><code>moving_averages</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L98" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>moving_averages</code>(<strong><code>ts_init</code></strong>, <strong><code>window</code></strong>)</p>
+<h4 id="moving_averages" class="doc_header"><code>moving_averages</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L98" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>moving_averages</code>(<strong><code>ts_init</code></strong>, <strong><code>window</code></strong>)</p>
 </blockquote>
 <p>Calculates the moving averages for a given TS
 :param ts_init: the original time series
@@ -227,7 +227,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="seasonality_test" class="doc_header"><code>seasonality_test</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L127" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>seasonality_test</code>(<strong><code>original_ts</code></strong>, <strong><code>ppy</code></strong>)</p>
+<h4 id="seasonality_test" class="doc_header"><code>seasonality_test</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L127" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>seasonality_test</code>(<strong><code>original_ts</code></strong>, <strong><code>ppy</code></strong>)</p>
 </blockquote>
 <p>Seasonality test
 :param original_ts: time series
@@ -255,7 +255,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="acf" class="doc_header"><code>acf</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L142" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>acf</code>(<strong><code>data</code></strong>, <strong><code>k</code></strong>)</p>
+<h4 id="acf" class="doc_header"><code>acf</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L142" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>acf</code>(<strong><code>data</code></strong>, <strong><code>k</code></strong>)</p>
 </blockquote>
 <p>Autocorrelation function
 :param data: time series
@@ -290,7 +290,7 @@ series.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Naive2" class="doc_header"><code>class</code> <code>Naive2</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/naive2/naive2.py#L161" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Naive2</code>(<strong><code>seasonality</code></strong>)</p>
+<h2 id="Naive2" class="doc_header"><code>class</code> <code>Naive2</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/naive2/naive2.py#L161" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Naive2</code>(<strong><code>seasonality</code></strong>)</p>
 </blockquote>
 <p>Naive2 model.
 Popular benchmark model for time series forecasting that automatically adapts
@@ -329,8 +329,8 @@ else the model predicts on the simple Naive.</p>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
-<span class="kn">from</span> <span class="nn">nixtlats.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
 
 <span class="kn">import</span> <span class="nn">pylab</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">pylab</span> <span class="kn">import</span> <span class="n">rcParams</span>
@@ -402,7 +402,7 @@ INFO:nixtla.data.datasets.utils:Successfully downloaded DE.csv, 2095831, bytes.
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span>
 <span class="kn">from</span> <span class="nn">numpy.lib.stride_tricks</span> <span class="kn">import</span> <span class="n">sliding_window_view</span>
-<span class="kn">from</span> <span class="nn">nixtlats.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span>
 
 <span class="k">def</span> <span class="nf">fit_predict_naive2</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">seasonality</span><span class="o">=</span><span class="mi">24</span><span class="p">):</span>
     <span class="n">y_hat_list</span> <span class="o">=</span> <span class="p">[]</span>

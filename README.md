@@ -1,22 +1,22 @@
-# `nixtlats`:Deep Learning for Time Series Forecasting
+# `neuralforecast`:Deep Learning for Time Series Forecasting
 > [nikstla] (noun, nahuatl) Period of time.
 
 
-<img src="https://raw.githubusercontent.com/Nixtla/nixtlats/main/nbs/indx_imgs/nixtla_logo.png">
+<img src="https://raw.githubusercontent.com/Nixtla/nixtlats/master/nbs/indx_imgs/nixtla_logo.png">
 
-[![CI](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/pypi/pyversions/nixtlats)](https://pypi.org/project/nixtlats/)
-[![PyPi](https://img.shields.io/pypi/v/nixtlats?color=blue)](https://pypi.org/project/nixtlats/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/nixtlats/blob/master/LICENSE)
+[![CI](https://github.com/Nixtla/neuralforecast/actions/workflows/ci.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/pypi/pyversions/neuralforecast)](https://pypi.org/project/neuralforecast/)
+[![PyPi](https://img.shields.io/pypi/v/neuralforecast?color=blue)](https://pypi.org/project/neuralforecast/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/neuralforecast/blob/master/LICENSE)
 
 State-of-the-art time series forecasting for pytorch.
 
-Nixtla is a python library for time series forecasting with deep learning. 
+`neuralforecast` is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
 
 
 ## Documentation
-Here is a link to the [documentation](https://nixtla.github.io/nixtlats/).
+Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
 
 ## Installation
@@ -24,23 +24,23 @@ Here is a link to the [documentation](https://nixtla.github.io/nixtlats/).
 ### Stable version
 
 This code is a work in progress, any contributions or issues are welcome on
-GitHub at: https://github.com/Nixtla/nixtlats.
+GitHub at: https://github.com/Nixtla/neuralforecast.
 
-You can install the *released version* of `nixtlats` from the [Python package index](https://pypi.org) with:
+You can install the *released version* of `neuralforecast` from the [Python package index](https://pypi.org) with:
 
 ```python
-pip install nixtlats
+pip install neuralforecast
 ```
 
-(installing inside a python virtualenvironment or a conda environment is recommended).
+(Installing inside a python virtualenvironment or a conda environment is recommended.)
 
 ### Development version in development mode
 
 If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:
 
 ```bash
-git clone https://github.com/Nixtla/nixtlats.git
-cd nixtlats
+git clone https://github.com/Nixtla/neuralforecast.git
+cd neuralforecast
 pip install -e .
 ```
 
@@ -63,16 +63,16 @@ See [CONTRIBUTING.md](https://github.com/Nixtla/nixtlats/blob/master/CONTRIBUTIN
 
 ## How to cite
 
-If you use `Nixtla` in a scientific publication, we encourage you to add
+If you use `neuralforecast` in a scientific publication, we encourage you to add
 the following references to the related papers:
 
 
 ```bibtex
-@article{nixtla_arxiv,
+@article{neuralforecast_arxiv,
   author  = {XXXX},
-  title   = {{nixtlats: Deep Learning for Time Series Forecasting}},
+  title   = {{neuralforecast: Deep Learning for Time Series Forecasting}},
   journal = {arXiv preprint arXiv:XXX.XXX},
-  year    = {2021}
+  year    = {2022}
 }
 ```
 

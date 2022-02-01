@@ -1,4 +1,4 @@
-name: nixtla
+name: neuralforecast
 channels:
   - pytorch
   - conda-forge
@@ -22,3 +22,4 @@ dependencies:
     - torchinfo
     - py7zr
     - gdown
+    - jupyterlab

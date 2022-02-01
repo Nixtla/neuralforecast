@@ -318,8 +318,8 @@ modules = ["data/scalers.py",
            "models/transformer/informer.py",
            "models/transformer/transformer.py"]
 
-doc_url = "https://Nixtla.github.io/nixtlats/"
+doc_url = "https://Nixtla.github.io/neuralforecast/"
 
-git_url = "https://github.com/Nixtla/nixtlats/tree/master/"
+git_url = "https://github.com/Nixtla/neuralforecast/tree/main/"
 
 def custom_doc_links(name): return None
