@@ -113,7 +113,7 @@ class LongHorizon:
         if group not in LongHorizonInfo.groups:
             raise Exception(f'group not found {group}')
 
-        path = f'{directory}/ett/datasets'
+        path = f'{directory}/longhorizon/datasets'
         file_cache = f'{path}/{group}.p'
 
         if os.path.exists(file_cache) and cache:
