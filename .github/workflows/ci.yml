@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v2
-        with:
-          path: nixtlats
 
       - name: Cache conda
         uses: actions/cache@v1
@@ -29,7 +27,7 @@ jobs:
           CACHE_NUMBER: 0
         with:
           path: ~/conda_pkgs_dir
-          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('nixtlats/environment.yml') }}
+          key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('action_files/environment.yml') }}
 
       - name: Set up environment
         uses: conda-incubator/setup-miniconda@v2
@@ -38,22 +36,20 @@ jobs:
           mamba-version: "*"
           channels: pytorch,conda-forge,defaults
           channel-priority: true
-          activate-environment: nixtlats
-          environment-file: nixtlats/environment.yml
+          activate-environment: neuralforecast
+          environment-file: action_files/environment.yml
           use-only-tar-bz2: true
 
       - name: Install nixtlats
         shell: bash -l {0}
-        run: pip install nixtlats/
+        run: pip install .
 
       - name: Read all notebooks
         shell: bash -l {0}
-        working-directory: nixtlats
         run: nbdev_read_nbs
 
       - name: Check if all notebooks are cleaned
         shell: bash -l {0}
-        working-directory: nixtlats
         run: |
           echo "Check we are starting with clean git checkout"
           if [ -n "$(git status -uno -s)" ]; then echo "git status is not clean"; false; fi
@@ -65,13 +61,11 @@ jobs:
 
       - name: Check if there is no diff library/notebooks
         shell: bash -l {0}
-        working-directory: nixtlats
         run: |
           if [ -n "$(nbdev_diff_nbs)" ]; then echo -e "!!! Detected difference between the notebooks and the library"; false; fi
 
       - name: Run tests
         shell: bash -l {0}
-        working-directory: nixtlats
         run: |
           nbdev_test_nbs --fname "nbs/data_datasets__*"
           nbdev_test_nbs --timing
