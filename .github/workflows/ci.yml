@@ -92,7 +92,7 @@ jobs:
         run: pip install .
 
       - name: Run coverage
-	shell: bash -l {0}
+        shell: bash -l {0}
         run: pytest action_files/test_nbs.py --cov=neuralforecast --cov-report xml
 
       - name: Upload coverage
