@@ -10,6 +10,7 @@ dependencies:
   - pandas
   - pip
   - pytorch
+  - cpuonly
   - requests
   - statsmodels
   - scikit-learn
@@ -22,4 +23,3 @@ dependencies:
     - torchinfo
     - py7zr
     - gdown
-    - jupyterlab
