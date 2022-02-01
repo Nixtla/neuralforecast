@@ -54,7 +54,7 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="IdentityBasis" class="doc_header"><code>class</code> <code>IdentityBasis</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L50" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>IdentityBasis</code>(<strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>, <strong><code>interpolation_mode</code></strong>:<code>str</code>) :: <code>Module</code></p>
+<h2 id="IdentityBasis" class="doc_header"><code>class</code> <code>IdentityBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L50" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>IdentityBasis</code>(<strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>, <strong><code>interpolation_mode</code></strong>:<code>str</code>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -109,7 +109,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisInterpretable" class="doc_header"><code>class</code> <code>ExogenousBasisInterpretable</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L84" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisInterpretable</code>() :: <code>Module</code></p>
+<h2 id="ExogenousBasisInterpretable" class="doc_header"><code>class</code> <code>ExogenousBasisInterpretable</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L84" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisInterpretable</code>() :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -157,7 +157,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisWavenet" class="doc_header"><code>class</code> <code>ExogenousBasisWavenet</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L97" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisWavenet</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>3</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
+<h2 id="ExogenousBasisWavenet" class="doc_header"><code>class</code> <code>ExogenousBasisWavenet</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L97" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisWavenet</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>3</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -205,7 +205,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisTCN" class="doc_header"><code>class</code> <code>ExogenousBasisTCN</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L143" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisTCN</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>2</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
+<h2 id="ExogenousBasisTCN" class="doc_header"><code>class</code> <code>ExogenousBasisTCN</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L143" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisTCN</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>2</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -260,7 +260,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="init_weights" class="doc_header"><code>init_weights</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L169" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>init_weights</code>(<strong><code>module</code></strong>, <strong><code>initialization</code></strong>)</p>
+<h4 id="init_weights" class="doc_header"><code>init_weights</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L169" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>init_weights</code>(<strong><code>module</code></strong>, <strong><code>initialization</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -355,7 +355,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/nhits/nhits.py#L490" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_theta_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>pooling_mode</code></strong>, <strong><code>interpolation_mode</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>, <strong><code>seasonality</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L490" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_theta_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>pooling_mode</code></strong>, <strong><code>interpolation_mode</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>, <strong><code>seasonality</code></strong>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
 
@@ -398,8 +398,8 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">multiprocessing</span>
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">nixtlats.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="c1">#, EPFInfo</span>
-<span class="kn">from</span> <span class="nn">nixtlats.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="c1">#, EPFInfo</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
 
 <span class="kn">import</span> <span class="nn">pylab</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">pylab</span> <span class="kn">import</span> <span class="n">rcParams</span>
@@ -597,7 +597,7 @@ dtype: object
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
 
 <span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">scaler_y</span> <span class="o">=</span> <span class="n">create_datasets</span><span class="p">(</span><span class="n">mc</span><span class="o">=</span><span class="n">mc</span><span class="p">,</span>
                                                                      <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>

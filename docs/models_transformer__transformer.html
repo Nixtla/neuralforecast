@@ -60,7 +60,7 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Transformer" class="doc_header"><code>class</code> <code>Transformer</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/models/transformer/transformer.py#L89" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Transformer</code>(<strong><code>seq_len</code></strong>, <strong><code>label_len</code></strong>, <strong><code>pred_len</code></strong>, <strong><code>output_attention</code></strong>, <strong><code>enc_in</code></strong>, <strong><code>dec_in</code></strong>, <strong><code>d_model</code></strong>, <strong><code>c_out</code></strong>, <strong><code>embed</code></strong>, <strong><code>freq</code></strong>, <strong><code>dropout</code></strong>, <strong><code>factor</code></strong>, <strong><code>n_heads</code></strong>, <strong><code>d_ff</code></strong>, <strong><code>activation</code></strong>, <strong><code>e_layers</code></strong>, <strong><code>d_layers</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="Transformer" class="doc_header"><code>class</code> <code>Transformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/transformer.py#L89" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Transformer</code>(<strong><code>seq_len</code></strong>, <strong><code>label_len</code></strong>, <strong><code>pred_len</code></strong>, <strong><code>output_attention</code></strong>, <strong><code>enc_in</code></strong>, <strong><code>dec_in</code></strong>, <strong><code>d_model</code></strong>, <strong><code>c_out</code></strong>, <strong><code>embed</code></strong>, <strong><code>freq</code></strong>, <strong><code>dropout</code></strong>, <strong><code>factor</code></strong>, <strong><code>n_heads</code></strong>, <strong><code>d_ff</code></strong>, <strong><code>activation</code></strong>, <strong><code>e_layers</code></strong>, <strong><code>d_layers</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
 
@@ -100,7 +100,7 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.datasets.long_horizon</span> <span class="kn">import</span> <span class="n">LongHorizon</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.long_horizon</span> <span class="kn">import</span> <span class="n">LongHorizon</span>
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">LongHorizon</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;ETTm2&#39;</span><span class="p">)</span>
 <span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -413,7 +413,7 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nixtlats.data.tsdataset</span> <span class="kn">import</span> <span class="n">IterateWindowsDataset</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.tsdataset</span> <span class="kn">import</span> <span class="n">IterateWindowsDataset</span>
 </pre></div>
 
     </div>
@@ -431,7 +431,7 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
-<span class="kn">from</span> <span class="nn">nixtlats.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
 
 <span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">scaler_y</span> <span class="o">=</span> <span class="n">create_datasets</span><span class="p">(</span><span class="n">mc</span><span class="o">=</span><span class="n">mc_data</span><span class="p">,</span>
                                                                      <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
