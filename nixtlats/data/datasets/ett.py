@@ -17,13 +17,13 @@ from .utils import download_file, Info
 class ETTh1:
     freq: str = 'H'
     name: str = 'ETTh1'
-    n_ts: int = 7
+    n_ts: int = 1
 
 @dataclass
 class ETTh2:
     freq: str = 'H'
     name: str = 'ETTh2'
-    n_ts: int = 7
+    n_ts: int = 1
 
 @dataclass
 class ETTm1:
@@ -79,7 +79,7 @@ class ETT:
             return df, X_df, S_df
 
         ETT.download(directory)
-        path = f'{directory}/ett/datasets'
+        path = f'{directory}/longhorizon/datasets'
 
         kind = 'M' if group not in ['ETTh1', 'ETTh2'] else 'S'
         y_df = pd.read_csv(f'{path}/{group}/{kind}/df_y.csv')
@@ -97,6 +97,6 @@ class ETT:
     @staticmethod
     def download(directory: str) -> None:
         """Download ETT Dataset."""
-        path = f'{directory}/ett/datasets/'
+        path = f'{directory}/longhorizon/datasets/'
         if not os.path.exists(path):
              download_file(path, ETT.source_url, decompress=True)
