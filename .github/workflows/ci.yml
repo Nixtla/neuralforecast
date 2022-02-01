@@ -40,7 +40,7 @@ jobs:
           environment-file: action_files/environment.yml
           use-only-tar-bz2: true
 
-      - name: Install nixtlats
+      - name: Install library
         shell: bash -l {0}
         run: pip install .
 
