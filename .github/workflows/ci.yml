@@ -21,6 +21,8 @@ jobs:
 
       - name: Clone repo
         uses: actions/checkout@v2
+        with:
+          path: nixtlats
 
       - name: Cache conda
         uses: actions/cache@v1
