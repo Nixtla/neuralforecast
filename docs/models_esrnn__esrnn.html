@@ -369,12 +369,10 @@ nb_path: "nbs/models_esrnn__esrnn.ipynb"
                                   <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
-                                <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
                                 <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">valid_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">valid_dataset</span><span class="p">,</span>
-                                <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                 <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
