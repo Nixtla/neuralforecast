@@ -40,24 +40,6 @@ nb_path: "nbs/losses__numpy.ipynb"
     
 <div class="cell border-box-sizing code_cell rendered">
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="divide_no_nan" class="doc_header"><code>divide_no_nan</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L13" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>divide_no_nan</code>(<strong><code>a</code></strong>, <strong><code>b</code></strong>)</p>
-</blockquote>
-<p>Auxiliary funtion to handle divide by 0</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -68,6 +50,12 @@ nb_path: "nbs/losses__numpy.ipynb"
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Absolute-Percentage-Error">Mean Absolute Percentage Error<a class="anchor-link" href="#Mean-Absolute-Percentage-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -79,45 +67,17 @@ nb_path: "nbs/losses__numpy.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="metric_protections" class="doc_header"><code>metric_protections</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L23" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>metric_protections</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>ndarray</code>)</p>
+<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L27" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L28" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
-</blockquote>
-<p>Calculates Mean Absolute Percentage Error.</p>
-<p>MAPE measures the relative prediction accuracy of a
+<p>Calculates Mean Absolute Percentage Error (MAPE)
+that measures the relative prediction accuracy of a
 forecasting method by calculating the percentual deviation
 of the prediction and the true value at a given time and
 averages these devations over the length of the series.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -128,9 +88,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mape: numpy array or double
-    Return the mape along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+mape: numpy array or double
+    Return the mape along the specified axis.</code></pre>
 
 </div>
 
@@ -149,6 +112,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Squared-Error">Mean Squared Error<a class="anchor-link" href="#Mean-Squared-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -160,14 +129,17 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L69" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L69" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Mean Squared Error.</p>
-<p>MSE measures the prediction accuracy of a
+<p>Calculates Mean Squared Error (MSE)
+that measures the prediction accuracy of a
 forecasting method by calculating the squared deviation
 of the prediction and the true value at a given time and
 averages these devations over the length of the series.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -178,9 +150,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mse: numpy array or double
-    Return the mse along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+mse: numpy array or double
+    Return the mse along the specified axis.</code></pre>
 
 </div>
 
@@ -199,6 +174,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Root-Mean-Squared-Error">Root Mean Squared Error<a class="anchor-link" href="#Root-Mean-Squared-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -210,17 +191,20 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L112" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L113" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Root Mean Squared Error.</p>
-<p>RMSE measures the prediction accuracy of a
+<p>Calculates Root Mean Squared Error (RMSE)
+that measures the prediction accuracy of a
 forecasting method by calculating the squared deviation
 of the prediction and the true value at a given time and
 averages these devations over the length of the series.
 Finally the RMSE will be in the same scale
 as the original time series so its comparison with other
 series is possible only if they share a common scale.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -231,9 +215,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>rmse: numpy array or double
-    Return the rmse along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+rmse: numpy array or double
+    Return the rmse along the specified axis.</code></pre>
 
 </div>
 
@@ -252,6 +239,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Symmetric-Mean-Absolute-Percentage-Error">Symmetric Mean Absolute Percentage Error<a class="anchor-link" href="#Symmetric-Mean-Absolute-Percentage-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -263,10 +256,10 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L149" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L151" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Symmetric Mean Absolute Percentage Error.</p>
-<p>SMAPE measures the relative prediction accuracy of a
+<p>Calculates Symmetric Mean Absolute Percentage Error (SMAPE)
+that measures the relative prediction accuracy of a
 forecasting method by calculating the relative deviation
 of the prediction and the true value scaled by the sum of the
 absolute values for the prediction and true value at a
@@ -274,7 +267,10 @@ given time, then averages these devations over the length
 of the series. This allows the SMAPE to have bounds between
 0% and 200% which is desireble compared to normal MAPE that
 may be undetermined.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -285,9 +281,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>smape: numpy array or double
-    Return the smape along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+smape: numpy array or double
+    Return the smape along the specified axis.</code></pre>
 
 </div>
 
@@ -306,6 +305,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Absolute-Scaled-Error">Mean Absolute Scaled Error<a class="anchor-link" href="#Mean-Absolute-Scaled-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -317,14 +322,17 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L198" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L201" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the Mean Absolute Scaled Error.</p>
-<p>MASE measures the relative prediction accuracy of a
+<p>Calculates the Mean Absolute Scaled Error (MASE)
+that measures the relative prediction accuracy of a
 forecasting method by comparinng the mean absolute errors
 of the prediction and the true value against the mean
 absolute errors of the seasonal naive model.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -341,10 +349,16 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mase: numpy array or double
-    Return the mase along the specified axis.</p>
-<h2 id="References">References<a class="anchor-link" href="#References"> </a></h2><p>[1] <a href="https://robjhyndman.com/papers/mase.pdf">https://robjhyndman.com/papers/mase.pdf</a></p>
+    from the last to the first axis.
+
+Returns
+-------
+mase: numpy array or double
+    Return the mase along the specified axis.
+
+References
+----------
+[1] https://robjhyndman.com/papers/mase.pdf</code></pre>
 
 </div>
 
@@ -363,6 +377,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Absolute-Error">Mean Absolute Error<a class="anchor-link" href="#Mean-Absolute-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -374,11 +394,13 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mae" class="doc_header"><code>mae</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L251" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mae" class="doc_header"><code>mae</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L255" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Mean Absolute Error.</p>
-<p>The mean absolute error</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+<p>Calculates Mean Absolute Error (MAE).</p>
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
@@ -389,9 +411,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mae: numpy array or double
-    Return the mae along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+mae: numpy array or double
+    Return the mae along the specified axis.</code></pre>
 
 </div>
 
@@ -410,6 +435,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Quantile-Loss">Quantile Loss<a class="anchor-link" href="#Quantile-Loss"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -421,29 +452,35 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="pinball_loss" class="doc_header"><code>pinball_loss</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L291" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>pinball_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="quantile_loss" class="doc_header"><code>quantile_loss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L295" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>quantile_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>q</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the Pinball Loss.</p>
-<p>The Pinball loss measures the deviation of a quantile forecast.
+<p>Calculates the Quantile Loss/Pinball Loss (QL)
+that measures the deviation of a quantile forecast.
 By weighting the absolute deviation in a non symmetric way, the
 loss pays more attention to under or over estimation.
 A common value for tau is 0.5 for the deviation from the median.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array
     Predicted values.
 weights: numpy array
     Weights for weighted average.
-tau: float
+q: float
     Fixes the quantile against which the predictions are compared.
 axis: None or int, optional
     Axis or axes along which to average a.
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>pinball loss: numpy array or double
-    Return the pinball loss along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+quantile_loss: numpy array or double
+    Return the quantile loss along the specified axis.</code></pre>
 
 </div>
 
@@ -462,6 +499,12 @@ axis: None or int, optional
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Relative-Mean-Absolute-Error">Relative Mean Absolute Error<a class="anchor-link" href="#Relative-Mean-Absolute-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -473,13 +516,16 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L338" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L343" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Relative Mean Absolute Error.</p>
-<p>The relative mean absolute error of two forecasts.
+<p>Calculates Relative Mean Absolute Error (rMAE).
+The relative mean absolute error of two forecasts.
 A number smaller than one implies that the forecast in the
 numerator is better than the forecast in the denominator.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat1: numpy array
     Predicted values of first model.
@@ -492,9 +538,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>rmae: numpy array or double
-    Return the rmae along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+rmae: numpy array or double
+    Return the rmae along the specified axis.</code></pre>
 
 </div>
 
@@ -515,8 +564,7 @@ axis: None or int, optional
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Multi-quantile-NumPy-loss">Multi-quantile NumPy loss<a class="anchor-link" href="#Multi-quantile-NumPy-loss"> </a></h2><p>MQLoss definition and testing.</p>
-
+<h2 id="Multi-Quantile-Loss">Multi-Quantile Loss<a class="anchor-link" href="#Multi-Quantile-Loss"> </a></h2>
 </div>
 </div>
 </div>
@@ -531,13 +579,16 @@ axis: None or int, optional
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Nixtla/nixtlats/tree/master/nixtlats/losses/numpy.py#L377" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L383" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the MultiQuantile loss.</p>
-<p>Calculates Average Multi-quantile Loss function, for
+<p>Calculates the Multi-Quantile loss (MQL).
+Calculates Average Multi-quantile Loss, for
 a given set of quantiles, based on the absolute
 difference between predicted and true values.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: numpy array
+
+<pre><code>Parameters
+----------
+y: numpy array
     Actual test values.
 y_hat: numpy array (-1, n_quantiles)
     Predicted values.
@@ -550,9 +601,12 @@ axis: None or int, optional
     The default, axis=None, will average over all of the
     elements of the input array.
     If axis is negative it counts
-    from the last to the first axis.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mqloss: numpy array or double
-    Return the mqloss along the specified axis.</p>
+    from the last to the first axis.
+
+Returns
+-------
+mqloss: numpy array or double
+    Return the mqloss along the specified axis.</code></pre>
 
 </div>
 
@@ -567,205 +621,6 @@ axis: None or int, optional
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">7</span><span class="p">))</span>
-<span class="n">y_q</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-<span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">y_q</span><span class="p">)</span>
-<span class="n">quantiles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
-
-<span class="n">mqloss</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_q</span><span class="p">,</span> <span class="n">quantiles</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>array([0.21041164, 0.15391882, 0.09449471, 0.18244145, 0.16071395,
-       0.13142336, 0.20231349, 0.19795971, 0.15299534, 0.16744432,
-       0.13345362, 0.16700624, 0.10257573, 0.16436093, 0.16341954,
-       0.15676824, 0.20708862, 0.15711264, 0.21645739, 0.17206218,
-       0.23661543, 0.16738924, 0.1577535 , 0.16585761, 0.16793635,
-       0.15740434, 0.13467679, 0.21414516, 0.14007157, 0.27435823,
-       0.20451858, 0.11715621, 0.12763097, 0.2100278 , 0.10294569,
-       0.16492288, 0.11550836, 0.19200599, 0.12251248, 0.17777111,
-       0.20632066, 0.25534812, 0.22850697, 0.2117134 , 0.20114755,
-       0.22731604, 0.15800838, 0.17286858, 0.14366458, 0.14034129,
-       0.20393408, 0.13572314, 0.24699116, 0.17890431, 0.11960552,
-       0.11549357, 0.13940521, 0.13799181, 0.21941735, 0.10874776,
-       0.16519921, 0.12306689, 0.1858083 , 0.11227548, 0.14478089,
-       0.23283138, 0.16608539, 0.2198971 , 0.23463294, 0.22970342,
-       0.16031605, 0.16675414, 0.17982392, 0.13855352, 0.22509618,
-       0.18950097, 0.2207443 , 0.15073855, 0.19502465, 0.16299692,
-       0.11750915, 0.17005201, 0.17436329, 0.17390164, 0.14895287,
-       0.14644051, 0.10446581, 0.13071105, 0.13252147, 0.10070003,
-       0.1649476 , 0.28120334, 0.13300598, 0.19693479, 0.16165529,
-       0.184198  , 0.19409348, 0.14772852, 0.11654125, 0.16790548])</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">mqloss</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_q</span><span class="p">,</span> <span class="n">quantiles</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>0.16948741448706903</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Checks-for-NumPy-Evaluation-Metrics">Checks for NumPy Evaluation Metrics<a class="anchor-link" href="#Checks-for-NumPy-Evaluation-Metrics"> </a></h1>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">])</span>
-<span class="n">y_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">y_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span><span class="o">-</span><span class="mi">7</span><span class="p">,</span><span class="o">-</span><span class="mi">8</span><span class="p">,</span><span class="o">-</span><span class="mi">9</span><span class="p">,</span><span class="o">-</span><span class="mi">10</span><span class="p">])</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">mae</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">y_mask</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">mae</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">))</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>5.3
-4.777777777777778
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">mae</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">y_mask</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">mae</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">))</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>5.3
-4.777777777777778
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>10</pre>
-</div>
-
-</div>
-
-</div>
-</div>
 
 </div>
     {% endraw %}
