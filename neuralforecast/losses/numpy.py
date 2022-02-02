@@ -8,6 +8,8 @@ from typing import Optional, Union
 
 import numpy as np
 
+from IPython.display import Image
+
 # Cell
 def _divide_no_nan(a, b):
     """
@@ -126,18 +128,12 @@ def rmse(y: np.ndarray, y_hat: np.ndarray,
 
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array
-            Predicted values.
-        weights: numpy array
-            Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat: numpy array. Predicted values.
+        weights: numpy array. Weights for weighted average.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -165,18 +161,12 @@ def smape(y: np.ndarray, y_hat: np.ndarray,
 
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array
-            Predicted values.
-        weights: numpy array
-            Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat: numpy array. Predicted values.
+        weights: numpy array. Weights for weighted average.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -213,24 +203,18 @@ def mase(y: np.ndarray, y_hat: np.ndarray,
 
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array
-            Predicted values.
-        y_train: numpy array
-            Actual insample values for Seasonal Naive predictions.
+        y: numpy array. Observed values.
+        y_hat: numpy array. Predicted values.
+        y_train: numpy array. Actual insample Seasonal Naive predictions.
         seasonality: int
             Main frequency of the time series
             Hourly 24,  Daily 7, Weekly 52,
             Monthly 12, Quarterly 4, Yearly 1.
         weights: numpy array
             Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -259,20 +243,16 @@ def mae(y: np.ndarray, y_hat: np.ndarray,
 
     Calculates Mean Absolute Error (MAE).
 
+    $$ \mathrm{MAE}(\hat{y}_{τ}, y_{τ}) = |\hat{y}_{τ} - y_{τ}| $$
+
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array
-            Predicted values.
-        weights: numpy array
-            Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat: numpy array. Predicted values.
+        weights: numpy array. Weights for weighted average.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -303,22 +283,18 @@ def quantile_loss(y: np.ndarray, y_hat: np.ndarray, q: float = 0.5,
     loss pays more attention to under or over estimation.
     A common value for tau is 0.5 for the deviation from the median.
 
+    $$ \mathrm{QL}(y_{τ}, \hat{y}^{(q)}_{τ}) =
+    \Big( (1-q)\,( \hat{y}^{(q)}_{τ} - y_{τ} )_{+} + q\,( y_{τ} - \hat{y}^{(q)}_{τ} )_{+} \Big)$$
+
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array
-            Predicted values.
-        weights: numpy array
-            Weights for weighted average.
-        q: float
-            Fixes the quantile against which the predictions are compared.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat: numpy array. Predicted values.
+        weights: numpy array. Weights for weighted average.
+        q: float. Fixes the quantile for the predictions' comparison.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -353,20 +329,13 @@ def rmae(y: np.ndarray,
 
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat1: numpy array
-            Predicted values of first model.
-        y_hat2: numpy array
-            Predicted values of second model.
-        weights: numpy array
-            Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat1: numpy array. Predicted values of first model.
+        y_hat2: numpy array. Predicted values of baseline model.
+        weights: numpy array. Weights for weighted average.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
@@ -391,22 +360,18 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     a given set of quantiles, based on the absolute
     difference between predicted and true values.
 
+    $$ \mathrm{MQL}(y_{τ}, [\hat{y}^{(q_{1})}_{τ}, ... ,\hat{y}^{(q_{n})}_{τ}]) =
+       1/n Σ_{q_{i}} \mathrm{QL}(y_{τ}, \hat{y}^{(q_{i})}_{τ}) $$
+
         Parameters
         ----------
-        y: numpy array
-            Actual test values.
-        y_hat: numpy array (-1, n_quantiles)
-            Predicted values.
-        quantiles: numpy array (n_quantiles)
-            Quantiles to estimate from the distribution of y.
-        weights: numpy array
-            Weights for weighted average.
-        axis: None or int, optional
-            Axis or axes along which to average a.
-            The default, axis=None, will average over all of the
-            elements of the input array.
-            If axis is negative it counts
-            from the last to the first axis.
+        y: numpy array. Observed values.
+        y_hat: numpy array (-1, n_quantiles). Predicted values.
+        quantiles: numpy array (n_quantiles). Quantiles to compare against.
+        weights: numpy array. Weights for weighted average.
+        axis: None or int, optional. Axis or axes along which to average a.
+            The default, axis=None, will average over all of the elements of
+            the input array. If axis is negative it counts from the last to first.
 
         Returns
         -------
