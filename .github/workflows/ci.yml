@@ -89,7 +89,7 @@ jobs:
 
       - name: Install library
         shell: bash -l {0}
-        run: pip install .
+        run: pip install -e .
 
       - name: Run coverage
         shell: bash -l {0}
