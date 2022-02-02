@@ -2,9 +2,10 @@
 > [nikstla] (noun, nahuatl) Period of time.
 
 
-<img src="https://raw.githubusercontent.com/Nixtla/nixtlats/master/nbs/indx_imgs/nixtla_logo.png">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/nixtla_logo.png">
 
 [![CI](https://github.com/Nixtla/neuralforecast/actions/workflows/ci.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1)](https://codecov.io/gh/Nixtla/neuralforecast)
 [![Python](https://img.shields.io/pypi/pyversions/neuralforecast)](https://pypi.org/project/neuralforecast/)
 [![PyPi](https://img.shields.io/pypi/v/neuralforecast?color=blue)](https://pypi.org/project/neuralforecast/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/neuralforecast/blob/master/LICENSE)

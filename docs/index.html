@@ -1,6 +1,6 @@
 ---
 
-title: `neuralforecast`:Deep Learning for Time Series Forecasting
+title: `NeuralForecast`:  Deep Learning for Time Series Forecasting
 
 
 keywords: fastai
@@ -31,7 +31,7 @@ nb_path: "nbs/index.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><img src="https://raw.githubusercontent.com/Nixtla/nixtlats/master/nbs/indx_imgs/nixtla_logo.png"></p>
+<p><img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/nixtla_logo.png"></p>
 
 </div>
 </div>
@@ -39,6 +39,7 @@ nb_path: "nbs/index.ipynb"
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a href="https://github.com/Nixtla/nixtlats/actions/workflows/ci.yml"><img src="https://github.com/Nixtla/neuralforecast/actions/workflows/ci.yml/badge.svg?" alt="CI"></a>
+<a href="https://codecov.io/gh/Nixtla/neuralforecast"><img src="https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1" alt="codecov"></a>
 <a href="https://pypi.org/project/neuralforecast/"><img src="https://img.shields.io/pypi/pyversions/neuralforecast" alt="Python"></a>
 <a href="https://pypi.org/project/neuralforecast/"><img src="https://img.shields.io/pypi/v/neuralforecast?color=blue" alt="PyPi"></a>
 <a href="https://github.com/Nixtla/neuralforecast/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"></a></p>
@@ -49,7 +50,7 @@ nb_path: "nbs/index.ipynb"
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>State-of-the-art time series forecasting for pytorch.</p>
-<p><code>neuralforecast</code> is a python library for time series forecasting with deep learning. 
+<p><code>NeuralForecast</code> is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.</p>
 
 </div>
@@ -66,7 +67,7 @@ It provides dataset loading utilities, evaluation functions and pytorch implemen
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Installation">Installation<a class="anchor-link" href="#Installation"> </a></h2><h3 id="Stable-version">Stable version<a class="anchor-link" href="#Stable-version"> </a></h3><p>This code is a work in progress, any contributions or issues are welcome on
 GitHub at: <a href="https://github.com/Nixtla/neuralforecast">https://github.com/Nixtla/neuralforecast</a>.</p>
-<p>You can install the <em>released version</em> of <code>neuralforecast</code> from the <a href="https://pypi.org">Python package index</a> with:</p>
+<p>You can install the <em>released version</em> of <code>NeuralForecast</code> from the <a href="https://pypi.org">Python package index</a> with:</p>
 <div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">neuralforecast</span>
 </pre></div>
 <p>(Installing inside a python virtualenvironment or a conda environment is recommended.)</p>
@@ -109,14 +110,14 @@ pip install -e .
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="How-to-cite">How to cite<a class="anchor-link" href="#How-to-cite"> </a></h2><p>If you use <code>neuralforecast</code> in a scientific publication, we encourage you to add
+<h2 id="How-to-cite">How to cite<a class="anchor-link" href="#How-to-cite"> </a></h2><p>If you use <code>NeuralForecast</code> in a scientific publication, we encourage you to add
 the following references to the related papers:</p>
-<div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">neuralforecast_arxiv</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="na">author</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{XXXX}</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="na">title</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{{neuralforecast: Deep Learning for Time Series Forecasting}}</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="na">journal</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{arXiv preprint arXiv:XXX.XXX}</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="na">year</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{2022}</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">neuralforecast_arxiv</span><span class="p">,</span>
+  <span class="na">author</span>  <span class="p">=</span> <span class="s">{XXXX}</span><span class="p">,</span>
+  <span class="na">title</span>   <span class="p">=</span> <span class="s">{{NeuralForecast: Deep Learning for Time Series Forecasting}}</span><span class="p">,</span>
+  <span class="na">journal</span> <span class="p">=</span> <span class="s">{arXiv preprint arXiv:XXX.XXX}</span><span class="p">,</span>
+  <span class="na">year</span>    <span class="p">=</span> <span class="s">{2022}</span>
+<span class="p">}</span>
 </pre></div>
 
 </div>
