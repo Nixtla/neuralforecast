@@ -17,6 +17,10 @@ from ..components.tcn import _TemporalConvNet
 from ..components.common import Chomp1d, RepeatVector
 from ...losses.utils import LossFunction
 
+from ...data.tsdataset import WindowsDataset
+from ...data.tsloader import TimeSeriesLoader
+import pytorch_lightning as pl
+
 # Cell
 class _StaticFeaturesEncoder(nn.Module):
     def __init__(self, in_features, out_features):
@@ -703,10 +707,47 @@ class NBEATS(pl.LightningModule):
 
         return loss
 
+    def forecast(self, Y_df, X_df, S_df, batch_size=1):
+
+        # Add forecast dates to Y_df
+        Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+
+        forecast_dates = pd.date_range(Y_df['ds'].max(), periods=self.n_time_out+1, freq=self.frequency)[1:]
+        index = pd.MultiIndex.from_product([Y_df['unique_id'].unique(), forecast_dates], names=['unique_id', 'ds'])
+        forecast_df = pd.DataFrame({'y':[0]}, index=index).reset_index()
+
+        Y_df = Y_df.append(forecast_df).sort_values(['unique_id','ds']).reset_index(drop=True)
+
+        # Dataset, loader and trainer
+        dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                 mask_df=None, f_cols=[],
+                                 input_size=self.n_time_in,
+                                 output_size=self.n_time_out,
+                                 sample_freq=1,
+                                 complete_windows=True,
+                                 ds_in_test=self.n_time_out,
+                                 is_test=True,
+                                 verbose=True)
+
+        loader = TimeSeriesLoader(dataset=dataset,
+                                  batch_size=batch_size,
+                                  shuffle=False)
+
+        trainer = pl.Trainer()
+
+        # Forecast
+        outputs = trainer.predict(self, loader)
+
+        # Process forecast and include in forecast_df
+        _, forecast, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+        forecast_df['y'] = forecast.flatten()
+
+        return forecast_df
+
     def on_fit_start(self):
         t.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
-        random.seed(self.random_seed) #TODO: interaccion rara con window_sampling de validacion
+        random.seed(self.random_seed)
 
     def forward(self, batch):
         S = batch['S']
