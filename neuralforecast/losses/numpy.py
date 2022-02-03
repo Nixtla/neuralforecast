@@ -34,6 +34,7 @@ def mape(y: np.ndarray, y_hat: np.ndarray,
     forecasting method by calculating the percentual deviation
     of the prediction and the observed value at a given time and
     averages these devations over the length of the series.
+    MAPE loss penalizes more the errors the closer to zero the observed value is.
 
     $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
         \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
@@ -165,9 +166,9 @@ def smape(y: np.ndarray, y_hat: np.ndarray,
     given time, then averages these devations over the length
     of the series. This allows the SMAPE to have bounds between
     0% and 200% which is desireble compared to normal MAPE that
-    may be undetermined.
+    may be undetermined when the target is zero.
 
-    $$ \mathrm{sMAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+    $$ \mathrm{sMAPE}_{2}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
        \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
        \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
 
