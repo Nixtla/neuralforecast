@@ -9,7 +9,7 @@
 [![codecov](https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1)](https://codecov.io/gh/Nixtla/neuralforecast)
 [![Python](https://img.shields.io/pypi/pyversions/neuralforecast)](https://pypi.org/project/neuralforecast/)
 [![PyPi](https://img.shields.io/pypi/v/neuralforecast?color=blue)](https://pypi.org/project/neuralforecast/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/neuralforecast/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
 
 State-of-the-art time series forecasting for pytorch.
 
@@ -57,11 +57,11 @@ pip install -e .
 
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/nixtlats/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE) file for details.
 
 ## How to contribute
 
-See [CONTRIBUTING.md](https://github.com/Nixtla/nixtlats/blob/master/CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md).
 
 ## How to cite
 
