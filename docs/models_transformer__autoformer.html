@@ -330,18 +330,6 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 </div>
 </div>
 </div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<ul>
-<li>s_begin = index</li>
-<li>s_end = index + self.seq_len</li>
-<li>r_begin = index + self.seq_len - self.label_len</li>
-<li>r_end = index + self.seq_len + self.pred_len</li>
-</ul>
-
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -383,10 +371,10 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;iterate_windows&#39;</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;seq_len&#39;</span><span class="p">]</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;pred_len&#39;</span><span class="p">]</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
 
@@ -415,24 +403,9 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.tsdataset</span> <span class="kn">import</span> <span class="n">IterateWindowsDataset</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
 <span class="kn">from</span> <span class="nn">neuralforecast.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+
 
 <span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">scaler_y</span> <span class="o">=</span> <span class="n">create_datasets</span><span class="p">(</span><span class="n">mc</span><span class="o">=</span><span class="n">mc_data</span><span class="p">,</span>
                                                                      <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
@@ -447,11 +420,11 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
                           <span class="n">drop_last</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">val_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">val_dataset</span><span class="p">,</span>
-                        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="c1"># int(mc_data[&#39;batch_size&#39;])</span>
+                        <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
                         <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
-                         <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="c1"># int(mc_data[&#39;batch_size&#39;])</span>
+                         <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
                          <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
@@ -490,7 +463,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=60.0, 	241920 time stamps 
 Outsample percentage=40.0, 	161280 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
@@ -517,7 +490,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=20.0, 	80640 time stamps 
 Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
@@ -544,7 +517,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=20.0, 	80640 time stamps 
 Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 </pre>
 </div>
@@ -586,23 +559,23 @@ Outsample percentage=80.0, 	322560 time stamps
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">pytorch_lightning.callbacks</span> <span class="kn">import</span> <span class="n">EarlyStopping</span>
-
-<span class="n">early_stopping</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_loss&#39;</span><span class="p">,</span> 
-                               <span class="n">min_delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> 
-                               <span class="n">patience</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">],</span>
-                               <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                               <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">early_stopping</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">EarlyStopping</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_loss&#39;</span><span class="p">,</span> 
+                                            <span class="n">min_delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> 
+                                            <span class="n">patience</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">],</span>
+                                            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
 
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">],</span> 
                      <span class="n">max_steps</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">],</span>
                      <span class="n">gradient_clip_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
                      <span class="n">progress_bar_refresh_rate</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
                      <span class="n">check_val_every_n_epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                     <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">early_stopping</span><span class="p">]</span>
-                     <span class="p">)</span>
+                     <span class="n">num_sanity_val_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">val_check_interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">limit_val_batches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">early_stopping</span><span class="p">])</span>
 
-<span class="c1">#trainer.fit(model, train_loader, val_loader)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -618,6 +591,15 @@ Outsample percentage=80.0, 	322560 time stamps
 <pre>GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
+
+  | Name  | Type        | Params
+--------------------------------------
+0 | model | _Autoformer | 10.5 M
+--------------------------------------
+10.5 M    Trainable params
+0         Non-trainable params
+10.5 M    Total params
+42.144    Total estimated model params size (MB)
 </pre>
 </div>
 </div>
