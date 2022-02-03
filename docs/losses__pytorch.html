@@ -461,6 +461,7 @@ quantile_loss:
 <h2 id="ES-RNN-PyTorch-Loss">ES-RNN PyTorch Loss<a class="anchor-link" href="#ES-RNN-PyTorch-Loss"> </a></h2><p>The M4 competition winner, the exponential smoothing recurrent neural network
 combines the Holt-Winter method for the seasonal and levels 
 with a dilated Recurrent neural network</p>
+$$
 \begin{align}
     \text{Level:}            &amp; \quad l_{\tau} = \text{median}(y_{\tau})\\
     \text{Residual:}         &amp; \quad z_{\tau} = y_{\tau} - l_{\tau} \\
@@ -468,6 +469,7 @@ with a dilated Recurrent neural network</p>
     \text{Level Forecast:}   &amp; \quad \hat{l}_{\tau} = \text{Naive}(l_{\tau})\\
     \text{Forecast:}         &amp; \quad \hat{y}_{\tau+H} = \hat{l}_{\tau+H} + \hat{z}_{\tau+h} 
 \end{align}
+$$
 </div>
 </div>
 </div>

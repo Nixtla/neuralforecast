@@ -8,8 +8,6 @@ from typing import Optional, Union
 
 import numpy as np
 
-from IPython.display import Image
-
 # Cell
 def _divide_no_nan(a, b):
     """
@@ -34,8 +32,12 @@ def mape(y: np.ndarray, y_hat: np.ndarray,
     Calculates Mean Absolute Percentage Error (MAPE)
     that measures the relative prediction accuracy of a
     forecasting method by calculating the percentual deviation
-    of the prediction and the true value at a given time and
+    of the prediction and the observed value at a given time and
     averages these devations over the length of the series.
+
+    $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+        \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
+        \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
 
         Parameters
         ----------
@@ -74,10 +76,13 @@ def mse(y: np.ndarray, y_hat: np.ndarray,
     """
 
     Calculates Mean Squared Error (MSE)
-    that measures the prediction accuracy of a
-    forecasting method by calculating the squared deviation
-    of the prediction and the true value at a given time and
-    averages these devations over the length of the series.
+    that measures the accuracy of a model's predictions
+    by calculating the squared deviation of the prediction
+    and the observed value at a given time and averaging these
+    devations over the length of the series.
+
+    $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+        \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
 
         Parameters
         ----------
@@ -120,11 +125,14 @@ def rmse(y: np.ndarray, y_hat: np.ndarray,
     Calculates Root Mean Squared Error (RMSE)
     that measures the prediction accuracy of a
     forecasting method by calculating the squared deviation
-    of the prediction and the true value at a given time and
+    of the prediction and the observed value at a given time and
     averages these devations over the length of the series.
     Finally the RMSE will be in the same scale
     as the original time series so its comparison with other
     series is possible only if they share a common scale.
+
+    $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+        \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
 
         Parameters
         ----------
@@ -152,12 +160,16 @@ def smape(y: np.ndarray, y_hat: np.ndarray,
     Calculates Symmetric Mean Absolute Percentage Error (SMAPE)
     that measures the relative prediction accuracy of a
     forecasting method by calculating the relative deviation
-    of the prediction and the true value scaled by the sum of the
-    absolute values for the prediction and true value at a
+    of the prediction and the observed value scaled by the sum of the
+    absolute values for the prediction and observed value at a
     given time, then averages these devations over the length
     of the series. This allows the SMAPE to have bounds between
     0% and 200% which is desireble compared to normal MAPE that
     may be undetermined.
+
+    $$ \mathrm{sMAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+       \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
+       \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
 
         Parameters
         ----------
@@ -198,8 +210,13 @@ def mase(y: np.ndarray, y_hat: np.ndarray,
     Calculates the Mean Absolute Scaled Error (MASE)
     that measures the relative prediction accuracy of a
     forecasting method by comparinng the mean absolute errors
-    of the prediction and the true value against the mean
+    of the prediction and the observed value against the mean
     absolute errors of the seasonal naive model.
+    The MASE partially composed the the Overall Weighted Average (OWA),
+    used in the M4 Competition.
+
+    $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})) =
+        \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
 
         Parameters
         ----------
@@ -243,7 +260,9 @@ def mae(y: np.ndarray, y_hat: np.ndarray,
 
     Calculates Mean Absolute Error (MAE).
 
-    $$ \mathrm{MAE}(\hat{y}_{τ}, y_{τ}) = |\hat{y}_{τ} - y_{τ}| $$
+    $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
+        \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
+        |y_{\\tau} - \hat{y}_{\\tau}| $$
 
         Parameters
         ----------
@@ -283,8 +302,10 @@ def quantile_loss(y: np.ndarray, y_hat: np.ndarray, q: float = 0.5,
     loss pays more attention to under or over estimation.
     A common value for tau is 0.5 for the deviation from the median.
 
-    $$ \mathrm{QL}(y_{τ}, \hat{y}^{(q)}_{τ}) =
-    \Big( (1-q)\,( \hat{y}^{(q)}_{τ} - y_{τ} )_{+} + q\,( y_{τ} - \hat{y}^{(q)}_{τ} )_{+} \Big)$$
+    $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
+        \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1}
+        \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+}
+        + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
 
         Parameters
         ----------
@@ -327,6 +348,9 @@ def rmae(y: np.ndarray,
     A number smaller than one implies that the forecast in the
     numerator is better than the forecast in the denominator.
 
+    $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau})) =
+    \\frac{\sum^{t+H}_{\\tau=t+1}|y_{\\tau}-\hat{y}_{\\tau}|}{\sum^{t+H}_{\\tau=t+1}|y_{\\tau}-\hat{y}^{base}_{\\tau}|} $$
+
         Parameters
         ----------
         y: numpy array. Observed values.
@@ -358,10 +382,21 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     Calculates the Multi-Quantile loss (MQL).
     Calculates Average Multi-quantile Loss, for
     a given set of quantiles, based on the absolute
-    difference between predicted and true values.
+    difference between predicted quantiles and observed values.
 
-    $$ \mathrm{MQL}(y_{τ}, [\hat{y}^{(q_{1})}_{τ}, ... ,\hat{y}^{(q_{n})}_{τ}]) =
-       1/n Σ_{q_{i}} \mathrm{QL}(y_{τ}, \hat{y}^{(q_{i})}_{τ}) $$
+    The limit behavior of MQL allows to measure the accuracy
+    of a full predictive distribution with the continuous ranked
+    probability score (CRPS). This can be achieved through a numerical
+    integration technique, that discretizes the quantiles and treats
+    the CRPS integral with a left Riemann approximation, averaging over
+    uniformly distanced quantiles.
+
+    $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},
+                    [\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) =
+       \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
+
+    $$ \mathrm{CRPS}(\mathbf{\hat{F}}_{\\tau}, y_{\\tau}) =
+        \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
         Parameters
         ----------
@@ -377,6 +412,10 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
         -------
         mqloss: numpy array or double
             Return the mqloss along the specified axis.
+
+        References
+        ----------
+        [1] https://www.jstor.org/stable/2629907
     """
     _metric_protections(y, y_hat, weights)
     n_q = len(quantiles)
