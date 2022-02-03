@@ -477,7 +477,7 @@ import pytorch_lightning as pl
 
 from ...losses.pytorch import (
     MAPELoss, MASELoss, SMAPELoss,
-    MSELoss, MAELoss, PinballLoss
+    MSELoss, MAELoss, QuantileLoss
 )
 from ...losses.numpy import (
     mae, mse, mape,
@@ -580,12 +580,12 @@ class NHITS(pl.LightningModule):
             L2 penalty for optimizer.
         loss_train: str
             Loss to optimize.
-            An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'PINBALL', 'PINBALL2'].
+            An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'QUANTILE', 'QUANTILE2'].
         loss_hypar:
             Hyperparameter for chosen loss.
         loss_valid:
             Validation loss.
-            An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'PINBALL'].
+            An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'QUANTILE'].
         frequency: str
             Time series frequency.
         random_seed: int
