@@ -487,7 +487,7 @@ from ...losses.pytorch import (
 )
 from ...losses.numpy import (
     mae, mse, mape,
-    smape, rmse, pinball_loss
+    smape, rmse, quantile_loss
 )
 
 from ...data.tsdataset import WindowsDataset
