@@ -131,6 +131,7 @@ def rmse(y: np.ndarray, y_hat: np.ndarray,
     Finally the RMSE will be in the same scale
     as the original time series so its comparison with other
     series is possible only if they share a common scale.
+    RMSE has a direct connection to the L2 norm.
 
     $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) =
         \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
@@ -216,7 +217,7 @@ def mase(y: np.ndarray, y_hat: np.ndarray,
     The MASE partially composed the the Overall Weighted Average (OWA),
     used in the M4 Competition.
 
-    $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})) =
+    $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})) =
         \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
 
         Parameters
@@ -350,7 +351,7 @@ def rmae(y: np.ndarray,
     numerator is better than the forecast in the denominator.
 
     $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau})) =
-    \\frac{\sum^{t+H}_{\\tau=t+1}|y_{\\tau}-\hat{y}_{\\tau}|}{\sum^{t+H}_{\\tau=t+1}|y_{\\tau}-\hat{y}^{base}_{\\tau}|} $$
+        \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau})} $$
 
         Parameters
         ----------
@@ -385,18 +386,18 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
     a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
 
-    The limit behavior of MQL allows to measure the accuracy
-    of a full predictive distribution with the continuous ranked
-    probability score (CRPS). This can be achieved through a numerical
-    integration technique, that discretizes the quantiles and treats
-    the CRPS integral with a left Riemann approximation, averaging over
-    uniformly distanced quantiles.
-
     $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},
                     [\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) =
        \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
 
-    $$ \mathrm{CRPS}(\mathbf{\hat{F}}_{\\tau}, y_{\\tau}) =
+    The limit behavior of MQL allows to measure the accuracy
+    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
+    the continuous ranked probability score (CRPS). This can be achieved
+    through a numerical integration technique, that discretizes the quantiles
+    and treats the CRPS integral with a left Riemann approximation, averaging over
+    uniformly distanced quantiles.
+
+    $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) =
         \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
         Parameters
