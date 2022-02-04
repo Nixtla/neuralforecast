@@ -4,10 +4,10 @@
 
 <p align="center" width="100%">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png">
-</p>  
- 
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">Deep Learninng for time series</h3>
+</p>
+
 
 [![CI Linux](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-linux.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-linux.yml)
 [![CI Mac](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-mac.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-mac.yml)
