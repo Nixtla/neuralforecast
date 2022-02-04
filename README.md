@@ -34,13 +34,8 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 ![Tutorial](https://github.com/ajeetdsouza/zoxide/blob/main/contrib/tutorial.webp)
 
 ## 💻  Installation
-
-### Stable version
-
-This code is a work in progress, any contributions or issues are welcome on
-GitHub at: https://github.com/Nixtla/neuralforecast.
-
-#### PyPI
+<details>
+<summary>PyPI</summary>
 
 You can install the *released version* of `NeuralForecast` from the [Python package index](https://pypi.org) with:
 
@@ -49,7 +44,8 @@ pip install neuralforecast
 ```
 
 (Installing inside a python virtualenvironment or a conda environment is recommended.)
-
+</details>
+  
 #### Conda
 
 Also you can install the *released version* of `NeuralForecast` from [conda](https://anaconda.org) with:
