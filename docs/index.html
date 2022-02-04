@@ -1,6 +1,6 @@
 ---
 
-title: <center>Nixtla &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=SOTA%20Neural%20Forecasting%20Algorithms%20by%20Nixtla%204&url=https://github.com/Nixtla/neuralforecast&via=Nixtla&hashtags=DeepLearning,TimeSeries,Forecasting) &nbsp;[![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)</center>
+title: <center>Nixtla</center>
 
 
 keywords: fastai
@@ -35,20 +35,6 @@ nb_path: "nbs/index.ipynb"
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png">
 </p><p><h1 align="center">Neural 🧠 Forecast</h1></p>
 <h3 align="center">Deep Learninng for time series</h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="https://github.com/Nixtla/nixtlats/actions/workflows/ci-linux.yml"><img src="https://github.com/Nixtla/neuralforecast/actions/workflows/ci-linux.yml/badge.svg?" alt="CI Linux"></a>
-<a href="https://github.com/Nixtla/nixtlats/actions/workflows/ci-mac.yml"><img src="https://github.com/Nixtla/neuralforecast/actions/workflows/ci-mac.yml/badge.svg?" alt="CI Mac"></a>
-<a href="https://codecov.io/gh/Nixtla/neuralforecast"><img src="https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1" alt="codecov"></a>
-<a href="https://pypi.org/project/neuralforecast/"><img src="https://img.shields.io/pypi/pyversions/neuralforecast" alt="Python"></a>
-<a href="https://pypi.org/project/neuralforecast/"><img src="https://img.shields.io/pypi/v/neuralforecast?color=blue" alt="PyPi"></a>
-<a href="https://anaconda.org/nixtla/neuralforecast"><img src="https://img.shields.io/conda/vn/nixtla/neuralforecast?color=seagreen&amp;label=conda" alt="conda-nixtla"></a>
-<a href="https://github.com/Nixtla/neuralforecast/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPLv3"></a>
-<a href="https://nixtla.github.io/neuralforecast/"><img src="https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs" alt="docs"></a></p>
-
 </div>
 </div>
 </div>
@@ -750,19 +736,15 @@ IPU available: False, using: 0 IPUs
 <h2 id="Current-available-models">Current available models<a class="anchor-link" href="#Current-available-models"> </a></h2><ul>
 <li><a href="https://arxiv.org/abs/2201.12886">Neural Hierarchical Interpolation for Time Series Forecasting (N-HiTS</a>: A new model for long-horizon forecasting which incorporates novel hierarchical interpolation and multi-rate data sampling techniques to specialize blocks of its architecture to different frequency band of the time-series signal. It achieves SoTA performance on several benchmark datasets, outperforming current Transformer-based models by more than 25%. </li>
 </ul>
-<p><img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NHits.jpeg" width="300" title="N-HiTS" style="max-width: 300px"></p>
 <ul>
 <li><a href="https://www.sciencedirect.com/science/article/pii/S0169207019301153">Exponential Smoothing Recurrent Neural Network (ES-RNN)</a>: A hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals.  This model is the winner of the M4 forecasting competition.</li>
 </ul>
-<p><img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/ESRNN.png" width="300" title="ES-RNN" style="max-width: 300px"></p>
 <ul>
 <li><a href="https://arxiv.org/abs/1905.10437">Neural Basis Expansion Analysis (N-BEATS)</a>: A model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state of the art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train an has an interpretable configuration.</li>
 </ul>
-<p><img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBeats.png" width="300" title="N-BEATS" style="max-width: 300px"></p>
 <ul>
 <li><a href="https://arxiv.org/abs/2104.05522">Neural Basis Expansion Analysis with Exogenous Variables (N-BEATSx)</a>: The neural basis expansion with exogenous variables is an extension to the original N-BEATS that allows it to include time dependent covariates.</li>
 </ul>
-<p><img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" style="max-width: 300px"></p>
 
 </div>
 </div>
@@ -785,42 +767,13 @@ IPU available: False, using: 0 IPUs
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="How-to-cite">How to cite<a class="anchor-link" href="#How-to-cite"> </a></h2><p>If you use <code>NeuralForecast</code> in a scientific publication, we encourage you to add
 the following references to the related papers:</p>
-<div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">neuralforecast_arxiv</span><span class="p">,</span>
-  <span class="na">author</span>  <span class="p">=</span> <span class="s">{XXXX}</span><span class="p">,</span>
-  <span class="na">title</span>   <span class="p">=</span> <span class="s">{{NeuralForecast: Deep Learning for Time Series Forecasting}}</span><span class="p">,</span>
-  <span class="na">journal</span> <span class="p">=</span> <span class="s">{arXiv preprint arXiv:XXX.XXX}</span><span class="p">,</span>
-  <span class="na">year</span>    <span class="p">=</span> <span class="s">{2022}</span>
-<span class="p">}</span>
+<div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">neuralforecast_arxiv</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="na">author</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{XXXX}</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="na">title</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">{{NeuralForecast: Deep Learning for Time Series Forecasting}}</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="na">journal</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{arXiv preprint arXiv:XXX.XXX}</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="na">year</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="s">{2022}</span><span class="w"></span>
+<span class="p">}</span><span class="w"></span>
 </pre></div>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Contributors-&#10024;">Contributors &#10024;<a class="anchor-link" href="#Contributors-&#10024;"> </a></h2><p>Thanks goes to these wonderful people (<a href="https://allcontributors.org/docs/en/emoji-key">emoji key</a>):</p>
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center"><a href="https://github.com/FedericoGarza"><img src="https://avatars.githubusercontent.com/u/10517170?v=4?s=100" width="100px;" alt=""/><br /><sub><b>fede</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=FedericoGarza" title="Code">💻</a> <a href="https://github.com/Nixtla/neuralforecast/issues?q=author%3AFedericoGarza" title="Bug reports">🐛</a> <a href="https://github.com/Nixtla/neuralforecast/commits?author=FedericoGarza" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/gdevos010"><img src="https://avatars.githubusercontent.com/u/15316026?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Greg DeVos</b></sub></a><br /><a href="#ideas-gdevos010" title="Ideas, Planning, & Feedback">🤔</a></td>
-    <td align="center"><a href="https://github.com/cchallu"><img src="https://avatars.githubusercontent.com/u/31133398?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Cristian Challu</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=cchallu" title="Code">💻</a> <a href="#data-cchallu" title="Data">🔣</a></td>
-    <td align="center"><a href="https://github.com/mergenthaler"><img src="https://avatars.githubusercontent.com/u/4086186?v=4?s=100" width="100px;" alt=""/><br /><sub><b>mergenthaler</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=mergenthaler" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://github.com/kdgutier"><img src="https://avatars.githubusercontent.com/u/19935241?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Kin</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=kdgutier" title="Code">💻</a> <a href="https://github.com/Nixtla/neuralforecast/issues?q=author%3Akdgutier" title="Bug reports">🐛</a> <a href="#data-kdgutier" title="Data">🔣</a></td>
-    <td align="center"><a href="https://github.com/jmoralez"><img src="https://avatars.githubusercontent.com/u/8473587?v=4?s=100" width="100px;" alt=""/><br /><sub><b>José Morales</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=jmoralez" title="Code">💻</a></td>
-    <td align="center"><a href="https://github.com/alejandroxag"><img src="https://avatars.githubusercontent.com/u/64334543?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Alejandro</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=alejandroxag" title="Code">💻</a></td>  
-    <td align="center"><a href="http://lavattiata.com"><img src="https://avatars.githubusercontent.com/u/48966177?v=4?s=100" width="100px;" alt=""/><br /><sub><b>stefanialvs</b></sub></a><br /><a href="#design-stefanialvs" title="Design">🎨</a></td>
-  </tr>
-</table>
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-<p>This project follows the <a href="https://github.com/all-contributors/all-contributors">all-contributors</a> specification. Contributions of any kind welcome!</p>
 
 </div>
 </div>
