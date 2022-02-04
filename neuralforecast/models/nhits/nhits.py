@@ -485,6 +485,7 @@ from ...losses.numpy import (
 )
 
 from ...data.tsdataset import WindowsDataset
+from ...data.tsloader import TimeSeriesLoader
 
 # Cell
 class NHITS(pl.LightningModule):
