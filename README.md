@@ -1,7 +1,4 @@
 # `NeuralForecast`:  Deep Learning for Time Series Forecasting
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
 > [nikstla] (noun, nahuatl) Period of time.
 
 
@@ -15,14 +12,15 @@
 [![conda-nixtla](https://img.shields.io/conda/vn/nixtla/neuralforecast?color=seagreen&label=conda)](https://anaconda.org/nixtla/neuralforecast)
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
 [![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
-[![Slack](https://img.shields.io/badge/slack-Nixtla-green.svg?logo=slack)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 
 State-of-the-art time series forecasting for pytorch.
 
 `NeuralForecast` is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
-
 
 ## Documentation
 Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
@@ -98,20 +96,6 @@ the following references to the related papers:
 ```
 
 
-<!---
-
-## Citing
-
-```bibtex
-@article{,
-    author = {},
-    title = {{}},
-    journal = {},
-    year = {}
-}
-```
--->
-
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
@@ -132,3 +116,17 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+
+<!---
+
+## Citing
+
+```bibtex
+@article{,
+    author = {},
+    title = {{}},
+    journal = {},
+    year = {}
+}
+```
+-->
