@@ -25,7 +25,7 @@ release: pypi conda_release
 	nbdev_bump_version
 
 conda_release:
-	fastrelease_conda_package
+	fastrelease_conda_package --build_args "-c conda-forge -c pytorch -c fastai"
 
 pypi: dist
 	twine upload --repository pypi dist/*
