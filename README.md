@@ -1,8 +1,11 @@
-# `NeuralForecast`:  Deep Learning for Time Series Forecasting
-> [nikstla] (noun, nahuatl) Period of time.
+# `NeuralForecast`: Scalable and user friendly neural 🧠 forecasting algorithms for time series data 〰️
 
 
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/nixtla_logo.png">
+
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_icon.png">
+<h1 align="center">Neural 🧠 Forecast</h1>
+<h3 align="center">Deep Learninng for time series</h3>
+
 
 [![CI Linux](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-linux.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-linux.yml)
 [![CI Mac](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-mac.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-mac.yml)
@@ -13,7 +16,7 @@
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
 [![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 
@@ -22,7 +25,7 @@ State-of-the-art time series forecasting for pytorch.
 `NeuralForecast` is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
 
-## Documentation
+## 📖 Documentation
 Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
 
