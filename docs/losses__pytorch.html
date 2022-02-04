@@ -1,6 +1,6 @@
 ---
 
-title: PyTorch losses
+title: PyTorch Losses
 
 
 keywords: fastai
@@ -40,37 +40,12 @@ nb_path: "nbs/losses__pytorch.ipynb"
     
 <div class="cell border-box-sizing code_cell rendered">
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="divide_no_nan" class="doc_header"><code>divide_no_nan</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L11" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>divide_no_nan</code>(<strong><code>a</code></strong>, <strong><code>b</code></strong>)</p>
-</blockquote>
-<p>Auxiliary funtion to handle divide by 0</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
 </div>
     {% endraw %}
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="PyTorch-Train-Losses">PyTorch Train Losses<a class="anchor-link" href="#PyTorch-Train-Losses"> </a></h1>
+<h2 id="Mean-Absolute-Percentage-Error">Mean Absolute Percentage Error<a class="anchor-link" href="#Mean-Absolute-Percentage-Error"> </a></h2>
 </div>
 </div>
 </div>
@@ -87,23 +62,28 @@ nb_path: "nbs/losses__pytorch.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="MAPELoss" class="doc_header"><code>MAPELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L21" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>MAPE Loss</p>
-<p>Calculates Mean Absolute Percentage Error between
+<p>Calculates Mean Absolute Percentage Error (MAPE) between
 y and y_hat. MAPE measures the relative prediction
 accuracy of a forecasting method by calculating the
 percentual deviation of the prediction and the true
 value at a given time and averages these devations
 over the length of the series.
 As defined in: <a href="https://en.wikipedia.org/wiki/Mean_absolute_percentage_error">https://en.wikipedia.org/wiki/Mean_absolute_percentage_error</a></p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
     actual values in torch tensor.
 y_hat: tensor (batch_size, output_size)
     predicted values in torch tensor.
 mask: tensor (batch_size, output_size)
     specifies date stamps per serie
-    to consider in loss</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mape:
-Mean absolute percentage error.</p>
+    to consider in loss
+
+Returns
+-------
+mape:
+Mean absolute percentage error.</code></pre>
 
 </div>
 
@@ -122,6 +102,12 @@ Mean absolute percentage error.</p>
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Squared-Error">Mean Squared Error<a class="anchor-link" href="#Mean-Squared-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -135,22 +121,27 @@ Mean absolute percentage error.</p>
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="MSELoss" class="doc_header"><code>MSELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L55" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>MSE Loss</p>
-<p>Calculates Mean Squared Error between
+<p>Calculates Mean Squared Error (MSE) between
 y and y_hat. MAPE measures the relative prediction
 accuracy of a forecasting method by calculating the
 percentual deviation of the prediction and the true
 value at a given time and averages these devations
 over the length of the series.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
     actual values in torch tensor.
 y_hat: tensor (batch_size, output_size)
     predicted values in torch tensor.
 mask: tensor (batch_size, output_size)
     specifies date stamps per serie
-    to consider in loss</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mse:
-Mean Squared Error.</p>
+    to consider in loss
+
+Returns
+-------
+mse:
+Mean Squared Error.</code></pre>
 
 </div>
 
@@ -169,6 +160,12 @@ Mean Squared Error.</p>
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Root-Mean-Squared-Error">Root Mean Squared Error<a class="anchor-link" href="#Root-Mean-Squared-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -182,22 +179,27 @@ Mean Squared Error.</p>
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="RMSELoss" class="doc_header"><code>RMSELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L88" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RMSELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>RMSE Loss</p>
-<p>Calculates Mean Squared Error between
+<p>Calculates Root Mean Squared Error (RMSE) between
 y and y_hat. MAPE measures the relative prediction
 accuracy of a forecasting method by calculating the
 percentual deviation of the prediction and the true
 value at a given time and averages these devations
 over the length of the series.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
     actual values in torch tensor.
 y_hat: tensor (batch_size, output_size)
     predicted values in torch tensor.
 mask: tensor (batch_size, output_size)
     specifies date stamps per serie
-    to consider in loss</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>rmse:
-Root Mean Squared Error.</p>
+    to consider in loss
+
+Returns
+-------
+rmse:
+Root Mean Squared Error.</code></pre>
 
 </div>
 
@@ -216,6 +218,12 @@ Root Mean Squared Error.</p>
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Symmetric-Mean-Absolute-Percentage-Error">Symmetric Mean Absolute Percentage Error<a class="anchor-link" href="#Symmetric-Mean-Absolute-Percentage-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -229,9 +237,8 @@ Root Mean Squared Error.</p>
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="SMAPELoss" class="doc_header"><code>SMAPELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L121" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SMAPELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>SMAPE2 Loss</p>
-<p>Calculates Symmetric Mean Absolute Percentage Error.
-SMAPE measures the relative prediction accuracy of a
+<p>Calculates Symmetric Mean Absolute Percentage Error (sMAPE2).
+sMAPE measures the relative prediction accuracy of a
 forecasting method by calculating the relative deviation
 of the prediction and the true value scaled by the sum of the
 absolute values for the prediction and true value at a
@@ -239,13 +246,22 @@ given time, then averages these devations over the length
 of the series. This allows the SMAPE to have bounds between
 0% and 200% which is desireble compared to normal MAPE that
 may be undetermined.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
     actual values in torch tensor.
 y_hat: tensor (batch_size, output_size)
-    predicted values in torch tensor.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>smape:
-    symmetric mean absolute percentage error</p>
-<h2 id="References">References<a class="anchor-link" href="#References"> </a></h2><p>[1] <a href="https://robjhyndman.com/hyndsight/smape/">https://robjhyndman.com/hyndsight/smape/</a> (Makridakis 1993)</p>
+    predicted values in torch tensor.
+
+Returns
+-------
+smape:
+    symmetric mean absolute percentage error
+
+References
+----------
+[1] https://robjhyndman.com/hyndsight/smape/ (Makridakis 1993)</code></pre>
 
 </div>
 
@@ -264,6 +280,12 @@ y_hat: tensor (batch_size, output_size)
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Mean-Absolute-Scaled-Error">Mean Absolute Scaled Error<a class="anchor-link" href="#Mean-Absolute-Scaled-Error"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -277,12 +299,15 @@ y_hat: tensor (batch_size, output_size)
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="MASELoss" class="doc_header"><code>MASELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L160" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MASELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>y_insample</code></strong>, <strong><code>seasonality</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the M4 Mean Absolute Scaled Error.</p>
-<p>MASE measures the relative prediction accuracy of a
+<p>Calculates the M4 Mean Absolute Scaled Error (MASE).
+MASE measures the relative prediction accuracy of a
 forecasting method by comparinng the mean absolute errors
 of the prediction and the true value against the mean
 absolute errors of the seasonal naive model.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>seasonality: int
+
+<pre><code>Parameters
+----------
+seasonality: int
     main frequency of the time series
     Hourly 24,  Daily 7, Weekly 52,
     Monthly 12, Quarterly 4, Yearly 1
@@ -291,100 +316,16 @@ y: tensor (batch_size, output_size)
 y_hat: tensor (batch_size, output_size)
     predicted values
 y_train: tensor (batch_size, input_size)
-    actual insample values for Seasonal Naive predictions</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mase:
-    mean absolute scaled error</p>
-<h2 id="References">References<a class="anchor-link" href="#References"> </a></h2><p>[1] <a href="https://robjhyndman.com/papers/mase.pdf">https://robjhyndman.com/papers/mase.pdf</a></p>
+    actual insample values for Seasonal Naive predictions
 
-</div>
+Returns
+-------
+mase:
+    mean absolute scaled error
 
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="MAELoss" class="doc_header"><code>MAELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L201" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
-</blockquote>
-<p>MAE Loss</p>
-<p>Calculates Mean Absolute Error between
-y and y_hat. MAE measures the relative prediction
-accuracy of a forecasting method by calculating the
-deviation of the prediction and the true
-value at a given time and averages these devations
-over the length of the series.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
-    actual values in torch tensor.
-y_hat: tensor (batch_size, output_size)
-    predicted values in torch tensor.
-mask: tensor (batch_size, output_size)
-    specifies date stamps per serie
-    to consider in loss</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>mae:
-Mean absolute error.</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="PinballLoss" class="doc_header"><code>PinballLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L233" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>PinballLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>, <strong><code>tau</code></strong>=<em><code>0.5</code></em>)</p>
-</blockquote>
-<p>Pinball Loss
-Computes the pinball loss between y and y_hat.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size)
-    actual values in torch tensor.
-y_hat: tensor (batch_size, output_size)
-    predicted values in torch tensor.
-tau: float, between 0 and 1
-    the slope of the pinball loss, in the context of
-    quantile regression, the value of tau determines the
-    conditional quantile level.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>pinball:
-    average accuracy for the predicted quantile</p>
+References
+----------
+[1] https://robjhyndman.com/papers/mase.pdf</code></pre>
 
 </div>
 
@@ -405,7 +346,7 @@ tau: float, between 0 and 1
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="ES-RNN-PyTorch-loss">ES-RNN PyTorch loss<a class="anchor-link" href="#ES-RNN-PyTorch-loss"> </a></h1>
+<h2 id="Mean-Absolute-Error">Mean Absolute Error<a class="anchor-link" href="#Mean-Absolute-Error"> </a></h2>
 </div>
 </div>
 </div>
@@ -420,18 +361,147 @@ tau: float, between 0 and 1
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LevelVariabilityLoss" class="doc_header"><code>LevelVariabilityLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L262" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LevelVariabilityLoss</code>(<strong><code>levels</code></strong>, <strong><code>level_variability_penalty</code></strong>)</p>
+<h4 id="MAELoss" class="doc_header"><code>MAELoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L202" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MAELoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Level Variability Loss
-Computes the variability penalty for the level.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>levels: tensor with shape (batch, n_time)
+<p>Calculates Mean Absolute Error (MAE) between
+y and y_hat. MAE measures the relative prediction
+accuracy of a forecasting method by calculating the
+deviation of the prediction and the true
+value at a given time and averages these devations
+over the length of the series.</p>
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
+    actual values in torch tensor.
+y_hat: tensor (batch_size, output_size)
+    predicted values in torch tensor.
+mask: tensor (batch_size, output_size)
+    specifies date stamps per serie
+    to consider in loss
+
+Returns
+-------
+mae:
+Mean absolute error.</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Quantile-Loss">Quantile Loss<a class="anchor-link" href="#Quantile-Loss"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="QuantileLoss" class="doc_header"><code>QuantileLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L234" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>QuantileLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>, <strong><code>q</code></strong>=<em><code>0.5</code></em>)</p>
+</blockquote>
+<p>Computes the quantile loss (QL) between y and y_hat.</p>
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size)
+    actual values in torch tensor.
+y_hat: tensor (batch_size, output_size)
+    predicted values in torch tensor.
+q: float, between 0 and 1.
+    The slope of the quantile loss, in the context of
+    quantile regression, the q determines the conditional
+    quantile level.
+
+Returns
+-------
+quantile_loss:
+    average accuracy for the predicted quantile</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="ES-RNN-PyTorch-Loss">ES-RNN PyTorch Loss<a class="anchor-link" href="#ES-RNN-PyTorch-Loss"> </a></h2><p>The M4 competition winner, the exponential smoothing recurrent neural network
+combines the Holt-Winter method for the seasonal and levels 
+with a dilated Recurrent neural network</p>
+$$
+\begin{align}
+    \text{Level:}            &amp; \quad l_{\tau} = \text{median}(y_{\tau})\\
+    \text{Residual:}         &amp; \quad z_{\tau} = y_{\tau} - l_{\tau} \\
+    \text{NN Forecast:}      &amp; \quad \hat{z}_{\tau} = \text{DRNN}(z_{\tau}, x_{\tau}, s_{\tau})\\
+    \text{Level Forecast:}   &amp; \quad \hat{l}_{\tau} = \text{Naive}(l_{\tau})\\
+    \text{Forecast:}         &amp; \quad \hat{y}_{\tau+H} = \hat{l}_{\tau+H} + \hat{z}_{\tau+h} 
+\end{align}
+$$
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="LevelVariabilityLoss" class="doc_header"><code>LevelVariabilityLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L264" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LevelVariabilityLoss</code>(<strong><code>levels</code></strong>, <strong><code>level_variability_penalty</code></strong>)</p>
+</blockquote>
+<p>Computes the variability penalty for the level of the ES-RNN.
+The levels of the ES-RNN are based on the Holt-Winters model.</p>
+$$  Penalty = \lambda * (\hat{l}_{τ+1}-\hat{l}_{τ})^{2} $$
+<pre><code>Parameters
+----------
+levels: tensor with shape (batch, n_time)
     levels obtained from exponential smoothing component of ESRNN
 level_variability_penalty: float
     this parameter controls the strength of the penalization
     to the wigglines of the level vector, induces smoothness
-    in the output</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>level_var_loss:
-    wiggliness loss for the level vector</p>
+    in the output
+
+Returns
+----------
+level_var_loss:
+    wiggliness loss for the level vector</code></pre>
 
 </div>
 
@@ -461,17 +531,23 @@ level_variability_penalty: float
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="SmylLoss" class="doc_header"><code>SmylLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L294" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SmylLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>levels</code></strong>, <strong><code>mask</code></strong>, <strong><code>tau</code></strong>, <strong><code>level_variability_penalty</code></strong>=<em><code>0.0</code></em>)</p>
+<h4 id="SmylLoss" class="doc_header"><code>SmylLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L299" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SmylLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>levels</code></strong>, <strong><code>mask</code></strong>, <strong><code>tau</code></strong>, <strong><code>level_variability_penalty</code></strong>=<em><code>0.0</code></em>)</p>
 </blockquote>
-<p>Computes the Smyl Loss that combines level variability with
-with Pinball loss.
+<p>Computes the Smyl Loss that combines level
+variability regularization with with Quantile loss.</p>
+
+<pre><code>Parameters
+----------
 windows_y: tensor of actual values,
                         shape (n_windows, batch_size, window_size).
 windows_y_hat: tensor of predicted values,
                                 shape (n_windows, batch_size, window_size).
 levels: levels obtained from exponential smoothing component of ESRNN.
                 tensor with shape (batch, n_time).
-return: smyl_loss.</p>
+
+Returns
+----------
+return: smyl_loss.</code></pre>
 
 </div>
 
@@ -492,8 +568,7 @@ return: smyl_loss.</p>
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Multi-quantile-PyTorch-loss">Multi-quantile PyTorch loss<a class="anchor-link" href="#Multi-quantile-PyTorch-loss"> </a></h1><p>MQLoss definition and testing</p>
-
+<h2 id="Multi-Quantile-Loss">Multi-Quantile Loss<a class="anchor-link" href="#Multi-Quantile-Loss"> </a></h2>
 </div>
 </div>
 </div>
@@ -508,18 +583,23 @@ return: smyl_loss.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="MQLoss" class="doc_header"><code>MQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L317" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="MQLoss" class="doc_header"><code>MQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L330" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>MQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>MQLoss</p>
-<p>Calculates Average Multi-quantile Loss function, for
+<p>Calculates Average Multi-Quantile Loss (MQL), for
 a given set of quantiles, based on the absolute
 difference between predicted and true values.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size) actual values in torch tensor.
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size) actual values in torch tensor.
 y_hat: tensor (batch_size, output_size, n_quantiles) predicted values in torch tensor.
 mask: tensor (batch_size, output_size, n_quantiles) specifies date stamps per serie
       to consider in loss
-quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>lq: tensor(n_quantiles) average multi-quantile loss.</p>
+quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
+
+Returns
+-------
+mqloss: tensor(n_quantiles) average multi-quantile loss.</code></pre>
 
 </div>
 
@@ -538,6 +618,12 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Weighted-Multi-Quantile-Loss">Weighted Multi-Quantile Loss<a class="anchor-link" href="#Weighted-Multi-Quantile-Loss"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -549,18 +635,23 @@ quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="wMQLoss" class="doc_header"><code>wMQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L350" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>wMQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="wMQLoss" class="doc_header"><code>wMQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L363" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>wMQLoss</code>(<strong><code>y</code></strong>, <strong><code>y_hat</code></strong>, <strong><code>quantiles</code></strong>, <strong><code>mask</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
-<p>wMQLoss</p>
-<p>Calculates Average Multi-quantile Loss function, for
+<p>Calculates weighted Multi-quantile Loss (wMQL), for
 a given set of quantiles, based on the absolute
 difference between predicted and true values.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>y: tensor (batch_size, output_size) actual values in torch tensor.
+
+<pre><code>Parameters
+----------
+y: tensor (batch_size, output_size) actual values in torch tensor.
 y_hat: tensor (batch_size, output_size, n_quantiles) predicted values in torch tensor.
 mask: tensor (batch_size, output_size, n_quantiles) specifies date stamps per serie
       to consider in loss
-quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>lq: tensor(n_quantiles) average multi-quantile loss.</p>
+quantiles: tensor(n_quantiles) quantiles to estimate from the distribution of y.
+
+Returns
+-------
+wmqloss: tensor(n_quantiles) average multi-quantile loss.</code></pre>
 
 </div>
 

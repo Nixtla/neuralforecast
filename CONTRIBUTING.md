@@ -8,7 +8,7 @@
 
 ## Do you have a feature request?
 
-* Ensure that it hasn't been yet implemented in the `master` branch of the repository and that there's not an Issue requesting it yet.
+* Ensure that it hasn't been yet implemented in the `main` branch of the repository and that there's not an Issue requesting it yet.
 * Open a new issue and make sure to describe it clearly, mention how it improves the project and why its useful.
 
 ## Do you want to fix a bug or implement a feature?
@@ -41,7 +41,7 @@ conda env create -f environment.yml
 ```
 
 #### 3. Install the library
-Once you have your environment setup, activate it using `conda activate nixtla` and then install the library in editable mode using `pip install -e .`
+Once you have your environment setup, activate it using `conda activate neuralforecast` and then install the library in editable mode using `pip install -e .`
 
 #### 4. Install git hooks
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
@@ -65,13 +65,14 @@ Since the notebooks output cells can vary from run to run (even if they produce 
     1. Find the relevant notebook.
     2. Make your changes.
     3. Run all cells.
-    4. Run `nbdev_build_docs --mk_readme False --fname nbs/{modified_nb}.ipynb`
-    5. Clean the notebook outputs using `nbdev_clean_nbs`
+    4. Run `nbdev_build_docs --mk_readme False --fname nbs/{modified_nb}.ipynb`.
+    5. Clean the notebook outputs using `nbdev_clean_nbs`.
+    6. You can visualize the new documentation using `make docs_serve`.
 
 ## Full pipeline
 Before committing your changes you can just use `make nbdev_flow` to run the following `nbdev` tasks:
-    1. Install git hooks.
-    2. Build the library.
-    3. Clean notebooks.
-    4. Check if there are differences between the notebooks and the exported library.
-    5. Run tests.
+1. Install git hooks.
+2. Build the library.
+3. Clean notebooks.
+4. Check if there are differences between the notebooks and the exported library.
+5. Run tests.

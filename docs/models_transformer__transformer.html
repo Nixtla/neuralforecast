@@ -162,31 +162,31 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
       <th>0</th>
       <td>HUFL</td>
       <td>2016-07-01 00:00:00</td>
-      <td>41.130001</td>
+      <td>-0.041413</td>
     </tr>
     <tr>
       <th>1</th>
       <td>HUFL</td>
       <td>2016-07-01 00:15:00</td>
-      <td>39.622002</td>
+      <td>-0.185467</td>
     </tr>
     <tr>
       <th>2</th>
       <td>HUFL</td>
       <td>2016-07-01 00:30:00</td>
-      <td>38.868000</td>
+      <td>-0.257495</td>
     </tr>
     <tr>
       <th>3</th>
       <td>HUFL</td>
       <td>2016-07-01 00:45:00</td>
-      <td>35.518002</td>
+      <td>-0.577510</td>
     </tr>
     <tr>
       <th>4</th>
       <td>HUFL</td>
       <td>2016-07-01 01:00:00</td>
-      <td>37.528000</td>
+      <td>-0.385501</td>
     </tr>
   </tbody>
 </table>
@@ -242,10 +242,10 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
       <th></th>
       <th>unique_id</th>
       <th>ds</th>
-      <th>HourOfDay</th>
-      <th>DayOfWeek</th>
-      <th>DayOfMonth</th>
-      <th>DayOfYear</th>
+      <th>ex_1</th>
+      <th>ex_2</th>
+      <th>ex_3</th>
+      <th>ex_4</th>
     </tr>
   </thead>
   <tbody>
@@ -330,18 +330,6 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 </div>
 </div>
 </div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<ul>
-<li>s_begin = index</li>
-<li>s_end = index + self.seq_len</li>
-<li>r_begin = index + self.seq_len - self.label_len</li>
-<li>r_end = index + self.seq_len + self.pred_len</li>
-</ul>
-
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -382,11 +370,11 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;iterate_windows&#39;</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;seq_len&#39;</span><span class="p">]</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;pred_len&#39;</span><span class="p">]</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">20</span>
 
 <span class="n">len_val</span> <span class="o">=</span> <span class="mi">11_520</span>
@@ -466,84 +454,84 @@ nb_path: "nbs/models_transformer__transformer.ipynb"
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>INFO:root:Train Validation splits
 
-INFO:root:                                       ds                    
-                                      min                 max
-unique_id sample_mask                                        
-HUFL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-HULL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-MUFL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-MULL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-LUFL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-LULL      0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
-OT        0           2017-10-29 20:00:00 2018-06-26 19:45:00
-          1           2016-07-01 00:00:00 2017-10-29 19:45:00
+INFO:root:                                        ds                     
+                                       min                  max
+unique_id sample_mask                                          
+HUFL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+HULL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+LUFL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+LULL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+MUFL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+MULL      0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
+OT        0            2017-06-26 00:00:00  2018-02-20 23:45:00
+          1            2016-07-01 00:00:00  2017-06-25 23:45:00
 INFO:root:
-Total data 			487760 time stamps 
-Available percentage=100.0, 	487760 time stamps 
-Insample  percentage=66.93, 	326480 time stamps 
-Outsample percentage=33.07, 	161280 time stamps 
+Total data 			403200 time stamps 
+Available percentage=100.0, 	403200 time stamps 
+Insample  percentage=60.0, 	241920 time stamps 
+Outsample percentage=40.0, 	161280 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
-INFO:root:                                       ds                    
-                                      min                 max
-unique_id sample_mask                                        
-HUFL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-HULL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-MUFL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-MULL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-LUFL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-LULL      0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
-OT        0           2016-07-01 00:00:00 2018-06-26 19:45:00
-          1           2017-10-29 20:00:00 2018-02-26 19:45:00
+INFO:root:                                        ds                     
+                                       min                  max
+unique_id sample_mask                                          
+HUFL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+HULL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+LUFL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+LULL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+MUFL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+MULL      0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
+OT        0            2016-07-01 00:00:00  2018-02-20 23:45:00
+          1            2017-06-26 00:00:00  2017-10-23 23:45:00
 INFO:root:
-Total data 			487760 time stamps 
-Available percentage=100.0, 	487760 time stamps 
-Insample  percentage=16.53, 	80640 time stamps 
-Outsample percentage=83.47, 	407120 time stamps 
+Total data 			403200 time stamps 
+Available percentage=100.0, 	403200 time stamps 
+Insample  percentage=20.0, 	80640 time stamps 
+Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
-INFO:root:                                       ds                    
-                                      min                 max
-unique_id sample_mask                                        
-HUFL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-HULL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-MUFL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-MULL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-LUFL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-LULL      0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
-OT        0           2016-07-01 00:00:00 2018-02-26 19:45:00
-          1           2018-02-26 20:00:00 2018-06-26 19:45:00
+INFO:root:                                        ds                     
+                                       min                  max
+unique_id sample_mask                                          
+HUFL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+HULL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+LUFL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+LULL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+MUFL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+MULL      0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
+OT        0            2016-07-01 00:00:00  2017-10-23 23:45:00
+          1            2017-10-24 00:00:00  2018-02-20 23:45:00
 INFO:root:
-Total data 			487760 time stamps 
-Available percentage=100.0, 	487760 time stamps 
-Insample  percentage=16.53, 	80640 time stamps 
-Outsample percentage=83.47, 	407120 time stamps 
+Total data 			403200 time stamps 
+Available percentage=100.0, 	403200 time stamps 
+Insample  percentage=20.0, 	80640 time stamps 
+Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 </pre>
 </div>
@@ -585,23 +573,23 @@ Outsample percentage=83.47, 	407120 time stamps
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">pytorch_lightning.callbacks</span> <span class="kn">import</span> <span class="n">EarlyStopping</span>
-
-<span class="n">early_stopping</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="s2">&quot;train_loss&quot;</span><span class="p">,</span> 
-                               <span class="n">min_delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> 
-                               <span class="n">patience</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">],</span>
-                               <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                               <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">early_stopping</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">callbacks</span><span class="o">.</span><span class="n">EarlyStopping</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_loss&#39;</span><span class="p">,</span> 
+                                            <span class="n">min_delta</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> 
+                                            <span class="n">patience</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">],</span>
+                                            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
 
 <span class="n">trainer</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">max_epochs</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">],</span> 
                      <span class="n">max_steps</span><span class="o">=</span><span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">],</span>
                      <span class="n">gradient_clip_val</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
                      <span class="n">progress_bar_refresh_rate</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
-                     <span class="n">log_every_n_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> 
                      <span class="n">check_val_every_n_epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">num_sanity_val_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">val_check_interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">limit_val_batches</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                      <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">early_stopping</span><span class="p">])</span>
 
-<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">val_loader</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -619,8 +607,6 @@ Outsample percentage=83.47, 	407120 time stamps
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/configuration_validator.py:122: UserWarning: You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.
-  rank_zero_warn(&#34;You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.&#34;)
 
   | Name  | Type         | Params
 ---------------------------------------
@@ -630,6 +616,9 @@ IPU available: False, using: 0 IPUs
 0         Non-trainable params
 10.5 M    Total params
 42.160    Total estimated model params size (MB)
+/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+[W NNPACK.cpp:79] Could not initialize NNPACK! Reason: Unsupported hardware.
 /Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 </pre>

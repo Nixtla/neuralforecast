@@ -11,7 +11,7 @@ from fastcore.foundation import patch
 from .pytorch import (
     MAPELoss, MASELoss, SMAPELoss,
     MSELoss, MAELoss, SmylLoss,
-    PinballLoss, MQLoss, wMQLoss
+    QuantileLoss, MQLoss, wMQLoss
 )
 
 # Cell
@@ -33,7 +33,7 @@ class LossFunction:
             Mandatory for MASE loss.
         percentile: Union[List[int], int]
             Target percentile.
-            For SMYL and PINBALL losses an int
+            For SMYL and QUANTILE losses an int
             is expected.
             For MQ and wMQ losses a list of ints
             is expected.
@@ -41,7 +41,7 @@ class LossFunction:
         level_variability_penalty: int
             Only used for SMYL loss.
         """
-        if loss_name in ['SMYL', 'PINBALL'] and not isinstance(percentile, int):
+        if loss_name in ['SMYL', 'QUANTILE'] and not isinstance(percentile, int):
             raise Exception(f'Percentile should be integer for {loss_name} loss.')
         elif loss_name in ['MQ', 'wMQ'] and not isinstance(percentile, list):
             raise Exception(f'Percentile should be list for {loss_name} loss')
@@ -71,8 +71,8 @@ def __call__(self: LossFunction,
                         tau=self.tau,
                         level_variability_penalty=self.level_variability_penalty)
 
-    elif self.loss_name == 'PINBALL':
-        return PinballLoss(y=y, y_hat=y_hat, mask=mask,
+    elif self.loss_name == 'QUANTILE':
+        return QuantileLoss(y=y, y_hat=y_hat, mask=mask,
                            tau=self.tau)
 
     elif self.loss_name == 'MQ':

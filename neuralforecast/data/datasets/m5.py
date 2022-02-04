@@ -262,8 +262,8 @@ class M5Evaluation:
         path = f'{directory}/m5/datasets'
         if validation:
             weights = pd.read_csv(f'{path}/weights_validation.csv')
-            sales = pd.read_csv(f'{path}/sales_train_vaidation.csv')
-            y_test = pd.read_csv(f'{path}/sales_test_vaidation.csv')
+            sales = pd.read_csv(f'{path}/sales_train_validation.csv')
+            y_test = pd.read_csv(f'{path}/sales_test_validation.csv')
         else:
             weights = pd.read_csv(f'{path}/weights_evaluation.csv')
             sales = pd.read_csv(f'{path}/sales_train_evaluation.csv')

@@ -1,4 +1,4 @@
-name: CI
+name: CI Mac
 
 on:
   push:
@@ -11,11 +11,10 @@ on:
 
 jobs:
   tests:
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8, 3.9]
     steps:
       - name: Clone repo
@@ -69,34 +68,3 @@ jobs:
         run: |
           nbdev_test_nbs --fname "nbs/data_datasets__*"
           nbdev_test_nbs --timing
-  
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@v2
-
-      - name: Set up environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: 3.7
-          mamba-version: "*"
-          channels: pytorch,conda-forge,defaults
-          channel-priority: true
-          activate-environment: neuralforecast
-          environment-file: action_files/environment.yml
-          use-only-tar-bz2: true
-
-      - name: Install library
-        shell: bash -l {0}
-        run: pip install -e .
-
-      - name: Run coverage
-        shell: bash -l {0}
-        run: pytest action_files/test_nbs.py --cov=neuralforecast --cov-report xml
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v1
-        with:
-          files: coverage.xml
-        
