@@ -1,10 +1,8 @@
 # <center>Nixtla</center>
 
-
-
 <p aling="center" width="100%">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png" width="240" height="240" style="max-width: 240px">
-</p>    
+</p>
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">Deep Learninng for time series</h3>
 
