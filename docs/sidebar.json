@@ -8,9 +8,9 @@
     "": {
       "Datasets": {
         "EPF": "data_datasets__epf.html",
-        "Favorita": "data_datasets__favorita.html",
         "GEFCom 2012": "data_datasets__gefcom2012.html",
         "GEFCom 2014": "data_datasets__gefcom2014.html",
+	"Long Horizon": "data_datasets__long_horizon.html",
         "M3": "data_datasets__m3.html",
         "M4": "data_datasets__m4.html",
         "M5": "data_datasets__m5.html",
@@ -26,22 +26,13 @@
     }
   },
   "Models": {
+    "Autoformer": "models_transformer__autoformer.html",
     "ESRNN": "models_esrnn__esrnn.html",
-    "NBEATS": "models_nbeats__nbeats.html",
+    "Informer": "models_transformer__informer.html",
     "MQESRNN": "models_esrnn__mqesrnn.html",
-    "": {
-      "Benchmarks": {
-        "Naive2": "models_naive2__naive2.html"
-      }
-    },
-    "empty1": {
-      "Components": {
-        "DRNN": "models_components__drnn.html",
-        "ESRNN": "models_esrnn__esrnn_model.html",
-        "TCN": "models_components__tcn.html",
-        "Common": "models_components__common.html"
-      }
-    }
+    "NBEATS": "models_nbeats__nbeats.html",
+    "NHITS": "models_nhits__nhits.html",
+    "Transformer": "models_transformer__transformer.html"
   },
   "Evaluation": {
       "NumPy Evaluation Metrics": "losses__numpy.html",

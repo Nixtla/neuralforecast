@@ -25,14 +25,14 @@ entries:
           title: EPF
           url: data_datasets__epf.html
         - output: web,pdf
-          title: Favorita
-          url: data_datasets__favorita.html
-        - output: web,pdf
           title: GEFCom 2012
           url: data_datasets__gefcom2012.html
         - output: web,pdf
           title: GEFCom 2014
           url: data_datasets__gefcom2014.html
+        - output: web,pdf
+          title: Long Horizon
+          url: data_datasets__long_horizon.html
         - output: web,pdf
           title: M3
           url: data_datasets__m3.html
@@ -62,36 +62,26 @@ entries:
     title: Data
   - folderitems:
     - output: web,pdf
+      title: Autoformer
+      url: models_transformer__autoformer.html
+    - output: web,pdf
       title: ESRNN
       url: models_esrnn__esrnn.html
+    - output: web,pdf
+      title: Informer
+      url: models_transformer__informer.html
+    - output: web,pdf
+      title: MQESRNN
+      url: models_esrnn__mqesrnn.html
     - output: web,pdf
       title: NBEATS
       url: models_nbeats__nbeats.html
     - output: web,pdf
-      title: MQESRNN
-      url: models_esrnn__mqesrnn.html
-      subfolders:
-      - output: web
-        subfolderitems:
-        - output: web,pdf
-          title: Naive2
-          url: models_naive2__naive2.html
-        title: Benchmarks
-      - output: web
-        subfolderitems:
-        - output: web,pdf
-          title: DRNN
-          url: models_components__drnn.html
-        - output: web,pdf
-          title: ESRNN
-          url: models_esrnn__esrnn_model.html
-        - output: web,pdf
-          title: TCN
-          url: models_components__tcn.html
-        - output: web,pdf
-          title: Common
-          url: models_components__common.html
-        title: Components
+      title: NHITS
+      url: models_nhits__nhits.html
+    - output: web,pdf
+      title: Transformer
+      url: models_transformer__transformer.html
     output: web
     title: Models
   - folderitems:
