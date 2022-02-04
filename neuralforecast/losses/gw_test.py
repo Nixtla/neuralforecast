@@ -24,16 +24,21 @@ FONTSIZE = 17
 
 # Cell
 def Newey_West(Z, n_lags):
-    """ Newey-West HAC estimator
-    Parameters
-    ----------
-    Z: (n, k) ndarray
-    n_lags: int
-        number of lags to consider as available information.
+    """
 
-    Returns
-    -------
-    omega_hat: Newey-West HAC estimator of the covariance matrix
+    Estimator of the Newey-West Heteroskedasticity and
+    Autocorrelation Consistent Covariance Matrix (Newey-West HAC)
+    to calculate robust error estimations.
+
+        Parameters
+        ----------
+        Z: (n, k) ndarray
+        n_lags: int
+            number of lags to consider as available information.
+
+        Returns
+        -------
+        omega_hat: Newey-West HAC estimator of the covariance matrix
     """
 
     assert n_lags > 0
@@ -64,25 +69,62 @@ def GW_CPA_test(loss1: np.ndarray,
                 conditional: bool=False,
                 verbose: bool=True):
     """
-    Giacomini-White Conditional Predictive Ability Test
-    Parameters
-    ----------
-    loss1: numpy array
-        losses of model 1
-    loss2: numpy array
-        losses of model 2
-    tau: int
-        the past information treated as 'available' for the test.
-    unconditional: boolean,
-        True if unconditional (DM test), False if conditional (GW test).
-    verbose: boolean,
-        True if prints of test are needed
 
-    Returns
-    -------
-    test_stat: test statistic of the conditional predictive ability test
-    crit_val: critical value of the chi-square test for a 5% confidence level
-    p-vals: (k,) p-value of the test
+    The one-sided Giacomini-White Conditional Predictive Ability Test (GW),
+    allows to assess which model provides better predictions.
+
+    The GW test examines the null hypothesis of equal forecast errors
+    for a pair of models's predictions $\hat{\mathbf{y}}^{A}_{\\tau}$ and
+    $\hat{\mathbf{y}}^{B}_{\\tau}$ measured by the MAE or L1 norm,
+    conditioned on the available information to that moment $\mathcal{F}_{\\tau-1}$.
+
+
+    $$ \Delta^{A,B}_{\\tau} = ||\mathbf{y}_{\\tau} - \hat{\mathbf{y}}^{A}_{\\tau}||_{1}
+        - ||\mathbf{y}_{\\tau} - \hat{\mathbf{y}}^{B}_{\\tau}||_{1} $$
+
+    In practice, the $ \mathcal{F}_{\\tau-1} $ is replaced with a constant and
+    lags of the error difference
+    $ \mathcal{F}_{\\tau-1} = [\\mathbb{1} \;|\; \Delta^{A,B}_{\\tau - 1} ] $
+    and the test is performed using a linear regression with a Wald-like test.
+
+    $$ \Delta^{A,B}_{\\tau} =
+       \\boldsymbol{\\beta}^{\intercal} \mathcal{F}_{\\tau-1} + \\epsilon_{\\tau} $$
+
+    $$ H_{0}: \\mathbb{E} \\left[ \Delta^{A,B}_{\\tau} \;|\; \mathcal{F}_{\\tau-1} \\right]
+       \equiv \\mathbb{E} \\left[ \\boldsymbol{\\beta} \;|\; \mathcal{F}_{\\tau-1} \\right] = \\mathbb{0}  $$
+
+    The Diebold-Mariano test widely used in the forecasting literature,
+    can be easily recovered by setting, when the conditional information considered
+    is only the constant variable, one recovers the original DB test.
+    Compared with the DM or other unconditional tests,
+    the GW test is valid under general assumptions such as heterogeneity
+    rather than stationarity of data.
+
+        Parameters
+        ----------
+        loss1: numpy array. losses of model 1
+        loss2: numpy array. losses of model 2
+        tau: int. the past information treated as 'available' for the test.
+        unconditional: boolean.
+            True if unconditional (DM test), False if conditional (GW test).
+        verbose: boolean.
+            True if prints of test are needed.
+
+        Returns
+        -------
+        test_stat: test statistic of the conditional predictive ability test
+        crit_val: critical value of the chi-square test for a 5% confidence level
+        p-vals: (k,) p-value of the test
+
+        References
+        ----------
+        [1] Giacomini, R., & White, H., Tests of conditional predictive ability. Econometrica, 74
+        URL: https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1468-0262.2006.00718.
+
+        [2] Diebold, F., & Mariano, R. (2002). Comparing predictive accuracy.
+        Journal of Business & Economic Statistics, 20 , 134–44.
+        URL: https://www.sas.upenn.edu/~fdiebold/papers/paper68/pa.dm.pdf.
+
     """
 
     assert len(loss1) == len(loss2)
@@ -126,7 +168,7 @@ def GW_CPA_test(loss1: np.ndarray,
     s = '+' if np.mean(loss1-loss2) > 0 else '-'
 
     if verbose:
-        if conditional: print('\nConditional test:\n')
+        if conditional: print('\nGW Conditional test:\n')
         if not conditional: print('\nUnconditional test:\n')
         print(f'Forecast horizon: {tau}, Nominal Risk Level: {alpha}')
         print(f'Test-statistic: {test_stat} ({s})')
@@ -134,7 +176,6 @@ def GW_CPA_test(loss1: np.ndarray,
         print(f'p-value: {p_val}\n')
 
     return test_stat, crit_val, p_val
-
 
 # Cell
 def GW_test_pvals(y: np.ndarray,
@@ -144,32 +185,35 @@ def GW_test_pvals(y: np.ndarray,
                   conditional: bool,
                   alpha: float=0.05,
                   verbose: bool=False):
-    """ Function to calculate model-pair-wise GW-Test p-values
-    Parameters
-    ----------
-    y: numpy array
-        flat array with actual test values
-    y_hat: numpy array
-        matrix with predicted values
-    model_names: string list
-        with the names of the models.
-    horizon: int
-        the multi horizon for which the predictions were created,
-        the test is performed against over the mean differences
-        in said multi horizon losses.
-    tau: int
-        the past information treated as 'available' for the test.
-    alpha: float
-        level of significance for the test.
-    unconditional: boolean,
-        True if unconditional (DM test), False if conditional (GW test).
-    verbose: boolean.
-        True for partial test results.
+    """
 
-    Returns
-    -------
-    p_vals: (n_models, n_models)
-            symmetric numpy array with the model-pair-wise p-values.
+    Function to calculate model-pair-wise GW-Test p-values.
+
+        Parameters
+        ----------
+        y: numpy array
+            flat array with actual test values
+        y_hat: numpy array
+            matrix with predicted values
+        model_names: string list
+            with the names of the models.
+        horizon: int
+            the multi horizon for which the predictions were created,
+            the test is performed against over the mean differences
+            in said multi horizon losses.
+        tau: int
+            the past information treated as 'available' for the test.
+        alpha: float
+            level of significance for the test.
+        unconditional: boolean,
+            True if unconditional (DM test), False if conditional (GW test).
+        verbose: boolean.
+            True for partial test results.
+
+        Returns
+        -------
+        p_vals: (n_models, n_models)
+                symmetric numpy array with the model-pair-wise p-values.
 
     """
     # number of date stamps and de facto forecast creation dates
@@ -179,15 +223,8 @@ def GW_test_pvals(y: np.ndarray,
 
     # multi horizon losses
     losses = np.abs(y - y_hat)
-
-    print("losses.shape", losses.shape)
-    print("n_models, n_ds, n_fcds")
-    print(n_models, n_ds, n_fcds)
-
     losses = losses.reshape(n_models, n_fcds, horizon)
     losses = np.mean(losses, axis=2)
-
-    print("losses.shape", losses.shape)
 
     pvals = np.zeros((n_models, n_models))
 
@@ -265,7 +302,7 @@ def plot_GW_test_pvals(pvals, labels, title):
     plt.yticks(range(len(labels)), ticklabels, fontsize=FONTSIZE)
 
     plt.plot(list(range(len(labels))),
-             list(range(len(labels))), 'wx', c='white', markersize=FONTSIZE)
+             list(range(len(labels))), 'wx', markersize=FONTSIZE)
     plt.title(f'{title}', fontweight='bold', fontsize=FONTSIZE)
 
     # Turn spines off and create black grid.
