@@ -9,8 +9,9 @@
 [![codecov](https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1)](https://codecov.io/gh/Nixtla/neuralforecast)
 [![Python](https://img.shields.io/pypi/pyversions/neuralforecast)](https://pypi.org/project/neuralforecast/)
 [![PyPi](https://img.shields.io/pypi/v/neuralforecast?color=blue)](https://pypi.org/project/neuralforecast/)
+[![conda-nixtla](https://img.shields.io/conda/vn/nixtla/neuralforecast?color=seagreen&label=conda)](https://anaconda.org/nixtla/neuralforecast)
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
-[![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg)](https://nixtla.github.io/neuralforecast/)
+[![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
 
 
 State-of-the-art time series forecasting for pytorch.
@@ -30,10 +31,22 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 This code is a work in progress, any contributions or issues are welcome on
 GitHub at: https://github.com/Nixtla/neuralforecast.
 
+#### PyPI
+
 You can install the *released version* of `NeuralForecast` from the [Python package index](https://pypi.org) with:
 
 ```python
 pip install neuralforecast
+```
+
+(Installing inside a python virtualenvironment or a conda environment is recommended.)
+
+#### Conda
+
+Also you can install the *released version* of `NeuralForecast` from [conda](https://anaconda.org) with:
+
+```python
+conda install -c nixtla neuralforecast
 ```
 
 (Installing inside a python virtualenvironment or a conda environment is recommended.)
