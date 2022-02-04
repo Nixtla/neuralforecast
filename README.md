@@ -9,15 +9,6 @@
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">Deep Learninng for time series</h3>
 
-[![CI Linux](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-linux.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-linux.yml)
-[![CI Mac](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-mac.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-mac.yml)
-[![codecov](https://codecov.io/gh/Nixtla/neuralforecast/branch/main/graph/badge.svg?token=C2P2BJI6S1)](https://codecov.io/gh/Nixtla/neuralforecast)
-[![Python](https://img.shields.io/pypi/pyversions/neuralforecast)](https://pypi.org/project/neuralforecast/)
-[![PyPi](https://img.shields.io/pypi/v/neuralforecast?color=blue)](https://pypi.org/project/neuralforecast/)
-[![conda-nixtla](https://img.shields.io/conda/vn/nixtla/neuralforecast?color=seagreen&label=conda)](https://anaconda.org/nixtla/neuralforecast)
-[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
-[![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
-
 State-of-the-art time series forecasting for PyTorch.
 
 `NeuralForecast` is a python library for time series forecasting with deep learning. 
@@ -26,8 +17,10 @@ It provides dataset loading utilities, evaluation functions and pytorch implemen
 ## 📖 Documentation
 Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
+## 🧬 Getting Started (WIP)
+![Tutorial](https://github.com/ajeetdsouza/zoxide/blob/main/contrib/tutorial.webp)
 
-## Installation
+## 💻  Installation
 
 ### Stable version
 
@@ -69,7 +62,7 @@ pip install -e .
 
 ### Import libraries
 
-```python
+```
 import pandas as pd
 import pytorch_lightning as pl
 from neuralforecast.data.datasets.long_horizon import LongHorizon
@@ -81,7 +74,7 @@ from neuralforecast.models.nhits.nhits import NHITS
 
 ### Dataset
 
-```python
+```
 Y_df, _, _ = LongHorizon.load('data', 'ILI')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 Y_df.head()
@@ -152,7 +145,7 @@ Y_df.head()
 
 ### Split train/test sets
 
-```python
+```
 output_size = 24
 Y_df_test = Y_df.groupby('unique_id').tail(output_size)
 Y_df_train = Y_df.drop(Y_df_test.index)
@@ -160,18 +153,33 @@ Y_df_train = Y_df.drop(Y_df_test.index)
 
 ### Define TimeSeriesDataset and TimeSeriesLoader
 
-```python
+```
 input_size = 5 * output_size
 ```
 
-```python
+```
 train_mask_df, val_mask_df, _ = get_mask_dfs(Y_df=Y_df_train, 
                                              ds_in_val=5 * output_size,
                                              ds_in_test=0)
 ```
 
-```python
+```
 train_mask_df.query('unique_id == "OT"').set_index('ds').plot()
+```
+
+
+
+
+    <AxesSubplot:xlabel='ds'>
+
+
+
+
+![png](docs/images/output_14_1.png)
+
+
+```
+val_mask_df.query('unique_id == "OT"').set_index('ds').plot()
 ```
 
 
@@ -185,22 +193,7 @@ train_mask_df.query('unique_id == "OT"').set_index('ds').plot()
 ![png](docs/images/output_15_1.png)
 
 
-```python
-val_mask_df.query('unique_id == "OT"').set_index('ds').plot()
 ```
-
-
-
-
-    <AxesSubplot:xlabel='ds'>
-
-
-
-
-![png](docs/images/output_16_1.png)
-
-
-```python
 train_dataset = WindowsDataset(Y_df_train, 
                                input_size=input_size,
                                output_size=output_size,
@@ -211,26 +204,26 @@ train_dataset = WindowsDataset(Y_df_train,
       X.drop(['unique_id', 'ds'], 1, inplace=True)
 
 
-```python
+```
 val_dataset = WindowsDataset(Y_df_train, 
                              input_size=input_size,
                              output_size=output_size,
                              mask_df=val_mask_df)
 ```
 
-```python
+```
 train_loader = TimeSeriesLoader(train_dataset, batch_size=1, 
                                 n_windows=256,
                                 shuffle=True)
 ```
 
-```python
+```
 val_loader = TimeSeriesLoader(val_dataset, batch_size=1)
 ```
 
 ### Define model
 
-```python
+```
 model = NHITS(n_time_in=input_size, n_time_out=output_size,
               n_x=0, n_s=0, n_s_hidden=[0], n_x_hidden=[0],
               shared_weights=False, initialization='lecun_normal',
@@ -246,7 +239,7 @@ model = NHITS(n_time_in=input_size, n_time_out=output_size,
 
 ### Train model with early stopping
 
-```python
+```
 early_stopping = pl.callbacks.EarlyStopping(monitor="val_loss", 
                                             min_delta=1e-4, 
                                             patience=3, verbose=False,mode="min")
@@ -281,7 +274,7 @@ trainer.fit(model, train_loader, val_loader)
       f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
 
 
-```python
+```
 Y_df_forecast = model.forecast(Y_df_train)
 Y_df_forecast.rename(columns={'y': 'y_hat'}, inplace=True)
 Y_df_forecast.head()
@@ -388,7 +381,7 @@ Y_df_forecast.head()
 
 
 
-```python
+```
 Y_df_plot = Y_df_test.merge(Y_df_forecast, how='left', on=['unique_id', 'ds'])
 Y_df_plot.query('unique_id == "OT"').set_index('ds').plot()
 ```
@@ -401,35 +394,36 @@ Y_df_plot.query('unique_id == "OT"').set_index('ds').plot()
 
 
 
-![png](docs/images/output_26_1.png)
+![png](docs/images/output_25_1.png)
 
 
-## Current available models
+##  Available forecasting models
 
 * [Neural Hierarchical Interpolation for Time Series Forecasting (N-HiTS](https://arxiv.org/abs/2201.12886): A new model for long-horizon forecasting which incorporates novel hierarchical interpolation and multi-rate data sampling techniques to specialize blocks of its architecture to different frequency band of the time-series signal. It achieves SoTA performance on several benchmark datasets, outperforming current Transformer-based models by more than 25%. 
 
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NHits.jpeg" width="300" title="N-HiTS" style="max-width: 300px">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NHits.jpeg" width="300" title="N-HiTS" align="rigth">
 
 
 * [Exponential Smoothing Recurrent Neural Network (ES-RNN)](https://www.sciencedirect.com/science/article/pii/S0169207019301153): A hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals.  This model is the winner of the M4 forecasting competition.
 
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/ESRNN.png" width="300" title="ES-RNN" style="max-width: 300px">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/ESRNN.png" width="300" title="ES-RNN" align="rigth">
 
 
 * [Neural Basis Expansion Analysis (N-BEATS)](https://arxiv.org/abs/1905.10437): A model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state of the art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train an has an interpretable configuration.
 
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBeats.png" width="300" title="N-BEATS" style="max-width: 300px">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBeats.png" width="300" title="N-BEATS" align="rigth">
 
 
 * [Neural Basis Expansion Analysis with Exogenous Variables (N-BEATSx)](https://arxiv.org/abs/2104.05522): The neural basis expansion with exogenous variables is an extension to the original N-BEATS that allows it to include time dependent covariates.
 
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" style="max-width: 300px">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" align="rigth">
 
 
-## License
+
+## 📃 License
 This project is licensed under the GPLv3 License - see the [LICENSE](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE) file for details.
 
-## How to contribute
+## 🔨 How to contribute
 
 See [CONTRIBUTING.md](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md).
 
@@ -447,8 +441,6 @@ the following references to the related papers:
   year    = {2022}
 }
 ```
-
-
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
@@ -475,17 +467,3 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
-
-<!---
-
-## Citing
-
-```bibtex
-@article{,
-    author = {},
-    title = {{}},
-    journal = {},
-    year = {}
-}
-```
--->
