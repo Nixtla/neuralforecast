@@ -22,6 +22,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "jmoralez",
+      "name": "José Morales",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8473587?v=4",
+      "profile": "https://github.com/jmoralez",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
