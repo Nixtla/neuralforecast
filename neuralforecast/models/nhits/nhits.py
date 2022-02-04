@@ -703,7 +703,7 @@ class NHITS(pl.LightningModule):
 
         return loss
 
-    def forecast(self, Y_df, X_df, S_df, batch_size=1):
+    def forecast(self, Y_df, X_df = None, S_df = None, batch_size=1):
 
         # Add forecast dates to Y_df
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
