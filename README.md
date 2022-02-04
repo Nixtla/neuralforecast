@@ -1,6 +1,6 @@
 # <center>Nixtla</center>
 
-<p aling="center" width="100%">
+<p aling="center" width="50%">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png" align="center">
 </p>
 <h1 align="center">Neural 🧠 Forecast</h1>
