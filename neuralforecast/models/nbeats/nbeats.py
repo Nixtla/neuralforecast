@@ -338,7 +338,6 @@ class _NBEATS(nn.Module):
 
         block_list = []
         for i in range(len(stack_types)):
-            #print(f'| --  Stack {stack_types[i]} (#{i})')
             for block_id in range(n_blocks[i]):
 
                 # Batch norm only on first block
@@ -399,7 +398,6 @@ class _NBEATS(nn.Module):
                 # Select type of evaluation and apply it to all layers of block
                 init_function = partial(init_weights, initialization=initialization)
                 nbeats_block.layers.apply(init_function)
-                #print(f'     | -- {nbeats_block}')
                 block_list.append(nbeats_block)
         return block_list
 
@@ -501,18 +499,18 @@ class NBEATS(pl.LightningModule):
                  n_time_in,
                  n_time_out,
                  n_x,
-                 n_x_hidden,
                  n_s,
-                 n_s_hidden,
                  shared_weights,
                  activation,
                  initialization,
                  stack_types,
                  n_blocks,
                  n_layers,
+                 n_theta_hidden,
                  n_harmonics,
                  n_polynomials,
-                 n_theta_hidden,
+                 n_x_hidden,
+                 n_s_hidden,
                  batch_normalization,
                  dropout_prob_theta,
                  learning_rate,
@@ -531,18 +529,20 @@ class NBEATS(pl.LightningModule):
 
         Parameters
         ----------
-        # TODO: Fix parameters' documentation.
-        # TODO: Remove useless parameters (dropout_prob_exogenous).
         n_time_in: int
             Multiplier to get insample size.
             Insample size = n_time_in * output_size
         n_time_out: int
             Forecast horizon.
+        n_x: int
+            Number of exogenous variables.
+        n_s: int
+            Number of static variables.
         shared_weights: bool
-            If True, repeats first block.
+            If True, all blocks within each stack will share parameters.
         activation: str
             Activation function.
-            An item from ['relu', 'softplus', 'tanh', 'selu', 'lrelu', 'prelu', 'sigmoid'].
+            An item from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].
         initialization: str
             Initialization function.
             An item from ['orthogonal', 'he_uniform', 'glorot_uniform', 'glorot_normal', 'lecun_normal'].
@@ -550,39 +550,38 @@ class NBEATS(pl.LightningModule):
             List of stack types.
             Subset from ['seasonality', 'trend', 'identity', 'exogenous', 'exogenous_tcn', 'exogenous_wavenet'].
         n_blocks: List[int]
-            Number of blocks for each stack type.
+            Number of blocks for each stack.
             Note that len(n_blocks) = len(stack_types).
         n_layers: List[int]
             Number of layers for each stack type.
             Note that len(n_layers) = len(stack_types).
-        n_hidden: List[List[int]]
+        n_theta_hidden: List[List[int]]
             Structure of hidden layers for each stack type.
             Each internal list should contain the number of units of each hidden layer.
             Note that len(n_hidden) = len(stack_types).
-        n_harmonics: List[int]
-            Number of harmonic terms for each stack type.
+        n_harmonics: int
+            Number of harmonic terms for trend stack type.
             Note that len(n_harmonics) = len(stack_types).
-        n_polynomials: List[int]
-            Number of polynomial terms for each stack type.
+            Note that it will only be used if a trend stack is used.
+        n_polynomials: int
+            Number of polynomial terms for seasonality stack type.
             Note that len(n_polynomials) = len(stack_types).
-        exogenous_n_channels:
-            Exogenous channels for non-interpretable exogenous basis.
+            Note that it will only be used if a seasonality stack is used.
+        n_x_hidden: int
+            Number of hidden output channels of exogenous_tcn and exogenous_wavenet stacks.
+        n_s_hidden: int
+            Number of encoded static features, output dim of _StaticFeaturesEncoder.
         batch_normalization: bool
             Whether perform batch normalization.
         dropout_prob_theta: float
             Float between (0, 1).
             Dropout for Nbeats basis.
-        dropout_prob_exogenous: float
-            Float between (0, 1).
-            Dropout for exogenous basis.
-        x_s_n_hidden: int
-            Number of encoded static features to calculate.
         learning_rate: float
             Learning rate between (0, 1).
         lr_decay: float
             Decreasing multiplier for the learning rate.
         lr_decay_step_size: int
-            Steps between each lerning rate decay.
+            Steps between each learning rate decay.
         weight_decay: float
             L2 penalty for optimizer.
         loss_train: str
