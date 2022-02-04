@@ -15,6 +15,71 @@
         "bug",
         "doc"
       ]
+    },
+    {
+      "login": "gdevos010",
+      "name": "Greg DeVos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15316026?v=4",
+      "profile": "https://github.com/gdevos010",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "cchallu",
+      "name": "Cristian Challu",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31133398?v=4",
+      "profile": "https://github.com/cchallu",
+      "contributions": [
+        "code"
+      ],
+    },
+    {
+      "login": "mergenthaler",
+      "name": "mergenthaler",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4086186?v=4",
+      "profile": "https://github.com/mergenthaler",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "kdgutier",
+      "name": "Kin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19935241?v=4",
+      "profile": "https://github.com/kdgutier",
+      "contributions": [
+        "code",
+        "bug",
+        "data"
+      ]
+    },
+    {
+      "login": "jmoralez",
+      "name": "José Morales",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8473587?v=4",
+      "profile": "https://github.com/jmoralez",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "alejandroxag",
+      "name": "Alejandro",
+      "avatar_url": "https://avatars.githubusercontent.com/u/64334543?v=4",
+      "profile": "https://github.com/alejandroxag",
+      "contributions": [
+        "code"
+      ]
+    },
+    { 
+      "login": "stefanialvs",
+      "name": "stefanialvs",
+      "avatar_url": "https://avatars.githubusercontent.com/u/48966177?v=4",
+      "profile": "http://lavattiata.com",
+      "contributions": [
+        "design"
+      ]
     }
   ],
   "contributorsPerLine": 7,
