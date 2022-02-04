@@ -23,7 +23,7 @@ It provides dataset loading utilities, evaluation functions and pytorch implemen
 
 [Getting started](#getting-started) •
 [Installation](#installation) •
-[Models](#available-forecasting-models)
+[Models](#forecasting-models)
 </div>
 
 
@@ -45,19 +45,19 @@ pip install neuralforecast
 
 (Installing inside a python virtualenvironment or a conda environment is recommended.)
 </details>
-  
-#### Conda
 
+<details>
+<summary>Conda</summary>
 Also you can install the *released version* of `NeuralForecast` from [conda](https://anaconda.org) with:
-
 ```python
 conda install -c nixtla neuralforecast
 ```
 
 (Installing inside a python virtualenvironment or a conda environment is recommended.)
+</details>
 
-### Development version in development mode
-
+<details>
+<summary>Dev Mode</summary>
 If you want to make some modifications to the code and see the effects in real time (without reinstalling), follow the steps below:
 
 ```bash
@@ -65,9 +65,11 @@ git clone https://github.com/Nixtla/neuralforecast.git
 cd neuralforecast
 pip install -e .
 ```
+</details>
 
 
-##  Available forecasting models
+
+##  Forecasting models
 
 * [Neural Hierarchical Interpolation for Time Series Forecasting (N-HiTS](https://arxiv.org/abs/2201.12886): A new model for long-horizon forecasting which incorporates novel hierarchical interpolation and multi-rate data sampling techniques to specialize blocks of its architecture to different frequency band of the time-series signal. It achieves SoTA performance on several benchmark datasets, outperforming current Transformer-based models by more than 25%. 
 
