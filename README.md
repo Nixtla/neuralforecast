@@ -1,9 +1,7 @@
 # <center>Nixtla</center>
 
 
-<p aling="center">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png" align="center">
-</p>    
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">Deep Learninng for time series</h3>
 
