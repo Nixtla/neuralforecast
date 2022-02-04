@@ -22,6 +22,15 @@
       "contributions": [
         "ideas"
       ]
+    },
+    {
+      "login": "alejandroxag",
+      "name": "Alejandro",
+      "avatar_url": "https://avatars.githubusercontent.com/u/64334543?v=4",
+      "profile": "https://github.com/alejandroxag",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
