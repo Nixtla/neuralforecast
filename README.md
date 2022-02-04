@@ -31,10 +31,22 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 This code is a work in progress, any contributions or issues are welcome on
 GitHub at: https://github.com/Nixtla/neuralforecast.
 
+#### PyPI
+
 You can install the *released version* of `NeuralForecast` from the [Python package index](https://pypi.org) with:
 
 ```python
 pip install neuralforecast
+```
+
+(Installing inside a python virtualenvironment or a conda environment is recommended.)
+
+#### Conda
+
+Also you can install the *released version* of `NeuralForecast` from [conda](https://anaconda.org) with:
+
+```python
+conda install -c nixtla neuralforecast
 ```
 
 (Installing inside a python virtualenvironment or a conda environment is recommended.)
