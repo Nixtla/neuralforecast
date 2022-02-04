@@ -5,14 +5,14 @@ __all__ = ['IdentityBasis', 'ExogenousBasisInterpretable', 'ExogenousBasisWavene
 
 # Cell
 import math
-import numpy as np
+from functools import partial
+from typing import Tuple
 
+import numpy as np
+import pandas as pd
 import torch as t
 import torch.nn as nn
 import torch.nn.functional as F
-
-from typing import Tuple
-from functools import partial
 
 from ..components.tcn import _TemporalConvNet
 from ..components.common import Chomp1d, RepeatVector
@@ -703,7 +703,7 @@ class NHITS(pl.LightningModule):
 
         return loss
 
-    def forecast(self, Y_df, X_df, S_df, batch_size=1):
+    def forecast(self, Y_df, X_df = None, S_df = None, batch_size=1):
 
         # Add forecast dates to Y_df
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
