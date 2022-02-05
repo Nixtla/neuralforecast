@@ -7,10 +7,10 @@ entries:
 - folders:
   - folderitems:
     - output: web,pdf
-      title: Overview
+      title: NeuralForecast Tutorials
       url: /
     output: web
-    title: Getting started
+    title: Documentation
   - folderitems:
     - output: web,pdf
       title: TSDataset Class

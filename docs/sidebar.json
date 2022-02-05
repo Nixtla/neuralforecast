@@ -1,6 +1,6 @@
 {
-  "Getting started": {
-    "Overview": "/"
+  "Documentation": {
+    "NeuralForecast Tutorials": "/"
   },
   "Data": {
     "TSDataset Class": "data__tsdataset.html",
