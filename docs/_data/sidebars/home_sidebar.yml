@@ -13,10 +13,10 @@ entries:
     title: Getting started
   - folderitems:
     - output: web,pdf
-      title: Time Series Datasets
+      title: TSDataset Class
       url: data__tsdataset.html
     - output: web,pdf
-      title: Time Series Loaders
+      title: TSLoader Class
       url: data__tsloader.html
       subfolders:
       - output: web
@@ -31,7 +31,7 @@ entries:
           title: GEFCom 2014
           url: data_datasets__gefcom2014.html
         - output: web,pdf
-          title: Long Horizon
+          title: Long-Horizon
           url: data_datasets__long_horizon.html
         - output: web,pdf
           title: M3
@@ -46,39 +46,39 @@ entries:
           title: Tourism
           url: data_datasets__tourism.html
         - output: web,pdf
-          title: Utils
+          title: Benchmark Utils
           url: data_datasets__utils.html
-        title: Datasets
+        title: Bechmark Datasets
       - output: web
         subfolderitems:
         - output: web,pdf
-          title: Utils
+          title: Dataset Utils
           url: data__utils.html
         - output: web,pdf
-          title: Scalers
+          title: Dataset Scalers
           url: data__scalers.html
-        title: Dataset utils
+        title: Dataset Utils
     output: web
     title: Data
   - folderitems:
     - output: web,pdf
-      title: Autoformer
-      url: models_transformer__autoformer.html
-    - output: web,pdf
       title: ESRNN
       url: models_esrnn__esrnn.html
     - output: web,pdf
-      title: Informer
-      url: models_transformer__informer.html
-    - output: web,pdf
-      title: MQESRNN
+      title: MQ-ESRNN
       url: models_esrnn__mqesrnn.html
     - output: web,pdf
-      title: NBEATS
+      title: N-BEATS
       url: models_nbeats__nbeats.html
     - output: web,pdf
-      title: NHITS
+      title: N-HiTS
       url: models_nhits__nhits.html
+    - output: web,pdf
+      title: Autoformer
+      url: models_transformer__autoformer.html
+    - output: web,pdf
+      title: Informer
+      url: models_transformer__informer.html
     - output: web,pdf
       title: Transformer
       url: models_transformer__transformer.html
@@ -86,13 +86,13 @@ entries:
     title: Models
   - folderitems:
     - output: web,pdf
-      title: NumPy Evaluation Metrics
+      title: NumPy Evaluation
       url: losses__numpy.html
     - output: web,pdf
-      title: PyTorch Train Losses
+      title: PyTorch Training
       url: losses__pytorch.html
     - output: web,pdf
-      title: Statistical Tests
+      title: Statistical Testing
       url: losses__gw_test.html
     - output: web,pdf
       title: Utils
@@ -101,7 +101,7 @@ entries:
     title: Evaluation
   - folderitems:
     - output: web,pdf
-      title: Utils
+      title: Experiment Utils
       url: experiments__utils.html
     output: web
     title: Experiments
