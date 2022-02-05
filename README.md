@@ -21,8 +21,8 @@ State-of-the-art time series forecasting for PyTorch.
 `NeuralForecast` is a python library for time series forecasting with deep learning. 
 It provides dataset loading utilities, evaluation functions and PyTorch implementations of state-of-the-art deep learning forecasting models.
 
-[Getting started](#getting-started) •
-[Installation](#installation) •
+[Getting started](#🧬-getting-started) •
+[Installation](#💻-installation) •
 [Models](#forecasting-models)
 </div>
 
