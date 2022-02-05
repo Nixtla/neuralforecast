@@ -34,7 +34,8 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
 [Example Jupyter Notebook](https://github.com/Nixtla/neuralforecast/blob/main/examples/getting_started.ipynb)
 
-![Tutorial](https://github.com/ajeetdsouza/zoxide/blob/main/contrib/tutorial.webp)
+https://user-images.githubusercontent.com/10517170/152658687-7934e0a4-6878-4991-89c3-0ea24b2b0696.mp4
+
 
 ## 💻  Installation
 <details>
