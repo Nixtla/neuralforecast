@@ -6,7 +6,7 @@ __all__ = ['IdentityBasis', 'TrendBasis', 'SeasonalityBasis', 'ExogenousBasisInt
 # Cell
 import math
 from functools import partial
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -496,33 +496,33 @@ from ...data.tsdataset import WindowsDataset
 # Cell
 class NBEATS(pl.LightningModule):
     def __init__(self,
-                 n_time_in,
-                 n_time_out,
-                 n_x,
-                 n_s,
-                 shared_weights,
-                 activation,
-                 initialization,
-                 stack_types,
-                 n_blocks,
-                 n_layers,
-                 n_theta_hidden,
-                 n_harmonics,
-                 n_polynomials,
-                 n_x_hidden,
-                 n_s_hidden,
-                 batch_normalization,
-                 dropout_prob_theta,
-                 learning_rate,
-                 lr_decay,
-                 lr_decay_step_size,
-                 weight_decay,
-                 loss_train,
-                 loss_hypar,
-                 loss_valid,
-                 frequency,
-                 random_seed,
-                 seasonality):
+                 n_time_in: int,
+                 n_time_out: int,
+                 n_x: int = 0,
+                 n_s: int = 0,
+                 shared_weights: bool = False,
+                 activation: str = 'ReLU',
+                 initialization: str = 'lecun_normal',
+                 stack_types: List[str] = 3 * ['identity'],
+                 n_blocks: List[int] = [1, 1, 1],
+                 n_layers: List[int] = 9 * [2],
+                 n_theta_hidden: List[List[int]] = 3 * [[512, 512]],
+                 n_harmonics: int = 5,
+                 n_polynomials: int = 5,
+                 n_x_hidden: List[int] = [0],
+                 n_s_hidden: List[int] = [0],
+                 batch_normalization: bool = False,
+                 dropout_prob_theta: float = 0.,
+                 learning_rate: float = 1e-3,
+                 lr_decay: float = 0.5,
+                 lr_decay_step_size: int = 5,
+                 weight_decay: float = 0.,
+                 loss_train: str = 'MAE',
+                 loss_hypar: float = 0.,
+                 loss_valid: str = 'MAE',
+                 frequency: str = 'D',
+                 random_seed: int = 1,
+                 seasonality: int = 1):
         super(NBEATS, self).__init__()
         """
         N-BEATS model.
