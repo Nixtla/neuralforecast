@@ -31,6 +31,8 @@ It provides dataset loading utilities, evaluation functions and PyTorch implemen
 Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
 ## 🧬 Getting Started
+![Example Notebook](https://github.com/Nixtla/neuralforecast/blob/main/examples/getting_started.ipynb)
+
 ![Tutorial](https://github.com/ajeetdsouza/zoxide/blob/main/contrib/tutorial.webp)
 
 ## 💻  Installation
