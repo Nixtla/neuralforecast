@@ -16,15 +16,26 @@
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
 [![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
 
-State-of-the-art time series forecasting for PyTorch.
+State-of-the-art time series forecasting for PyTorch. 
 
-`NeuralForecast` is a python library for time series forecasting with deep learning. 
-It provides dataset loading utilities, evaluation functions and PyTorch implementations of state-of-the-art deep learning forecasting models.
+`NeuralForecast` is Python library for time series forecasting with deep learning models. It includes *benchmark datasets*, *data-loading utilities*, *evaluation functions*, statistical *tests*, univariate model *benchmarks* and *SOTA models* implemented in PyTorch and PyTorchLightning. 
+
+
 
 [Getting started](#%F0%9F%A7%AC%20Getting%20Started) •
 [Installation](#💻-installation) •
 [Models](#forecasting-models)
 </div>
+
+## ⚡ Why?
+**Accuracy**:
+- Global model is fitted simultaneously for several time series
+- Shared information helps with highly parametrized and flexible models
+- Useful for for items/skus that have little to no history available
+
+**Efficiency:**
+ - Automatic featurization processes
+ - Fast computations (GPU or TPU).
 
 
 ## 📖 Documentation
