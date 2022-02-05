@@ -257,7 +257,7 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L308" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L307" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -288,7 +288,7 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L343" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L342" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -319,7 +319,7 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L375" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L374" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -539,98 +539,49 @@ freq: str
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span> <span class="k">as</span> <span class="nn">t</span>
-<span class="kn">from</span> <span class="nn">neuralforecast.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span><span class="p">,</span> <span class="n">mape</span><span class="p">,</span> <span class="n">smape</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">quantile_loss</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cpu&#39;</span>
-<span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span> <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;cuda&#39;</span>  
-
-<span class="n">nhits_space</span><span class="o">=</span> <span class="p">{</span><span class="c1"># Architecture parameters</span>
-               <span class="s1">&#39;model&#39;</span><span class="p">:</span><span class="s1">&#39;nhits&#39;</span><span class="p">,</span>
-               <span class="s1">&#39;mode&#39;</span><span class="p">:</span> <span class="s1">&#39;simple&#39;</span><span class="p">,</span>
-               <span class="s1">&#39;n_time_in&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">]),</span>
-               <span class="s1">&#39;n_time_out&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">24</span><span class="p">]),</span>
-               <span class="s1">&#39;n_x_hidden&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">quniform</span><span class="p">(</span><span class="s1">&#39;n_x_hidden&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-               <span class="s1">&#39;n_s_hidden&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-               <span class="s1">&#39;shared_weights&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;shared_weights&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">]),</span>
-               <span class="s1">&#39;activation&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;SELU&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;initialization&#39;</span><span class="p">:</span>  <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;initialization&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;glorot_normal&#39;</span><span class="p">,</span><span class="s1">&#39;he_normal&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;stack_types&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;stack_types&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;identity&#39;</span><span class="p">]]),</span>
-               <span class="s1">&#39;n_blocks&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="p">]),</span>
-               <span class="s1">&#39;n_layers&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_layers&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="p">]),</span>
-               <span class="s1">&#39;n_hidden&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="mi">256</span> <span class="p">]),</span>
-               <span class="s1">&#39;n_pool_kernel_size&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_pool_kernel_size&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="p">[</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span> <span class="p">]</span> <span class="p">]),</span>
-               <span class="s1">&#39;n_freq_downsample&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_freq_downsample&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="p">[</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">1</span> <span class="p">]</span> <span class="p">]),</span> 
-               <span class="s1">&#39;pooling_mode&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;pooling_mode&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;interpolation_mode&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;interpolation_mode&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;linear&#39;</span><span class="p">]),</span>
-               <span class="c1"># Regularization and optimization parameters</span>
-               <span class="s1">&#39;batch_normalization&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;batch_normalization&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">]),</span>
-               <span class="s1">&#39;dropout_prob_theta&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="s1">&#39;dropout_prob_theta&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
-               <span class="s1">&#39;dropout_prob_exogenous&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="s1">&#39;dropout_prob_exogenous&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
-               <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">loguniform</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">5e-4</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)),</span>
-               <span class="s1">&#39;lr_decay&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="s1">&#39;lr_decay&#39;</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
-               <span class="s1">&#39;n_lr_decays&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_lr_decays&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-               <span class="s1">&#39;weight_decay&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">loguniform</span><span class="p">(</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">5e-5</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">5e-3</span><span class="p">)),</span>
-               <span class="s1">&#39;max_epochs&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">]),</span> <span class="c1">#&#39;n_iterations&#39;: hp.choice(&#39;n_iterations&#39;, [10])</span>
-               <span class="s1">&#39;max_steps&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">]),</span>
-               <span class="s1">&#39;early_stop_patience&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;early_stop_patience&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">16</span><span class="p">]),</span>
-               <span class="s1">&#39;eval_freq&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;eval_freq&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">50</span><span class="p">]),</span>
-               <span class="s1">&#39;loss_train&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;MAE&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;loss_hypar&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;loss_hypar&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">]),</span>                
-               <span class="s1">&#39;loss_valid&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;loss_valid&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;MAE&#39;</span><span class="p">]),</span> <span class="c1">#[args.val_loss]),</span>
-               <span class="s1">&#39;l1_theta&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;l1_theta&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-               <span class="c1"># Data parameters</span>
-               <span class="s1">&#39;normalizer_y&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">]),</span>
-               <span class="s1">&#39;normalizer_x&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;median&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;complete_windows&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;complete_windows&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">False</span><span class="p">]),</span>
-               <span class="s1">&#39;frequency&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">]),</span>
-               <span class="s1">&#39;seasonality&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;seasonality&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">24</span><span class="p">]),</span>      
-               <span class="s1">&#39;idx_to_sample_freq&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;idx_to_sample_freq&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">24</span><span class="p">]),</span>
-               <span class="s1">&#39;val_idx_to_sample_freq&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;val_idx_to_sample_freq&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">24</span><span class="p">]),</span>
-               <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">32</span><span class="p">]),</span>
-               <span class="s1">&#39;n_windows&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_windows&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">256</span><span class="p">]),</span>
-               <span class="s1">&#39;random_seed&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">quniform</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-               <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;device&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">device</span><span class="p">])}</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
-<span class="n">dataset</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">]</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span><span class="p">,</span> <span class="n">rmse</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.models.nhits.nhits</span> <span class="kn">import</span> <span class="n">suggested_space</span> <span class="k">as</span> <span class="n">nhits_suggested_space</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.models.nbeats.nbeats</span> <span class="kn">import</span> <span class="n">suggested_space</span> <span class="k">as</span> <span class="n">nbeats_suggested_space</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span><span class="p">,</span> <span class="n">EPFInfo</span>
+</pre></div>
 
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">]</span>
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
-
 <span class="n">X_df</span> <span class="o">=</span> <span class="n">X_df</span><span class="p">[[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;week_day&#39;</span><span class="p">]]</span>
-<span class="n">Y_min</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+</pre></div>
 
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">nhits_space</span> <span class="o">=</span> <span class="n">nhits_suggested_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
+<span class="n">nhits_space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
 <span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">nhits_space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
                           <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
                           <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
@@ -647,14 +598,14 @@ freq: str
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>  0%|                                                                                                                                                                 | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
+<pre>  0%|          | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
 </div>
 </div>
 
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.007188 seconds
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.015753 seconds
 INFO:hyperopt.tpe:TPE using 0 trials
 </pre>
 </div>
@@ -663,55 +614,53 @@ INFO:hyperopt.tpe:TPE using 0 trials
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>===============================================                                                                                                                                                             
+<pre>===============================================      
 
-activation                                SELU                                                                                                                                                              
-batch_normalization                      False
-batch_size                                  32
-complete_windows                         False
-device                                     cpu
-dropout_prob_exogenous                0.419834
-dropout_prob_theta                    0.088571
-early_stop_patience                         16
-eval_freq                                   50
-frequency                                    H
-idx_to_sample_freq                          24
-initialization                       he_normal
-interpolation_mode                      linear
-l1_theta                                     0
-learning_rate                         0.000725
-loss_hypar                                 0.5
-loss_train                                 MAE
-loss_valid                                 MAE
-lr_decay                              0.315954
-max_epochs                                  10
-max_steps                                 None
-mode                                    simple
-model                                    nhits
-n_blocks                                (1, 1)
-n_freq_downsample                      (24, 1)
-n_hidden                                   256
-n_layers                                (2, 2)
-n_lr_decays                                  3
-n_pool_kernel_size                      (4, 1)
-n_s_hidden                                   0
-n_time_in                                  168
-n_time_out                                  24
-n_windows                                  256
-n_x_hidden                                 7.0
-normalizer_x                            median
-normalizer_y                              None
-pooling_mode                               max
-random_seed                               14.0
-seasonality                                 24
-shared_weights                           False
-stack_types               (identity, identity)
-val_idx_to_sample_freq                      24
-weight_decay                          0.004078
+activation                                          ReLU
+batch_normalization                                False
+batch_size                                             1
+complete_windows                                    True
+dropout_prob_theta                                     0
+early_stop_patience                                   10
+eval_freq                                             50
+frequency                                              H
+idx_to_sample_freq                                     1
+initialization                              lecun_normal
+interpolation_mode                                linear
+learning_rate                                       0.01
+loss_hypar                                           0.5
+loss_train                                           MAE
+loss_valid                                           MAE
+lr_decay                                             0.5
+max_epochs                                          None
+max_steps                                             10
+mode                                              simple
+model                                              nhits
+n_blocks                                               3
+n_freq_downsample                            (24, 12, 1)
+n_layers                                               3
+n_lr_decays                                            3
+n_mlp_units                                          128
+n_pool_kernel_size                             (4, 4, 4)
+n_s                                                    0
+n_s_hidden                                             0
+n_time_in                                             72
+n_time_out                                            24
+n_windows                                            128
+n_x                                                    1
+n_x_hidden                                             1
+normalizer_x                                        None
+normalizer_y                                        None
+pooling_mode                                         max
+random_seed                                          7.0
+shared_weights                                     False
+stack_types               (identity, identity, identity)
+val_idx_to_sample_freq                                 1
+weight_decay                                           0
 dtype: object
-===============================================                                                                                                                                                             
+===============================================      
 
-  0%|                                                                                                                                                                 | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
+  0%|          | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
 </div>
 </div>
 
@@ -731,7 +680,7 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=99.36, 	52080 time stamps 
 Outsample percentage=0.64, 	336 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
 INFO:root:Train Validation splits
@@ -747,7 +696,7 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=0.32, 	168 time stamps 
 Outsample percentage=99.68, 	52248 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
 INFO:root:Train Validation splits
@@ -763,16 +712,13 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=0.32, 	168 time stamps 
 Outsample percentage=99.68, 	52248 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/loops/epoch/training_epoch_loop.py:49: LightningDeprecationWarning: Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7. Use `max_steps = -1` instead.
-  &#34;Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7.&#34;
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
   f&#34;Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will &#34;
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
   f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
 
 GPU available: False, used: False
@@ -781,27 +727,12 @@ IPU available: False, using: 0 IPUs
 
   | Name  | Type   | Params
 ---------------------------------
-0 | model | _NHITS | 376 K 
+0 | model | _NHITS | 523 K 
 ---------------------------------
-376 K     Trainable params
+523 K     Trainable params
 0         Non-trainable params
-376 K     Total params
-1.508     Total estimated model params size (MB)
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/torch/nn/functional.py:3635: UserWarning: Default upsampling behavior when mode=linear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
-  &#34;See the documentation of nn.Upsample for details.&#34;.format(mode)
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-
-/Users/fedex/projects/nixtlats/nixtlats/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
-  &#39;This class wraps the pytorch `DataLoader` with a &#39;
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-
+523 K     Total params
+2.095     Total estimated model params size (MB)
 </pre>
 </div>
 </div>
@@ -809,19 +740,24 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>VAL y_true.shape: (7, 24)                                                                                                                                                                                   
-VAL y_hat.shape: (7, 24)                                                                                                                                                                                    
-  0%|                                                                                                                                                                 | 0/2 [00:01&lt;?, ?trial/s, best loss=?]TEST y_true.shape: (7, 24)                                                                                                                                                                                  
-TEST y_hat.shape: (7, 24)                                                                                                                                                                                   
- 50%|████████████████████████████████████████████████████████████████████                                                                    | 1/2 [00:01&lt;00:01,  1.06s/trial, best loss: 7.400027275085449]</pre>
+<pre>Validation sanity check: 0it [00:00, ?it/s]          
+Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]
+  0%|          | 0/2 [00:01&lt;?, ?trial/s, best loss=?]</pre>
 </div>
 </div>
 
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.007860 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 7.400027
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/torch/nn/functional.py:3635: UserWarning: Default upsampling behavior when mode=linear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
+  &#34;See the documentation of nn.Upsample for details.&#34;.format(mode)
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
 </pre>
 </div>
 </div>
@@ -829,55 +765,139 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 7.400027
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>===============================================                                                                                                                                                             
+<pre>Training: 0it [00:00, ?it/s]                         
+Training:   0%|          | 0/1 [00:00&lt;?, ?it/s]      
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s]       
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00, 10.97it/s, loss=3.74, train_loss_step=3.740]
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00, 10.59it/s, loss=3.74, train_loss_step=3.740, train_loss_epoch=3.740]
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.74, train_loss_step=3.740, train_loss_epoch=3.740]        
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.74, train_loss_step=3.740, train_loss_epoch=3.740]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00, 15.75it/s, loss=47.5, train_loss_step=91.20, train_loss_epoch=3.740]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00, 14.98it/s, loss=47.5, train_loss_step=91.20, train_loss_epoch=91.20]
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=47.5, train_loss_step=91.20, train_loss_epoch=91.20]        
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=47.5, train_loss_step=91.20, train_loss_epoch=91.20]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00, 15.76it/s, loss=34.4, train_loss_step=8.380, train_loss_epoch=91.20]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00, 14.90it/s, loss=34.4, train_loss_step=8.380, train_loss_epoch=8.380]
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=34.4, train_loss_step=8.380, train_loss_epoch=8.380]        
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=34.4, train_loss_step=8.380, train_loss_epoch=8.380]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00, 15.54it/s, loss=27.6, train_loss_step=7.210, train_loss_epoch=8.380]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00, 14.75it/s, loss=27.6, train_loss_step=7.210, train_loss_epoch=7.210]
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=27.6, train_loss_step=7.210, train_loss_epoch=7.210]        
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=27.6, train_loss_step=7.210, train_loss_epoch=7.210]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00, 15.63it/s, loss=23, train_loss_step=4.580, train_loss_epoch=7.210]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00, 14.90it/s, loss=23, train_loss_step=4.580, train_loss_epoch=4.580]
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=23, train_loss_step=4.580, train_loss_epoch=4.580]        
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=23, train_loss_step=4.580, train_loss_epoch=4.580]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00, 15.71it/s, loss=19.9, train_loss_step=4.330, train_loss_epoch=4.580]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00, 14.88it/s, loss=19.9, train_loss_step=4.330, train_loss_epoch=4.330]
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=19.9, train_loss_step=4.330, train_loss_epoch=4.330]        
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=19.9, train_loss_step=4.330, train_loss_epoch=4.330]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00, 15.82it/s, loss=17.6, train_loss_step=4.110, train_loss_epoch=4.330]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00, 15.03it/s, loss=17.6, train_loss_step=4.110, train_loss_epoch=4.110]
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=17.6, train_loss_step=4.110, train_loss_epoch=4.110]        
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=17.6, train_loss_step=4.110, train_loss_epoch=4.110]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00, 14.76it/s, loss=15.9, train_loss_step=3.890, train_loss_epoch=4.110]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00, 13.96it/s, loss=15.9, train_loss_step=3.890, train_loss_epoch=3.890]
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=15.9, train_loss_step=3.890, train_loss_epoch=3.890]        
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=15.9, train_loss_step=3.890, train_loss_epoch=3.890]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00, 15.45it/s, loss=14.5, train_loss_step=3.270, train_loss_epoch=3.890]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00, 14.71it/s, loss=14.5, train_loss_step=3.270, train_loss_epoch=3.270]
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=14.5, train_loss_step=3.270, train_loss_epoch=3.270]        
+Epoch 9:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=14.5, train_loss_step=3.270, train_loss_epoch=3.270]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 15.72it/s, loss=13.4, train_loss_step=3.280, train_loss_epoch=3.270]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 14.92it/s, loss=13.4, train_loss_step=3.280, train_loss_epoch=3.280]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 14.29it/s, loss=13.4, train_loss_step=3.280, train_loss_epoch=3.280]
+  0%|          | 0/2 [00:01&lt;?, ?trial/s, best loss=?]</pre>
+</div>
+</div>
 
-activation                                SELU                                                                                                                                                              
-batch_normalization                      False
-batch_size                                  32
-complete_windows                         False
-device                                     cpu
-dropout_prob_exogenous                0.430068
-dropout_prob_theta                    0.079266
-early_stop_patience                         16
-eval_freq                                   50
-frequency                                    H
-idx_to_sample_freq                          24
-initialization                       he_normal
-interpolation_mode                      linear
-l1_theta                                     0
-learning_rate                         0.000831
-loss_hypar                                 0.5
-loss_train                                 MAE
-loss_valid                                 MAE
-lr_decay                              0.341135
-max_epochs                                  10
-max_steps                                 None
-mode                                    simple
-model                                    nhits
-n_blocks                                (1, 1)
-n_freq_downsample                      (24, 1)
-n_hidden                                   256
-n_layers                                (2, 2)
-n_lr_decays                                  3
-n_pool_kernel_size                      (4, 1)
-n_s_hidden                                   0
-n_time_in                                  168
-n_time_out                                  24
-n_windows                                  256
-n_x_hidden                                 9.0
-normalizer_x                            median
-normalizer_y                              None
-pooling_mode                               max
-random_seed                               18.0
-seasonality                                 24
-shared_weights                           False
-stack_types               (identity, identity)
-val_idx_to_sample_freq                      24
-weight_decay                          0.001918
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 1it [00:00, ?it/s]                       
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]    
+VAL y_true.shape: (145, 24)                          
+VAL y_hat.shape: (145, 24)                           
+Predicting: 1it [00:00, ?it/s]                       
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]    
+TEST y_true.shape: (145, 24)                         
+TEST y_hat.shape: (145, 24)                          
+ 50%|█████     | 1/2 [00:02&lt;00:02,  2.06s/trial, best loss: 8.65079402923584]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.014779 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.650794
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>===============================================                              
+
+activation                                          ReLU                     
+batch_normalization                                False
+batch_size                                             1
+complete_windows                                    True
+dropout_prob_theta                                     0
+early_stop_patience                                   10
+eval_freq                                             50
+frequency                                              H
+idx_to_sample_freq                                     1
+initialization                              lecun_normal
+interpolation_mode                                linear
+learning_rate                                      0.005
+loss_hypar                                           0.5
+loss_train                                           MAE
+loss_valid                                           MAE
+lr_decay                                             0.5
+max_epochs                                          None
+max_steps                                             10
+mode                                              simple
+model                                              nhits
+n_blocks                                               1
+n_freq_downsample                           (180, 60, 1)
+n_layers                                               2
+n_lr_decays                                            3
+n_mlp_units                                          256
+n_pool_kernel_size                             (2, 2, 2)
+n_s                                                    0
+n_s_hidden                                             0
+n_time_in                                             72
+n_time_out                                            24
+n_windows                                            512
+n_x                                                    1
+n_x_hidden                                             1
+normalizer_x                                        None
+normalizer_y                                        None
+pooling_mode                                         max
+random_seed                                         19.0
+shared_weights                                     False
+stack_types               (identity, identity, identity)
+val_idx_to_sample_freq                                 1
+weight_decay                                           0
 dtype: object
-===============================================                                                                                                                                                             
+===============================================                              
 
- 50%|████████████████████████████████████████████████████████████████████                                                                    | 1/2 [00:01&lt;00:01,  1.06s/trial, best loss: 7.400027275085449]</pre>
+ 50%|█████     | 1/2 [00:02&lt;00:02,  2.06s/trial, best loss: 8.65079402923584]</pre>
 </div>
 </div>
 
@@ -897,7 +917,7 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=99.36, 	52080 time stamps 
 Outsample percentage=0.64, 	336 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
 INFO:root:Train Validation splits
@@ -913,7 +933,7 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=0.32, 	168 time stamps 
 Outsample percentage=99.68, 	52248 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
 INFO:root:Train Validation splits
@@ -929,16 +949,13 @@ Available percentage=100.0, 	52416 time stamps
 Insample  percentage=0.32, 	168 time stamps 
 Outsample percentage=99.68, 	52248 time stamps 
 
-/Users/fedex/projects/nixtlats/nixtlats/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/loops/epoch/training_epoch_loop.py:49: LightningDeprecationWarning: Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7. Use `max_steps = -1` instead.
-  &#34;Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7.&#34;
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
   f&#34;Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will &#34;
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
   f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
 
 GPU available: False, used: False
@@ -947,25 +964,35 @@ IPU available: False, using: 0 IPUs
 
   | Name  | Type   | Params
 ---------------------------------
-0 | model | _NHITS | 376 K 
+0 | model | _NHITS | 361 K 
 ---------------------------------
-376 K     Trainable params
+361 K     Trainable params
 0         Non-trainable params
-376 K     Total params
-1.508     Total estimated model params size (MB)
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+361 K     Total params
+1.447     Total estimated model params size (MB)
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Validation sanity check: 0it [00:00, ?it/s]                                  
+Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]               
+ 50%|█████     | 1/2 [00:03&lt;00:02,  2.06s/trial, best loss: 8.65079402923584]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/torch/nn/functional.py:3635: UserWarning: Default upsampling behavior when mode=linear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/torch/nn/functional.py:3635: UserWarning: Default upsampling behavior when mode=linear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
   &#34;See the documentation of nn.Upsample for details.&#34;.format(mode)
 
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-
-/Users/fedex/projects/nixtlats/nixtlats/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
-  &#39;This class wraps the pytorch `DataLoader` with a &#39;
-
-/Users/fedex/opt/miniconda3/envs/nixtla/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:117: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 
 </pre>
@@ -975,11 +1002,77 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>VAL y_true.shape: (7, 24)                                                                                                                                                                                   
-VAL y_hat.shape: (7, 24)                                                                                                                                                                                    
- 50%|████████████████████████████████████████████████████████████████████                                                                    | 1/2 [00:02&lt;00:01,  1.06s/trial, best loss: 7.400027275085449]TEST y_true.shape: (7, 24)                                                                                                                                                                                  
-TEST y_hat.shape: (7, 24)                                                                                                                                                                                   
-100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:02&lt;00:00,  1.05s/trial, best loss: 6.325213432312012]
+<pre>Training: 0it [00:00, ?it/s]                                                 
+Training:   0%|          | 0/1 [00:00&lt;?, ?it/s]                              
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s]                               
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00, 14.33it/s, loss=4.41, train_loss_step=4.410]
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00, 13.66it/s, loss=4.41, train_loss_step=4.410, train_loss_epoch=4.410]
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.41, train_loss_step=4.410, train_loss_epoch=4.410]        
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.41, train_loss_step=4.410, train_loss_epoch=4.410]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00, 14.10it/s, loss=32.7, train_loss_step=61.00, train_loss_epoch=4.410]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00, 13.46it/s, loss=32.7, train_loss_step=61.00, train_loss_epoch=61.00]
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=32.7, train_loss_step=61.00, train_loss_epoch=61.00]        
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=32.7, train_loss_step=61.00, train_loss_epoch=61.00]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00, 14.32it/s, loss=24.8, train_loss_step=9.040, train_loss_epoch=61.00]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00, 13.57it/s, loss=24.8, train_loss_step=9.040, train_loss_epoch=9.040]
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=24.8, train_loss_step=9.040, train_loss_epoch=9.040]        
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=24.8, train_loss_step=9.040, train_loss_epoch=9.040]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00, 14.42it/s, loss=23.3, train_loss_step=18.60, train_loss_epoch=9.040]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00, 13.67it/s, loss=23.3, train_loss_step=18.60, train_loss_epoch=18.60]
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=23.3, train_loss_step=18.60, train_loss_epoch=18.60]        
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=23.3, train_loss_step=18.60, train_loss_epoch=18.60]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00, 14.10it/s, loss=21.7, train_loss_step=15.40, train_loss_epoch=18.60]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00, 13.43it/s, loss=21.7, train_loss_step=15.40, train_loss_epoch=15.40]
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=21.7, train_loss_step=15.40, train_loss_epoch=15.40]        
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=21.7, train_loss_step=15.40, train_loss_epoch=15.40]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00, 14.30it/s, loss=19.9, train_loss_step=11.00, train_loss_epoch=15.40]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00, 13.48it/s, loss=19.9, train_loss_step=11.00, train_loss_epoch=11.00]
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=19.9, train_loss_step=11.00, train_loss_epoch=11.00]        
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=19.9, train_loss_step=11.00, train_loss_epoch=11.00]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00, 13.44it/s, loss=18, train_loss_step=6.410, train_loss_epoch=11.00]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00, 12.77it/s, loss=18, train_loss_step=6.410, train_loss_epoch=6.410]
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=18, train_loss_step=6.410, train_loss_epoch=6.410]        
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=18, train_loss_step=6.410, train_loss_epoch=6.410]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00, 13.83it/s, loss=16.3, train_loss_step=4.910, train_loss_epoch=6.410]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00, 13.16it/s, loss=16.3, train_loss_step=4.910, train_loss_epoch=4.910]
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=16.3, train_loss_step=4.910, train_loss_epoch=4.910]        
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=16.3, train_loss_step=4.910, train_loss_epoch=4.910]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00, 14.30it/s, loss=14.9, train_loss_step=3.760, train_loss_epoch=4.910]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00, 13.64it/s, loss=14.9, train_loss_step=3.760, train_loss_epoch=3.760]
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=14.9, train_loss_step=3.760, train_loss_epoch=3.760]        
+Epoch 9:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=14.9, train_loss_step=3.760, train_loss_epoch=3.760]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 14.31it/s, loss=13.9, train_loss_step=3.990, train_loss_epoch=3.760]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 13.57it/s, loss=13.9, train_loss_step=3.990, train_loss_epoch=3.990]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00, 13.04it/s, loss=13.9, train_loss_step=3.990, train_loss_epoch=3.990]
+ 50%|█████     | 1/2 [00:03&lt;00:02,  2.06s/trial, best loss: 8.65079402923584]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 1it [00:00, ?it/s]                                               
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]                            
+VAL y_true.shape: (145, 24)                                                  
+VAL y_hat.shape: (145, 24)                                                   
+Predicting: 1it [00:00, ?it/s]                                               
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]                            
+TEST y_true.shape: (145, 24)                                                 
+TEST y_hat.shape: (145, 24)                                                  
+100%|██████████| 2/2 [00:04&lt;00:00,  2.03s/trial, best loss: 8.560818672180176]
 </pre>
 </div>
 </div>
@@ -997,74 +1090,509 @@ TEST y_hat.shape: (7, 24)
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.long_horizon</span> <span class="kn">import</span> <span class="n">LongHorizon</span>
-
-<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">LongHorizon</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;ETTm2&#39;</span><span class="p">)</span>
-<span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">nbeats_space</span> <span class="o">=</span> <span class="n">nbeats_suggested_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
+<span class="n">nbeats_space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
+<span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">nbeats_space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
+                          <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
+                          <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
+                          <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">results_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{})</span>
 </pre></div>
 
     </div>
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>  0%|          | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
 </div>
-    {% endraw %}
+</div>
 
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
+<div class="output_area">
 
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#                 &#39;model&#39;:&#39;autoformer&#39;,</span>
-<span class="c1">#                 &#39;mode&#39;: &#39;iterate_windows&#39;,</span>
-<span class="c1">#                 &#39;seq_len&#39;: hp.choice(&#39;seq_len&#39;, [96]),</span>
-<span class="c1">#                 &#39;label_len&#39;: hp.choice(&#39;label_len&#39;, [48]),</span>
-<span class="c1">#                 &#39;pred_len&#39;: hp.choice(&#39;pred_len&#39;, [24]),</span>
-<span class="c1">#                 &#39;output_attention&#39;: hp.choice(&#39;output_attention&#39;, [False]),</span>
-<span class="c1">#                 &#39;enc_in&#39;: hp.choice(&#39;enc_in&#39;, [7]),</span>
-<span class="c1">#                 &#39;dec_in&#39;: hp.choice(&#39;dec_in&#39;, [7]),</span>
-<span class="c1">#                 &#39;d_model&#39;: hp.choice(&#39;d_model&#39;, [512]),</span>
-<span class="c1">#                 &#39;c_out&#39;: hp.choice(&#39;c_out&#39;, [7]),</span>
-<span class="c1">#                 &#39;embed&#39;: hp.choice(&#39;embed&#39;, [&#39;timeF&#39;]),</span>
-<span class="c1">#                 &#39;freq&#39;: hp.choice(&#39;freq&#39;, [&#39;h&#39;]),</span>
-<span class="c1">#                 &#39;dropout&#39;: hp.choice(&#39;dropout&#39;, [0.05]),</span>
-<span class="c1">#                 &#39;factor&#39;: hp.choice(&#39;factor&#39;, [1]),</span>
-<span class="c1">#                 &#39;n_heads&#39;: hp.choice(&#39;n_heads&#39;, [8]),</span>
-<span class="c1">#                 &#39;d_ff&#39;: hp.choice(&#39;d_ff&#39;, [2_048]),</span>
-<span class="c1">#                 &#39;moving_avg&#39;: hp.choice(&#39;moving_avg&#39;, [25]),</span>
-<span class="c1">#                 &#39;activation&#39;: hp.choice(&#39;activation&#39;, [&#39;gelu&#39;]),</span>
-<span class="c1">#                 &#39;e_layers&#39;: hp.choice(&#39;e_layers&#39;, [2]),</span>
-<span class="c1">#                 &#39;d_layers&#39;: hp.choice(&#39;d_layers&#39;, [1]),</span>
-<span class="c1">#                 # Regularization and optimization parameters</span>
-<span class="c1">#                 &#39;learning_rate&#39;: hp.choice(&#39;learning_rate&#39;, [0.001]),</span>
-<span class="c1">#                 &#39;lr_decay&#39;: hp.choice(&#39;lr_decay&#39;, [0.5]),</span>
-<span class="c1">#                 &#39;n_lr_decays&#39;: hp.choice(&#39;n_lr_decays&#39;, [3]), </span>
-<span class="c1">#                 &#39;weight_decay&#39;: hp.choice(&#39;weight_decay&#39;, [0]), </span>
-<span class="c1">#                 &#39;max_epochs&#39;: hp.choice(&#39;max_epochs&#39;, [10]),</span>
-<span class="c1">#                 &#39;max_steps&#39;: hp.choice(&#39;max_steps&#39;, [None]),</span>
-<span class="c1">#                 &#39;early_stop_patience&#39;: hp.choice(&#39;early_stop_patience&#39;, [20]),</span>
-<span class="c1">#                 &#39;eval_freq&#39;: hp.choice(&#39;eval_freq&#39;, [50]),</span>
-<span class="c1">#                 &#39;loss_train&#39;: hp.choice(&#39;loss&#39;, [&#39;MAE&#39;]),</span>
-<span class="c1">#                 &#39;loss_hypar&#39;: hp.choice(&#39;loss_hypar&#39;, [0.5]),                </span>
-<span class="c1">#                 &#39;loss_valid&#39;: hp.choice(&#39;loss_valid&#39;, [&#39;MAE&#39;]),</span>
-<span class="c1">#                 # Data parameters</span>
-<span class="c1">#                 &#39;n_time_in&#39;: hp.choice(&#39;n_time_in&#39;, [96]),</span>
-<span class="c1">#                 &#39;n_time_out&#39;: hp.choice(&#39;n_time_out&#39;, [24]),</span>
-<span class="c1">#                 &#39;normalizer_y&#39;: hp.choice(&#39;normalizer_y&#39;, [None]),</span>
-<span class="c1">#                 &#39;normalizer_x&#39;: hp.choice(&#39;normalizer_x&#39;, [None]),</span>
-<span class="c1">#                 &#39;val_idx_to_sample_freq&#39;: hp.choice(&#39;val_idx_to_sample_freq&#39;, [1]),</span>
-<span class="c1">#                 &#39;batch_size&#39;: hp.choice(&#39;batch_size&#39;, [32]),</span>
-<span class="c1">#                 &#39;random_seed&#39;: hp.choice(&#39;random_seed&#39;, [1])}</span>
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.013242 seconds
+INFO:hyperopt.tpe:TPE using 0 trials
+</pre>
+</div>
+</div>
 
-<span class="c1"># trials = hyperopt_tunning(space=autoformer_space, hyperopt_max_evals=2, loss_function_val=mae,</span>
-<span class="c1">#             loss_functions_test={&#39;mae&#39;: mae, &#39;rmse&#39;: rmse},</span>
-<span class="c1">#             S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=[],</span>
-<span class="c1">#             ds_in_val=11520, ds_in_test=11520, return_forecasts=True, save_progress=False, results_file=None, loss_kwargs={})</span>
-</pre></div>
+<div class="output_area">
 
-    </div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>===============================================      
+
+activation                                          ReLU
+batch_normalization                                False
+batch_size                                             1
+complete_windows                                    True
+dropout_prob_theta                                     0
+early_stop_patience                                   10
+eval_freq                                             50
+frequency                                              H
+idx_to_sample_freq                                     1
+initialization                              lecun_normal
+learning_rate                                     0.0001
+loss_hypar                                           0.5
+loss_train                                           MAE
+loss_valid                                           MAE
+lr_decay                                             0.5
+max_epochs                                          None
+max_steps                                             10
+mode                                              simple
+model                                             nbeats
+n_blocks                                               3
+n_layers                                               3
+n_lr_decays                                            3
+n_mlp_units                                          512
+n_s                                                    0
+n_s_hidden                                             0
+n_time_in                                             72
+n_time_out                                            24
+n_windows                                            512
+n_x                                                    1
+n_x_hidden                                             1
+normalizer_x                                        None
+normalizer_y                                        None
+random_seed                                          9.0
+shared_weights                                     False
+stack_types               (identity, identity, identity)
+val_idx_to_sample_freq                                 1
+weight_decay                                           0
+dtype: object
+===============================================      
+
+  0%|          | 0/2 [00:00&lt;?, ?trial/s, best loss=?]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2018-12-11 2018-12-24 23:00:00
+          1           2013-01-01 2018-12-10 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=99.36, 	52080 time stamps 
+Outsample percentage=0.64, 	336 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2013-01-01 2018-12-24 23:00:00
+          1           2018-12-11 2018-12-17 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=0.32, 	168 time stamps 
+Outsample percentage=99.68, 	52248 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2013-01-01 2018-12-17 23:00:00
+          1           2018-12-18 2018-12-24 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=0.32, 	168 time stamps 
+Outsample percentage=99.68, 	52248 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
+  f&#34;Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will &#34;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
+
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+
+  | Name  | Type    | Params
+----------------------------------
+0 | model | _NBEATS | 5.9 M 
+----------------------------------
+5.9 M     Trainable params
+0         Non-trainable params
+5.9 M     Total params
+23.799    Total estimated model params size (MB)
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Validation sanity check: 0it [00:00, ?it/s]          
+Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]
+  0%|          | 0/2 [00:01&lt;?, ?trial/s, best loss=?]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Training: 0it [00:00, ?it/s]                         
+Training:   0%|          | 0/1 [00:00&lt;?, ?it/s]      
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s]       
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  2.83it/s]
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  2.81it/s, loss=4.76, train_loss_step=4.760]
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  2.78it/s, loss=4.76, train_loss_step=4.760, train_loss_epoch=4.760]
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.76, train_loss_step=4.760, train_loss_epoch=4.760]        
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.76, train_loss_step=4.760, train_loss_epoch=4.760]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  2.84it/s, loss=4.76, train_loss_step=4.760, train_loss_epoch=4.760]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  2.81it/s, loss=4.22, train_loss_step=3.690, train_loss_epoch=4.760]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  2.78it/s, loss=4.22, train_loss_step=3.690, train_loss_epoch=3.690]
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.22, train_loss_step=3.690, train_loss_epoch=3.690]        
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.22, train_loss_step=3.690, train_loss_epoch=3.690]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  2.86it/s, loss=4.22, train_loss_step=3.690, train_loss_epoch=3.690]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  2.84it/s, loss=4.15, train_loss_step=4.020, train_loss_epoch=3.690]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  2.81it/s, loss=4.15, train_loss_step=4.020, train_loss_epoch=4.020]
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.15, train_loss_step=4.020, train_loss_epoch=4.020]        
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.15, train_loss_step=4.020, train_loss_epoch=4.020]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  2.84it/s, loss=4.15, train_loss_step=4.020, train_loss_epoch=4.020]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  2.81it/s, loss=4.04, train_loss_step=3.710, train_loss_epoch=4.020]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  2.78it/s, loss=4.04, train_loss_step=3.710, train_loss_epoch=3.710]
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.04, train_loss_step=3.710, train_loss_epoch=3.710]        
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=4.04, train_loss_step=3.710, train_loss_epoch=3.710]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  2.72it/s, loss=4.04, train_loss_step=3.710, train_loss_epoch=3.710]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  2.69it/s, loss=3.99, train_loss_step=3.750, train_loss_epoch=3.710]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  2.67it/s, loss=3.99, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.99, train_loss_step=3.750, train_loss_epoch=3.750]        
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.99, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  2.48it/s, loss=3.99, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  2.46it/s, loss=3.95, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  2.43it/s, loss=3.95, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.95, train_loss_step=3.750, train_loss_epoch=3.750]        
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.95, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  2.10it/s, loss=3.95, train_loss_step=3.750, train_loss_epoch=3.750]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  2.07it/s, loss=3.88, train_loss_step=3.510, train_loss_epoch=3.750]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  2.03it/s, loss=3.88, train_loss_step=3.510, train_loss_epoch=3.510]
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.88, train_loss_step=3.510, train_loss_epoch=3.510]        
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.88, train_loss_step=3.510, train_loss_epoch=3.510]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  2.18it/s, loss=3.88, train_loss_step=3.510, train_loss_epoch=3.510]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  2.16it/s, loss=3.83, train_loss_step=3.490, train_loss_epoch=3.510]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  2.14it/s, loss=3.83, train_loss_step=3.490, train_loss_epoch=3.490]
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.83, train_loss_step=3.490, train_loss_epoch=3.490]        
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.83, train_loss_step=3.490, train_loss_epoch=3.490]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  2.20it/s, loss=3.83, train_loss_step=3.490, train_loss_epoch=3.490]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  2.18it/s, loss=3.77, train_loss_step=3.210, train_loss_epoch=3.490]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  2.17it/s, loss=3.77, train_loss_step=3.210, train_loss_epoch=3.210]
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.77, train_loss_step=3.210, train_loss_epoch=3.210]        
+Epoch 9:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=3.77, train_loss_step=3.210, train_loss_epoch=3.210]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  2.18it/s, loss=3.77, train_loss_step=3.210, train_loss_epoch=3.210]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  2.16it/s, loss=3.72, train_loss_step=3.330, train_loss_epoch=3.210]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  2.13it/s, loss=3.72, train_loss_step=3.330, train_loss_epoch=3.330]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  2.11it/s, loss=3.72, train_loss_step=3.330, train_loss_epoch=3.330]
+  0%|          | 0/2 [00:05&lt;?, ?trial/s, best loss=?]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 1it [00:00, ?it/s]                       
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]    
+VAL y_true.shape: (145, 24)                          
+VAL y_hat.shape: (145, 24)                           
+Predicting: 1it [00:00, ?it/s]                       
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]    
+TEST y_true.shape: (145, 24)                         
+TEST y_hat.shape: (145, 24)                          
+ 50%|█████     | 1/2 [00:05&lt;00:05,  5.58s/trial, best loss: 8.174054145812988]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.034675 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.174054
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>===============================================                               
+
+activation                                          ReLU                      
+batch_normalization                                False
+batch_size                                             1
+complete_windows                                    True
+dropout_prob_theta                                     0
+early_stop_patience                                   10
+eval_freq                                             50
+frequency                                              H
+idx_to_sample_freq                                     1
+initialization                              lecun_normal
+learning_rate                                       0.01
+loss_hypar                                           0.5
+loss_train                                           MAE
+loss_valid                                           MAE
+lr_decay                                             0.5
+max_epochs                                          None
+max_steps                                             10
+mode                                              simple
+model                                             nbeats
+n_blocks                                               1
+n_layers                                               2
+n_lr_decays                                            3
+n_mlp_units                                          512
+n_s                                                    0
+n_s_hidden                                             0
+n_time_in                                             72
+n_time_out                                            24
+n_windows                                            512
+n_x                                                    1
+n_x_hidden                                             1
+normalizer_x                                        None
+normalizer_y                                        None
+random_seed                                         19.0
+shared_weights                                     False
+stack_types               (identity, identity, identity)
+val_idx_to_sample_freq                                 1
+weight_decay                                           0
+dtype: object
+===============================================                               
+
+ 50%|█████     | 1/2 [00:05&lt;00:05,  5.58s/trial, best loss: 8.174054145812988]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2018-12-11 2018-12-24 23:00:00
+          1           2013-01-01 2018-12-10 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=99.36, 	52080 time stamps 
+Outsample percentage=0.64, 	336 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2013-01-01 2018-12-24 23:00:00
+          1           2018-12-11 2018-12-17 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=0.32, 	168 time stamps 
+Outsample percentage=99.68, 	52248 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+NP        0           2013-01-01 2018-12-17 23:00:00
+          1           2018-12-18 2018-12-24 23:00:00
+INFO:root:
+Total data 			52416 time stamps 
+Available percentage=100.0, 	52416 time stamps 
+Insample  percentage=0.32, 	168 time stamps 
+Outsample percentage=99.68, 	52248 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:148: LightningDeprecationWarning: Setting `Trainer(checkpoint_callback=False)` is deprecated in v1.5 and will be removed in v1.7. Please consider using `Trainer(enable_checkpointing=False)`.
+  f&#34;Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will &#34;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
+
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+
+  | Name  | Type    | Params
+----------------------------------
+0 | model | _NBEATS | 1.2 M 
+----------------------------------
+1.2 M     Trainable params
+0         Non-trainable params
+1.2 M     Total params
+4.781     Total estimated model params size (MB)
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Validation sanity check: 0it [00:00, ?it/s]                                   
+Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]                
+ 50%|█████     | 1/2 [00:07&lt;00:05,  5.58s/trial, best loss: 8.174054145812988]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Training: 0it [00:00, ?it/s]                                                  
+Training:   0%|          | 0/1 [00:00&lt;?, ?it/s]                               
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s]                                
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  7.29it/s]                        
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  7.09it/s, loss=5.1, train_loss_step=5.100]
+Epoch 0: 100%|##########| 1/1 [00:00&lt;00:00,  6.92it/s, loss=5.1, train_loss_step=5.100, train_loss_epoch=5.100]
+Epoch 0:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=5.1, train_loss_step=5.100, train_loss_epoch=5.100]        
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=5.1, train_loss_step=5.100, train_loss_epoch=5.100]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  6.77it/s, loss=5.1, train_loss_step=5.100, train_loss_epoch=5.100]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  6.59it/s, loss=149, train_loss_step=293.0, train_loss_epoch=5.100]
+Epoch 1: 100%|##########| 1/1 [00:00&lt;00:00,  6.39it/s, loss=149, train_loss_step=293.0, train_loss_epoch=293.0]
+Epoch 1:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=149, train_loss_step=293.0, train_loss_epoch=293.0]        
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=149, train_loss_step=293.0, train_loss_epoch=293.0]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  7.07it/s, loss=149, train_loss_step=293.0, train_loss_epoch=293.0]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  6.89it/s, loss=105, train_loss_step=15.40, train_loss_epoch=293.0]
+Epoch 2: 100%|##########| 1/1 [00:00&lt;00:00,  6.64it/s, loss=105, train_loss_step=15.40, train_loss_epoch=15.40]
+Epoch 2:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=105, train_loss_step=15.40, train_loss_epoch=15.40]        
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=105, train_loss_step=15.40, train_loss_epoch=15.40]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  7.37it/s, loss=105, train_loss_step=15.40, train_loss_epoch=15.40]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  7.17it/s, loss=85.6, train_loss_step=28.60, train_loss_epoch=15.40]
+Epoch 3: 100%|##########| 1/1 [00:00&lt;00:00,  6.97it/s, loss=85.6, train_loss_step=28.60, train_loss_epoch=28.60]
+Epoch 3:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=85.6, train_loss_step=28.60, train_loss_epoch=28.60]        
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=85.6, train_loss_step=28.60, train_loss_epoch=28.60]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  7.47it/s, loss=85.6, train_loss_step=28.60, train_loss_epoch=28.60]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  7.28it/s, loss=71.4, train_loss_step=14.90, train_loss_epoch=28.60]
+Epoch 4: 100%|##########| 1/1 [00:00&lt;00:00,  7.07it/s, loss=71.4, train_loss_step=14.90, train_loss_epoch=14.90]
+Epoch 4:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=71.4, train_loss_step=14.90, train_loss_epoch=14.90]        
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=71.4, train_loss_step=14.90, train_loss_epoch=14.90]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  7.96it/s, loss=71.4, train_loss_step=14.90, train_loss_epoch=14.90]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  7.74it/s, loss=73.2, train_loss_step=81.80, train_loss_epoch=14.90]
+Epoch 5: 100%|##########| 1/1 [00:00&lt;00:00,  7.41it/s, loss=73.2, train_loss_step=81.80, train_loss_epoch=81.80]
+Epoch 5:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=73.2, train_loss_step=81.80, train_loss_epoch=81.80]        
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=73.2, train_loss_step=81.80, train_loss_epoch=81.80]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  7.90it/s, loss=73.2, train_loss_step=81.80, train_loss_epoch=81.80]
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  7.70it/s, loss=64, train_loss_step=9.250, train_loss_epoch=81.80]  
+Epoch 6: 100%|##########| 1/1 [00:00&lt;00:00,  7.44it/s, loss=64, train_loss_step=9.250, train_loss_epoch=9.250]
+Epoch 6:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=64, train_loss_step=9.250, train_loss_epoch=9.250]        
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=64, train_loss_step=9.250, train_loss_epoch=9.250]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  8.20it/s, loss=64, train_loss_step=9.250, train_loss_epoch=9.250]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  7.98it/s, loss=57.2, train_loss_step=9.460, train_loss_epoch=9.250]
+Epoch 7: 100%|##########| 1/1 [00:00&lt;00:00,  7.66it/s, loss=57.2, train_loss_step=9.460, train_loss_epoch=9.460]
+Epoch 7:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=57.2, train_loss_step=9.460, train_loss_epoch=9.460]        
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=57.2, train_loss_step=9.460, train_loss_epoch=9.460]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  7.97it/s, loss=57.2, train_loss_step=9.460, train_loss_epoch=9.460]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  7.76it/s, loss=51.6, train_loss_step=7.160, train_loss_epoch=9.460]
+Epoch 8: 100%|##########| 1/1 [00:00&lt;00:00,  7.53it/s, loss=51.6, train_loss_step=7.160, train_loss_epoch=7.160]
+Epoch 8:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=51.6, train_loss_step=7.160, train_loss_epoch=7.160]        
+Epoch 9:   0%|          | 0/1 [00:00&lt;?, ?it/s, loss=51.6, train_loss_step=7.160, train_loss_epoch=7.160]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  8.09it/s, loss=51.6, train_loss_step=7.160, train_loss_epoch=7.160]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  7.58it/s, loss=47.2, train_loss_step=6.870, train_loss_epoch=7.160]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  6.98it/s, loss=47.2, train_loss_step=6.870, train_loss_epoch=6.870]
+Epoch 9: 100%|##########| 1/1 [00:00&lt;00:00,  5.35it/s, loss=47.2, train_loss_step=6.870, train_loss_epoch=6.870]
+ 50%|█████     | 1/2 [00:08&lt;00:05,  5.58s/trial, best loss: 8.174054145812988]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 1it [00:00, ?it/s]                                                
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]                             
+VAL y_true.shape: (145, 24)                                                   
+VAL y_hat.shape: (145, 24)                                                    
+Predicting: 1it [00:00, ?it/s]                                                
+Predicting: 100%|##########| 1/1 [00:00&lt;?, ?it/s]                             
+TEST y_true.shape: (145, 24)                                                  
+TEST y_hat.shape: (145, 24)                                                   
+100%|██████████| 2/2 [00:08&lt;00:00,  4.34s/trial, best loss: 8.174054145812988]
+</pre>
+</div>
+</div>
+
 </div>
 </div>
 

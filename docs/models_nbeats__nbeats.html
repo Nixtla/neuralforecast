@@ -54,7 +54,7 @@ nb_path: "nbs/models_nbeats__nbeats.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="IdentityBasis" class="doc_header"><code>class</code> <code>IdentityBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L52" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>IdentityBasis</code>(<strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
+<h2 id="IdentityBasis" class="doc_header"><code>class</code> <code>IdentityBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L54" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>IdentityBasis</code>(<strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -102,7 +102,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="TrendBasis" class="doc_header"><code>class</code> <code>TrendBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L63" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TrendBasis</code>(<strong><code>degree_of_polynomial</code></strong>:<code>int</code>, <strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
+<h2 id="TrendBasis" class="doc_header"><code>class</code> <code>TrendBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L65" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TrendBasis</code>(<strong><code>degree_of_polynomial</code></strong>:<code>int</code>, <strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -150,158 +150,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SeasonalityBasis" class="doc_header"><code>class</code> <code>SeasonalityBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L80" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SeasonalityBasis</code>(<strong><code>harmonics</code></strong>:<code>int</code>, <strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
-</blockquote>
-<p>Base class for all neural network modules.</p>
-<p>Your models should also subclass this class.</p>
-<p>Modules can also contain other Modules, allowing to nest them in
-a tree structure. You can assign the submodules as regular attributes::</p>
-
-<pre><code>import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-
-</code></pre>
-<p>Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:<code>to</code>, etc.</p>
-<p>:ivar training: Boolean represents whether this module is in training or
-                evaluation mode.
-:vartype training: bool</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisInterpretable" class="doc_header"><code>class</code> <code>ExogenousBasisInterpretable</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L109" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisInterpretable</code>() :: <code>Module</code></p>
-</blockquote>
-<p>Base class for all neural network modules.</p>
-<p>Your models should also subclass this class.</p>
-<p>Modules can also contain other Modules, allowing to nest them in
-a tree structure. You can assign the submodules as regular attributes::</p>
-
-<pre><code>import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-
-</code></pre>
-<p>Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:<code>to</code>, etc.</p>
-<p>:ivar training: Boolean represents whether this module is in training or
-                evaluation mode.
-:vartype training: bool</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisWavenet" class="doc_header"><code>class</code> <code>ExogenousBasisWavenet</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L122" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisWavenet</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>3</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
-</blockquote>
-<p>Base class for all neural network modules.</p>
-<p>Your models should also subclass this class.</p>
-<p>Modules can also contain other Modules, allowing to nest them in
-a tree structure. You can assign the submodules as regular attributes::</p>
-
-<pre><code>import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-
-</code></pre>
-<p>Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:<code>to</code>, etc.</p>
-<p>:ivar training: Boolean represents whether this module is in training or
-                evaluation mode.
-:vartype training: bool</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h2 id="ExogenousBasisTCN" class="doc_header"><code>class</code> <code>ExogenousBasisTCN</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L168" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisTCN</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>2</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
+<h2 id="SeasonalityBasis" class="doc_header"><code>class</code> <code>SeasonalityBasis</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L82" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SeasonalityBasis</code>(<strong><code>harmonics</code></strong>:<code>int</code>, <strong><code>backcast_size</code></strong>:<code>int</code>, <strong><code>forecast_size</code></strong>:<code>int</code>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -356,7 +205,158 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="init_weights" class="doc_header"><code>init_weights</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L194" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>init_weights</code>(<strong><code>module</code></strong>, <strong><code>initialization</code></strong>)</p>
+<h2 id="ExogenousBasisInterpretable" class="doc_header"><code>class</code> <code>ExogenousBasisInterpretable</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L111" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisInterpretable</code>() :: <code>Module</code></p>
+</blockquote>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes::</p>
+
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+
+</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>:ivar training: Boolean represents whether this module is in training or
+                evaluation mode.
+:vartype training: bool</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="ExogenousBasisWavenet" class="doc_header"><code>class</code> <code>ExogenousBasisWavenet</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L124" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisWavenet</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>3</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
+</blockquote>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes::</p>
+
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+
+</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>:ivar training: Boolean represents whether this module is in training or
+                evaluation mode.
+:vartype training: bool</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="ExogenousBasisTCN" class="doc_header"><code>class</code> <code>ExogenousBasisTCN</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L170" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ExogenousBasisTCN</code>(<strong><code>out_features</code></strong>, <strong><code>in_features</code></strong>, <strong><code>num_levels</code></strong>=<em><code>4</code></em>, <strong><code>kernel_size</code></strong>=<em><code>2</code></em>, <strong><code>dropout_prob</code></strong>=<em><code>0</code></em>) :: <code>Module</code></p>
+</blockquote>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in
+a tree structure. You can assign the submodules as regular attributes::</p>
+
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super(Model, self).__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+
+</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>:ivar training: Boolean represents whether this module is in training or
+                evaluation mode.
+:vartype training: bool</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="init_weights" class="doc_header"><code>init_weights</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L196" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>init_weights</code>(<strong><code>module</code></strong>, <strong><code>initialization</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -386,41 +386,6 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torchinfo</span> <span class="kn">import</span> <span class="n">summary</span>
-
-<span class="n">model</span> <span class="o">=</span> <span class="n">_NBEATS</span><span class="p">(</span><span class="n">n_time_in</span><span class="o">=</span><span class="mi">168</span><span class="p">,</span>
-                <span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
-                <span class="n">n_s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                <span class="n">n_x</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-                <span class="n">n_s_hidden</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                <span class="n">n_x_hidden</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-                <span class="n">n_polynomials</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                <span class="n">n_harmonics</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-                <span class="n">stack_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;trend&#39;</span><span class="p">,</span> <span class="s1">&#39;seasonality&#39;</span><span class="p">,</span> <span class="s1">&#39;exogenous_wavenet&#39;</span><span class="p">],</span>
-                <span class="n">n_blocks</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-                <span class="n">n_layers</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-                <span class="n">n_theta_hidden</span><span class="o">=</span><span class="mi">3</span> <span class="o">*</span> <span class="p">[[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">]],</span>
-                <span class="n">dropout_prob_theta</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SELU&#39;</span><span class="p">,</span>
-                <span class="n">initialization</span><span class="o">=</span><span class="s1">&#39;lecun_normal&#39;</span><span class="p">,</span>
-                <span class="n">batch_normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">shared_weights</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
 
 </div>
     {% endraw %}
@@ -449,9 +414,96 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NBEATS" class="doc_header"><code>class</code> <code>NBEATS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L497" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_theta_hidden</code></strong>, <strong><code>n_harmonics</code></strong>, <strong><code>n_polynomials</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>, <strong><code>seasonality</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="NBEATS" class="doc_header"><code>class</code> <code>NBEATS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L487" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATS</code>(<strong><code>n_time_in</code></strong>:<code>int</code>, <strong><code>n_time_out</code></strong>:<code>int</code>, <strong><code>n_x</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>n_s</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>shared_weights</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>activation</code></strong>:<code>str</code>=<em><code>'ReLU'</code></em>, <strong><code>initialization</code></strong>:<code>str</code>=<em><code>'lecun_normal'</code></em>, <strong><code>stack_types</code></strong>:<code>List</code>[<code>str</code>]=<em><code>['identity', 'identity', 'identity']</code></em>, <strong><code>n_blocks</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[1, 1, 1]</code></em>, <strong><code>n_layers</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[2, 2, 2, 2, 2, 2, 2, 2, 2]</code></em>, <strong><code>n_mlp_units</code></strong>:<code>List</code>[<code>List</code>[<code>int</code>]]=<em><code>[[512, 512], [512, 512], [512, 512]]</code></em>, <strong><code>n_harmonics</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>n_polynomials</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>n_x_hidden</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[0]</code></em>, <strong><code>n_s_hidden</code></strong>:<code>List</code>[<code>int</code>]=<em><code>[0]</code></em>, <strong><code>batch_normalization</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>dropout_prob_theta</code></strong>:<code>float</code>=<em><code>0.0</code></em>, <strong><code>learning_rate</code></strong>:<code>float</code>=<em><code>0.001</code></em>, <strong><code>lr_decay</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>lr_decay_step_size</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>weight_decay</code></strong>:<code>float</code>=<em><code>0.0</code></em>, <strong><code>loss_train</code></strong>:<code>str</code>=<em><code>'MAE'</code></em>, <strong><code>loss_hypar</code></strong>:<code>float</code>=<em><code>0.0</code></em>, <strong><code>loss_valid</code></strong>:<code>str</code>=<em><code>'MAE'</code></em>, <strong><code>frequency</code></strong>:<code>str</code>=<em><code>'D'</code></em>, <strong><code>random_seed</code></strong>:<code>int</code>=<em><code>1</code></em>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="NBEATS.forecast" class="doc_header"><code>NBEATS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L733" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NBEATS.forecast</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>=<em><code>1</code></em>)</p>
+</blockquote>
+<p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+X_df: pd.DataFrame
+    Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+    Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
+S_df: pd.DataFrame
+    Dataframe with static data, needs 'unique_id' column.
+bath_size: int
+    Batch size for forecasting.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
+    Dataframe with forecasts.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="suggested_space" class="doc_header"><code>suggested_space</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L793" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>suggested_space</code>(<strong><code>n_time_out</code></strong>, <strong><code>n_series</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>frequency</code></strong>)</p>
+</blockquote>
+<p>Suggested hyperparameters search space for tuning. To be used with hyperopt library.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>n_time_out: int
+    Forecasting horizon.
+n_series: int
+    Number of time-series.
+n_x: int
+    Number of exogenous variables.
+n_s: int
+    Number of static variables.
+frequency: str
+    Frequency of time-seris.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>space: Dict
+    Dictionary with search space for hyperopt library.</p>
 
 </div>
 
@@ -560,10 +612,10 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;identity&#39;</span><span class="p">]</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
 
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">512</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;shared_weights&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_harmonics&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_polynomials&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
@@ -571,7 +623,8 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <span class="c1"># Optimization and regularization parameters</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;initialization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;lecun_normal&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.001</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;lr_decay&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;lr_decay_step_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">33</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
@@ -596,13 +649,14 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;median&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;complete_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;seasonality&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="mi">65</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">mc</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="mi">65</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
 
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_theta_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">])]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">])]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="p">]</span>
 </pre></div>
 
     </div>
@@ -624,18 +678,19 @@ n_time_out                                  24
 n_x_hidden                                   8
 n_s_hidden                                   0
 stack_types               [identity, identity]
-n_blocks                                [1, 1]
-n_layers                                [2, 2]
-n_hidden                                   512
+n_blocks                                     1
+n_layers                                     2
+n_mlp_units                                256
 shared_weights                           False
 n_harmonics                                  0
 n_polynomials                                0
 initialization                    lecun_normal
 learning_rate                            0.001
-batch_size                                 256
+batch_size                                   1
+n_windows                                   32
 lr_decay                                   0.5
 lr_decay_step_size                          33
-max_epochs                                  10
+max_epochs                                   1
 max_steps                                 None
 early_stop_patience                         20
 eval_freq                                  500
@@ -655,7 +710,6 @@ normalizer_y                              None
 normalizer_x                            median
 complete_windows                         False
 frequency                                    H
-seasonality                                 24
 dtype: object
 =================================================================
 </pre>
@@ -691,17 +745,15 @@ dtype: object
 
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                                <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
+                                <span class="n">n_windows</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_windows&#39;</span><span class="p">],</span>
                                 <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">val_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">val_dataset</span><span class="p">,</span>
                               <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                              <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
                               <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">test_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
                                <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                               <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
                                <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_x&#39;</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">get_n_variables</span><span class="p">()</span>
@@ -797,7 +849,7 @@ Outsample percentage=66.67, 	69888 time stamps
                <span class="n">stack_types</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">],</span>
                <span class="n">n_blocks</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">],</span>
                <span class="n">n_layers</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">],</span>
-               <span class="n">n_theta_hidden</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_theta_hidden&#39;</span><span class="p">],</span>
+               <span class="n">n_mlp_units</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">],</span>
                <span class="n">n_harmonics</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_harmonics&#39;</span><span class="p">]),</span>
                <span class="n">n_polynomials</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_polynomials&#39;</span><span class="p">]),</span>
                <span class="n">batch_normalization</span> <span class="o">=</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_normalization&#39;</span><span class="p">],</span>
@@ -810,7 +862,6 @@ Outsample percentage=66.67, 	69888 time stamps
                <span class="n">loss_hypar</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_hypar&#39;</span><span class="p">]),</span>
                <span class="n">loss_valid</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_valid&#39;</span><span class="p">],</span>
                <span class="n">frequency</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">],</span>
-               <span class="n">seasonality</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;seasonality&#39;</span><span class="p">]),</span>
                <span class="n">random_seed</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;random_seed&#39;</span><span class="p">]))</span>
 </pre></div>
 
@@ -873,12 +924,12 @@ IPU available: False, using: 0 IPUs
 
   | Name  | Type    | Params
 ----------------------------------
-0 | model | _NBEATS | 2.9 M 
+0 | model | _NBEATS | 1.3 M 
 ----------------------------------
-2.9 M     Trainable params
+1.3 M     Trainable params
 0         Non-trainable params
-2.9 M     Total params
-11.446    Total estimated model params size (MB)
+1.3 M     Total params
+5.199     Total estimated model params size (MB)
 </pre>
 </div>
 </div>
@@ -897,7 +948,7 @@ IPU available: False, using: 0 IPUs
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 /Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (1) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (2) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
   f&#34;The number of training samples ({self.num_training_batches}) is smaller than the logging interval&#34;
 </pre>
 </div>
@@ -906,7 +957,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Epoch 9: 100%|██████████| 2/2 [00:12&lt;00:00,  6.32s/it, loss=8.51, v_num=21, train_loss_step=7.300, val_loss=6.030, train_loss_epoch=7.300]
+<pre>Epoch 0: 100%|██████████| 4/4 [00:00&lt;00:00,  9.41it/s, loss=10.9, v_num=57, train_loss_step=17.30, val_loss=6.880, train_loss_epoch=10.90]
 </pre>
 </div>
 </div>
@@ -959,10 +1010,10 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;?, ?it/s]
-outputs[0][0].shape torch.Size([84, 24])
-outputs[0][1].shape torch.Size([84, 24])
-outputs[0][2].shape torch.Size([84, 3, 24])
+<pre>Predicting: 100%|██████████| 2/2 [00:00&lt;?, ?it/s]
+outputs[0][0].shape torch.Size([42, 24])
+outputs[0][1].shape torch.Size([42, 24])
+outputs[0][2].shape torch.Size([42, 3, 24])
 </pre>
 </div>
 </div>
@@ -1232,7 +1283,7 @@ outputs[0][2].shape torch.Size([84, 3, 24])
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:215: SettingWithCopyWarning: 
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:26: SettingWithCopyWarning: 
 A value is trying to be set on a copy of a slice from a DataFrame.
 Try using .loc[row_indexer,col_indexer] = value instead
 
@@ -1268,7 +1319,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 53.28it/s]
+<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 61.55it/s]
 </pre>
 </div>
 </div>
@@ -1328,289 +1379,289 @@ IPU available: False, using: 0 IPUs
       <th>0</th>
       <td>FR</td>
       <td>2016-12-27 00:00:00</td>
-      <td>44.640026</td>
+      <td>46.124668</td>
     </tr>
     <tr>
       <th>1</th>
       <td>FR</td>
       <td>2016-12-27 01:00:00</td>
-      <td>50.731392</td>
+      <td>52.812290</td>
     </tr>
     <tr>
       <th>2</th>
       <td>FR</td>
       <td>2016-12-27 02:00:00</td>
-      <td>44.564629</td>
+      <td>44.777245</td>
     </tr>
     <tr>
       <th>3</th>
       <td>FR</td>
       <td>2016-12-27 03:00:00</td>
-      <td>44.049648</td>
+      <td>53.228424</td>
     </tr>
     <tr>
       <th>4</th>
       <td>FR</td>
       <td>2016-12-27 04:00:00</td>
-      <td>47.089638</td>
+      <td>48.780979</td>
     </tr>
     <tr>
       <th>5</th>
       <td>FR</td>
       <td>2016-12-27 05:00:00</td>
-      <td>50.541325</td>
+      <td>46.862282</td>
     </tr>
     <tr>
       <th>6</th>
       <td>FR</td>
       <td>2016-12-27 06:00:00</td>
-      <td>52.448578</td>
+      <td>50.872810</td>
     </tr>
     <tr>
       <th>7</th>
       <td>FR</td>
       <td>2016-12-27 07:00:00</td>
-      <td>51.141190</td>
+      <td>50.161308</td>
     </tr>
     <tr>
       <th>8</th>
       <td>FR</td>
       <td>2016-12-27 08:00:00</td>
-      <td>52.997055</td>
+      <td>46.375717</td>
     </tr>
     <tr>
       <th>9</th>
       <td>FR</td>
       <td>2016-12-27 09:00:00</td>
-      <td>53.803757</td>
+      <td>50.921028</td>
     </tr>
     <tr>
       <th>10</th>
       <td>FR</td>
       <td>2016-12-27 10:00:00</td>
-      <td>53.768330</td>
+      <td>48.995110</td>
     </tr>
     <tr>
       <th>11</th>
       <td>FR</td>
       <td>2016-12-27 11:00:00</td>
-      <td>54.859695</td>
+      <td>46.872387</td>
     </tr>
     <tr>
       <th>12</th>
       <td>FR</td>
       <td>2016-12-27 12:00:00</td>
-      <td>53.356327</td>
+      <td>47.515156</td>
     </tr>
     <tr>
       <th>13</th>
       <td>FR</td>
       <td>2016-12-27 13:00:00</td>
-      <td>56.125286</td>
+      <td>40.807289</td>
     </tr>
     <tr>
       <th>14</th>
       <td>FR</td>
       <td>2016-12-27 14:00:00</td>
-      <td>52.171150</td>
+      <td>43.446938</td>
     </tr>
     <tr>
       <th>15</th>
       <td>FR</td>
       <td>2016-12-27 15:00:00</td>
-      <td>56.673103</td>
+      <td>46.283489</td>
     </tr>
     <tr>
       <th>16</th>
       <td>FR</td>
       <td>2016-12-27 16:00:00</td>
-      <td>55.000313</td>
+      <td>51.365486</td>
     </tr>
     <tr>
       <th>17</th>
       <td>FR</td>
       <td>2016-12-27 17:00:00</td>
-      <td>59.939381</td>
+      <td>47.828560</td>
     </tr>
     <tr>
       <th>18</th>
       <td>FR</td>
       <td>2016-12-27 18:00:00</td>
-      <td>57.336216</td>
+      <td>48.615292</td>
     </tr>
     <tr>
       <th>19</th>
       <td>FR</td>
       <td>2016-12-27 19:00:00</td>
-      <td>59.602219</td>
+      <td>54.932026</td>
     </tr>
     <tr>
       <th>20</th>
       <td>FR</td>
       <td>2016-12-27 20:00:00</td>
-      <td>59.594151</td>
+      <td>60.221272</td>
     </tr>
     <tr>
       <th>21</th>
       <td>FR</td>
       <td>2016-12-27 21:00:00</td>
-      <td>54.633404</td>
+      <td>52.082024</td>
     </tr>
     <tr>
       <th>22</th>
       <td>FR</td>
       <td>2016-12-27 22:00:00</td>
-      <td>57.004513</td>
+      <td>49.080307</td>
     </tr>
     <tr>
       <th>23</th>
       <td>FR</td>
       <td>2016-12-27 23:00:00</td>
-      <td>53.059856</td>
+      <td>46.444920</td>
     </tr>
     <tr>
       <th>24</th>
       <td>NP</td>
       <td>2016-12-27 00:00:00</td>
-      <td>22.710691</td>
+      <td>23.711084</td>
     </tr>
     <tr>
       <th>25</th>
       <td>NP</td>
       <td>2016-12-27 01:00:00</td>
-      <td>25.998806</td>
+      <td>26.730284</td>
     </tr>
     <tr>
       <th>26</th>
       <td>NP</td>
       <td>2016-12-27 02:00:00</td>
-      <td>24.280872</td>
+      <td>22.779942</td>
     </tr>
     <tr>
       <th>27</th>
       <td>NP</td>
       <td>2016-12-27 03:00:00</td>
-      <td>24.377392</td>
+      <td>27.367327</td>
     </tr>
     <tr>
       <th>28</th>
       <td>NP</td>
       <td>2016-12-27 04:00:00</td>
-      <td>25.759035</td>
+      <td>24.537924</td>
     </tr>
     <tr>
       <th>29</th>
       <td>NP</td>
       <td>2016-12-27 05:00:00</td>
-      <td>26.795460</td>
+      <td>23.785410</td>
     </tr>
     <tr>
       <th>30</th>
       <td>NP</td>
       <td>2016-12-27 06:00:00</td>
-      <td>27.536869</td>
+      <td>26.331917</td>
     </tr>
     <tr>
       <th>31</th>
       <td>NP</td>
       <td>2016-12-27 07:00:00</td>
-      <td>27.126896</td>
+      <td>25.706453</td>
     </tr>
     <tr>
       <th>32</th>
       <td>NP</td>
       <td>2016-12-27 08:00:00</td>
-      <td>27.306328</td>
+      <td>23.507765</td>
     </tr>
     <tr>
       <th>33</th>
       <td>NP</td>
       <td>2016-12-27 09:00:00</td>
-      <td>28.368393</td>
+      <td>25.838926</td>
     </tr>
     <tr>
       <th>34</th>
       <td>NP</td>
       <td>2016-12-27 10:00:00</td>
-      <td>28.295612</td>
+      <td>25.187622</td>
     </tr>
     <tr>
       <th>35</th>
       <td>NP</td>
       <td>2016-12-27 11:00:00</td>
-      <td>28.447367</td>
+      <td>23.905090</td>
     </tr>
     <tr>
       <th>36</th>
       <td>NP</td>
       <td>2016-12-27 12:00:00</td>
-      <td>28.494503</td>
+      <td>24.311918</td>
     </tr>
     <tr>
       <th>37</th>
       <td>NP</td>
       <td>2016-12-27 13:00:00</td>
-      <td>29.328918</td>
+      <td>20.464109</td>
     </tr>
     <tr>
       <th>38</th>
       <td>NP</td>
       <td>2016-12-27 14:00:00</td>
-      <td>28.317734</td>
+      <td>22.112062</td>
     </tr>
     <tr>
       <th>39</th>
       <td>NP</td>
       <td>2016-12-27 15:00:00</td>
-      <td>29.931154</td>
+      <td>23.166197</td>
     </tr>
     <tr>
       <th>40</th>
       <td>NP</td>
       <td>2016-12-27 16:00:00</td>
-      <td>28.706020</td>
+      <td>26.236847</td>
     </tr>
     <tr>
       <th>41</th>
       <td>NP</td>
       <td>2016-12-27 17:00:00</td>
-      <td>30.271151</td>
+      <td>24.909302</td>
     </tr>
     <tr>
       <th>42</th>
       <td>NP</td>
       <td>2016-12-27 18:00:00</td>
-      <td>28.766121</td>
+      <td>24.434191</td>
     </tr>
     <tr>
       <th>43</th>
       <td>NP</td>
       <td>2016-12-27 19:00:00</td>
-      <td>29.557522</td>
+      <td>28.221865</td>
     </tr>
     <tr>
       <th>44</th>
       <td>NP</td>
       <td>2016-12-27 20:00:00</td>
-      <td>29.523981</td>
+      <td>30.963202</td>
     </tr>
     <tr>
       <th>45</th>
       <td>NP</td>
       <td>2016-12-27 21:00:00</td>
-      <td>27.640440</td>
+      <td>26.734009</td>
     </tr>
     <tr>
       <th>46</th>
       <td>NP</td>
       <td>2016-12-27 22:00:00</td>
-      <td>28.029676</td>
+      <td>24.880293</td>
     </tr>
     <tr>
       <th>47</th>
       <td>NP</td>
       <td>2016-12-27 23:00:00</td>
-      <td>27.058498</td>
+      <td>23.058294</td>
     </tr>
   </tbody>
 </table>

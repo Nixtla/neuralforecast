@@ -268,7 +268,9 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 
 # Cell
 def instantiate_nbeats(mc):
-    mc['n_theta_hidden'] = len(mc['stack_types']) * [ [int(mc['n_hidden']), int(mc['n_hidden'])] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -276,32 +278,29 @@ def instantiate_nbeats(mc):
         lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
 
     model = NBEATS(n_time_in=int(mc['n_time_in']),
-                   n_time_out=int(mc['n_time_out']),
-                   n_x=mc['n_x'],
-                   n_s=mc['n_s'],
-                   n_s_hidden=int(mc['n_s_hidden']),
-                   n_x_hidden=int(mc['n_x_hidden']),
-                   shared_weights=mc['shared_weights'],
-                   initialization=mc['initialization'],
-                   activation=mc['activation'],
-                   stack_types=mc['stack_types'],
-                   n_blocks=mc['n_blocks'],
-                   n_layers=mc['n_layers'],
-                   n_theta_hidden=mc['n_theta_hidden'],
-                   n_harmonics=int(mc['n_harmonics']),
-                   n_polynomials=int(mc['n_polynomials']),
-                   batch_normalization = mc['batch_normalization'],
-                   dropout_prob_theta=mc['dropout_prob_theta'],
-                   learning_rate=float(mc['learning_rate']),
-                   lr_decay=float(mc['lr_decay']),
-                   lr_decay_step_size=lr_decay_step_size,
-                   weight_decay=mc['weight_decay'],
-                   loss_train=mc['loss_train'],
-                   loss_hypar=float(mc['loss_hypar']),
-                   loss_valid=mc['loss_valid'],
-                   frequency=mc['frequency'],
-                   seasonality=int(mc['seasonality']),
-                   random_seed=int(mc['random_seed']))
+                  n_time_out=int(mc['n_time_out']),
+                  n_x=mc['n_x'],
+                  n_s=mc['n_s'],
+                  n_s_hidden=int(mc['n_s_hidden']),
+                  n_x_hidden=int(mc['n_x_hidden']),
+                  shared_weights = mc['shared_weights'],
+                  initialization=mc['initialization'],
+                  activation=mc['activation'],
+                  stack_types=mc['stack_types'],
+                  n_blocks=mc['n_blocks'],
+                  n_layers=mc['n_layers'],
+                  n_mlp_units=mc['n_mlp_units'],
+                  batch_normalization = mc['batch_normalization'],
+                  dropout_prob_theta=mc['dropout_prob_theta'],
+                  learning_rate=float(mc['learning_rate']),
+                  lr_decay=float(mc['lr_decay']),
+                  lr_decay_step_size=lr_decay_step_size,
+                  weight_decay=mc['weight_decay'],
+                  loss_train=mc['loss_train'],
+                  loss_hypar=float(mc['loss_hypar']),
+                  loss_valid=mc['loss_valid'],
+                  frequency=mc['frequency'],
+                  random_seed=int(mc['random_seed']))
     return model
 
 # Cell
@@ -373,7 +372,9 @@ def instantiate_mqesrnn(mc):
 
 # Cell
 def instantiate_nhits(mc):
-    mc['n_theta_hidden'] = len(mc['stack_types']) * [ [int(mc['n_hidden']), int(mc['n_hidden'])] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -392,7 +393,7 @@ def instantiate_nhits(mc):
                   stack_types=mc['stack_types'],
                   n_blocks=mc['n_blocks'],
                   n_layers=mc['n_layers'],
-                  n_theta_hidden=mc['n_theta_hidden'],
+                  n_mlp_units=mc['n_mlp_units'],
                   n_pool_kernel_size=mc['n_pool_kernel_size'],
                   n_freq_downsample=mc['n_freq_downsample'],
                   pooling_mode=mc['pooling_mode'],
@@ -407,7 +408,6 @@ def instantiate_nhits(mc):
                   loss_hypar=float(mc['loss_hypar']),
                   loss_valid=mc['loss_valid'],
                   frequency=mc['frequency'],
-                  seasonality=int(mc['seasonality']),
                   random_seed=int(mc['random_seed']))
     return model
 
