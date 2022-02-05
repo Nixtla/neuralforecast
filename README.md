@@ -102,6 +102,7 @@ This project is licensed under the GPLv3 License - see the [LICENSE](https://git
 
 See [CONTRIBUTING.md](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md).
 
+<!---
 ## How to cite
 
 If you use `NeuralForecast` in a scientific publication, we encourage you to add
@@ -116,6 +117,8 @@ the following references to the related papers:
   year    = {2022}
 }
 ```
+--->
+
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
