@@ -149,4 +149,6 @@ nbs/data
 #data/
 *.pdf
 results/
+*.zip
+*.p
 README.md
