@@ -5,7 +5,7 @@
 <div align="center">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png">
 <h1 align="center">Neural 🧠 Forecast</h1>
-<h3 align="center">Deep Learninng for time series</h3>
+<h3 align="center">Deep Learning for time series</h3>
 
 [![CI Linux](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-linux.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-linux.yml)
 [![CI Mac](https://github.com/Nixtla/neuralforecast/actions/workflows/ci-mac.yml/badge.svg?)](https://github.com/Nixtla/nixtlats/actions/workflows/ci-mac.yml)
@@ -19,7 +19,7 @@
 State-of-the-art time series forecasting for PyTorch.
 
 `NeuralForecast` is a python library for time series forecasting with deep learning. 
-It provides dataset loading utilities, evaluation functions and pytorch implementations of state of the art deep learning forecasting models.
+It provides dataset loading utilities, evaluation functions and PyTorch implementations of state-of-the-art deep learning forecasting models.
 
 [Getting started](#getting-started) •
 [Installation](#installation) •
