@@ -34,7 +34,7 @@ Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
 [Example Jupyter Notebook](https://github.com/Nixtla/neuralforecast/blob/main/examples/getting_started.ipynb)
 
-https://user-images.githubusercontent.com/10517170/152658687-7934e0a4-6878-4991-89c3-0ea24b2b0696.mp4
+![Demo](https://s10.gifyu.com/images/demo8f2e65ab1687d1c4.gif)
 
 
 ## 💻  Installation
