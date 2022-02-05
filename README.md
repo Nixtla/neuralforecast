@@ -30,7 +30,7 @@ It provides dataset loading utilities, evaluation functions and PyTorch implemen
 ## 📖 Documentation
 Here is a link to the [documentation](https://nixtla.github.io/neuralforecast/).
 
-## 🧬 Getting Started
+## 🧬 Getting Started [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nixtla/neuralforecast/blob/main/examples/getting_started.ipynb)
 
 [Example Jupyter Notebook](https://github.com/Nixtla/neuralforecast/blob/main/examples/getting_started.ipynb)
 
