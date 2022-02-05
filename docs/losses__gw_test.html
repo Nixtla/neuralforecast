@@ -36,49 +36,6 @@ nb_path: "nbs/losses__gw_test.ipynb"
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Newey-West-estimator">Newey-West estimator<a class="anchor-link" href="#Newey-West-estimator"> </a></h2>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="Newey_West" class="doc_header"><code>Newey_West</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L26" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Newey_West</code>(<strong><code>Z</code></strong>, <strong><code>n_lags</code></strong>)</p>
-</blockquote>
-<p>Estimator of the Newey-West Heteroskedasticity and
-Autocorrelation Consistent Covariance Matrix (Newey-West HAC)
-to calculate robust error estimations.</p>
-
-<pre><code>Parameters
-----------
-Z: (n, k) ndarray
-n_lags: int
-    number of lags to consider as available information.
-
-Returns
--------
-omega_hat: Newey-West HAC estimator of the covariance matrix</code></pre>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -103,7 +60,7 @@ omega_hat: Newey-West HAC estimator of the covariance matrix</code></pre>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="GW_CPA_test" class="doc_header"><code>GW_CPA_test</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L65" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>GW_CPA_test</code>(<strong><code>loss1</code></strong>:<code>ndarray</code>, <strong><code>loss2</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>conditional</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>True</code></em>)</p>
+<h4 id="GW_CPA_test" class="doc_header"><code>GW_CPA_test</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L64" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>GW_CPA_test</code>(<strong><code>loss1</code></strong>:<code>ndarray</code>, <strong><code>loss2</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>conditional</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>True</code></em>)</p>
 </blockquote>
 <p>The one-sided Giacomini-White Conditional Predictive Ability Test (GW),
 allows to assess which model provides better predictions.</p>
@@ -209,7 +166,7 @@ URL: https://www.sas.upenn.edu/~fdiebold/papers/paper68/pa.dm.pdf.</code></pre>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="GW_test_pvals" class="doc_header"><code>GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L181" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>GW_test_pvals</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>horizon</code></strong>:<code>int</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>conditional</code></strong>:<code>bool</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="get_GW_test_pvals" class="doc_header"><code>get_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L180" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_GW_test_pvals</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>horizon</code></strong>:<code>int</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>conditional</code></strong>:<code>bool</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Function to calculate model-pair-wise GW-Test p-values.</p>
 
@@ -256,12 +213,6 @@ p_vals: (n_models, n_models)
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Giacomini-White-test-utility">Giacomini-White test utility<a class="anchor-link" href="#Giacomini-White-test-utility"> </a></h2>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -273,56 +224,22 @@ p_vals: (n_models, n_models)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_nbeatsx_cmap" class="doc_header"><code>get_nbeatsx_cmap</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L247" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_nbeatsx_cmap</code>()</p>
+<h4 id="plot_GW_test_pvals" class="doc_header"><code>plot_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L279" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>plot_GW_test_pvals</code>(<strong><code>pvals</code></strong>, <strong><code>labels</code></strong>, <strong><code>title</code></strong>)</p>
 </blockquote>
+<p>Function to plot model-pair-wise GW-Test p-values.</p>
 
-</div>
+<pre><code>Parameters
+----------
+p_vals: (n_models, n_models)
+    symmetric numpy array with the model-pair-wise p-values.
+labels: string list
+    list of model names
+title: string
+    title of the plot
 
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_epftoolbox_cmap" class="doc_header"><code>get_epftoolbox_cmap</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L263" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_epftoolbox_cmap</code>()</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="plot_GW_test_pvals" class="doc_header"><code>plot_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L280" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>plot_GW_test_pvals</code>(<strong><code>pvals</code></strong>, <strong><code>labels</code></strong>, <strong><code>title</code></strong>)</p>
-</blockquote>
+Returns
+-------
+p_vals plot</code></pre>
 
 </div>
 
@@ -522,8 +439,8 @@ p-value: [1.]
 <span class="n">y_hat</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_hat</span><span class="p">[:,</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="n">eps4</span>
 
 <span class="n">model_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Model1&#39;</span><span class="p">,</span> <span class="s1">&#39;Model2&#39;</span><span class="p">,</span> <span class="s1">&#39;Model3&#39;</span><span class="p">,</span> <span class="s1">&#39;Model4&#39;</span><span class="p">,</span> <span class="s1">&#39;Model5&#39;</span><span class="p">]</span>
-<span class="n">pvals</span> <span class="o">=</span> <span class="n">GW_test_pvals</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                      <span class="n">conditional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pvals</span> <span class="o">=</span> <span class="n">get_GW_test_pvals</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">=</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                          <span class="n">conditional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model 1 is prefered over all the other models&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model 5 is non-significantly prefered over Model 4&quot;</span><span class="p">)</span>
