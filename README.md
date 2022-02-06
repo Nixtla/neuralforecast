@@ -1,4 +1,4 @@
-# <center>Nixtla &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=SOTA%20Neural%20Forecasting%20Algorithms%20by%20Nixtla%204&url=https://github.com/Nixtla/neuralforecast&via=Nixtla&hashtags=DeepLearning,TimeSeries,Forecasting) &nbsp;[![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)</center>
+# <center>Nixtla &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=SOTA%20Neural%20Forecasting%20Algorithms%20by%20Nixtla%204&url=https://github.com/Nixtla/neuralforecast&via=nixtlainc&hashtags=DeepLearning,TimeSeries,Forecasting) &nbsp;[![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)</center>
 
 
 
@@ -29,12 +29,12 @@ State-of-the-art time series forecasting for PyTorch.
 
 ## ⚡ Why?
 **Accuracy**:
-- Global model is fitted simultaneously for several time series
-- Shared information helps with highly parametrized and flexible models
-- Useful for for items/skus that have little to no history available
+- Global model is fitted simultaneously for several time series.
+- Shared information helps with highly parametrized and flexible models.
+- Useful for for items/skus that have little to no history available.
 
 **Efficiency:**
- - Automatic featurization processes
+ - Automatic featurization processes.
  - Fast computations (GPU or TPU).
 
 
@@ -93,13 +93,13 @@ pip install -e .
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NHits.jpeg" width="300" title="N-HiTS" align="rigth">
 </p>
 
-* [Exponential Smoothing Recurrent Neural Network (ES-RNN)](https://www.sciencedirect.com/science/article/pii/S0169207019301153): A hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals.  This model is the winner of the M4 forecasting competition.
+* [Exponential Smoothing Recurrent Neural Network (ES-RNN)](https://www.sciencedirect.com/science/article/pii/S0169207019301153): A hybrid model that combines the expressivity of non linear models to capture the trends while it normalizes using a Holt-Winters inspired model for the levels and seasonals. This model is the winner of the M4 forecasting competition.
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/ESRNN.png" width="300" title="ES-RNN" align="rigth">
 </p>
 
-* [Neural Basis Expansion Analysis (N-BEATS)](https://arxiv.org/abs/1905.10437): A model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state of the art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train an has an interpretable configuration.
+* [Neural Basis Expansion Analysis (N-BEATS)](https://arxiv.org/abs/1905.10437): A model from Element-AI (Yoshua Bengio’s lab) that has proven to achieve state-of-the-art performance on benchmark large scale forecasting datasets like Tourism, M3, and M4. The model is fast to train and has an interpretable configuration.
 
 <p align="center">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBeats.png" width="300" title="N-BEATS" align="rigth">
@@ -111,14 +111,11 @@ pip install -e .
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" align="rigth">
 </p>
 
-* [Exponential Smoothing Recurrent Neural Network (ESRNN) ](https://www.sciencedirect.com/science/article/abs/pii/S0169207019301153): Dynamic Computational Graph Neural Network system that enables mixing
-of a standard Exponential Smoothing model with advanced Long Short Term Memory networks into a common framework. The result is a hybrid and hierarchical forecasting method. (Winning submission of the M4)
 
-
-* [Transforer Based Models](https://arxiv.org/abs/1706.03762): transformer-based framework for unsupervised representation learning of multivariate time series
-  - [Autoformer](https://arxiv.org/abs/2106.13008): encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform 
-  - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity and the 
-  - [Transformer](): classical vanilla transformer
+* [Transforer Based Models](https://arxiv.org/abs/1706.03762): Transformer-based framework for unsupervised representation learning of multivariate time series.
+  - [Autoformer](https://arxiv.org/abs/2106.13008): Encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform.
+  - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity.
+  - [Transformer](): Classical vanilla Transformer.
 
 
 ## 📃 License
