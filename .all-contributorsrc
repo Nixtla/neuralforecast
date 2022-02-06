@@ -40,7 +40,8 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/4086186?v=4",
       "profile": "https://github.com/mergenthaler",
       "contributions": [
-        "doc"
+        "doc",
+        "code"
       ]
     },
     {
@@ -72,7 +73,7 @@
         "code"
       ]
     },
-    { 
+    {
       "login": "stefanialvs",
       "name": "stefanialvs",
       "avatar_url": "https://avatars.githubusercontent.com/u/48966177?v=4",
