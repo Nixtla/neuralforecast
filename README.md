@@ -118,7 +118,7 @@ of a standard Exponential Smoothing model with advanced Long Short Term Memory n
 * [Transforer Based Models](https://arxiv.org/abs/1706.03762): transformer-based framework for unsupervised representation learning of multivariate time series
   - [Autoformer](https://arxiv.org/abs/2106.13008): encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform 
   - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity and the 
-  - [Transformer](). classical vanilla transformer
+  - [Transformer](): classical vanilla transformer
 
 
 ## 📃 License
