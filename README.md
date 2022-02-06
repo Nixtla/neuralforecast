@@ -31,7 +31,7 @@ State-of-the-art time series forecasting for PyTorch.
 **Accuracy**:
 - Global model is fitted simultaneously for several time series.
 - Shared information helps with highly parametrized and flexible models.
-- Useful for for items/skus that have little to no history available.
+- Useful for items/skus that have little to no history available.
 
 **Efficiency:**
  - Automatic featurization processes.
