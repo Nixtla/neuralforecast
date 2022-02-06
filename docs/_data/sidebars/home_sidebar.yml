@@ -89,7 +89,7 @@ entries:
       title: NumPy Evaluation
       url: losses__numpy.html
     - output: web,pdf
-      title: PyTorch Training
+      title: PyTorch Losses
       url: losses__pytorch.html
     - output: web,pdf
       title: Statistical Testing
@@ -98,7 +98,7 @@ entries:
       title: Utils
       url: losses__utils.html
     output: web
-    title: Evaluation
+    title: Train and Evaluation
   - folderitems:
     - output: web,pdf
       title: Experiment Utils

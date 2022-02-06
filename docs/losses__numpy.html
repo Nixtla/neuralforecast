@@ -6,8 +6,8 @@ title: NumPy Evaluation
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "The most important magnitude for point forecast is the forecast error, which is the difference between the observed value $y_{\tau}$ and the prediction $\hat{y}_{\tau}$, at time $\tau$:"
-description: "The most important magnitude for point forecast is the forecast error, which is the difference between the observed value $y_{\tau}$ and the prediction $\hat{y}_{\tau}$, at time $\tau$:"
+summary: "The most important evaluation signal is the forecast error, which is the difference between the observed value $y_{\\tau}$ and the prediction $\\hat{y}_{\\tau}$, at time $\\tau$: $$e_{\\tau} = y_{\\tau}-\\hat{y}_{\\tau} \\qquad \\qquad \\tau \\in \\{t+1,\\dots,t+H \\}.$$The forecast accuracy summarizes the forecast errors in different metrics: <br><br> 1. Scale-dependent errors - These metrics are on the same scale as the data. <ul><li>mae</li><li>mse</li><li>rmse</li></ul>   <br> 2. Percentage errors - These metrics are unit-free, suitable for comparisons across series. <ul><li>mape</li><li>smape</li></ul> <br> 3. Scale-independent errors - These metrics measure the relative improvements versus baselines, the available metric is <ul><li>mase</li><li>rmae</li></ul>   <br>4. Probabilistic errors - These measure absolute deviation non-symmetrically, that produce under/over estimation. <ul><li>quantile_loss</li><li>mqloss</li></ul>"
+description: "The most important evaluation signal is the forecast error, which is the difference between the observed value $y_{\\tau}$ and the prediction $\\hat{y}_{\\tau}$, at time $\\tau$: $$e_{\\tau} = y_{\\tau}-\\hat{y}_{\\tau} \\qquad \\qquad \\tau \\in \\{t+1,\\dots,t+H \\}.$$The forecast accuracy summarizes the forecast errors in different metrics: <br><br> 1. Scale-dependent errors - These metrics are on the same scale as the data. <ul><li>mae</li><li>mse</li><li>rmse</li></ul>   <br> 2. Percentage errors - These metrics are unit-free, suitable for comparisons across series. <ul><li>mape</li><li>smape</li></ul> <br> 3. Scale-independent errors - These metrics measure the relative improvements versus baselines, the available metric is <ul><li>mase</li><li>rmae</li></ul>   <br>4. Probabilistic errors - These measure absolute deviation non-symmetrically, that produce under/over estimation. <ul><li>quantile_loss</li><li>mqloss</li></ul>"
 nb_path: "nbs/losses__numpy.ipynb"
 ---
 <!--
@@ -52,7 +52,7 @@ nb_path: "nbs/losses__numpy.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Scale-dependent-errors">Scale-dependent errors<a class="anchor-link" href="#Scale-dependent-errors"> </a></h1>
+<h1 id="1.-Scale-dependent-Errors-"><span style="color:DarkOrange">1. Scale-dependent Errors </span><a class="anchor-link" href="#1.-Scale-dependent-Errors-"> </a></h1>
 </div>
 </div>
 </div>
@@ -75,23 +75,32 @@ nb_path: "nbs/losses__numpy.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="mae" class="doc_header"><code>mae</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L27" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Mean Absolute Error (MAE).</p>
+<p>Calculates Mean Absolute Error (MAE) between
+y and y_hat. MAE measures the relative prediction
+accuracy of a forecasting method by calculating the
+deviation of the prediction and the true
+value at a given time and averages these devations
+over the length of the series.</p>
 $$ \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1}
     |y_{\tau} - \hat{y}_{\tau}| $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array. Predicted values.
-weights: numpy array. Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat: numpy array
+    Predicted values.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
-    the input array. If axis is negative it counts from the last to first.
+    the input array. If axis is negative it counts from last to first.
 
 Returns
 -------
-mae: numpy array or double
-    Return the mae along the specified axis.</code></pre>
+mae: numpy array or double.
+    Return the MAE along the specified axis.</code></pre>
 
 </div>
 
@@ -154,34 +163,34 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L65" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mse" class="doc_header"><code>mse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L74" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Mean Squared Error (MSE)
-that measures the accuracy of a model's predictions
-by calculating the squared deviation of the prediction
-and the observed value at a given time and averaging these
-devations over the length of the series.</p>
+<p>Calculates Mean Squared Error (MSE) between
+y and y_hat. MSE measures the relative prediction
+accuracy of a forecasting method by calculating the
+squared deviation of the prediction and the true
+value at a given time, and averages these devations
+over the length of the series.</p>
 $$ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} $$
 <pre><code>Parameters
 ----------
-y: numpy array
+y: numpy array.
     Actual test values.
-y_hat: numpy array
+y_hat: numpy array.
     Predicted values.
-weights: numpy array
+weights: numpy array, optional.
     Weights for weighted average.
-axis: None or int, optional
+axis: None or int, optional.
     Axis or axes along which to average a.
     The default, axis=None, will average over all of the
-    elements of the input array.
-    If axis is negative it counts
+    elements of the input array. If axis is negative it counts
     from the last to the first axis.
 
 Returns
 -------
-mse: numpy array or double
-    Return the mse along the specified axis.</code></pre>
+mse: numpy array or double.
+    Return the MSE along the specified axis.</code></pre>
 
 </div>
 
@@ -244,11 +253,11 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L112" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmse" class="doc_header"><code>rmse</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L121" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmse</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Root Mean Squared Error (RMSE)
-that measures the prediction accuracy of a
-forecasting method by calculating the squared deviation
+<p>Calculates Root Mean Squared Error (RMSE) between
+y and y_hat. RMSE measures the relative prediction
+accuracy of a forecasting method by calculating the squared deviation
 of the prediction and the observed value at a given time and
 averages these devations over the length of the series.
 Finally the RMSE will be in the same scale
@@ -259,17 +268,21 @@ $$ \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
     \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}} $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array. Predicted values.
-weights: numpy array. Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
+    Predicted values.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-rmse: numpy array or double
-    Return the rmse along the specified axis.</code></pre>
+rmse: numpy array or double.
+    Return the RMSE along the specified axis.</code></pre>
 
 </div>
 
@@ -317,7 +330,7 @@ height=300
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Percentage-Errors">Percentage Errors<a class="anchor-link" href="#Percentage-Errors"> </a></h1>
+<h1 id="2.-Percentage-Errors-"><span style="color:DarkOrange">2. Percentage Errors </span><a class="anchor-link" href="#2.-Percentage-Errors-"> </a></h1>
 </div>
 </div>
 </div>
@@ -338,36 +351,35 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L148" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mape" class="doc_header"><code>mape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L161" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Mean Absolute Percentage Error (MAPE)
-that measures the relative prediction accuracy of a
-forecasting method by calculating the percentual deviation
+<p>Calculates Mean Absolute Percentage Error (MAPE) between
+y and y_hat. MAPE measures the relative prediction
+accuracy of a forecasting method by calculating the percentual deviation
 of the prediction and the observed value at a given time and
 averages these devations over the length of the series.
-MAPE loss penalizes more the errors the closer to zero the observed value is.</p>
+The closer to zero an observed value is, the higher penalty MAPE loss
+assigns to the corresponding error.</p>
 $$ \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1}
     \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|} $$
 <pre><code>Parameters
 ----------
-y: numpy array
-    Actual test values.
-y_hat: numpy array
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
     Predicted values.
-weights: numpy array, optional
+weights: numpy array, optional.
     Weights for weighted average.
-axis: None or int, optional
+axis: None or int, optional.
     Axis or axes along which to average a.
-    The default, axis=None, will average over all of the
-    elements of the input array.
-    If axis is negative it counts
-    from the last to the first axis.
+    The default, axis=None, will average over all of the elements of
+    the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-mape: numpy array or double
-    Return the mape along the specified axis.</code></pre>
+mape: numpy array or double.
+    Return the MAPE along the specified axis.</code></pre>
 
 </div>
 
@@ -430,33 +442,37 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L195" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="smape" class="doc_header"><code>smape</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L207" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>smape</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Symmetric Mean Absolute Percentage Error (SMAPE)
-that measures the relative prediction accuracy of a
-forecasting method by calculating the relative deviation
+<p>Calculates Symmetric Mean Absolute Percentage Error (SMAPE) between
+y and y_hat. SMAPE measures the relative prediction
+accuracy of a forecasting method by calculating the relative deviation
 of the prediction and the observed value scaled by the sum of the
 absolute values for the prediction and observed value at a
 given time, then averages these devations over the length
 of the series. This allows the SMAPE to have bounds between
 0% and 200% which is desireble compared to normal MAPE that
 may be undetermined when the target is zero.</p>
-$$ \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
+$$ \mathrm{SMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) =
    \frac{1}{H} \sum^{t+H}_{\tau=t+1}
    \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|} $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array. Predicted values.
-weights: numpy array. Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
+    Predicted values.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-smape: numpy array or double
-    Return the smape along the specified axis.</code></pre>
+smape: numpy array or double.
+    Return the SMAPE along the specified axis.</code></pre>
 
 </div>
 
@@ -477,7 +493,7 @@ smape: numpy array or double
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Scale-independent-Errors">Scale-independent Errors<a class="anchor-link" href="#Scale-independent-Errors"> </a></h1>
+<h1 id="3.-Scale-independent-Errors-"><span style="color:DarkOrange">3. Scale-independent Errors </span><a class="anchor-link" href="#3.-Scale-independent-Errors-"> </a></h1>
 </div>
 </div>
 </div>
@@ -498,35 +514,39 @@ smape: numpy array or double
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L243" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mase" class="doc_header"><code>mase</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L259" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mase</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>y_train</code></strong>:<code>ndarray</code>, <strong><code>seasonality</code></strong>:<code>int</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the Mean Absolute Scaled Error (MASE)
-that measures the relative prediction accuracy of a
-forecasting method by comparinng the mean absolute errors
+<p>Calculates the Mean Absolute Scaled Error (MASE) between
+y and y_hat. MASE measures the relative prediction
+accuracy of a forecasting method by comparinng the mean absolute errors
 of the prediction and the observed value against the mean
 absolute errors of the seasonal naive model.
-The MASE partially composed the the Overall Weighted Average (OWA),
+The MASE partially composed the Overall Weighted Average (OWA),
 used in the M4 Competition.</p>
 $$ \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})} $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array. Predicted values.
-y_train: numpy array. Actual insample Seasonal Naive predictions.
-seasonality: int
-    Main frequency of the time series
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
+    Predicted values.
+y_train: numpy array.
+    Actual insample Seasonal Naive predictions.
+seasonality: int.
+    Main frequency of the time series;
     Hourly 24,  Daily 7, Weekly 52,
     Monthly 12, Quarterly 4, Yearly 1.
-weights: numpy array
+weights: numpy array, optional.
     Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-mase: numpy array or double
+mase: numpy array or double.
     Return the mase along the specified axis.
 
 References
@@ -594,28 +614,33 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L296" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="rmae" class="doc_header"><code>rmae</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L316" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>rmae</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat1</code></strong>:<code>ndarray</code>, <strong><code>y_hat2</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates Relative Mean Absolute Error (rMAE).
-The relative mean absolute error of two forecasts.
+<p>Calculates Relative Mean Absolute Error (RMAE) between
+two sets of forecasts (from two different forecasting methods).
 A number smaller than one implies that the forecast in the
 numerator is better than the forecast in the denominator.</p>
-$$ \mathrm{rMAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau}) =
+$$ \mathrm{RMAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau})} $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat1: numpy array. Predicted values of first model.
-y_hat2: numpy array. Predicted values of baseline model.
-weights: numpy array. Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat1: numpy array.
+    Predicted values of first model.
+y_hat2: numpy array.
+    Predicted values of baseline model.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-rmae: numpy array or double
-    Return the rmae along the specified axis.</code></pre>
+rmae: numpy array or double.
+    Return the RMAE along the specified axis.</code></pre>
 
 </div>
 
@@ -663,7 +688,7 @@ height=300
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Probabilistic-Errors">Probabilistic Errors<a class="anchor-link" href="#Probabilistic-Errors"> </a></h1>
+<h1 id="4.-Probabilistic-Errors-"><span style="color:DarkOrange">4. Probabilistic Errors </span><a class="anchor-link" href="#4.-Probabilistic-Errors-"> </a></h1>
 </div>
 </div>
 </div>
@@ -684,31 +709,36 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="quantile_loss" class="doc_header"><code>quantile_loss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L332" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>quantile_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>q</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="quantile_loss" class="doc_header"><code>quantile_loss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L357" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>quantile_loss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>q</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the Quantile Loss/Pinball Loss (QL)
-that measures the deviation of a quantile forecast.
+<p>Computes the quantile loss (QL) between y and y_hat.
+QL measures the deviation of a quantile forecast.
 By weighting the absolute deviation in a non symmetric way, the
-loss pays more attention to under or over estimation.</p>
-<p>A common value for q is 0.5 for the deviation from the median.</p>
+loss pays more attention to under or over estimation.
+A common value for q is 0.5 for the deviation from the median.</p>
 $$ \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
     \frac{1}{H} \sum^{t+H}_{\tau=t+1}
     \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+}
     + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big) $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array. Predicted values.
-weights: numpy array. Weights for weighted average.
-q: float. Fixes the quantile for the predictions' comparison.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
+    Predicted values.
+q: float.
+    Quantile for the predictions' comparison.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-quantile_loss: numpy array or double
-    Return the quantile loss along the specified axis.</code></pre>
+quantile_loss: numpy array or double.
+    Return the QL along the specified axis.</code></pre>
 
 </div>
 
@@ -771,10 +801,10 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L379" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
+<h4 id="mqloss" class="doc_header"><code>mqloss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/numpy.py#L408" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>mqloss</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>quantiles</code></strong>:<code>ndarray</code>, <strong><code>weights</code></strong>:<code>Optional</code>[<code>ndarray</code>]=<em><code>None</code></em>, <strong><code>axis</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>)</p>
 </blockquote>
-<p>Calculates the Multi-Quantile loss (MQL).
-Calculates Average Multi-quantile Loss, for
+<p>Calculates the Multi-Quantile loss (MQL) between y and y_hat.
+MQL calculates the average multi-quantile Loss for
 a given set of quantiles, based on the absolute
 difference between predicted quantiles and observed values.</p>
 $$ \mathrm{MQL}(\mathbf{y}_{\tau},
@@ -789,18 +819,23 @@ $$ \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) =
     \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq $$
 <pre><code>Parameters
 ----------
-y: numpy array. Observed values.
-y_hat: numpy array (-1, n_quantiles). Predicted values.
-quantiles: numpy array (n_quantiles). Quantiles to compare against.
-weights: numpy array. Weights for weighted average.
-axis: None or int, optional. Axis or axes along which to average a.
+y: numpy array.
+    Observed values.
+y_hat: numpy array.
+    Predicted values.
+quantiles: numpy array.
+    Quantiles to compare against.
+weights: numpy array, optional.
+    Weights for weighted average.
+axis: None or int, optional.
+    Axis or axes along which to average a.
     The default, axis=None, will average over all of the elements of
     the input array. If axis is negative it counts from the last to first.
 
 Returns
 -------
-mqloss: numpy array or double
-    Return the mqloss along the specified axis.
+mqloss: numpy array or double.
+    Return the MQL along the specified axis.
 
 References
 ----------
@@ -850,12 +885,6 @@ height=300
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Examples-and-Tests">Examples and Tests<a class="anchor-link" href="#Examples-and-Tests"> </a></h1>
-</div>
-</div>
-</div>
 </div>
  
 

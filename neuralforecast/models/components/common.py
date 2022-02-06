@@ -15,7 +15,7 @@ class Chomp1d(nn.Module):
     Receives x input of dim [N,C,T], and trims it so that only
     'time available' information is used. Used for one dimensional
     causal convolutions.
-    : param chomp_size: lenght of outsample values to skip.
+    : param chomp_size: length of outsample values to skip.
     """
     def __init__(self, chomp_size):
         super(Chomp1d, self).__init__()
