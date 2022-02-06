@@ -110,6 +110,15 @@ pip install -e .
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" align="rigth">
 </p>
 
+* [Exponential Smoothing Recurrent Neural Network (ESRNN) ](https://www.sciencedirect.com/science/article/abs/pii/S0169207019301153): Dynamic Computational Graph Neural Network system that enables mixing
+of a standard Exponential Smoothing model with advanced Long Short Term Memory networks into a common framework. The result is a hybrid and hierarchical forecasting method. (Winning submission of the M4)
+
+
+* [Transforer Based Models](https://arxiv.org/abs/1706.03762): transformer-based framework for unsupervised representation learning of multivariate time series
+  - [Autoformer](https://arxiv.org/abs/2106.13008): encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform 
+  - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity and the 
+  - [Transformer](). classical vanilla transformer
+
 
 ## 📃 License
 This project is licensed under the GPLv3 License - see the [LICENSE](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE) file for details.
