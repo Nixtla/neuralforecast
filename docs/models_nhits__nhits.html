@@ -1,13 +1,13 @@
 ---
 
-title: N-HITS
+title: N-HiTS
 
 
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "API details."
-description: "API details."
+
+
 nb_path: "nbs/models_nhits__nhits.ipynb"
 ---
 <!--
@@ -80,12 +80,6 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="N-HiTS">N-HiTS<a class="anchor-link" href="#N-HiTS"> </a></h1>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
 <p>A new model for long-horizon forecasting which incorporates novel hierarchical interpolation and multi-rate data sampling techniques to specialize blocks of its architecture to different frequency band of the time-series signal. It achieves SoTA performance on several benchmark datasets, outperforming current Transformer-based models by more than 25%. Paper available at <a href="https://arxiv.org/abs/2201.12886">https://arxiv.org/abs/2201.12886</a></p>
 
 </div>
@@ -102,9 +96,96 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L464" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_theta_hidden</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>pooling_mode</code></strong>, <strong><code>interpolation_mode</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>, <strong><code>seasonality</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L466" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_mlp_units</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>pooling_mode</code></strong>, <strong><code>interpolation_mode</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="NHITS.forecast" class="doc_header"><code>NHITS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L723" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.forecast</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>=<em><code>1</code></em>)</p>
+</blockquote>
+<p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+X_df: pd.DataFrame
+    Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+    Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
+S_df: pd.DataFrame
+    Dataframe with static data, needs 'unique_id' column.
+bath_size: int
+    Batch size for forecasting.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
+    Dataframe with forecasts.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="suggested_space" class="doc_header"><code>suggested_space</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L783" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>suggested_space</code>(<strong><code>n_time_out</code></strong>, <strong><code>n_series</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>frequency</code></strong>)</p>
+</blockquote>
+<p>Suggested hyperparameters search space for tuning. To be used with hyperopt library.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>n_time_out: int
+    Forecasting horizon.
+n_series: int
+    Number of time-series.
+n_x: int
+    Number of exogenous variables.
+n_s: int
+    Number of static variables.
+frequency: str
+    Frequency of time-seris.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>space: Dict
+    Dictionary with search space for hyperopt library.</p>
 
 </div>
 
@@ -211,20 +292,20 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;identity&#39;</span><span class="p">]</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_pool_kernel_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_freq_downsample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">24</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;pooling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;max&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;interpolation_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;linear&#39;</span>
-
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;shared_weights&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 
 <span class="c1"># Optimization and regularization parameters</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;initialization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;lecun_normal&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.001</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;lr_decay&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;lr_decay_step_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
@@ -234,7 +315,6 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_normalization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;dropout_prob_theta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;dropout_prob_exogenous&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;l1_theta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;weight_decay&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_train&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;MAE&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_hypar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
@@ -249,13 +329,14 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;median&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;complete_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;seasonality&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="mi">65</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">mc</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="mi">65</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
 
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_theta_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">])]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">])]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="p">]</span>
 </pre></div>
 
     </div>
@@ -277,17 +358,18 @@ n_time_out                                            24
 n_x_hidden                                             8
 n_s_hidden                                             0
 stack_types               [identity, identity, identity]
-n_blocks                                       [1, 1, 1]
-n_layers                                       [2, 2, 2]
+n_blocks                                               1
+n_layers                                               2
+n_mlp_units                                          256
 n_pool_kernel_size                             [4, 2, 1]
 n_freq_downsample                            [24, 12, 1]
 pooling_mode                                         max
 interpolation_mode                                linear
-n_hidden                                             256
 shared_weights                                     False
 initialization                              lecun_normal
 learning_rate                                      0.001
-batch_size                                            32
+batch_size                                             1
+n_windows                                             32
 lr_decay                                             0.5
 lr_decay_step_size                                     2
 max_epochs                                             1
@@ -297,7 +379,6 @@ eval_freq                                            500
 batch_normalization                                False
 dropout_prob_theta                                   0.0
 dropout_prob_exogenous                               0.0
-l1_theta                                               0
 weight_decay                                           0
 loss_train                                           MAE
 loss_hypar                                           0.5
@@ -310,7 +391,6 @@ normalizer_y                                        None
 normalizer_x                                      median
 complete_windows                                   False
 frequency                                              H
-seasonality                                           24
 dtype: object
 =================================================================
 </pre>
@@ -346,17 +426,15 @@ dtype: object
 
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                                <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
+                                <span class="n">n_windows</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_windows&#39;</span><span class="p">],</span>
                                 <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">val_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">val_dataset</span><span class="p">,</span>
                               <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                              <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
                               <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">test_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
                                <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
-                               <span class="c1">#num_workers=int(min(multiprocessing.cpu_count(), 3)),</span>
                                <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_x&#39;</span><span class="p">],</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_s&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">get_n_variables</span><span class="p">()</span>
@@ -452,7 +530,7 @@ Outsample percentage=66.67, 	69888 time stamps
               <span class="n">stack_types</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">],</span>
               <span class="n">n_blocks</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">],</span>
               <span class="n">n_layers</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">],</span>
-              <span class="n">n_theta_hidden</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_theta_hidden&#39;</span><span class="p">],</span>
+              <span class="n">n_mlp_units</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">],</span>
               <span class="n">n_pool_kernel_size</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_pool_kernel_size&#39;</span><span class="p">],</span>
               <span class="n">n_freq_downsample</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_freq_downsample&#39;</span><span class="p">],</span>
               <span class="n">pooling_mode</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;pooling_mode&#39;</span><span class="p">],</span>
@@ -467,7 +545,6 @@ Outsample percentage=66.67, 	69888 time stamps
               <span class="n">loss_hypar</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_hypar&#39;</span><span class="p">]),</span>
               <span class="n">loss_valid</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;loss_valid&#39;</span><span class="p">],</span>
               <span class="n">frequency</span><span class="o">=</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">],</span>
-              <span class="n">seasonality</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;seasonality&#39;</span><span class="p">]),</span>
               <span class="n">random_seed</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;random_seed&#39;</span><span class="p">]))</span>
 </pre></div>
 
@@ -543,7 +620,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]</pre>
+<pre>Validation sanity check:   0%|          | 0/2 [00:00&lt;?, ?it/s]</pre>
 </div>
 </div>
 
@@ -570,7 +647,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_subarea output_stream output_stderr output_text">
 <pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (1) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (2) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
   f&#34;The number of training samples ({self.num_training_batches}) is smaller than the logging interval&#34;
 </pre>
 </div>
@@ -579,7 +656,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Epoch 0: 100%|██████████| 2/2 [00:06&lt;00:00,  3.37s/it, loss=9.03, v_num=10, train_loss_step=9.030, val_loss=11.50, train_loss_epoch=9.030]
+<pre>Epoch 0: 100%|██████████| 4/4 [00:00&lt;00:00,  4.45it/s, loss=11.6, v_num=55, train_loss_step=18.90, val_loss=7.670, train_loss_epoch=11.60]
 </pre>
 </div>
 </div>
@@ -632,10 +709,10 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;?, ?it/s]
-outputs[0][0].shape torch.Size([14066, 24])
-outputs[0][1].shape torch.Size([14066, 24])
-outputs[0][2].shape torch.Size([14066, 24])
+<pre>Predicting: 100%|██████████| 2/2 [00:00&lt;?, ?it/s]
+outputs[0][0].shape torch.Size([7033, 24])
+outputs[0][1].shape torch.Size([7033, 24])
+outputs[0][2].shape torch.Size([7033, 24])
 </pre>
 </div>
 </div>
@@ -905,7 +982,7 @@ outputs[0][2].shape torch.Size([14066, 24])
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:226: SettingWithCopyWarning: 
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:26: SettingWithCopyWarning: 
 A value is trying to be set on a copy of a slice from a DataFrame.
 Try using .loc[row_indexer,col_indexer] = value instead
 
@@ -941,7 +1018,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 69.72it/s]
+<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 66.41it/s]
 </pre>
 </div>
 </div>
@@ -1010,289 +1087,289 @@ IPU available: False, using: 0 IPUs
       <th>0</th>
       <td>FR</td>
       <td>2016-12-27 00:00:00</td>
-      <td>38.280811</td>
+      <td>57.383240</td>
     </tr>
     <tr>
       <th>1</th>
       <td>FR</td>
       <td>2016-12-27 01:00:00</td>
-      <td>35.514240</td>
+      <td>63.599991</td>
     </tr>
     <tr>
       <th>2</th>
       <td>FR</td>
       <td>2016-12-27 02:00:00</td>
-      <td>33.146500</td>
+      <td>61.578236</td>
     </tr>
     <tr>
       <th>3</th>
       <td>FR</td>
       <td>2016-12-27 03:00:00</td>
-      <td>37.476292</td>
+      <td>56.626991</td>
     </tr>
     <tr>
       <th>4</th>
       <td>FR</td>
       <td>2016-12-27 04:00:00</td>
-      <td>33.129555</td>
+      <td>56.454334</td>
     </tr>
     <tr>
       <th>5</th>
       <td>FR</td>
       <td>2016-12-27 05:00:00</td>
-      <td>34.882217</td>
+      <td>52.220943</td>
     </tr>
     <tr>
       <th>6</th>
       <td>FR</td>
       <td>2016-12-27 06:00:00</td>
-      <td>35.834831</td>
+      <td>55.677986</td>
     </tr>
     <tr>
       <th>7</th>
       <td>FR</td>
       <td>2016-12-27 07:00:00</td>
-      <td>35.670616</td>
+      <td>54.015327</td>
     </tr>
     <tr>
       <th>8</th>
       <td>FR</td>
       <td>2016-12-27 08:00:00</td>
-      <td>36.683235</td>
+      <td>51.008465</td>
     </tr>
     <tr>
       <th>9</th>
       <td>FR</td>
       <td>2016-12-27 09:00:00</td>
-      <td>37.763523</td>
+      <td>49.931084</td>
     </tr>
     <tr>
       <th>10</th>
       <td>FR</td>
       <td>2016-12-27 10:00:00</td>
-      <td>37.522747</td>
+      <td>49.967697</td>
     </tr>
     <tr>
       <th>11</th>
       <td>FR</td>
       <td>2016-12-27 11:00:00</td>
-      <td>38.421570</td>
+      <td>49.787792</td>
     </tr>
     <tr>
       <th>12</th>
       <td>FR</td>
       <td>2016-12-27 12:00:00</td>
-      <td>36.093536</td>
+      <td>50.231785</td>
     </tr>
     <tr>
       <th>13</th>
       <td>FR</td>
       <td>2016-12-27 13:00:00</td>
-      <td>40.854916</td>
+      <td>49.812317</td>
     </tr>
     <tr>
       <th>14</th>
       <td>FR</td>
       <td>2016-12-27 14:00:00</td>
-      <td>37.700039</td>
+      <td>47.244530</td>
     </tr>
     <tr>
       <th>15</th>
       <td>FR</td>
       <td>2016-12-27 15:00:00</td>
-      <td>37.776566</td>
+      <td>49.847767</td>
     </tr>
     <tr>
       <th>16</th>
       <td>FR</td>
       <td>2016-12-27 16:00:00</td>
-      <td>41.038425</td>
+      <td>48.904827</td>
     </tr>
     <tr>
       <th>17</th>
       <td>FR</td>
       <td>2016-12-27 17:00:00</td>
-      <td>40.337955</td>
+      <td>48.575409</td>
     </tr>
     <tr>
       <th>18</th>
       <td>FR</td>
       <td>2016-12-27 18:00:00</td>
-      <td>41.552475</td>
+      <td>50.659264</td>
     </tr>
     <tr>
       <th>19</th>
       <td>FR</td>
       <td>2016-12-27 19:00:00</td>
-      <td>39.720551</td>
+      <td>48.483036</td>
     </tr>
     <tr>
       <th>20</th>
       <td>FR</td>
       <td>2016-12-27 20:00:00</td>
-      <td>41.338497</td>
+      <td>46.416195</td>
     </tr>
     <tr>
       <th>21</th>
       <td>FR</td>
       <td>2016-12-27 21:00:00</td>
-      <td>38.234951</td>
+      <td>45.804741</td>
     </tr>
     <tr>
       <th>22</th>
       <td>FR</td>
       <td>2016-12-27 22:00:00</td>
-      <td>39.099293</td>
+      <td>44.567024</td>
     </tr>
     <tr>
       <th>23</th>
       <td>FR</td>
       <td>2016-12-27 23:00:00</td>
-      <td>38.020962</td>
+      <td>48.928654</td>
     </tr>
     <tr>
       <th>24</th>
       <td>NP</td>
       <td>2016-12-27 00:00:00</td>
-      <td>17.042889</td>
+      <td>34.496532</td>
     </tr>
     <tr>
       <th>25</th>
       <td>NP</td>
       <td>2016-12-27 01:00:00</td>
-      <td>14.852306</td>
+      <td>39.423214</td>
     </tr>
     <tr>
       <th>26</th>
       <td>NP</td>
       <td>2016-12-27 02:00:00</td>
-      <td>13.224807</td>
+      <td>37.715649</td>
     </tr>
     <tr>
       <th>27</th>
       <td>NP</td>
       <td>2016-12-27 03:00:00</td>
-      <td>17.747755</td>
+      <td>34.838146</td>
     </tr>
     <tr>
       <th>28</th>
       <td>NP</td>
       <td>2016-12-27 04:00:00</td>
-      <td>13.643167</td>
+      <td>34.067268</td>
     </tr>
     <tr>
       <th>29</th>
       <td>NP</td>
       <td>2016-12-27 05:00:00</td>
-      <td>14.960263</td>
+      <td>31.187387</td>
     </tr>
     <tr>
       <th>30</th>
       <td>NP</td>
       <td>2016-12-27 06:00:00</td>
-      <td>15.154066</td>
+      <td>33.507435</td>
     </tr>
     <tr>
       <th>31</th>
       <td>NP</td>
       <td>2016-12-27 07:00:00</td>
-      <td>14.854959</td>
+      <td>32.951694</td>
     </tr>
     <tr>
       <th>32</th>
       <td>NP</td>
       <td>2016-12-27 08:00:00</td>
-      <td>16.035847</td>
+      <td>30.295637</td>
     </tr>
     <tr>
       <th>33</th>
       <td>NP</td>
       <td>2016-12-27 09:00:00</td>
-      <td>16.440380</td>
+      <td>29.420189</td>
     </tr>
     <tr>
       <th>34</th>
       <td>NP</td>
       <td>2016-12-27 10:00:00</td>
-      <td>17.034492</td>
+      <td>29.400318</td>
     </tr>
     <tr>
       <th>35</th>
       <td>NP</td>
       <td>2016-12-27 11:00:00</td>
-      <td>17.142307</td>
+      <td>29.108084</td>
     </tr>
     <tr>
       <th>36</th>
       <td>NP</td>
       <td>2016-12-27 12:00:00</td>
-      <td>15.754972</td>
+      <td>29.561987</td>
     </tr>
     <tr>
       <th>37</th>
       <td>NP</td>
       <td>2016-12-27 13:00:00</td>
-      <td>19.126244</td>
+      <td>29.945118</td>
     </tr>
     <tr>
       <th>38</th>
       <td>NP</td>
       <td>2016-12-27 14:00:00</td>
-      <td>16.862597</td>
+      <td>27.365398</td>
     </tr>
     <tr>
       <th>39</th>
       <td>NP</td>
       <td>2016-12-27 15:00:00</td>
-      <td>16.660938</td>
+      <td>29.801426</td>
     </tr>
     <tr>
       <th>40</th>
       <td>NP</td>
       <td>2016-12-27 16:00:00</td>
-      <td>18.390368</td>
+      <td>28.357998</td>
     </tr>
     <tr>
       <th>41</th>
       <td>NP</td>
       <td>2016-12-27 17:00:00</td>
-      <td>19.172791</td>
+      <td>27.973637</td>
     </tr>
     <tr>
       <th>42</th>
       <td>NP</td>
       <td>2016-12-27 18:00:00</td>
-      <td>18.845093</td>
+      <td>29.824272</td>
     </tr>
     <tr>
       <th>43</th>
       <td>NP</td>
       <td>2016-12-27 19:00:00</td>
-      <td>17.893234</td>
+      <td>27.926319</td>
     </tr>
     <tr>
       <th>44</th>
       <td>NP</td>
       <td>2016-12-27 20:00:00</td>
-      <td>18.959978</td>
+      <td>26.116405</td>
     </tr>
     <tr>
       <th>45</th>
       <td>NP</td>
       <td>2016-12-27 21:00:00</td>
-      <td>17.111084</td>
+      <td>25.694103</td>
     </tr>
     <tr>
       <th>46</th>
       <td>NP</td>
       <td>2016-12-27 22:00:00</td>
-      <td>17.366955</td>
+      <td>24.932785</td>
     </tr>
     <tr>
       <th>47</th>
       <td>NP</td>
       <td>2016-12-27 23:00:00</td>
-      <td>16.532890</td>
+      <td>27.818642</td>
     </tr>
   </tbody>
 </table>
