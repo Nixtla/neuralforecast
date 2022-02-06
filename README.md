@@ -51,6 +51,7 @@ pip install neuralforecast
 
 <details>
 <summary>Conda</summary>
+  
 Also you can install the *released version* of `NeuralForecast` from [conda](https://anaconda.org) with:
 
 ```python
