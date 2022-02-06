@@ -16,15 +16,26 @@
 [![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/Nixtla/neuralforecast/blob/main/LICENSE)
 [![docs](https://img.shields.io/website-up-down-green-red/http/nixtla.github.io/neuralforecast.svg?label=docs)](https://nixtla.github.io/neuralforecast/)
 
-State-of-the-art time series forecasting for PyTorch.
+State-of-the-art time series forecasting for PyTorch. 
 
-`NeuralForecast` is a python library for time series forecasting with deep learning. 
-It provides dataset loading utilities, evaluation functions and PyTorch implementations of state-of-the-art deep learning forecasting models.
+`NeuralForecast` is Python library for time series forecasting with deep learning models. It includes *benchmark datasets*, *data-loading utilities*, *evaluation functions*, statistical *tests*, univariate model *benchmarks* and *SOTA models* implemented in PyTorch and PyTorchLightning. 
+
+
 
 [Getting started](#%F0%9F%A7%AC%20Getting%20Started) •
 [Installation](#💻-installation) •
 [Models](#forecasting-models)
 </div>
+
+## ⚡ Why?
+**Accuracy**:
+- Global model is fitted simultaneously for several time series
+- Shared information helps with highly parametrized and flexible models
+- Useful for for items/skus that have little to no history available
+
+**Efficiency:**
+ - Automatic featurization processes
+ - Fast computations (GPU or TPU).
 
 
 ## 📖 Documentation
@@ -99,6 +110,15 @@ pip install -e .
 <p align="center">
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/NBEATSX.png" width="300" title="N-BEATSx" align="rigth">
 </p>
+
+* [Exponential Smoothing Recurrent Neural Network (ESRNN) ](https://www.sciencedirect.com/science/article/abs/pii/S0169207019301153): Dynamic Computational Graph Neural Network system that enables mixing
+of a standard Exponential Smoothing model with advanced Long Short Term Memory networks into a common framework. The result is a hybrid and hierarchical forecasting method. (Winning submission of the M4)
+
+
+* [Transforer Based Models](https://arxiv.org/abs/1706.03762): transformer-based framework for unsupervised representation learning of multivariate time series
+  - [Autoformer](https://arxiv.org/abs/2106.13008): encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform 
+  - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity and the 
+  - [Transformer](). classical vanilla transformer
 
 
 ## 📃 License
