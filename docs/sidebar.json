@@ -34,9 +34,9 @@
     "Informer": "models_transformer__informer.html",
     "Transformer": "models_transformer__transformer.html"
   },
-  "Evaluation": {
+  "Train and Evaluation": {
       "NumPy Evaluation": "losses__numpy.html",
-      "PyTorch Training": "losses__pytorch.html",
+      "PyTorch Losses": "losses__pytorch.html",
       "Statistical Testing": "losses__gw_test.html",
       "Utils": "losses__utils.html"
   },
