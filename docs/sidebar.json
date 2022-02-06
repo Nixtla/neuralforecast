@@ -1,46 +1,46 @@
 {
-  "Getting started": {
-    "Overview": "/"
+  "Documentation": {
+    "NeuralForecast Tutorials": "/"
   },
   "Data": {
-    "Time Series Datasets": "data__tsdataset.html",
-    "Time Series Loaders": "data__tsloader.html",
+    "TSDataset Class": "data__tsdataset.html",
+    "TSLoader Class": "data__tsloader.html",
     "": {
-      "Datasets": {
+      "Bechmark Datasets": {
         "EPF": "data_datasets__epf.html",
         "GEFCom 2012": "data_datasets__gefcom2012.html",
         "GEFCom 2014": "data_datasets__gefcom2014.html",
-	"Long Horizon": "data_datasets__long_horizon.html",
+	      "Long-Horizon": "data_datasets__long_horizon.html",
         "M3": "data_datasets__m3.html",
         "M4": "data_datasets__m4.html",
         "M5": "data_datasets__m5.html",
         "Tourism": "data_datasets__tourism.html",
-        "Utils": "data_datasets__utils.html"
+        "Benchmark Utils": "data_datasets__utils.html"
       }
     },
     "empty2": {
-      "Dataset utils": {
-        "Utils": "data__utils.html",
-        "Scalers": "data__scalers.html"
+      "Dataset Utils": {
+        "Dataset Utils": "data__utils.html",
+        "Dataset Scalers": "data__scalers.html"
       }
     }
   },
   "Models": {
-    "Autoformer": "models_transformer__autoformer.html",
     "ESRNN": "models_esrnn__esrnn.html",
+    "MQ-ESRNN": "models_esrnn__mqesrnn.html",
+    "N-BEATS": "models_nbeats__nbeats.html",
+    "N-HiTS": "models_nhits__nhits.html",
+    "Autoformer": "models_transformer__autoformer.html",
     "Informer": "models_transformer__informer.html",
-    "MQESRNN": "models_esrnn__mqesrnn.html",
-    "NBEATS": "models_nbeats__nbeats.html",
-    "NHITS": "models_nhits__nhits.html",
     "Transformer": "models_transformer__transformer.html"
   },
   "Evaluation": {
-      "NumPy Evaluation Metrics": "losses__numpy.html",
-      "PyTorch Train Losses": "losses__pytorch.html",
-      "Statistical Tests": "losses__gw_test.html",
+      "NumPy Evaluation": "losses__numpy.html",
+      "PyTorch Training": "losses__pytorch.html",
+      "Statistical Testing": "losses__gw_test.html",
       "Utils": "losses__utils.html"
   },
   "Experiments": {
-      "Utils": "experiments__utils.html"
+      "Experiment Utils": "experiments__utils.html"
   }
 }
