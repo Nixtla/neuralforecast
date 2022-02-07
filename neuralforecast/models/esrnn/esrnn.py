@@ -452,20 +452,24 @@ class _ESRNN(nn.Module):
 # Cell
 from typing import Union, List
 
+import pandas as pd
 import pytorch_lightning as pl
 import torch.nn as nn
+from fastcore.foundation import patch
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 
+from ...data.tsdataset import TimeSeriesDataset
+from ...data.tsloader import TimeSeriesLoader
 from ...losses.utils import LossFunction
 
 # Cell
 class ESRNN(pl.LightningModule):
     def __init__(self, n_series: int,
-                 n_x: int, n_s: int,
                  input_size: int, output_size: int,
-                 sample_freq: int,
+                 n_x: int = 0, n_s: int = 0,
+                 sample_freq: int = 1,
                  es_component: str = 'multiplicative',
                  cell_type: str = 'LSTM', state_hsize: int = 50,
                  dilations: List[List[int]] = [[1, 2], [4, 8]],
@@ -478,7 +482,8 @@ class ESRNN(pl.LightningModule):
                  level_variability_penalty: float = 20.,
                  testing_percentile: Union[int, List] = 50,
                  training_percentile: Union[int, List] = 50,
-                 loss: str = 'SMYL', val_loss: str = 'MAE'):
+                 loss: str = 'SMYL', val_loss: str = 'MAE',
+                 frequency: str = 'D'):
         super(ESRNN, self).__init__()
         """ Exponential Smoothing Recurrent Neural Network
 
@@ -559,6 +564,8 @@ class ESRNN(pl.LightningModule):
             Loss used to train.
         val_loss: str
             Loss used to validate.
+        frequency: str
+            Time series frequency.
 
         Notes
         -----
@@ -605,6 +612,7 @@ class ESRNN(pl.LightningModule):
                                         percentile=self.testing_percentile,
                                         level_variability_penalty=self.level_variability_penalty)
 
+        self.frequency = frequency
         # MQESRNN
         self.mq = isinstance(self.training_percentile, list)
         self.output_size_m = len(self.training_percentile) if self.mq else 1
@@ -735,3 +743,66 @@ class ESRNN(pl.LightningModule):
                         gamma=self.lr_decay)
 
         return [es_optimizer, rnn_optimizer], [lr_es, lr_rnn]
+
+# Cell
+@patch
+def forecast(self: ESRNN, Y_df, X_df = None, S_df = None, batch_size=1):
+    """
+    Method for forecasting self.output_size periods after last timestamp of Y_df.
+
+    Parameters
+    ----------
+    Y_df: pd.DataFrame
+        Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+    X_df: pd.DataFrame
+        Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+        Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
+    S_df: pd.DataFrame
+        Dataframe with static data, needs 'unique_id' column.
+    bath_size: int
+        Batch size for forecasting.
+
+    Returns
+    ----------
+    forecast_df: pd.DataFrame
+        Dataframe with forecasts.
+    """
+
+    # Add forecast dates to Y_df
+    Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+
+    forecast_dates = pd.date_range(Y_df['ds'].max(), periods=self.output_size+1, freq=self.frequency)[1:]
+    index = pd.MultiIndex.from_product([Y_df['unique_id'].unique(), forecast_dates], names=['unique_id', 'ds'])
+    forecast_df = pd.DataFrame({'y':[0]}, index=index).reset_index()
+
+    Y_df = Y_df.append(forecast_df).sort_values(['unique_id','ds']).reset_index(drop=True)
+
+    # Dataset, loader and trainer
+    dataset = TimeSeriesDataset(Y_df=Y_df, X_df=X_df,
+                                S_df=S_df,
+                                ds_in_test=self.output_size,
+                                is_test=True,
+                                input_size=self.input_size,
+                                output_size=self.output_size,
+                                verbose=True)
+
+    loader = TimeSeriesLoader(dataset=dataset,
+                              batch_size=batch_size,
+                              shuffle=False)
+
+    trainer = pl.Trainer()
+
+    # Forecast
+    outputs = trainer.predict(self, loader)
+
+    # Process forecast and include in forecast_df
+    _, forecast, _ = zip(*outputs)
+    forecast = t.cat([forecast_[:, -1] for forecast_ in forecast]).cpu().numpy()
+    if self.mq:
+        for iq, q in enumerate(self.training_percentile):
+            forecast_df[f'y_p{q}'] = forecast[:, :, iq].flatten()
+        forecast_df = forecast_df.drop(columns='y')
+    else:
+        forecast_df['y'] = forecast.flatten()
+
+    return forecast_df
