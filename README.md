@@ -18,7 +18,7 @@
 
 State-of-the-art time series forecasting for PyTorch. 
 
-`NeuralForecast` is Python library for time series forecasting with deep learning models. It includes *benchmark datasets*, *data-loading utilities*, *evaluation functions*, statistical *tests*, univariate model *benchmarks* and *SOTA models* implemented in PyTorch and PyTorchLightning. 
+`NeuralForecast` is a Python library for time series forecasting with deep learning models. It includes *benchmark datasets*, *data-loading utilities*, *evaluation functions*, statistical *tests*, univariate model *benchmarks* and *SOTA models* implemented in PyTorch and PyTorchLightning. 
 
 
 
@@ -112,7 +112,7 @@ pip install -e .
 </p>
 
 
-* [Transforer Based Models](https://arxiv.org/abs/1706.03762): Transformer-based framework for unsupervised representation learning of multivariate time series.
+* [Transformer-Based Models](https://arxiv.org/abs/1706.03762): Transformer-based framework for unsupervised representation learning of multivariate time series.
   - [Autoformer](https://arxiv.org/abs/2106.13008): Encoder-decoder model with decomposition capabilities and an approximation to attention based on Fourier transform.
   - [Informer](https://arxiv.org/abs/2012.07436): Transformer with MLP based multi-step prediction strategy, that approximates self-attention with sparsity.
   - [Transformer](): Classical vanilla Transformer.
