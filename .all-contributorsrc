@@ -90,6 +90,15 @@
       "contributions": [
         "bug"
       ]
+    },
+    {
+      "login": "vglaucus",
+      "name": "vglaucus",
+      "avatar_url": "https://avatars.githubusercontent.com/u/75549033?v=4",
+      "profile": "https://github.com/vglaucus",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
