@@ -3,33 +3,111 @@
 __all__ = ['MQESRNN']
 
 # Cell
+from typing import List
+
 from .esrnn import ESRNN
 
 # Cell
 class MQESRNN(ESRNN):
     def __init__(self,
-                 n_series,
-                 n_x,
-                 n_s,
-                 sample_freq,
-                 input_size,
-                 output_size,
-                 es_component,
-                 cell_type,
-                 state_hsize,
-                 dilations,
-                 add_nl_layer,
-                 learning_rate,
-                 lr_scheduler_step_size,
-                 lr_decay,
-                 gradient_eps,
-                 gradient_clipping_threshold,
-                 rnn_weight_decay,
-                 noise_std,
-                 testing_percentiles,
-                 training_percentiles,
-                 loss,
-                 val_loss):
+                 n_series: int,
+                 input_size: int,
+                 output_size: int,
+                 n_x: int = 0,
+                 n_s: int = 0,
+                 sample_freq: int = 1,
+                 es_component: str = 'median_residual',
+                 cell_type: str = 'LSTM',
+                 state_hsize: int = 50,
+                 dilations: List[List[int]] = [[1, 2], [4, 8]],
+                 add_nl_layer: bool = False,
+                 learning_rate: float = 1e-3,
+                 lr_scheduler_step_size: int = 9,
+                 lr_decay: float = 0.9,
+                 gradient_eps: float = 1e-8,
+                 gradient_clipping_threshold: float = 20.,
+                 rnn_weight_decay: float = 0.,
+                 noise_std: float = 1e-3,
+                 testing_percentiles: List[float] = [2.5, 5., 50., 95., 97.5],
+                 training_percentiles: List[float] = [2.5, 5., 50., 95., 97.5],
+                 loss: str = 'MQ',
+                 val_loss: str = 'MQ',
+                 frequency: str = 'D'):
+        """ Multi-Quantile Exponential Smoothing Recurrent Neural Network
+
+        Parameters
+        ----------
+        n_series: int
+            Number of time series.
+        n_x: int
+            Number of temporal exogenous variables.
+        n_s: int
+            Number of static variables.
+        input_size: int
+            input size of the recurrent neural network, usually a
+            multiple of seasonality
+        output_size: int
+            output_size or forecast horizon of the recurrent neural
+            network, usually multiple of seasonality
+        sample_freq: int
+            Step size between windows.
+        es_component: str
+            Exponential Smoothing component.
+            Default multiplicative.
+        cell_type: str
+            Type of RNN cell, available GRU, LSTM, RNN, ResidualLSTM.
+        state_hsize: int
+            dimension of hidden state of the recurrent neural network
+        dilations: int list
+            each list represents one chunk of Dilated LSTMS, connected in
+            standard ResNet fashion
+        add_nl_layer: bool
+            whether to insert a tanh() layer between the RNN stack and the
+            linear adaptor (output) layers
+        learning_rate: float
+            size of the stochastic gradient descent steps
+        lr_scheduler_step_size: int
+            this step_size is the period for each learning rate decay
+        lr_decay: float
+            Learning rate decay.
+        per_series_lr_multip: float
+            multiplier for per-series parameters smoothing and initial
+            seasonalities learning rate (default 1.0)
+        gradient_eps: float
+            term added to the Adam optimizer denominator to improve
+            numerical stability (default: 1e-8)
+        gradient_clipping_threshold: float
+            max norm of gradient vector, with all parameters treated
+            as a single vector
+        rnn_weight_decay: float
+            parameter to control classic L2/Tikhonov regularization
+            of the rnn parameters
+        noise_std: float
+            standard deviation of white noise added to input during
+            fit to avoid the model from memorizing the train data
+        level_variability_penalty: float
+            this parameter controls the strength of the penalization
+            to the wigglines of the level vector, induces smoothness
+            in the output
+        testing_percentiles: List[float]
+            This values are only for diagnostic evaluation.
+        training_percentiles: List[float]
+            Percentiles to train and forecast.
+        loss: str
+            Loss used to train.
+            Available: 'MQ', 'wMQ'.
+        val_loss: str
+            Loss used to validate.
+            Available: 'MQ', 'wMQ'.
+        frequency: str
+            Time series frequency.
+
+        Notes
+        -----
+        **References:**
+        `Application
+        <https://arxiv.org/abs/2112.05673`__
+        """
 
         allowed_losses = ['MQ', 'wMQ']
         if loss not in allowed_losses:
@@ -70,4 +148,5 @@ class MQESRNN(ESRNN):
                                       testing_percentile=testing_percentiles,
                                       training_percentile=training_percentiles,
                                       loss=loss,
-                                      val_loss=val_loss)
+                                      val_loss=val_loss,
+                                      frequency=frequency)
