@@ -816,7 +816,7 @@ def suggested_space(n_time_out, n_series, n_x, n_s, frequency):
         'stack_types': hp.choice('stack_types', [ 3*['identity'] ]),
         'constant_n_blocks': hp.choice('n_blocks', [ 1, 3 ]), # Constant n_blocks across stacks
         'constant_n_layers': hp.choice('n_layers', [ 2, 3 ]), # Constant n_layers across stacks
-        'n_mlp_units': hp.choice('n_mlp_units', [ 128, 256, 512, 1024 ]), # Constant n_mlp_units across stacks
+        'constant_n_mlp_units': hp.choice('n_mlp_units', [ 128, 256, 512, 1024 ]), # Constant n_mlp_units across stacks
         'n_x_hidden': hp.choice('n_x_hidden', [n_x] ),
         'n_s_hidden': hp.choice('n_s_hidden', [n_s] ),
         'n_pool_kernel_size': hp.choice('n_pool_kernel_size', [ 3*[1], 3*[2], 3*[4], 3*[8], [8, 4, 1], [16, 8, 1] ]),

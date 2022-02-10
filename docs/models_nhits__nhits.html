@@ -295,7 +295,7 @@ frequency: str
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;identity&#39;</span><span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_layers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">256</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_pool_kernel_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_freq_downsample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">24</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;pooling_mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;max&#39;</span>
@@ -335,7 +335,7 @@ frequency: str
 <span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">mc</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="mi">65</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
 
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_layers&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">])]</span> <span class="p">]</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_mlp_units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_layers&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_mlp_units&#39;</span><span class="p">])]</span> <span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_blocks&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_blocks&#39;</span><span class="p">]</span> <span class="p">]</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_layers&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;stack_types&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="p">[</span> <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;constant_n_layers&#39;</span><span class="p">]</span> <span class="p">]</span>
 </pre></div>
@@ -361,7 +361,7 @@ n_s_hidden                                             0
 stack_types               [identity, identity, identity]
 constant_n_blocks                                      1
 constant_n_layers                                      2
-n_mlp_units                                          256
+constant_n_mlp_units                                 256
 n_pool_kernel_size                             [4, 2, 1]
 n_freq_downsample                            [24, 12, 1]
 pooling_mode                                         max
@@ -1036,289 +1036,289 @@ IPU available: False, using: 0 IPUs
       <th>0</th>
       <td>FR</td>
       <td>2016-12-27 00:00:00</td>
-      <td>50.109215</td>
+      <td>57.441673</td>
     </tr>
     <tr>
       <th>1</th>
       <td>FR</td>
       <td>2016-12-27 01:00:00</td>
-      <td>46.604351</td>
+      <td>56.764870</td>
     </tr>
     <tr>
       <th>2</th>
       <td>FR</td>
       <td>2016-12-27 02:00:00</td>
-      <td>51.033932</td>
+      <td>54.384842</td>
     </tr>
     <tr>
       <th>3</th>
       <td>FR</td>
       <td>2016-12-27 03:00:00</td>
-      <td>52.655678</td>
+      <td>50.756710</td>
     </tr>
     <tr>
       <th>4</th>
       <td>FR</td>
       <td>2016-12-27 04:00:00</td>
-      <td>53.485085</td>
+      <td>52.162949</td>
     </tr>
     <tr>
       <th>5</th>
       <td>FR</td>
       <td>2016-12-27 05:00:00</td>
-      <td>49.671040</td>
+      <td>49.688225</td>
     </tr>
     <tr>
       <th>6</th>
       <td>FR</td>
       <td>2016-12-27 06:00:00</td>
-      <td>48.834999</td>
+      <td>49.044823</td>
     </tr>
     <tr>
       <th>7</th>
       <td>FR</td>
       <td>2016-12-27 07:00:00</td>
-      <td>48.302494</td>
+      <td>47.178925</td>
     </tr>
     <tr>
       <th>8</th>
       <td>FR</td>
       <td>2016-12-27 08:00:00</td>
-      <td>50.632401</td>
+      <td>48.689594</td>
     </tr>
     <tr>
       <th>9</th>
       <td>FR</td>
       <td>2016-12-27 09:00:00</td>
-      <td>52.062405</td>
+      <td>44.797451</td>
     </tr>
     <tr>
       <th>10</th>
       <td>FR</td>
       <td>2016-12-27 10:00:00</td>
-      <td>51.891396</td>
+      <td>46.839455</td>
     </tr>
     <tr>
       <th>11</th>
       <td>FR</td>
       <td>2016-12-27 11:00:00</td>
-      <td>53.574249</td>
+      <td>43.690796</td>
     </tr>
     <tr>
       <th>12</th>
       <td>FR</td>
       <td>2016-12-27 12:00:00</td>
-      <td>54.645988</td>
+      <td>44.937817</td>
     </tr>
     <tr>
       <th>13</th>
       <td>FR</td>
       <td>2016-12-27 13:00:00</td>
-      <td>55.198940</td>
+      <td>46.235947</td>
     </tr>
     <tr>
       <th>14</th>
       <td>FR</td>
       <td>2016-12-27 14:00:00</td>
-      <td>55.313435</td>
+      <td>43.313705</td>
     </tr>
     <tr>
       <th>15</th>
       <td>FR</td>
       <td>2016-12-27 15:00:00</td>
-      <td>58.838284</td>
+      <td>42.292015</td>
     </tr>
     <tr>
       <th>16</th>
       <td>FR</td>
       <td>2016-12-27 16:00:00</td>
-      <td>58.773174</td>
+      <td>38.791500</td>
     </tr>
     <tr>
       <th>17</th>
       <td>FR</td>
       <td>2016-12-27 17:00:00</td>
-      <td>60.587818</td>
+      <td>42.352501</td>
     </tr>
     <tr>
       <th>18</th>
       <td>FR</td>
       <td>2016-12-27 18:00:00</td>
-      <td>64.268593</td>
+      <td>40.403442</td>
     </tr>
     <tr>
       <th>19</th>
       <td>FR</td>
       <td>2016-12-27 19:00:00</td>
-      <td>62.609795</td>
+      <td>40.985924</td>
     </tr>
     <tr>
       <th>20</th>
       <td>FR</td>
       <td>2016-12-27 20:00:00</td>
-      <td>61.127769</td>
+      <td>41.423717</td>
     </tr>
     <tr>
       <th>21</th>
       <td>FR</td>
       <td>2016-12-27 21:00:00</td>
-      <td>52.890228</td>
+      <td>35.927425</td>
     </tr>
     <tr>
       <th>22</th>
       <td>FR</td>
       <td>2016-12-27 22:00:00</td>
-      <td>61.603527</td>
+      <td>38.709122</td>
     </tr>
     <tr>
       <th>23</th>
       <td>FR</td>
       <td>2016-12-27 23:00:00</td>
-      <td>61.540623</td>
+      <td>36.348106</td>
     </tr>
     <tr>
       <th>24</th>
       <td>NP</td>
       <td>2016-12-27 00:00:00</td>
-      <td>29.537359</td>
+      <td>30.599009</td>
     </tr>
     <tr>
       <th>25</th>
       <td>NP</td>
       <td>2016-12-27 01:00:00</td>
-      <td>27.113079</td>
+      <td>30.309830</td>
     </tr>
     <tr>
       <th>26</th>
       <td>NP</td>
       <td>2016-12-27 02:00:00</td>
-      <td>30.301826</td>
+      <td>28.507751</td>
     </tr>
     <tr>
       <th>27</th>
       <td>NP</td>
       <td>2016-12-27 03:00:00</td>
-      <td>32.284752</td>
+      <td>26.145237</td>
     </tr>
     <tr>
       <th>28</th>
       <td>NP</td>
       <td>2016-12-27 04:00:00</td>
-      <td>32.734089</td>
+      <td>27.136127</td>
     </tr>
     <tr>
       <th>29</th>
       <td>NP</td>
       <td>2016-12-27 05:00:00</td>
-      <td>29.717081</td>
+      <td>25.821838</td>
     </tr>
     <tr>
       <th>30</th>
       <td>NP</td>
       <td>2016-12-27 06:00:00</td>
-      <td>28.436506</td>
+      <td>25.111475</td>
     </tr>
     <tr>
       <th>31</th>
       <td>NP</td>
       <td>2016-12-27 07:00:00</td>
-      <td>28.658817</td>
+      <td>23.757475</td>
     </tr>
     <tr>
       <th>32</th>
       <td>NP</td>
       <td>2016-12-27 08:00:00</td>
-      <td>30.080307</td>
+      <td>24.637968</td>
     </tr>
     <tr>
       <th>33</th>
       <td>NP</td>
       <td>2016-12-27 09:00:00</td>
-      <td>31.953636</td>
+      <td>22.038073</td>
     </tr>
     <tr>
       <th>34</th>
       <td>NP</td>
       <td>2016-12-27 10:00:00</td>
-      <td>30.859488</td>
+      <td>22.448151</td>
     </tr>
     <tr>
       <th>35</th>
       <td>NP</td>
       <td>2016-12-27 11:00:00</td>
-      <td>32.520481</td>
+      <td>21.457064</td>
     </tr>
     <tr>
       <th>36</th>
       <td>NP</td>
       <td>2016-12-27 12:00:00</td>
-      <td>33.403084</td>
+      <td>21.727564</td>
     </tr>
     <tr>
       <th>37</th>
       <td>NP</td>
       <td>2016-12-27 13:00:00</td>
-      <td>33.327888</td>
+      <td>22.563183</td>
     </tr>
     <tr>
       <th>38</th>
       <td>NP</td>
       <td>2016-12-27 14:00:00</td>
-      <td>32.857220</td>
+      <td>20.112152</td>
     </tr>
     <tr>
       <th>39</th>
       <td>NP</td>
       <td>2016-12-27 15:00:00</td>
-      <td>35.740849</td>
+      <td>19.271078</td>
     </tr>
     <tr>
       <th>40</th>
       <td>NP</td>
       <td>2016-12-27 16:00:00</td>
-      <td>35.838184</td>
+      <td>17.233610</td>
     </tr>
     <tr>
       <th>41</th>
       <td>NP</td>
       <td>2016-12-27 17:00:00</td>
-      <td>36.992069</td>
+      <td>19.123442</td>
     </tr>
     <tr>
       <th>42</th>
       <td>NP</td>
       <td>2016-12-27 18:00:00</td>
-      <td>39.768749</td>
+      <td>18.184374</td>
     </tr>
     <tr>
       <th>43</th>
       <td>NP</td>
       <td>2016-12-27 19:00:00</td>
-      <td>38.857094</td>
+      <td>17.882128</td>
     </tr>
     <tr>
       <th>44</th>
       <td>NP</td>
       <td>2016-12-27 20:00:00</td>
-      <td>37.345058</td>
+      <td>18.902449</td>
     </tr>
     <tr>
       <th>45</th>
       <td>NP</td>
       <td>2016-12-27 21:00:00</td>
-      <td>31.011543</td>
+      <td>14.130593</td>
     </tr>
     <tr>
       <th>46</th>
       <td>NP</td>
       <td>2016-12-27 22:00:00</td>
-      <td>37.741657</td>
+      <td>16.887684</td>
     </tr>
     <tr>
       <th>47</th>
       <td>NP</td>
       <td>2016-12-27 23:00:00</td>
-      <td>37.687569</td>
+      <td>13.870308</td>
     </tr>
   </tbody>
 </table>
