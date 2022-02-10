@@ -2,7 +2,7 @@
 
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_mqesrnn', 'instantiate_nhits',
-           'instantiate_autoformer', 'instantiate_model', 'predict', 'model_fit_predict', 'evaluate_model',
+           'instantiate_autoformer', 'instantiate_model', 'predict', 'fit', 'model_fit_predict', 'evaluate_model',
            'hyperopt_tunning']
 
 # Cell
@@ -268,7 +268,7 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 
 # Cell
 def instantiate_nbeats(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
     mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
@@ -372,7 +372,7 @@ def instantiate_mqesrnn(mc):
 
 # Cell
 def instantiate_nhits(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
     mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
@@ -475,8 +475,10 @@ def predict(mc, model, trainer, loader, scaler_y):
     return y_true, y_hat, mask, meta_data
 
 # Cell
-def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
-
+def fit(mc, Y_df, X_df=None, S_df=None,
+        ds_in_val=0, ds_in_test=0,
+        f_cols=[],
+        only_model=True):
     # Protect inplace modifications
     Y_df = Y_df.copy()
     if X_df is not None:
@@ -499,7 +501,7 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
                                                                 test_dataset=test_dataset)
     model = instantiate_model(mc=mc)
     callbacks = []
-    if mc['early_stop_patience']:
+    if mc['early_stop_patience'] and ds_in_val > 0:
         early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
                                                     patience=mc['early_stop_patience'],
                                                     verbose=True,
@@ -515,8 +517,23 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
                          callbacks=callbacks,
                          checkpoint_callback=False,
                          logger=False)
-    trainer.fit(model, train_loader, val_loader)
 
+    val_dataloaders = val_loader if ds_in_val > 0 else None
+    trainer.fit(model, train_loader, val_dataloaders)
+
+    if only_model:
+        return model
+
+    return model, trainer, val_loader, test_loader, scaler_y
+
+# Cell
+def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
+    #------------------------------------------------ Fit ------------------------------------------------#
+    model, trainer, val_loader, test_loader, scaler_y = fit(
+        mc, S_df=S_df, Y_df=Y_df, X_df=X_df,
+        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_val,
+        only_model=False
+    )
     #------------------------------------------------ Predict ------------------------------------------------#
     results = {}
 
