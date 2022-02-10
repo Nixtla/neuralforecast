@@ -593,7 +593,7 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
             test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'], weights=results['test_mask'])
         results_output['test_losses'] = test_loss_dict
 
-    if return_forecasts:
+    if return_forecasts and ds_in_test > 0:
         forecasts_test = {}
         test_values = (('test_y_true', results['test_y_true']), ('test_y_hat', results['test_y_hat']),
                         ('test_mask', results['test_mask']), ('test_meta_data', results['test_meta_data']))
