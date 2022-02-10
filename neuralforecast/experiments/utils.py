@@ -549,9 +549,10 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
                    save_progress,
                    trials,
                    results_file,
-                   loss_kwargs):
+                   step_save_progress=5,
+                   loss_kwargs=None):
 
-    if (save_progress) and (len(trials) % 5 == 0):
+    if (save_progress) and (len(trials) % step_save_progress == 0):
         with open(results_file, "wb") as f:
             pickle.dump(trials, f)
 
@@ -609,6 +610,7 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
                      return_forecasts,
                      save_progress,
                      results_file,
+                     step_save_progress=5,
                      loss_kwargs=None):
     assert ds_in_val > 0, 'Validation set is needed for tunning!'
 
@@ -618,6 +620,7 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
                              return_forecasts=return_forecasts, save_progress=save_progress, trials=trials,
                              results_file=results_file,
+                             step_save_progress=step_save_progress,
                              loss_kwargs=loss_kwargs or {})
 
     fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=True)
