@@ -268,9 +268,9 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 
 # Cell
 def instantiate_nbeats(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
-    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
-    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -372,9 +372,9 @@ def instantiate_mqesrnn(mc):
 
 # Cell
 def instantiate_nhits(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
-    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
-    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
