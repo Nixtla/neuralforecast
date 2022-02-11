@@ -2,7 +2,7 @@
 
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_mqesrnn', 'instantiate_nhits',
-           'instantiate_autoformer', 'instantiate_model', 'predict', 'model_fit_predict', 'evaluate_model',
+           'instantiate_autoformer', 'instantiate_model', 'predict', 'fit', 'model_fit_predict', 'evaluate_model',
            'hyperopt_tunning']
 
 # Cell
@@ -268,9 +268,9 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
 
 # Cell
 def instantiate_nbeats(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
-    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
-    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -372,9 +372,9 @@ def instantiate_mqesrnn(mc):
 
 # Cell
 def instantiate_nhits(mc):
-    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['n_layers'] * [int(mc['n_mlp_units'])] ]
-    mc['n_layers'] =  len(mc['stack_types']) * [ mc['n_layers'] ]
-    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['n_blocks'] ]
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -475,8 +475,10 @@ def predict(mc, model, trainer, loader, scaler_y):
     return y_true, y_hat, mask, meta_data
 
 # Cell
-def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
-
+def fit(mc, Y_df, X_df=None, S_df=None,
+        ds_in_val=0, ds_in_test=0,
+        f_cols=[],
+        only_model=True):
     # Protect inplace modifications
     Y_df = Y_df.copy()
     if X_df is not None:
@@ -499,7 +501,7 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
                                                                 test_dataset=test_dataset)
     model = instantiate_model(mc=mc)
     callbacks = []
-    if mc['early_stop_patience']:
+    if mc['early_stop_patience'] and ds_in_val > 0:
         early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
                                                     patience=mc['early_stop_patience'],
                                                     verbose=True,
@@ -515,8 +517,23 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
                          callbacks=callbacks,
                          checkpoint_callback=False,
                          logger=False)
-    trainer.fit(model, train_loader, val_loader)
 
+    val_dataloaders = val_loader if ds_in_val > 0 else None
+    trainer.fit(model, train_loader, val_dataloaders)
+
+    if only_model:
+        return model
+
+    return model, trainer, val_loader, test_loader, scaler_y
+
+# Cell
+def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
+    #------------------------------------------------ Fit ------------------------------------------------#
+    model, trainer, val_loader, test_loader, scaler_y = fit(
+        mc, S_df=S_df, Y_df=Y_df, X_df=X_df,
+        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_val,
+        only_model=False
+    )
     #------------------------------------------------ Predict ------------------------------------------------#
     results = {}
 
@@ -549,9 +566,10 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
                    save_progress,
                    trials,
                    results_file,
-                   loss_kwargs):
+                   step_save_progress=5,
+                   loss_kwargs=None):
 
-    if (save_progress) and (len(trials) % 5 == 0):
+    if (save_progress) and (len(trials) % step_save_progress == 0):
         with open(results_file, "wb") as f:
             pickle.dump(trials, f)
 
@@ -593,7 +611,7 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
             test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'], weights=results['test_mask'])
         results_output['test_losses'] = test_loss_dict
 
-    if return_forecasts:
+    if return_forecasts and ds_in_test > 0:
         forecasts_test = {}
         test_values = (('test_y_true', results['test_y_true']), ('test_y_hat', results['test_y_hat']),
                         ('test_mask', results['test_mask']), ('test_meta_data', results['test_meta_data']))
@@ -609,6 +627,7 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
                      return_forecasts,
                      save_progress,
                      results_file,
+                     step_save_progress=5,
                      loss_kwargs=None):
     assert ds_in_val > 0, 'Validation set is needed for tunning!'
 
@@ -618,6 +637,7 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
                              return_forecasts=return_forecasts, save_progress=save_progress, trials=trials,
                              results_file=results_file,
+                             step_save_progress=step_save_progress,
                              loss_kwargs=loss_kwargs or {})
 
     fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=True)
