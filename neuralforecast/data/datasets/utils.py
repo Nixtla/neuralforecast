@@ -39,7 +39,12 @@ def download_file(directory: str, source_url: str, decompress: bool = False) -> 
         directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
 
-    filename = source_url.split('/')[-1]
+    filename = Path(source_url.split('/')[-1])
+
+    # On windows file must have only zip in suffix
+    if '.zip' in filename.suffix:
+        filename = Path(filename).stem + ".zip"
+
     filepath = Path(f'{directory}/{filename}')
 
     # Streaming, so we can iterate over the response.
