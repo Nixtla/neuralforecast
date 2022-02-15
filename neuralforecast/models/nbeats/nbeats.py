@@ -731,7 +731,7 @@ class NBEATS(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1):
+def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1, trainer=None):
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -755,7 +755,8 @@ def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1):
 
     # Add forecast dates to Y_df
     Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-
+    if X_df is not None:
+        X_df['ds'] = pd.to_datetime(X_df['ds'])
     forecast_dates = pd.date_range(Y_df['ds'].max(), periods=self.n_time_out+1, freq=self.frequency)[1:]
     index = pd.MultiIndex.from_product([Y_df['unique_id'].unique(), forecast_dates], names=['unique_id', 'ds'])
     forecast_df = pd.DataFrame({'y':[0]}, index=index).reset_index()
@@ -777,7 +778,11 @@ def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1):
                                 batch_size=batch_size,
                                 shuffle=False)
 
-    trainer = pl.Trainer()
+    if trainer is None:
+        gpus = -1 if t.cuda.is_available() else 0
+        trainer = pl.Trainer(progress_bar_refresh_rate=1,
+                             gpus=gpus,
+                             logger=False)
 
     # Forecast
     outputs = trainer.predict(self, loader)

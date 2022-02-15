@@ -60,9 +60,52 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Autoformer" class="doc_header"><code>class</code> <code>Autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L122" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Autoformer</code>(<strong><code>seq_len</code></strong>, <strong><code>label_len</code></strong>, <strong><code>pred_len</code></strong>, <strong><code>output_attention</code></strong>, <strong><code>enc_in</code></strong>, <strong><code>dec_in</code></strong>, <strong><code>d_model</code></strong>, <strong><code>c_out</code></strong>, <strong><code>embed</code></strong>, <strong><code>freq</code></strong>, <strong><code>dropout</code></strong>, <strong><code>factor</code></strong>, <strong><code>n_heads</code></strong>, <strong><code>d_ff</code></strong>, <strong><code>moving_avg</code></strong>, <strong><code>activation</code></strong>, <strong><code>e_layers</code></strong>, <strong><code>d_layers</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="Autoformer" class="doc_header"><code>class</code> <code>Autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L127" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Autoformer</code>(<strong><code>seq_len</code></strong>, <strong><code>label_len</code></strong>, <strong><code>pred_len</code></strong>, <strong><code>output_attention</code></strong>, <strong><code>enc_in</code></strong>, <strong><code>dec_in</code></strong>, <strong><code>d_model</code></strong>, <strong><code>c_out</code></strong>, <strong><code>embed</code></strong>, <strong><code>freq</code></strong>, <strong><code>dropout</code></strong>, <strong><code>factor</code></strong>, <strong><code>n_heads</code></strong>, <strong><code>d_ff</code></strong>, <strong><code>moving_avg</code></strong>, <strong><code>activation</code></strong>, <strong><code>e_layers</code></strong>, <strong><code>d_layers</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="Autoformer.forecast" class="doc_header"><code>Autoformer.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L281" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Autoformer.forecast</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>trainer</code></strong>=<em><code>None</code></em>)</p>
+</blockquote>
+<p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+X_df: pd.DataFrame
+    Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+    Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
+S_df: pd.DataFrame
+    Dataframe with static data, needs 'unique_id' column.
+bath_size: int
+    Batch size for forecasting.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
+    Dataframe with forecasts.</p>
 
 </div>
 
@@ -104,6 +147,7 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">LongHorizon</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;ETTm2&#39;</span><span class="p">)</span>
 <span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">Y_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;OT&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;OT&#39;</span><span class="p">][</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">100</span> <span class="c1">#To obseve differences</span>
 </pre></div>
 
     </div>
@@ -341,7 +385,7 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 
 <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;seq_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">96</span>
 <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;label_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">48</span>
-<span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;pred_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
+<span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;pred_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">96</span>
 <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;output_attention&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;enc_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">7</span>
 <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;dec_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">7</span>
@@ -371,7 +415,7 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;iterate_windows&#39;</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;seq_len&#39;</span><span class="p">]</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_model</span><span class="p">[</span><span class="s1">&#39;pred_len&#39;</span><span class="p">]</span>
-<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc_data</span><span class="p">[</span><span class="s1">&#39;max_epochs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
@@ -463,7 +507,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=60.0, 	241920 time stamps 
 Outsample percentage=40.0, 	161280 time stamps 
 
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
@@ -490,7 +534,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=20.0, 	80640 time stamps 
 Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 INFO:root:Train Validation splits
 
@@ -517,7 +561,7 @@ Available percentage=100.0, 	403200 time stamps
 Insample  percentage=20.0, 	80640 time stamps 
 Outsample percentage=80.0, 	322560 time stamps 
 
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
   X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 </pre>
 </div>
@@ -588,7 +632,9 @@ Outsample percentage=80.0, 	322560 time stamps
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>GPU available: False, used: False
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=10)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
+GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
 
@@ -600,6 +646,46 @@ IPU available: False, using: 0 IPUs
 0         Non-trainable params
 10.5 M    Total params
 42.144    Total estimated model params size (MB)
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Validation sanity check:   0%|          | 0/1 [00:00&lt;?, ?it/s]</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>                                                                      </pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Epoch 0:   0%|          | 20/34368 [00:01&lt;44:01, 13.00it/s, loss=0.59, v_num=122, train_loss_step=0.590, val_loss=0.556, train_loss_epoch=0.590]
 </pre>
 </div>
 </div>
@@ -623,12 +709,416 @@ IPU available: False, using: 0 IPUs
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#print(&quot;outputs[0][0].shape&quot;, outputs[0][0].shape)</span>
-<span class="c1">#print(&quot;outputs[0][1].shape&quot;, outputs[0][1].shape)</span>
-<span class="c1">#print(&quot;outputs[0][2].shape&quot;, outputs[0][2].shape)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># print(&quot;outputs[0][0].shape&quot;, outputs[0][0].shape)</span>
+<span class="c1"># print(&quot;outputs[0][1].shape&quot;, outputs[0][1].shape)</span>
+<span class="c1"># print(&quot;outputs[0][2].shape&quot;, outputs[0][2].shape)</span>
 </pre></div>
 
     </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Forecast">Forecast<a class="anchor-link" href="#Forecast"> </a></h1>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Y_forecast_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="s1">&#39;2017-10-24&#39;</span><span class="p">]</span>
+<span class="n">Y_forecast_df</span> <span class="o">=</span> <span class="n">Y_forecast_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">Y_forecast_df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>unique_id</th>
+      <th>ds</th>
+      <th>y</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>322555</th>
+      <td>OT</td>
+      <td>2017-10-23 22:45:00</td>
+      <td>99.424266</td>
+    </tr>
+    <tr>
+      <th>322556</th>
+      <td>OT</td>
+      <td>2017-10-23 23:00:00</td>
+      <td>99.424266</td>
+    </tr>
+    <tr>
+      <th>322557</th>
+      <td>OT</td>
+      <td>2017-10-23 23:15:00</td>
+      <td>99.405312</td>
+    </tr>
+    <tr>
+      <th>322558</th>
+      <td>OT</td>
+      <td>2017-10-23 23:30:00</td>
+      <td>99.386359</td>
+    </tr>
+    <tr>
+      <th>322559</th>
+      <td>OT</td>
+      <td>2017-10-23 23:45:00</td>
+      <td>99.367361</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X_forecast_df</span> <span class="o">=</span> <span class="n">X_df</span><span class="p">[</span><span class="n">X_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="s1">&#39;2017-10-25&#39;</span><span class="p">]</span>
+<span class="n">X_forecast_df</span> <span class="o">=</span> <span class="n">X_forecast_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">X_forecast_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">X_forecast_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">])</span>
+<span class="n">X_forecast_df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>unique_id</th>
+      <th>ds</th>
+      <th>ex_1</th>
+      <th>ex_2</th>
+      <th>ex_3</th>
+      <th>ex_4</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>323227</th>
+      <td>OT</td>
+      <td>2017-10-24 22:45:00</td>
+      <td>0.456522</td>
+      <td>-0.333333</td>
+      <td>0.266667</td>
+      <td>0.310959</td>
+    </tr>
+    <tr>
+      <th>323228</th>
+      <td>OT</td>
+      <td>2017-10-24 23:00:00</td>
+      <td>0.500000</td>
+      <td>-0.333333</td>
+      <td>0.266667</td>
+      <td>0.310959</td>
+    </tr>
+    <tr>
+      <th>323229</th>
+      <td>OT</td>
+      <td>2017-10-24 23:15:00</td>
+      <td>0.500000</td>
+      <td>-0.333333</td>
+      <td>0.266667</td>
+      <td>0.310959</td>
+    </tr>
+    <tr>
+      <th>323230</th>
+      <td>OT</td>
+      <td>2017-10-24 23:30:00</td>
+      <td>0.500000</td>
+      <td>-0.333333</td>
+      <td>0.266667</td>
+      <td>0.310959</td>
+    </tr>
+    <tr>
+      <th>323231</th>
+      <td>OT</td>
+      <td>2017-10-24 23:45:00</td>
+      <td>0.500000</td>
+      <td>-0.333333</td>
+      <td>0.266667</td>
+      <td>0.310959</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">forecast_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forecast</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_forecast_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_forecast_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>INFO:root:Train Validation splits
+
+INFO:root:                              ds                    
+                             min                 max
+unique_id sample_mask                               
+HUFL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+HULL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+LUFL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+LULL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+MUFL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+MULL      0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+OT        0           2016-07-01 2017-10-23 23:45:00
+          1           2017-10-24 2017-10-24 23:45:00
+INFO:root:
+Total data 			323232 time stamps 
+Available percentage=100.0, 	323232 time stamps 
+Insample  percentage=0.21, 	672 time stamps 
+Outsample percentage=99.79, 	322560 time stamps 
+
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
+  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
+GPU available: False, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 10.96it/s]
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">forecast_df</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea output_execute_result">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>unique_id</th>
+      <th>ds</th>
+      <th>y</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>HUFL</td>
+      <td>2017-10-24 00:00:00</td>
+      <td>-0.567900</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>HUFL</td>
+      <td>2017-10-24 00:15:00</td>
+      <td>-0.477651</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>HUFL</td>
+      <td>2017-10-24 00:30:00</td>
+      <td>-0.877063</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>HUFL</td>
+      <td>2017-10-24 00:45:00</td>
+      <td>-1.533763</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>HUFL</td>
+      <td>2017-10-24 01:00:00</td>
+      <td>-2.264436</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>667</th>
+      <td>OT</td>
+      <td>2017-10-24 22:45:00</td>
+      <td>99.919777</td>
+    </tr>
+    <tr>
+      <th>668</th>
+      <td>OT</td>
+      <td>2017-10-24 23:00:00</td>
+      <td>99.876175</td>
+    </tr>
+    <tr>
+      <th>669</th>
+      <td>OT</td>
+      <td>2017-10-24 23:15:00</td>
+      <td>99.591690</td>
+    </tr>
+    <tr>
+      <th>670</th>
+      <td>OT</td>
+      <td>2017-10-24 23:30:00</td>
+      <td>99.588852</td>
+    </tr>
+    <tr>
+      <th>671</th>
+      <td>OT</td>
+      <td>2017-10-24 23:45:00</td>
+      <td>99.578384</td>
+    </tr>
+  </tbody>
+</table>
+<p>672 rows × 3 columns</p>
+</div>
+</div>
+
+</div>
+
 </div>
 </div>
 
