@@ -23,7 +23,14 @@ class M5:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Downloads M5 Competition Dataset."""
+        """
+        Downloads M5 Competition Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/m5/datasets'
         if not os.path.exists(path):
             download_file(directory=path,
@@ -43,10 +50,15 @@ class M5:
         cache: bool
             If `True` saves and loads.
 
-        Notes
-        -----
-        [1] Returns train+test sets.
-        [2] Based on https://www.kaggle.com/lemuz90/m5-preprocess.
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        S_df: pd.DataFrame
+            Static exogenous variables with columns ['unique_id', 'ds'].
+            and static variables.
         """
         path = f'{directory}/m5/datasets'
         file_cache = f'{path}/m5.p'
@@ -173,8 +185,8 @@ class M5Evaluation:
             Optional benchmark url obtained from
             https://github.com/Nixtla/m5-forecasts/tree/master/forecasts.
             If `None` returns the M5 winner.
-                validation: bool
-        Wheter return validation forecasts.
+        validation: bool
+            Wheter return validation forecasts.
             Default False, return test forecasts.
 
         Returns
@@ -213,7 +225,21 @@ class M5Evaluation:
     @staticmethod
     def aggregate_levels(y_hat: pd.DataFrame,
                          categories: pd.DataFrame = None) -> pd.DataFrame:
-        """Aggregates the 30_480 series to get 42_840."""
+        """
+        Aggregates the 30_480 series to get 42_840.
+
+        Parameters
+        ----------
+        y_hat: pd.DataFrame
+            Forecasts as wide pandas dataframe with columns ['unique_id'].
+        categories: pd.DataFrame
+            Categories of M5 dataset (not used).
+
+        Returns
+        -------
+        df_agg: pd.DataFrame
+            Aggregated forecasts as wide pandas dataframe with columns ['unique_id'].
+        """
         y_hat_cat = y_hat.assign(total='Total')
 
         df_agg = []

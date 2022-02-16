@@ -54,7 +54,7 @@ M3Info = Info(groups=('Yearly', 'Quarterly', 'Monthly', 'Other'),
               class_groups=(Yearly, Quarterly, Monthly, Other))
 
 # Internal Cell
-def _return_year(ts):
+def _return_year(ts) -> int:
     year = ts.iloc[0]
     year = year if year != 0 else 1970
 
@@ -82,13 +82,10 @@ class M3(TimeSeriesDataclass):
             Group name.
             Allowed groups: 'Yearly', 'Quarterly', 'Monthly', 'Other'.
 
-        Notes
-        -----
-        [1] Returns train+test sets.
-        [2] There are monthly time series without start year.
-            This time series will start with 1970.
-        [3] Other time series have no start date.
-            This time series will start with 1970.
+        Returns
+        -------
+        df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
         """
         M3.download(directory)
 
@@ -124,7 +121,14 @@ class M3(TimeSeriesDataclass):
 
     @staticmethod
     def download(directory: str) -> None:
-        """Download M3 Dataset."""
+        """
+        Download M3 Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/m3/datasets/'
         if not os.path.exists(path):
             download_file(path, M3.source_url)

@@ -185,25 +185,6 @@ class LongHorizon:
     - Datasets are partitioned into train, validation and test splits.
     - For all datasets: 70%, 10%, and 20% of observations are train, validation, test,
       except ETT that uses 20% validation.
-
-    Load method
-
-        Parameters
-        ----------
-        directory: str
-            Directory where data will be downloaded.
-        group: str
-            Group name.
-            Allowed groups: 'ETTh1', 'ETTh2',
-                            'ETTm1', 'ETTm2',
-                            'ECL', 'Exchange',
-                            'Traffic', 'Weather', 'ILI'.
-        cache: bool
-            If `True` saves and loads
-
-        Notes
-        -----
-        [1] Returns train+val+test sets.
     """
 
     source_url: str = 'https://nhits-experiments.s3.amazonaws.com/datasets.zip'
@@ -231,9 +212,15 @@ class LongHorizon:
             cache: bool
                 If `True` saves and loads
 
-            Notes
-            -----
-            [1] Returns train+val+test sets.
+            Returns
+            -------
+            y_df: pd.DataFrame
+                Target time series with columns ['unique_id', 'ds', 'y'].
+            X_df: pd.DataFrame
+                Exogenous time series with columns ['unique_id', 'ds', 'y'].
+            S_df: pd.DataFrame
+                Static exogenous variables with columns ['unique_id', 'ds'].
+                and static variables.
         """
         if group not in LongHorizonInfo.groups:
             raise Exception(f'group not found {group}')
@@ -265,7 +252,14 @@ class LongHorizon:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Download ETT Dataset."""
+        """
+        Download ETT Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/longhorizon/datasets/'
         if not os.path.exists(path):
              download_file(path, LongHorizon.source_url, decompress=True)
