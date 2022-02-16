@@ -6,8 +6,8 @@ title: Experiment Utils
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "Set of functions to easily perform experiments."
-description: "Set of functions to easily perform experiments."
+summary: "This notebook contains a set of functions to easily perform experiments on time series datasets. In this notebook you can see functions for:"
+description: "This notebook contains a set of functions to easily perform experiments on time series datasets. In this notebook you can see functions for:"
 nb_path: "nbs/experiments__utils.ipynb"
 ---
 <!--
@@ -29,35 +29,63 @@ nb_path: "nbs/experiments__utils.ipynb"
 </div>
     {% endraw %}
 
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_mask_dfs" class="doc_header"><code>get_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L41" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_mask_dfs</code>(<strong><code>Y_df</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>)</p>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<blockquote><p>In the next two scetion you can see enviroment variables and imports that are used for set of functions shown in this notebook.</p>
 </blockquote>
 
 </div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Helper-functions-that-represent-basic-use-of-neuralforecast-library:">Helper functions that represent basic use of neuralforecast library:<a class="anchor-link" href="#Helper-functions-that-represent-basic-use-of-neuralforecast-library:"> </a></h3>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="get_mask_dfs" class="doc_header"><code>get_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L42" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_mask_dfs</code>(<strong><code>Y_df</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>)</p>
+</blockquote>
+<p>Generates train, test and validation mask.
+Train mask begins by avoiding ds_in_test.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+ds_in_val: int
+    Number of ds in validation.
+ds_in_test: int
+    Number of ds in test.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>train_mask_df: pd.DataFrame
+    Train mask dataframe.
+val_mask_df: pd.DataFrame
+    Validation mask dataframe.
+test_mask_df: pd.DataFrame
+    Test mask dataframe.</p>
+
+</div>
 
 </div>
 
@@ -85,25 +113,31 @@ nb_path: "nbs/experiments__utils.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_random_mask_dfs" class="doc_header"><code>get_random_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L71" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_random_mask_dfs</code>(<strong><code>Y_df</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>n_val_windows</code></strong>, <strong><code>n_ds_val_window</code></strong>, <strong><code>n_uids</code></strong>, <strong><code>freq</code></strong>)</p>
+<h4 id="get_random_mask_dfs" class="doc_header"><code>get_random_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L95" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_random_mask_dfs</code>(<strong><code>Y_df</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>n_val_windows</code></strong>, <strong><code>n_ds_val_window</code></strong>, <strong><code>n_uids</code></strong>, <strong><code>freq</code></strong>)</p>
 </blockquote>
 <p>Generates train, test and random validation mask.
 Train mask begins by avoiding ds_in_test</p>
 <p>Validation mask: 1) samples n_uids unique ids
                  2) creates windows of size n_ds_val_window</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>ds_in_test: int
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+ds_in_test: int
     Number of ds in test.
-n_uids: int
-    Number of unique ids in validation.
 n_val_windows: int
     Number of windows for validation.
 n_ds_val_window: int
     Number of ds in each validation window.
-periods: int
-    ds_in_test multiplier.
+n_uids: int
+    Number of unique ids in validation.
 freq: str
     string that determines datestamp frequency, used in
     random windows creation.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>train_mask_df: pd.DataFrame
+    Train mask dataframe.
+val_mask_df: pd.DataFrame
+    Validation mask dataframe.
+test_mask_df: pd.DataFrame
+    Test mask dataframe.</p>
 
 </div>
 
@@ -133,8 +167,25 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="scale_data" class="doc_header"><code>scale_data</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L127" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>scale_data</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>mask_df</code></strong>, <strong><code>normalizer_y</code></strong>, <strong><code>normalizer_x</code></strong>)</p>
+<h4 id="scale_data" class="doc_header"><code>scale_data</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L161" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>scale_data</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>mask_df</code></strong>, <strong><code>normalizer_y</code></strong>, <strong><code>normalizer_x</code></strong>)</p>
 </blockquote>
+<p>Scales input data accordingly to given normalizer parameters.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y']
+mask_df: pd.DataFrame
+    Mask dataframe.
+normalizer_y: string
+    Normalizer for scaling Y_df.
+normalizer_x: string
+    Normalizer for scaling X_df.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Y_df: pd.DataFrame
+    Scaled target time series.
+X_df: pd.DataFrame
+    Scaled exogenous time series with columns.
+scaler_y: Scaler
+    Scaler object for Y_df.</p>
 
 </div>
 
@@ -164,8 +215,32 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L145" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>ds_in_val</code></strong>)</p>
+<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L204" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>ds_in_val</code></strong>)</p>
 </blockquote>
+<p>Creates train, validation and test datasets.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds']
+    and static variables.
+Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y']
+f_cols: list
+    List of exogenous variables of the future.
+ds_in_test: int
+    Number of ds in test.
+ds_in_val: int
+    Number of ds in validation.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>train_dataset: BaseDataset
+    Train dataset.
+valid_dataset: BaseDataset
+    Validation dataset.
+test_dataset: BaseDataset
+    Test dataset.
+scaler_y: Scaler
+    Scaler object for Y_df.</p>
 
 </div>
 
@@ -195,8 +270,23 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L226" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>, <strong><code>train_dataset</code></strong>, <strong><code>val_dataset</code></strong>, <strong><code>test_dataset</code></strong>)</p>
+<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L318" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>, <strong><code>train_dataset</code></strong>, <strong><code>val_dataset</code></strong>, <strong><code>test_dataset</code></strong>)</p>
 </blockquote>
+<p>Creates train, validation and test loader classes.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.
+train_dataset: BaseDataset
+    Train dataset.
+val_dataset: BaseDataset
+    Validation dataset.
+test_dataset: BaseDataset
+    Test dataset.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>train_loader: DataLoader
+    Train loader.
+val_loader: DataLoader
+    Validation loader.
+test_loader: DataLoader
+    Test loader.</p>
 
 </div>
 
@@ -226,8 +316,13 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L270" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L386" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates nbeats model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: NBEATS
+    Nbeats model.</p>
 
 </div>
 
@@ -257,8 +352,13 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L307" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L436" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates esrnn model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: ESRNN
+    Esrnn model.</p>
 
 </div>
 
@@ -288,8 +388,13 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L342" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L484" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates mqesrnn model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: MQESRNN
+    Mqesrnn model.</p>
 
 </div>
 
@@ -319,8 +424,13 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L374" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L530" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates nhits model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: NHITS
+    Nhits model.</p>
 
 </div>
 
@@ -350,8 +460,13 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L415" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L585" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates autoformer model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: Autoformer
+    Autoformer model.</p>
 
 </div>
 
@@ -381,8 +496,14 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L452" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>)</p>
+<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L635" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>)</p>
 </blockquote>
+<p>Creates one of the models.
+(nbeats, esrnn, mqesrnn, nhits, autoformer)</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: pl.LightningModule
+    Forecast model.</p>
 
 </div>
 
@@ -412,8 +533,27 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L461" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>, <strong><code>model</code></strong>, <strong><code>trainer</code></strong>, <strong><code>loader</code></strong>, <strong><code>scaler_y</code></strong>)</p>
+<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L658" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>, <strong><code>model</code></strong>, <strong><code>trainer</code></strong>, <strong><code>loader</code></strong>, <strong><code>scaler_y</code></strong>)</p>
 </blockquote>
+<p>Predicts results on dataset using trained model.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.
+model: pl.LightningModule
+    Forecast model.
+trainer: pl.Trainer
+    Trainer object.
+loader: DataLoader
+    Data loader.
+scaler_y: Scaler
+    Scaler object for target time series.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>y_true: np.array
+    True values from dataset.
+y_hat: np.array
+    Predicted values from dataset.
+mask: np.array
+    Masks for values.
+meta_data: np.array
+    Metada from dataset.</p>
 
 </div>
 
@@ -443,8 +583,36 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L478" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>=<em><code>[]</code></em>, <strong><code>only_model</code></strong>=<em><code>True</code></em>)</p>
+<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L702" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>=<em><code>[]</code></em>, <strong><code>only_model</code></strong>=<em><code>True</code></em>)</p>
 </blockquote>
+<p>Traines model on given dataset.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.
+Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y'].
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds'].
+    and static variables.
+ds_in_val: int
+    Number of ds in validation.
+ds_in_test: int
+    Number of ds in test.
+f_cols: list
+    List of exogenous variables of the future.
+only_model: bool
+    If true only model will be returned.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: pl.LightningModule
+    Forecast model.
+trainer: pl.Trainer
+    Trainer object.
+val_loader: DataLoader
+    Validation loader.
+test_loader: DataLoader
+    Test loader.
+scaler_y: Scaler
+    Scaler object for target time series.</p>
 
 </div>
 
@@ -474,8 +642,24 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L530" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>)</p>
+<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L791" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>)</p>
 </blockquote>
+<p>Traines model on train dataset, then calculates predictions
+on test dataset.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
+    Model configuration.
+Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y'].
+f_cols: list
+    List of exogenous variables of the future.
+ds_in_val: int
+    Number of ds in validation.
+ds_in_test: int
+    Number of ds in test.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>results: dict
+    Dictionary with results of training and prediction on model.</p>
 
 </div>
 
@@ -505,8 +689,43 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L562" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>, <strong><code>loss_function_val</code></strong>, <strong><code>loss_functions_test</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>return_forecasts</code></strong>, <strong><code>save_progress</code></strong>, <strong><code>trials</code></strong>, <strong><code>results_file</code></strong>, <strong><code>step_save_progress</code></strong>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L848" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>, <strong><code>loss_function_val</code></strong>, <strong><code>loss_functions_test</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>return_forecasts</code></strong>, <strong><code>save_progress</code></strong>, <strong><code>trials</code></strong>, <strong><code>results_file</code></strong>, <strong><code>step_save_progress</code></strong>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
+<p>Evaluate model on given dataset.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dictionary
+    Model configuration.
+loss_function_val: function
+    Loss function used for validation.
+loss_functions_test: Dictionary
+    Loss functions used for test.
+    (function name: string, function: fun)
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds'].
+    and static variables.
+Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y'].
+f_cols: list
+    List of exogenous variables of the future.
+ds_in_val: int
+    Number of ds in validation.
+ds_in_test: int
+    Number of ds in test.
+return_forecasts: bool
+    If true return forecast on test.
+save_progress: bool
+    If true save progres in file.
+trials: hyperopt.Trials
+    Results from model evaluation.
+results_file: Path
+    File path to save results.
+step_save_progress: int
+    Every n-th step is saved in file.
+loss_kwargs: List
+    Loss function arguments.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>results_output: dict
+    Dictionary with results of model evaluation.</p>
 
 </div>
 
@@ -536,8 +755,47 @@ freq: str
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L624" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>, <strong><code>hyperopt_max_evals</code></strong>, <strong><code>loss_function_val</code></strong>, <strong><code>loss_functions_test</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>return_forecasts</code></strong>, <strong><code>save_progress</code></strong>, <strong><code>results_file</code></strong>, <strong><code>step_save_progress</code></strong>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L953" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>, <strong><code>hyperopt_max_evals</code></strong>, <strong><code>loss_function_val</code></strong>, <strong><code>loss_functions_test</code></strong>, <strong><code>S_df</code></strong>, <strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>, <strong><code>f_cols</code></strong>, <strong><code>ds_in_val</code></strong>, <strong><code>ds_in_test</code></strong>, <strong><code>return_forecasts</code></strong>, <strong><code>save_progress</code></strong>, <strong><code>results_file</code></strong>, <strong><code>step_save_progress</code></strong>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>=<em><code>None</code></em>)</p>
 </blockquote>
+<p>Evaluates multiple models trained on given dataset.
+Models are trained with different hyperparameters.
+Hyperparameters are changed until function is minimized in
+hyperparameter space. All models are trained and evaluated,
+until function is minimized.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>space: Dictionary
+    Dictionary that contines hyperparameters that create space.
+hyperopt_max_evals: int
+    Maximum number of evaluations.
+loss_function_val: function
+    Loss function used for validation.
+loss_functions_test: Dictionary
+    Loss functions used for test.
+    (function name: string, function: fun)
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds'].
+    and static variables.
+Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y'].
+f_cols: list
+    List of exogenous variables of the future.
+ds_in_val: int
+    Number of ds in validation.
+ds_in_test: int
+    Number of ds in test.
+return_forecasts: bool
+    If true return forecast on test.
+save_progress: bool
+    If true save progres in file.
+results_file: Path
+    File path to save results.
+step_save_progress: int
+    Every n-th step is saved in file.
+loss_kwargs: List
+    Loss function arguments.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>trials: Trials
+    Results from model evaluation.</p>
 
 </div>
 
@@ -558,7 +816,9 @@ freq: str
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Experiment-Utils-Examples">Experiment Utils Examples<a class="anchor-link" href="#Experiment-Utils-Examples"> </a></h1>
+<h1 id="Experiment-Utils-Examples">Experiment Utils Examples<a class="anchor-link" href="#Experiment-Utils-Examples"> </a></h1><blockquote><p>This part of notebook shows simple use of functions given in this notebook. EPF dataset in used in this experiments. Two experiments are shown where hyperparameter tunning is runned for two models NHITS and NBEATS.</p>
+</blockquote>
+
 </div>
 </div>
 </div>
