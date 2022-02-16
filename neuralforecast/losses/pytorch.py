@@ -8,7 +8,7 @@ import torch as t
 import torch.nn as nn
 
 # Cell
-def _divide_no_nan(a, b):
+def _divide_no_nan(a, b) -> float:
     """
     Auxiliary funtion to handle divide by 0
     """
@@ -18,7 +18,7 @@ def _divide_no_nan(a, b):
     return div
 
 # Cell
-def MAELoss(y, y_hat, mask=None):
+def MAELoss(y, y_hat, mask=None) -> t.Tensor:
     """
 
     Calculates Mean Absolute Error (MAE) between
@@ -54,7 +54,7 @@ def MAELoss(y, y_hat, mask=None):
     return mae
 
 # Cell
-def MSELoss(y, y_hat, mask=None):
+def MSELoss(y, y_hat, mask=None) -> t.Tensor:
     """
 
     Calculates Mean Squared Error (MSE) between
@@ -90,7 +90,7 @@ def MSELoss(y, y_hat, mask=None):
     return mse
 
 # Cell
-def RMSELoss(y, y_hat, mask=None):
+def RMSELoss(y, y_hat, mask=None) -> t.Tensor:
     """
 
     Calculates Root Mean Squared Error (RMSE) between
@@ -129,7 +129,7 @@ def RMSELoss(y, y_hat, mask=None):
     return rmse
 
 # Cell
-def MAPELoss(y, y_hat, mask=None):
+def MAPELoss(y, y_hat, mask=None) -> t.Tensor:
     """
 
     Calculates Mean Absolute Percentage Error (MAPE) between
@@ -167,7 +167,7 @@ def MAPELoss(y, y_hat, mask=None):
     return mape
 
 # Cell
-def SMAPELoss(y, y_hat, mask=None):
+def SMAPELoss(y, y_hat, mask=None) -> t.Tensor:
     """
 
     Calculates Symmetric Mean Absolute Percentage Error (SMAPE) between
@@ -209,7 +209,7 @@ def SMAPELoss(y, y_hat, mask=None):
     return smape
 
 # Cell
-def MASELoss(y, y_hat, y_insample, seasonality, mask=None) :
+def MASELoss(y, y_hat, y_insample, seasonality, mask=None) -> t.Tensor:
     """
 
     Calculates the Mean Absolute Scaled Error (MASE) between
@@ -259,7 +259,7 @@ def MASELoss(y, y_hat, y_insample, seasonality, mask=None) :
     return mase
 
 # Cell
-def QuantileLoss(y, y_hat, mask=None, q=0.5):
+def QuantileLoss(y, y_hat, mask=None, q=0.5) -> t.Tensor:
     """
 
     Computes the quantile loss (QL) between y and y_hat.
@@ -301,7 +301,7 @@ def QuantileLoss(y, y_hat, mask=None, q=0.5):
     return quantile_loss
 
 # Cell
-def MQLoss(y, y_hat, quantiles, mask=None):
+def MQLoss(y, y_hat, quantiles, mask=None) -> t.Tensor:
     """
 
     Calculates the Multi-Quantile loss (MQL) between y and y_hat.
@@ -357,7 +357,7 @@ def MQLoss(y, y_hat, quantiles, mask=None):
     return t.mean(t.mean(mqloss, axis=1))
 
 # Cell
-def wMQLoss(y, y_hat, quantiles, mask=None):
+def wMQLoss(y, y_hat, quantiles, mask=None) -> t.Tensor:
     """
 
     Calculates the Weighted Multi-Quantile loss (WMQL) between y and y_hat.
@@ -405,7 +405,7 @@ def wMQLoss(y, y_hat, quantiles, mask=None):
     return t.mean(wmqloss)
 
 # Cell
-def LevelVariabilityLoss(levels, level_variability_penalty):
+def LevelVariabilityLoss(levels, level_variability_penalty) -> t.Tensor:
     """
     Computes the variability penalty for the level of the ES-RNN.
     The levels of the ES-RNN are based on the Holt-Winters model.
@@ -440,7 +440,7 @@ def LevelVariabilityLoss(levels, level_variability_penalty):
     return level_var_loss
 
 # Cell
-def SmylLoss(y, y_hat, levels, mask, tau, level_variability_penalty=0.0):
+def SmylLoss(y, y_hat, levels, mask, tau, level_variability_penalty=0.0) -> t.Tensor:
     """
 
     Computes the Smyl Loss that combines level

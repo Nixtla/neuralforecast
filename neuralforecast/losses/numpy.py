@@ -9,7 +9,7 @@ from typing import Optional, Union
 import numpy as np
 
 # Cell
-def _divide_no_nan(a, b):
+def _divide_no_nan(a, b) -> float:
     """
     Auxiliary funtion to handle divide by 0
     """
@@ -19,7 +19,7 @@ def _divide_no_nan(a, b):
     return div
 
 # Cell
-def _metric_protections(y: np.ndarray, y_hat: np.ndarray, weights: np.ndarray):
+def _metric_protections(y: np.ndarray, y_hat: np.ndarray, weights: np.ndarray) -> None:
     assert (weights is None) or (np.sum(weights) > 0), 'Sum of weights cannot be 0'
     assert (weights is None) or (weights.shape == y_hat.shape), 'Wrong weight dimension'
 
