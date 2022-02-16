@@ -5,9 +5,12 @@ __all__ = ['Autoformer']
 # Cell
 import math
 import random
+from fastcore.foundation import patch
 
 import numpy as np
+import pandas as pd
 import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
@@ -22,6 +25,8 @@ from ..components.autoformer import (
     my_Layernorm, series_decomp
 )
 from ...losses.utils import LossFunction
+from ...data.tsdataset import IterateWindowsDataset
+from ...data.tsloader import TimeSeriesLoader
 
 # Cell
 class _Autoformer(nn.Module):
@@ -181,6 +186,18 @@ class Autoformer(pl.LightningModule):
         and doesnt need X for each time series.
         USE DataLoader from pytorch instead of TimeSeriesLoader.
         """
+
+        # Protection for missing batch_size dimension
+        if batch['Y'].dim()<3:
+            batch['Y'] = batch['Y'][None,:,:]
+
+        if batch['X'] is not None:
+            if batch['X'].dim()<4:
+                batch['X'] = batch['X'][None,:,:,:]
+
+        if batch['sample_mask'].dim()<3:
+            batch['sample_mask'] = batch['sample_mask'][None,:,:]
+
         Y = batch['Y'].permute(0, 2, 1)
         X = batch['X'][:, 0, :, :].permute(0, 2, 1)
         sample_mask = batch['sample_mask'].permute(0, 2, 1)
@@ -212,6 +229,10 @@ class Autoformer(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
 
+        # Protection for missing batch_size dimension
+        if batch['Y'].dim()<3:
+            batch['Y'] = batch['Y'][None,:,:]
+
         outsample_y, forecast, outsample_mask = self(batch)
 
         loss = self.loss_fn_train(y=outsample_y,
@@ -224,6 +245,10 @@ class Autoformer(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, idx):
+
+        # Protection for missing batch_size dimension
+        if batch['Y'].dim()<3:
+            batch['Y'] = batch['Y'][None,:,:]
 
         outsample_y, forecast, outsample_mask = self(batch)
 
@@ -251,3 +276,68 @@ class Autoformer(pl.LightningModule):
                                                  gamma=self.lr_decay)
 
         return {'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+
+# Cell
+@patch
+def forecast(self: Autoformer, Y_df, X_df = None, S_df = None, trainer=None):
+    """
+    Method for forecasting self.n_time_out periods after last timestamp of Y_df.
+
+    Parameters
+    ----------
+    Y_df: pd.DataFrame
+        Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+    X_df: pd.DataFrame
+        Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+        Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
+    S_df: pd.DataFrame
+        Dataframe with static data, needs 'unique_id' column.
+    bath_size: int
+        Batch size for forecasting.
+
+    Returns
+    ----------
+    forecast_df: pd.DataFrame
+        Dataframe with forecasts.
+    """
+
+    # Add forecast dates to Y_df
+    Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+    if X_df is not None:
+        X_df['ds'] = pd.to_datetime(X_df['ds'])
+    self.frequency = pd.infer_freq(Y_df[Y_df['unique_id']==Y_df['unique_id'][0]]['ds']) # Infer with first unique_id series
+
+    forecast_dates = pd.date_range(Y_df['ds'].max(), periods=self.pred_len+1, freq=self.frequency)[1:]
+    index = pd.MultiIndex.from_product([Y_df['unique_id'].unique(), forecast_dates], names=['unique_id', 'ds'])
+    forecast_df = pd.DataFrame({'y':[0]}, index=index).reset_index()
+
+    Y_df = Y_df.append(forecast_df).sort_values(['unique_id','ds']).reset_index(drop=True)
+
+    # Dataset, loader and trainer
+    dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                    mask_df=None, f_cols=[],
+                                    input_size=self.seq_len,
+                                    output_size=self.pred_len,
+                                    ds_in_test=self.pred_len,
+                                    is_test=True,
+                                    verbose=True)
+
+    loader = TimeSeriesLoader(dataset=dataset,
+                                batch_size=1,
+                                shuffle=False)
+
+    if trainer is None:
+        gpus = -1 if torch.cuda.is_available() else 0
+        trainer = pl.Trainer(progress_bar_refresh_rate=1,
+                             gpus=gpus,
+                             logger=False)
+
+    # Forecast
+    outputs = trainer.predict(self, loader)
+
+    # Process forecast and include in forecast_df
+    _, forecast, _ = [torch.cat(output).cpu().numpy() for output in zip(*outputs)]
+    forecast = np.transpose(forecast, (0, 2, 1))
+    forecast_df['y'] = forecast.flatten()
+
+    return forecast_df
