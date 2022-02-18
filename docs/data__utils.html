@@ -58,6 +58,17 @@ nb_path: "nbs/data__utils.ipynb"
 <h4 id="create_synthetic_tsdata" class="doc_header"><code>create_synthetic_tsdata</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/utils.py#L12" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_synthetic_tsdata</code>(<strong><code>n_ts</code></strong>:<code>int</code>=<em><code>64</code></em>, <strong><code>sort</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Creates synthetic time serie data.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>n_ts: int
+    Number of data inputs in synthetic time series dataset.
+sort: bool
+    If true sort values in dataframes.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+X_df: pd.DataFrame
+    Exogenous time series with columns ['unique_id', 'ds', 'y'].
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds']
+    and static variables.</p>
 
 </div>
 

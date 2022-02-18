@@ -140,7 +140,7 @@ class BaseDataset(Dataset):
 
 # Cell
 @patch
-def _define_sampleable_ts_idxs(self: BaseDataset):
+def _define_sampleable_ts_idxs(self: BaseDataset) -> None:
     self.n_sampleable_ts = len(self.ts_tensor)
     self.sampleable_ts_idxs = self.ts_idxs.copy()
 

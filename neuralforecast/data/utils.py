@@ -13,7 +13,27 @@ def create_synthetic_tsdata(n_ts: int = 64,
                             sort: bool = False) -> Tuple[pd.DataFrame,
                                                          pd.DataFrame,
                                                          pd.DataFrame]:
-    """Creates synthetic time serie data."""
+    """
+    Creates synthetic time serie data.
+
+    Parameters
+    ----------
+    n_ts: int
+        Number of data inputs in synthetic time series dataset.
+    sort: bool
+        If true sort values in dataframes.
+
+    Returns
+    -------
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y'].
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds']
+        and static variables.
+    """
+
     uids = np.array([f'uid_{i + 1}' for i in range(n_ts)])
     dss = pd.date_range(end='2020-12-31', periods=n_ts)
 
