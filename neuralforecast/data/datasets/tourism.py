@@ -66,9 +66,10 @@ class Tourism(TimeSeriesDataclass):
             Group name.
             Allowed groups: 'Yearly', 'Quarterly', 'Monthly'.
 
-        Notes
-        -----
-        [1] Returns train+test sets.
+        Returns
+        -------
+        df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
         """
         Tourism.download(directory)
 
@@ -111,7 +112,14 @@ class Tourism(TimeSeriesDataclass):
 
     @staticmethod
     def download(directory: str) -> None:
-        """Downloads Tourism Dataset."""
+        """
+        Downloads Tourism Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/tourism/datasets'
 
         if not os.path.exists(path):

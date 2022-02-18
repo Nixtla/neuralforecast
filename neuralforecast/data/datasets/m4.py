@@ -102,9 +102,13 @@ class M4:
         cache: bool
             If `True` saves and loads
 
-        Notes
-        -----
-        [1] Returns train+test sets.
+        Returns
+        -------
+        df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        S_df: pd.DataFrame
+            Static exogenous variables with columns ['unique_id', 'ds'].
+            and static variables.
         """
         path = f'{directory}/m4/datasets'
         file_cache = f'{path}/{group}.p'
@@ -160,7 +164,14 @@ class M4:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Download M4 Dataset."""
+        """
+        Download M4 Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/m4/datasets/'
         if not os.path.exists(path):
             for group in M4Info.groups:
