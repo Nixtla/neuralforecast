@@ -110,6 +110,67 @@ class Informer(pl.LightningModule):
                  lr_decay, weight_decay, lr_decay_step_size,
                  random_seed):
         super(Informer, self).__init__()
+        """
+        Transformer Informer model with Propspare attention.
+
+        Parameters
+        ----------
+        seq_len: int
+            Input sequence size.
+        label_len: int
+            Label sequence size.
+        pred_len: int
+            Prediction sequence size.
+        output_attention: bool
+            If true use output attention for Transformer model.
+        enc_in: int
+            Number of encoders in data embedding layers.
+        dec_in: int
+            Number of decoders in data embedding layers.
+        d_model: int
+            Number of nodes for embedding layers.
+        c_out: int
+            Number of output nodes in projection layer.
+        embed: str
+            Type of embedding layers.
+        freq: str
+            Frequency for embedding layers.
+        dropout: float
+            Float between (0, 1). Dropout for Transformer.
+        factor: float
+            Factor for attention layer.
+        n_heads: int
+            Number of heads in attention layer.
+        d_ff: int
+            Number of inputs in encoder layers.
+        activation: str
+            Activation function for encoder layer.
+        e_layers: int
+            Number of encoder layers.
+        d_layers: int
+            Number of decoder layers.
+        distil: bool
+            If true add normalization layer in encoder.
+        loss_train: str
+            Loss to optimize.
+            An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'QUANTILE', 'QUANTILE2'].
+        loss_valid: str
+            Validation loss.
+            An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'QUANTILE'].
+        loss_hypar: float
+            Hyperparameter for chosen loss.
+        learning_rate: float
+            Learning rate between (0, 1).
+        lr_decay: float
+            Decreasing multiplier for the learning rate.
+        weight_decay: float
+            L2 penalty for optimizer.
+        lr_decay_step_size: int
+            Steps between each learning rate decay.
+        random_seed: int
+            random_seed for pseudo random pytorch initializer and
+            numpy random generator.
+        """
 
         #------------------------ Model Attributes ------------------------#
         # Architecture parameters

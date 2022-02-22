@@ -180,6 +180,11 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h4 id="print_models_list" class="doc_header"><code>print_models_list</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L124" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>print_models_list</code>(<strong><code>frequencies</code></strong>:<code>list</code>, <strong><code>table_width</code></strong>:<code>int</code>)</p>
 </blockquote>
+<p>Print out models for given frequencies.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>frequencies: list
+    List of given frequencies for every model.
+table_width: int
+    Number of character for each line in table.</p>
 
 </div>
 
@@ -215,8 +220,22 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="create_loaders_M4" class="doc_header"><code>create_loaders_M4</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L133" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_loaders_M4</code>(<strong><code>Y_df</code></strong>, <strong><code>S_df</code></strong>, <strong><code>hparams</code></strong>, <strong><code>num_workers</code></strong>)</p>
+<h4 id="create_loaders_M4" class="doc_header"><code>create_loaders_M4</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L144" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_loaders_M4</code>(<strong><code>Y_df</code></strong>, <strong><code>S_df</code></strong>, <strong><code>hparams</code></strong>, <strong><code>num_workers</code></strong>)</p>
 </blockquote>
+<p>Creates loaders for M4 dataset.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
+    Target time series with columns ['unique_id', 'ds', 'y'].
+S_df: pd.DataFrame
+    Static exogenous variables with columns ['unique_id', 'ds']
+    and static variables.
+hparams: Dictionary
+    Hyperparameters for model.
+num_workers: int
+    How many subprocesses to use for data loading.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>train_loader: TimeSeriesLoader
+    Time series loader for train dataset.
+valid_loader: TimeSeriesLoader
+    Time series loader for validation dataset.</p>
 
 </div>
 
@@ -252,8 +271,13 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="NBEATS_instantiate" class="doc_header"><code>NBEATS_instantiate</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L175" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NBEATS_instantiate</code>(<strong><code>hparams</code></strong>)</p>
+<h4 id="NBEATS_instantiate" class="doc_header"><code>NBEATS_instantiate</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L208" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NBEATS_instantiate</code>(<strong><code>hparams</code></strong>)</p>
 </blockquote>
+<p>Creates NBEATS model with given hyperparameters.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>hparams: Dictionary
+    Hyperparameters for NBEATS model.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>model: NBEATS
+    NBEATS model object.</p>
 
 </div>
 
@@ -283,8 +307,13 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="show_tensorboard" class="doc_header"><code>show_tensorboard</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L208" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>show_tensorboard</code>(<strong><code>logs_path</code></strong>, <strong><code>model_path</code></strong>)</p>
+<h4 id="show_tensorboard" class="doc_header"><code>show_tensorboard</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L254" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>show_tensorboard</code>(<strong><code>logs_path</code></strong>, <strong><code>model_path</code></strong>)</p>
 </blockquote>
+<p>Opens tensorboard.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>logs_path: str
+    Path to log directory.
+model_path: str
+    Path to models directory.</p>
 
 </div>
 
@@ -314,7 +343,7 @@ nb_path: "nbs/models_nbeats__ensemble.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NBEATSEnsemble" class="doc_header"><code>class</code> <code>NBEATSEnsemble</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L216" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATSEnsemble</code>(<strong><code>use_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>gpus</code></strong>:<code>int</code>=<em><code>None</code></em>, <strong><code>auto_select_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h2 id="NBEATSEnsemble" class="doc_header"><code>class</code> <code>NBEATSEnsemble</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/ensemble.py#L272" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NBEATSEnsemble</code>(<strong><code>use_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>gpus</code></strong>:<code>int</code>=<em><code>None</code></em>, <strong><code>auto_select_gpus</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 
 </div>
