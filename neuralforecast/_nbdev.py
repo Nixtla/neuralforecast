@@ -268,8 +268,11 @@ index = {"Scaler": "data__scalers.ipynb",
          "NHITS": "models_nhits__nhits.ipynb",
          "NHITS.forecast": "models_nhits__nhits.ipynb",
          "Autoformer": "models_transformer__autoformer.ipynb",
+         "Autoformer.forecast": "models_transformer__autoformer.ipynb",
          "Informer": "models_transformer__informer.ipynb",
-         "Transformer": "models_transformer__transformer.ipynb"}
+         "Informer.forecast": "models_transformer__informer.ipynb",
+         "Transformer": "models_transformer__transformer.ipynb",
+         "Transformer.forecast": "models_transformer__transformer.ipynb"}
 
 modules = ["data/scalers.py",
            "data/tsdataset.py",
