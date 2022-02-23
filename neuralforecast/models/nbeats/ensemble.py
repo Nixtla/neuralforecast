@@ -8,11 +8,7 @@ from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
 import shutil
-from typing import Callable, Dict, Iterable, Union, List
-from tqdm import tqdm
-import pylab as plt
-from pylab import rcParams
-import math
+from typing import Dict, List, Tuple
 from IPython.display import clear_output
 import torch
 import numpy as np
@@ -21,13 +17,13 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from .nbeats import NBEATS
-from ...data.datasets.m4 import M4Info, M4, M4Evaluation
+from ...data.datasets.m4 import M4Info, M4
 from ...data.tsdataset import WindowsDataset
 from ...data.tsloader import TimeSeriesLoader
-from ...experiments.utils import create_datasets, get_mask_dfs
+from ...experiments.utils import get_mask_dfs
 
 # Cell
-def _parameter_grid(grid):
+def _parameter_grid(grid: dict) -> pd.DataFrame:
     specs_list = list(product(*list(grid.values())))
     model_specs_df = pd.DataFrame(specs_list, columns=list(grid.keys()))
 
@@ -121,7 +117,18 @@ class Monthly:
     ensemble_grid = ensemble_grid
 
 # Cell
-def print_models_list(frequencies: list, table_width: int):
+def print_models_list(frequencies: list, table_width: int) -> None:
+    """
+    Print out models for given frequencies.
+
+    Parameters
+    ----------
+    frequencies: list
+        List of given frequencies for every model.
+    table_width: int
+        Number of character for each line in table.
+    """
+
     for freq in frequencies:
         freq_grid_table = pd.Series({**freq.grid, **freq.ensemble_grid})
         freq_table_header  = f'\n{freq.group.name} '
@@ -130,7 +137,30 @@ def print_models_list(frequencies: list, table_width: int):
         print(f'{freq_table_header}{table_width*"="}\n{freq_grid_table}\n{table_width*"="}\n')
 
 # Cell
-def create_loaders_M4(Y_df, S_df, hparams, num_workers):
+def create_loaders_M4(Y_df: pd.DataFrame, S_df: pd.DataFrame, hparams: dict,
+                        num_workers: int) -> Tuple[TimeSeriesLoader, TimeSeriesLoader]:
+    """
+    Creates loaders for M4 dataset.
+
+    Parameters
+    ----------
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds']
+        and static variables.
+    hparams: Dictionary
+        Hyperparameters for model.
+    num_workers: int
+        How many subprocesses to use for data loading.
+
+    Returns
+    -------
+    train_loader: TimeSeriesLoader
+        Time series loader for train dataset.
+    valid_loader: TimeSeriesLoader
+        Time series loader for validation dataset.
+    """
 
     print(f'Instantiating loaders (n_time_in = {hparams["n_time_in"]})...', end=' ')
 
@@ -172,7 +202,20 @@ def create_loaders_M4(Y_df, S_df, hparams, num_workers):
     return train_loader, valid_loader
 
 # Cell
-def NBEATS_instantiate(hparams):
+def NBEATS_instantiate(hparams: dict) -> NBEATS:
+    """
+    Creates NBEATS model with given hyperparameters.
+
+    Parameters
+    ----------
+    hparams: Dictionary
+        Hyperparameters for NBEATS model.
+
+    Returns
+    -------
+    model: NBEATS
+        NBEATS model object.
+    """
 
     model = NBEATS(n_time_in=int(hparams['n_time_in']),
                    n_time_out=int(hparams['n_time_out']),
@@ -205,7 +248,17 @@ def NBEATS_instantiate(hparams):
     return model
 
 # Cell
-def show_tensorboard(logs_path, model_path):
+def show_tensorboard(logs_path: str, model_path: str) -> None:
+    """
+    Opens tensorboard.
+
+    Parameters
+    ----------
+    logs_path: str
+        Path to log directory.
+    model_path: str
+        Path to models directory.
+    """
     logs_model_path = f'{logs_path}/{model_path}'
     # %load_ext tensorboard
     # %tensorboard --logdir $logs_model_path
@@ -216,6 +269,19 @@ def show_tensorboard(logs_path, model_path):
 class NBEATSEnsemble:
 
     def __init__(self, use_gpus: bool=False, gpus: int=None, auto_select_gpus: bool=False):
+        """
+        NBEATSEnsemble class for training and evaluation of ensemble of NBEATS models
+        created with different hyperparameters.
+
+        Parameters
+        ----------
+        use_gpus: bool
+            If true use gpus for training.
+        gpus: int
+            Number of gpus to use for training.
+        auto_select_gpus: bool
+            If true trainer will automaticly select gpus for training.
+        """
 
         if use_gpus:
             assert isinstance(gpus, (int, list, str)), \
@@ -235,7 +301,28 @@ class NBEATSEnsemble:
             val_freq_steps: int,
             tensorboard_logs: bool,
             logs_path: str,
-            num_workers: int):
+            num_workers: int) -> Dict:
+        """
+        Train and evaluate NBEATS models for given grid of hyperparameters.
+
+        Parameters
+        ----------
+        frequencies: List[type]
+            List of given frequencies to create hyperparameter grids.
+        val_freq_steps: int
+            On what step to do validation when training a model.
+        tensorboard_logs: bool
+            If true save tensorboard logs.
+        logs_path: str
+            Path to directory where log will be saved.
+        num_workers: int
+            How many subprocesses to use for data loading.
+
+        Returns
+        -------
+        results: Dictionary
+            Results dictionary that contains output dataframes for every model.
+        """
 
         results = {}
 

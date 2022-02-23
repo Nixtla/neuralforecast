@@ -5,7 +5,6 @@ __all__ = ['LSTMCell', 'ResLSTMCell', 'ResLSTMLayer', 'AttentiveLSTMLayer', 'DRN
 # Cell
 import torch
 import torch.nn as nn
-import torch.autograd as autograd
 
 # Cell
 class LSTMCell(nn.Module):

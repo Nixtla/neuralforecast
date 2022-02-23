@@ -8,7 +8,7 @@ import torch as t
 import torch.nn as nn
 
 # Cell
-def _divide_no_nan(a, b):
+def _divide_no_nan(a: float, b: float) -> float:
     """
     Auxiliary funtion to handle divide by 0
     """
@@ -18,7 +18,7 @@ def _divide_no_nan(a, b):
     return div
 
 # Cell
-def MAELoss(y, y_hat, mask=None):
+def MAELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates Mean Absolute Error (MAE) between
@@ -54,7 +54,7 @@ def MAELoss(y, y_hat, mask=None):
     return mae
 
 # Cell
-def MSELoss(y, y_hat, mask=None):
+def MSELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates Mean Squared Error (MSE) between
@@ -90,7 +90,7 @@ def MSELoss(y, y_hat, mask=None):
     return mse
 
 # Cell
-def RMSELoss(y, y_hat, mask=None):
+def RMSELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates Root Mean Squared Error (RMSE) between
@@ -129,7 +129,7 @@ def RMSELoss(y, y_hat, mask=None):
     return rmse
 
 # Cell
-def MAPELoss(y, y_hat, mask=None):
+def MAPELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates Mean Absolute Percentage Error (MAPE) between
@@ -167,7 +167,7 @@ def MAPELoss(y, y_hat, mask=None):
     return mape
 
 # Cell
-def SMAPELoss(y, y_hat, mask=None):
+def SMAPELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates Symmetric Mean Absolute Percentage Error (SMAPE) between
@@ -209,7 +209,8 @@ def SMAPELoss(y, y_hat, mask=None):
     return smape
 
 # Cell
-def MASELoss(y, y_hat, y_insample, seasonality, mask=None) :
+def MASELoss(y: t.Tensor, y_hat: t.Tensor, y_insample: t.Tensor,
+                seasonality: int, mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates the Mean Absolute Scaled Error (MASE) between
@@ -259,7 +260,8 @@ def MASELoss(y, y_hat, y_insample, seasonality, mask=None) :
     return mase
 
 # Cell
-def QuantileLoss(y, y_hat, mask=None, q=0.5):
+def QuantileLoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None,
+                    q: float =0.5) -> t.Tensor:
     """
 
     Computes the quantile loss (QL) between y and y_hat.
@@ -301,7 +303,8 @@ def QuantileLoss(y, y_hat, mask=None, q=0.5):
     return quantile_loss
 
 # Cell
-def MQLoss(y, y_hat, quantiles, mask=None):
+def MQLoss(y: t.Tensor, y_hat: t.Tensor, quantiles: t.Tensor,
+            mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates the Multi-Quantile loss (MQL) between y and y_hat.
@@ -357,7 +360,8 @@ def MQLoss(y, y_hat, quantiles, mask=None):
     return t.mean(t.mean(mqloss, axis=1))
 
 # Cell
-def wMQLoss(y, y_hat, quantiles, mask=None):
+def wMQLoss(y: t.Tensor, y_hat: t.Tensor, quantiles: t.Tensor,
+            mask: t.Tensor =None) -> t.Tensor:
     """
 
     Calculates the Weighted Multi-Quantile loss (WMQL) between y and y_hat.
@@ -405,7 +409,7 @@ def wMQLoss(y, y_hat, quantiles, mask=None):
     return t.mean(wmqloss)
 
 # Cell
-def LevelVariabilityLoss(levels, level_variability_penalty):
+def LevelVariabilityLoss(levels: t.Tensor, level_variability_penalty: float) -> t.Tensor:
     """
     Computes the variability penalty for the level of the ES-RNN.
     The levels of the ES-RNN are based on the Holt-Winters model.
@@ -440,7 +444,8 @@ def LevelVariabilityLoss(levels, level_variability_penalty):
     return level_var_loss
 
 # Cell
-def SmylLoss(y, y_hat, levels, mask, tau, level_variability_penalty=0.0):
+def SmylLoss(y: t.Tensor, y_hat: t.Tensor, levels: t.Tensor,
+                mask: t.Tensor, tau: float, level_variability_penalty: float =0.0) -> t.Tensor:
     """
 
     Computes the Smyl Loss that combines level
@@ -448,13 +453,22 @@ def SmylLoss(y, y_hat, levels, mask, tau, level_variability_penalty=0.0):
 
         Parameters
         ----------
-        windows_y: tensor (n_windows, batch_size, window_size).
-            Actual values .
-        windows_y_hat: tensor (n_windows, batch_size, window_size).
-            Predicted values.
-        levels: tensor (batch, n_time).
+        y: tensor (batch_size, output_size).
+            Actual values in torch tensor.
+        y_hat: tensor (batch_size, output_size).
+            Predicted values in torch tensor.
+        levels: tensor with shape (batch, n_time).
             Levels obtained from exponential smoothing component of ESRNN.
-
+        mask: tensor (batch_size, output_size).
+            Specifies date stamps per serie to consider in loss.
+        tau: float, between 0 and 1.
+            The slope of the quantile loss, in the context of
+            quantile regression, the q determines the conditional
+            quantile level.
+        level_variability_penalty: float.
+            This parameter controls the strength of the penalization
+            to the wigglines of the level vector, induces smoothness
+            in the output.
 
         Returns
         ----------

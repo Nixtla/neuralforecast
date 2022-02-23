@@ -4,25 +4,18 @@ __all__ = ['logger', 'GEFCom2012', 'GEFCom2012_L', 'GEFCom2012_W']
 
 # Cell
 import os
-import re
 import logging
-import zipfile
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+from typing import Tuple
 
-import numpy as np
 import pandas as pd
 
 from .utils import (
     download_file,
-    Info,
-    TimeSeriesDataclass,
     create_calendar_variables,
     create_us_holiday_distance_variables,
 )
-from ..tsdataset import TimeSeriesDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,7 +27,14 @@ class GEFCom2012:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Downloads GEFCom2012 Dataset."""
+        """
+        Downloads GEFCom2012 Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/gefcom2012'
         if not os.path.exists(path):
             download_file(directory=path,
@@ -45,7 +45,20 @@ class GEFCom2012:
 class GEFCom2012_L:
 
     @staticmethod
-    def load_Y(directory) -> pd.DataFrame:
+    def load_Y(directory: str) -> pd.DataFrame:
+        """Load target time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/Load_history.csv'
@@ -66,7 +79,20 @@ class GEFCom2012_L:
         return Y_df
 
     @staticmethod
-    def load_X(directory) -> pd.DataFrame:
+    def load_X(directory: str) -> pd.DataFrame:
+        """Load exogenous time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/temperature_history.csv'
@@ -91,7 +117,20 @@ class GEFCom2012_L:
         return X_df
 
     @staticmethod
-    def load_benchmark(directory) -> pd.DataFrame:
+    def load_benchmark(directory: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Load'
         filepath = f'{path}/Load_benchmark.csv'
@@ -114,9 +153,25 @@ class GEFCom2012_L:
         return benchmark_df
 
     @staticmethod
-    def load(directory) -> Tuple[pd.DataFrame,
+    def load(directory: str) -> Tuple[pd.DataFrame,
                                  pd.DataFrame,
                                  pd.DataFrame]:
+        """Downloads and loads gefcom2012 data.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
 
         GEFCom2012.download(directory)
 
@@ -135,7 +190,20 @@ class GEFCom2012_W:
     test_end    = '2012-06-28 12:00:00'
 
     @staticmethod
-    def load_benchmark(directory):
+    def load_benchmark(directory: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
         filepath = f'{path}/benchmark.csv'
@@ -148,7 +216,20 @@ class GEFCom2012_W:
         return benchmark_df
 
     @staticmethod
-    def load_Y(directory):
+    def load_Y(directory: str) -> pd.DataFrame:
+        """Load target time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
         yfilepath = f'{path}/train.csv'
@@ -163,7 +244,22 @@ class GEFCom2012_W:
         return Y_df
 
     @staticmethod
-    def load_X_group(directory, group):
+    def load_X_group(directory: str, group: str) -> pd.DataFrame:
+        """Load exogenous time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+
+        Returns
+        -------
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2012/GEFCOM2012_Data/Wind'
         xfilepath = f'{path}/windforecasts_wf{group}.csv'
@@ -209,6 +305,23 @@ class GEFCom2012_W:
     def load(directory: str) -> Tuple[pd.DataFrame,
                                       pd.DataFrame,
                                       pd.DataFrame]:
+        """Downloads and loads gefcom2012 data.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         GEFCom2012.download(directory)
 
         Y_df = GEFCom2012_W.load_Y(directory)

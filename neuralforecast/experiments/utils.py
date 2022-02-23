@@ -17,9 +17,9 @@ import os
 import pickle
 # Limit number of threads in numpy and others to avoid throttling
 os.environ.update(ENV_VARS)
-import random
 import time
 from functools import partial
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,7 @@ from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 from torch.utils.data import DataLoader
 
 from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset
+from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset, BaseDataset
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.esrnn.mqesrnn import MQESRNN
@@ -38,7 +38,31 @@ from ..models.nhits.nhits import NHITS
 from ..models.transformer.autoformer import Autoformer
 
 # Cell
-def get_mask_dfs(Y_df, ds_in_val, ds_in_test):
+def get_mask_dfs(Y_df: pd.DataFrame,
+                 ds_in_val: int, ds_in_test: int) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Generates train, test and validation mask.
+    Train mask begins by avoiding ds_in_test.
+
+    Parameters
+    ----------
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    ds_in_val: int
+        Number of ds in validation.
+    ds_in_test: int
+        Number of ds in test.
+
+    Returns
+    -------
+    train_mask_df: pd.DataFrame
+        Train mask dataframe.
+    val_mask_df: pd.DataFrame
+        Validation mask dataframe.
+    test_mask_df: pd.DataFrame
+        Test mask dataframe.
+    """
+
     # train mask
     train_mask_df = Y_df.copy()[['unique_id', 'ds']]
     train_mask_df.sort_values(by=['unique_id', 'ds'], inplace=True)
@@ -68,30 +92,40 @@ def get_mask_dfs(Y_df, ds_in_val, ds_in_test):
     return train_mask_df, val_mask_df, test_mask_df
 
 # Cell
-def get_random_mask_dfs(Y_df, ds_in_test,
-                        n_val_windows, n_ds_val_window,
-                        n_uids, freq):
+def get_random_mask_dfs(Y_df: pd.DataFrame, ds_in_test: int,
+                        n_val_windows: int, n_ds_val_window: int,
+                        n_uids: int, freq: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Generates train, test and random validation mask.
     Train mask begins by avoiding ds_in_test
 
     Validation mask: 1) samples n_uids unique ids
                      2) creates windows of size n_ds_val_window
+
     Parameters
     ----------
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
     ds_in_test: int
         Number of ds in test.
-    n_uids: int
-        Number of unique ids in validation.
     n_val_windows: int
         Number of windows for validation.
     n_ds_val_window: int
         Number of ds in each validation window.
-    periods: int
-        ds_in_test multiplier.
+    n_uids: int
+        Number of unique ids in validation.
     freq: str
         string that determines datestamp frequency, used in
         random windows creation.
+
+    Returns
+    -------
+    train_mask_df: pd.DataFrame
+        Train mask dataframe.
+    val_mask_df: pd.DataFrame
+        Validation mask dataframe.
+    test_mask_df: pd.DataFrame
+        Test mask dataframe.
     """
     np.random.seed(1)
     #----------------------- Train mask -----------------------#
@@ -124,7 +158,34 @@ def get_random_mask_dfs(Y_df, ds_in_test,
     return train_mask_df, val_mask_df, test_mask_df
 
 # Cell
-def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x):
+def scale_data(Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                mask_df: pd.DataFrame, normalizer_y: str,
+                normalizer_x: str) -> Tuple[pd.DataFrame, pd.DataFrame, Scaler]:
+    """
+    Scales input data accordingly to given normalizer parameters.
+
+    Parameters
+    ----------
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y']
+    mask_df: pd.DataFrame
+        Mask dataframe.
+    normalizer_y: str
+        Normalizer for scaling Y_df.
+    normalizer_x: str
+        Normalizer for scaling X_df.
+
+    Returns
+    -------
+    Y_df: pd.DataFrame
+        Scaled target time series.
+    X_df: pd.DataFrame
+        Scaled exogenous time series with columns.
+    scaler_y: Scaler
+        Scaler object for Y_df.
+    """
     mask = mask_df['available_mask'].values * mask_df['sample_mask'].values
 
     if normalizer_y is not None:
@@ -142,8 +203,42 @@ def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x):
     return Y_df, X_df, scaler_y
 
 # Cell
-def create_datasets(mc, S_df, Y_df, X_df, f_cols,
-                    ds_in_test, ds_in_val):
+def create_datasets(mc: dict, S_df: pd.DataFrame,
+                    Y_df: pd.DataFrame, X_df: pd.DataFrame, f_cols: list,
+                    ds_in_test: int, ds_in_val: int) -> Tuple[BaseDataset, BaseDataset, BaseDataset, Scaler]:
+    """
+    Creates train, validation and test datasets.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds']
+        and static variables.
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y']
+    f_cols: list
+        List of exogenous variables of the future.
+    ds_in_test: int
+        Number of ds in test.
+    ds_in_val: int
+        Number of ds in validation.
+
+    Returns
+    -------
+    train_dataset: BaseDataset
+        Train dataset.
+    valid_dataset: BaseDataset
+        Validation dataset.
+    test_dataset: BaseDataset
+        Test dataset.
+    scaler_y: Scaler
+        Scaler object for Y_df.
+    """
+
     #------------------------------------- Available and Validation Mask ------------------------------------#
     train_mask_df, valid_mask_df, test_mask_df = get_mask_dfs(Y_df=Y_df,
                                                               ds_in_val=ds_in_val,
@@ -223,7 +318,33 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
     return train_dataset, valid_dataset, test_dataset, scaler_y
 
 # Cell
-def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
+def instantiate_loaders(mc: dict,
+                        train_dataset: BaseDataset, val_dataset: BaseDataset,
+                        test_dataset: BaseDataset) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    """
+    Creates train, validation and test loader classes.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+    train_dataset: BaseDataset
+        Train dataset.
+    val_dataset: BaseDataset
+        Validation dataset.
+    test_dataset: BaseDataset
+        Test dataset.
+
+    Returns
+    -------
+    train_loader: DataLoader
+        Train loader.
+    val_loader: DataLoader
+        Validation loader.
+    test_loader: DataLoader
+        Test loader.
+    """
+
     if mc['mode'] in ['simple', 'full'] :
         train_loader = TimeSeriesLoader(dataset=train_dataset,
                                         batch_size=int(mc['batch_size']),
@@ -267,7 +388,20 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset):
     return train_loader, val_loader, test_loader
 
 # Cell
-def instantiate_nbeats(mc):
+def instantiate_nbeats(mc: dict) -> NBEATS:
+    """
+    Creates nbeats model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: NBEATS
+        Nbeats model.
+    """
     mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
     mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
@@ -304,7 +438,20 @@ def instantiate_nbeats(mc):
     return model
 
 # Cell
-def instantiate_esrnn(mc):
+def instantiate_esrnn(mc: dict) -> ESRNN:
+    """
+    Creates esrnn model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: ESRNN
+        Esrnn model.
+    """
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
     elif mc['max_steps'] is not None:
@@ -339,7 +486,21 @@ def instantiate_esrnn(mc):
     return model
 
 # Cell
-def instantiate_mqesrnn(mc):
+def instantiate_mqesrnn(mc: dict) -> MQESRNN:
+    """
+    Creates mqesrnn model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: MQESRNN
+        Mqesrnn model.
+    """
+
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
     elif mc['max_steps'] is not None:
@@ -371,7 +532,21 @@ def instantiate_mqesrnn(mc):
     return model
 
 # Cell
-def instantiate_nhits(mc):
+def instantiate_nhits(mc: dict) -> NHITS:
+    """
+    Creates nhits model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: NHITS
+        Nhits model.
+    """
+
     mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
     mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
@@ -412,7 +587,20 @@ def instantiate_nhits(mc):
     return model
 
 # Cell
-def instantiate_autoformer(mc):
+def instantiate_autoformer(mc: dict) -> Autoformer:
+    """
+    Creates autoformer model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: Autoformer
+        Autoformer model.
+    """
 
     if mc['max_epochs'] is not None:
         lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
@@ -449,7 +637,21 @@ def instantiate_autoformer(mc):
     return model
 
 # Cell
-def instantiate_model(mc):
+def instantiate_model(mc: dict) -> pl.LightningModule:
+    """
+    Creates one of the models.
+    (nbeats, esrnn, mqesrnn, nhits, autoformer)
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: pl.LightningModule
+        Forecast model.
+    """
     MODEL_DICT = {'nbeats': instantiate_nbeats,
                   'esrnn': instantiate_esrnn,
                   'mqesrnn': instantiate_mqesrnn,
@@ -458,7 +660,36 @@ def instantiate_model(mc):
     return MODEL_DICT[mc['model']](mc)
 
 # Cell
-def predict(mc, model, trainer, loader, scaler_y):
+def predict(mc: dict, model: pl.LightningModule,
+            trainer: pl.Trainer, loader: DataLoader,
+            scaler_y: Scaler) -> Tuple[np.array, np.array, np.array, np.array]:
+    """
+    Predicts results on dataset using trained model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+    model: pl.LightningModule
+        Forecast model.
+    trainer: pl.Trainer
+        Trainer object.
+    loader: DataLoader
+        Data loader.
+    scaler_y: Scaler
+        Scaler object for target time series.
+
+    Returns
+    -------
+    y_true: np.array
+        True values from dataset.
+    y_hat: np.array
+        Predicted values from dataset.
+    mask: np.array
+        Masks for values.
+    meta_data: np.array
+        Metada from dataset.
+    """
     outputs = trainer.predict(model, loader)
     y_true, y_hat, mask = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
     meta_data = loader.dataset.meta_data
@@ -475,10 +706,48 @@ def predict(mc, model, trainer, loader, scaler_y):
     return y_true, y_hat, mask, meta_data
 
 # Cell
-def fit(mc, Y_df, X_df=None, S_df=None,
-        ds_in_val=0, ds_in_test=0,
-        f_cols=[],
-        only_model=True):
+def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFrame =None,
+        ds_in_val: int =0, ds_in_test: int =0,
+        f_cols: list =[],
+        only_model: bool =True) -> Tuple[pl.LightningModule, pl.Trainer,
+                                        DataLoader, DataLoader, Scaler] or pl.LightningModule:
+    """
+    Traines model on given dataset.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y'].
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds'].
+        and static variables.
+    ds_in_val: int
+        Number of ds in validation.
+    ds_in_test: int
+        Number of ds in test.
+    f_cols: list
+        List of exogenous variables of the future.
+    only_model: bool
+        If true only model will be returned.
+
+    Returns
+    -------
+    model: pl.LightningModule
+        Forecast model.
+    trainer: pl.Trainer
+        Trainer object.
+    val_loader: DataLoader
+        Validation loader.
+    test_loader: DataLoader
+        Test loader.
+    scaler_y: Scaler
+        Scaler object for target time series.
+    """
+
     # Protect inplace modifications
     Y_df = Y_df.copy()
     if X_df is not None:
@@ -527,7 +796,34 @@ def fit(mc, Y_df, X_df=None, S_df=None,
     return model, trainer, val_loader, test_loader, scaler_y
 
 # Cell
-def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
+def model_fit_predict(mc: dict,
+                        S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                        f_cols: list, ds_in_val: int, ds_in_test: int) -> dict:
+    """
+    Traines model on train dataset, then calculates predictions
+    on test dataset.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y'].
+    f_cols: list
+        List of exogenous variables of the future.
+    ds_in_val: int
+        Number of ds in validation.
+    ds_in_test: int
+        Number of ds in test.
+
+    Returns
+    -------
+    results: dict
+        Dictionary with results of training and prediction on model.
+    """
+
     #------------------------------------------------ Fit ------------------------------------------------#
     model, trainer, val_loader, test_loader, scaler_y = fit(
         mc, S_df=S_df, Y_df=Y_df, X_df=X_df,
@@ -559,15 +855,58 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test):
     return results
 
 # Cell
-def evaluate_model(mc, loss_function_val, loss_functions_test,
-                   S_df, Y_df, X_df, f_cols,
-                   ds_in_val, ds_in_test,
-                   return_forecasts,
-                   save_progress,
-                   trials,
-                   results_file,
-                   step_save_progress=5,
-                   loss_kwargs=None):
+def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: dict,
+                   S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                   f_cols: list, ds_in_val: int, ds_in_test: int,
+                   return_forecasts: bool,
+                   save_progress: bool,
+                   trials: Trials,
+                   results_file: str,
+                   step_save_progress: int =5,
+                   loss_kwargs: list =None) -> dict:
+    """
+    Evaluate model on given dataset.
+
+    Parameters
+    ----------
+    mc: dictionary
+        Model configuration.
+    loss_function_val: function
+        Loss function used for validation.
+    loss_functions_test: Dictionary
+        Loss functions used for test.
+        (function name: string, function: fun)
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds'].
+        and static variables.
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y'].
+    f_cols: list
+        List of exogenous variables of the future.
+    ds_in_val: int
+        Number of ds in validation.
+    ds_in_test: int
+        Number of ds in test.
+    return_forecasts: bool
+        If true return forecast on test.
+    save_progress: bool
+        If true save progres in file.
+    trials: hyperopt.Trials
+        Results from model evaluation.
+    results_file: str
+        File path to save results.
+    step_save_progress: int
+        Every n-th step is saved in file.
+    loss_kwargs: List
+        Loss function arguments.
+
+    Returns
+    -------
+    results_output: dict
+        Dictionary with results of model evaluation.
+    """
 
     if (save_progress) and (len(trials) % step_save_progress == 0):
         with open(results_file, "wb") as f:
@@ -621,14 +960,63 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
     return results_output
 
 # Cell
-def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_functions_test,
-                     S_df, Y_df, X_df, f_cols,
-                     ds_in_val, ds_in_test,
-                     return_forecasts,
-                     save_progress,
-                     results_file,
-                     step_save_progress=5,
-                     loss_kwargs=None):
+def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
+                     loss_function_val: callable, loss_functions_test: dict,
+                     S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                     f_cols: list, ds_in_val: int, ds_in_test: int,
+                     return_forecasts: bool,
+                     save_progress: bool,
+                     results_file: str,
+                     step_save_progress: int =5,
+                     loss_kwargs: list =None) -> Trials:
+    """
+    Evaluates multiple models trained on given dataset.
+    Models are trained with different hyperparameters.
+    Hyperparameters are changed until function is minimized in
+    hyperparameter space. All models are trained and evaluated,
+    until function is minimized.
+
+    Parameters
+    ----------
+    space: Dictionary
+        Dictionary that contines hyperparameters that create space.
+    hyperopt_max_evals: int
+        Maximum number of evaluations.
+    loss_function_val: function
+        Loss function used for validation.
+    loss_functions_test: Dictionary
+        Loss functions used for test.
+        (function name: string, function: fun)
+    S_df: pd.DataFrame
+        Static exogenous variables with columns ['unique_id', 'ds'].
+        and static variables.
+    Y_df: pd.DataFrame
+        Target time series with columns ['unique_id', 'ds', 'y'].
+    X_df: pd.DataFrame
+        Exogenous time series with columns ['unique_id', 'ds', 'y'].
+    f_cols: list
+        List of exogenous variables of the future.
+    ds_in_val: int
+        Number of ds in validation.
+    ds_in_test: int
+        Number of ds in test.
+    return_forecasts: bool
+        If true return forecast on test.
+    save_progress: bool
+        If true save progres in file.
+    results_file: str
+        File path to save results.
+    step_save_progress: int
+        Every n-th step is saved in file.
+    loss_kwargs: List
+        Loss function arguments.
+
+    Returns
+    -------
+    trials: Trials
+        Results from model evaluation.
+    """
+
     assert ds_in_val > 0, 'Validation set is needed for tunning!'
 
     trials = Trials()

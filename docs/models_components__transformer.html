@@ -47,7 +47,7 @@ nb_path: "nbs/models_components__transformer.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="ConvLayer" class="doc_header"><code>class</code> <code>ConvLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L11" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ConvLayer</code>(<strong><code>c_in</code></strong>) :: <code>Module</code></p>
+<h2 id="ConvLayer" class="doc_header"><code>class</code> <code>ConvLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L10" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ConvLayer</code>(<strong><code>c_in</code></strong>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -95,7 +95,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="EncoderLayer" class="doc_header"><code>class</code> <code>EncoderLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L32" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>EncoderLayer</code>(<strong><code>attention</code></strong>, <strong><code>d_model</code></strong>, <strong><code>d_ff</code></strong>=<em><code>None</code></em>, <strong><code>dropout</code></strong>=<em><code>0.1</code></em>, <strong><code>activation</code></strong>=<em><code>'relu'</code></em>) :: <code>Module</code></p>
+<h2 id="EncoderLayer" class="doc_header"><code>class</code> <code>EncoderLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L31" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>EncoderLayer</code>(<strong><code>attention</code></strong>, <strong><code>d_model</code></strong>, <strong><code>d_ff</code></strong>=<em><code>None</code></em>, <strong><code>dropout</code></strong>=<em><code>0.1</code></em>, <strong><code>activation</code></strong>=<em><code>'relu'</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -143,7 +143,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Encoder" class="doc_header"><code>class</code> <code>Encoder</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L58" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Encoder</code>(<strong><code>attn_layers</code></strong>, <strong><code>conv_layers</code></strong>=<em><code>None</code></em>, <strong><code>norm_layer</code></strong>=<em><code>None</code></em>) :: <code>Module</code></p>
+<h2 id="Encoder" class="doc_header"><code>class</code> <code>Encoder</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L57" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Encoder</code>(<strong><code>attn_layers</code></strong>, <strong><code>conv_layers</code></strong>=<em><code>None</code></em>, <strong><code>norm_layer</code></strong>=<em><code>None</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -191,7 +191,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="DecoderLayer" class="doc_header"><code>class</code> <code>DecoderLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L86" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>DecoderLayer</code>(<strong><code>self_attention</code></strong>, <strong><code>cross_attention</code></strong>, <strong><code>d_model</code></strong>, <strong><code>d_ff</code></strong>=<em><code>None</code></em>, <strong><code>dropout</code></strong>=<em><code>0.1</code></em>, <strong><code>activation</code></strong>=<em><code>'relu'</code></em>) :: <code>Module</code></p>
+<h2 id="DecoderLayer" class="doc_header"><code>class</code> <code>DecoderLayer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L85" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>DecoderLayer</code>(<strong><code>self_attention</code></strong>, <strong><code>cross_attention</code></strong>, <strong><code>d_model</code></strong>, <strong><code>d_ff</code></strong>=<em><code>None</code></em>, <strong><code>dropout</code></strong>=<em><code>0.1</code></em>, <strong><code>activation</code></strong>=<em><code>'relu'</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
@@ -239,7 +239,7 @@ parameters converted too when you call :meth:<code>to</code>, etc.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Decoder" class="doc_header"><code>class</code> <code>Decoder</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L120" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Decoder</code>(<strong><code>layers</code></strong>, <strong><code>norm_layer</code></strong>=<em><code>None</code></em>, <strong><code>projection</code></strong>=<em><code>None</code></em>) :: <code>Module</code></p>
+<h2 id="Decoder" class="doc_header"><code>class</code> <code>Decoder</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/components/transformer.py#L119" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Decoder</code>(<strong><code>layers</code></strong>, <strong><code>norm_layer</code></strong>=<em><code>None</code></em>, <strong><code>projection</code></strong>=<em><code>None</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Base class for all neural network modules.</p>
 <p>Your models should also subclass this class.</p>
