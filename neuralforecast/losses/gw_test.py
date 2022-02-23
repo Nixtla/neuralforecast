@@ -22,7 +22,7 @@ from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 FONTSIZE = 17
 
 # Cell
-def _Newey_West(Z, n_lags) -> np.array:
+def _Newey_West(Z: np.ndarray, n_lags: int) -> np.ndarray:
     """
 
     Estimator of the Newey-West Heteroskedasticity and
@@ -66,7 +66,7 @@ def GW_CPA_test(loss1: np.ndarray,
                 tau: int,
                 alpha: float=0.05,
                 conditional: bool=False,
-                verbose: bool=True) -> Tuple[np.array, np.float64, np.array]:
+                verbose: bool=True) -> Tuple[np.ndarray, np.float64, np.ndarray]:
     """
 
     The one-sided Giacomini-White Conditional Predictive Ability Test (GW),
@@ -187,8 +187,8 @@ def get_GW_test_pvals(y: np.ndarray,
                   horizon: int,
                   tau: int,
                   conditional: bool,
-                  alpha: float=0.05,
-                  verbose: bool=False) -> np.array:
+                  alpha: float =0.05,
+                  verbose: bool=False) -> np.ndarray:
     """
 
     Function to calculate model-pair-wise GW-Test p-values.
@@ -279,7 +279,7 @@ def _get_epftoolbox_cmap() -> ListedColormap:
     newcmap = ListedColormap(newcolors)
     return newcmap
 
-def plot_GW_test_pvals(pvals, labels, title) -> None:
+def plot_GW_test_pvals(pvals: np.ndarray, labels: List[str], title: str) -> None:
     """
 
     Function to plot model-pair-wise GW-Test p-values.

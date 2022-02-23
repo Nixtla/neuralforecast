@@ -158,7 +158,7 @@ class EPF:
 
 # Cell
 # TODO: extend this to group_by unique_id application
-def epf_naive_forecast(Y_df) -> pd.DataFrame:
+def epf_naive_forecast(Y_df: pd.DataFrame) -> pd.DataFrame:
     """Function to build the naive forecast for electricity price forecasting
 
     The function is used to compute the accuracy metrics MASE and RMAE, the function
