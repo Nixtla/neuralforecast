@@ -96,7 +96,7 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L466" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>, <strong><code>n_time_out</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>shared_weights</code></strong>, <strong><code>activation</code></strong>, <strong><code>initialization</code></strong>, <strong><code>stack_types</code></strong>, <strong><code>n_blocks</code></strong>, <strong><code>n_layers</code></strong>, <strong><code>n_mlp_units</code></strong>, <strong><code>n_x_hidden</code></strong>, <strong><code>n_s_hidden</code></strong>, <strong><code>n_pool_kernel_size</code></strong>, <strong><code>n_freq_downsample</code></strong>, <strong><code>pooling_mode</code></strong>, <strong><code>interpolation_mode</code></strong>, <strong><code>batch_normalization</code></strong>, <strong><code>dropout_prob_theta</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>frequency</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="NHITS" class="doc_header"><code>class</code> <code>NHITS</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L466" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>NHITS</code>(<strong><code>n_time_in</code></strong>:<code>int</code>, <strong><code>n_time_out</code></strong>:<code>int</code>, <strong><code>n_x</code></strong>:<code>int</code>, <strong><code>n_s</code></strong>:<code>int</code>, <strong><code>shared_weights</code></strong>:<code>bool</code>, <strong><code>activation</code></strong>:<code>str</code>, <strong><code>initialization</code></strong>:<code>str</code>, <strong><code>stack_types</code></strong>:<code>List</code>[<code>str</code>], <strong><code>n_blocks</code></strong>:<code>List</code>[<code>int</code>], <strong><code>n_layers</code></strong>:<code>List</code>[<code>int</code>], <strong><code>n_mlp_units</code></strong>:<code>List</code>[<code>List</code>[<code>int</code>]], <strong><code>n_x_hidden</code></strong>:<code>int</code>, <strong><code>n_s_hidden</code></strong>:<code>int</code>, <strong><code>n_pool_kernel_size</code></strong>:<code>List</code>[<code>int</code>], <strong><code>n_freq_downsample</code></strong>:<code>List</code>[<code>int</code>], <strong><code>pooling_mode</code></strong>:<code>str</code>, <strong><code>interpolation_mode</code></strong>:<code>str</code>, <strong><code>batch_normalization</code></strong>:<code>bool</code>, <strong><code>dropout_prob_theta</code></strong>:<code>float</code>, <strong><code>learning_rate</code></strong>:<code>float</code>, <strong><code>lr_decay</code></strong>:<code>float</code>, <strong><code>lr_decay_step_size</code></strong>:<code>int</code>, <strong><code>weight_decay</code></strong>:<code>float</code>, <strong><code>loss_train</code></strong>:<code>str</code>, <strong><code>loss_hypar</code></strong>:<code>float</code>, <strong><code>loss_valid</code></strong>:<code>str</code>, <strong><code>frequency</code></strong>:<code>str</code>, <strong><code>random_seed</code></strong>:<code>int</code>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
 
@@ -128,7 +128,7 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="NHITS.forecast" class="doc_header"><code>NHITS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L723" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.forecast</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>=<em><code>1</code></em>, <strong><code>trainer</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="NHITS.forecast" class="doc_header"><code>NHITS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L723" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.forecast</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>1</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -139,7 +139,9 @@ X_df: pd.DataFrame
 S_df: pd.DataFrame
     Dataframe with static data, needs 'unique_id' column.
 bath_size: int
-    Batch size for forecasting.</p>
+    Batch size for forecasting.
+trainer: pl.Trainer
+    Trainer object for model training and evaluation.</p>
 <h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
     Dataframe with forecasts.</p>
 
@@ -171,7 +173,7 @@ bath_size: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="suggested_space" class="doc_header"><code>suggested_space</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L788" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>suggested_space</code>(<strong><code>n_time_out</code></strong>, <strong><code>n_series</code></strong>, <strong><code>n_x</code></strong>, <strong><code>n_s</code></strong>, <strong><code>frequency</code></strong>)</p>
+<h4 id="suggested_space" class="doc_header"><code>suggested_space</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L791" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>suggested_space</code>(<strong><code>n_time_out</code></strong>:<code>int</code>, <strong><code>n_series</code></strong>:<code>int</code>, <strong><code>n_x</code></strong>:<code>int</code>, <strong><code>n_s</code></strong>:<code>int</code>, <strong><code>frequency</code></strong>:<code>str</code>)</p>
 </blockquote>
 <p>Suggested hyperparameters search space for tuning. To be used with hyperopt library.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>n_time_out: int

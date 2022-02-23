@@ -39,7 +39,8 @@ from ..models.nhits.nhits import NHITS
 from ..models.transformer.autoformer import Autoformer
 
 # Cell
-def get_mask_dfs(Y_df, ds_in_val, ds_in_test) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def get_mask_dfs(Y_df: pd.DataFrame,
+                 ds_in_val: int, ds_in_test: int) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Generates train, test and validation mask.
     Train mask begins by avoiding ds_in_test.
@@ -92,9 +93,9 @@ def get_mask_dfs(Y_df, ds_in_val, ds_in_test) -> Tuple[pd.DataFrame, pd.DataFram
     return train_mask_df, val_mask_df, test_mask_df
 
 # Cell
-def get_random_mask_dfs(Y_df, ds_in_test,
-                        n_val_windows, n_ds_val_window,
-                        n_uids, freq) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def get_random_mask_dfs(Y_df: pd.DataFrame, ds_in_test: int,
+                        n_val_windows: int, n_ds_val_window: int,
+                        n_uids: int, freq: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Generates train, test and random validation mask.
     Train mask begins by avoiding ds_in_test
@@ -158,7 +159,9 @@ def get_random_mask_dfs(Y_df, ds_in_test,
     return train_mask_df, val_mask_df, test_mask_df
 
 # Cell
-def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x) -> Tuple[pd.DataFrame, pd.DataFrame, Scaler]:
+def scale_data(Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                mask_df: pd.DataFrame, normalizer_y: str,
+                normalizer_x: str) -> Tuple[pd.DataFrame, pd.DataFrame, Scaler]:
     """
     Scales input data accordingly to given normalizer parameters.
 
@@ -170,9 +173,9 @@ def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x) -> Tuple[pd.Data
         Exogenous time series with columns ['unique_id', 'ds', 'y']
     mask_df: pd.DataFrame
         Mask dataframe.
-    normalizer_y: string
+    normalizer_y: str
         Normalizer for scaling Y_df.
-    normalizer_x: string
+    normalizer_x: str
         Normalizer for scaling X_df.
 
     Returns
@@ -201,8 +204,9 @@ def scale_data(Y_df, X_df, mask_df, normalizer_y, normalizer_x) -> Tuple[pd.Data
     return Y_df, X_df, scaler_y
 
 # Cell
-def create_datasets(mc, S_df, Y_df, X_df, f_cols,
-                    ds_in_test, ds_in_val) -> Tuple[BaseDataset, BaseDataset, BaseDataset, Scaler]:
+def create_datasets(mc: dict, S_df: pd.DataFrame,
+                    Y_df: pd.DataFrame, X_df: pd.DataFrame, f_cols: list,
+                    ds_in_test: int, ds_in_val: int) -> Tuple[BaseDataset, BaseDataset, BaseDataset, Scaler]:
     """
     Creates train, validation and test datasets.
 
@@ -315,7 +319,9 @@ def create_datasets(mc, S_df, Y_df, X_df, f_cols,
     return train_dataset, valid_dataset, test_dataset, scaler_y
 
 # Cell
-def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset) -> Tuple[DataLoader, DataLoader, DataLoader]:
+def instantiate_loaders(mc: dict,
+                        train_dataset: BaseDataset, val_dataset: BaseDataset,
+                        test_dataset: BaseDataset) -> Tuple[DataLoader, DataLoader, DataLoader]:
     """
     Creates train, validation and test loader classes.
 
@@ -383,7 +389,7 @@ def instantiate_loaders(mc, train_dataset, val_dataset, test_dataset) -> Tuple[D
     return train_loader, val_loader, test_loader
 
 # Cell
-def instantiate_nbeats(mc) -> NBEATS:
+def instantiate_nbeats(mc: dict) -> NBEATS:
     """
     Creates nbeats model.
 
@@ -433,7 +439,7 @@ def instantiate_nbeats(mc) -> NBEATS:
     return model
 
 # Cell
-def instantiate_esrnn(mc) -> ESRNN:
+def instantiate_esrnn(mc: dict) -> ESRNN:
     """
     Creates esrnn model.
 
@@ -481,7 +487,7 @@ def instantiate_esrnn(mc) -> ESRNN:
     return model
 
 # Cell
-def instantiate_mqesrnn(mc) -> MQESRNN:
+def instantiate_mqesrnn(mc: dict) -> MQESRNN:
     """
     Creates mqesrnn model.
 
@@ -527,7 +533,7 @@ def instantiate_mqesrnn(mc) -> MQESRNN:
     return model
 
 # Cell
-def instantiate_nhits(mc) -> NHITS:
+def instantiate_nhits(mc: dict) -> NHITS:
     """
     Creates nhits model.
 
@@ -582,7 +588,7 @@ def instantiate_nhits(mc) -> NHITS:
     return model
 
 # Cell
-def instantiate_autoformer(mc) -> Autoformer:
+def instantiate_autoformer(mc: dict) -> Autoformer:
     """
     Creates autoformer model.
 
@@ -632,7 +638,7 @@ def instantiate_autoformer(mc) -> Autoformer:
     return model
 
 # Cell
-def instantiate_model(mc) -> pl.LightningModule:
+def instantiate_model(mc: dict) -> pl.LightningModule:
     """
     Creates one of the models.
     (nbeats, esrnn, mqesrnn, nhits, autoformer)
@@ -655,7 +661,9 @@ def instantiate_model(mc) -> pl.LightningModule:
     return MODEL_DICT[mc['model']](mc)
 
 # Cell
-def predict(mc, model, trainer, loader, scaler_y) -> Tuple[np.array, np.array, np.array, np.array]:
+def predict(mc: dict, model: pl.LightningModule,
+            trainer: pl.Trainer, loader: DataLoader,
+            scaler_y: Scaler) -> Tuple[np.array, np.array, np.array, np.array]:
     """
     Predicts results on dataset using trained model.
 
@@ -699,10 +707,11 @@ def predict(mc, model, trainer, loader, scaler_y) -> Tuple[np.array, np.array, n
     return y_true, y_hat, mask, meta_data
 
 # Cell
-def fit(mc, Y_df, X_df=None, S_df=None,
-        ds_in_val=0, ds_in_test=0,
-        f_cols=[],
-        only_model=True) -> Tuple[pl.LightningModule, pl.Trainer, DataLoader, DataLoader, Scaler] or pl.LightningModule:
+def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFrame =None,
+        ds_in_val: int =0, ds_in_test: int =0,
+        f_cols: list =[],
+        only_model: bool =True) -> Tuple[pl.LightningModule, pl.Trainer,
+                                        DataLoader, DataLoader, Scaler] or pl.LightningModule:
     """
     Traines model on given dataset.
 
@@ -788,7 +797,9 @@ def fit(mc, Y_df, X_df=None, S_df=None,
     return model, trainer, val_loader, test_loader, scaler_y
 
 # Cell
-def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test) -> dict:
+def model_fit_predict(mc: dict,
+                        S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                        f_cols: list, ds_in_val: int, ds_in_test: int) -> dict:
     """
     Traines model on train dataset, then calculates predictions
     on test dataset.
@@ -845,15 +856,15 @@ def model_fit_predict(mc, S_df, Y_df, X_df, f_cols, ds_in_val, ds_in_test) -> di
     return results
 
 # Cell
-def evaluate_model(mc, loss_function_val, loss_functions_test,
-                   S_df, Y_df, X_df, f_cols,
-                   ds_in_val, ds_in_test,
-                   return_forecasts,
-                   save_progress,
-                   trials,
-                   results_file,
-                   step_save_progress=5,
-                   loss_kwargs=None) -> dict:
+def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: dict,
+                   S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                   f_cols: list, ds_in_val: int, ds_in_test: int,
+                   return_forecasts: bool,
+                   save_progress: bool,
+                   trials: Trials,
+                   results_file: str,
+                   step_save_progress: int =5,
+                   loss_kwargs: list =None) -> dict:
     """
     Evaluate model on given dataset.
 
@@ -885,7 +896,7 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
         If true save progres in file.
     trials: hyperopt.Trials
         Results from model evaluation.
-    results_file: Path
+    results_file: str
         File path to save results.
     step_save_progress: int
         Every n-th step is saved in file.
@@ -950,14 +961,15 @@ def evaluate_model(mc, loss_function_val, loss_functions_test,
     return results_output
 
 # Cell
-def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_functions_test,
-                     S_df, Y_df, X_df, f_cols,
-                     ds_in_val, ds_in_test,
-                     return_forecasts,
-                     save_progress,
-                     results_file,
-                     step_save_progress=5,
-                     loss_kwargs=None) -> Trials:
+def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
+                     loss_function_val: callable, loss_functions_test: dict,
+                     S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
+                     f_cols: list, ds_in_val: int, ds_in_test: int,
+                     return_forecasts: bool,
+                     save_progress: bool,
+                     results_file: str,
+                     step_save_progress: int =5,
+                     loss_kwargs: list =None) -> Trials:
     """
     Evaluates multiple models trained on given dataset.
     Models are trained with different hyperparameters.
@@ -993,7 +1005,7 @@ def hyperopt_tunning(space, hyperopt_max_evals, loss_function_val, loss_function
         If true return forecast on test.
     save_progress: bool
         If true save progres in file.
-    results_file: Path
+    results_file: str
         File path to save results.
     step_save_progress: int
         Every n-th step is saved in file.

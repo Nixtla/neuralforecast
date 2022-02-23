@@ -125,13 +125,15 @@ class _Autoformer(nn.Module):
 
 # Cell
 class Autoformer(pl.LightningModule):
-    def __init__(self, seq_len,
-                 label_len, pred_len, output_attention,
-                 enc_in, dec_in, d_model, c_out, embed, freq, dropout,
-                 factor, n_heads, d_ff, moving_avg, activation, e_layers, d_layers,
-                 loss_train, loss_valid, loss_hypar, learning_rate,
-                 lr_decay, weight_decay, lr_decay_step_size,
-                 random_seed):
+    def __init__(self, seq_len: int,
+                 label_len: int, pred_len: int, output_attention: bool,
+                 enc_in: int, dec_in: int, d_model: int, c_out: int,
+                 embed: str, freq: str, dropout: float,
+                 factor: float, n_heads: int, d_ff: int, moving_avg: int,
+                 activation: str, e_layers: int, d_layers: int,
+                 loss_train: str, loss_valid: str, loss_hypar: float,
+                 learning_rate: float, lr_decay: float, weight_decay: float,
+                 lr_decay_step_size: int, random_seed: int):
         super(Autoformer, self).__init__()
         """
         Transformer Autoformer model.
@@ -166,6 +168,8 @@ class Autoformer(pl.LightningModule):
             Number of heads in attention layer.
         d_ff: int
             Number of inputs in encoder layers.
+        moving_avg: int
+            Moving average for encoder and decoder layers.
         activation: str
             Activation function for encoder layer.
         e_layers: int
@@ -338,7 +342,8 @@ class Autoformer(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: Autoformer, Y_df, X_df = None, S_df = None, trainer=None):
+def forecast(self: Autoformer, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+                trainer: pl.Trainer =None) -> pd.DataFrame:
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -353,6 +358,8 @@ def forecast(self: Autoformer, Y_df, X_df = None, S_df = None, trainer=None):
         Dataframe with static data, needs 'unique_id' column.
     bath_size: int
         Batch size for forecasting.
+    trainer: pl.Trainer
+        Trainer object for model training and evaluation.
 
     Returns
     ----------

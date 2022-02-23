@@ -52,7 +52,7 @@ class GEFCom2012:
 class GEFCom2012_L:
 
     @staticmethod
-    def load_Y(directory) -> pd.DataFrame:
+    def load_Y(directory: str) -> pd.DataFrame:
         """Load target time series.
 
         Parameters
@@ -86,7 +86,7 @@ class GEFCom2012_L:
         return Y_df
 
     @staticmethod
-    def load_X(directory) -> pd.DataFrame:
+    def load_X(directory: str) -> pd.DataFrame:
         """Load exogenous time series.
 
         Parameters
@@ -124,7 +124,7 @@ class GEFCom2012_L:
         return X_df
 
     @staticmethod
-    def load_benchmark(directory) -> pd.DataFrame:
+    def load_benchmark(directory: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters
@@ -160,7 +160,7 @@ class GEFCom2012_L:
         return benchmark_df
 
     @staticmethod
-    def load(directory) -> Tuple[pd.DataFrame,
+    def load(directory: str) -> Tuple[pd.DataFrame,
                                  pd.DataFrame,
                                  pd.DataFrame]:
         """Downloads and loads gefcom2012 data.
@@ -197,7 +197,7 @@ class GEFCom2012_W:
     test_end    = '2012-06-28 12:00:00'
 
     @staticmethod
-    def load_benchmark(directory) -> pd.DataFrame:
+    def load_benchmark(directory: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters
@@ -223,7 +223,7 @@ class GEFCom2012_W:
         return benchmark_df
 
     @staticmethod
-    def load_Y(directory) -> pd.DataFrame:
+    def load_Y(directory: str) -> pd.DataFrame:
         """Load target time series.
 
         Parameters
@@ -251,7 +251,7 @@ class GEFCom2012_W:
         return Y_df
 
     @staticmethod
-    def load_X_group(directory, group) -> pd.DataFrame:
+    def load_X_group(directory: str, group: str) -> pd.DataFrame:
         """Load exogenous time series.
 
         Parameters

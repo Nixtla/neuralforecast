@@ -54,7 +54,7 @@ M3Info = Info(groups=('Yearly', 'Quarterly', 'Monthly', 'Other'),
               class_groups=(Yearly, Quarterly, Monthly, Other))
 
 # Internal Cell
-def _return_year(ts) -> int:
+def _return_year(ts: pd.DataFrame) -> int:
     year = ts.iloc[0]
     year = year if year != 0 else 1970
 

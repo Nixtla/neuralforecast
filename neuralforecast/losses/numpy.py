@@ -9,7 +9,7 @@ from typing import Optional, Union
 import numpy as np
 
 # Cell
-def _divide_no_nan(a, b) -> float:
+def _divide_no_nan(a: float, b: float) -> float:
     """
     Auxiliary funtion to handle divide by 0
     """

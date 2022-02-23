@@ -78,7 +78,7 @@ class GEFCom2014:
     source_url = 'https://www.dropbox.com/s/pqenrr2mcvl0hk9/GEFCom2014.zip?dl=1'
 
     @staticmethod
-    def unzip_wind(directory) -> None:
+    def unzip_wind(directory: str) -> None:
         """
         Downloads wind data from GEFCom2014 Dataset.
 
@@ -104,7 +104,7 @@ class GEFCom2014:
         logger.info(f'Successfully decompressed Wind tasks')
 
     @staticmethod
-    def unzip(path) -> None:
+    def unzip(path: str) -> None:
         """
         Unzip compressed file.
 
@@ -233,7 +233,7 @@ GEFCom2014_L_Info = Info(groups=LOAD_TASKS,
 class GEFCom2014_L:
 
     @staticmethod
-    def read_train_df(directory, group) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Load train dataset.
 
         Parameters
@@ -289,13 +289,16 @@ class GEFCom2014_L:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group) -> pd.DataFrame:
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters
         ----------
         directory: str
             Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
 
         Returns
         -------
@@ -489,7 +492,7 @@ GEFCom2014_P_Info = Info(groups=PRICE_TASKS,
 class GEFCom2014_P:
 
     @staticmethod
-    def read_train_df(directory, group) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Load train dataset.
 
         Parameters
@@ -528,7 +531,7 @@ class GEFCom2014_P:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group) -> pd.DataFrame:
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters
@@ -691,7 +694,7 @@ GEFCom2014_W_Info = Info(groups=WIND_TASKS,
 class GEFCom2014_W:
 
     @staticmethod
-    def read_train_df(directory, group) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Load train dataset.
 
         Parameters
@@ -742,7 +745,7 @@ class GEFCom2014_W:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group) -> pd.DataFrame:
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters
@@ -893,7 +896,7 @@ GEFCom2014_S_Info = Info(groups=SOLAR_TASKS,
 class GEFCom2014_S:
 
     @staticmethod
-    def read_train_df(directory, group) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """Load train dataset.
 
         Parameters
@@ -940,7 +943,7 @@ class GEFCom2014_S:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group) -> pd.DataFrame:
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
         """Load benchmark time series.
 
         Parameters

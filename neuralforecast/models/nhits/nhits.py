@@ -6,7 +6,7 @@ __all__ = ['ACTIVATIONS', 'NHITS', 'suggested_space']
 import math
 import random
 from functools import partial
-from typing import Tuple
+from typing import Tuple, List
 from fastcore.foundation import patch
 
 import numpy as np
@@ -465,34 +465,34 @@ class _NHITS(nn.Module):
 # Cell
 class NHITS(pl.LightningModule):
     def __init__(self,
-                 n_time_in,
-                 n_time_out,
-                 n_x,
-                 n_s,
-                 shared_weights,
-                 activation,
-                 initialization,
-                 stack_types,
-                 n_blocks,
-                 n_layers,
-                 n_mlp_units,
-                 n_x_hidden,
-                 n_s_hidden,
-                 n_pool_kernel_size,
-                 n_freq_downsample,
-                 pooling_mode,
-                 interpolation_mode,
-                 batch_normalization,
-                 dropout_prob_theta,
-                 learning_rate,
-                 lr_decay,
-                 lr_decay_step_size,
-                 weight_decay,
-                 loss_train,
-                 loss_hypar,
-                 loss_valid,
-                 frequency,
-                 random_seed):
+                 n_time_in: int,
+                 n_time_out: int,
+                 n_x: int,
+                 n_s: int,
+                 shared_weights: bool,
+                 activation: str,
+                 initialization: str,
+                 stack_types: List[str],
+                 n_blocks: List[int],
+                 n_layers: List[int],
+                 n_mlp_units: List[List[int]],
+                 n_x_hidden: int,
+                 n_s_hidden: int,
+                 n_pool_kernel_size: List[int],
+                 n_freq_downsample: List[int],
+                 pooling_mode: str,
+                 interpolation_mode: str,
+                 batch_normalization: bool,
+                 dropout_prob_theta: float,
+                 learning_rate: float,
+                 lr_decay: float,
+                 lr_decay_step_size: int,
+                 weight_decay: float,
+                 loss_train: str,
+                 loss_hypar: float,
+                 loss_valid: str,
+                 frequency: str,
+                 random_seed: int):
         """
         N-HiTS model.
 
@@ -560,9 +560,9 @@ class NHITS(pl.LightningModule):
             loss_train: str
                 Loss to optimize.
                 An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'QUANTILE', 'QUANTILE2'].
-            loss_hypar:
+            loss_hypar: float
                 Hyperparameter for chosen loss.
-            loss_valid:
+            loss_valid: str
                 Validation loss.
                 An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'QUANTILE'].
             frequency: str
@@ -721,7 +721,8 @@ class NHITS(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: NHITS, Y_df, X_df = None, S_df = None, batch_size=1, trainer=None):
+def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+                batch_size: int =1, trainer: pl.Trainer =None) -> pd.DataFrame:
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -736,6 +737,8 @@ def forecast(self: NHITS, Y_df, X_df = None, S_df = None, batch_size=1, trainer=
         Dataframe with static data, needs 'unique_id' column.
     bath_size: int
         Batch size for forecasting.
+    trainer: pl.Trainer
+        Trainer object for model training and evaluation.
 
     Returns
     ----------
@@ -785,7 +788,8 @@ def forecast(self: NHITS, Y_df, X_df = None, S_df = None, batch_size=1, trainer=
 
 
 # Cell
-def suggested_space(n_time_out, n_series, n_x, n_s, frequency):
+def suggested_space(n_time_out: int, n_series: int, n_x: int, n_s: int,
+                    frequency: str) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 

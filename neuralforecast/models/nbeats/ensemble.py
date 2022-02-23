@@ -27,7 +27,7 @@ from ...data.tsloader import TimeSeriesLoader
 from ...experiments.utils import create_datasets, get_mask_dfs
 
 # Cell
-def _parameter_grid(grid) -> pd.DataFrame:
+def _parameter_grid(grid: dict) -> pd.DataFrame:
     specs_list = list(product(*list(grid.values())))
     model_specs_df = pd.DataFrame(specs_list, columns=list(grid.keys()))
 
@@ -141,7 +141,8 @@ def print_models_list(frequencies: list, table_width: int) -> None:
         print(f'{freq_table_header}{table_width*"="}\n{freq_grid_table}\n{table_width*"="}\n')
 
 # Cell
-def create_loaders_M4(Y_df, S_df, hparams, num_workers) -> Tuple[TimeSeriesLoader, TimeSeriesLoader]:
+def create_loaders_M4(Y_df: pd.DataFrame, S_df: pd.DataFrame, hparams: dict,
+                        num_workers: int) -> Tuple[TimeSeriesLoader, TimeSeriesLoader]:
     """
     Creates loaders for M4 dataset.
 
@@ -205,7 +206,7 @@ def create_loaders_M4(Y_df, S_df, hparams, num_workers) -> Tuple[TimeSeriesLoade
     return train_loader, valid_loader
 
 # Cell
-def NBEATS_instantiate(hparams) -> NBEATS:
+def NBEATS_instantiate(hparams: dict) -> NBEATS:
     """
     Creates NBEATS model with given hyperparameters.
 
@@ -251,7 +252,7 @@ def NBEATS_instantiate(hparams) -> NBEATS:
     return model
 
 # Cell
-def show_tensorboard(logs_path, model_path) -> None:
+def show_tensorboard(logs_path: str, model_path: str) -> None:
     """
     Opens tensorboard.
 

@@ -60,7 +60,7 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Autoformer" class="doc_header"><code>class</code> <code>Autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L127" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Autoformer</code>(<strong><code>seq_len</code></strong>, <strong><code>label_len</code></strong>, <strong><code>pred_len</code></strong>, <strong><code>output_attention</code></strong>, <strong><code>enc_in</code></strong>, <strong><code>dec_in</code></strong>, <strong><code>d_model</code></strong>, <strong><code>c_out</code></strong>, <strong><code>embed</code></strong>, <strong><code>freq</code></strong>, <strong><code>dropout</code></strong>, <strong><code>factor</code></strong>, <strong><code>n_heads</code></strong>, <strong><code>d_ff</code></strong>, <strong><code>moving_avg</code></strong>, <strong><code>activation</code></strong>, <strong><code>e_layers</code></strong>, <strong><code>d_layers</code></strong>, <strong><code>loss_train</code></strong>, <strong><code>loss_valid</code></strong>, <strong><code>loss_hypar</code></strong>, <strong><code>learning_rate</code></strong>, <strong><code>lr_decay</code></strong>, <strong><code>weight_decay</code></strong>, <strong><code>lr_decay_step_size</code></strong>, <strong><code>random_seed</code></strong>) :: <code>LightningModule</code></p>
+<h2 id="Autoformer" class="doc_header"><code>class</code> <code>Autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L127" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Autoformer</code>(<strong><code>seq_len</code></strong>:<code>int</code>, <strong><code>label_len</code></strong>:<code>int</code>, <strong><code>pred_len</code></strong>:<code>int</code>, <strong><code>output_attention</code></strong>:<code>bool</code>, <strong><code>enc_in</code></strong>:<code>int</code>, <strong><code>dec_in</code></strong>:<code>int</code>, <strong><code>d_model</code></strong>:<code>int</code>, <strong><code>c_out</code></strong>:<code>int</code>, <strong><code>embed</code></strong>:<code>str</code>, <strong><code>freq</code></strong>:<code>str</code>, <strong><code>dropout</code></strong>:<code>float</code>, <strong><code>factor</code></strong>:<code>float</code>, <strong><code>n_heads</code></strong>:<code>int</code>, <strong><code>d_ff</code></strong>:<code>int</code>, <strong><code>moving_avg</code></strong>:<code>int</code>, <strong><code>activation</code></strong>:<code>str</code>, <strong><code>e_layers</code></strong>:<code>int</code>, <strong><code>d_layers</code></strong>:<code>int</code>, <strong><code>loss_train</code></strong>:<code>str</code>, <strong><code>loss_valid</code></strong>:<code>str</code>, <strong><code>loss_hypar</code></strong>:<code>float</code>, <strong><code>learning_rate</code></strong>:<code>float</code>, <strong><code>lr_decay</code></strong>:<code>float</code>, <strong><code>weight_decay</code></strong>:<code>float</code>, <strong><code>lr_decay_step_size</code></strong>:<code>int</code>, <strong><code>random_seed</code></strong>:<code>int</code>) :: <code>LightningModule</code></p>
 </blockquote>
 <p>Hooks to be used in LightningModule.</p>
 
@@ -92,7 +92,7 @@ nb_path: "nbs/models_transformer__autoformer.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Autoformer.forecast" class="doc_header"><code>Autoformer.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L340" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Autoformer.forecast</code>(<strong><code>Y_df</code></strong>, <strong><code>X_df</code></strong>=<em><code>None</code></em>, <strong><code>S_df</code></strong>=<em><code>None</code></em>, <strong><code>trainer</code></strong>=<em><code>None</code></em>)</p>
+<h4 id="Autoformer.forecast" class="doc_header"><code>Autoformer.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/transformer/autoformer.py#L344" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Autoformer.forecast</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -103,7 +103,9 @@ X_df: pd.DataFrame
 S_df: pd.DataFrame
     Dataframe with static data, needs 'unique_id' column.
 bath_size: int
-    Batch size for forecasting.</p>
+    Batch size for forecasting.
+trainer: pl.Trainer
+    Trainer object for model training and evaluation.</p>
 <h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
     Dataframe with forecasts.</p>
 
