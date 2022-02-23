@@ -6,7 +6,6 @@ __all__ = ['BaseDataset', 'get_default_mask_df', 'TimeSeriesDataset', 'IterateWi
 import gc
 import logging
 from typing import Dict, List, Optional, Tuple, Union
-from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd

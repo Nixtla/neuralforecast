@@ -3,7 +3,6 @@
 __all__ = ['mae', 'mse', 'rmse', 'mape', 'smape', 'mase', 'rmae', 'quantile_loss', 'mqloss']
 
 # Cell
-from math import sqrt
 from typing import Optional, Union
 
 import numpy as np

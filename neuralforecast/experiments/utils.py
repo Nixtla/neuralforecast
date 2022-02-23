@@ -17,7 +17,6 @@ import os
 import pickle
 # Limit number of threads in numpy and others to avoid throttling
 os.environ.update(ENV_VARS)
-import random
 import time
 from functools import partial
 from typing import Tuple

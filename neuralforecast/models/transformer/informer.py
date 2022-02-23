@@ -3,7 +3,6 @@
 __all__ = ['Informer']
 
 # Cell
-import math
 import random
 from fastcore.foundation import patch
 
@@ -11,14 +10,12 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 from torch import optim
 
 from ..components.transformer import Decoder, DecoderLayer, Encoder, EncoderLayer, ConvLayer
 from ..components.selfattention import (
-    TriangularCausalMask, ProbMask,
-    FullAttention, ProbAttention, AttentionLayer
+    ProbAttention, AttentionLayer
 )
 from ..components.embed import DataEmbedding
 from ...losses.utils import LossFunction

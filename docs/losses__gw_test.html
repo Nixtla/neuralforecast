@@ -60,7 +60,7 @@ nb_path: "nbs/losses__gw_test.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="GW_CPA_test" class="doc_header"><code>GW_CPA_test</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L64" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>GW_CPA_test</code>(<strong><code>loss1</code></strong>:<code>ndarray</code>, <strong><code>loss2</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>conditional</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>True</code></em>)</p>
+<h4 id="GW_CPA_test" class="doc_header"><code>GW_CPA_test</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L63" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>GW_CPA_test</code>(<strong><code>loss1</code></strong>:<code>ndarray</code>, <strong><code>loss2</code></strong>:<code>ndarray</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>conditional</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>True</code></em>)</p>
 </blockquote>
 <p>The one-sided Giacomini-White Conditional Predictive Ability Test (GW),
 allows to assess which model provides better predictions.</p>
@@ -170,7 +170,7 @@ URL: https://www.sas.upenn.edu/~fdiebold/papers/paper68/pa.dm.pdf.</code></pre>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_GW_test_pvals" class="doc_header"><code>get_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L185" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_GW_test_pvals</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>horizon</code></strong>:<code>int</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>conditional</code></strong>:<code>bool</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="get_GW_test_pvals" class="doc_header"><code>get_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L184" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_GW_test_pvals</code>(<strong><code>y</code></strong>:<code>ndarray</code>, <strong><code>y_hat</code></strong>:<code>ndarray</code>, <strong><code>horizon</code></strong>:<code>int</code>, <strong><code>tau</code></strong>:<code>int</code>, <strong><code>conditional</code></strong>:<code>bool</code>, <strong><code>alpha</code></strong>:<code>float</code>=<em><code>0.05</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Function to calculate model-pair-wise GW-Test p-values.</p>
 
@@ -226,7 +226,7 @@ p_vals: (n_models, n_models)
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="plot_GW_test_pvals" class="doc_header"><code>plot_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L282" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>plot_GW_test_pvals</code>(<strong><code>pvals</code></strong>:<code>ndarray</code>, <strong><code>labels</code></strong>:<code>List</code>[<code>str</code>], <strong><code>title</code></strong>:<code>str</code>)</p>
+<h4 id="plot_GW_test_pvals" class="doc_header"><code>plot_GW_test_pvals</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/gw_test.py#L281" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>plot_GW_test_pvals</code>(<strong><code>pvals</code></strong>:<code>ndarray</code>, <strong><code>labels</code></strong>:<code>List</code>[<code>str</code>], <strong><code>title</code></strong>:<code>str</code>)</p>
 </blockquote>
 <p>Function to plot model-pair-wise GW-Test p-values.</p>
 

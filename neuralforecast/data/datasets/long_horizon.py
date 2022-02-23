@@ -6,7 +6,7 @@ __all__ = ['ETTh1', 'ETTh2', 'ETTm1', 'ETTm2', 'ECL', 'Exchange', 'TrafficL', 'I
 # Cell
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd

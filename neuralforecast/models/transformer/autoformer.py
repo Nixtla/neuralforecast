@@ -3,7 +3,6 @@
 __all__ = ['Autoformer']
 
 # Cell
-import math
 import random
 from fastcore.foundation import patch
 
@@ -12,11 +11,10 @@ import pandas as pd
 import torch
 
 import torch.nn as nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 from torch import optim
 
-from ..components.embed import DataEmbedding, DataEmbedding_wo_pos
+from ..components.embed import DataEmbedding_wo_pos
 from ..components.autocorrelation import (
     AutoCorrelation, AutoCorrelationLayer
 )

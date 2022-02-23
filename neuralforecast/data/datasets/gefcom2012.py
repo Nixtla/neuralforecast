@@ -4,25 +4,18 @@ __all__ = ['logger', 'GEFCom2012', 'GEFCom2012_L', 'GEFCom2012_W']
 
 # Cell
 import os
-import re
 import logging
-import zipfile
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+from typing import Tuple
 
-import numpy as np
 import pandas as pd
 
 from .utils import (
     download_file,
-    Info,
-    TimeSeriesDataclass,
     create_calendar_variables,
     create_us_holiday_distance_variables,
 )
-from ..tsdataset import TimeSeriesDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

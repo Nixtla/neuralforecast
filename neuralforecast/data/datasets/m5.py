@@ -5,12 +5,12 @@ __all__ = ['M5', 'M5Evaluation']
 # Cell
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from .utils import download_file, Info
+from .utils import download_file
 
 # Cell
 @dataclass

@@ -4,13 +4,11 @@ __all__ = ['NP', 'PJM', 'BE', 'FR', 'DE', 'EPFInfo', 'EPF', 'epf_naive_forecast'
 
 # Cell
 import os
-from datetime import timedelta
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 
 from .utils import download_file, Info
 

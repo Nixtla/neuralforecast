@@ -3,7 +3,6 @@
 __all__ = ['FONTSIZE', 'GW_CPA_test', 'get_GW_test_pvals', 'plot_GW_test_pvals']
 
 # Cell
-import os
 import numpy as np
 from scipy.stats.distributions import chi2
 
@@ -17,7 +16,7 @@ from matplotlib import rcParams
 plt.rcParams['font.family'] = 'serif'
 
 from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap
 
 FONTSIZE = 17
 

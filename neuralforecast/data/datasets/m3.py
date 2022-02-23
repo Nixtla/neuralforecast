@@ -5,9 +5,8 @@ __all__ = ['Yearly', 'Quarterly', 'Monthly', 'Other', 'M3Info', 'M3']
 # Cell
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
 from .utils import download_file, Info, TimeSeriesDataclass

@@ -10,11 +10,10 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 from torch import optim
 
-from ..components.transformer import Decoder, DecoderLayer, Encoder, EncoderLayer, ConvLayer
+from ..components.transformer import Decoder, DecoderLayer, Encoder, EncoderLayer
 from ..components.selfattention import FullAttention, AttentionLayer
 from ..components.embed import DataEmbedding
 from ...losses.utils import LossFunction
