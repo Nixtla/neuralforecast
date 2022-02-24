@@ -58,7 +58,7 @@ class TimeSeriesLoader(DataLoader):
 
 # Cell
 @patch
-def _check_batch_size(self: TimeSeriesLoader, batch: t.Tensor):
+def _check_batch_size(self: TimeSeriesLoader, batch: t.Tensor) -> t.Tensor:
     complete_batch = batch
     if self.w_idxs is not None:
         complete_batch = batch[self.w_idxs]

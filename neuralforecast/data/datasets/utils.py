@@ -6,18 +6,15 @@ __all__ = ['logger', 'download_file', 'Info', 'TimeSeriesDataclass', 'get_holida
 # Cell
 import logging
 import requests
-import subprocess
 import zipfile
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import pandas as pd
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

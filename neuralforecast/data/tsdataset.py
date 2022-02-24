@@ -6,7 +6,6 @@ __all__ = ['BaseDataset', 'get_default_mask_df', 'TimeSeriesDataset', 'IterateWi
 import gc
 import logging
 from typing import Dict, List, Optional, Tuple, Union
-from typing_extensions import Literal
 
 import numpy as np
 import pandas as pd
@@ -140,7 +139,7 @@ class BaseDataset(Dataset):
 
 # Cell
 @patch
-def _define_sampleable_ts_idxs(self: BaseDataset):
+def _define_sampleable_ts_idxs(self: BaseDataset) -> None:
     self.n_sampleable_ts = len(self.ts_tensor)
     self.sampleable_ts_idxs = self.ts_idxs.copy()
 

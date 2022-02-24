@@ -576,9 +576,9 @@ class NBEATS(pl.LightningModule):
         loss_train: str
             Loss to optimize.
             An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'QUANTILE', 'QUANTILE2'].
-        loss_hypar:
+        loss_hypar: float
             Hyperparameter for chosen loss.
-        loss_valid:
+        loss_valid: str
             Validation loss.
             An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'QUANTILE'].
         frequency: str
@@ -731,7 +731,8 @@ class NBEATS(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1, trainer=None):
+def forecast(self: NBEATS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+                batch_size: int=1, trainer: pl.Trainer =None) -> pd.DataFrame:
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -746,6 +747,9 @@ def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1, trainer
         Dataframe with static data, needs 'unique_id' column.
     bath_size: int
         Batch size for forecasting.
+    trainer: pl.Trainer
+        Trainer object for model training and evaluation.
+
 
     Returns
     ----------
@@ -795,7 +799,8 @@ def forecast(self: NBEATS, Y_df, X_df = None, S_df = None, batch_size=1, trainer
 
 
 # Cell
-def suggested_space(n_time_out, n_series, n_x, n_s, frequency):
+def suggested_space(n_time_out: int, n_series: int, n_x: int, n_s: int,
+                    frequency: str) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 

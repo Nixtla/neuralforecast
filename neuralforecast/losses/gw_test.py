@@ -3,11 +3,10 @@
 __all__ = ['FONTSIZE', 'GW_CPA_test', 'get_GW_test_pvals', 'plot_GW_test_pvals']
 
 # Cell
-import os
 import numpy as np
 from scipy.stats.distributions import chi2
 
-from typing import List
+from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -17,12 +16,12 @@ from matplotlib import rcParams
 plt.rcParams['font.family'] = 'serif'
 
 from matplotlib import cm
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+from matplotlib.colors import ListedColormap
 
 FONTSIZE = 17
 
 # Cell
-def _Newey_West(Z, n_lags):
+def _Newey_West(Z: np.ndarray, n_lags: int) -> np.ndarray:
     """
 
     Estimator of the Newey-West Heteroskedasticity and
@@ -66,7 +65,7 @@ def GW_CPA_test(loss1: np.ndarray,
                 tau: int,
                 alpha: float=0.05,
                 conditional: bool=False,
-                verbose: bool=True):
+                verbose: bool=True) -> Tuple[np.ndarray, np.float64, np.ndarray]:
     """
 
     The one-sided Giacomini-White Conditional Predictive Ability Test (GW),
@@ -101,11 +100,16 @@ def GW_CPA_test(loss1: np.ndarray,
 
         Parameters
         ----------
-        loss1: numpy array. losses of model 1
-        loss2: numpy array. losses of model 2
-        tau: int. the past information treated as 'available' for the test.
-        unconditional: boolean.
-            True if unconditional (DM test), False if conditional (GW test).
+        loss1:
+            numpy array. losses of model 1
+        loss2:
+            numpy array. losses of model 2
+        tau: int
+            the past information treated as 'available' for the test.
+        alpha: float
+            level of significance for the test.
+        conditional: boolean.
+            True if conditional (DM test), False if unconditional (GW test).
         verbose: boolean.
             True if prints of test are needed.
 
@@ -182,8 +186,8 @@ def get_GW_test_pvals(y: np.ndarray,
                   horizon: int,
                   tau: int,
                   conditional: bool,
-                  alpha: float=0.05,
-                  verbose: bool=False):
+                  alpha: float =0.05,
+                  verbose: bool=False) -> np.ndarray:
     """
 
     Function to calculate model-pair-wise GW-Test p-values.
@@ -194,18 +198,16 @@ def get_GW_test_pvals(y: np.ndarray,
             flat array with actual test values
         y_hat: numpy array
             matrix with predicted values
-        model_names: string list
-            with the names of the models.
         horizon: int
             the multi horizon for which the predictions were created,
             the test is performed against over the mean differences
             in said multi horizon losses.
         tau: int
             the past information treated as 'available' for the test.
+        conditional: boolean,
+            True if conditional (DM test), False if unconditional (GW test).
         alpha: float
             level of significance for the test.
-        unconditional: boolean,
-            True if unconditional (DM test), False if conditional (GW test).
         verbose: boolean.
             True for partial test results.
 
@@ -243,7 +245,7 @@ def get_GW_test_pvals(y: np.ndarray,
     return pvals
 
 # Cell
-def _get_nbeatsx_cmap():
+def _get_nbeatsx_cmap() -> ListedColormap:
     cmap = cm.get_cmap('pink', 512)
     yellows = cmap(np.linspace(0.5, 0.95, 256))
 
@@ -259,7 +261,7 @@ def _get_nbeatsx_cmap():
     newcmap = ListedColormap(newcolors)
     return newcmap
 
-def _get_epftoolbox_cmap():
+def _get_epftoolbox_cmap() -> ListedColormap:
     cmap = cm.get_cmap('YlGn_r', 512)
     yellows = cmap(np.linspace(0.6, 1.0, 256))
 
@@ -276,7 +278,7 @@ def _get_epftoolbox_cmap():
     newcmap = ListedColormap(newcolors)
     return newcmap
 
-def plot_GW_test_pvals(pvals, labels, title):
+def plot_GW_test_pvals(pvals: np.ndarray, labels: List[str], title: str) -> None:
     """
 
     Function to plot model-pair-wise GW-Test p-values.
@@ -289,11 +291,6 @@ def plot_GW_test_pvals(pvals, labels, title):
             list of model names
         title: string
             title of the plot
-
-        Returns
-        -------
-        p_vals plot
-
     """
 
     assert len(pvals)==len(labels), 'Wrong pvals and labels dimensions.'
