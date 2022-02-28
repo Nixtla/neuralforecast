@@ -4,13 +4,11 @@ __all__ = ['NP', 'PJM', 'BE', 'FR', 'DE', 'EPFInfo', 'EPF', 'epf_naive_forecast'
 
 # Cell
 import os
-from datetime import timedelta
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 
 from .utils import download_file, Info
 
@@ -64,6 +62,13 @@ class EPF:
         group: str
             Group name.
             Allowed groups: 'NP', 'PJM', 'BE', 'FR', 'DE'.
+
+        Returns
+        -------
+        Y: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
         """
         EPF.download(directory)
         class_group = EPFInfo.get_group(group)
@@ -107,6 +112,16 @@ class EPF:
         groups: List[str]
             Group names.
             Allowed groups: 'NP', 'PJM', 'BE', 'FR', 'DE'.
+
+        Returns
+        -------
+        Y: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        S: pd.DataFrame
+            Static exogenous variables with columns ['unique_id', 'ds'].
+            and static variables.
         """
         Y = []
         X = []
@@ -126,7 +141,14 @@ class EPF:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Downloads EPF Dataset."""
+        """
+        Downloads EPF Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/epf/datasets'
         if not os.path.exists(path):
             for group in EPFInfo.groups:
@@ -134,7 +156,7 @@ class EPF:
 
 # Cell
 # TODO: extend this to group_by unique_id application
-def epf_naive_forecast(Y_df):
+def epf_naive_forecast(Y_df: pd.DataFrame) -> pd.DataFrame:
     """Function to build the naive forecast for electricity price forecasting
 
     The function is used to compute the accuracy metrics MASE and RMAE, the function

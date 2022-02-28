@@ -746,7 +746,8 @@ class ESRNN(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: ESRNN, Y_df, X_df = None, S_df = None, batch_size=1, trainer=None):
+def forecast(self: ESRNN, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+             batch_size: int =1, trainer: pl.Trainer =None) -> pd.DataFrame:
     """
     Method for forecasting self.output_size periods after last timestamp of Y_df.
 
@@ -761,6 +762,8 @@ def forecast(self: ESRNN, Y_df, X_df = None, S_df = None, batch_size=1, trainer=
         Dataframe with static data, needs 'unique_id' column.
     bath_size: int
         Batch size for forecasting.
+    trainer: pl.Trainer
+        Trainer object for model training and evaluation.
 
     Returns
     ----------

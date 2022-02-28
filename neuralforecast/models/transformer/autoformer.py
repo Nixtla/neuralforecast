@@ -3,7 +3,6 @@
 __all__ = ['Autoformer']
 
 # Cell
-import math
 import random
 from fastcore.foundation import patch
 
@@ -12,11 +11,10 @@ import pandas as pd
 import torch
 
 import torch.nn as nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
 from torch import optim
 
-from ..components.embed import DataEmbedding, DataEmbedding_wo_pos
+from ..components.embed import DataEmbedding_wo_pos
 from ..components.autocorrelation import (
     AutoCorrelation, AutoCorrelationLayer
 )
@@ -125,14 +123,77 @@ class _Autoformer(nn.Module):
 
 # Cell
 class Autoformer(pl.LightningModule):
-    def __init__(self, seq_len,
-                 label_len, pred_len, output_attention,
-                 enc_in, dec_in, d_model, c_out, embed, freq, dropout,
-                 factor, n_heads, d_ff, moving_avg, activation, e_layers, d_layers,
-                 loss_train, loss_valid, loss_hypar, learning_rate,
-                 lr_decay, weight_decay, lr_decay_step_size,
-                 random_seed):
+    def __init__(self, seq_len: int,
+                 label_len: int, pred_len: int, output_attention: bool,
+                 enc_in: int, dec_in: int, d_model: int, c_out: int,
+                 embed: str, freq: str, dropout: float,
+                 factor: float, n_heads: int, d_ff: int, moving_avg: int,
+                 activation: str, e_layers: int, d_layers: int,
+                 loss_train: str, loss_valid: str, loss_hypar: float,
+                 learning_rate: float, lr_decay: float, weight_decay: float,
+                 lr_decay_step_size: int, random_seed: int):
         super(Autoformer, self).__init__()
+        """
+        Transformer Autoformer model.
+
+        Parameters
+        ----------
+        seq_len: int
+            Input sequence size.
+        label_len: int
+            Label sequence size.
+        pred_len: int
+            Prediction sequence size.
+        output_attention: bool
+            If true use output attention for Transformer model.
+        enc_in: int
+            Number of encoders in data embedding layers.
+        dec_in: int
+            Number of decoders in data embedding layers.
+        d_model: int
+            Number of nodes for embedding layers.
+        c_out: int
+            Number of output nodes in projection layer.
+        embed: str
+            Type of embedding layers.
+        freq: str
+            Frequency for embedding layers.
+        dropout: float
+            Float between (0, 1). Dropout for Transformer.
+        factor: float
+            Factor for attention layer.
+        n_heads: int
+            Number of heads in attention layer.
+        d_ff: int
+            Number of inputs in encoder layers.
+        moving_avg: int
+            Moving average for encoder and decoder layers.
+        activation: str
+            Activation function for encoder layer.
+        e_layers: int
+            Number of encoder layers.
+        d_layers: int
+            Number of decoder layers.
+        loss_train: str
+            Loss to optimize.
+            An item from ['MAPE', 'MASE', 'SMAPE', 'MSE', 'MAE', 'QUANTILE', 'QUANTILE2'].
+        loss_valid: str
+            Validation loss.
+            An item from ['MAPE', 'MASE', 'SMAPE', 'RMSE', 'MAE', 'QUANTILE'].
+        loss_hypar: float
+            Hyperparameter for chosen loss.
+        learning_rate: float
+            Learning rate between (0, 1).
+        lr_decay: float
+            Decreasing multiplier for the learning rate.
+        weight_decay: float
+            L2 penalty for optimizer.
+        lr_decay_step_size: int
+            Steps between each learning rate decay.
+        random_seed: int
+            random_seed for pseudo random pytorch initializer and
+            numpy random generator.
+        """
 
         #------------------------ Model Attributes ------------------------#
         # Architecture parameters
@@ -279,7 +340,8 @@ class Autoformer(pl.LightningModule):
 
 # Cell
 @patch
-def forecast(self: Autoformer, Y_df, X_df = None, S_df = None, trainer=None):
+def forecast(self: Autoformer, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+                trainer: pl.Trainer =None) -> pd.DataFrame:
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -294,6 +356,8 @@ def forecast(self: Autoformer, Y_df, X_df = None, S_df = None, trainer=None):
         Dataframe with static data, needs 'unique_id' column.
     bath_size: int
         Batch size for forecasting.
+    trainer: pl.Trainer
+        Trainer object for model training and evaluation.
 
     Returns
     ----------

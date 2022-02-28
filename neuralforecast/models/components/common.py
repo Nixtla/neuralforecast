@@ -7,7 +7,6 @@ __all__ = ['Chomp1d', 'CausalConv1d', 'ACTIVATIONS', 'TimeDistributed2d', 'TimeD
 import torch as t
 import torch.nn as nn
 from torch.nn.utils import weight_norm
-from torch.autograd.function import Function
 
 # Cell
 class Chomp1d(nn.Module):

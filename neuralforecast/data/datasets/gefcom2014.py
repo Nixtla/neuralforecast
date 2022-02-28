@@ -20,8 +20,7 @@ import logging
 import zipfile
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
-from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -29,11 +28,9 @@ import pandas as pd
 from .utils import (
     download_file,
     Info,
-    TimeSeriesDataclass,
     create_calendar_variables,
     create_us_holiday_distance_variables,
 )
-from ..tsdataset import TimeSeriesDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -78,7 +75,16 @@ class GEFCom2014:
     source_url = 'https://www.dropbox.com/s/pqenrr2mcvl0hk9/GEFCom2014.zip?dl=1'
 
     @staticmethod
-    def unzip_wind(directory):
+    def unzip_wind(directory: str) -> None:
+        """
+        Downloads wind data from GEFCom2014 Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path where dataset is downloaded.
+        """
+
         path = f'{directory}/gefcom2014'
         windpath = f'{path}/Wind'
         for task_number in range(1, 16):
@@ -95,7 +101,16 @@ class GEFCom2014:
         logger.info(f'Successfully decompressed Wind tasks')
 
     @staticmethod
-    def unzip(path):
+    def unzip(path: str) -> None:
+        """
+        Unzip compressed file.
+
+        Parameters
+        ----------
+        path: str
+            Path to file.
+        """
+
         # Unzip Load, Price, Solar and Wind data
         for group in GEFCom2014Info.groups:
             filepath = f'{path}/GEFCom2014 Data/GEFCom2014-{group}.zip'
@@ -105,7 +120,14 @@ class GEFCom2014:
 
     @staticmethod
     def download(directory: str) -> None:
-        """Downloads GEFCom2014 Dataset."""
+        """
+        Downloads GEFCom2014 Dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory path to download dataset.
+        """
         path = f'{directory}/gefcom2014'
         if not os.path.exists(path):
             download_file(directory=path,
@@ -208,7 +230,25 @@ GEFCom2014_L_Info = Info(groups=LOAD_TASKS,
 class GEFCom2014_L:
 
     @staticmethod
-    def read_train_df(directory, group):
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Load train dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         group_info = GEFCom2014_L_Info.get_group(group)
@@ -246,7 +286,23 @@ class GEFCom2014_L:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group):
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         assert group!='Task 16', 'No available benchmark'
 
         # Meta data
@@ -287,6 +343,15 @@ class GEFCom2014_L:
         group: str
             Group name.
             Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2014 dataset.
         """
         path = f'{directory}/gefcom2014'
         GEFCom2014.download(directory)
@@ -303,6 +368,18 @@ class GEFCom2014_E:
         """
         Downloads and loads GEFCom2014-E data.
         This dataset is an extension to the GEFCom2014-L data
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
         """
         path = f'{directory}/gefcom2014'
         GEFCom2014.download(directory)
@@ -412,7 +489,25 @@ GEFCom2014_P_Info = Info(groups=PRICE_TASKS,
 class GEFCom2014_P:
 
     @staticmethod
-    def read_train_df(directory, group):
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Load train dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         group_info = GEFCom2014_P_Info.get_group(group)
@@ -433,7 +528,23 @@ class GEFCom2014_P:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group):
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         group_info = GEFCom2014_P_Info.get_group(group)
@@ -475,6 +586,15 @@ class GEFCom2014_P:
         group: str
             Group name.
             Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2014 dataset.
         """
         GEFCom2014.download(directory)
 
@@ -571,7 +691,25 @@ GEFCom2014_W_Info = Info(groups=WIND_TASKS,
 class GEFCom2014_W:
 
     @staticmethod
-    def read_train_df(directory, group):
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Load train dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         task_number = int(re.findall("\d+", group)[0])
@@ -604,7 +742,23 @@ class GEFCom2014_W:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group):
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         task_number = int(re.findall("\d+", group)[0])
@@ -622,6 +776,26 @@ class GEFCom2014_W:
              group: str) -> Tuple[pd.DataFrame,
                                   pd.DataFrame,
                                   pd.DataFrame]:
+        """
+        Downloads and loads GEFCom2014-W task data.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2014 dataset.
+        """
 
         GEFCom2014.download(directory)
         GEFCom2014.unzip_wind(directory)
@@ -719,7 +893,25 @@ GEFCom2014_S_Info = Info(groups=SOLAR_TASKS,
 class GEFCom2014_S:
 
     @staticmethod
-    def read_train_df(directory, group):
+    def read_train_df(directory: str, group: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Load train dataset.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        """
+
         # Meta data
         path = f'{directory}/gefcom2014'
         task_number = int(re.findall("\d+", group)[0])
@@ -748,7 +940,23 @@ class GEFCom2014_S:
         return Y_df, X_df
 
     @staticmethod
-    def read_benchmark_df(directory, group):
+    def read_benchmark_df(directory: str, group: str) -> pd.DataFrame:
+        """Load benchmark time series.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2012 dataset.
+        """
+
         # Meta data
         group_info = GEFCom2014_S_Info.get_group(group)
 
@@ -776,6 +984,26 @@ class GEFCom2014_S:
              group: str) -> Tuple[pd.DataFrame,
                                   pd.DataFrame,
                                   pd.DataFrame]:
+        """
+        Downloads and loads GEFCom2014-W task data.
+
+        Parameters
+        ----------
+        directory: str
+            Directory where data will be downloaded.
+        group: str
+            Group name.
+            Allowed groups: 'Task1', 'Task2', ..., 'Task14', 'Task15'.
+
+        Returns
+        -------
+        Y_df: pd.DataFrame
+            Target time series with columns ['unique_id', 'ds', 'y'].
+        X_df: pd.DataFrame
+            Exogenous time series with columns ['unique_id', 'ds', 'y'].
+        benchmark_df: pd.DataFrame
+            Benchmark time series form gefcom2014 dataset.
+        """
 
         GEFCom2014.download(directory)
 
