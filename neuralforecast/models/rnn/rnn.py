@@ -4,6 +4,7 @@ __all__ = ['RNN']
 
 # Cell
 import numpy as np
+import random
 import torch as t
 import torch.nn as nn
 
@@ -99,31 +100,26 @@ class RNN(pl.LightningModule):
                  weight_decay: float = 0., noise_std: float = 1e-3,
                  loss_train: str = 'MAE', loss_valid: str = 'MAE',
                  loss_hypar: float = 0.,
-                 frequency: str = 'D'):
+                 frequency: str = 'D',
+                 random_seed: int = 1):
         super(RNN, self).__init__()
-        """ Recurrent Neural Network
 
-        XXX
+        """ Recurrent Neural Network
 
         Parameters
         ----------
-        n_series: int
-            Number of time series.
-        n_x: int
-            Number of temporal exogenous variables.
-        n_s: int
-            Number of static variables.
         input_size: int
             input size of the recurrent neural network, usually a
             multiple of seasonality
         output_size: int
             output_size or forecast horizon of the recurrent neural
             network, usually multiple of seasonality
+        n_x: int
+            Number of temporal exogenous variables.
+        n_s: int
+            Number of static variables.
         sample_freq: int
             Step size between windows.
-        es_component: str
-            Exponential Smoothing component.
-            Default multiplicative.
         cell_type: str
             Type of RNN cell, available GRU, LSTM, RNN, ResidualLSTM.
         state_hsize: int
@@ -134,56 +130,36 @@ class RNN(pl.LightningModule):
         add_nl_layer: bool
             whether to insert a tanh() layer between the RNN stack and the
             linear adaptor (output) layers
-        seasonality: int list
-            list of seasonalities of the time series
-            Hourly [24, 168], Daily [7], Weekly [52], Monthly [12],
-            Quarterly [4], Yearly [].
         learning_rate: float
             size of the stochastic gradient descent steps
         lr_scheduler_step_size: int
             this step_size is the period for each learning rate decay
         lr_decay: float
             Learning rate decay.
-        per_series_lr_multip: float
-            multiplier for per-series parameters smoothing and initial
-            seasonalities learning rate (default 1.0)
         gradient_eps: float
             term added to the Adam optimizer denominator to improve
             numerical stability (default: 1e-8)
         gradient_clipping_threshold: float
             max norm of gradient vector, with all parameters treated
             as a single vector
-        rnn_weight_decay: float
+        weight_decay: float
             parameter to control classic L2/Tikhonov regularization
             of the rnn parameters
         noise_std: float
             standard deviation of white noise added to input during
             fit to avoid the model from memorizing the train data
-        level_variability_penalty: float
-            this parameter controls the strength of the penalization
-            to the wigglines of the level vector, induces smoothness
-            in the output
-        testing_percentile: int
-            This value is only for diagnostic evaluation.
-            In case of percentile predictions this parameter controls
-            for the value predicted, when forecasting point value,
-            the forecast is the median, so percentile=50.
-        training_percentile: float
-            To reduce the model's tendency to over estimate, the
-            training_percentile can be set to fit a smaller value
-            through the Pinball Loss.
-        loss: str
+        loss_train: str
             Loss used to train.
-        val_loss: str
+        loss_valid: str
             Loss used to validate.
+        loss_hypar: float
+            Hyperparameter for chosen loss.
         frequency: str
             Time series frequency.
+        random_seed: int
+            random_seed for pseudo random pytorch initializer and
+            numpy random generator.
 
-        Notes
-        -----
-        **References:**
-        `M4 Competition Conclusions
-        <https://rpubs.com/fotpetr/m4competition>`__
         """
 
         #------------------------ Model Attributes ------------------------#
@@ -206,6 +182,7 @@ class RNN(pl.LightningModule):
         self.gradient_clipping_threshold = gradient_clipping_threshold
         self.weight_decay = weight_decay
         self.noise_std = noise_std
+        self.random_seed = random_seed
 
         # Loss functions
         self.loss_train = loss_train
@@ -231,6 +208,11 @@ class RNN(pl.LightningModule):
                           add_nl_layer=self.add_nl_layer)
 
         self.automatic_optimization = False
+
+    def on_fit_start(self):
+        t.manual_seed(self.random_seed)
+        np.random.seed(self.random_seed)
+        random.seed(self.random_seed)
 
     def parse_batch(self, batch):
         S = batch['S']
