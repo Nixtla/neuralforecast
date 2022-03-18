@@ -206,7 +206,7 @@ def scale_data(Y_df: pd.DataFrame, X_df: pd.DataFrame,
 # Cell
 def create_datasets(mc: dict, S_df: pd.DataFrame,
                     Y_df: pd.DataFrame, X_df: pd.DataFrame, f_cols: list,
-                    ds_in_test: int, ds_in_val: int) -> Tuple[BaseDataset, BaseDataset, BaseDataset, Scaler]:
+                    ds_in_test: int, ds_in_val: int, verbose: bool=False) -> Tuple[BaseDataset, BaseDataset, BaseDataset, Scaler]:
     """
     Creates train, validation and test datasets.
 
@@ -258,7 +258,7 @@ def create_datasets(mc: dict, S_df: pd.DataFrame,
                                        output_size=int(mc['n_time_out']),
                                        sample_freq=int(mc['idx_to_sample_freq']),
                                        complete_windows=mc['complete_windows'],
-                                       verbose=True)
+                                       verbose=verbose)
 
         valid_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                        mask_df=valid_mask_df, f_cols=f_cols,
@@ -266,7 +266,7 @@ def create_datasets(mc: dict, S_df: pd.DataFrame,
                                        output_size=int(mc['n_time_out']),
                                        sample_freq=int(mc['val_idx_to_sample_freq']),
                                        complete_windows=True,
-                                       verbose=True)
+                                       verbose=verbose)
 
         test_dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                       mask_df=test_mask_df, f_cols=f_cols,
@@ -274,44 +274,44 @@ def create_datasets(mc: dict, S_df: pd.DataFrame,
                                       output_size=int(mc['n_time_out']),
                                       sample_freq=int(mc['val_idx_to_sample_freq']),
                                       complete_windows=True,
-                                      verbose=True)
+                                      verbose=verbose)
     if mc['mode'] == 'iterate_windows':
         train_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                               mask_df=train_mask_df, f_cols=f_cols,
                                               input_size=int(mc['n_time_in']),
                                               output_size=int(mc['n_time_out']),
-                                              verbose=True)
+                                              verbose=verbose)
 
         valid_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                               mask_df=valid_mask_df, f_cols=f_cols,
                                               input_size=int(mc['n_time_in']),
                                               output_size=int(mc['n_time_out']),
-                                              verbose=True)
+                                              verbose=verbose)
 
         test_dataset = IterateWindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                              mask_df=test_mask_df, f_cols=f_cols,
                                              input_size=int(mc['n_time_in']),
                                              output_size=int(mc['n_time_out']),
-                                             verbose=True)
+                                             verbose=verbose)
 
     if mc['mode'] == 'full':
         train_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                           mask_df=train_mask_df, f_cols=f_cols,
                                           input_size=int(mc['n_time_in']),
                                           output_size=int(mc['n_time_out']),
-                                          verbose=True)
+                                          verbose=verbose)
 
         valid_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                           mask_df=valid_mask_df, f_cols=f_cols,
                                           input_size=int(mc['n_time_in']),
                                           output_size=int(mc['n_time_out']),
-                                          verbose=True)
+                                          verbose=verbose)
 
         test_dataset = TimeSeriesDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
                                          mask_df=test_mask_df, f_cols=f_cols,
                                          input_size=int(mc['n_time_in']),
                                          output_size=int(mc['n_time_out']),
-                                         verbose=True)
+                                         verbose=verbose)
 
     if ds_in_test == 0:
         test_dataset = None
@@ -347,9 +347,10 @@ def instantiate_loaders(mc: dict,
     """
 
     if mc['mode'] in ['simple', 'full'] :
+        n_windows = mc['n_windows'] if mc['mode']=='simple' else None
         train_loader = TimeSeriesLoader(dataset=train_dataset,
                                         batch_size=int(mc['batch_size']),
-                                        n_windows=int(mc['n_windows']),
+                                        n_windows=n_windows,
                                         eq_batch_size=False,
                                         shuffle=True)
         if val_dataset is not None:
@@ -408,9 +409,9 @@ def instantiate_nbeats(mc: dict) -> NBEATS:
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
 
     model = NBEATS(n_time_in=int(mc['n_time_in']),
                   n_time_out=int(mc['n_time_out']),
@@ -454,9 +455,10 @@ def instantiate_esrnn(mc: dict) -> ESRNN:
         Esrnn model.
     """
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
+
     model = ESRNN(# Architecture parameters
                   n_series=mc['n_series'],
                   n_x=mc['n_x'],
@@ -502,9 +504,10 @@ def instantiate_rnn(mc: dict) -> ESRNN:
         RNN model.
     """
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
+
     model = RNN(# Architecture parameters
                   input_size=int(mc['n_time_in']),
                   output_size=int(mc['n_time_out']),
@@ -547,9 +550,10 @@ def instantiate_mqesrnn(mc: dict) -> MQESRNN:
     """
 
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
+
     model = MQESRNN(# Architecture parameters
                     n_series=mc['n_series'],
                     n_x=mc['n_x'],
@@ -597,9 +601,9 @@ def instantiate_nhits(mc: dict) -> NHITS:
     mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
 
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
 
     model = NHITS(n_time_in=int(mc['n_time_in']),
                   n_time_out=int(mc['n_time_out']),
@@ -648,9 +652,9 @@ def instantiate_autoformer(mc: dict) -> Autoformer:
     """
 
     if mc['max_epochs'] is not None:
-        lr_decay_step_size = int(mc['max_epochs'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
     elif mc['max_steps'] is not None:
-        lr_decay_step_size = int(mc['max_steps'] / mc['n_lr_decays'])
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
 
     model = Autoformer(seq_len=int(mc['seq_len']),
                        label_len=int(mc['label_len']),
@@ -754,9 +758,8 @@ def predict(mc: dict, model: pl.LightningModule,
 # Cell
 def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFrame =None,
         ds_in_val: int =0, ds_in_test: int =0,
-        f_cols: list =[],
-        only_model: bool =True) -> Tuple[pl.LightningModule, pl.Trainer,
-                                        DataLoader, DataLoader, Scaler] or pl.LightningModule:
+        f_cols: list =[], verbose: bool = False) -> Tuple[pl.LightningModule, pl.Trainer,
+                                                          DataLoader, DataLoader, Scaler] or pl.LightningModule:
     """
     Traines model on given dataset.
 
@@ -777,8 +780,6 @@ def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFra
         Number of ds in test.
     f_cols: list
         List of exogenous variables of the future.
-    only_model: bool
-        If true only model will be returned.
 
     Returns
     -------
@@ -806,7 +807,8 @@ def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFra
                                                                          S_df=S_df, Y_df=Y_df, X_df=X_df,
                                                                          f_cols=f_cols,
                                                                          ds_in_val=ds_in_val,
-                                                                         ds_in_test=ds_in_test)
+                                                                         ds_in_test=ds_in_test,
+                                                                         verbose=verbose)
     mc['n_x'], mc['n_s'] = train_dataset.get_n_variables()
 
     #------------------------------------------- Instantiate & fit -------------------------------------------#
@@ -819,7 +821,7 @@ def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFra
     if mc['early_stop_patience'] and ds_in_val > 0:
         early_stopping = pl.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-4,
                                                     patience=mc['early_stop_patience'],
-                                                    verbose=True,
+                                                    verbose=verbose,
                                                     mode='min')
         callbacks=[early_stopping]
 
@@ -827,24 +829,22 @@ def fit(mc: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame =None, S_df: pd.DataFra
     trainer = pl.Trainer(max_epochs=mc['max_epochs'],
                          max_steps=mc['max_steps'],
                          check_val_every_n_epoch=mc['eval_freq'],
-                         progress_bar_refresh_rate=1,
                          gpus=gpus,
                          callbacks=callbacks,
-                         checkpoint_callback=False,
+                         enable_checkpointing=False,
+                         enable_progress_bar=verbose,
+                         enable_model_summary=verbose,
                          logger=False)
 
     val_dataloaders = val_loader if ds_in_val > 0 else None
     trainer.fit(model, train_loader, val_dataloaders)
-
-    if only_model:
-        return model
 
     return model, trainer, val_loader, test_loader, scaler_y
 
 # Cell
 def model_fit_predict(mc: dict,
                         S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
-                        f_cols: list, ds_in_val: int, ds_in_test: int) -> dict:
+                        f_cols: list, ds_in_val: int, ds_in_test: int, verbose: bool) -> dict:
     """
     Traines model on train dataset, then calculates predictions
     on test dataset.
@@ -873,8 +873,7 @@ def model_fit_predict(mc: dict,
     #------------------------------------------------ Fit ------------------------------------------------#
     model, trainer, val_loader, test_loader, scaler_y = fit(
         mc, S_df=S_df, Y_df=Y_df, X_df=X_df,
-        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_val,
-        only_model=False
+        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_val, verbose=verbose
     )
     #------------------------------------------------ Predict ------------------------------------------------#
     results = {}
@@ -884,32 +883,25 @@ def model_fit_predict(mc: dict,
         val_values = (('val_y_true', y_true), ('val_y_hat', y_hat), ('val_mask', mask), ('val_meta_data', meta_data))
         results.update(val_values)
 
-        print(f"VAL y_true.shape: {y_true.shape}")
-        print(f"VAL y_hat.shape: {y_hat.shape}")
-        print("\n")
-
     # Predict test if available
     if ds_in_test > 0:
         y_true, y_hat, mask, meta_data = predict(mc, model, trainer, test_loader, scaler_y)
         test_values = (('test_y_true', y_true), ('test_y_hat', y_hat), ('test_mask', mask), ('test_meta_data', meta_data))
         results.update(test_values)
 
-        print(f"TEST y_true.shape: {y_true.shape}")
-        print(f"TEST y_hat.shape: {y_hat.shape}")
-        print("\n")
-
-    return results
+    return results, model
 
 # Cell
 def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: dict,
                    S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
                    f_cols: list, ds_in_val: int, ds_in_test: int,
                    return_forecasts: bool,
+                   return_model: bool,
                    save_progress: bool,
                    trials: Trials,
                    results_file: str,
                    step_save_progress: int =5,
-                   loss_kwargs: list =None) -> dict:
+                   loss_kwargs: list =None, verbose: bool=False) -> dict:
     """
     Evaluate model on given dataset.
 
@@ -958,9 +950,10 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
         with open(results_file, "wb") as f:
             pickle.dump(trials, f)
 
-    print(47*'=' + '\n')
-    print(pd.Series(mc))
-    print(47*'=' + '\n')
+    if verbose:
+        print(47*'=' + '\n')
+        print(pd.Series(mc))
+        print(47*'=' + '\n')
 
     # Some asserts due to work in progress
     n_series = Y_df['unique_id'].nunique()
@@ -972,13 +965,14 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
 
     # Make predictions
     start = time.time()
-    results = model_fit_predict(mc=mc,
-                                S_df=S_df,
-                                Y_df=Y_df,
-                                X_df=X_df,
-                                f_cols=f_cols,
-                                ds_in_val=ds_in_val,
-                                ds_in_test=ds_in_test)
+    results, model = model_fit_predict(mc=mc,
+                                       S_df=S_df,
+                                       Y_df=Y_df,
+                                       X_df=X_df,
+                                       f_cols=f_cols,
+                                       ds_in_val=ds_in_val,
+                                       ds_in_test=ds_in_test,
+                                       verbose=verbose)
     run_time = time.time() - start
 
     # Evaluate predictions
@@ -1003,6 +997,9 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
         forecasts_test.update(test_values)
         results_output['forecasts_test'] = forecasts_test
 
+    if return_model:
+        results_output['model'] = model
+
     return results_output
 
 # Cell
@@ -1011,10 +1008,11 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
                      S_df: pd.DataFrame, Y_df: pd.DataFrame, X_df: pd.DataFrame,
                      f_cols: list, ds_in_val: int, ds_in_test: int,
                      return_forecasts: bool,
+                     return_model: bool,
                      save_progress: bool,
                      results_file: str,
                      step_save_progress: int =5,
-                     loss_kwargs: list =None) -> Trials:
+                     loss_kwargs: list =None, verbose: bool =False) -> Trials:
     """
     Evaluates multiple models trained on given dataset.
     Models are trained with different hyperparameters.
@@ -1048,6 +1046,8 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
         Number of ds in test.
     return_forecasts: bool
         If true return forecast on test.
+    return_model: bool
+        If true return models.
     save_progress: bool
         If true save progres in file.
     results_file: str
@@ -1056,6 +1056,8 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
         Every n-th step is saved in file.
     loss_kwargs: List
         Loss function arguments.
+    verbose:
+        If true, will print summary of dataset, model and training.
 
     Returns
     -------
@@ -1069,11 +1071,12 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
     fmin_objective = partial(evaluate_model, loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
                              S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=f_cols,
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
-                             return_forecasts=return_forecasts, save_progress=save_progress, trials=trials,
+                             return_forecasts=return_forecasts, return_model=return_model,
+                             save_progress=save_progress, trials=trials,
                              results_file=results_file,
                              step_save_progress=step_save_progress,
-                             loss_kwargs=loss_kwargs or {})
+                             loss_kwargs=loss_kwargs or {}, verbose=verbose)
 
-    fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=True)
+    fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=verbose)
 
     return trials
