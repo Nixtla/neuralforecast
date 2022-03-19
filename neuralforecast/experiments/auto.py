@@ -9,9 +9,12 @@ import neuralforecast as nf
 from hyperopt import hp
 
 # Cell
-def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.DataFrame,
-           loss_function_val: callable, loss_functions_test: dict, forecast_horizon: int, ts_in_val: int, ts_in_test: int,
-           return_forecasts: bool = False, return_model: bool = True, test_auto: bool = False, verbose: bool = False):
+def auto(config_dict: dict,
+         Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.DataFrame,
+         loss_function_val: callable, loss_functions_test: dict,
+         forecast_horizon: int, ts_in_val: int, ts_in_test: int,
+         return_forecasts: bool = False, return_model: bool = True,
+         test_auto: bool = False, verbose: bool = False):
     """
     Auto hyperparameter tuning function.
 
@@ -19,7 +22,8 @@ def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.Dat
     ----------
     config_dict: Dict
         Dictionary with configuration. Keys should be name of models.
-        For each model specify the hyperparameter space (None will use default suggested space), hyperopt steps and timeout.
+        For each model specify the hyperparameter space
+        (None will use default suggested space), hyperopt steps and timeout.
     Y_df: pd.DataFrame
         Target time series with columns ['unique_id', 'ds', 'y'].
     X_df: pd.DataFrame
@@ -30,7 +34,7 @@ def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.Dat
     loss_function_val: function
         Loss function used for validation.
     loss_functions_test: Dictionary
-        Loss functions used for test.
+        Loss functions used for test evaluation.
         (function name: string, function: fun)
     forecast_horizon: int
         Forecast horizon
@@ -43,13 +47,14 @@ def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.Dat
     return_model: bool
         If true return model.
     test_auto: bool
-        If true, will only run one training step and hyperopt iteration for each model. Use it for testing purposes.
+        If true, will only run one training step and hyperopt iteration for each model.
+        For testing purposes, to ensure your pipeline will finish running, without waiting.
     verbose:
         If true, will print summary of dataset, model and training.
     """
 
     if test_auto:
-        print('WARNING: THIS IS A TEST, MODELS WILL NOT BE TRAINED PROPERLY!')
+        print('WARNING: test_auto=True, MODELS WILL NOT BE TRAINED PROPERLY!')
 
     # Data characteristics
     n_series = Y_df['unique_id'].nunique()
@@ -68,13 +73,22 @@ def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.Dat
         hyperopt_steps = model_config['hyperopt_steps'] if (test_auto==False) else 1
 
         if model_config['space'] is None:
-            space = instantiate_space(model=model, n_time_out=forecast_horizon, n_series=n_series, n_x=n_x, n_s=n_s, frequency=frequency, test=test_auto)
+            # If hyperparameter space is None, use predefined space for the model
+            # Available spaces, [N-BEATS, N-HiTS, RNN]
+            space = instantiate_space(model=model, n_time_out=forecast_horizon,
+                                      n_series=n_series, n_x=n_x, n_s=n_s,
+                                      frequency=frequency, test=test_auto)
         else:
             space = model_config['space']
+
+        # Run automated hyperparameter optimization
         trials = nf.experiments.utils.hyperopt_tunning(space=space,
                                                        hyperopt_max_evals=hyperopt_steps,
-                                                       loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
-                                                       S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=[], ds_in_val=ts_in_val, ds_in_test=ts_in_test,
+                                                       loss_function_val=loss_function_val,
+                                                       loss_functions_test=loss_functions_test,
+                                                       S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                                       f_cols=[], ds_in_val=ts_in_val,
+                                                       ds_in_test=ts_in_test,
                                                        return_forecasts=return_forecasts,
                                                        return_model=return_model,
                                                        save_progress=False,
@@ -84,8 +98,7 @@ def auto(config_dict: dict, Y_df: pd.DataFrame, X_df: pd.DataFrame, S_df: pd.Dat
 
         model_output = {'best_mc': trials.best_trial['result']['mc'],
                         'run_time': trials.best_trial['result']['run_time'],
-                        'best_val_loss': trials.best_trial['result']['loss']
-                       }
+                        'best_val_loss': trials.best_trial['result']['loss']}
 
         # Return model
         if return_model:
@@ -129,11 +142,14 @@ def instantiate_space(model, n_time_out, n_series, n_x, n_s, frequency, test):
     assert model in ['nbeats', 'nhits', 'rnn'], f'Invalid model {model}'
 
     if model == 'nbeats':
-        space = nf.models.nbeats.nbeats.suggested_space(n_time_out=n_time_out, n_series=n_series, n_x=n_x, n_s=n_s, frequency=frequency)
+        space = nf.models.nbeats.nbeats.suggested_space(n_time_out=n_time_out, n_series=n_series,
+                                                        n_x=n_x, n_s=n_s, frequency=frequency)
     elif model == 'nhits':
-        space = nf.models.nhits.nhits.suggested_space(n_time_out=n_time_out, n_series=n_series, n_x=n_x, n_s=n_s, frequency=frequency)
+        space = nf.models.nhits.nhits.suggested_space(n_time_out=n_time_out, n_series=n_series,
+                                                      n_x=n_x, n_s=n_s, frequency=frequency)
     elif model == 'rnn':
-        space = nf.models.rnn.rnn.suggested_space(n_time_out=n_time_out, n_series=n_series, n_x=n_x, n_s=n_s, frequency=frequency)
+        space = nf.models.rnn.rnn.suggested_space(n_time_out=n_time_out, n_series=n_series,
+                                                  n_x=n_x, n_s=n_s, frequency=frequency)
 
     if test:
         space['max_steps'] = hp.choice('max_steps', [1])
