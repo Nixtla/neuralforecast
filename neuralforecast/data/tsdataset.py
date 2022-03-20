@@ -204,7 +204,7 @@ def _df_to_lists(self: BaseDataset,
 
     # Create bigger grouped by dataframe G to parse
     M = M[['available_mask', 'sample_mask']]
-    X.drop(['unique_id', 'ds'], 1, inplace=True)
+    X.drop(labels=['unique_id', 'ds'], axis=1, inplace=True)
     G = Y.join(X).join(M)
 
     S = S_df.sort_values('unique_id')
