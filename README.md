@@ -27,7 +27,13 @@ State-of-the-art time series forecasting for PyTorch.
 [Models](#forecasting-models)
 </div>
 
-## ⚡ Why?
+## 🎉 New! [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WjBbQzaivQhOldGolzymOtLmo6QX4Ieg#scrollTo=HXKT2-fpUD0Z)  
+* **N-HiTS example**: load, train, and tune  hyperparameter, to achieve SoTA. Outperform Transformers by **25% in 50x** less time.
+
+
+
+
+## ⚡ Why Deep Learning on Time Series?
 **Accuracy**:
 - Global model is fitted simultaneously for several time series.
 - Shared information helps with highly parametrized and flexible models.
