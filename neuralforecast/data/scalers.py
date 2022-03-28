@@ -11,16 +11,6 @@ import statsmodels.api as sm
 import numpy as np
 import statsmodels.api as sm
 
-#TODO: rehacer todo, es codigo provisional porque corre
-#TODO: filtrar por adelantado con offset
-#TODO: codigo duplicado en clases muy parecidas
-#TODO: usar scaler sklearn?
-#TODO: shift scale abuso notacion con min, max
-#TODO: comentar cosas
-#TODO: hacer funcion devoluciondora de cosos particulares
-#TODO: subclase para cada scaler
-#TODO: funciona solo para una serie
-
 class Scaler(object):
     def __init__(self, normalizer):
         assert (normalizer in ['std', 'invariant', 'norm', 'norm1', 'median']), 'Normalizer not defined'
@@ -40,7 +30,6 @@ class Scaler(object):
         elif self.normalizer == 'norm1':
             x_scaled, x_shift, x_scale = norm1_scaler(x, mask)
 
-        assert len(x[mask==1] == np.sum(mask)), 'Something weird is happening, call Cristian'
         nan_before_scale = np.sum(np.isnan(x))
         nan_after_scale = np.sum(np.isnan(x_scaled))
         assert nan_before_scale == nan_after_scale, 'Scaler induced nans'
@@ -71,7 +60,7 @@ def norm_scaler(x, mask):
     x_max = np.max(x[mask==1])
     x_min = np.min(x[mask==1])
 
-    x = (x - x_min) / (x_max - x_min) #TODO: cuidado dividir por zero
+    x = (x - x_min) / (x_max - x_min)
     return x, x_min, x_max
 
 def inv_norm_scaler(x, x_min, x_max):
@@ -82,7 +71,7 @@ def norm1_scaler(x, mask):
     x_max = np.max(x[mask==1])
     x_min = np.min(x[mask==1])
 
-    x = (x - x_min) / (x_max - x_min) #TODO: cuidado dividir por zero
+    x = (x - x_min) / (x_max - x_min)
     x = x * (2) - 1
     return x, x_min, x_max
 
@@ -95,7 +84,7 @@ def std_scaler(x, mask):
     x_mean = np.mean(x[mask==1])
     x_std = np.std(x[mask==1])
 
-    x = (x - x_mean) / x_std #TODO: cuidado dividir por zero
+    x = (x - x_mean) / x_std
     return x, x_mean, x_std
 
 def inv_std_scaler(x, x_mean, x_std):
