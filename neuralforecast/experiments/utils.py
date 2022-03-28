@@ -873,7 +873,7 @@ def model_fit_predict(mc: dict,
     #------------------------------------------------ Fit ------------------------------------------------#
     model, trainer, val_loader, test_loader, scaler_y = fit(
         mc, S_df=S_df, Y_df=Y_df, X_df=X_df,
-        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_val, verbose=verbose
+        f_cols=[], ds_in_val=ds_in_val, ds_in_test=ds_in_test, verbose=verbose
     )
     #------------------------------------------------ Predict ------------------------------------------------#
     results = {}
