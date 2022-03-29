@@ -91,8 +91,8 @@ def auto(config_dict: dict,
                                                        ds_in_test=ts_in_test,
                                                        return_forecasts=return_forecasts,
                                                        return_model=return_model,
-                                                       save_progress=False,
-                                                       results_file=None,
+                                                       save_trials=False,
+                                                       results_dir=None,
                                                        step_save_progress=0,
                                                        verbose=verbose)
 

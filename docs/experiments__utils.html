@@ -723,7 +723,7 @@ ds_in_test: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L895" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_progress</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_file</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L895" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluate model on given dataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dictionary
@@ -748,11 +748,11 @@ ds_in_test: int
     Number of ds in test.
 return_forecasts: bool
     If true return forecast on test.
-save_progress: bool
+save_trials: bool
     If true save progres in file.
 trials: hyperopt.Trials
     Results from model evaluation.
-results_file: str
+results_dir: str
     File path to save results.
 step_save_progress: int
     Every n-th step is saved in file.
@@ -782,6 +782,13 @@ loss_kwargs: List
     
 <div class="cell border-box-sizing code_cell rendered">
 
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
 <div class="output_wrapper">
 <div class="output">
 
@@ -789,7 +796,7 @@ loss_kwargs: List
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1006" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_progress</code></strong>:<code>bool</code>, <strong><code>results_file</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1020" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluates multiple models trained on given dataset.
 Models are trained with different hyperparameters.
@@ -822,9 +829,9 @@ return_forecasts: bool
     If true return forecast on test.
 return_model: bool
     If true return models.
-save_progress: bool
+save_trials: bool
     If true save progres in file.
-results_file: str
+results_dir: str
     File path to save results.
 step_save_progress: int
     Every n-th step is saved in file.
@@ -870,8 +877,7 @@ verbose:
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span> <span class="k">as</span> <span class="nn">t</span>
 
 <span class="kn">from</span> <span class="nn">neuralforecast.losses.numpy</span> <span class="kn">import</span> <span class="n">mae</span><span class="p">,</span> <span class="n">rmse</span>
-<span class="kn">from</span> <span class="nn">neuralforecast.models.nhits.nhits</span> <span class="kn">import</span> <span class="n">suggested_space</span> <span class="k">as</span> <span class="n">nhits_suggested_space</span>
-<span class="kn">from</span> <span class="nn">neuralforecast.models.nbeats.nbeats</span> <span class="kn">import</span> <span class="n">suggested_space</span> <span class="k">as</span> <span class="n">nbeats_suggested_space</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.auto</span> <span class="kn">import</span> <span class="n">nhits_space</span><span class="p">,</span> <span class="n">nbeats_space</span>
 <span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span>
 </pre></div>
 
@@ -901,6 +907,12 @@ verbose:
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Returning-model">Returning model<a class="anchor-link" href="#Returning-model"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -908,14 +920,14 @@ verbose:
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">nhits_space</span> <span class="o">=</span> <span class="n">nhits_suggested_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
-<span class="n">nhits_space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
-<span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">nhits_space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
-                          <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
-                          <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
-                          <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> 
-                          <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
-                          <span class="n">results_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nhits_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
+<span class="n">space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
+<span class="n">model</span><span class="p">,</span> <span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
+                                 <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
+                                 <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
+                                 <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> 
+                                 <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_trials</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+                                 <span class="n">results_dir</span><span class="o">=</span><span class="s1">&#39;./results/example&#39;</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -928,10 +940,8 @@ verbose:
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.015069 seconds
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.018776 seconds
 INFO:hyperopt.tpe:TPE using 0 trials
-/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsdataset.py:207: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
-  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
@@ -945,8 +955,8 @@ IPU available: False, using: 0 IPUs
   &#39;This class wraps the pytorch `DataLoader` with a &#39;
 /Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.016101 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.436548
+INFO:hyperopt.tpe:build_posterior_wrapper took 0.025232 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 798.387024
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
@@ -967,16 +977,142 @@ IPU available: False, using: 0 IPUs
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">best_model</span> <span class="o">=</span> <span class="n">trials</span><span class="o">.</span><span class="n">best_trial</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span>
 </pre></div>
 
     </div>
 </div>
 </div>
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+
+<div class="output_text output_subarea output_execute_result">
+<pre>NHITS(
+  (model): _NHITS(
+    (blocks): ModuleList(
+      (0): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=16, stride=16, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=75, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=49, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (1): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=16, stride=16, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=75, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=49, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (2): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=16, stride=16, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=75, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=49, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (3): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=8, stride=8, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=78, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=50, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (4): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=8, stride=8, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=78, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=50, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (5): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=8, stride=8, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=78, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=50, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (6): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=120, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=72, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (7): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=120, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=72, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+      (8): _NHITSBlock(
+        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
+        (layers): Sequential(
+          (0): Linear(in_features=120, out_features=1024, bias=True)
+          (1): ReLU()
+          (2): Linear(in_features=1024, out_features=1024, bias=True)
+          (3): ReLU()
+          (4): Linear(in_features=1024, out_features=72, bias=True)
+        )
+        (basis): _IdentityBasis()
+      )
+    )
+  )
+)</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Without-returning-model">Without returning model<a class="anchor-link" href="#Without-returning-model"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -984,14 +1120,14 @@ IPU available: False, using: 0 IPUs
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">nbeats_space</span> <span class="o">=</span> <span class="n">nbeats_suggested_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
-<span class="n">nbeats_space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
-<span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">nbeats_space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nbeats_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span> <span class="n">n_series</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_x</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_s</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">)</span>
+<span class="n">space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
+<span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
                           <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
                           <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
                           <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> 
-                          <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
-                          <span class="n">results_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                          <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_trials</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+                          <span class="n">results_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -1004,13 +1140,21 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.023296 seconds
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.015480 seconds
 INFO:hyperopt.tpe:TPE using 0 trials
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.018830 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.276534
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+/Users/cchallu/NIXTLA/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
+  &#39;This class wraps the pytorch `DataLoader` with a &#39;
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+INFO:hyperopt.tpe:build_posterior_wrapper took 0.017592 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 23.877501
 GPU available: False, used: False
 TPU available: False, using: 0 TPU cores
 IPU available: False, using: 0 IPUs
@@ -1018,23 +1162,6 @@ IPU available: False, using: 0 IPUs
 </div>
 </div>
 
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">best_model</span> <span class="o">=</span> <span class="n">trials</span><span class="o">.</span><span class="n">best_trial</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">]</span>
-</pre></div>
-
-    </div>
 </div>
 </div>
 

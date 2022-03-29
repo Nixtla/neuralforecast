@@ -3,7 +3,7 @@
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_rnn', 'instantiate_mqesrnn', 'instantiate_nhits',
            'instantiate_autoformer', 'instantiate_model', 'predict', 'fit', 'model_fit_predict', 'evaluate_model',
-           'hyperopt_tunning']
+           'MODEL_DICT', 'hyperopt_tunning']
 
 # Cell
 ENV_VARS = dict(OMP_NUM_THREADS='2',
@@ -889,7 +889,7 @@ def model_fit_predict(mc: dict,
         test_values = (('test_y_true', y_true), ('test_y_hat', y_hat), ('test_mask', mask), ('test_meta_data', meta_data))
         results.update(test_values)
 
-    return results, model
+    return results, model, trainer
 
 # Cell
 def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: dict,
@@ -897,9 +897,9 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
                    f_cols: list, ds_in_val: int, ds_in_test: int,
                    return_forecasts: bool,
                    return_model: bool,
-                   save_progress: bool,
+                   save_trials: bool,
                    trials: Trials,
-                   results_file: str,
+                   results_dir: str,
                    step_save_progress: int =5,
                    loss_kwargs: list =None, verbose: bool=False) -> dict:
     """
@@ -929,11 +929,11 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
         Number of ds in test.
     return_forecasts: bool
         If true return forecast on test.
-    save_progress: bool
+    save_trials: bool
         If true save progres in file.
     trials: hyperopt.Trials
         Results from model evaluation.
-    results_file: str
+    results_dir: str
         File path to save results.
     step_save_progress: int
         Every n-th step is saved in file.
@@ -946,8 +946,9 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
         Dictionary with results of model evaluation.
     """
 
-    if (save_progress) and (len(trials) % step_save_progress == 0):
-        with open(results_file, "wb") as f:
+    if (save_trials) and (len(trials) % step_save_progress == 0):
+        trials_file = f'{results_dir}/trials.p'
+        with open(trials_file, "wb") as f:
             pickle.dump(trials, f)
 
     if verbose:
@@ -965,14 +966,14 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
 
     # Make predictions
     start = time.time()
-    results, model = model_fit_predict(mc=mc,
-                                       S_df=S_df,
-                                       Y_df=Y_df,
-                                       X_df=X_df,
-                                       f_cols=f_cols,
-                                       ds_in_val=ds_in_val,
-                                       ds_in_test=ds_in_test,
-                                       verbose=verbose)
+    results, _, trainer = model_fit_predict(mc=mc,
+                                                S_df=S_df,
+                                                Y_df=Y_df,
+                                                X_df=X_df,
+                                                f_cols=f_cols,
+                                                ds_in_val=ds_in_val,
+                                                ds_in_test=ds_in_test,
+                                                verbose=verbose)
     run_time = time.time() - start
 
     # Evaluate predictions
@@ -997,10 +998,23 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
         forecasts_test.update(test_values)
         results_output['forecasts_test'] = forecasts_test
 
-    if return_model:
-        results_output['model'] = model
+    # Save model in best_trial
+    if len(trials) > 1:
+        current_best_loss = min(trials.losses()[:-1]) # :-1 since current run has None
+    else:
+        current_best_loss = np.inf
+
+    if (return_model) and (val_loss < current_best_loss):
+        trainer.save_checkpoint(f"{results_dir}/best_model.ckpt")
 
     return results_output
+
+# Cell
+MODEL_DICT = {'nbeats': NBEATS,
+              'nhits': NHITS,
+              'rnn': RNN,
+              'esrnn': ESRNN,
+              'autoformer': Autoformer}
 
 # Cell
 def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
@@ -1009,9 +1023,9 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
                      f_cols: list, ds_in_val: int, ds_in_test: int,
                      return_forecasts: bool,
                      return_model: bool,
-                     save_progress: bool,
-                     results_file: str,
-                     step_save_progress: int =5,
+                     save_trials: bool,
+                     results_dir: str,
+                     step_save_progress: int = 5,
                      loss_kwargs: list =None, verbose: bool =False) -> Trials:
     """
     Evaluates multiple models trained on given dataset.
@@ -1048,9 +1062,9 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
         If true return forecast on test.
     return_model: bool
         If true return models.
-    save_progress: bool
+    save_trials: bool
         If true save progres in file.
-    results_file: str
+    results_dir: str
         File path to save results.
     step_save_progress: int
         Every n-th step is saved in file.
@@ -1067,16 +1081,30 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
 
     assert ds_in_val > 0, 'Validation set is needed for tunning!'
 
+    if save_trials or return_model:
+        os.makedirs(results_dir, exist_ok = True)
+
     trials = Trials()
     fmin_objective = partial(evaluate_model, loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
                              S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=f_cols,
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
                              return_forecasts=return_forecasts, return_model=return_model,
-                             save_progress=save_progress, trials=trials,
-                             results_file=results_file,
+                             save_trials=save_trials, trials=trials,
+                             results_dir=results_dir,
                              step_save_progress=step_save_progress,
                              loss_kwargs=loss_kwargs or {}, verbose=verbose)
 
     fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=verbose)
 
-    return trials
+    # Saves final trials
+    if save_trials:
+        trials_file = f'{results_dir}/trials.p'
+        with open(trials_file, "wb") as f:
+            pickle.dump(trials, f)
+
+    if return_model:
+        # best_model.ckpt is generated with evaluate_model
+        model = MODEL_DICT[space['model']].load_from_checkpoint(f'{results_dir}/best_model.ckpt')
+        return model, trials
+    else:
+        return trials
