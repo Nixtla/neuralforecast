@@ -6,11 +6,13 @@ __all__ = ['AutoBaseModel', 'NHITS', 'nhits_space', 'NBEATS', 'nbeats_space', 'R
 # Cell
 import numpy as np
 import pandas as pd
-import neuralforecast as nf
+
 import pytorch_lightning as pl
+#import logging
+#logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 
 from hyperopt import hp
-
+import neuralforecast as nf
 
 # Cell
 class AutoBaseModel(object):
@@ -30,7 +32,7 @@ class AutoBaseModel(object):
         self.space['n_s_hidden'] = hp.choice('n_s_hidden', [ 0 if S_df is None else (S_df.shape[1]-1) ])
         self.space['frequency'] = hp.choice('frequency', [ pd.infer_freq(Y_df['ds']) ])
 
-        self.model, _ = nf.experiments.utils.hyperopt_tunning(space=self.space,
+        self.model, self.trials = nf.experiments.utils.hyperopt_tunning(space=self.space,
                                                              hyperopt_max_evals=hyperopt_steps,
                                                              loss_function_val=loss_function_val,
                                                              loss_functions_test=loss_functions_test,
@@ -46,10 +48,12 @@ class AutoBaseModel(object):
 
         return self
 
-    def forecast(self, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+    def forecast(self, Y_df: pd.DataFrame,
+                 X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
                  batch_size: int =1, trainer: pl.Trainer =None) -> pd.DataFrame:
 
-        return self.model.forecast(Y_df=Y_df, X_df=X_df, S_df=S_df, batch_size=batch_size, trainer=trainer)
+        return self.model.forecast(Y_df=Y_df, X_df=X_df, S_df=S_df,
+                                   batch_size=batch_size, trainer=trainer)
 
 # Cell
 class NHITS(AutoBaseModel):
