@@ -29,14 +29,19 @@ from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-# import logging
-# logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+import logging
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 
 import multiprocessing
 NUM_WORKERS = min(multiprocessing.cpu_count(), 6)
 
 from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset, BaseDataset
+from ..data.tsdataset import (
+    TimeSeriesDataset,
+    WindowsDataset,
+    IterateWindowsDataset,
+    BaseDataset
+)
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.rnn.rnn import RNN
@@ -359,21 +364,21 @@ def instantiate_loaders(mc: dict,
                                         batch_size=int(mc['batch_size']),
                                         n_windows=n_windows,
                                         eq_batch_size=False,
-                                        shuffle=True,
-                                        num_workers=NUM_WORKERS)
+                                        shuffle=True)
+                                        #num_workers=NUM_WORKERS
         if val_dataset is not None:
             val_loader = TimeSeriesLoader(dataset=val_dataset,
                                         batch_size=1,
-                                        shuffle=False,
-                                        num_workers=NUM_WORKERS)
+                                        shuffle=False)
+                                        #num_workers=NUM_WORKERS
         else:
             val_loader = None
 
         if test_dataset is not None:
             test_loader = TimeSeriesLoader(dataset=test_dataset,
                                         batch_size=1,
-                                        shuffle=False,
-                                        num_workers=NUM_WORKERS)
+                                        shuffle=False)
+                                        #num_workers=NUM_WORKERS
         else:
             test_loader = None
 

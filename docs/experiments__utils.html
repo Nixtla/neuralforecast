@@ -68,7 +68,7 @@ nb_path: "nbs/experiments__utils.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_mask_dfs" class="doc_header"><code>get_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L49" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_mask_dfs</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>)</p>
+<h4 id="get_mask_dfs" class="doc_header"><code>get_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L54" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_mask_dfs</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>)</p>
 </blockquote>
 <p>Generates train, test and validation mask.
 Train mask begins by avoiding ds_in_test.</p>
@@ -113,7 +113,7 @@ test_mask_df: pd.DataFrame
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="get_random_mask_dfs" class="doc_header"><code>get_random_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L103" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_random_mask_dfs</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>n_val_windows</code></strong>:<code>int</code>, <strong><code>n_ds_val_window</code></strong>:<code>int</code>, <strong><code>n_uids</code></strong>:<code>int</code>, <strong><code>freq</code></strong>:<code>str</code>)</p>
+<h4 id="get_random_mask_dfs" class="doc_header"><code>get_random_mask_dfs</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L108" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>get_random_mask_dfs</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>n_val_windows</code></strong>:<code>int</code>, <strong><code>n_ds_val_window</code></strong>:<code>int</code>, <strong><code>n_uids</code></strong>:<code>int</code>, <strong><code>freq</code></strong>:<code>str</code>)</p>
 </blockquote>
 <p>Generates train, test and random validation mask.
 Train mask begins by avoiding ds_in_test</p>
@@ -167,7 +167,7 @@ test_mask_df: pd.DataFrame
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="scale_data" class="doc_header"><code>scale_data</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L169" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>scale_data</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>mask_df</code></strong>:<code>DataFrame</code>, <strong><code>normalizer_y</code></strong>:<code>str</code>, <strong><code>normalizer_x</code></strong>:<code>str</code>)</p>
+<h4 id="scale_data" class="doc_header"><code>scale_data</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L174" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>scale_data</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>mask_df</code></strong>:<code>DataFrame</code>, <strong><code>normalizer_y</code></strong>:<code>str</code>, <strong><code>normalizer_x</code></strong>:<code>str</code>)</p>
 </blockquote>
 <p>Scales input data accordingly to given normalizer parameters.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -215,7 +215,7 @@ scaler_y: Scaler
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L214" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L219" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Creates train, validation and test datasets.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -270,7 +270,7 @@ scaler_y: Scaler
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L329" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>train_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>val_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>test_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>)</p>
+<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L334" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>train_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>val_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>test_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>)</p>
 </blockquote>
 <p>Creates train, validation and test loader classes.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -316,7 +316,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L406" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L411" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates nbeats model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -352,7 +352,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L456" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L461" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates esrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -388,7 +388,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_rnn" class="doc_header"><code>instantiate_rnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L505" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_rnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_rnn" class="doc_header"><code>instantiate_rnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L510" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_rnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates esrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -424,7 +424,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L550" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L555" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates mqesrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -460,7 +460,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L597" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L602" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates nhits model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -496,7 +496,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L652" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L657" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates autoformer model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -532,7 +532,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L702" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L707" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates one of the models.
 (nbeats, esrnn, mqesrnn, nhits, autoformer)</p>
@@ -569,7 +569,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L726" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>model</code></strong>:<code>LightningModule</code>, <strong><code>trainer</code></strong>:<code>Trainer</code>, <strong><code>loader</code></strong>:<code>DataLoader</code>, <strong><code>scaler_y</code></strong>:<a href="/neuralforecast/data__scalers.html#Scaler"><code>Scaler</code></a>)</p>
+<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L731" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>model</code></strong>:<code>LightningModule</code>, <strong><code>trainer</code></strong>:<code>Trainer</code>, <strong><code>loader</code></strong>:<code>DataLoader</code>, <strong><code>scaler_y</code></strong>:<a href="/neuralforecast/data__scalers.html#Scaler"><code>Scaler</code></a>)</p>
 </blockquote>
 <p>Predicts results on dataset using trained model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -619,7 +619,7 @@ meta_data: np.array
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L772" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>:<code>list</code>=<em><code>[]</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L777" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>:<code>list</code>=<em><code>[]</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Traines model on given dataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -676,7 +676,7 @@ scaler_y: Scaler
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L858" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>)</p>
+<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L863" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>)</p>
 </blockquote>
 <p>Traines model on train dataset, then calculates predictions
 on test dataset.</p>
@@ -723,7 +723,7 @@ ds_in_test: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L908" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L913" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluate model on given dataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dictionary
@@ -796,7 +796,7 @@ loss_kwargs: List
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1033" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1038" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluates multiple models trained on given dataset.
 Models are trained with different hyperparameters.
@@ -940,14 +940,20 @@ verbose:
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.012043 seconds
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.012289 seconds
 INFO:hyperopt.tpe:TPE using 0 trials
+/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 /opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/torch/nn/functional.py:652: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at  /tmp/pip-req-build-up3bu5e5/c10/core/TensorImpl.h:1156.)
   return torch.max_pool1d(input, kernel_size, stride, padding, dilation, ceil_mode)
 /Users/kingtzolivares/Desktop/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
   &#39;This class wraps the pytorch `DataLoader` with a &#39;
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.013176 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 17.925142
+/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 4 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+INFO:hyperopt.tpe:build_posterior_wrapper took 0.015883 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 2538.359863
 </pre>
 </div>
 </div>
@@ -984,41 +990,35 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 17.925142
   (model): _NHITS(
     (blocks): ModuleList(
       (0): _NHITSBlock(
-        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
+        (pooling_layer): MaxPool1d(kernel_size=8, stride=8, padding=0, dilation=1, ceil_mode=True)
         (layers): Sequential(
-          (0): Linear(in_features=168, out_features=256, bias=True)
+          (0): Linear(in_features=159, out_features=128, bias=True)
           (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
+          (2): Linear(in_features=128, out_features=128, bias=True)
           (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=73, bias=True)
+          (4): Linear(in_features=128, out_features=121, bias=True)
         )
         (basis): _IdentityBasis()
       )
       (1): _NHITSBlock(
-        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
+        (pooling_layer): MaxPool1d(kernel_size=4, stride=4, padding=0, dilation=1, ceil_mode=True)
         (layers): Sequential(
-          (0): Linear(in_features=168, out_features=256, bias=True)
+          (0): Linear(in_features=174, out_features=128, bias=True)
           (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
+          (2): Linear(in_features=128, out_features=128, bias=True)
           (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=73, bias=True)
+          (4): Linear(in_features=128, out_features=121, bias=True)
         )
         (basis): _IdentityBasis()
       )
       (2): _NHITSBlock(
         (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
         (layers): Sequential(
-          (0): Linear(in_features=168, out_features=256, bias=True)
+          (0): Linear(in_features=264, out_features=128, bias=True)
           (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
+          (2): Linear(in_features=128, out_features=128, bias=True)
           (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=96, bias=True)
+          (4): Linear(in_features=128, out_features=144, bias=True)
         )
         (basis): _IdentityBasis()
       )
@@ -1068,10 +1068,10 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 17.925142
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.013791 seconds
+<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.016122 seconds
 INFO:hyperopt.tpe:TPE using 0 trials
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.032441 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.874397
+INFO:hyperopt.tpe:build_posterior_wrapper took 0.032768 seconds
+INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 410848.875000
 </pre>
 </div>
 </div>
