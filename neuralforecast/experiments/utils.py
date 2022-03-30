@@ -12,24 +12,36 @@ ENV_VARS = dict(OMP_NUM_THREADS='2',
                 VECLIB_MAXIMUM_THREADS='2',
                 NUMEXPR_NUM_THREADS='3')
 
-# Cell
 import os
-import pickle
 # Limit number of threads in numpy and others to avoid throttling
 os.environ.update(ENV_VARS)
+
+# Cell
 import time
-from functools import partial
+import pickle
 from typing import Tuple
+from functools import partial
 
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
+
 import torch as t
-from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 from torch.utils.data import DataLoader
 
+import logging
+import pytorch_lightning as pl
+pl.utilities.distributed.log.setLevel(logging.ERROR)
+
+from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
+
 from ..data.scalers import Scaler
-from ..data.tsdataset import TimeSeriesDataset, WindowsDataset, IterateWindowsDataset, BaseDataset
+from ..data.tsdataset import (
+    TimeSeriesDataset,
+    WindowsDataset,
+    IterateWindowsDataset,
+    BaseDataset
+)
+
 from ..data.tsloader import TimeSeriesLoader
 from ..models.esrnn.esrnn import ESRNN
 from ..models.rnn.rnn import RNN
@@ -880,13 +892,15 @@ def model_fit_predict(mc: dict,
 
     if ds_in_val > 0:
         y_true, y_hat, mask, meta_data = predict(mc, model, trainer, val_loader, scaler_y)
-        val_values = (('val_y_true', y_true), ('val_y_hat', y_hat), ('val_mask', mask), ('val_meta_data', meta_data))
+        val_values = (('val_y_true', y_true), ('val_y_hat', y_hat),
+                      ('val_mask', mask), ('val_meta_data', meta_data))
         results.update(val_values)
 
     # Predict test if available
     if ds_in_test > 0:
         y_true, y_hat, mask, meta_data = predict(mc, model, trainer, test_loader, scaler_y)
-        test_values = (('test_y_true', y_true), ('test_y_hat', y_hat), ('test_mask', mask), ('test_meta_data', meta_data))
+        test_values = (('test_y_true', y_true), ('test_y_hat', y_hat),
+                       ('test_mask', mask), ('test_meta_data', meta_data))
         results.update(test_values)
 
     return results, model, trainer
@@ -959,10 +973,13 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
     # Some asserts due to work in progress
     n_series = Y_df['unique_id'].nunique()
     if n_series > 1:
-        assert mc['normalizer_y'] is None, 'Data scaling not implemented with multiple time series'
-        assert mc['normalizer_x'] is None, 'Data scaling not implemented with multiple time series'
+        assert mc['normalizer_y'] is None,\
+            'Data scaling not implemented with multiple time series'
+        assert mc['normalizer_x'] is None,\
+            'Data scaling not implemented with multiple time series'
 
-    assert ds_in_test % mc['val_idx_to_sample_freq']==0, 'outsample size should be multiple of val_idx_to_sample_freq'
+    assert ds_in_test % mc['val_idx_to_sample_freq']==0,\
+        'outsample size should be multiple of val_idx_to_sample_freq'
 
     # Make predictions
     start = time.time()
@@ -977,7 +994,8 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
     run_time = time.time() - start
 
     # Evaluate predictions
-    val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'], weights=results['val_mask'], **loss_kwargs)
+    val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'],
+                                 weights=results['val_mask'], **loss_kwargs)
 
     results_output = {'loss': val_loss,
                       'mc': mc,
@@ -988,7 +1006,8 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
     if ds_in_test > 0:
         test_loss_dict = {}
         for loss_name, loss_function in loss_functions_test.items():
-            test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'], weights=results['test_mask'])
+            test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'],
+                                                      weights=results['test_mask'])
         results_output['test_losses'] = test_loss_dict
 
     if return_forecasts and ds_in_test > 0:
@@ -1085,7 +1104,9 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
         os.makedirs(results_dir, exist_ok = True)
 
     trials = Trials()
-    fmin_objective = partial(evaluate_model, loss_function_val=loss_function_val, loss_functions_test=loss_functions_test,
+    fmin_objective = partial(evaluate_model,
+                             loss_function_val=loss_function_val,
+                             loss_functions_test=loss_functions_test,
                              S_df=S_df, Y_df=Y_df, X_df=X_df, f_cols=f_cols,
                              ds_in_val=ds_in_val, ds_in_test=ds_in_test,
                              return_forecasts=return_forecasts, return_model=return_model,
@@ -1094,7 +1115,8 @@ def hyperopt_tunning(space: dict, hyperopt_max_evals: int,
                              step_save_progress=step_save_progress,
                              loss_kwargs=loss_kwargs or {}, verbose=verbose)
 
-    fmin(fmin_objective, space=space, algo=tpe.suggest, max_evals=hyperopt_max_evals, trials=trials, verbose=verbose)
+    fmin(fmin_objective, space=space, algo=tpe.suggest,
+         max_evals=hyperopt_max_evals, trials=trials, verbose=verbose)
 
     # Saves final trials
     if save_trials:

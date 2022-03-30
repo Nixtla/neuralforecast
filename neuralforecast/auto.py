@@ -6,11 +6,10 @@ __all__ = ['AutoBaseModel', 'NHITS', 'nhits_space', 'NBEATS', 'nbeats_space', 'R
 # Cell
 import numpy as np
 import pandas as pd
-import neuralforecast as nf
+from hyperopt import hp
 import pytorch_lightning as pl
 
-from hyperopt import hp
-
+import neuralforecast as nf
 
 # Cell
 class AutoBaseModel(object):
