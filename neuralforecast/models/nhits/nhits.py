@@ -747,8 +747,10 @@ def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: p
     """
 
     # Add forecast dates to Y_df
+    Y_df = Y_df.reset_index(drop=True)
     Y_df['ds'] = pd.to_datetime(Y_df['ds'])
     if X_df is not None:
+        X_df = X_df.reset_index(drop=True)
         X_df['ds'] = pd.to_datetime(X_df['ds'])
     forecast_dates = pd.date_range(Y_df['ds'].max(), periods=self.n_time_out+1, freq=self.frequency)[1:]
     index = pd.MultiIndex.from_product([Y_df['unique_id'].unique(), forecast_dates], names=['unique_id', 'ds'])

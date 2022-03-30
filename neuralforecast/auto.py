@@ -30,7 +30,7 @@ class AutoBaseModel(object):
         self.space['n_s_hidden'] = hp.choice('n_s_hidden', [ 0 if S_df is None else (S_df.shape[1]-1) ])
         self.space['frequency'] = hp.choice('frequency', [ pd.infer_freq(Y_df['ds']) ])
 
-        self.model, _ = nf.experiments.utils.hyperopt_tunning(space=self.space,
+        self.model, self.trials = nf.experiments.utils.hyperopt_tunning(space=self.space,
                                                              hyperopt_max_evals=hyperopt_steps,
                                                              loss_function_val=loss_function_val,
                                                              loss_functions_test=loss_functions_test,
