@@ -1,5 +1,6 @@
 __version__ = "0.0.7"
 
+import neuralforecast.auto
 import neuralforecast.data
 import neuralforecast.data.scalers
 import neuralforecast.data.tsdataset
