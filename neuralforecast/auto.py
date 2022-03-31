@@ -9,7 +9,7 @@ import pandas as pd
 from hyperopt import hp
 import pytorch_lightning as pl
 
-import neuralforecast as nf
+from .experiments.utils import hyperopt_tunning
 
 # Cell
 class AutoBaseModel(object):
@@ -29,19 +29,19 @@ class AutoBaseModel(object):
         self.space['n_s_hidden'] = hp.choice('n_s_hidden', [ 0 if S_df is None else (S_df.shape[1]-1) ])
         self.space['frequency'] = hp.choice('frequency', [ pd.infer_freq(Y_df['ds']) ])
 
-        self.model, self.trials = nf.experiments.utils.hyperopt_tunning(space=self.space,
-                                                             hyperopt_max_evals=hyperopt_steps,
-                                                             loss_function_val=loss_function_val,
-                                                             loss_functions_test=loss_functions_test,
-                                                             S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                                             f_cols=[], ds_in_val=n_ts_val,
-                                                             ds_in_test=n_ts_test,
-                                                             return_forecasts=return_test_forecast,
-                                                             return_model=True,
-                                                             save_trials=save_trials,
-                                                             results_dir=results_dir,
-                                                             step_save_progress=5,
-                                                             verbose=verbose)
+        self.model, self.trials = hyperopt_tunning(space=self.space,
+                                                   hyperopt_max_evals=hyperopt_steps,
+                                                   loss_function_val=loss_function_val,
+                                                   loss_functions_test=loss_functions_test,
+                                                   S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                                   f_cols=[], ds_in_val=n_ts_val,
+                                                   ds_in_test=n_ts_test,
+                                                   return_forecasts=return_test_forecast,
+                                                   return_model=True,
+                                                   save_trials=save_trials,
+                                                   results_dir=results_dir,
+                                                   step_save_progress=5,
+                                                   verbose=verbose)
 
         return self
 
@@ -60,8 +60,9 @@ class NHITS(AutoBaseModel):
         self.space = space
 
 
-def nhits_space(n_time_out: int, n_series: int=None, n_x: int=None, n_s: int=None,
-                frequency: str=None) -> dict:
+def nhits_space(n_time_out: int, n_series: int = None, n_x: int = None,
+                n_s: int = None,
+                frequency: str = None) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 
@@ -142,8 +143,9 @@ class NBEATS(AutoBaseModel):
             space = nbeats_space(n_time_out=n_time_out)
         self.space = space
 
-def nbeats_space(n_time_out: int, n_series: int, n_x: int, n_s: int,
-                 frequency: str) -> dict:
+def nbeats_space(n_time_out: int, n_series: int = None,
+                 n_x: int = None, n_s: int = None,
+                 frequency: str = None) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 
@@ -218,8 +220,9 @@ class RNN(AutoBaseModel):
             space = rnn_space(n_time_out=n_time_out)
         self.space = space
 
-def rnn_space(n_time_out: int, n_series: int, n_x: int, n_s: int,
-              frequency: str) -> dict:
+def rnn_space(n_time_out: int, n_series: int = None, n_x: int = None,
+              n_s: int = None,
+              frequency: str = None) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 

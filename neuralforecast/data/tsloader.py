@@ -42,13 +42,8 @@ class TimeSeriesLoader(DataLoader):
             Number of windows to sample after
             batching batch_size series.
         """
-        #if 'collate_fn' in kwargs.keys():
-        #    warnings.warn(
-        #        'This class wraps the pytorch `DataLoader` with a '
-        #        'special collate function. If you want to use yours '
-        #        'simply use `DataLoader`. Removing collate_fn'
-        #    )
-        #    kwargs.pop('collate_fn')
+        if 'collate_fn' in kwargs:
+            kwargs.pop('collate_fn')
 
         kwargs_ = {**kwargs, **dict(collate_fn=self._collate_fn)}
         DataLoader.__init__(self, dataset=dataset, **kwargs_)
