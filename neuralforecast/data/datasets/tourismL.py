@@ -59,6 +59,7 @@ class TourismL(TimeSeriesDataclass):
 
     url = 'https://robjhyndman.com/publications/mint/'
     source_url = 'https://robjhyndman.com/data/TourismData_v3.csv'
+    H = 12
 
     @staticmethod
     def load(directory: str):
@@ -88,7 +89,17 @@ class TourismL(TimeSeriesDataclass):
         df = pd.read_csv(file)
         df['ds'] = np.arange("1998-01-01","2017-01-01",dtype='datetime64[M]')
         df = df.drop(labels=['Year', 'Month'], axis=1)
-        return df
+
+        # Add aditional H steps for predictions
+        # declare skipping ds from column names
+        extra = np.empty((12,len(df.columns)-1,))
+        extra[:] = np.nan
+        extra_df = pd.DataFrame.from_records(extra, columns=df.columns[1:])
+        extra_df['ds'] = np.arange("2017-01-01","2018-01-01",dtype='datetime64[M]')
+
+        raw_df = pd.concat([df, extra_df], axis=0).reset_index(drop=True)
+
+        return raw_df
 
     @staticmethod
     def download(directory: str) -> None:
@@ -107,10 +118,10 @@ class TourismL(TimeSeriesDataclass):
     @staticmethod
     def preprocess_data(directory: str, verbose=False) -> None:
         # Read raw data and create ids for later use
-        raw_data = TourismL.load(directory)
-        dates = raw_data.ds
-        raw_data.drop(['ds'], axis=1, inplace=True)
-        unique_ids  = np.array(list(raw_data.columns))
+        raw_df = TourismL.load(directory)
+        dates = raw_df.ds
+        raw_df.drop(['ds'], axis=1, inplace=True)
+        unique_ids  = np.array(list(raw_df.columns))
         region_ids  = np.array([u_id[:3] for u_id in unique_ids]) #AAAHol->AAA
         purpose_ids = np.array([u_id[3:] for u_id in unique_ids]) #AAAHol->Hol
 
@@ -145,8 +156,8 @@ class TourismL(TimeSeriesDataclass):
             #----------------------- Y Variables -----------------------#
 
             # Hierarchical Y for Y_agg features
-            Y_bottom = raw_data.values.T
-            Y_hier    = H @ Y_bottom
+            Y_bottom = raw_df.values.T
+            Y_hier    = H @ Y_bottom      # [n_agg+n_bottom, n_bottom] x [n_bottom, T]
 
             # [Total, State, Zone, Region, TotalP, StateP, ZoneP] [0, 1, 2, 3, 4, 5, 6]
             # [Total, State, Zone, Region] <--> [0, 1, 2, 3]
@@ -182,7 +193,7 @@ class TourismL(TimeSeriesDataclass):
                                      columns=['ds', 'distance_month',
                                               'y_[total]', 'y_[state]',
                                               'y_[zone]', 'y_[region]'])
-            temporal_agg['region'] = np.tile(static_agg.region.values[:,None], (228,1))
+            temporal_agg['region'] = np.tile(static_agg.region.values[:,None], (240,1))
 
         with CodeTimer('Create static_bottom', verbose):
             # This version intends to help the model learn in this low sample task
@@ -197,7 +208,7 @@ class TourismL(TimeSeriesDataclass):
 
             # Avoid leakage into statistics and collapse time dimension,
             # using median (it is robust to outliers)
-            Y_available = Y_bottom[:,:-12] # mini validation leakage
+            Y_available = Y_bottom[:,:-12-12] # skip test and validation
 
             # [n_regions*n_purpose, n_time] --> [n_regions*n_purpose]
             level  = np.median(Y_available, axis=1)
@@ -224,8 +235,9 @@ class TourismL(TimeSeriesDataclass):
         with CodeTimer('Create temporal_bottom', verbose):
             # To help the model learn seasonalities(12 months)
             # we compute lag 12 for 304 regions x purposes
+            # Elements that roll beyond the last position are re-introduced at the first.
             Y_lags = np.roll(Y_bottom, shift=12, axis=1)
-            Y_lags[:,:12] = Y_lags[:,12:24]
+            Y_lags[:,:12] = Y_lags[:,12:24] # Clean raw_df NAs from first 12 entries
 
             # December/January dummy variables
             encoder = OneHotEncoder()
@@ -250,15 +262,16 @@ class TourismL(TimeSeriesDataclass):
             temporal_bottom = pd.DataFrame.from_records(temporal_bottom,
                                         columns=list(month_df.columns) + \
                                                 ['y_[lag12]', 'y',])
-            temporal_bottom['unique_id'] = np.repeat(unique_ids, 228)
-            temporal_bottom['region']    = np.repeat(region_ids, 228)
-            temporal_bottom['purpose']   = np.repeat(purpose_ids,228)
+            temporal_bottom['unique_id'] = np.repeat(unique_ids, 240)
+            temporal_bottom['region']    = np.repeat(region_ids, 240)
+            temporal_bottom['purpose']   = np.repeat(purpose_ids,240)
 
         # Checking dtypes correctness
-        #print('1. static_agg.dtypes \n', static_agg.dtypes)
-        #print('2. temporal_agg.dtypes \n', temporal_agg.dtypes)
-        #print('3. static_bottom.dtypes \n', static_bottom.dtypes)
-        #print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
+        if verbose:
+            print('1. static_agg.dtypes \n', static_agg.dtypes)
+            print('2. temporal_agg.dtypes \n', temporal_agg.dtypes)
+            print('3. static_bottom.dtypes \n', static_bottom.dtypes)
+            print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
 
         # Save feathers for fast access
         H_df.to_feather(f'{directory}/H_df.feather')
@@ -283,7 +296,7 @@ class TourismL(TimeSeriesDataclass):
             unique_ids  = static_bottom.unique_id.values
             region_ids  = static_bottom.region.values
             purpose_ids = static_bottom.purpose.values
-            n_time   = len(dates)                            # 228
+            n_time   = len(dates)                             # 228
             n_group  = len(static_bottom.region.unique())     # 76
             n_series = len(static_bottom.purpose.unique())    # 4
 
@@ -371,7 +384,7 @@ class TourismL(TimeSeriesDataclass):
             # T0=0 --> [0,1,2,3,4,5,6,7|,8,9,10]
             # T0=1 --> [1,2,3,4,5,6,7,8|9,10,11]
             # T0=1 uses T0+1 X_futr=[2,3,4,5,6,7,8,9|10,11,12] ???
-            # Switch to [-1] for Naive1
+            # Seasonal Naive12 switch to [-1] for Naive1
             X = np.concatenate((X, X[:,[-12],:]), axis=1)
             X_agg = np.concatenate((X_agg, X_agg[:,[-12],:]), axis=1)
 
@@ -385,19 +398,19 @@ class TourismL(TimeSeriesDataclass):
             Y = np.float32(np.transpose(Y, (0, 2, 1)))
             X = np.float32(np.transpose(X, (0, 2, 3, 1)))
 
-            # Assert that the variables are contained in indexes
+            # Skip NAs from Y data [G,N,T]
+            Y = Y[:,:,:-12]
+            Y_agg = Y_agg[:,:,:-12]
+            Y_hier = Y_hier[:,:-12]
+
+            # Assert that the variables are contained in the column indexes
             assert all(c in list(xcols_agg) for c in xcols_hist_agg)
             assert all(c in list(xcols_agg) for c in xcols_futr_agg)
             assert all(c in list(xcols) for c in xcols_hist)
             assert all(c in list(xcols) for c in xcols_futr)
 
-            data = {# Aggregate data
-                    'S_agg': S_agg, 'X_agg': X_agg, 'Y_agg': Y_agg,
-                    'scols_agg': scols_agg,
-                    'xcols_agg': xcols_agg,
-                    'xcols_hist_agg': xcols_hist_agg,
-                    'xcols_futr_agg': xcols_futr_agg,
-                    # Bottom data
+            fdates = np.arange("1998-01-01","2018-02-01",dtype='datetime64[M]')
+            data = {# Bottom data
                     'S': S, 'X': X, 'Y': Y,
                     'scols': scols,
                     'xcols': xcols,
@@ -405,6 +418,12 @@ class TourismL(TimeSeriesDataclass):
                     'xcols_futr': xcols_futr,
                     'xcols_sample_mask': 'sample_mask',
                     'xcols_available_mask': 'available_mask',
+                    # Aggregate data
+                    'S_agg': S_agg, 'X_agg': X_agg, 'Y_agg': Y_agg,
+                    'scols_agg': scols_agg,
+                    'xcols_agg': xcols_agg,
+                    'xcols_hist_agg': xcols_hist_agg,
+                    'xcols_futr_agg': xcols_futr_agg,
                     # Hierarchical data for evaluation
                     'Y_hier': Y_hier,
                     'hier_idxs': hier_idxs,
@@ -413,6 +432,7 @@ class TourismL(TimeSeriesDataclass):
                     # Shared data
                     'H': H,
                     'dates': dates,
+                    'fdates': fdates,
                     'unique_ids': unique_ids,
                     'region_ids': region_ids,
                     'pupose_ids': purpose_ids}
@@ -474,6 +494,7 @@ class HierTimeseriesDataset(Dataset):
                  xcols_futr,
                  xcols_sample_mask,
                  xcols_available_mask,
+                 fdates,
                  # Aggregated data
                  Y_agg, X_agg, S_agg,
                  xcols_agg,
@@ -481,6 +502,7 @@ class HierTimeseriesDataset(Dataset):
                  xcols_futr_agg,
                  # Generator parameters
                  T0, T, H,
+                 lastwindow_mask=False,
                 ):
 
         # Assert that raw data has correct series lens
@@ -519,6 +541,15 @@ class HierTimeseriesDataset(Dataset):
         self.futr_col        = list(xcols.get_indexer(xcols_futr))
         self.sample_mask_col    = xcols.get_loc(xcols_sample_mask)
         self.available_mask_col = xcols.get_loc(xcols_available_mask)
+
+        self.fdates = fdates[T0+1:T0+T+H+1]
+
+        if lastwindow_mask:
+            # Create dummy to identify observations of
+            # Y's last H steps (X's last H steps are forecast)
+            lastwindow_mask = np.zeros(self.X[:,:,self.sample_mask_col,:].shape)
+            lastwindow_mask[:,:,T0+T-H:T0+T] = 1
+            self.X[:,:,self.sample_mask_col,:] = lastwindow_mask
 
         # Batch parameters
         self.T0   = T0
