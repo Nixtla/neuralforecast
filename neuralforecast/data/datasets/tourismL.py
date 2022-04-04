@@ -283,7 +283,6 @@ class TourismL(TimeSeriesDataclass):
     @staticmethod
     def load_process(directory=str, verbose=False) -> None:
 
-        #-------------------------------------- S/X/Y_agg    --------------------------------------#
         with CodeTimer('Reading data   ', verbose):
             static_agg    = pd.read_feather(f'{directory}/static_agg.feather')
             temporal_agg    = pd.read_feather(f'{directory}/temporal_agg.feather')
@@ -300,6 +299,7 @@ class TourismL(TimeSeriesDataclass):
             n_group  = len(static_bottom.region.unique())     # 76
             n_series = len(static_bottom.purpose.unique())    # 4
 
+        #-------------------------------------- S/X/Y_agg    --------------------------------------#
         with CodeTimer('Process temporal_agg', verbose):
             # Drop observation indexes and obtain column indexes
             temporal_agg.drop(['region', 'ds'], axis=1, inplace=True)
@@ -409,7 +409,6 @@ class TourismL(TimeSeriesDataclass):
             assert all(c in list(xcols) for c in xcols_hist)
             assert all(c in list(xcols) for c in xcols_futr)
 
-            fdates = np.arange("1998-01-01","2018-02-01",dtype='datetime64[M]')
             data = {# Bottom data
                     'S': S, 'X': X, 'Y': Y,
                     'scols': scols,
@@ -432,7 +431,6 @@ class TourismL(TimeSeriesDataclass):
                     # Shared data
                     'H': H,
                     'dates': dates,
-                    'fdates': fdates,
                     'unique_ids': unique_ids,
                     'region_ids': region_ids,
                     'pupose_ids': purpose_ids}
@@ -494,7 +492,7 @@ class HierTimeseriesDataset(Dataset):
                  xcols_futr,
                  xcols_sample_mask,
                  xcols_available_mask,
-                 fdates,
+                 dates,
                  # Aggregated data
                  Y_agg, X_agg, S_agg,
                  xcols_agg,
@@ -542,7 +540,7 @@ class HierTimeseriesDataset(Dataset):
         self.sample_mask_col    = xcols.get_loc(xcols_sample_mask)
         self.available_mask_col = xcols.get_loc(xcols_available_mask)
 
-        self.fdates = fdates[T0+1:T0+T+H+1]
+        self.dates = dates[T0+1:T0+T+H+1]
 
         if lastwindow_mask:
             # Create dummy to identify observations of
