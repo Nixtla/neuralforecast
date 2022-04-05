@@ -20,7 +20,8 @@ def _divide_no_nan(a: float, b: float) -> float:
 # Cell
 def _metric_protections(y: np.ndarray, y_hat: np.ndarray, weights: np.ndarray) -> None:
     assert (weights is None) or (np.sum(weights) > 0), 'Sum of weights cannot be 0'
-    assert (weights is None) or (weights.shape == y_hat.shape), 'Wrong weight dimension'
+    assert (weights is None) or (weights.shape == y.shape),\
+        f'Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}'
 
 # Cell
 def mae(y: np.ndarray, y_hat: np.ndarray,
@@ -453,14 +454,19 @@ def mqloss(y: np.ndarray, y_hat: np.ndarray,
         ----------
         [1] https://www.jstor.org/stable/2629907
     """
+    if weights is None: weights = np.ones(y.shape)
+
     _metric_protections(y, y_hat, weights)
     n_q = len(quantiles)
 
-    y_rep = np.expand_dims(y, axis=-1)
-    error = y_hat - y_rep
-    sq = np.maximum(-error, np.zeros_like(error))
-    s1_q = np.maximum(error, np.zeros_like(error))
-    loss = (quantiles * sq + (1 - quantiles) * s1_q)
-    mqloss = np.average(loss, weights=weights, axis=axis)
+    y_rep  = np.expand_dims(y, axis=-1)
+    error  = y_hat - y_rep
+    sq     = np.maximum(-error, np.zeros_like(error))
+    s1_q   = np.maximum(error, np.zeros_like(error))
+    mqloss = (quantiles * sq + (1 - quantiles) * s1_q)
+
+    # Match y/weights dimensions and compute weighted average
+    weights = np.repeat(np.expand_dims(weights, axis=-1), repeats=n_q, axis=-1)
+    mqloss  = np.average(mqloss, weights=weights, axis=axis)
 
     return mqloss

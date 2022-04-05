@@ -348,16 +348,21 @@ def MQLoss(y: t.Tensor, y_hat: t.Tensor, quantiles: t.Tensor,
     """
     assert len(quantiles) > 1, f'your quantiles are of len: {len(quantiles)}'
 
-    if mask is None: mask = t.ones_like(y_hat)
+    if mask is None: mask = t.ones_like(y)
 
     n_q = len(quantiles)
 
-    error = y_hat - y.unsqueeze(-1)
-    sq = t.maximum(-error, t.zeros_like(error))
-    s1_q = t.maximum(error, t.zeros_like(error))
+    error  = y_hat - y.unsqueeze(-1)
+    sq     = t.maximum(-error, t.zeros_like(error))
+    s1_q   = t.maximum(error, t.zeros_like(error))
     mqloss = (quantiles * sq + (1 - quantiles) * s1_q)
 
-    return t.mean(t.mean(mqloss, axis=1))
+    # Match y/weights dimensions and compute weighted average
+    mask = mask / t.sum(mask)
+    mask = mask.unsqueeze(-1)
+    mqloss = (1/n_q) * mqloss * mask
+
+    return t.sum(mqloss)
 
 # Cell
 def wMQLoss(y: t.Tensor, y_hat: t.Tensor, quantiles: t.Tensor,

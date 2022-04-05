@@ -775,7 +775,7 @@ height=300
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="wMQLoss" class="doc_header"><code>wMQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L363" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>wMQLoss</code>(<strong><code>y</code></strong>:<code>Tensor</code>, <strong><code>y_hat</code></strong>:<code>Tensor</code>, <strong><code>quantiles</code></strong>:<code>Tensor</code>, <strong><code>mask</code></strong>:<code>Tensor</code>=<em><code>None</code></em>)</p>
+<h4 id="wMQLoss" class="doc_header"><code>wMQLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L368" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>wMQLoss</code>(<strong><code>y</code></strong>:<code>Tensor</code>, <strong><code>y_hat</code></strong>:<code>Tensor</code>, <strong><code>quantiles</code></strong>:<code>Tensor</code>, <strong><code>mask</code></strong>:<code>Tensor</code>=<em><code>None</code></em>)</p>
 </blockquote>
 <p>Calculates the Weighted Multi-Quantile loss (WMQL) between y and y_hat.
 WMQL calculates the weighted average multi-quantile Loss for
@@ -852,7 +852,7 @@ with a dilated Recurrent neural network is defined by:</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LevelVariabilityLoss" class="doc_header"><code>LevelVariabilityLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L412" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LevelVariabilityLoss</code>(<strong><code>levels</code></strong>:<code>Tensor</code>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>)</p>
+<h4 id="LevelVariabilityLoss" class="doc_header"><code>LevelVariabilityLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L417" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LevelVariabilityLoss</code>(<strong><code>levels</code></strong>:<code>Tensor</code>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>)</p>
 </blockquote>
 <p>Computes the variability penalty for the level of the ES-RNN.
 The levels of the ES-RNN are based on the Holt-Winters model.</p>
@@ -899,7 +899,7 @@ level_var_loss: tensor (single value).
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="SmylLoss" class="doc_header"><code>SmylLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L447" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SmylLoss</code>(<strong><code>y</code></strong>:<code>Tensor</code>, <strong><code>y_hat</code></strong>:<code>Tensor</code>, <strong><code>levels</code></strong>:<code>Tensor</code>, <strong><code>mask</code></strong>:<code>Tensor</code>, <strong><code>tau</code></strong>:<code>float</code>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>=<em><code>0.0</code></em>)</p>
+<h4 id="SmylLoss" class="doc_header"><code>SmylLoss</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/losses/pytorch.py#L452" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>SmylLoss</code>(<strong><code>y</code></strong>:<code>Tensor</code>, <strong><code>y_hat</code></strong>:<code>Tensor</code>, <strong><code>levels</code></strong>:<code>Tensor</code>, <strong><code>mask</code></strong>:<code>Tensor</code>, <strong><code>tau</code></strong>:<code>float</code>, <strong><code>level_variability_penalty</code></strong>:<code>float</code>=<em><code>0.0</code></em>)</p>
 </blockquote>
 <p>Computes the Smyl Loss that combines level
 variability regularization with with Quantile loss.</p>
