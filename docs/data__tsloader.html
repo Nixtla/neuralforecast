@@ -402,7 +402,7 @@ loading order and optional automatic batching (collation) and memory pinning.</p
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="FastTimeSeriesLoader" class="doc_header"><code>class</code> <code>FastTimeSeriesLoader</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L108" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>FastTimeSeriesLoader</code>(<strong><code>dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>32</code></em>, <strong><code>eq_batch_size</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>n_windows</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>shuffle</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h2 id="FastTimeSeriesLoader" class="doc_header"><code>class</code> <code>FastTimeSeriesLoader</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L103" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>FastTimeSeriesLoader</code>(<strong><code>dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#TimeSeriesDataset"><code>TimeSeriesDataset</code></a>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>32</code></em>, <strong><code>eq_batch_size</code></strong>:<code>bool</code>=<em><code>False</code></em>, <strong><code>n_windows</code></strong>:<code>Optional</code>[<code>int</code>]=<em><code>None</code></em>, <strong><code>shuffle</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>A DataLoader-like object for a set of tensors that can be much faster than
 TensorDataset + DataLoader because dataloader grabs individual indices of
@@ -438,7 +438,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__iter__" class="doc_header"><code>FastTimeSeriesLoader.__iter__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L161" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__iter__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__iter__" class="doc_header"><code>FastTimeSeriesLoader.__iter__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L156" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__iter__</code>()</p>
 </blockquote>
 
 </div>
@@ -476,7 +476,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__next__" class="doc_header"><code>FastTimeSeriesLoader.__next__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L178" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__next__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__next__" class="doc_header"><code>FastTimeSeriesLoader.__next__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L173" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__next__</code>()</p>
 </blockquote>
 
 </div>
@@ -507,7 +507,7 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="FastTimeSeriesLoader.__len__" class="doc_header"><code>FastTimeSeriesLoader.__len__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L198" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__len__</code>()</p>
+<h4 id="FastTimeSeriesLoader.__len__" class="doc_header"><code>FastTimeSeriesLoader.__len__</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/tsloader.py#L193" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>FastTimeSeriesLoader.__len__</code>()</p>
 </blockquote>
 
 </div>
@@ -719,20 +719,6 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>10.5 ms ± 199 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -747,20 +733,6 @@ Source: <a href="https://discuss.pytorch.org/t/dataloader-much-slower-than-manua
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>2.45 ms ± 105 µs per loop (mean ± std. dev. of 3 runs, 50 loops each)
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 
