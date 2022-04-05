@@ -542,12 +542,14 @@ class HierTimeseriesDataset(Dataset):
 
         self.dates = dates[T0+1:T0+T+H+1]
 
+        # Copy sample mask to avoid overwriting it
+        self.sample_mask = self.X[:,:,self.sample_mask_col,:].copy()
         if lastwindow_mask:
             # Create dummy to identify observations of
             # Y's last H steps (X's last H steps are forecast)
             lastwindow_mask = np.zeros(self.X[:,:,self.sample_mask_col,:].shape)
             lastwindow_mask[:,:,T0+T-H:T0+T] = 1
-            self.X[:,:,self.sample_mask_col,:] = lastwindow_mask
+            self.sample_mask = lastwindow_mask
 
         # Batch parameters
         self.T0   = T0
@@ -569,7 +571,7 @@ class HierTimeseriesDataset(Dataset):
         f = self.X[idx,:,:,T0+1:T0+T+H+1][:,self.futr_col,:]
         y = self.Y[idx,:,T0+1:T0+T]
 
-        sample_mask    = self.X[idx,:,:,T0+1:T0+T][:,self.sample_mask_col,:]
+        sample_mask    = self.sample_mask[idx,:,T0+1:T0+T]
         available_mask = self.X[idx,:,:,T0+1:T0+T][:,self.available_mask_col,:]
 
         # [G,C,T] Shared features across N
