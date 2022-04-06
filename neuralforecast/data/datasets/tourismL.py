@@ -365,6 +365,10 @@ class TourismL(TimeSeriesDataclass):
             Y_flat  = temporal_bottom['y'].values
             Y_flat  = Y_flat.reshape((n_group*n_series,n_time))
 
+            print('H.shape', H.shape)
+            print('H.dtype', H.dtype)
+            #.astype(float)
+
             Y_hier      = H @ Y_flat
             hier_labels = list(Hencoded.columns[1:]) + list(H_df.unique_id)
             hier_labels = np.array(hier_labels) # Numpy for easy list indexing
