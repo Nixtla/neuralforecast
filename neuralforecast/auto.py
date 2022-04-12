@@ -362,19 +362,19 @@ def auto(config_dict: dict,
 
         # Run automated hyperparameter optimization
         results_dir_model = f'{results_dir}/{model_str}'
-        model, trials = nf.experiments.utils.hyperopt_tunning(space=space,
-                                                                hyperopt_max_evals=hyperopt_steps,
-                                                                loss_function_val=loss_function_val,
-                                                                loss_functions_test=loss_functions_test,
-                                                                S_df=S_df, Y_df=Y_df, X_df=X_df,
-                                                                f_cols=[], ds_in_val=ts_in_val,
-                                                                ds_in_test=ts_in_test,
-                                                                return_forecasts=return_forecasts,
-                                                                return_model=True,
-                                                                save_trials=False,
-                                                                results_dir=results_dir_model,
-                                                                step_save_progress=0,
-                                                                verbose=verbose)
+        model, trials = hyperopt_tunning(space=space,
+                                         hyperopt_max_evals=hyperopt_steps,
+                                         loss_function_val=loss_function_val,
+                                         loss_functions_test=loss_functions_test,
+                                         S_df=S_df, Y_df=Y_df, X_df=X_df,
+                                         f_cols=[], ds_in_val=ts_in_val,
+                                         ds_in_test=ts_in_test,
+                                         return_forecasts=return_forecasts,
+                                         return_model=True,
+                                         save_trials=False,
+                                         results_dir=results_dir_model,
+                                         step_save_progress=0,
+                                         verbose=verbose)
 
         model_output = {'best_mc': trials.best_trial['result']['mc'],
                         'run_time': trials.best_trial['result']['run_time'],
