@@ -204,14 +204,12 @@ nb_path: "nbs/data_datasets__tourismL.ipynb"
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Code block &#39;Reading data   &#39; took:	0.03132 seconds
-Code block &#39;Process temporal_agg&#39; took:	0.00138 seconds
-Code block &#39;Process static_agg&#39; took:	0.00044 seconds
-Code block &#39;Process temporal_bottom&#39; took:	0.00486 seconds
-Code block &#39;Process static_bottom&#39; took:	0.00052 seconds
-H.shape (555, 304)
-H.dtype object
-Code block &#39;Hier constraints&#39; took:	2.73415 seconds
+<pre>Code block &#39;Reading data   &#39; took:	0.26691 seconds
+Code block &#39;Process temporal_agg&#39; took:	0.01913 seconds
+Code block &#39;Process static_agg&#39; took:	0.00484 seconds
+Code block &#39;Process temporal_bottom&#39; took:	0.00901 seconds
+Code block &#39;Process static_bottom&#39; took:	0.00104 seconds
+Code block &#39;Hier constraints&#39; took:	2.09411 seconds
 
 
 Total days 240, train 216 validation 12, test 12
@@ -249,7 +247,7 @@ country_purpose.shape 	 (4, 228)
 states_purpose.shape  	 (28, 228)
 zones_purpose.shape   	 (108, 228)
 regions_purpose.shape 	 (304, 228)
-Code block &#39;Final processing&#39; took:	0.02458 seconds
+Code block &#39;Final processing&#39; took:	0.01266 seconds
 </pre>
 </div>
 </div>
@@ -701,7 +699,7 @@ data[&#39;xcols_agg&#39;]:= Index([&#39;distance_month&#39;, &#39;y_[total]&#39;
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="HierTimeseriesDataset" class="doc_header"><code>class</code> <code>HierTimeseriesDataset</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/tourismL.py#L490" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>HierTimeseriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
+<h2 id="HierTimeseriesDataset" class="doc_header"><code>class</code> <code>HierTimeseriesDataset</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/tourismL.py#L486" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>HierTimeseriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
 </blockquote>
 <p>An abstract class representing a :class:<code>Dataset</code>.</p>
 <p>All datasets that represent a map from keys to data samples should subclass

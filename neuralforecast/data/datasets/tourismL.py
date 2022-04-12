@@ -274,21 +274,21 @@ class TourismL(TimeSeriesDataclass):
             print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
 
         # Save feathers for fast access
-        H_df.to_feather(f'{directory}/H_df.feather')
-        static_agg.to_feather(f'{directory}/static_agg.feather')
-        temporal_agg.to_feather(f'{directory}/temporal_agg.feather')
-        static_bottom.to_feather(f'{directory}/static_bottom.feather')
-        temporal_bottom.to_feather(f'{directory}/temporal_bottom.feather')
+        H_df.to_csv(f'{directory}/H_df.csv', index=False)
+        static_agg.to_csv(f'{directory}/static_agg.csv', index=False)
+        temporal_agg.to_csv(f'{directory}/temporal_agg.csv', index=False)
+        static_bottom.to_csv(f'{directory}/static_bottom.csv', index=False)
+        temporal_bottom.to_csv(f'{directory}/temporal_bottom.csv', index=False)
 
     @staticmethod
     def load_process(directory=str, verbose=False) -> None:
 
         with CodeTimer('Reading data   ', verbose):
-            static_agg    = pd.read_feather(f'{directory}/static_agg.feather')
-            temporal_agg    = pd.read_feather(f'{directory}/temporal_agg.feather')
+            static_agg    = pd.read_csv(f'{directory}/static_agg.csv')
+            temporal_agg    = pd.read_csv(f'{directory}/temporal_agg.csv')
 
-            static_bottom = pd.read_feather(f'{directory}/static_bottom.feather')
-            temporal_bottom = pd.read_feather(f'{directory}/temporal_bottom.feather')
+            static_bottom = pd.read_csv(f'{directory}/static_bottom.csv')
+            temporal_bottom = pd.read_csv(f'{directory}/temporal_bottom.csv')
 
             # Extract datasets dimensions for later use
             dates = pd.to_datetime(temporal_agg.ds.unique())
@@ -356,7 +356,7 @@ class TourismL(TimeSeriesDataclass):
         with CodeTimer('Hier constraints', verbose):
             # Read hierarchical constraints dataframe
             # Create hierarchical aggregation numpy
-            H_df = pd.read_feather(f'{directory}/H_df.feather')
+            H_df = pd.read_csv(f'{directory}/H_df.csv')
             Hencoded = one_hot_encoding(df=H_df, index_col='unique_id')
             Hsum = Hencoded.values[:, 1:].T # Eliminate stores index
             H = np.concatenate((Hsum, np.eye(len(unique_ids))), axis=0)
@@ -364,10 +364,6 @@ class TourismL(TimeSeriesDataclass):
             # Hierarchical dataset and evaluation utility
             Y_flat  = temporal_bottom['y'].values
             Y_flat  = Y_flat.reshape((n_group*n_series,n_time))
-
-            print('H.shape', H.shape)
-            print('H.dtype', H.dtype)
-            #.astype(float)
 
             Y_hier      = H @ Y_flat
             hier_labels = list(Hencoded.columns[1:]) + list(H_df.unique_id)
