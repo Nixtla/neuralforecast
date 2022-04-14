@@ -205,7 +205,7 @@ def SMAPELoss(y: t.Tensor, y_hat: t.Tensor, mask: t.Tensor =None) -> t.Tensor:
     scale = t.abs(y) + t.abs(y_hat)
     smape = _divide_no_nan(delta_y, scale)
     smape = smape * mask
-    smape = 2 * t.mean(smape)
+    smape = 200 * t.mean(smape)
     return smape
 
 # Cell

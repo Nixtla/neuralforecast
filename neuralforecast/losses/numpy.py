@@ -246,12 +246,12 @@ def smape(y: np.ndarray, y_hat: np.ndarray,
     delta_y = np.abs(y - y_hat)
     scale = np.abs(y) + np.abs(y_hat)
     smape = _divide_no_nan(delta_y, scale)
-    smape = 2 * np.average(smape, weights=weights, axis=axis)
+    smape = 200 * np.average(smape, weights=weights, axis=axis)
 
     if isinstance(smape, float):
-        assert smape <= 2, 'SMAPE should be lower than 2'
+        assert smape <= 200, 'SMAPE should be lower than 2'
     else:
-        assert all(smape <= 2), 'SMAPE should be lower than 2'
+        assert all(smape <= 200), 'SMAPE should be lower than 2'
 
     return smape
 
