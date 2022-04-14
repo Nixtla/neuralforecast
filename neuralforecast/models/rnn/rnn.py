@@ -323,7 +323,7 @@ class RNN(pl.LightningModule):
         y_hat = self.model(Y=insample_Y, X=X)
 
         # Filter to windows with at least one sampleable ts
-        sample_condition = sample_mask.sum(dim=2)>0
+        sample_condition = sample_mask.sum(dim=2)==self.output_size
         assert t.equal(sample_condition[[0]]*t.ones(sample_condition.shape), 1.0*sample_condition), 'Sample mask must match perfectly between time-series'
         sample_index = sample_condition[0]
 
