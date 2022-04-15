@@ -210,8 +210,8 @@ def _df_to_lists(self: BaseDataset,
     S = S_df.sort_values('unique_id')
 
     # time columns and static columns for future indexing
-    t_cols = list(G.columns[2:]) # avoid unique_id and ds
-    s_cols = list(S.columns[1:]) # avoid unique_id
+    t_cols = [col for col in G.columns if col not in ['unique_id', 'ds']]# avoid unique_id and ds
+    s_cols = [col for col in S.columns if col not in ['unique_id']] # avoid unique_id
 
     grouped = G.groupby('unique_id')
     meta = G[['unique_id', 'ds']].values
