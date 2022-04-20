@@ -1,6 +1,6 @@
 ---
 
-title: Kaggle-Competition-Favorita
+title: Favorita retail dataset
 
 
 keywords: fastai
@@ -36,13 +36,50 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%html</span>
-<span class="p">&lt;</span><span class="nt">style</span><span class="p">&gt;</span><span class="w"> </span><span class="nt">table</span><span class="w"> </span><span class="p">{</span><span class="k">float</span><span class="p">:</span><span class="kc">left</span><span class="p">}</span><span class="w"> </span><span class="p">&lt;/</span><span class="nt">style</span><span class="p">&gt;</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># !pip install matplotlib</span>
+<span class="c1"># !pip install sklearn</span>
+<span class="c1"># !pip install pydantic</span>
+<span class="c1"># !pip install shutil</span>
 </pre></div>
 
     </div>
 </div>
 </div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a name="cell-1"></a></p>
+<h2 id="1.-Auxiliary-Functions">1. Auxiliary Functions<a class="anchor-link" href="#1.-Auxiliary-Functions"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
 
 <div class="output_wrapper">
 <div class="output">
@@ -50,8 +87,9 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 <div class="output_area">
 
 
-<div class="output_html rendered_html output_subarea ">
-<style> table {float:left} </style>
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="CodeTimer" class="doc_header"><code>class</code> <code>CodeTimer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L48" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>CodeTimer</code>(<strong><code>name</code></strong>=<em><code>None</code></em>, <strong><code>verbose</code></strong>=<em><code>True</code></em>)</p>
+</blockquote>
 
 </div>
 
@@ -81,7 +119,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="check_nans" class="doc_header"><code>check_nans</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L39" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>check_nans</code>(<strong><code>df</code></strong>)</p>
+<h4 id="check_nans" class="doc_header"><code>check_nans</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L63" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>check_nans</code>(<strong><code>df</code></strong>)</p>
 </blockquote>
 <p>For data wrangling logs</p>
 
@@ -99,6 +137,23 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
     
 <div class="cell border-box-sizing code_cell rendered">
 
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="check_items" class="doc_header"><code>check_items</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L79" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>check_items</code>(<strong><code>items</code></strong>)</p>
+</blockquote>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
 </div>
     {% endraw %}
 
@@ -113,7 +168,188 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Favorita" class="doc_header"><code>class</code> <code>Favorita</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L56" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Favorita</code>()</p>
+<h4 id="one_hot_encoding" class="doc_header"><code>one_hot_encoding</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L84" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>one_hot_encoding</code>(<strong><code>df</code></strong>, <strong><code>index_col</code></strong>)</p>
+</blockquote>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="nonzero_indexes_by_row" class="doc_header"><code>nonzero_indexes_by_row</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L96" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>nonzero_indexes_by_row</code>(<strong><code>M</code></strong>)</p>
+</blockquote>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="numpy_balance" class="doc_header"><code>numpy_balance</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L99" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_balance</code>(<strong>*<code>arrs</code></strong>)</p>
+</blockquote>
+<p>Fast NumPy implementation of balance function.
+The function creates all the interactions between
+the NumPy arrays provided.</p>
+
+<pre><code>Parameters
+----------
+arrs: NumPy arrays
+Returns
+-------
+out: NumPy array</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="numpy_ffill" class="doc_header"><code>numpy_ffill</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L116" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_ffill</code>(<strong><code>arr</code></strong>)</p>
+</blockquote>
+<p>Fast NumPy implementation of forwardfill function.
+The function fills missing/nan values with the
+following value in the array.</p>
+
+<pre><code>Parameters
+----------
+arr: NumPy array
+Returns
+-------
+arr: NumPy array</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="numpy_bfill" class="doc_header"><code>numpy_bfill</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L134" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_bfill</code>(<strong><code>arr</code></strong>)</p>
+</blockquote>
+<p>Fast NumPy implementation of backfill function.
+The function fills missing/nan values with the
+previous value in the array.</p>
+
+<pre><code>Parameters
+----------
+arr: NumPy array
+Returns
+-------
+arr: NumPy array</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="distance_to_holiday" class="doc_header"><code>distance_to_holiday</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L153" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>distance_to_holiday</code>(<strong><code>holiday_dates</code></strong>, <strong><code>dates</code></strong>)</p>
+</blockquote>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="make_holidays_distance_df" class="doc_header"><code>make_holidays_distance_df</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L184" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>make_holidays_distance_df</code>(<strong><code>holidays_df</code></strong>, <strong><code>dates</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -133,159 +369,16 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a name="cell-2"></a></p>
+<h2 id="2.-Favorita-Class">2. Favorita Class<a class="anchor-link" href="#2.-Favorita-Class"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>100%|██████████| 480M/480M [00:15&lt;00:00, 31.5MiB/s] 
-INFO:nixtla.data.datasets.utils:Successfully downloaded favorita-grocery-sales-forecasting.zip?dl=1, 480014675, bytes.
-INFO:nixtla.data.datasets.utils:Decompressing zip file...
-INFO:nixtla.data.datasets.utils:Successfully decompressed data/favorita/favorita-grocery-sales-forecasting.zip?dl=1
-INFO:__main__:Successfully decompressed ./data/favorita/holidays_events.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/items.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/oil.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/sample_submission.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/stores.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/test.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/train.csv.7z
-INFO:__main__:Successfully decompressed ./data/favorita/transactions.csv.7z
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>saved train.csv to train.feather for fast access
-S wrangle time 8.49 segs 
-
-
-
-dataframe n_rows 174685
-            col  dtype  nan_prc
-0      item_nbr  int32      0.0
-1       traj_id  int64      0.0
-2      family_0  uint8      0.0
-3      family_1  uint8      0.0
-4      family_2  uint8      0.0
-..          ...    ...      ...
-481  cluster_13  uint8      0.0
-482  cluster_14  uint8      0.0
-483  cluster_15  uint8      0.0
-484  cluster_16  uint8      0.0
-485   store_nbr   int8      0.0
-
-[486 rows x 3 columns]
-
-
-
-
-dataframe n_rows 125497040
-           col           dtype  nan_prc
-0         date  datetime64[ns]      0.0
-1    store_nbr            int8      0.0
-2     item_nbr           int32      0.0
-3   unit_sales         float32      0.0
-4  onpromotion         boolean      0.0
-5         open           int64      0.0
-
-
-Filter and Removing returns data 4.39 segs
-
-
-dataframe n_rows 41518905
-           col           dtype  nan_prc
-0         date  datetime64[ns]      0.0
-1    store_nbr            int8      0.0
-2     item_nbr           int32      0.0
-3   unit_sales         float32      0.0
-4  onpromotion         boolean      0.0
-5         open           int64      0.0
-6      traj_id           int64      0.0
-
-
-Resampling
-
-
-dataframe n_rows 58106641
-           col           dtype  nan_prc
-0    store_nbr            int8      0.0
-1     item_nbr           int32      0.0
-2      traj_id           int64      0.0
-3  onpromotion         boolean      0.0
-4         date  datetime64[ns]      0.0
-5   unit_sales         float32      0.0
-6         open           int64      0.0
-7    log_sales         float32      0.0
-
-
-Resampling to regular grid 803.1067633628845 segs
-Transactions variable 12.72 segs
-Oil variables 12.66 segs
-Calendar variables 12.76 segs
-Holiday variables 106.95 segs
-
-
-dataframe n_rows 58106641
-             col           dtype  nan_prc
-0      store_nbr            int8      0.0
-1       item_nbr           int32      0.0
-2        traj_id           int64      0.0
-3    onpromotion         boolean      0.0
-4           date  datetime64[ns]      0.0
-5     unit_sales         float32      0.0
-6           open           int64      0.0
-7      log_sales         float32      0.0
-8   transactions         float64      0.0
-9            oil         float64      0.0
-10   day_of_week           int64      0.0
-11  day_of_month           int64      0.0
-12         month           int64      0.0
-13  national_hol          object      0.0
-14  regional_hol          object      0.0
-15     local_hol          object      0.0
-
-
-Saving processed file to ./data/favorita/temporal.feather
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
 
 <div class="output_wrapper">
 <div class="output">
@@ -293,173 +386,11 @@ Saving processed file to ./data/favorita/temporal.feather
 <div class="output_area">
 
 
-<div class="output_html rendered_html output_subarea output_execute_result">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
+<div class="output_markdown rendered_html output_subarea ">
+<h2 id="Favorita" class="doc_header"><code>class</code> <code>Favorita</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L200" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Favorita</code>(<strong><code>S</code></strong>:<code>DataFrame</code>, <strong><code>X</code></strong>:<code>DataFrame</code>, <strong><code>Y</code></strong>:<code>DataFrame</code>, <strong><code>idx_categorical_static</code></strong>:<code>Optional</code>[<code>List</code>[<code>T</code>]]=<em><code>None</code></em>, <strong><code>group</code></strong>:<code>Union</code>[<code>str</code>, <code>List</code>[<code>str</code>]]=<em><code>None</code></em>) :: <a href="/neuralforecast/data_datasets__utils.html#TimeSeriesDataclass"><code>TimeSeriesDataclass</code></a></p>
+</blockquote>
+<p>Favorita(S: pandas.core.frame.DataFrame, X: pandas.core.frame.DataFrame, Y: pandas.core.frame.DataFrame, idx_categorical_static: Union[List, NoneType] = None, group: Union[str, List[str]] = None)</p>
 
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>item_nbr</th>
-      <th>traj_id</th>
-      <th>family_0</th>
-      <th>family_1</th>
-      <th>family_2</th>
-      <th>family_3</th>
-      <th>family_4</th>
-      <th>family_5</th>
-      <th>family_6</th>
-      <th>family_7</th>
-      <th>...</th>
-      <th>cluster_7</th>
-      <th>cluster_8</th>
-      <th>cluster_9</th>
-      <th>cluster_10</th>
-      <th>cluster_11</th>
-      <th>cluster_12</th>
-      <th>cluster_13</th>
-      <th>cluster_14</th>
-      <th>cluster_15</th>
-      <th>cluster_16</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>103665</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>105574</td>
-      <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>105575</td>
-      <td>2</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>108079</td>
-      <td>3</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>108701</td>
-      <td>4</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>...</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-  </tbody>
-</table>
-<p>5 rows × 485 columns</p>
-</div>
 </div>
 
 </div>
@@ -473,91 +404,23 @@ Saving processed file to ./data/favorita/temporal.feather
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_html rendered_html output_subarea output_execute_result">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>unique_id</th>
-      <th>ds</th>
-      <th>log_sales</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>2015-01-02</td>
-      <td>2.302585</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>2015-01-03</td>
-      <td>1.386294</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-      <td>2015-01-04</td>
-      <td>1.098612</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>1</td>
-      <td>2015-01-05</td>
-      <td>0.693147</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>1</td>
-      <td>2015-01-06</td>
-      <td>1.098612</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-
-</div>
-
-</div>
-</div>
 
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a name="cell-3"></a></p>
+<h2 id="3.-Favorita-Validation">3. Favorita Validation<a class="anchor-link" href="#3.-Favorita-Validation"> </a></h2>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="3.1-Load-and-Process-data">3.1 Load and Process data<a class="anchor-link" href="#3.1-Load-and-Process-data"> </a></h3>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -565,117 +428,11 @@ Saving processed file to ./data/favorita/temporal.feather
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span> 
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Favorita.preprocess_data(directory=directory, sample_size=100, verbose=False)</span>
+<span class="c1"># data = Favorita.load_process(directory=directory, sample_size=100, verbose=True)</span>
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_html rendered_html output_subarea output_execute_result">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>unique_id</th>
-      <th>ds</th>
-      <th>onpromotion</th>
-      <th>open</th>
-      <th>transactions</th>
-      <th>oil</th>
-      <th>day_of_week</th>
-      <th>day_of_month</th>
-      <th>month</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1</td>
-      <td>2015-01-02</td>
-      <td>False</td>
-      <td>1</td>
-      <td>3114.0</td>
-      <td>52.72</td>
-      <td>4</td>
-      <td>2</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1</td>
-      <td>2015-01-03</td>
-      <td>False</td>
-      <td>1</td>
-      <td>2495.0</td>
-      <td>-1.00</td>
-      <td>5</td>
-      <td>3</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>1</td>
-      <td>2015-01-04</td>
-      <td>False</td>
-      <td>1</td>
-      <td>999.0</td>
-      <td>-1.00</td>
-      <td>6</td>
-      <td>4</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>1</td>
-      <td>2015-01-05</td>
-      <td>False</td>
-      <td>1</td>
-      <td>981.0</td>
-      <td>50.05</td>
-      <td>0</td>
-      <td>5</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>1</td>
-      <td>2015-01-06</td>
-      <td>False</td>
-      <td>1</td>
-      <td>827.0</td>
-      <td>47.98</td>
-      <td>1</td>
-      <td>6</td>
-      <td>1</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-
-</div>
-
 </div>
 </div>
 
@@ -684,80 +441,138 @@ Saving processed file to ./data/favorita/temporal.feather
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Kaggle-Competition-Favorita-References">Kaggle-Competition-Favorita References<a class="anchor-link" href="#Kaggle-Competition-Favorita-References"> </a></h1><p>The evaluation metric of the Favorita Kaggle competition was the normalized weighted root mean squared logarithmic error (NWRMSLE).
-Perishable items have a score weight of 1.25; otherwise, the weight is 1.0.</p>
-<p>{% raw %}
-$$ NWRMSLE = \sqrt{\frac{\sum^{n}_{i=1} w_{i}\left(log(\hat{y}_{i}+1)  - log(y_{i}+1)\right)^{2}}{\sum^{n}_{i=1} w_{i}}}$$
-{% endraw %}</p>
-<table>
-<thead><tr>
-<th style="text-align:center">Kaggle Competition Forecasting Methods</th>
-<th style="text-align:center">16D ahead NWRMSLE</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center"><a href="https://www.kaggle.com/shixw125/1st-place-lgb-model-public-0-506-private-0-511/comments">LGBM</a> [1]</td>
-<td style="text-align:center">0.5091</td>
-<td></td>
-</tr>
-<tr>
-<td style="text-align:center"><a href="https://arxiv.org/abs/1803.04037">Seq2Seq WaveNet</a> [2]</td>
-<td style="text-align:center">0.5129</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-
+<h3 id="3.2-Validate-data-with-plots.">3.2 Validate data with plots.<a class="anchor-link" href="#3.2-Validate-data-with-plots."> </a></h3>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<ol>
-<li><a href="https://www.kaggle.com/c/favorita-grocery-sales-forecasting/leaderboard">Corporación Favorita. Corporación favorita grocery sales forecasting. Kaggle Competition Leaderboard, 2018.</a></li>
-<li><a href="https://arxiv.org/abs/1803.04037">Glib Kechyn, Lucius Yu, Yangguang Zang, and Svyatoslav Kechyn.  Sales forecasting using wavenet within the framework of the Favorita Kaggle competition. Computing Research Repository, abs/1803.04037, 2018</a>.</li>
-</ol>
+<h4 id="Checking-Hierarchical-aggregation-matrix">Checking Hierarchical aggregation matrix<a class="anchor-link" href="#Checking-Hierarchical-aggregation-matrix"> </a></h4>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
 
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># plt.spy(data[&#39;H&#39;])</span>
+<span class="c1"># plt.show()</span>
+<span class="c1"># plt.close()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h4 id="Checking-pre-estimated-levels-seasons-S_bottom">Checking pre-estimated levels seasons S_bottom<a class="anchor-link" href="#Checking-pre-estimated-levels-seasons-S_bottom"> </a></h4>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Favorita-Extra-References">Favorita Extra References<a class="anchor-link" href="#Favorita-Extra-References"> </a></h1><p>Given that the test set is unavailable, some papers have chosen a different data partition to work on the dataset. The following table uses the favorita dataset with 90 days for training and predicts 30 days into the future for the logarithm of sales. The evaluation metric used in other papers was the quantile risk for P50 (normalized quantile loss):</p>
-<p>{% raw %}
-$$ QL-risk = \frac{2 \sum_{y_{t} \in \Omega } \sum^{\tau_{max}}_{\tau=t} q (y_{t+\tau}-\hat{y}^{(q)}_{t+\tau})_{+} + (1-q) (\hat{y}^{(q)}_{t+\tau}-y_{t+\tau})_{+} }{\sum_{y_{t} \in \Omega } \sum^{\tau_{max}}_{\tau=1} | y_{t} | }$$
-{% endraw %}</p>
-<table>
-<thead><tr>
-<th style="text-align:center">Forecasting Methods</th>
-<th style="text-align:center">30D ahead P50 QL-risk</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center"><a href="https://arxiv.org/abs/2009.14799">MQTransformer</a> [4]</td>
-<td style="text-align:center">0.323</td>
-<td></td>
-</tr>
-<tr>
-<td style="text-align:center"><a href="https://arxiv.org/abs/1912.09363">TFT</a> [3]</td>
-<td style="text-align:center">0.354</td>
-<td></td>
-</tr>
-</tbody>
-</table>
-
+<h4 id="Checking-S/X_agg">Checking S/X_agg<a class="anchor-link" href="#Checking-S/X_agg"> </a></h4>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<ol>
-<li><a href="https://arxiv.org/abs/1912.09363">Bryan Lim, Sercan O. Arik, Nicolas Loeff, and Tomas Pfister. Temporal fusion transformers for interpretable multi-horizon time series forecasting. Computing Research Repository, abs/1912.09363, 2020</a>.</li>
-<li><a href="https://arxiv.org/abs/2009.14799">Carson Eisenach, Yagna Patel, and Dhruv Madeka. MQtransformer: Multi-horizon forecasts with context dependent and feedback-aware attention. Computing Research Repository, abs/2009.14799, 2020</a>.</li>
-</ol>
+<h4 id="Checking-Hierarchically-linked-data">Checking Hierarchically linked data<a class="anchor-link" href="#Checking-Hierarchically-linked-data"> </a></h4>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
 
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">plot_hierarchically_linked_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">item_idx</span><span class="p">,</span> <span class="n">b_idx</span><span class="p">,</span> <span class="n">n_days</span><span class="o">=</span><span class="mi">30</span><span class="o">*</span><span class="mi">5</span><span class="p">,</span> <span class="n">plot_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    
+    <span class="c1"># This plots validate the S/X/Y_bottom</span>
+    <span class="c1"># We check for the sinchronization of features with Y_bottom</span>
+    <span class="c1"># We do the same for Y_agg, to check correct linkage</span>
+    <span class="k">assert</span> <span class="n">b_idx</span> <span class="o">&lt;</span> <span class="mi">94</span> <span class="ow">and</span> <span class="n">b_idx</span><span class="o">&gt;=</span><span class="mi">0</span>
+    
+    <span class="c1"># Hierarchically linked target data and labels</span>
+    <span class="c1"># [Total, State, City] [0, 1, 2]</span>
+    <span class="n">linked_idxs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hier_linked_idxs&#39;</span><span class="p">][</span><span class="n">b_idx</span><span class="p">]</span>
+    
+    <span class="c1"># Base series and its label idx \in {0,...,304}</span>
+    <span class="c1"># n_agg=1+16+22=39</span>
+    <span class="n">Y_hier</span>  <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Y_hier&#39;</span><span class="p">][</span><span class="n">item_idx</span><span class="p">,</span> <span class="p">:,:]</span>
+    <span class="n">Y_base</span>  <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Y_hier&#39;</span><span class="p">][</span><span class="n">item_idx</span><span class="p">,</span> <span class="n">b_idx</span><span class="o">+</span><span class="mi">39</span><span class="p">,:]</span>
+    <span class="n">Y_base2</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">][</span><span class="n">item_idx</span><span class="p">,</span><span class="n">b_idx</span><span class="p">,:]</span>
+    
+    <span class="n">hier_labels</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;hier_labels&#39;</span><span class="p">]</span>
+    <span class="n">label</span>       <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;items_ids&#39;</span><span class="p">][</span><span class="n">item_idx</span><span class="p">]</span>
+        
+    <span class="n">x_plot</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;dates&#39;</span><span class="p">][:]</span> <span class="c1">#-12] # Skip future dates</span>
+    
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">linked_idxs</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">9</span><span class="p">))</span> <span class="c1">#9</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">linked_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">linked_idxs</span><span class="p">):</span>
+        <span class="n">axs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_plot</span><span class="p">[</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span> <span class="n">Y_hier</span><span class="p">[</span><span class="n">linked_idx</span><span class="p">,</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span>
+                      <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#628793&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">plot_label</span> <span class="o">=</span> <span class="n">hier_labels</span><span class="p">[</span><span class="n">linked_idx</span><span class="p">]</span>
+        <span class="n">plot_label</span> <span class="o">=</span> <span class="n">plot_label</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">plot_label</span> <span class="o">=</span> <span class="n">plot_label</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">plot_label</span> <span class="o">=</span> <span class="n">plot_label</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;: &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+        <span class="n">axs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">plot_label</span><span class="si">}</span><span class="s1">  </span><span class="se">\n</span><span class="s1"> [unit demand]&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">linked_idxs</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">axs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+    
+    <span class="c1"># Checking that Y_bottom and Y_hier match</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_plot</span><span class="p">[</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span> <span class="n">Y_base</span><span class="p">[</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;base&#39;</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_plot</span><span class="p">[</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span> <span class="n">Y_base2</span><span class="p">[</span><span class="o">-</span><span class="n">n_days</span><span class="p">:],</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;base2&#39;</span><span class="p">)</span>
+    
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Date&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">plot_label</span><span class="si">}</span><span class="s1"> </span><span class="se">\n</span><span class="s1"> [unit demand]&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    <span class="n">axs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">labelsize</span><span class="o">=</span><span class="mi">13</span><span class="p">)</span>
+    
+    <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Hierarchically Linked Series for Item </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plot_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">plot_file</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+<span class="c1"># b_idx = 0</span>
+<span class="c1"># item_idx = 0</span>
+<span class="c1"># plot_hierarchically_linked_data(data=data, item_idx=item_idx, b_idx=b_idx, </span>
+<span class="c1">#                                 n_days=30*6, plot_file=None)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h4 id="Checking-Geographically-linked-data">Checking Geographically linked data<a class="anchor-link" href="#Checking-Geographically-linked-data"> </a></h4>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a name="cell-4"></a></p>
+<h2 id="4.-HierTimeseriesDataset-Class">4. HierTimeseriesDataset Class<a class="anchor-link" href="#4.-HierTimeseriesDataset-Class"> </a></h2>
 </div>
 </div>
 </div>
