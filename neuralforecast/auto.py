@@ -254,10 +254,12 @@ MODEL_DICT = {'nbeats': NBEATS,
 
 # Cell
 class AutoNF(object):
-    def __init__(self, config_dict, horizon):
+    def __init__(self, models, horizon):
         super(AutoNF, self).__init__()
-
-        self.config_dict = config_dict
+        if isinstance(models, list):
+            self.config_dict = {model: dict(space=None) for model in models}
+        else:
+            self.config_dict = models
         self.horizon = horizon
 
     """
@@ -270,6 +272,16 @@ class AutoNF(object):
     available for non-Machine Learning experts.
 
     The AutoNF class inherits the optimized neural forecast `fit` and `predict` methods.
+
+        Parameters
+        ----------
+        models: List or Dict
+            List of models or Dictionary with configuration.
+            Keys should be name of models.
+            For each model specify the hyperparameter space
+            (None will use default suggested space), hyperopt steps and timeout.
+        horizon: int
+            Forecast horizon
     """
 
     def fit(self,
@@ -277,6 +289,7 @@ class AutoNF(object):
             loss_function_val: callable, loss_functions_test: dict,
             n_ts_val: int, n_ts_test: int,
             results_dir: str,
+            hyperopt_steps: int = None,
             return_forecasts: bool = False,
             verbose: bool = False):
         """
@@ -285,10 +298,6 @@ class AutoNF(object):
 
             Parameters
             ----------
-            config_dict: Dict
-                Dictionary with configuration. Keys should be name of models.
-                For each model specify the hyperparameter space
-                (None will use default suggested space), hyperopt steps and timeout.
             Y_df: pd.DataFrame
                 Target time series with columns ['unique_id', 'ds', 'y'].
             X_df: pd.DataFrame
@@ -305,6 +314,8 @@ class AutoNF(object):
                 Number of timestamps in validation.
             ts_in_test: int
                 Number of timestamps in test.
+            hyperopt_steps: int
+                Number of hyperopt steps.
             return_forecasts: bool
                 If true return forecast on test.
             verbose:
@@ -324,7 +335,8 @@ class AutoNF(object):
             model_config = self.config_dict[model_str]
 
             # Run automated hyperparameter optimization
-            hyperopt_steps = model_config['hyperopt_steps']
+            if hyperopt_steps is None:
+                hyperopt_steps = model_config['hyperopt_steps']
             results_dir_model = f'{results_dir}/{model_str}'
             model = MODEL_DICT[model_str](horizon=self.horizon, space=model_config['space'])
 
