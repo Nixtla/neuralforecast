@@ -13,10 +13,10 @@ from .experiments.utils import hyperopt_tunning
 
 # Cell
 class AutoBaseModel(object):
-    def __init__(self, n_time_out):
+    def __init__(self, horizon):
         super(AutoBaseModel, self).__init__()
 
-        self.n_time_out = n_time_out
+        self.horizon = horizon
 
     def fit(self, Y_df, X_df, S_df, hyperopt_steps, loss_function_val, n_ts_val, results_dir,
             save_trials=False, loss_functions_test=None, n_ts_test=0, return_test_forecast=False, verbose=False):
@@ -55,21 +55,21 @@ class AutoBaseModel(object):
 
 # Cell
 class NHITS(AutoBaseModel):
-    def __init__(self, n_time_out, space=None):
-        super(NHITS, self).__init__(n_time_out)
+    def __init__(self, horizon, space=None):
+        super(NHITS, self).__init__(horizon)
 
         if space is None:
-            space = nhits_space(n_time_out=n_time_out)
+            space = nhits_space(horizon=horizon)
         self.space = space
 
 
-def nhits_space(n_time_out: int) -> dict:
+def nhits_space(horizon: int) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 
     Parameters
     ----------
-    n_time_out: int
+    horizon: int
         Forecasting horizon.
 
     Returns
@@ -81,8 +81,8 @@ def nhits_space(n_time_out: int) -> dict:
     space= {# Architecture parameters
             'model':'nhits',
             'mode': 'simple',
-            'n_time_in': hp.choice('n_time_in', [2*n_time_out, 3*n_time_out, 5*n_time_out]),
-            'n_time_out': hp.choice('n_time_out', [n_time_out]),
+            'n_time_in': hp.choice('n_time_in', [2*horizon, 3*horizon, 5*horizon]),
+            'n_time_out': hp.choice('n_time_out', [horizon]),
             'shared_weights': hp.choice('shared_weights', [False]),
             'activation': hp.choice('activation', ['ReLU']),
             'initialization':  hp.choice('initialization', ['lecun_normal']),
@@ -124,20 +124,20 @@ def nhits_space(n_time_out: int) -> dict:
 
 # Cell
 class NBEATS(AutoBaseModel):
-    def __init__(self, n_time_out, space=None):
-        super(NBEATS, self).__init__(n_time_out)
+    def __init__(self, horizon, space=None):
+        super(NBEATS, self).__init__(horizon)
 
         if space is None:
-            space = nbeats_space(n_time_out=n_time_out)
+            space = nbeats_space(horizon=horizon)
         self.space = space
 
-def nbeats_space(n_time_out: int) -> dict:
+def nbeats_space(horizon: int) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
 
     Parameters
     ----------
-    n_time_out: int
+    horizon: int
         Forecasting horizon.
 
     Returns
@@ -149,8 +149,8 @@ def nbeats_space(n_time_out: int) -> dict:
     space= {# Architecture parameters
             'model':'nbeats',
             'mode': 'simple',
-            'n_time_in': hp.choice('n_time_in', [2*n_time_out, 3*n_time_out, 5*n_time_out]),
-            'n_time_out': hp.choice('n_time_out', [n_time_out]),
+            'n_time_in': hp.choice('n_time_in', [2*horizon, 3*horizon, 5*horizon]),
+            'n_time_out': hp.choice('n_time_out', [horizon]),
             'shared_weights': hp.choice('shared_weights', [False]),
             'activation': hp.choice('activation', ['ReLU']),
             'initialization':  hp.choice('initialization', ['lecun_normal']),
@@ -186,14 +186,14 @@ def nbeats_space(n_time_out: int) -> dict:
 
 # Cell
 class RNN(AutoBaseModel):
-    def __init__(self, n_time_out, space=None):
-        super(RNN, self).__init__(n_time_out)
+    def __init__(self, horizon, space=None):
+        super(RNN, self).__init__(horizon)
 
         if space is None:
-            space = rnn_space(n_time_out=n_time_out)
+            space = rnn_space(horizon=horizon)
         self.space = space
 
-def rnn_space(n_time_out: int) -> dict:
+def rnn_space(horizon: int) -> dict:
     """
     Suggested hyperparameters search space for tuning. To be used with hyperopt library.
     This space is not complete for training, will be completed automatically within
@@ -201,7 +201,7 @@ def rnn_space(n_time_out: int) -> dict:
 
         Parameters
         ----------
-        n_time_out: int
+        horizon: int
             Forecasting horizon
 
         Returns
@@ -213,8 +213,8 @@ def rnn_space(n_time_out: int) -> dict:
     space= {# Architecture parameters
             'model':'rnn',
             'mode': 'full',
-            'n_time_in': hp.choice('n_time_in', [1*n_time_out, 2*n_time_out, 3*n_time_out]),
-            'n_time_out': hp.choice('n_time_out', [n_time_out]),
+            'n_time_in': hp.choice('n_time_in', [1*horizon, 2*horizon, 3*horizon]),
+            'n_time_out': hp.choice('n_time_out', [horizon]),
             'cell_type': hp.choice('cell_type', ['LSTM', 'GRU']),
             'state_hsize': hp.choice('state_hsize', [10, 20, 50, 100]),
             'dilations': hp.choice('dilations', [ [[1, 2]], [[1, 2, 4, 8]], [[1,2],[4,8]] ]),
@@ -254,11 +254,13 @@ MODEL_DICT = {'nbeats': NBEATS,
 
 # Cell
 class AutoNF(object):
-    def __init__(self, config_dict, n_time_out):
+    def __init__(self, models, horizon):
         super(AutoNF, self).__init__()
-
-        self.config_dict = config_dict
-        self.n_time_out = n_time_out
+        if isinstance(models, list):
+            self.config_dict = {model: dict(space=None) for model in models}
+        else:
+            self.config_dict = models
+        self.horizon = horizon
 
     """
     The AutoNF class is an automated machine learning class that simultaneously explores hyperparameters
@@ -270,6 +272,16 @@ class AutoNF(object):
     available for non-Machine Learning experts.
 
     The AutoNF class inherits the optimized neural forecast `fit` and `predict` methods.
+
+        Parameters
+        ----------
+        models: List or Dict
+            List of models or Dictionary with configuration.
+            Keys should be name of models.
+            For each model specify the hyperparameter space
+            (None will use default suggested space), hyperopt steps and timeout.
+        horizon: int
+            Forecast horizon
     """
 
     def fit(self,
@@ -277,6 +289,7 @@ class AutoNF(object):
             loss_function_val: callable, loss_functions_test: dict,
             n_ts_val: int, n_ts_test: int,
             results_dir: str,
+            hyperopt_steps: int = None,
             return_forecasts: bool = False,
             verbose: bool = False):
         """
@@ -285,10 +298,6 @@ class AutoNF(object):
 
             Parameters
             ----------
-            config_dict: Dict
-                Dictionary with configuration. Keys should be name of models.
-                For each model specify the hyperparameter space
-                (None will use default suggested space), hyperopt steps and timeout.
             Y_df: pd.DataFrame
                 Target time series with columns ['unique_id', 'ds', 'y'].
             X_df: pd.DataFrame
@@ -305,6 +314,8 @@ class AutoNF(object):
                 Number of timestamps in validation.
             ts_in_test: int
                 Number of timestamps in test.
+            hyperopt_steps: int
+                Number of hyperopt steps.
             return_forecasts: bool
                 If true return forecast on test.
             verbose:
@@ -324,9 +335,10 @@ class AutoNF(object):
             model_config = self.config_dict[model_str]
 
             # Run automated hyperparameter optimization
-            hyperopt_steps = model_config['hyperopt_steps']
+            if hyperopt_steps is None:
+                hyperopt_steps = model_config['hyperopt_steps']
             results_dir_model = f'{results_dir}/{model_str}'
-            model = MODEL_DICT[model_str](n_time_out=self.n_time_out, space=model_config['space'])
+            model = MODEL_DICT[model_str](horizon=self.horizon, space=model_config['space'])
 
             model.fit(Y_df=Y_df, X_df=X_df, S_df=S_df, hyperopt_steps=hyperopt_steps,
                       n_ts_val=n_ts_val,
