@@ -281,9 +281,9 @@ class TourismL(TimeSeriesDataclass):
         temporal_bottom.to_csv(f'{directory}/temporal_bottom.csv', index=False)
 
     @staticmethod
-    def load_process(directory=str, verbose=False) -> None:
+    def load_process(directory=str, verbose=False) -> dict:
 
-        with CodeTimer('Reading data   ', verbose):
+        with CodeTimer('Reading data           ', verbose):
             static_agg    = pd.read_csv(f'{directory}/static_agg.csv')
             temporal_agg    = pd.read_csv(f'{directory}/temporal_agg.csv')
 
@@ -291,16 +291,16 @@ class TourismL(TimeSeriesDataclass):
             temporal_bottom = pd.read_csv(f'{directory}/temporal_bottom.csv')
 
             # Extract datasets dimensions for later use
-            dates = pd.to_datetime(temporal_agg.ds.unique())
+            dates       = pd.to_datetime(temporal_agg.ds.unique())
             unique_ids  = static_bottom.unique_id.values
             region_ids  = static_bottom.region.values
             purpose_ids = static_bottom.purpose.values
-            n_time   = len(dates)                             # 228
-            n_group  = len(static_bottom.region.unique())     # 76
-            n_series = len(static_bottom.purpose.unique())    # 4
+            n_time      = len(dates)                             # 228
+            n_group     = len(static_bottom.region.unique())     # 76
+            n_series    = len(static_bottom.purpose.unique())    # 4
 
         #-------------------------------------- S/X/Y_agg    --------------------------------------#
-        with CodeTimer('Process temporal_agg', verbose):
+        with CodeTimer('Process temporal_agg   ', verbose):
             # Drop observation indexes and obtain column indexes
             temporal_agg.drop(['region', 'ds'], axis=1, inplace=True)
             xcols_agg       = temporal_agg.columns
@@ -309,12 +309,12 @@ class TourismL(TimeSeriesDataclass):
 
             X_agg  = temporal_agg.values
             Y_agg  = temporal_agg[['y_[total]', 'y_[state]',
-                                'y_[zone]', 'y_[region]']].values
+                                   'y_[zone]', 'y_[region]']].values
 
             X_agg  = X_agg.reshape((n_group,n_time,temporal_agg.shape[1]))
-            Y_agg  = Y_agg.reshape((n_group,n_time,4))
+            Y_agg  = Y_agg.reshape((n_group,n_time,4)) #features: total,state,zone,region
 
-        with CodeTimer('Process static_agg', verbose):
+        with CodeTimer('Process static_agg     ', verbose):
             # Drop observation indexes and obtain column indexes
             S_agg = static_agg.drop(['region'], axis=1)
             scols_agg = S_agg.columns
@@ -345,7 +345,7 @@ class TourismL(TimeSeriesDataclass):
             X = np.transpose(X, (0, 2, 1, 3))
             Y = np.transpose(Y, (0, 2, 1))
 
-        with CodeTimer('Process static_bottom', verbose):
+        with CodeTimer('Process static_bottom  ', verbose):
             # Drop observation indexes and obtain column indexes
             static_bottom.drop(['unique_id', 'region', 'purpose'], axis=1, inplace=True)
             scols = static_bottom.columns
@@ -353,7 +353,7 @@ class TourismL(TimeSeriesDataclass):
             S = static_bottom.values
             S = S.reshape(n_group,n_series,static_bottom.shape[1])
 
-        with CodeTimer('Hier constraints', verbose):
+        with CodeTimer('Hier constraints       ', verbose):
             # Read hierarchical constraints dataframe
             # Create hierarchical aggregation numpy
             H_df = pd.read_csv(f'{directory}/H_df.csv')
@@ -378,7 +378,7 @@ class TourismL(TimeSeriesDataclass):
         gc.collect()
 
         #---------------------------------- Logs and Output ----------------------------------#
-        with CodeTimer('Final processing', verbose):
+        with CodeTimer('Final processing       ', verbose):
             # NaiveSeasonal compatibility X_futr indexing
             # Consider T0=0, L=8, H=3 and Y=[0,1,2,3,4,5,6,7|,8,9,10,11]
             # T0=0 --> [0,1,2,3,4,5,6,7|,8,9,10]
@@ -435,48 +435,48 @@ class TourismL(TimeSeriesDataclass):
                     'region_ids': region_ids,
                     'pupose_ids': purpose_ids}
 
-            if verbose:
-                print('\n')
-                print(f'Total days {len(dates)}, train {n_time-12-12} validation {12}, test {12}')
-                print(f'Whole dates: \t\t [{min(dates)}, {max(dates)}]')
-                print(f'Validation dates: \t '+\
-                      f'[{min(dates[n_time-12-12:n_time-12])},{max(dates[n_time-12-12:n_time-12])}]')
-                print(f'Test dates: \t\t [{min(dates[n_time-12:])}, {max(dates[n_time-12:])}]')
-                print('\n')
-                print(' '*35 +'BOTTOM')
-                print('S.shape (n_regions,n_purpose,n_features):        \t' + str(data['S'].shape))
-                print('X.shape (n_regions,n_purpose,n_features,n_time): \t' + str(data['X'].shape))
-                print('Y.shape (n_regions,n_purpose,n_time):            \t' + str(data['Y'].shape))
-                print(f"scols ({len(scols)}) {data['scols']}")
-                print(f"xcols ({len(xcols)}) {data['xcols']}")
-                print(f"xcols_hist ({len(xcols_hist)}) {data['xcols_hist']}")
-                print(f"xcols_futr ({len(xcols_futr)}) {data['xcols_futr']}")
-                print(' '*35 +'AGGREGATE')
-                print('S_agg.shape (n_regions,n_features):           \t\t\t' + str(data['S_agg'].shape))
-                print('X_agg.shape (n_regions,n_features,n_time):    \t\t\t' + str(data['X_agg'].shape))
-                print('Y_agg.shape (n_regions,n_features,n_time):    \t\t\t' + str(data['Y_agg'].shape))
-                print(f"scols_agg ({len(scols_agg)}) {data['scols_agg'][:4]}")
-                print(f"xcols_agg ({len(xcols_agg)}) {data['xcols_agg']}")
-                print(f"xcols_hist_agg ({len(xcols_hist_agg)}) {data['xcols_hist_agg']}")
-                print(f"xcols_futr_agg ({len(xcols_futr_agg)}) {data['xcols_futr_agg']}")
-                print(' '*35 +'HIERARCHICAL')
-                print('Y_hier.shape (n_regions,n_time):   \t\t\t\t' + str(data['Y_hier'].shape))
-                #print('hier_idxs', hier_idxs)
-                print('overall.shape \t\t',  data['Y_hier'][hier_idxs[0],:].shape)
-                print('country.shape \t\t',  data['Y_hier'][hier_idxs[1],:].shape)
-                print('states.shape  \t\t',  data['Y_hier'][hier_idxs[2],:].shape)
-                print('zones.shape   \t\t',  data['Y_hier'][hier_idxs[3],:].shape)
-                print('regions.shape \t\t',  data['Y_hier'][hier_idxs[4],:].shape)
-                print('country_purpose.shape \t',  data['Y_hier'][hier_idxs[5],:].shape)
-                print('states_purpose.shape  \t',  data['Y_hier'][hier_idxs[6],:].shape)
-                print('zones_purpose.shape   \t',  data['Y_hier'][hier_idxs[7],:].shape)
-                print('regions_purpose.shape \t',  data['Y_hier'][hier_idxs[8],:].shape)
+        if verbose:
+            print('\n')
+            print(f'Total days {len(dates)}, train {n_time-12-12} validation {12}, test {12}')
+            print(f'Whole dates: \t\t [{min(dates)}, {max(dates)}]')
+            print(f'Validation dates: \t '+\
+                  f'[{min(dates[n_time-12-12:n_time-12])}, {max(dates[n_time-12-12:n_time-12])}]')
+            print(f'Test dates: \t\t [{min(dates[n_time-12:])}, {max(dates[n_time-12:])}]')
+            print('\n')
+            print(' '*35 +'BOTTOM')
+            print('S.shape (n_regions,n_purpose,n_features):        \t' + str(data['S'].shape))
+            print('X.shape (n_regions,n_purpose,n_features,n_time+H+1):    ' + str(data['X'].shape))
+            print('Y.shape (n_regions,n_purpose,n_time):            \t' + str(data['Y'].shape))
+            #print(f"scols ({len(scols)}) {data['scols']}")
+            #print(f"xcols ({len(xcols)}) {data['xcols']}")
+            #print(f"xcols_hist ({len(xcols_hist)}) {data['xcols_hist']}")
+            #print(f"xcols_futr ({len(xcols_futr)}) {data['xcols_futr']}")
+            print(' '*35 +'AGGREGATE')
+            print('S_agg.shape (n_regions,n_features):           \t\t' + str(data['S_agg'].shape))
+            print('X_agg.shape (n_regions,n_features,n_time+H+1):  \t' + str(data['X_agg'].shape))
+            print('Y_agg.shape (n_regions,n_features,n_time):    \t\t' + str(data['Y_agg'].shape))
+            #print(f"scols_agg ({len(scols_agg)}) {data['scols_agg'][:4]}")
+            #print(f"xcols_agg ({len(xcols_agg)}) {data['xcols_agg']}")
+            #print(f"xcols_hist_agg ({len(xcols_hist_agg)}) {data['xcols_hist_agg']}")
+            #print(f"xcols_futr_agg ({len(xcols_futr_agg)}) {data['xcols_futr_agg']}")
+            print(' '*35 +'HIERARCHICAL')
+            print('Y_hier.shape (n_regions,n_time):   \t\t\t' + str(data['Y_hier'].shape))
+            #print('hier_idxs', hier_idxs)
+            print('overall.shape '+6*'\t',  data['Y_hier'][hier_idxs[0],:].shape)
+            print('country.shape '+6*'\t',  data['Y_hier'][hier_idxs[1],:].shape)
+            print('states.shape  '+6*'\t',  data['Y_hier'][hier_idxs[2],:].shape)
+            print('zones.shape   '+6*'\t',  data['Y_hier'][hier_idxs[3],:].shape)
+            print('regions.shape '+6*'\t',  data['Y_hier'][hier_idxs[4],:].shape)
+            print('country_purpose.shape '+5*'\t',  data['Y_hier'][hier_idxs[5],:].shape)
+            print('states_purpose.shape  '+5*'\t',  data['Y_hier'][hier_idxs[6],:].shape)
+            print('zones_purpose.shape   '+5*'\t',  data['Y_hier'][hier_idxs[7],:].shape)
+            print('regions_purpose.shape '+5*'\t',  data['Y_hier'][hier_idxs[8],:].shape)
 
         return data
 
 # directory = './data/hierarchical/TourismL'
-# TourismL.preprocess_data(directory=directory)
 
+# TourismL.preprocess_data(directory=directory)
 # data = TourismL.load_process(directory=directory)
 
 # Cell
