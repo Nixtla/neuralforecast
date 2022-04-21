@@ -203,14 +203,23 @@ nb_path: "nbs/data_datasets__tourismL.ipynb"
 
 <div class="output_area">
 
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>100%|██████████| 644k/644k [00:00&lt;00:00, 4.14MiB/s]
+INFO:neuralforecast.data.datasets.utils:Successfully downloaded TourismData_v3.csv, 643891, bytes.
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Code block &#39;Reading data           &#39; took:	0.09490 seconds
-Code block &#39;Process temporal_agg   &#39; took:	0.00160 seconds
-Code block &#39;Process static_agg     &#39; took:	0.00066 seconds
-Code block &#39;Process temporal_bottom&#39; took:	0.00502 seconds
-Code block &#39;Process static_bottom  &#39; took:	0.00053 seconds
-Code block &#39;Hier constraints       &#39; took:	1.50484 seconds
-Code block &#39;Final processing       &#39; took:	0.00253 seconds
+<pre>Code block &#39;Reading data           &#39; took:	0.08801 seconds
+Code block &#39;Process temporal_agg   &#39; took:	0.00105 seconds
+Code block &#39;Process static_agg     &#39; took:	0.00039 seconds
+Code block &#39;Process temporal_bottom&#39; took:	0.00588 seconds
+Code block &#39;Process static_bottom  &#39; took:	0.00065 seconds
+Code block &#39;Hier constraints       &#39; took:	1.39399 seconds
+Code block &#39;Final processing       &#39; took:	0.00811 seconds
 
 
 Total days 240, train 216 validation 12, test 12
@@ -673,63 +682,7 @@ data[&#39;xcols_agg&#39;]:= Index([&#39;distance_month&#39;, &#39;y_[total]&#39;
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a name="cell-4"></a></p>
-<h2 id="4.-HierTimeseriesDataset-Class">4. HierTimeseriesDataset Class<a class="anchor-link" href="#4.-HierTimeseriesDataset-Class"> </a></h2>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h2 id="HierTimeseriesDataset" class="doc_header"><code>class</code> <code>HierTimeseriesDataset</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/tourismL.py#L486" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>HierTimeseriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
-</blockquote>
-<p>An abstract class representing a :class:<code>Dataset</code>.</p>
-<p>All datasets that represent a map from keys to data samples should subclass
-it. All subclasses should overwrite :meth:<code>__getitem__</code>, supporting fetching a
-data sample for a given key. Subclasses could also optionally overwrite
-:meth:<code>__len__</code>, which is expected to return the size of the dataset by many
-:class:<code>~torch.utils.data.Sampler</code> implementations and the default options
-of :class:<code>~torch.utils.data.DataLoader</code>.</p>
-<p>.. note::
-  :class:<code>~torch.utils.data.DataLoader</code> by default constructs a index
-  sampler that yields integral indices.  To make it work with a map-style
-  dataset with non-integral indices/keys, a custom sampler must be provided.</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p><a name="cell-5"></a></p>
-<h2 id="5.-HierTimeseriesDataset-Validation">5. HierTimeseriesDataset Validation<a class="anchor-link" href="#5.-HierTimeseriesDataset-Validation"> </a></h2>
+<h2 id="4.-HierTimeseriesDataset-Validation">4. HierTimeseriesDataset Validation<a class="anchor-link" href="#4.-HierTimeseriesDataset-Validation"> </a></h2>
 </div>
 </div>
 </div>
@@ -740,9 +693,14 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># directory = &#39;./data/hierarchical/TourismL&#39;</span>
-<span class="c1"># TourismL.preprocess_data(directory=directory, verbose=False)</span>
-<span class="c1"># data = TourismL.load_process(directory=directory, verbose=False)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.tourismL</span> <span class="kn">import</span> <span class="n">TourismL</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.hiertsdataset</span> <span class="kn">import</span> <span class="n">HierTimeseriesDataset</span>
+
+<span class="n">directory</span> <span class="o">=</span> <span class="s1">&#39;./data/hierarchical/TourismL&#39;</span>
+<span class="n">TourismL</span><span class="o">.</span><span class="n">preprocess_data</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">TourismL</span><span class="o">.</span><span class="n">load_process</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -845,7 +803,7 @@ F_agg.shape torch.Size([4, 1, 216])
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="5.1-Examinate-HierTimeSeriesDataset-aggregate-batch">5.1 Examinate HierTimeSeriesDataset aggregate batch<a class="anchor-link" href="#5.1-Examinate-HierTimeSeriesDataset-aggregate-batch"> </a></h3><ol>
+<h3 id="4.1-Examinate-HierTimeSeriesDataset-aggregate-batch">4.1 Examinate HierTimeSeriesDataset aggregate batch<a class="anchor-link" href="#4.1-Examinate-HierTimeSeriesDataset-aggregate-batch"> </a></h3><ol>
 <li>Examinate the hierarchically linked Y_agg series.</li>
 <li>Examinate the alignment between Y_agg and X_agg_futr.</li>
 <li>Validate the S_agg dummies generated from H constraints matrix.</li>
@@ -944,7 +902,7 @@ F_agg.shape torch.Size([4, 1, 216])
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="5.2-Examinate-HierTimeSeriesDataset-bottom-batch">5.2 Examinate HierTimeSeriesDataset bottom batch<a class="anchor-link" href="#5.2-Examinate-HierTimeSeriesDataset-bottom-batch"> </a></h3><ol>
+<h3 id="4.2-Examinate-HierTimeSeriesDataset-bottom-batch">4.2 Examinate HierTimeSeriesDataset bottom batch<a class="anchor-link" href="#4.2-Examinate-HierTimeSeriesDataset-bottom-batch"> </a></h3><ol>
 <li>Examinate the alignment between Y_bottom, S_bottom and X_bottom_futr.</li>
 <li>Validate batch Seq2Seq structure between X_bottom vs Y_bottom.</li>
 </ol>

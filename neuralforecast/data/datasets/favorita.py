@@ -539,6 +539,11 @@ class Favorita(TimeSeriesDataclass):
                 balanced_df[col] = col_values.flatten()
                 balanced_df[col] = balanced_df[col].fillna(0)
 
+            #---------------- with CodeTimer('items_prob_bottom'): -----------------#
+            # TODO: 'items_prob_bottom', for weighted loss -> Kaggle submission
+            # TODO:  consider to keep track of bfill/ffill created observations
+            balanced_df['sample_mask'] = 1
+
             temporal_bottom = balanced_df
 
         #------------------------------ Temporal Agg Features -------------------------------#
@@ -660,9 +665,9 @@ class Favorita(TimeSeriesDataclass):
 
         # Checking dtypes correctness
         if verbose:
-            print('1. static_agg.dtypes \n', static_agg.dtypes)
-            print('2. temporal_agg.dtypes \n', temporal_agg.dtypes)
-            print('3. static_bottom.dtypes \n', static_bottom.dtypes)
+            #print('1. static_agg.dtypes \n', static_agg.dtypes)
+            #print('2. temporal_agg.dtypes \n', temporal_agg.dtypes)
+            #print('3. static_bottom.dtypes \n', static_bottom.dtypes)
             print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
 
         # Save feathers for fast access
@@ -762,8 +767,8 @@ class Favorita(TimeSeriesDataclass):
             xcols_futr = ['onpromotion']
 
         with CodeTimer('Process static_bottom  ', verbose):
-            items_bottom   = static_bottom.item_nbr.values
-            stores_bottom  = static_bottom.store_nbr.values
+            items_bottom      = static_bottom.item_nbr.values
+            stores_bottom     = static_bottom.store_nbr.values
             items_prob_bottom = static_bottom.prob.values
 
             static_bottom.drop(labels=['item_nbr', 'store_nbr',
@@ -824,8 +829,6 @@ class Favorita(TimeSeriesDataclass):
 
         print('\n')
         print('TODO: add weights as prob for loss?')
-        print('TODO: validate data with plots')
-        print('TODO: add local holidays')
         print('TODO: do bfill onpromotion rather than ffill (future)')
 
         # Assert that the variables are contained in the column indexes
@@ -840,7 +843,8 @@ class Favorita(TimeSeriesDataclass):
                 'xcols': xcols,
                 'xcols_hist': xcols_hist,
                 'xcols_futr': xcols_futr,
-                'items_prob_bottom': items_prob_bottom,
+                'xcols_sample_mask': 'sample_mask', # TODO: 'items_prob_bottom'
+                'xcols_available_mask': 'is_original', # availability store x item level
                 # Aggregate data
                 'S_agg': S_agg, 'X_agg': X_agg, 'Y_agg': Y_agg,
                 'scols_agg': scols_agg,
@@ -897,7 +901,6 @@ class Favorita(TimeSeriesDataclass):
 
         return data
 
-#directory = './data/favorita'
-
-#Favorita.preprocess_data(directory=directory, sample_size=100, verbose=False)
+#directory = './data/hierarchical/favorita'
+#Favorita.preprocess_data(directory=directory, sample_size=100, verbose=True)
 #data = Favorita.load_process(directory=directory, sample_size=100, verbose=True)
