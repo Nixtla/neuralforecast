@@ -23,6 +23,7 @@ import timeit
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from datetime import timedelta
 
 import sklearn.preprocessing as preprocessing
 from sklearn.preprocessing import OneHotEncoder
@@ -321,7 +322,12 @@ class Favorita(TimeSeriesDataclass):
             temporal_dates  = temporal['date'].unique() # 1684 days
             start_date      = min(temporal_dates)
             end_date        = max(temporal_dates)
-            #end_date = '2017-08-31'  # Kaggle's test last date
+
+            # Extra H observations
+            # for final H predictions (outside train)
+            end_date = pd.Timestamp(end_date)
+            end_date = np.datetime64(end_date + timedelta(days=34))
+            #end_date = np.datetime64('2017-08-31')  # Kaggle's test last date
 
             catalog_items   = set(items['item_nbr'].unique())
             catalog_stores  = set(store_info['store_nbr'].unique())
@@ -338,7 +344,6 @@ class Favorita(TimeSeriesDataclass):
             STORES = list(catalog_stores.intersection(temporal_stores))
 
             ITEMS2 = set(test.item_nbr).intersection(set(ITEMS))
-
 
         with CodeTimer('Filter data           ', verbose):
             # Filter data for efficient experiments
@@ -361,7 +366,7 @@ class Favorita(TimeSeriesDataclass):
             temporal     = temporal[temporal.item_nbr.isin(ITEMS)]
             temporal     = temporal[temporal.store_nbr.isin(STORES)]
 
-        with CodeTimer('Sort data             ', verbose):
+        with CodeTimer('Sort/Balance data     ', verbose):
             # new sorted by hierarchy store_nbr for R benchmarks
             store_info = store_info.sort_values(by=['state', 'city', 'store_nbr'])
             store_info['new_store_nbr'] = np.arange(len(store_info))
@@ -396,13 +401,6 @@ class Favorita(TimeSeriesDataclass):
             n_stores = len(STORES)
             n_dates  = len(DATES)
 
-        #--------------------------------- Static Features ---------------------------------#
-        # Creation of static item national level data based on:
-        # 1. Geographic Hierarchical constraints
-        # 2. Item characteristics, groupings dummies
-        # 3. Store characteristics, state, city, clusters
-
-        with CodeTimer('Create static_bottom  ', verbose):
             # Create balanced item x store interaction
             balanced_prod = numpy_balance(ITEMS, STORES)
             item_store_df = pd.DataFrame(balanced_prod, columns=['item_nbr', 'store_nbr'])
@@ -422,68 +420,17 @@ class Favorita(TimeSeriesDataclass):
 
             item_store_df['is_original'] = item_store_df['is_original'].fillna(0)
 
+        with CodeTimer('Create H.  constraints', verbose):
             # Regional Static Variables
             store_info['country'] = 'Ecuador'
-            hier_df = store_info[['store_nbr', 'country', 'state', 'city']]
-            static_bottom = one_hot_encoding(df=hier_df, index_col='store_nbr')
+            H_df = store_info[['store_nbr', 'country', 'state', 'city']]
 
             # Geographic Hierarchical constraints matrix
             # (on stores level, items x stores * items x stores does not scale)
             # Hsum : 54 stores --> 39 (country+states+cities)
-            Hsum = static_bottom.values[:, 1:] # Eliminate stores index
+            Hencoded = one_hot_encoding(df=H_df, index_col='store_nbr')
+            Hsum = Hencoded.values[:, 1:] # Eliminate stores index
             H = np.concatenate((Hsum.T, np.eye(len(Hsum))), axis=0)
-
-            static_bottom_columns = static_bottom.columns
-            static_bottom = np.expand_dims(static_bottom, axis=0)
-            static_bottom = np.repeat(static_bottom, repeats=len(ITEMS), axis=0)
-            static_bottom = static_bottom.reshape(-1, static_bottom.shape[-1])
-            static_bottom = pd.DataFrame(static_bottom, columns=static_bottom_columns)
-
-            static_items_bottom  = np.repeat(np.array(ITEMS), len(STORES))
-            static_stores_bottom = np.tile(np.array(STORES), len(ITEMS))
-            static_bottom['item_nbr']  = static_items_bottom
-            static_bottom['store_nbr'] = static_stores_bottom
-
-            static_bottom = static_bottom.merge(item_store_df,
-                                              on=['item_nbr', 'store_nbr'], how='left')
-
-            # New raw categories data, for LGBM efficiency
-            cat_columns = hier_df.columns
-            static_cat_bottom = np.expand_dims(hier_df, axis=0)
-            static_cat_bottom = np.repeat(static_cat_bottom, repeats=len(ITEMS), axis=0)
-            static_cat_bottom = static_cat_bottom.reshape(-1, static_cat_bottom.shape[-1])
-            static_cat_bottom = pd.DataFrame(static_cat_bottom, columns=cat_columns)
-
-            # Transform into category for LGBM
-            static_cat_bottom['item_nbr']  = static_items_bottom
-            static_cat_bottom['store_nbr'] = static_stores_bottom
-
-            static_cat_bottom = static_cat_bottom.set_index(['item_nbr', 'store_nbr'])
-            for feature in static_cat_bottom.columns:
-                static_cat_bottom[feature] = pd.Series(static_cat_bottom[feature], dtype="category")
-
-            static_cat_bottom.reset_index(inplace=True)
-
-            static_cat_bottom = static_cat_bottom.merge(item_store_df,
-                                              on=['item_nbr', 'store_nbr'], how='left')
-
-        with CodeTimer('Create static_agg     ', verbose):
-            static_agg = one_hot_encoding(df=items, index_col='item_nbr')
-
-            # Add weight for loss perishable 1.25 and normal 1.0
-            # https://www.kaggle.com/c/favorita-grocery-sales-forecasting/overview/evaluation
-            static_agg['prob'] = np.ones(len(static_agg)) +\
-                                 0.25 * static_agg["perishable_[1]"]
-            static_bottom['prob'] = np.repeat(static_agg['prob'].values, len(STORES))
-
-            # Transform into category for LGBM
-            static_cat_agg = items
-
-            static_cat_agg = static_cat_agg.set_index(['item_nbr'])
-            for feature in static_cat_agg.columns:
-                static_cat_agg[feature] = pd.Series(static_cat_agg[feature], dtype="category")
-
-            static_cat_agg.reset_index(inplace=True)
 
         #---------------------------- Temporal Bottom Features ------------------------------#
         # Creation of temporal bottom level (item x store x date) data based on:
@@ -546,6 +493,71 @@ class Favorita(TimeSeriesDataclass):
 
             temporal_bottom = balanced_df
 
+        #----------------------------- Static Bottom Features -------------------------------#
+        # Creation of static item store level data based on:
+        # 1. Precomputed level/spread will model to "level" predictions
+        # 2. Dummy variables from the geographic hierarchy
+
+        with CodeTimer('Create static_bottom  ', verbose):
+
+            #assert static_variant in ['partial', 'statistics']
+
+            #if static_variant=='partial':
+            static_bottom_columns = Hencoded.columns
+            static_bottom = np.expand_dims(Hencoded, axis=0)
+            static_bottom = np.repeat(static_bottom, repeats=len(ITEMS), axis=0)
+            static_bottom = static_bottom.reshape(-1, static_bottom.shape[-1])
+            static_bottom = pd.DataFrame(static_bottom, columns=static_bottom_columns)
+
+            #if static_variant=='statistics':
+            Y_bottom    = temporal_bottom['unit_sales'].values
+            Y_bottom    = Y_bottom.reshape((n_items*n_stores,n_dates))
+            Y_available = Y_bottom[:,-34-34-60:-34-34] # skip test/validation
+
+            # [n_regions*n_purpose, n_time] --> [n_regions*n_purpose]
+            level  = np.median(Y_available, axis=1)
+            spread = np.median(np.abs(Y_available - level[:,None]), axis=1)
+
+            static_bottom['level'] = level
+            static_bottom['spread'] = spread
+
+            #static_bottom = np.concatenate([level[:,None], spread[:,None]], axis=1)
+            #static_bottom = pd.DataFrame.from_records(static_bottom,
+            #                                          columns=['level', 'spread'])
+
+            static_items_bottom  = np.repeat(np.array(ITEMS), len(STORES))
+            static_stores_bottom = np.tile(np.array(STORES), len(ITEMS))
+            static_bottom['item_nbr']  = static_items_bottom
+            static_bottom['store_nbr'] = static_stores_bottom
+
+            static_bottom = static_bottom.merge(item_store_df,
+                                                on=['item_nbr', 'store_nbr'], how='left')
+
+            level_rep = np.repeat(level, n_dates)
+            temporal_bottom['is_original'] = temporal_bottom['is_original'] * level_rep
+
+        #------------------------------- Static Agg Features --------------------------------#
+        # Creation of static item national level data based on:
+        # 1. Item characteristics, groupings dummies
+
+        with CodeTimer('Create static_agg     ', verbose):
+            static_agg = one_hot_encoding(df=items, index_col='item_nbr')
+
+            # Add weight for loss perishable 1.25 and normal 1.0
+            # https://www.kaggle.com/c/favorita-grocery-sales-forecasting/overview/evaluation
+            static_agg['prob']    = np.ones(len(static_agg)) +\
+                                    0.25 * static_agg["perishable_[1]"]
+            static_bottom['prob'] = np.repeat(static_agg['prob'].values, len(STORES))
+
+            # Transform into category for LGBM
+            static_cat_agg = items
+
+            static_cat_agg = static_cat_agg.set_index(['item_nbr'])
+            for feature in static_cat_agg.columns:
+                static_cat_agg[feature] = pd.Series(static_cat_agg[feature], dtype="category")
+
+            static_cat_agg.reset_index(inplace=True)
+
         #------------------------------ Temporal Agg Features -------------------------------#
         # Creation of temporal agg level (item x store x date) data based on:
         # 1. balance item x store sales
@@ -597,6 +609,10 @@ class Favorita(TimeSeriesDataclass):
             calendar['day_of_month'] = normalizer.fit_transform(calendar['day_of_month'].values[:,None])
             calendar['month'] = normalizer.fit_transform(calendar['month'].values[:,None])
 
+            # Add weekly seasonality to bottom
+            #temporal_bottom = calendar[['date','day_of_week']].merge(temporal_bottom,
+            #                                                         on=['date'], how='left')
+
             # Holiday variables
             hdays = holidays[holidays['transferred']==False].copy()
             hdays.rename(columns={'type': 'holiday_type'}, inplace=True)
@@ -605,7 +621,7 @@ class Favorita(TimeSeriesDataclass):
             national_hdays = national_hdays[national_hdays.holiday_type.isin(['Holiday', 'Transfer'])]
             national_hdays = make_holidays_distance_df(national_hdays, DATES)
 
-            calendar_agg = calendar.merge(national_hdays, on=['date'], how='left')
+            calendar_agg   = calendar.merge(national_hdays, on=['date'], how='left')
 
             #-------------------- with CodeTimer('4. Transactions'): --------------------#
             # Fast numpy balance
@@ -663,15 +679,22 @@ class Favorita(TimeSeriesDataclass):
                                         right_index=True)#.reset_index()
             temporal_agg = temporal_agg.reset_index()
 
+            calendar_agg2 = calendar_agg[['day_of_week', 'day_of_month',
+                                          'dist2_[Primer dia del ano]',
+                                          'dist2_[Navidad]']]
+            temporal_bottom = temporal_bottom.merge(calendar_agg2, how='left', left_on=['date'],
+                                        right_index=True)
+            temporal_bottom = temporal_bottom.reset_index()
+
         # Checking dtypes correctness
-        if verbose:
+        #if verbose:
             #print('1. static_agg.dtypes \n', static_agg.dtypes)
             #print('2. temporal_agg.dtypes \n', temporal_agg.dtypes)
             #print('3. static_bottom.dtypes \n', static_bottom.dtypes)
-            print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
+            #print('4. temporal_bottom.dtypes \n', temporal_bottom.dtypes)
 
         # Save feathers for fast access
-        #H_df.to_csv(f'{directory}/H_df.csv', index=False)
+        H_df.to_csv(f'{directory}/H_df.csv', index=False)
         static_agg.to_feather(f'{directory}/{str(sample_size)}_static_agg.feather')
         temporal_agg.to_feather(f'{directory}/{str(sample_size)}_temporal_agg.feather')
         static_bottom.to_feather(f'{directory}/{str(sample_size)}_static_bottom.feather')
@@ -747,13 +770,14 @@ class Favorita(TimeSeriesDataclass):
             items     = static_bottom.item_nbr.unique()
             n_stores  = len(stores)
 
-            temporal_bottom.drop(labels=['item_nbr', 'store_nbr', 'traj_nbr', 'date'], axis=1, inplace=True)
+            temporal_bottom.drop(labels=['item_nbr', 'store_nbr', 'traj_nbr', 'date'],
+                                 axis=1, inplace=True)
             n_features = temporal_bottom.shape[1]
             xcols      = temporal_bottom.columns
             X_stores   = temporal_bottom.values
             Y_stores   = temporal_bottom['unit_sales'].values
 
-            # temporal_bottom assumes to be balanced ie len(Y) = n_items * n_stores * n_time
+            # temporal_bottom assumes to be balanced ie len(Y) = n_items*n_stores*n_time
             # temporal_bottom assumes to be sorted by n_items, n_zip1, n_zip2, n_time
             X  = X_stores.reshape((n_items,n_stores,n_time,n_features))
             Y  = Y_stores.reshape((n_items,n_stores,n_time))
@@ -763,8 +787,11 @@ class Favorita(TimeSeriesDataclass):
             X = np.transpose(X, (0, 2, 1, 3))
             Y = np.transpose(Y, (0, 2, 1))
 
-            xcols_hist = ['unit_sales', 'onpromotion'] # 'open' seems a bad variable
-            xcols_futr = ['onpromotion']
+            xcols_hist = ['unit_sales'] # 'open' seems a bad variable
+            xcols_futr = ['onpromotion', 'is_original']
+            xcols_futr = xcols_futr + ['day_of_week', 'day_of_month',
+                                       'dist2_[Primer dia del ano]',
+                                       'dist2_[Navidad]']
 
         with CodeTimer('Process static_bottom  ', verbose):
             items_bottom      = static_bottom.item_nbr.values
@@ -780,16 +807,21 @@ class Favorita(TimeSeriesDataclass):
             S = S.reshape(n_items,n_stores, static_bottom.shape[1])
 
         with CodeTimer('Hier constraints       ', verbose):
-            H = np.load(f'{directory}/{sample_size}_hier_constraints.npy')
+            # Read hierarchical constraints dataframe
+            # Create hierarchical aggregation numpy
+            H_df = pd.read_csv(f'{directory}/H_df.csv')
+            Hencoded = one_hot_encoding(df=H_df, index_col='store_nbr')
+            Hsum = Hencoded.values[:, 1:].T # Eliminate stores index
+            H = np.concatenate((Hsum, np.eye(len(stores))), axis=0)
             hier_linked_idxs = nonzero_indexes_by_row(H.T)
 
             # Aggregate the store dimension into cities, states, national
             Y_hier = np.einsum('hij,jk->hik', Y, H.T)
-            hier_idxs = [range(93), range(0, 1), range(1, 17), range(17, 39), range(39, 93)]
-
-            upper_labels  = list(static_bottom.columns)
-            bottom_labels = [f'store_[{x}]' for x in stores]
-            hier_labels = np.array(upper_labels + bottom_labels)
+            hier_labels = list(Hencoded.columns[1:]) + list(H_df.store_nbr)
+            hier_labels = np.array(hier_labels)
+            hier_idxs = [range(93),
+                         range(0, 1), range(1, 17),
+                         range(17, 39), range(39, 93)]
 
             # Flat Bottom values for evaluation
             # n_items, n_time, n_group,n_features --> n_items*n_group, n_time, n_features
@@ -826,6 +858,11 @@ class Favorita(TimeSeriesDataclass):
             X = np.float32(np.transpose(X, (0, 2, 3, 1)))
 
             Y_hier = np.float32(np.transpose(Y_hier, (0, 2, 1)))
+
+            # Skip NAs from Y data [G,N,T]
+            Y = Y[:,:,:-34]
+            Y_agg = Y_agg[:,:,:-34]
+            Y_hier = Y_hier[:,:,:-34]
 
         print('\n')
         print('TODO: add weights as prob for loss?')
@@ -901,6 +938,6 @@ class Favorita(TimeSeriesDataclass):
 
         return data
 
-#directory = './data/hierarchical/favorita'
-#Favorita.preprocess_data(directory=directory, sample_size=100, verbose=True)
-#data = Favorita.load_process(directory=directory, sample_size=100, verbose=True)
+# directory = './data/hierarchical/favorita'
+# Favorita.preprocess_data(directory=directory, sample_size=100, verbose=True)
+# data = Favorita.load_process(directory=directory, sample_size=100, verbose=True)

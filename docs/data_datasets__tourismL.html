@@ -203,23 +203,14 @@ nb_path: "nbs/data_datasets__tourismL.ipynb"
 
 <div class="output_area">
 
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>100%|██████████| 644k/644k [00:00&lt;00:00, 4.14MiB/s]
-INFO:neuralforecast.data.datasets.utils:Successfully downloaded TourismData_v3.csv, 643891, bytes.
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Code block &#39;Reading data           &#39; took:	0.08801 seconds
-Code block &#39;Process temporal_agg   &#39; took:	0.00105 seconds
-Code block &#39;Process static_agg     &#39; took:	0.00039 seconds
-Code block &#39;Process temporal_bottom&#39; took:	0.00588 seconds
-Code block &#39;Process static_bottom  &#39; took:	0.00065 seconds
-Code block &#39;Hier constraints       &#39; took:	1.39399 seconds
-Code block &#39;Final processing       &#39; took:	0.00811 seconds
+<pre>Code block &#39;Reading data           &#39; took:	0.09234 seconds
+Code block &#39;Process temporal_agg   &#39; took:	0.00141 seconds
+Code block &#39;Process static_agg     &#39; took:	0.00045 seconds
+Code block &#39;Process temporal_bottom&#39; took:	0.00592 seconds
+Code block &#39;Process static_bottom  &#39; took:	0.00056 seconds
+Code block &#39;Hier constraints       &#39; took:	1.26261 seconds
+Code block &#39;Final processing       &#39; took:	0.00356 seconds
 
 
 Total days 240, train 216 validation 12, test 12
@@ -738,7 +729,7 @@ data[&#39;xcols_agg&#39;]:= Index([&#39;distance_month&#39;, &#39;y_[total]&#39;
                                       <span class="n">xcols_hist_agg</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xcols_hist_agg&#39;</span><span class="p">],</span>
                                       <span class="n">xcols_futr_agg</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xcols_futr_agg&#39;</span><span class="p">],</span>
                                       <span class="c1"># Generator parameters</span>
-                                      <span class="n">T0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">)</span>
+                                      <span class="n">T0</span><span class="o">=</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">)</span>
 
 <span class="n">valid_dataset</span> <span class="o">=</span> <span class="n">HierTimeseriesDataset</span><span class="p">(</span><span class="c1"># Bottom data</span>
                                       <span class="n">X</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">],</span> 
@@ -758,7 +749,7 @@ data[&#39;xcols_agg&#39;]:= Index([&#39;distance_month&#39;, &#39;y_[total]&#39;
                                       <span class="n">xcols_hist_agg</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xcols_hist_agg&#39;</span><span class="p">],</span>
                                       <span class="n">xcols_futr_agg</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xcols_futr_agg&#39;</span><span class="p">],</span>
                                       <span class="c1"># Generator parameters</span>
-                                      <span class="n">T0</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">,</span>
+                                      <span class="n">T0</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">,</span>
                                       <span class="n">lastwindow_mask</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>

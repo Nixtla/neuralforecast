@@ -92,10 +92,10 @@ class TourismL(TimeSeriesDataclass):
 
         # Add aditional H steps for predictions
         # declare skipping ds from column names
-        extra = np.empty((12,len(df.columns)-1,))
+        extra    = np.empty((12, len(df.columns)-1,))
         extra[:] = np.nan
         extra_df = pd.DataFrame.from_records(extra, columns=df.columns[1:])
-        extra_df['ds'] = np.arange("2017-01-01","2018-01-01",dtype='datetime64[M]')
+        extra_df['ds'] = np.arange("2017-01-01", "2018-01-01",dtype='datetime64[M]')
 
         raw_df = pd.concat([df, extra_df], axis=0).reset_index(drop=True)
 
@@ -125,7 +125,7 @@ class TourismL(TimeSeriesDataclass):
         region_ids  = np.array([u_id[:3] for u_id in unique_ids]) #AAAHol->AAA
         purpose_ids = np.array([u_id[3:] for u_id in unique_ids]) #AAAHol->Hol
 
-        with CodeTimer('Create static_agg', verbose):
+        with CodeTimer('Create H.  constraints', verbose):
             # Create static features df,
             # 1 country, 7 States, 27 Zones, 76 Regions
             H_df = pd.DataFrame({'unique_id': unique_ids})
@@ -139,20 +139,21 @@ class TourismL(TimeSeriesDataclass):
             # 108 ZonesXpurpose, 304 RegionsXpurpose (unique_id)
             H_df['purpose']       = H_df['unique_id'].str[-3:]      # 4
             H_df['state_purpose'] = H_df['state'] + H_df['purpose'] # 28
-            H_df['zone_purpose']  = H_df['zone'] + H_df['purpose']  # 108
+            H_df['zone_purpose']  = H_df['zone']  + H_df['purpose'] # 108
 
             # Hierarchical aggregation matrix
             Hencoded = one_hot_encoding(df=H_df, index_col='unique_id')
-            Hsum = Hencoded.values[:, 1:].T # Eliminate unique_id index
-            H = np.concatenate((Hsum, np.eye(len(unique_ids))), axis=0)
+            Hsum     = Hencoded.values[:, 1:].T # Eliminate unique_id index
+            H        = np.concatenate((Hsum, np.eye(len(unique_ids))), axis=0)
 
+        with CodeTimer('Create static_agg     ', verbose):
             # Final wrangling + save
             # Create aggregate(region) level dummy variables
-            H_df_agg  = H_df[['region', 'country', 'state', 'zone']]
-            H_df_agg  = H_df_agg.drop_duplicates()
+            H_df_agg   = H_df[['region', 'country', 'state', 'zone']]
+            H_df_agg   = H_df_agg.drop_duplicates()
             static_agg = one_hot_encoding(df=H_df_agg, index_col='region')
 
-        with CodeTimer('Create temporal_agg', verbose):
+        with CodeTimer('Create temporal_agg   ', verbose):
             #----------------------- Y Variables -----------------------#
 
             # Hierarchical Y for Y_agg features
@@ -195,7 +196,7 @@ class TourismL(TimeSeriesDataclass):
                                               'y_[zone]', 'y_[region]'])
             temporal_agg['region'] = np.tile(static_agg.region.values[:,None], (240,1))
 
-        with CodeTimer('Create static_bottom', verbose):
+        with CodeTimer('Create static_bottom  ', verbose):
             # This version intends to help the model learn in this low sample task
             # Providing it with precomputed level/spread will model to "level" predictions
             # Some ideas to try:
@@ -360,6 +361,7 @@ class TourismL(TimeSeriesDataclass):
             Hencoded = one_hot_encoding(df=H_df, index_col='unique_id')
             Hsum = Hencoded.values[:, 1:].T # Eliminate stores index
             H = np.concatenate((Hsum, np.eye(len(unique_ids))), axis=0)
+            hier_linked_idxs = nonzero_indexes_by_row(H.T)
 
             # Hierarchical dataset and evaluation utility
             Y_flat  = temporal_bottom['y'].values
@@ -371,8 +373,8 @@ class TourismL(TimeSeriesDataclass):
             hier_idxs   = [range(555),
                            range(0, 1), range(1, 1+7), range(8, 8+27), range(35, 111),
                            range(111, 111+4), range(115, 115+28),
-                           range(143,143+108), range(251, 251+304)] # Hardcoded hier_idxs
-            hier_linked_idxs = nonzero_indexes_by_row(H.T)
+                           range(143, 143+108), range(251, 251+304)] # Hardcoded hier_idxs
+
 
         del temporal_bottom, static_bottom
         gc.collect()
