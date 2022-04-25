@@ -12,6 +12,8 @@ from pathlib import Path
 from collections import defaultdict
 from collections import OrderedDict
 
+from fastcore.foundation import patch
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
@@ -20,6 +22,10 @@ from sklearn.preprocessing import normalize
 from dataclasses import dataclass
 from .utils import (
     download_file, Info, TimeSeriesDataclass
+)
+
+from ...losses.numpy import (
+    mqloss, rmse
 )
 
 # Cell
@@ -60,6 +66,77 @@ class TourismL(TimeSeriesDataclass):
     url = 'https://robjhyndman.com/publications/mint/'
     source_url = 'https://robjhyndman.com/data/TourismData_v3.csv'
     H = 12
+
+    @staticmethod
+    def get_normalized_crps(y, y_hat, q_to_pred):
+        norm  = np.sum(y)
+        loss  = mqloss(y=y, y_hat=y_hat, quantiles=q_to_pred)
+        loss  = 2 * loss * np.sum(np.ones(y.shape)) / norm
+        return loss
+
+    @staticmethod
+    def get_normalized_rmse(y, y_hat):
+        norm = np.sum(y)
+        loss = rmse(y=y, y_hat=y_hat)
+        loss = loss * np.sum(np.ones(y.shape)) / norm
+        return loss
+
+    @staticmethod
+    def get_hierarchical_crps(data, Y, Y_hat, q_to_pred):
+        hier_idxs   = data['hier_idxs']
+        hier_levels = data['hier_levels']
+
+        dpmn_gbu = [0.1260,0.0411,0.0624,0.1122,0.1571,0.0747,0.1100,0.1901,0.2600]
+        dpmn_nbu = [0.1578,0.1130,0.1189,0.1466,0.1759,0.1315,0.1416,0.1908,0.2428]
+        hiere2e  = [0.1520,0.0810,0.1030,0.1361,0.1752,0.1027,0.1403,0.2050,0.2727]
+        arima_mint_shr = [0.1609,0.0440,0.0816,0.1433,0.2036,0.0830,0.1479,0.2437,0.3406]
+
+        crps_list = []
+        for i, idxs in enumerate(hier_idxs):
+            y     = Y[idxs, :]
+            y_hat = Y_hat[idxs, :, :]
+
+            crps  = TourismL.get_normalized_crps(y, y_hat, q_to_pred)
+            crps_list.append(crps)
+
+        crps_df = pd.DataFrame({'Level': hier_levels,
+                                'current': crps_list,
+                                'DPMN-GBU': dpmn_gbu,
+                                'DPMN-NBU': dpmn_nbu,
+                                'HierE2E': hiere2e,
+                                'ARIMA-MinT-shr': arima_mint_shr})
+
+        return crps_df
+
+    @staticmethod
+    def get_hierarchical_rmse(data, Y, Y_hat):
+        # Parse data
+        hier_idxs = data['hier_idxs']
+        hier_levels = data['hier_levels']
+
+        mqcnn_nbu= [np.nan] * 9
+        dpmn_gbu = [np.nan] * 9
+        dpmn_nbu = [np.nan] * 9
+        hiere2e  = [np.nan] * 9
+        arima_mint_shr = [np.nan] * 9
+
+        measure_list = []
+        for i, idxs in enumerate(hier_idxs):
+            y     = Y[idxs, :]
+            y_hat = Y_hat[idxs, :]
+
+            measure = TourismL.get_normalized_rmse(y, y_hat)
+            measure_list.append(measure)
+
+        eval_df = pd.DataFrame({'Level': hier_levels,
+                                'current': measure_list,
+                                'MQCNN-NBU': mqcnn_nbu,
+                                'DPMN-GBU': dpmn_gbu,
+                                'DPMN-NBU': dpmn_nbu,
+                                'HierE2E': hiere2e,
+                                'ARIMA-MinT-shr': arima_mint_shr})
+
+        return eval_df
 
     @staticmethod
     def load(directory: str):
@@ -374,6 +451,9 @@ class TourismL(TimeSeriesDataclass):
                            range(0, 1), range(1, 1+7), range(8, 8+27), range(35, 111),
                            range(111, 111+4), range(115, 115+28),
                            range(143, 143+108), range(251, 251+304)] # Hardcoded hier_idxs
+            hier_levels = ['Overall',
+                           '1 (geo.)', '2 (geo.)', '3 (geo.)', '4 (geo.)',
+                           '5 (prp.)', '6 (prp.)', '7 (prp.)', '8 (prp.)']
 
 
         del temporal_bottom, static_bottom
@@ -403,7 +483,7 @@ class TourismL(TimeSeriesDataclass):
             # Skip NAs from Y data [G,N,T]
             Y = Y[:,:,:-12]
             Y_agg = Y_agg[:,:,:-12]
-            Y_hier = Y_hier[:,:-12]
+            Y_hier = np.float32(Y_hier[:,:-12])
 
             # Assert that the variables are contained in the column indexes
             assert all(c in list(xcols_agg) for c in xcols_hist_agg)
@@ -428,6 +508,7 @@ class TourismL(TimeSeriesDataclass):
                     # Hierarchical data for evaluation
                     'Y_hier': Y_hier,
                     'hier_idxs': hier_idxs,
+                    'hier_levels': hier_levels,
                     'hier_labels': hier_labels,
                     'hier_linked_idxs': hier_linked_idxs,
                     # Shared data
@@ -475,8 +556,3 @@ class TourismL(TimeSeriesDataclass):
             print('regions_purpose.shape '+5*'\t',  data['Y_hier'][hier_idxs[8],:].shape)
 
         return data
-
-# directory = './data/hierarchical/TourismL'
-
-# TourismL.preprocess_data(directory=directory)
-# data = TourismL.load_process(directory=directory)
