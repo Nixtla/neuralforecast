@@ -480,6 +480,57 @@ trainer: pl.Trainer
 </div>
     {% endraw %}
 
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="NBEATS.predict" class="doc_header"><code>NBEATS.predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nbeats/nbeats.py#L803" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NBEATS.predict</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>1</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>)</p>
+</blockquote>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2>
+<pre><code>Y_df: pd.DataFrame
+    Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+X_df: pd.DataFrame
+    Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+    Note that 'unique_id' and 'ds' must match Y_df.
+S_df: pd.DataFrame
+    Dataframe with static data, needs 'unique_id' column.
+bath_size: int
+    Batch size for forecasting.
+trainer: pl.Trainer
+    Trainer object for model training and evaluation.
+
+
+</code></pre>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2>
+<pre><code>Y_hat_df: pd.DataFrame
+    DataFrame with 'unique_id','forecast_creation_ds','ds', 'y', and 'y_hat' columns.
+    This function does not returns forecasts outside Y_df dates.
+    To get forecasts for future ds use the forecast method.</code></pre>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h1 id="N-BEATS-Usage-Example">N-BEATS Usage Example<a class="anchor-link" href="#N-BEATS-Usage-Example"> </a></h1>
@@ -719,70 +770,6 @@ dtype: object
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:root:Train Validation splits
-
-INFO:root:                              ds                    
-                             min                 max
-unique_id sample_mask                               
-FR        0           2014-03-16 2016-12-31 23:00:00
-          1           2011-01-09 2014-03-15 23:00:00
-NP        0           2016-03-08 2018-12-24 23:00:00
-          1           2013-01-01 2016-03-07 23:00:00
-INFO:root:
-Total data 			104832 time stamps 
-Available percentage=100.0, 	104832 time stamps 
-Insample  percentage=53.21, 	55776 time stamps 
-Outsample percentage=46.79, 	49056 time stamps 
-
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
-  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
-INFO:root:Train Validation splits
-
-INFO:root:                              ds                    
-                             min                 max
-unique_id sample_mask                               
-FR        0           2011-01-09 2016-12-31 23:00:00
-          1           2014-03-16 2015-01-03 23:00:00
-NP        0           2013-01-01 2018-12-24 23:00:00
-          1           2016-03-08 2016-12-26 23:00:00
-INFO:root:
-Total data 			104832 time stamps 
-Available percentage=100.0, 	104832 time stamps 
-Insample  percentage=13.46, 	14112 time stamps 
-Outsample percentage=86.54, 	90720 time stamps 
-
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
-  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
-INFO:root:Train Validation splits
-
-INFO:root:                              ds                    
-                             min                 max
-unique_id sample_mask                               
-FR        0           2011-01-09 2015-01-03 23:00:00
-          1           2015-01-04 2016-12-31 23:00:00
-NP        0           2013-01-01 2016-12-26 23:00:00
-          1           2016-12-27 2018-12-24 23:00:00
-INFO:root:
-Total data 			104832 time stamps 
-Available percentage=100.0, 	104832 time stamps 
-Insample  percentage=33.33, 	34944 time stamps 
-Outsample percentage=66.67, 	69888 time stamps 
-
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
-  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -870,13 +857,10 @@ Outsample percentage=66.67, 	69888 time stamps
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/loops/epoch/training_epoch_loop.py:49: LightningDeprecationWarning: Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7. Use `max_steps = -1` instead.
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/loops/epoch/training_epoch_loop.py:49: LightningDeprecationWarning: Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7. Use `max_steps = -1` instead.
   &#34;Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7.&#34;
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=10)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=10)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
   f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
-GPU available: False, used: False
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
 
   | Name  | Type    | Params
 ----------------------------------
@@ -886,12 +870,34 @@ IPU available: False, using: 0 IPUs
 0         Non-trainable params
 1.3 M     Total params
 5.199     Total estimated model params size (MB)
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>                                                              </pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (2) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:433: UserWarning: The number of training samples (2) is smaller than the logging interval Trainer(log_every_n_steps=500). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
   f&#34;The number of training samples ({self.num_training_batches}) is smaller than the logging interval&#34;
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Epoch 0: 100%|██████████| 4/4 [00:00&lt;00:00, 10.01it/s, loss=11, v_num=324, train_loss_step=17.30, val_loss=6.860, train_loss_epoch=11.00]
 </pre>
 </div>
 </div>
@@ -933,9 +939,7 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/Users/fedex/projects/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
-  &#39;This class wraps the pytorch `DataLoader` with a &#39;
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
 </pre>
 </div>
@@ -944,7 +948,8 @@ IPU available: False, using: 0 IPUs
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>outputs[0][0].shape torch.Size([42, 24])
+<pre>Predicting: 100%|██████████| 2/2 [00:00&lt;?, ?it/s]
+outputs[0][0].shape torch.Size([42, 24])
 outputs[0][1].shape torch.Size([42, 24])
 outputs[0][2].shape torch.Size([42, 3, 24])
 </pre>
@@ -1216,7 +1221,12 @@ outputs[0][2].shape torch.Size([42, 3, 24])
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stderr output_text">
-<pre>/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:26: SettingWithCopyWarning: 
+<pre>/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:30: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/ipykernel_launcher.py:32: SettingWithCopyWarning: 
 A value is trying to be set on a copy of a slice from a DataFrame.
 Try using .loc[row_indexer,col_indexer] = value instead
 
@@ -1236,15 +1246,18 @@ Available percentage=100.0, 	87288 time stamps
 Insample  percentage=0.05, 	48 time stamps 
 Outsample percentage=99.95, 	87240 time stamps 
 
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsdataset.py:208: FutureWarning: In a future version of pandas all arguments of DataFrame.drop except for the argument &#39;labels&#39; will be keyword-only
-  X.drop([&#39;unique_id&#39;, &#39;ds&#39;], 1, inplace=True)
-GPU available: False, used: False
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-/Users/fedex/projects/neuralforecast/neuralforecast/data/tsloader.py:47: UserWarning: This class wraps the pytorch `DataLoader` with a special collate function. If you want to use yours simply use `DataLoader`. Removing collate_fn
-  &#39;This class wraps the pytorch `DataLoader` with a &#39;
-/Users/fedex/opt/miniconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 8 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:91: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=1)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer&#39;s `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  f&#34;Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and&#34;
+/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
   f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Predicting: 100%|██████████| 1/1 [00:00&lt;00:00, 37.85it/s]
 </pre>
 </div>
 </div>
@@ -1262,7 +1275,7 @@ IPU available: False, using: 0 IPUs
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">forecast_df</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">forecast_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -1304,289 +1317,31 @@ IPU available: False, using: 0 IPUs
       <th>0</th>
       <td>FR</td>
       <td>2016-12-27 00:00:00</td>
-      <td>49.990929</td>
+      <td>48.936142</td>
     </tr>
     <tr>
       <th>1</th>
       <td>FR</td>
       <td>2016-12-27 01:00:00</td>
-      <td>46.707829</td>
+      <td>49.486385</td>
     </tr>
     <tr>
       <th>2</th>
       <td>FR</td>
       <td>2016-12-27 02:00:00</td>
-      <td>52.060726</td>
+      <td>54.575874</td>
     </tr>
     <tr>
       <th>3</th>
       <td>FR</td>
       <td>2016-12-27 03:00:00</td>
-      <td>47.081509</td>
+      <td>42.781250</td>
     </tr>
     <tr>
       <th>4</th>
       <td>FR</td>
       <td>2016-12-27 04:00:00</td>
-      <td>43.243519</td>
-    </tr>
-    <tr>
-      <th>5</th>
-      <td>FR</td>
-      <td>2016-12-27 05:00:00</td>
-      <td>49.660500</td>
-    </tr>
-    <tr>
-      <th>6</th>
-      <td>FR</td>
-      <td>2016-12-27 06:00:00</td>
-      <td>50.721909</td>
-    </tr>
-    <tr>
-      <th>7</th>
-      <td>FR</td>
-      <td>2016-12-27 07:00:00</td>
-      <td>51.070969</td>
-    </tr>
-    <tr>
-      <th>8</th>
-      <td>FR</td>
-      <td>2016-12-27 08:00:00</td>
-      <td>47.830345</td>
-    </tr>
-    <tr>
-      <th>9</th>
-      <td>FR</td>
-      <td>2016-12-27 09:00:00</td>
-      <td>48.632439</td>
-    </tr>
-    <tr>
-      <th>10</th>
-      <td>FR</td>
-      <td>2016-12-27 10:00:00</td>
-      <td>46.903412</td>
-    </tr>
-    <tr>
-      <th>11</th>
-      <td>FR</td>
-      <td>2016-12-27 11:00:00</td>
-      <td>42.483223</td>
-    </tr>
-    <tr>
-      <th>12</th>
-      <td>FR</td>
-      <td>2016-12-27 12:00:00</td>
-      <td>45.047684</td>
-    </tr>
-    <tr>
-      <th>13</th>
-      <td>FR</td>
-      <td>2016-12-27 13:00:00</td>
-      <td>46.665199</td>
-    </tr>
-    <tr>
-      <th>14</th>
-      <td>FR</td>
-      <td>2016-12-27 14:00:00</td>
-      <td>47.682362</td>
-    </tr>
-    <tr>
-      <th>15</th>
-      <td>FR</td>
-      <td>2016-12-27 15:00:00</td>
-      <td>50.067822</td>
-    </tr>
-    <tr>
-      <th>16</th>
-      <td>FR</td>
-      <td>2016-12-27 16:00:00</td>
-      <td>49.738674</td>
-    </tr>
-    <tr>
-      <th>17</th>
-      <td>FR</td>
-      <td>2016-12-27 17:00:00</td>
-      <td>47.334499</td>
-    </tr>
-    <tr>
-      <th>18</th>
-      <td>FR</td>
-      <td>2016-12-27 18:00:00</td>
-      <td>48.062958</td>
-    </tr>
-    <tr>
-      <th>19</th>
-      <td>FR</td>
-      <td>2016-12-27 19:00:00</td>
-      <td>50.410599</td>
-    </tr>
-    <tr>
-      <th>20</th>
-      <td>FR</td>
-      <td>2016-12-27 20:00:00</td>
-      <td>49.675797</td>
-    </tr>
-    <tr>
-      <th>21</th>
-      <td>FR</td>
-      <td>2016-12-27 21:00:00</td>
-      <td>49.066280</td>
-    </tr>
-    <tr>
-      <th>22</th>
-      <td>FR</td>
-      <td>2016-12-27 22:00:00</td>
-      <td>46.856270</td>
-    </tr>
-    <tr>
-      <th>23</th>
-      <td>FR</td>
-      <td>2016-12-27 23:00:00</td>
-      <td>47.586472</td>
-    </tr>
-    <tr>
-      <th>24</th>
-      <td>NP</td>
-      <td>2016-12-27 00:00:00</td>
-      <td>24.939322</td>
-    </tr>
-    <tr>
-      <th>25</th>
-      <td>NP</td>
-      <td>2016-12-27 01:00:00</td>
-      <td>23.611902</td>
-    </tr>
-    <tr>
-      <th>26</th>
-      <td>NP</td>
-      <td>2016-12-27 02:00:00</td>
-      <td>26.618235</td>
-    </tr>
-    <tr>
-      <th>27</th>
-      <td>NP</td>
-      <td>2016-12-27 03:00:00</td>
-      <td>23.681618</td>
-    </tr>
-    <tr>
-      <th>28</th>
-      <td>NP</td>
-      <td>2016-12-27 04:00:00</td>
-      <td>22.597773</td>
-    </tr>
-    <tr>
-      <th>29</th>
-      <td>NP</td>
-      <td>2016-12-27 05:00:00</td>
-      <td>25.218441</td>
-    </tr>
-    <tr>
-      <th>30</th>
-      <td>NP</td>
-      <td>2016-12-27 06:00:00</td>
-      <td>25.817753</td>
-    </tr>
-    <tr>
-      <th>31</th>
-      <td>NP</td>
-      <td>2016-12-27 07:00:00</td>
-      <td>25.533932</td>
-    </tr>
-    <tr>
-      <th>32</th>
-      <td>NP</td>
-      <td>2016-12-27 08:00:00</td>
-      <td>24.358547</td>
-    </tr>
-    <tr>
-      <th>33</th>
-      <td>NP</td>
-      <td>2016-12-27 09:00:00</td>
-      <td>24.696827</td>
-    </tr>
-    <tr>
-      <th>34</th>
-      <td>NP</td>
-      <td>2016-12-27 10:00:00</td>
-      <td>23.567106</td>
-    </tr>
-    <tr>
-      <th>35</th>
-      <td>NP</td>
-      <td>2016-12-27 11:00:00</td>
-      <td>21.562275</td>
-    </tr>
-    <tr>
-      <th>36</th>
-      <td>NP</td>
-      <td>2016-12-27 12:00:00</td>
-      <td>23.117901</td>
-    </tr>
-    <tr>
-      <th>37</th>
-      <td>NP</td>
-      <td>2016-12-27 13:00:00</td>
-      <td>24.040312</td>
-    </tr>
-    <tr>
-      <th>38</th>
-      <td>NP</td>
-      <td>2016-12-27 14:00:00</td>
-      <td>24.574442</td>
-    </tr>
-    <tr>
-      <th>39</th>
-      <td>NP</td>
-      <td>2016-12-27 15:00:00</td>
-      <td>25.083153</td>
-    </tr>
-    <tr>
-      <th>40</th>
-      <td>NP</td>
-      <td>2016-12-27 16:00:00</td>
-      <td>25.471178</td>
-    </tr>
-    <tr>
-      <th>41</th>
-      <td>NP</td>
-      <td>2016-12-27 17:00:00</td>
-      <td>24.299793</td>
-    </tr>
-    <tr>
-      <th>42</th>
-      <td>NP</td>
-      <td>2016-12-27 18:00:00</td>
-      <td>24.480080</td>
-    </tr>
-    <tr>
-      <th>43</th>
-      <td>NP</td>
-      <td>2016-12-27 19:00:00</td>
-      <td>25.411215</td>
-    </tr>
-    <tr>
-      <th>44</th>
-      <td>NP</td>
-      <td>2016-12-27 20:00:00</td>
-      <td>24.847712</td>
-    </tr>
-    <tr>
-      <th>45</th>
-      <td>NP</td>
-      <td>2016-12-27 21:00:00</td>
-      <td>25.088522</td>
-    </tr>
-    <tr>
-      <th>46</th>
-      <td>NP</td>
-      <td>2016-12-27 22:00:00</td>
-      <td>23.150562</td>
-    </tr>
-    <tr>
-      <th>47</th>
-      <td>NP</td>
-      <td>2016-12-27 23:00:00</td>
-      <td>23.898933</td>
+      <td>45.289867</td>
     </tr>
   </tbody>
 </table>

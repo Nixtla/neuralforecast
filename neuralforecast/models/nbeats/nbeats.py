@@ -797,3 +797,121 @@ def forecast(self: NBEATS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: 
     forecast_df['y'] = forecast.flatten()
 
     return forecast_df
+
+
+# Cell
+@patch
+def predict(self: NBEATS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
+            batch_size: int=1, trainer: pl.Trainer =None) -> pd.DataFrame:
+    """
+    Parameters
+    ----------
+        Y_df: pd.DataFrame
+            Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+        X_df: pd.DataFrame
+            Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+            Note that 'unique_id' and 'ds' must match Y_df.
+        S_df: pd.DataFrame
+            Dataframe with static data, needs 'unique_id' column.
+        bath_size: int
+            Batch size for forecasting.
+        trainer: pl.Trainer
+            Trainer object for model training and evaluation.
+
+
+    Returns
+    ----------
+        Y_hat_df: pd.DataFrame
+            DataFrame with 'unique_id','forecast_creation_ds','ds', 'y', and 'y_hat' columns.
+            This function does not returns forecasts outside Y_df dates.
+            To get forecasts for future ds use the forecast method.
+    """
+
+    # Add forecast dates to Y_df
+    Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+    if X_df is not None:
+        X_df['ds'] = pd.to_datetime(X_df['ds'])
+
+    n_series = Y_df['unique_id'].nunique()
+
+    # Dataset, loader and trainer
+    dataset = WindowsDataset(S_df=S_df, Y_df=Y_df, X_df=X_df,
+                             mask_df=None, f_cols=[],
+                             input_size=self.n_time_in,
+                             output_size=self.n_time_out,
+                             sample_freq=1,
+                             complete_windows=True,
+                             ds_in_test=0,
+                             is_test=False,
+                             verbose=True)
+
+    loader = TimeSeriesLoader(dataset=dataset,
+                              batch_size=batch_size,
+                              shuffle=False)
+
+    if trainer is None:
+        gpus = -1 if t.cuda.is_available() else 0
+        trainer = pl.Trainer(progress_bar_refresh_rate=1,
+                             gpus=gpus,
+                             logger=False)
+
+    # Forecast
+    outputs = trainer.predict(self, loader)
+
+    y_true, y_hat, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+
+    # Y_hat dataframe wrangling
+    unique_ids = Y_df['unique_id'].unique()
+
+    # Extend ds vector to match padded ts_tensor
+    timedelta = dataset.ds[1] -dataset.ds[0]
+    start_date = dataset.ds[0] - dataset.input_size*timedelta
+    end_date = dataset.ds[-1] + dataset.output_size*timedelta
+    ds = pd.date_range(start_date, end_date, freq=dataset.frequency)
+
+    # Tensor with sample_mask
+    tensor = dataset.ts_tensor[:,dataset.t_cols.index('sample_mask'),:]
+    padding = (model.n_time_in, model.n_time_out)
+    padder = t.nn.ConstantPad1d(padding=padding, value=0)
+    tensor = padder(tensor)
+
+    # Add dates indexes to tensor
+    ds_idxs = t.tile(t.arange(start=0, end=len(ds)),dims=[len(tensor), 1])
+    tensor = t.cat((tensor[:,None,:],ds_idxs[:,None,:]),dim=1)
+
+    # Rolling window of sampling mask and dates indexes
+    tensor = tensor.unfold(dimension=-1,
+                            size=model.n_time_in+model.n_time_out,
+                            step=dataset.sample_freq)
+
+    # Split rolled tensor in sample_mask and ds
+    ds_rolled = ds[tensor[:,1,:,-model.n_time_out-1:].numpy().astype(int)] # -model.n_time_out-1 to add forecast creation date
+    sample_mask_rolled = tensor[:,0,:,-model.n_time_out:]
+
+    # Sampling condition, ALL ds in the forecast window should be sampleaple
+    sample_condition = (sample_mask_rolled.sum(dim=2)==model.n_time_out)
+
+    # Filter rolled ds with sample_condition
+    ds_rolled = ds_rolled.reshape(-1, model.n_time_out+1)
+    ds_rolled = ds_rolled[sample_condition.flatten()]
+
+    # Split forecast creation date and ds
+    fcds = ds_rolled[:,0]
+    ds_rolled = ds_rolled[:,1:]
+
+    # Unique_id column
+    unique_id_counts = model.n_time_out*sample_condition.sum(dim=1)
+    unique_ids_column = [[u_id]*count for u_id, count in zip(unique_ids, unique_id_counts)]
+    unique_ids_column = np.concatenate(unique_ids_column)
+
+    # Forecast creation date column
+    fcds_column = fcds.repeat(model.n_time_out)
+
+    # Output DataFrame
+    Y_hat_df = pd.DataFrame({'unique_id':unique_ids_column,
+                             'forecast_creation_ds': fcds_column,
+                             'ds':ds_rolled.flatten(),
+                             'y': y_true.flatten(),
+                             'y_hat':y_hat.flatten()})
+
+    return Y_hat_df
