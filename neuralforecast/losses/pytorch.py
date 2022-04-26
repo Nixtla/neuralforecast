@@ -291,11 +291,10 @@ def RMAELoss(y: t.Tensor, y_hat1: t.Tensor, y_hat2: t.Tensor, mask: t.Tensor =No
     """
 
     if mask is None: mask = t.ones_like(y_hat1)
-    #rmae_loss = _divide_no_nan(t.abs(y - y_hat1), MAELoss(y, y_hat2))
 
     numerator = MAELoss(y=y, y_hat=y_hat1)
     denominator = MAELoss(y=y, y_hat=y_hat2)
-    rmae_loss = numerator / denominator
+    rmae_loss = _divide_no_nan(numerator, denominator)
 
     return rmae_loss
 
