@@ -853,9 +853,9 @@ class Favorita:
             Y_agg = Y_agg[:,:,:-34]
             Y_hier = Y_hier[:,:,:-34]
 
-        print('\n')
-        print('TODO: add weights as prob for loss?')
-        print('TODO: do bfill onpromotion rather than ffill (future)')
+        #print('\n')
+        #print('TODO: add weights as prob for loss?')
+        #print('TODO: do bfill onpromotion rather than ffill (future)')
 
         # Assert that the variables are contained in the column indexes
         assert all(c in list(xcols_agg) for c in xcols_hist_agg)
