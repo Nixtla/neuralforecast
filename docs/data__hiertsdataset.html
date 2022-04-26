@@ -56,7 +56,7 @@ Samples entire sequences for Seq2Seq type models.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="HierTimeseriesDataset" class="doc_header"><code>class</code> <code>HierTimeseriesDataset</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/hiertsdataset.py#L10" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>HierTimeseriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
+<h2 id="HierTimeSeriesDataset" class="doc_header"><code>class</code> <code>HierTimeSeriesDataset</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/hiertsdataset.py#L10" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>HierTimeSeriesDataset</code>(<strong>*<code>args</code></strong>, <strong>**<code>kwds</code></strong>) :: <code>Dataset</code></p>
 </blockquote>
 <p>An abstract class representing a :class:<code>Dataset</code>.</p>
 <p>All datasets that represent a map from keys to data samples should subclass
@@ -101,7 +101,8 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.tourismL</span> <span class="kn">import</span> <span class="n">TourismL</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.tourismL</span> <span class="kn">import</span> <span class="n">TourismL</span>
 
 <span class="n">directory</span> <span class="o">=</span> <span class="s1">&#39;./data/hierarchical/TourismL&#39;</span>
 <span class="n">TourismL</span><span class="o">.</span><span class="n">preprocess_data</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -125,7 +126,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">T</span> <span class="o">=</span> <span class="mi">228</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">12</span>
 <span class="n">H</span> <span class="o">=</span> <span class="mi">12</span>
 
-<span class="n">train_dataset</span> <span class="o">=</span> <span class="n">HierTimeseriesDataset</span><span class="p">(</span><span class="c1"># Bottom data</span>
+<span class="n">train_dataset</span> <span class="o">=</span> <span class="n">HierTimeSeriesDataset</span><span class="p">(</span><span class="c1"># Bottom data</span>
                                       <span class="n">X</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">],</span> 
                                       <span class="n">S</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">],</span> 
                                       <span class="n">Y</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">],</span>
@@ -145,7 +146,7 @@ of :class:<code>~torch.utils.data.DataLoader</code>.</p>
                                       <span class="c1"># Generator parameters</span>
                                       <span class="n">T0</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">=</span><span class="n">T</span><span class="p">,</span><span class="n">H</span><span class="o">=</span><span class="n">H</span><span class="p">)</span>
 
-<span class="n">valid_dataset</span> <span class="o">=</span> <span class="n">HierTimeseriesDataset</span><span class="p">(</span><span class="c1"># Bottom data</span>
+<span class="n">valid_dataset</span> <span class="o">=</span> <span class="n">HierTimeSeriesDataset</span><span class="p">(</span><span class="c1"># Bottom data</span>
                                       <span class="n">X</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">],</span> 
                                       <span class="n">S</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">],</span> 
                                       <span class="n">Y</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">],</span>

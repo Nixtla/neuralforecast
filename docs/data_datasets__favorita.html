@@ -88,63 +88,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="CodeTimer" class="doc_header"><code>class</code> <code>CodeTimer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L49" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>CodeTimer</code>(<strong><code>name</code></strong>=<em><code>None</code></em>, <strong><code>verbose</code></strong>=<em><code>True</code></em>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="check_nans" class="doc_header"><code>check_nans</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L64" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>check_nans</code>(<strong><code>df</code></strong>)</p>
-</blockquote>
-<p>For data wrangling logs</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="check_items" class="doc_header"><code>check_items</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L80" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>check_items</code>(<strong><code>items</code></strong>)</p>
+<h4 id="nonzero_indexes_by_row" class="doc_header"><code>nonzero_indexes_by_row</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L52" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>nonzero_indexes_by_row</code>(<strong><code>M</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -168,7 +112,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="one_hot_encoding" class="doc_header"><code>one_hot_encoding</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L85" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>one_hot_encoding</code>(<strong><code>df</code></strong>, <strong><code>index_col</code></strong>)</p>
+<h4 id="distance_to_holiday" class="doc_header"><code>distance_to_holiday</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L55" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>distance_to_holiday</code>(<strong><code>holiday_dates</code></strong>, <strong><code>dates</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -192,164 +136,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="nonzero_indexes_by_row" class="doc_header"><code>nonzero_indexes_by_row</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L97" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>nonzero_indexes_by_row</code>(<strong><code>M</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="numpy_balance" class="doc_header"><code>numpy_balance</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L100" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_balance</code>(<strong>*<code>arrs</code></strong>)</p>
-</blockquote>
-<p>Fast NumPy implementation of balance function.
-The function creates all the interactions between
-the NumPy arrays provided.</p>
-
-<pre><code>Parameters
-----------
-arrs: NumPy arrays
-Returns
--------
-out: NumPy array</code></pre>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="numpy_ffill" class="doc_header"><code>numpy_ffill</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L117" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_ffill</code>(<strong><code>arr</code></strong>)</p>
-</blockquote>
-<p>Fast NumPy implementation of forwardfill function.
-The function fills missing/nan values with the
-following value in the array.</p>
-
-<pre><code>Parameters
-----------
-arr: NumPy array
-Returns
--------
-arr: NumPy array</code></pre>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="numpy_bfill" class="doc_header"><code>numpy_bfill</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L135" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>numpy_bfill</code>(<strong><code>arr</code></strong>)</p>
-</blockquote>
-<p>Fast NumPy implementation of backfill function.
-The function fills missing/nan values with the
-previous value in the array.</p>
-
-<pre><code>Parameters
-----------
-arr: NumPy array
-Returns
--------
-arr: NumPy array</code></pre>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="distance_to_holiday" class="doc_header"><code>distance_to_holiday</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L154" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>distance_to_holiday</code>(<strong><code>holiday_dates</code></strong>, <strong><code>dates</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="make_holidays_distance_df" class="doc_header"><code>make_holidays_distance_df</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L185" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>make_holidays_distance_df</code>(<strong><code>holidays_df</code></strong>, <strong><code>dates</code></strong>)</p>
+<h4 id="make_holidays_distance_df" class="doc_header"><code>make_holidays_distance_df</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L86" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>make_holidays_distance_df</code>(<strong><code>holidays_df</code></strong>, <strong><code>dates</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -387,9 +174,9 @@ arr: NumPy array</code></pre>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Favorita" class="doc_header"><code>class</code> <code>Favorita</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L201" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Favorita</code>(<strong><code>S</code></strong>:<code>DataFrame</code>, <strong><code>X</code></strong>:<code>DataFrame</code>, <strong><code>Y</code></strong>:<code>DataFrame</code>, <strong><code>idx_categorical_static</code></strong>:<code>Optional</code>[<code>List</code>[<code>T</code>]]=<em><code>None</code></em>, <strong><code>group</code></strong>:<code>Union</code>[<code>str</code>, <code>List</code>[<code>str</code>]]=<em><code>None</code></em>) :: <a href="/neuralforecast/data_datasets__utils.html#TimeSeriesDataclass"><code>TimeSeriesDataclass</code></a></p>
+<h2 id="Favorita" class="doc_header"><code>class</code> <code>Favorita</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/datasets/favorita.py#L102" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Favorita</code>()</p>
 </blockquote>
-<p>Favorita(S: pandas.core.frame.DataFrame, X: pandas.core.frame.DataFrame, Y: pandas.core.frame.DataFrame, idx_categorical_static: Union[List, NoneType] = None, group: Union[str, List[str]] = None)</p>
+<p>Favorita()</p>
 
 </div>
 
@@ -737,7 +524,7 @@ arr: NumPy array</code></pre>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># from neuralforecast.data.datasets.favorita import Favorita</span>
-<span class="c1"># from neuralforecast.data.hiertsdataset import HierTimeseriesDataset</span>
+<span class="c1"># from neuralforecast.data.hiertsdataset import HierTimeSeriesDataset</span>
 
 <span class="c1"># directory = &#39;./data/hierarchical/favorita&#39;</span>
 <span class="c1"># Favorita.preprocess_data(directory=directory, sample_size=100, verbose=False)</span>
@@ -760,7 +547,7 @@ arr: NumPy array</code></pre>
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># H = 34</span>
 
-<span class="c1"># train_dataset = HierTimeseriesDataset(# Bottom data</span>
+<span class="c1"># train_dataset = HierTimeSeriesDataset(# Bottom data</span>
 <span class="c1">#                                       X=data[&#39;X&#39;], </span>
 <span class="c1">#                                       S=data[&#39;S&#39;], </span>
 <span class="c1">#                                       Y=data[&#39;Y&#39;],</span>
@@ -780,7 +567,7 @@ arr: NumPy array</code></pre>
 <span class="c1">#                                       # Generator parameters</span>
 <span class="c1">#                                       T0=H,T=T,H=H)</span>
 
-<span class="c1"># valid_dataset = HierTimeseriesDataset(# Bottom data</span>
+<span class="c1"># valid_dataset = HierTimeSeriesDataset(# Bottom data</span>
 <span class="c1">#                                       X=data[&#39;X&#39;], </span>
 <span class="c1">#                                       S=data[&#39;S&#39;], </span>
 <span class="c1">#                                       Y=data[&#39;Y&#39;],</span>
@@ -970,6 +757,55 @@ arr: NumPy array</code></pre>
 <span class="c1"># plt.legend(bbox_to_anchor=(1, 1), loc=&#39;upper left&#39;, ncol=1)</span>
 <span class="c1"># plt.show()</span>
 <span class="c1"># plt.close()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a name="cell-5"></a></p>
+<h2 id="5.-Hierarchical-evaluation-metrics">5. Hierarchical evaluation metrics<a class="anchor-link" href="#5.-Hierarchical-evaluation-metrics"> </a></h2>
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Y_test = data[&#39;Y_hier&#39;][:,:,-12:]</span>
+<span class="c1"># Y_hat  = Y_test * 1.1</span>
+<span class="c1"># Yq_hat = np.repeat(Y_hat[:,:,:,None], len(QUANTILES), axis=3)</span>
+
+<span class="c1"># crps_df = Favorita.get_hierarchical_crps(data=data, </span>
+<span class="c1">#                                          Y=Y_test, Y_hat=Yq_hat,</span>
+<span class="c1">#                                          q_to_pred=QUANTILES)</span>
+<span class="c1"># crps_df</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#                                          Y=Y_test, Y_hat=Y_hat)</span>
+<span class="c1"># rmse_df</span>
 </pre></div>
 
     </div>
