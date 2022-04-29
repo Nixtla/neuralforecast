@@ -920,7 +920,7 @@ verbose:
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nhits_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span> <span class="c1">#, n_series=1, n_x=1, n_s=0, frequency=&#39;H&#39;)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nhits_space</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span> <span class="c1">#, n_series=1, n_x=1, n_s=0, frequency=&#39;H&#39;)</span>
 <span class="n">space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
 <span class="c1"># The suggested spaces are partial, here we complete them with data specific information</span>
 <span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_series&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_series&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="p">])</span>
@@ -944,31 +944,6 @@ verbose:
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.013117 seconds
-INFO:hyperopt.tpe:TPE using 0 trials
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, val_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/torch/nn/functional.py:3635: UserWarning: Default upsampling behavior when mode=linear is changed to align_corners=False since 0.4.0. Please specify align_corners=True if the old behavior is desired. See the documentation of nn.Upsample for details.
-  &#34;See the documentation of nn.Upsample for details.&#34;.format(mode)
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, train_dataloader, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.7/site-packages/pytorch_lightning/trainer/data_loading.py:133: UserWarning: The dataloader, predict_dataloader 0, does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` (try 12 which is the number of cpus on this machine) in the `DataLoader` init to improve performance.
-  f&#34;The dataloader, {name}, does not have many workers which may be a bottleneck.&#34;
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.010917 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.598013
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -983,87 +958,6 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.598013
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>NHITS(
-  (model): _NHITS(
-    (blocks): ModuleList(
-      (0): _NHITSBlock(
-        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
-        (static_encoder): _StaticFeaturesEncoder(
-          (encoder): Sequential(
-            (0): Dropout(p=0.5, inplace=False)
-            (1): Linear(in_features=1, out_features=1, bias=True)
-            (2): ReLU()
-          )
-        )
-        (layers): Sequential(
-          (0): Linear(in_features=169, out_features=256, bias=True)
-          (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
-          (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=73, bias=True)
-        )
-        (basis): _IdentityBasis()
-      )
-      (1): _NHITSBlock(
-        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
-        (static_encoder): _StaticFeaturesEncoder(
-          (encoder): Sequential(
-            (0): Dropout(p=0.5, inplace=False)
-            (1): Linear(in_features=1, out_features=1, bias=True)
-            (2): ReLU()
-          )
-        )
-        (layers): Sequential(
-          (0): Linear(in_features=169, out_features=256, bias=True)
-          (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
-          (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=73, bias=True)
-        )
-        (basis): _IdentityBasis()
-      )
-      (2): _NHITSBlock(
-        (pooling_layer): MaxPool1d(kernel_size=1, stride=1, padding=0, dilation=1, ceil_mode=True)
-        (static_encoder): _StaticFeaturesEncoder(
-          (encoder): Sequential(
-            (0): Dropout(p=0.5, inplace=False)
-            (1): Linear(in_features=1, out_features=1, bias=True)
-            (2): ReLU()
-          )
-        )
-        (layers): Sequential(
-          (0): Linear(in_features=169, out_features=256, bias=True)
-          (1): ReLU()
-          (2): Linear(in_features=256, out_features=256, bias=True)
-          (3): ReLU()
-          (4): Linear(in_features=256, out_features=256, bias=True)
-          (5): ReLU()
-          (6): Linear(in_features=256, out_features=96, bias=True)
-        )
-        (basis): _IdentityBasis()
-      )
-    )
-  )
-)</pre>
-</div>
-
-</div>
-
 </div>
 </div>
 
@@ -1083,7 +977,7 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.598013
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nbeats_space</span><span class="p">(</span><span class="n">n_time_out</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nbeats_space</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
 <span class="n">space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
  <span class="c1"># The suggested spaces are partial, here we complete them with data specific information</span>
 <span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_series&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_series&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="p">])</span>
@@ -1103,23 +997,6 @@ INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.598013
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stderr output_text">
-<pre>INFO:hyperopt.tpe:build_posterior_wrapper took 0.010783 seconds
-INFO:hyperopt.tpe:TPE using 0 trials
-INFO:hyperopt.tpe:build_posterior_wrapper took 0.016312 seconds
-INFO:hyperopt.tpe:TPE using 1/1 trials with best loss 8.788279
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 
