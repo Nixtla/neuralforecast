@@ -149,19 +149,20 @@ nb_path: "nbs/data_datasets__tourismL.ipynb"
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Code block &#39;Reading data           &#39; took:	0.10790 seconds
-Code block &#39;Process temporal_agg   &#39; took:	0.00116 seconds
-Code block &#39;Process static_agg     &#39; took:	0.00040 seconds
-Code block &#39;Process temporal_bottom&#39; took:	0.00656 seconds
-Code block &#39;Process static_bottom  &#39; took:	0.00060 seconds
-Code block &#39;Hier constraints       &#39; took:	1.26945 seconds
-Code block &#39;Final processing       &#39; took:	0.01355 seconds
+<pre>Code block &#39;Reading data           &#39; took:	0.10808 seconds
+Code block &#39;Process temporal_agg   &#39; took:	0.00122 seconds
+Code block &#39;Process static_agg     &#39; took:	0.00042 seconds
+Code block &#39;Process temporal_bottom&#39; took:	0.00556 seconds
+Code block &#39;Process static_bottom  &#39; took:	0.00105 seconds
+Code block &#39;Hier constraints       &#39; took:	1.19445 seconds
+Code block &#39;Final processing       &#39; took:	0.00738 seconds
 
 
-Total days 240, train 216 validation 12, test 12
-Whole dates: 		 [1998-01-01 00:00:00, 2017-12-01 00:00:00]
-Validation dates: 	 [2016-01-01 00:00:00, 2016-12-01 00:00:00]
-Test dates: 		 [2017-01-01 00:00:00, 2017-12-01 00:00:00]
+Total days 240, train 138 validation 34, test 34
+Whole dates: 		 [1998-01-01 00:00:00, 2015-02-01 00:00:00]
+Validation dates: 	 [2009-07-01 00:00:00, 2012-04-01 00:00:00]
+Test dates: 		 [2012-05-01 00:00:00, 2015-02-01 00:00:00]
+Forecast dates: 	 [2015-03-01 00:00:00, 2017-12-01 00:00:00]
 
 
                                    BOTTOM
@@ -634,9 +635,9 @@ data[&#39;xcols_agg&#39;]:= Index([&#39;distance_month&#39;, &#39;y_[total]&#39;
 <span class="c1"># from neuralforecast.data.datasets.tourismL import TourismL</span>
 <span class="kn">from</span> <span class="nn">neuralforecast.data.hiertsdataset</span> <span class="kn">import</span> <span class="n">HierTimeSeriesDataset</span>
 
-<span class="n">directory</span> <span class="o">=</span> <span class="s1">&#39;./data/hierarchical/TourismL&#39;</span>
-<span class="n">TourismL</span><span class="o">.</span><span class="n">preprocess_data</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">TourismL</span><span class="o">.</span><span class="n">load_process</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="c1"># directory = &#39;./data/hierarchical/TourismL&#39;</span>
+<span class="c1"># TourismL.preprocess_data(directory=directory, verbose=False)</span>
+<span class="c1"># data = TourismL.load_process(directory=directory, verbose=False)</span>
 </pre></div>
 
     </div>
@@ -974,7 +975,8 @@ F_agg.shape torch.Size([4, 1, 216])
 
 <span class="n">crps_df</span> <span class="o">=</span> <span class="n">TourismL</span><span class="o">.</span><span class="n">get_hierarchical_crps</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> 
                                          <span class="n">Y</span><span class="o">=</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">Y_hat</span><span class="o">=</span><span class="n">Yq_hat</span><span class="p">,</span>
-                                         <span class="n">q_to_pred</span><span class="o">=</span><span class="n">QUANTILES</span><span class="p">)</span>
+                                         <span class="n">q_to_pred</span><span class="o">=</span><span class="n">QUANTILES</span><span class="p">,</span>
+                                         <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;example&#39;</span><span class="p">)</span>
 <span class="n">crps_df</span>
 </pre></div>
 
@@ -1008,13 +1010,14 @@ F_agg.shape torch.Size([4, 1, 216])
     <tr style="text-align: right;">
       <th></th>
       <th>Level</th>
-      <th>current</th>
+      <th>example</th>
       <th>DPMN-GBU</th>
       <th>DPMN-NBU</th>
       <th>HierE2E</th>
       <th>PERMBU-MinT</th>
       <th>ARIMA-ERM</th>
       <th>ARIMA-MinT-shr</th>
+      <th>GLM-Poisson</th>
     </tr>
   </thead>
   <tbody>
@@ -1028,6 +1031,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.1689</td>
       <td>0.1609</td>
+      <td>0.1762</td>
     </tr>
     <tr>
       <th>1</th>
@@ -1039,6 +1043,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.0725</td>
       <td>0.0440</td>
+      <td>0.0854</td>
     </tr>
     <tr>
       <th>2</th>
@@ -1050,6 +1055,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.1071</td>
       <td>0.0816</td>
+      <td>0.1153</td>
     </tr>
     <tr>
       <th>3</th>
@@ -1061,6 +1067,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.1541</td>
       <td>0.1433</td>
+      <td>0.1691</td>
     </tr>
     <tr>
       <th>4</th>
@@ -1072,6 +1079,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.2052</td>
       <td>0.2036</td>
+      <td>0.2165</td>
     </tr>
     <tr>
       <th>5</th>
@@ -1083,6 +1091,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.1095</td>
       <td>0.0830</td>
+      <td>0.0954</td>
     </tr>
     <tr>
       <th>6</th>
@@ -1094,6 +1103,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.1628</td>
       <td>0.1479</td>
+      <td>0.1682</td>
     </tr>
     <tr>
       <th>7</th>
@@ -1105,6 +1115,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.2435</td>
       <td>0.2437</td>
+      <td>0.2458</td>
     </tr>
     <tr>
       <th>8</th>
@@ -1116,6 +1127,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>0.3076</td>
       <td>0.3406</td>
+      <td>0.3134</td>
     </tr>
   </tbody>
 </table>
@@ -1138,7 +1150,8 @@ F_agg.shape torch.Size([4, 1, 216])
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">rmse_df</span> <span class="o">=</span> <span class="n">TourismL</span><span class="o">.</span><span class="n">get_hierarchical_rmse</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> 
-                                         <span class="n">Y</span><span class="o">=</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">Y_hat</span><span class="o">=</span><span class="n">Y_hat</span><span class="p">)</span>
+                                         <span class="n">Y</span><span class="o">=</span><span class="n">Y_test</span><span class="p">,</span> <span class="n">Y_hat</span><span class="o">=</span><span class="n">Y_hat</span><span class="p">,</span>
+                                         <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;example&#39;</span><span class="p">)</span>
 <span class="n">rmse_df</span>
 </pre></div>
 
@@ -1172,12 +1185,13 @@ F_agg.shape torch.Size([4, 1, 216])
     <tr style="text-align: right;">
       <th></th>
       <th>Level</th>
-      <th>current</th>
+      <th>example</th>
       <th>MQCNN-NBU</th>
       <th>DPMN-GBU</th>
       <th>DPMN-NBU</th>
       <th>HierE2E</th>
       <th>ARIMA-MinT-shr</th>
+      <th>GLM-Poisson</th>
     </tr>
   </thead>
   <tbody>
@@ -1190,6 +1204,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.5230</td>
     </tr>
     <tr>
       <th>1</th>
@@ -1200,6 +1215,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.1052</td>
     </tr>
     <tr>
       <th>2</th>
@@ -1210,6 +1226,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.1660</td>
     </tr>
     <tr>
       <th>3</th>
@@ -1220,6 +1237,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.2726</td>
     </tr>
     <tr>
       <th>4</th>
@@ -1230,6 +1248,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.4046</td>
     </tr>
     <tr>
       <th>5</th>
@@ -1240,6 +1259,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.1408</td>
     </tr>
     <tr>
       <th>6</th>
@@ -1250,6 +1270,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.2824</td>
     </tr>
     <tr>
       <th>7</th>
@@ -1260,6 +1281,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.4718</td>
     </tr>
     <tr>
       <th>8</th>
@@ -1270,6 +1292,7 @@ F_agg.shape torch.Size([4, 1, 216])
       <td>NaN</td>
       <td>NaN</td>
       <td>NaN</td>
+      <td>0.7297</td>
     </tr>
   </tbody>
 </table>

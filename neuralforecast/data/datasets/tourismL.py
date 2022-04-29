@@ -54,7 +54,7 @@ class TourismL:
         return loss
 
     @staticmethod
-    def get_hierarchical_crps(data, Y, Y_hat, q_to_pred):
+    def get_hierarchical_crps(data, Y, Y_hat, q_to_pred, model_name='current'):
         hier_idxs   = data['hier_idxs']
         hier_levels = data['hier_levels']
 
@@ -64,6 +64,7 @@ class TourismL:
         permbu_mint = [np.nan] * 9
         arima_erm = [0.1689,0.0725,0.1071,0.1541,0.2052,0.1095,0.1628,0.2435,0.3076]
         arima_mint_shr = [0.1609,0.0440,0.0816,0.1433,0.2036,0.0830,0.1479,0.2437,0.3406]
+        glm_poisson = [0.1762,0.0854,0.1153,0.1691,0.2165,0.0954,0.1682,0.2458,0.3134]
 
         crps_list = []
         for i, idxs in enumerate(hier_idxs):
@@ -75,18 +76,19 @@ class TourismL:
             crps_list.append(crps)
 
         crps_df = pd.DataFrame({'Level': hier_levels,
-                                'current': crps_list,
+                                model_name: crps_list,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
                                 'PERMBU-MinT': permbu_mint,
                                 'ARIMA-ERM': arima_erm,
-                                'ARIMA-MinT-shr': arima_mint_shr})
+                                'ARIMA-MinT-shr': arima_mint_shr,
+                                'GLM-Poisson': glm_poisson})
 
         return crps_df
 
     @staticmethod
-    def get_hierarchical_rmse(data, Y, Y_hat):
+    def get_hierarchical_rmse(data, Y, Y_hat, model_name='current'):
         # Parse data
         hier_idxs = data['hier_idxs']
         hier_levels = data['hier_levels']
@@ -96,6 +98,7 @@ class TourismL:
         dpmn_nbu = [np.nan] * 9
         hiere2e  = [np.nan] * 9
         arima_mint_shr = [np.nan] * 9
+        glm_poisson = [0.5230,0.1052,0.1660,0.2726,0.4046,0.1408,0.2824,0.4718,0.7297]
 
         measure_list = []
         for i, idxs in enumerate(hier_idxs):
@@ -106,12 +109,13 @@ class TourismL:
             measure_list.append(measure)
 
         eval_df = pd.DataFrame({'Level': hier_levels,
-                                'current': measure_list,
+                                 model_name: measure_list,
                                 'MQCNN-NBU': mqcnn_nbu,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
-                                'ARIMA-MinT-shr': arima_mint_shr})
+                                'ARIMA-MinT-shr': arima_mint_shr,
+                                'GLM-Poisson': glm_poisson})
 
         return eval_df
 
@@ -497,11 +501,15 @@ class TourismL:
 
         if verbose:
             print('\n')
-            print(f'Total days {len(dates)}, train {n_time-12-12} validation {12}, test {12}')
-            print(f'Whole dates: \t\t [{min(dates)}, {max(dates)}]')
+            h = 34
+            print(f'Total days {len(dates)}, train {n_time-h*3} validation {h}, test {h}')
+            print(f'Whole dates: \t\t [{min(dates)}, {max(dates[:-h])}]')
             print(f'Validation dates: \t '+\
-                  f'[{min(dates[n_time-12-12:n_time-12])}, {max(dates[n_time-12-12:n_time-12])}]')
-            print(f'Test dates: \t\t [{min(dates[n_time-12:])}, {max(dates[n_time-12:])}]')
+                  f'[{min(dates[n_time-h*3:n_time-h*2])}, {max(dates[n_time-h*3:n_time-h*2])}]')
+            print(f'Test dates: \t\t '+\
+                  f'[{min(dates[n_time-h*2:n_time-h*1])}, {max(dates[n_time-h*2:n_time-h*1])}]')
+            print(f'Forecast dates: \t '+\
+                  f'[{min(dates[n_time-h*1:n_time-h*0])}, {max(dates[n_time-h*1:n_time-h*0])}]')
             print('\n')
             print(' '*35 +'BOTTOM')
             print('S.shape (n_regions,n_purpose,n_features):        \t' + str(data['S'].shape))

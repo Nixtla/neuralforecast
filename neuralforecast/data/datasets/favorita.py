@@ -121,7 +121,7 @@ class Favorita:
         return loss
 
     @staticmethod
-    def get_hierarchical_crps(data, Y, Y_hat, q_to_pred):
+    def get_hierarchical_crps(data, Y, Y_hat, q_to_pred, model_name='current'):
         hier_idxs   = data['hier_idxs']
         hier_levels = data['hier_levels']
         n_items, n_series, n_time, n_quant = Y_hat.shape
@@ -147,7 +147,7 @@ class Favorita:
             crps_list.append(crps)
 
         crps_df = pd.DataFrame({'Level': hier_levels,
-                                'current': crps_list,
+                                model_name: crps_list,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
@@ -158,7 +158,7 @@ class Favorita:
         return crps_df
 
     @staticmethod
-    def get_hierarchical_rmse(data, Y, Y_hat):
+    def get_hierarchical_rmse(data, Y, Y_hat, model_name='current'):
         # Parse data
         hier_idxs = data['hier_idxs']
         hier_levels = data['hier_levels']
@@ -184,7 +184,7 @@ class Favorita:
             measure_list.append(measure)
 
         eval_df = pd.DataFrame({'Level': hier_levels,
-                                'current': measure_list,
+                                model_name: measure_list,
                                 'MQCNN-NBU': mqcnn_nbu,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
@@ -521,8 +521,16 @@ class Favorita:
             static_bottom = static_bottom.merge(item_store_df,
                                                 on=['item_nbr', 'store_nbr'], how='left')
 
+            # Add level and weekly seasonalities to temporal_bottom
+            Y_available = Y_bottom[:,-34-52*7:-34]
+            Y_week_raw = Y_available.reshape(-1,52,7) # stores,weeks,days
+            Y_week = np.median(Y_week_raw, axis=1, keepdims=True)
+            Y_week = np.repeat(Y_week, (n_dates//7)+1, axis=1)
+            Y_week = Y_week.reshape(n_items*n_stores,-1)[:,:n_dates]
             level_rep = np.repeat(level, n_dates)
+
             temporal_bottom['is_original'] = temporal_bottom['is_original'] * level_rep
+            temporal_bottom['level_week']  = Y_week.flatten()
 
         #------------------------------- Static Agg Features --------------------------------#
         # Creation of static item national level data based on:
@@ -776,7 +784,7 @@ class Favorita:
             Y = np.transpose(Y, (0, 2, 1))
 
             xcols_hist = ['unit_sales'] # 'open' seems a bad variable
-            xcols_futr = ['onpromotion', 'is_original']
+            xcols_futr = ['onpromotion', 'is_original', 'level_week']
             xcols_futr = xcols_futr + ['day_of_week', 'day_of_month',
                                        'dist2_[Primer dia del ano]',
                                        'dist2_[Navidad]']
@@ -895,11 +903,15 @@ class Favorita:
 
         if verbose:
             print('\n')
-            print(f'Total days {len(dates)}, train {n_time-34-34} validation {34}, test {34}')
-            print(f'Whole dates: \t\t [{min(dates)}, {max(dates)}]')
+            h = 34
+            print(f'Total days {len(dates)}, train {n_time-h*3} validation {h}, test {h}')
+            print(f'Whole dates: \t\t [{min(dates)}, {max(dates[:-h])}]')
             print(f'Validation dates: \t '+\
-                  f'[{min(dates[n_time-34-34:n_time-34])}, {max(dates[n_time-34-34:n_time-34])}]')
-            print(f'Test dates: \t\t [{min(dates[n_time-34:])}, {max(dates[n_time-34:])}]')
+                  f'[{min(dates[n_time-h*3:n_time-h*2])}, {max(dates[n_time-h*3:n_time-h*2])}]')
+            print(f'Test dates: \t\t '+\
+                  f'[{min(dates[n_time-h*2:n_time-h*1])}, {max(dates[n_time-h*2:n_time-h*1])}]')
+            print(f'Forecast dates: \t '+\
+                  f'[{min(dates[n_time-h*1:n_time-h*0])}, {max(dates[n_time-h*1:n_time-h*0])}]')
             print('\n')
             print(' '*35 +'BOTTOM')
             print('S.shape (n_items,n_stores,n_features):        \t' + str(data['S'].shape))

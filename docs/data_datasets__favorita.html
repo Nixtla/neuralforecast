@@ -523,7 +523,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># from neuralforecast.data.datasets.favorita import Favorita</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># # from neuralforecast.data.datasets.favorita import Favorita</span>
 <span class="c1"># from neuralforecast.data.hiertsdataset import HierTimeSeriesDataset</span>
 
 <span class="c1"># directory = &#39;./data/hierarchical/favorita&#39;</span>
@@ -646,6 +646,7 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 <span class="c1"># Y_agg = batch[&#39;Y_agg&#39;][item_idx]</span>
 <span class="c1"># X_agg = batch[&#39;X_agg&#39;][item_idx]</span>
 <span class="c1"># F_agg = batch[&#39;F_agg&#39;][item_idx]</span>
+<span class="c1"># xcols_agg = data[&#39;xcols_agg&#39;]</span>
 
 <span class="c1"># #------------------ Hierarchical Y_agg ----------------#</span>
 <span class="c1"># plt.plot(Y_agg[0,:], label=&#39;total transactions&#39;)</span>
@@ -734,8 +735,8 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 <span class="c1"># plt.close()</span>
 
 <span class="c1"># #---------------- Y/X_bottom Seq2Seq structure ----------------#</span>
-<span class="c1"># idx   = 32</span>
-<span class="c1"># start = 1688-34-34-1-300</span>
+<span class="c1"># idx   = 34 #32</span>
+<span class="c1"># start = 1688-34-34-1-100</span>
 <span class="c1"># end   = 1688-34-34-1</span>
 <span class="c1"># H = 34</span>
 <span class="c1"># print(&#39;\n&#39;)</span>
@@ -744,13 +745,14 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 <span class="c1"># print(&#39;Y_bottom.shape&#39;, Y_bottom.shape)</span>
 <span class="c1"># print(&#39;Y_bottom[idx,start:end].shape&#39;, Y_bottom[idx,start:end].shape)</span>
 <span class="c1"># print(&#39;dates[start:end].shape&#39;, dates[start:end].shape)</span>
+<span class="c1"># print(&#39;xcols_futr&#39;, data[&#39;xcols_futr&#39;][:4])</span>
 
 <span class="c1"># plt.plot(dates[start:end],     Y_bottom[idx,start:end]*1.1, label=&#39;y&#39;)</span>
 <span class="c1"># plt.plot(dates[start-1:end-1], X_bottom[idx,0,start:end], label=&#39;y_[lag1]&#39;)</span>
 <span class="c1"># plt.plot(dates[start:end+H],   F_bottom[idx,0,start:end+H]*Y_bottom[idx,-1]*2, </span>
 <span class="c1">#          alpha=0.5, label=&#39;promotion&#39;)</span>
-<span class="c1"># plt.plot(dates[start:end+H],   F_bottom[idx,2,start:end+H]*Y_bottom[idx,-1]*0.5, </span>
-<span class="c1">#          alpha=0.5, label=&#39;week_day&#39;)</span>
+<span class="c1"># plt.plot(dates[start:end+H],   F_bottom[idx,2,start:end+H], </span>
+<span class="c1">#          alpha=0.5, label=&#39;level_week&#39;)</span>
 <span class="c1"># plt.plot(dates[start:end],     sample_mask[idx,start:end]*Y_bottom[idx,-1], label=&#39;sample_mask&#39;)</span>
 <span class="c1"># plt.ylabel(&#39;Tourist Visits\n [In millions]&#39;)</span>
 <span class="c1"># plt.title(&#39;Y/X_bottom (Seq2Seq)&#39;)</span>
@@ -786,7 +788,8 @@ nb_path: "nbs/data_datasets__favorita.ipynb"
 
 <span class="c1"># crps_df = Favorita.get_hierarchical_crps(data=data, </span>
 <span class="c1">#                                          Y=Y_test, Y_hat=Yq_hat,</span>
-<span class="c1">#                                          q_to_pred=QUANTILES)</span>
+<span class="c1">#                                          q_to_pred=QUANTILES, </span>
+<span class="c1">#                                          model_name=&#39;example&#39;)</span>
 <span class="c1"># crps_df</span>
 </pre></div>
 
