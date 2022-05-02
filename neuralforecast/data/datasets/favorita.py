@@ -862,25 +862,32 @@ class Favorita:
             assert all(c in list(xcols) for c in xcols_hist)
             assert all(c in list(xcols) for c in xcols_futr)
 
+            T   = 130
+            hor = 34
+            N   = len(hier_labels)
+
             # Hierarchical data for baseline models
             calendar_cols = ['day_of_week', 'day_of_month']
             calendar_idxs = xcols.get_indexer(calendar_cols)
-            calendar = X[[0],:,:,:1688] # N,G,C,T
+            calendar = X[[0],:,:,-T-2*hor-1:-hor-1] # N,G,C,T
+
             calendar = calendar[:,:,calendar_idxs,:]
             calendar = calendar[:,[0],:,:]
             calendar = np.repeat(calendar, n_items, axis=0)
-            calendar = np.repeat(calendar, 93, axis=1)
+            calendar = np.repeat(calendar, N, axis=1)
 
             target_cols = ['y', 'level_week']
-            Y_available = Y_hier[:,:,-34-52*7:-34]
+            Y_true      = Y_hier[:,:,-T-2*hor-1:-hor-1]
+            Y_available = Y_hier[:,:,-hor-52*7:-hor]     # Last year seasonality
             Y_week_raw  = Y_available.reshape(-1,52,7) # stores,weeks,days
             Y_week = np.median(Y_week_raw, axis=1, keepdims=True)
-            Y_week = np.repeat(Y_week, (1688//7)+1, axis=1)
-            Y_week = Y_week.reshape(n_items,93,-1)[:,:,:1688]
+            Y_week = np.repeat(Y_week, (T+hor//7)+1, axis=1)
+            Y_week = Y_week.reshape(n_items,N,-1)[:,:,:T+hor]
 
             extra_cols = ['onpromotion','is_original']
             extra_idxs = xcols.get_indexer(extra_cols)
-            extra = X[:,:,extra_idxs,:1688] # N,G,C,T
+            extra = X[:,:,extra_idxs,-T-2*hor-1:-hor-1] # N,G,C,T
+
             extra_hier = np.einsum('ab,nbdt->nadt', H, extra)
             denom = np.sum(H, axis=1)[None,:,None,None]
             extra_hier = extra_hier / denom # promotion/is_original prob
@@ -888,16 +895,16 @@ class Favorita:
             Y_hier = Y_hier * (Y_hier>0) # Protection Poisson reg
 
             xcols_hier = target_cols + calendar_cols + extra_cols
-            X_hier = np.concatenate([Y_hier[:,:,None,:],
+
+            X_hier = np.concatenate([Y_true[:,:,None,:],
                                      Y_week[:,:,None,:],
                                      calendar, extra_hier], axis=2)
             X_hier = np.transpose(X_hier, (0, 1, 3, 2))
             X_hier = X_hier.reshape(-1, len(xcols_hier))
             X_hier_df   = pd.DataFrame.from_records(X_hier, columns=xcols_hier)
 
-            ids_aux =
-            X_hier_df['unique_id'] = np.repeat(range(n_items * 93), 1688)
-            X_hier_df['ds'] = np.tile(dates[:1688], n_items * 93)
+            X_hier_df['unique_id'] = np.repeat(range(n_items * N), T+hor)
+            X_hier_df['ds'] = np.tile(dates[-T-2*hor-1:-hor-1], n_items * N)
 
             del calendar, Y_week, extra_hier, X_hier
             gc.collect()
