@@ -649,9 +649,8 @@ class WindowsDataset(BaseDataset):
         self.windows_size = self.input_size + self.output_size
         self.padding = (self.input_size, self.output_size)
 
-        if len(self.ds) == (self.max_len+self.input_size+self.output_size):
-            print('WARNING: THIS DATA LOADER ASSUMES ALL TIME SERIES END IN THE SAME DATESTAMP, CAN CAUSE MISMATCH IN DATES WHILE FORECASTING!!!')
-            time.sleep(5)
+        if len(self.ds) != (self.max_len+self.input_size+self.output_size):
+            print('WARNING: THIS DATA LOADER ASSUMES ALL TIME SERIES END IN THE SAME DATESTAMP, CAN CAUSE MISMATCH IN DATES WHILE FORECASTING.')
 
         self.sample_freq = sample_freq
         self.last_window = last_window
