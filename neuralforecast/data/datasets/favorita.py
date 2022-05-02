@@ -147,13 +147,13 @@ class Favorita:
             crps_list.append(crps)
 
         crps_df = pd.DataFrame({'Level': hier_levels,
-                                model_name: crps_list,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
                                 'PERMBU-MinT': permbu_mint,
                                 'ARIMA-ERM': arima_erm,
                                 'ARIMA-MinT-shr': arima_mint_shr})
+        crps_df[model_name] = crps_list
 
         return crps_df
 
@@ -184,12 +184,12 @@ class Favorita:
             measure_list.append(measure)
 
         eval_df = pd.DataFrame({'Level': hier_levels,
-                                model_name: measure_list,
                                 'MQCNN-NBU': mqcnn_nbu,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
                                 'ARIMA-MinT-shr': arima_mint_shr})
+        eval_df[model_name] = measure_list
 
         return eval_df
 
@@ -820,15 +820,6 @@ class Favorita:
                            range(17, 39), range(39, 93)]
             hier_levels = ['Overall', '1 (geo.)', '2 (geo.)', '3 (geo.)', '4 (geo.)']
 
-            # Flat Bottom values for evaluation
-            # n_items, n_time, n_group,n_features --> n_items*n_group, n_time, n_features
-            X_flat  = temporal_bottom.values
-            Y_flat  = temporal_bottom['unit_sales'].values
-
-            n_features = X_flat.shape[1]
-            X_flat = X_flat.reshape(n_items*n_stores, n_time, n_features)
-            Y_flat = Y_flat.reshape(-1,n_time)
-
         del temporal_bottom, static_bottom
         gc.collect()
 
@@ -861,45 +852,84 @@ class Favorita:
             Y_agg = Y_agg[:,:,:-34]
             Y_hier = Y_hier[:,:,:-34]
 
-        #print('\n')
-        #print('TODO: add weights as prob for loss?')
-        #print('TODO: do bfill onpromotion rather than ffill (future)')
+            #print('\n')
+            #print('TODO: add weights as prob for loss?')
+            #print('TODO: do bfill onpromotion rather than ffill (future)')
 
-        # Assert that the variables are contained in the column indexes
-        assert all(c in list(xcols_agg) for c in xcols_hist_agg)
-        assert all(c in list(xcols_agg) for c in xcols_futr_agg)
-        assert all(c in list(xcols) for c in xcols_hist)
-        assert all(c in list(xcols) for c in xcols_futr)
+            # Assert that the variables are contained in the column indexes
+            assert all(c in list(xcols_agg) for c in xcols_hist_agg)
+            assert all(c in list(xcols_agg) for c in xcols_futr_agg)
+            assert all(c in list(xcols) for c in xcols_hist)
+            assert all(c in list(xcols) for c in xcols_futr)
 
-        data = {# Bottom data
-                'S': S, 'X': X, 'Y': Y,
-                'scols': scols,
-                'xcols': xcols,
-                'xcols_hist': xcols_hist,
-                'xcols_futr': xcols_futr,
-                'xcols_sample_mask': 'sample_mask', # TODO: 'items_prob_bottom'
-                'xcols_available_mask': 'is_original', # availability store x item level
-                # Aggregate data
-                'S_agg': S_agg, 'X_agg': X_agg, 'Y_agg': Y_agg,
-                'scols_agg': scols_agg,
-                'xcols_agg': xcols_agg,
-                'xcols_hist_agg': xcols_hist_agg,
-                'xcols_futr_agg': xcols_futr_agg,
-                'items_prob_agg': items_prob_agg,
-                # Hierarchical data for evaluation
-                'Y_flat': Y_flat,
-                'X_flat': X_flat,
-                'Y_hier': Y_hier,
-                'hier_idxs': hier_idxs,
-                'hier_levels': hier_levels,
-                'hier_labels': hier_labels,
-                'hier_linked_idxs': hier_linked_idxs,
-                # Shared data
-                'H': H,
-                'dates': dates,
-                'unique_ids': unique_ids,
-                'items_ids': item_ids,
-                'store_ids': store_ids}
+            # Hierarchical data for baseline models
+            calendar_cols = ['day_of_week', 'day_of_month']
+            calendar_idxs = xcols.get_indexer(calendar_cols)
+            calendar = X[[0],:,:,:1688] # N,G,C,T
+            calendar = calendar[:,:,calendar_idxs,:]
+            calendar = calendar[:,[0],:,:]
+            calendar = np.repeat(calendar, n_items, axis=0)
+            calendar = np.repeat(calendar, 93, axis=1)
+
+            target_cols = ['y', 'level_week']
+            Y_available = Y_hier[:,:,-34-52*7:-34]
+            Y_week_raw  = Y_available.reshape(-1,52,7) # stores,weeks,days
+            Y_week = np.median(Y_week_raw, axis=1, keepdims=True)
+            Y_week = np.repeat(Y_week, (1688//7)+1, axis=1)
+            Y_week = Y_week.reshape(n_items,93,-1)[:,:,:1688]
+
+            extra_cols = ['onpromotion','is_original']
+            extra_idxs = xcols.get_indexer(extra_cols)
+            extra = X[:,:,extra_idxs,:1688] # N,G,C,T
+            extra_hier = np.einsum('ab,nbdt->nadt', H, extra)
+            denom = np.sum(H, axis=1)[None,:,None,None]
+            extra_hier = extra_hier / denom # promotion/is_original prob
+
+            Y_hier = Y_hier * (Y_hier>0) # Protection Poisson reg
+
+            xcols_hier = target_cols + calendar_cols + extra_cols
+            X_hier = np.concatenate([Y_hier[:,:,None,:],
+                                     Y_week[:,:,None,:],
+                                     calendar, extra_hier], axis=2)
+            X_hier = np.transpose(X_hier, (0, 1, 3, 2))
+            X_hier = X_hier.reshape(-1, len(xcols_hier))
+            X_hier_df   = pd.DataFrame.from_records(X_hier, columns=xcols_hier)
+
+            ids_aux =
+            X_hier_df['unique_id'] = np.repeat(range(n_items * 93), 1688)
+            X_hier_df['ds'] = np.tile(dates[:1688], n_items * 93)
+
+            del calendar, Y_week, extra_hier, X_hier
+            gc.collect()
+
+            data = {# Bottom data
+                    'S': S, 'X': X, 'Y': Y,
+                    'scols': scols,
+                    'xcols': xcols,
+                    'xcols_hist': xcols_hist,
+                    'xcols_futr': xcols_futr,
+                    'xcols_sample_mask': 'sample_mask', # TODO: 'items_prob_bottom'
+                    'xcols_available_mask': 'is_original', # availability store x item level
+                    # Aggregate data
+                    'S_agg': S_agg, 'X_agg': X_agg, 'Y_agg': Y_agg,
+                    'scols_agg': scols_agg,
+                    'xcols_agg': xcols_agg,
+                    'xcols_hist_agg': xcols_hist_agg,
+                    'xcols_futr_agg': xcols_futr_agg,
+                    'items_prob_agg': items_prob_agg,
+                    # Hierarchical data for evaluation
+                    'Y_hier': Y_hier,
+                    'hier_idxs': hier_idxs,
+                    'hier_levels': hier_levels,
+                    'hier_labels': hier_labels,
+                    'hier_linked_idxs': hier_linked_idxs,
+                    'X_hier_df': X_hier_df,
+                    # Shared data
+                    'H': H,
+                    'dates': dates,
+                    'unique_ids': unique_ids,
+                    'items_ids': item_ids,
+                    'store_ids': store_ids}
 
         if verbose:
             print('\n')
@@ -941,5 +971,5 @@ class Favorita:
         return data
 
 # directory = './data/hierarchical/favorita'
-# Favorita.preprocess_data(directory=directory, sample_size=100, verbose=False)
+# # Favorita.preprocess_data(directory=directory, sample_size=100, verbose=False)
 # data = Favorita.load_process(directory=directory, sample_size=100, verbose=True)

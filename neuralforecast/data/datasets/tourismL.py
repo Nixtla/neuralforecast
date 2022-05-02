@@ -76,7 +76,6 @@ class TourismL:
             crps_list.append(crps)
 
         crps_df = pd.DataFrame({'Level': hier_levels,
-                                model_name: crps_list,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
@@ -84,6 +83,7 @@ class TourismL:
                                 'ARIMA-ERM': arima_erm,
                                 'ARIMA-MinT-shr': arima_mint_shr,
                                 'GLM-Poisson': glm_poisson})
+        crps_df[model_name] = crps_list
 
         return crps_df
 
@@ -109,13 +109,13 @@ class TourismL:
             measure_list.append(measure)
 
         eval_df = pd.DataFrame({'Level': hier_levels,
-                                 model_name: measure_list,
                                 'MQCNN-NBU': mqcnn_nbu,
                                 'DPMN-GBU': dpmn_gbu,
                                 'DPMN-NBU': dpmn_nbu,
                                 'HierE2E': hiere2e,
                                 'ARIMA-MinT-shr': arima_mint_shr,
                                 'GLM-Poisson': glm_poisson})
+        eval_df[model_name] = measure_list
 
         return eval_df
 
@@ -436,7 +436,6 @@ class TourismL:
                            '1 (geo.)', '2 (geo.)', '3 (geo.)', '4 (geo.)',
                            '5 (prp.)', '6 (prp.)', '7 (prp.)', '8 (prp.)']
 
-
         del temporal_bottom, static_bottom
         gc.collect()
 
@@ -472,6 +471,25 @@ class TourismL:
             assert all(c in list(xcols) for c in xcols_hist)
             assert all(c in list(xcols) for c in xcols_futr)
 
+            # Hierarchical data for baseline models
+            month_11 = np.repeat(X[[0],0,0,:228], 555, axis=0) #-12-1 iff 228
+            month_12 = np.repeat(X[[0],0,1,:228], 555, axis=0)
+
+            Y_lags = np.roll(Y_hier, shift=12, axis=1)
+            Y_lags[:,:12] = Y_lags[:,12:24] # Clean raw_df NAs from first 12 entries
+
+            X_hier = np.concatenate([Y_hier[:,:,None],  month_11[:,:,None],
+                                      month_12[:,:,None], Y_lags[:,:,None]], axis=2)
+            X_hier = X_hier.reshape(-1,4)
+            xcols_hier = ['y','month_11', 'month_12', 'y_lag12']
+
+            X_hier_df   = pd.DataFrame.from_records(X_hier, columns=xcols_hier)
+            X_hier_df['unique_id'] = np.repeat(range(555), 228)
+            X_hier_df['ds'] = np.tile(dates[:228], 555)
+
+            del Y_lags, X_hier
+            gc.collect()
+
             data = {# Bottom data
                     'S': S, 'X': X, 'Y': Y,
                     'scols': scols,
@@ -492,6 +510,7 @@ class TourismL:
                     'hier_levels': hier_levels,
                     'hier_labels': hier_labels,
                     'hier_linked_idxs': hier_linked_idxs,
+                    'X_hier_df': X_hier_df,
                     # Shared data
                     'H': H,
                     'dates': dates,
