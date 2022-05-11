@@ -766,10 +766,6 @@ def predict(mc: dict, model: pl.LightningModule,
         y_hat = scaler_y.inv_scale(x=y_hat.flatten())
         y_hat = np.reshape(y_hat, y_true_shape)
 
-    y_true = y_true.reshape((mc['n_series'], -1, mc['n_time_out']))
-    y_hat  = y_hat.reshape((mc['n_series'], -1, mc['n_time_out']))
-    mask   = mask.reshape((mc['n_series'], -1, mc['n_time_out']))
-
     return y_true, y_hat, mask, meta_data
 
 # Cell

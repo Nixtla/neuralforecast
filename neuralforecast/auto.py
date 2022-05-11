@@ -51,7 +51,8 @@ class AutoBaseModel(object):
     def forecast(self, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
                  batch_size: int =1, trainer: pl.Trainer =None) -> pd.DataFrame:
 
-        return self.model.forecast(Y_df=Y_df, X_df=X_df, S_df=S_df, batch_size=batch_size, trainer=trainer)
+        return self.model.forecast(Y_df=Y_df, X_df=X_df, S_df=S_df, batch_size=batch_size,
+                                   trainer=trainer)
 
 # Cell
 class NHITS(AutoBaseModel):

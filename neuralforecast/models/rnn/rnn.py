@@ -323,13 +323,15 @@ class RNN(pl.LightningModule):
         y_hat = self.model(Y=insample_Y, X=X)
 
         # Filter to windows with at least one sampleable ts
-        sample_condition = sample_mask.sum(dim=2)==self.output_size
-        assert t.equal(sample_condition[[0]]*t.ones(sample_condition.shape), 1.0*sample_condition), 'Sample mask must match perfectly between time-series'
-        sample_index = sample_condition[0]
+        y_true = y_true.reshape(-1, self.output_size)
+        y_hat = y_hat.reshape(-1, self.output_size)
+        sample_mask = sample_mask.reshape(-1, self.output_size)
 
-        y_true=y_true[:,sample_index,:]
-        y_hat=y_hat[:,sample_index,:]
-        sample_mask=sample_mask[:,sample_index,:]
+        sample_condition = (sample_mask.sum(dim=1) == self.output_size)
+
+        y_true=y_true[sample_condition,:]
+        y_hat=y_hat[sample_condition,:]
+        sample_mask=sample_mask[sample_condition,:]
 
         return y_true, y_hat, sample_mask
 
@@ -403,7 +405,9 @@ def forecast(self: RNN, Y_df, X_df = None, S_df = None, batch_size=1, trainer=No
 
     # Process forecast and include in forecast_df
     _, forecast, _ = zip(*outputs)
-    forecast = t.cat([forecast_[:, -1] for forecast_ in forecast]).cpu().numpy()
+
+    # Process forecast and include in forecast_df
+    _, forecast, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
     forecast_df['y'] = forecast.flatten()
 
     return forecast_df
