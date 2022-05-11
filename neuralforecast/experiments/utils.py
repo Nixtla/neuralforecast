@@ -2,8 +2,8 @@
 
 __all__ = ['ENV_VARS', 'get_mask_dfs', 'get_random_mask_dfs', 'scale_data', 'create_datasets', 'instantiate_loaders',
            'instantiate_nbeats', 'instantiate_esrnn', 'instantiate_rnn', 'instantiate_mqesrnn', 'instantiate_nhits',
-           'instantiate_autoformer', 'instantiate_model', 'predict', 'fit', 'model_fit_predict', 'evaluate_model',
-           'MODEL_DICT', 'hyperopt_tunning']
+           'instantiate_mqnhits', 'instantiate_autoformer', 'instantiate_model', 'predict', 'fit', 'model_fit_predict',
+           'evaluate_model', 'MODEL_DICT', 'hyperopt_tunning']
 
 # Cell
 ENV_VARS = dict(OMP_NUM_THREADS='2',
@@ -48,6 +48,7 @@ from ..models.rnn.rnn import RNN
 from ..models.esrnn.mqesrnn import MQESRNN
 from ..models.nbeats.nbeats import NBEATS
 from ..models.nhits.nhits import NHITS
+from ..models.mqnhits.mqnhits import MQNHITS
 from ..models.transformer.autoformer import Autoformer
 
 # Cell
@@ -648,6 +649,63 @@ def instantiate_nhits(mc: dict) -> NHITS:
     return model
 
 # Cell
+def instantiate_mqnhits(mc: dict) -> MQNHITS:
+    """
+    Creates mqnhits model.
+
+    Parameters
+    ----------
+    mc: dict
+        Model configuration.
+
+    Returns
+    -------
+    model: NHITS
+        Nhits model.
+    """
+
+    mc['n_mlp_units'] = len(mc['stack_types']) * [ mc['constant_n_layers'] * [int(mc['constant_n_mlp_units'])] ]
+    mc['n_layers'] =  len(mc['stack_types']) * [ mc['constant_n_layers'] ]
+    mc['n_blocks'] =  len(mc['stack_types']) * [ mc['constant_n_blocks'] ]
+
+    if mc['max_epochs'] is not None:
+        lr_decay_step_size = int(np.ceil(mc['max_epochs'] / mc['n_lr_decays']))
+    elif mc['max_steps'] is not None:
+        lr_decay_step_size = int(np.ceil(mc['max_steps'] / mc['n_lr_decays']))
+
+    model = MQNHITS(n_time_in=int(mc['n_time_in']),
+                    n_time_out=int(mc['n_time_out']),
+                    quantiles=list(mc['quantiles']),
+                    n_x=mc['n_x'],
+                    n_s=mc['n_s'],
+                    n_s_hidden=int(mc['n_s_hidden']),
+                    n_x_hidden=int(mc['n_x_hidden']),
+                    shared_weights = mc['shared_weights'],
+                    initialization=mc['initialization'],
+                    activation=mc['activation'],
+                    stack_types=mc['stack_types'],
+                    n_blocks=mc['n_blocks'],
+                    n_layers=mc['n_layers'],
+                    n_mlp_units=mc['n_mlp_units'],
+                    n_pool_kernel_size=mc['n_pool_kernel_size'],
+                    n_freq_downsample=mc['n_freq_downsample'],
+                    pooling_mode=mc['pooling_mode'],
+                    interpolation_mode=mc['interpolation_mode'],
+                    batch_normalization = mc['batch_normalization'],
+                    dropout_prob_theta=mc['dropout_prob_theta'],
+                    learning_rate=float(mc['learning_rate']),
+                    lr_decay=float(mc['lr_decay']),
+                    lr_decay_step_size=lr_decay_step_size,
+                    weight_decay=mc['weight_decay'],
+                    loss_train=mc['loss_train'],
+                    loss_hypar=float(mc['loss_hypar']),
+                    loss_valid=mc['loss_valid'],
+                    frequency=mc['frequency'],
+                    random_seed=int(mc['random_seed']))
+
+    return model
+
+# Cell
 def instantiate_autoformer(mc: dict) -> Autoformer:
     """
     Creates autoformer model.
@@ -718,6 +776,7 @@ def instantiate_model(mc: dict) -> pl.LightningModule:
                   'rnn': instantiate_rnn,
                   'mqesrnn': instantiate_mqesrnn,
                   'nhits': instantiate_nhits,
+                  'mqnhits': instantiate_mqnhits,
                   'autoformer': instantiate_autoformer}
     return MODEL_DICT[mc['model']](mc)
 
@@ -995,8 +1054,13 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
     run_time = time.time() - start
 
     # Evaluate predictions
-    val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'],
-                                 weights=results['val_mask'], **loss_kwargs)
+    if mc['loss_valid'] == 'MQ':
+        val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'],
+                                     quantiles=np.array(mc['quantiles']),
+                                     weights=results['val_mask'])
+    else:
+        val_loss = loss_function_val(y=results['val_y_true'], y_hat=results['val_y_hat'],
+                                     weights=results['val_mask'], **loss_kwargs)
 
     results_output = {'loss': val_loss,
                       'mc': mc,
@@ -1007,8 +1071,13 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
     if ds_in_test > 0:
         test_loss_dict = {}
         for loss_name, loss_function in loss_functions_test.items():
-            test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'],
-                                                      weights=results['test_mask'])
+            if loss_name == 'MQ':
+                test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'],
+                                                          quantiles=np.array(mc['quantiles']),
+                                                          weights=results['test_mask'])
+            else:
+                test_loss_dict[loss_name] = loss_function(y=results['test_y_true'], y_hat=results['test_y_hat'],
+                                                        weights=results['test_mask'])
         results_output['test_losses'] = test_loss_dict
 
     if return_forecasts and ds_in_test > 0:
@@ -1032,6 +1101,7 @@ def evaluate_model(mc: dict, loss_function_val: callable, loss_functions_test: d
 # Cell
 MODEL_DICT = {'nbeats': NBEATS,
               'nhits': NHITS,
+              'mqnhits': MQNHITS,
               'rnn': RNN,
               'esrnn': ESRNN,
               'autoformer': Autoformer}
