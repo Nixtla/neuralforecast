@@ -388,57 +388,6 @@ model_path: str
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>
-Yearly grid (# of different model configurations = 18):
-===========================================================================
-activation                                                        [ReLU]
-n_x                                                                  [0]
-n_s                                                                  [0]
-n_x_hidden                                                           [0]
-n_s_hidden                                                           [0]
-stack_types                                       [[trend, seasonality]]
-n_blocks                                                        [[3, 3]]
-n_layers                                                        [[4, 4]]
-shared_weights                                                    [True]
-n_harmonics                                                          [1]
-n_polynomials                                                        [2]
-n_theta_hidden         [[[256, 256, 256, 256], [2048, 2048, 2048, 204...
-initialization                                            [lecun_normal]
-learning_rate                                                    [0.001]
-lr_decay                                                             [0]
-lr_decay_step_size                                                [1000]
-loss_val                                                         [SMAPE]
-dropout_prob_theta                                                   [0]
-weight_decay                                                         [0]
-batch_size                                                        [1024]
-batch_normalization                                              [False]
-complete_inputs                                                  [False]
-mode                                                            [simple]
-n_time_in                                       [12, 18, 24, 30, 36, 42]
-n_time_out                                                           [6]
-train_sample_freq                                                    [1]
-frequency                                                            [Y]
-seasonality                                                          [1]
-l_h                                                                [1.5]
-loss_train                                           [MAPE, SMAPE, MASE]
-n_steps                                                            [260]
-random_seed                                                          [0]
-dtype: object
-===========================================================================
-
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -464,22 +413,6 @@ dtype: object
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea ">
-<pre>Output hidden; open in https://colab.research.google.com to view.</pre>
-</div>
-
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
@@ -494,53 +427,6 @@ dtype: object
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_html rendered_html output_subarea output_execute_result">
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>SMAPE</th>
-      <th>MASE</th>
-      <th>OWA</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>Yearly</th>
-      <td>17.448574</td>
-      <td>5.438234</td>
-      <td>1.218016</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-</div>
-
-</div>
-
 </div>
 </div>
 
