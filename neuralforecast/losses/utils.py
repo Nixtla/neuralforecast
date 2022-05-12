@@ -76,11 +76,11 @@ def __call__(self: LossFunction,
                            tau=self.tau)
 
     elif self.loss_name == 'MQ':
-        quantiles = t.Tensor(self.quantiles, device=y.device)
+        quantiles = t.Tensor(self.quantiles).to(y.device)
         return MQLoss(y=y, y_hat=y_hat, quantiles=quantiles, mask=mask)
 
     elif self.loss_name == 'wMQ':
-        quantiles = t.Tensor(self.quantiles, device=y.device)
+        quantiles = t.Tensor(self.quantiles).to(y.device)
         return wMQLoss(y=y, y_hat=y_hat, quantiles=quantiles, mask=mask)
 
     elif self.loss_name == 'MAPE':
@@ -99,4 +99,4 @@ def __call__(self: LossFunction,
     elif self.loss_name == 'MAE':
         return MAELoss(y=y, y_hat=y_hat, mask=mask)
 
-    raise Exception(f'Unknown loss function: {loss_name}')
+    raise Exception(f'Unknown loss function: {self.loss_name}')
