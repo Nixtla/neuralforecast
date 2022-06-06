@@ -28,7 +28,7 @@ State-of-the-art time series forecasting for PyTorch.
 </div>
 
 ## 🎉 New!
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/examples/mqnhits.ipynb) **MQN-HiTS example**: produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperform `AutoARIMA` in less time.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/examples/mqnhits.ipynb) **MQN-HiTS example**: produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperforming `AutoARIMA`'s accuracy in a fraction of the time.
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WjBbQzaivQhOldGolzymOtLmo6QX4Ieg#scrollTo=HXKT2-fpUD0Z) **N-HiTS example**: load, train, and tune  hyperparameter, to achieve SoTA. Outperform Transformers by **25% in 50x** less time.
 
 ## ⚡ Why Deep Learning on Time Series?
