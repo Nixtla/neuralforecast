@@ -25,6 +25,9 @@ class ETTh1:
     freq: str = 'H'
     name: str = 'ETTh1'
     n_ts: int = 1
+    test_size: int = 11_520
+    val_size: int = 11_520
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 @dataclass
 class ETTh2:
@@ -37,6 +40,9 @@ class ETTh2:
     freq: str = 'H'
     name: str = 'ETTh2'
     n_ts: int = 1
+    test_size: int = 11_520
+    val_size: int = 11_520
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 @dataclass
 class ETTm1:
@@ -49,6 +55,9 @@ class ETTm1:
     freq: str = '15T'
     name: str = 'ETTm1'
     n_ts: int = 7
+    test_size: int = 11_520
+    val_size: int = 11_520
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 @dataclass
 class ETTm2:
@@ -66,6 +75,9 @@ class ETTm2:
     freq: str = '15T'
     name: str = 'ETTm2'
     n_ts: int = 7
+    test_size: int = 11_520
+    val_size: int = 11_520
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 # Cell
 @dataclass
@@ -83,6 +95,9 @@ class ECL:
     freq: str = '15T'
     name: str = 'ECL'
     n_ts: int = 321
+    test_size: int = 5_260
+    val_size: int = 2_632
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 # Cell
 @dataclass
@@ -101,6 +116,9 @@ class Exchange:
     freq: str = 'D'
     name: str = 'Exchange'
     n_ts: int = 8
+    test_size: int = 1_517
+    val_size: int = 760
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 # Cell
 @dataclass
@@ -123,6 +141,9 @@ class TrafficL:
     freq: str = 'H'
     name: str = 'traffic'
     n_ts: int = 862
+    test_size: int = 3_508
+    val_size: int = 1_756
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 # Cell
 @dataclass
@@ -142,6 +163,9 @@ class ILI:
     freq: str = 'W'
     name: str = 'ili'
     n_ts: int = 7
+    test_size: int = 193
+    val_size: int = 97
+    horizons: Tuple[int] = (24, 36, 48, 60)
 
 # Cell
 @dataclass
@@ -161,6 +185,9 @@ class Weather:
     freq: str = '10M'
     name: str = 'weather'
     n_ts: int = 21
+    test_size: int = 10_539
+    val_size: int = 5_270
+    horizons: Tuple[int] = (96, 192, 336, 720)
 
 # Cell
 LongHorizonInfo = Info(groups=(
