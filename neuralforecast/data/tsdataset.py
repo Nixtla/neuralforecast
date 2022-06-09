@@ -12,6 +12,8 @@ import pandas as pd
 import torch as t
 from fastcore.foundation import patch
 from torch.utils.data import Dataset
+from datetime import datetime
+from datetime import timedelta
 
 # Cell
 class BaseDataset(Dataset):
@@ -106,7 +108,7 @@ class BaseDataset(Dataset):
             dataset_info += f'Outsample percentage={out_prc}, \t{n_out} time stamps \n'
             logging.info(dataset_info)
 
-        self.ts_data, self.s_matrix, self.meta_data, self.t_cols, self.s_cols \
+        self.ts_data, self.s_matrix, self.meta_data, self.t_cols, self.s_cols, self.ds \
                          = self._df_to_lists(Y_df=Y_df, S_df=S_df, X_df=X_df, mask_df=mask_df)
 
         # Dataset attributes
@@ -202,6 +204,9 @@ def _df_to_lists(self: BaseDataset,
     assert np.array_equal(M.unique_id.values, Y.unique_id.values), f'Mismatch in M, Y unique_ids'
     assert np.array_equal(M.ds.values, Y.ds.values), f'Mismatch in M, Y ds'
 
+    # Dates
+    ds = np.sort(Y['ds'].unique())
+
     # Create bigger grouped by dataframe G to parse
     M = M[['available_mask', 'sample_mask']]
     X.drop(labels=['unique_id', 'ds'], axis=1, inplace=True)
@@ -231,7 +236,7 @@ def _df_to_lists(self: BaseDataset,
     del S, Y, X, M, G
     gc.collect()
 
-    return ts_data, s_data, meta_data, t_cols, s_cols
+    return ts_data, s_data, meta_data, t_cols, s_cols, ds
 
 # Cell
 @patch
@@ -642,6 +647,12 @@ class WindowsDataset(BaseDataset):
         # WindowsDataset parameters
         self.windows_size = self.input_size + self.output_size
         self.padding = (self.input_size, self.output_size)
+
+        # WindowsDataset _df_to_lists end datestamp warning
+        if len(self.ds) != (self.max_len+self.input_size+self.output_size):
+            print('WARNING: _df_to_lists function assumes that panel series share same'+\
+                  'end datestamp. \n This causes leakage during train and incorrect forecast dates.')
+
         self.sample_freq = sample_freq
         self.last_window = last_window
         self.device = 'cuda' if t.cuda.is_available() else 'cpu'

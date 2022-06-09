@@ -59,7 +59,7 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 20, 5)
         self.conv2 = nn.Conv2d(20, 20, 5)
 
@@ -70,6 +70,9 @@ class Model(nn.Module):
 </code></pre>
 <p>Submodules assigned in this way will be registered, and will have their
 parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note::
+    As per the example above, an <code>__init__()</code> call to the parent class
+    must be made before assignment on the child.</p>
 <p>:ivar training: Boolean represents whether this module is in training or
                 evaluation mode.
 :vartype training: bool</p>
@@ -107,7 +110,7 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 20, 5)
         self.conv2 = nn.Conv2d(20, 20, 5)
 
@@ -118,6 +121,9 @@ class Model(nn.Module):
 </code></pre>
 <p>Submodules assigned in this way will be registered, and will have their
 parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note::
+    As per the example above, an <code>__init__()</code> call to the parent class
+    must be made before assignment on the child.</p>
 <p>:ivar training: Boolean represents whether this module is in training or
                 evaluation mode.
 :vartype training: bool</p>
@@ -155,7 +161,7 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 20, 5)
         self.conv2 = nn.Conv2d(20, 20, 5)
 
@@ -166,6 +172,9 @@ class Model(nn.Module):
 </code></pre>
 <p>Submodules assigned in this way will be registered, and will have their
 parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note::
+    As per the example above, an <code>__init__()</code> call to the parent class
+    must be made before assignment on the child.</p>
 <p>:ivar training: Boolean represents whether this module is in training or
                 evaluation mode.
 :vartype training: bool</p>
@@ -203,7 +212,7 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 20, 5)
         self.conv2 = nn.Conv2d(20, 20, 5)
 
@@ -214,6 +223,9 @@ class Model(nn.Module):
 </code></pre>
 <p>Submodules assigned in this way will be registered, and will have their
 parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note::
+    As per the example above, an <code>__init__()</code> call to the parent class
+    must be made before assignment on the child.</p>
 <p>:ivar training: Boolean represents whether this module is in training or
                 evaluation mode.
 :vartype training: bool</p>
@@ -251,7 +263,7 @@ import torch.nn.functional as F
 
 class Model(nn.Module):
     def __init__(self):
-        super(Model, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(1, 20, 5)
         self.conv2 = nn.Conv2d(20, 20, 5)
 
@@ -262,6 +274,9 @@ class Model(nn.Module):
 </code></pre>
 <p>Submodules assigned in this way will be registered, and will have their
 parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note::
+    As per the example above, an <code>__init__()</code> call to the parent class
+    must be made before assignment on the child.</p>
 <p>:ivar training: Boolean represents whether this module is in training or
                 evaluation mode.
 :vartype training: bool</p>
