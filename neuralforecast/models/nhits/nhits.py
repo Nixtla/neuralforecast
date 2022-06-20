@@ -722,7 +722,8 @@ class NHITS(pl.LightningModule):
 # Cell
 @patch
 def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
-                batch_size: int =1, trainer: pl.Trainer =None) -> pd.DataFrame:
+             batch_size: int =1, trainer: pl.Trainer = None,
+             verbose: bool = False) -> pd.DataFrame:
     """
     Method for forecasting self.n_time_out periods after last timestamp of Y_df.
 
@@ -735,10 +736,12 @@ def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: p
         Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
     S_df: pd.DataFrame
         Dataframe with static data, needs 'unique_id' column.
-    bath_size: int
+    batch_size: int
         Batch size for forecasting.
     trainer: pl.Trainer
         Trainer object for model training and evaluation.
+    verbose: bool
+        Print dataset information.
 
     Returns
     ----------
@@ -767,7 +770,7 @@ def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: p
                                 complete_windows=True,
                                 ds_in_test=self.n_time_out,
                                 is_test=True,
-                                verbose=True)
+                                verbose=verbose)
 
     loader = TimeSeriesLoader(dataset=dataset,
                                 batch_size=batch_size,
@@ -792,7 +795,8 @@ def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: p
 # Cell
 @patch
 def predict(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd.DataFrame = None,
-            batch_size: int=1, trainer: pl.Trainer =None) -> pd.DataFrame:
+            batch_size: int=1, trainer: pl.Trainer = None,
+            verbose: bool = False) -> pd.DataFrame:
     """
 
     This function creates rolled predictions for historic `Y_df`, parses and outputs them
@@ -814,6 +818,8 @@ def predict(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd
             Batch size for forecasting.
         trainer: pl.Trainer
             Trainer object for model training and evaluation.
+        verbose: bool
+            Print dataset information.
 
     Returns
     ----------

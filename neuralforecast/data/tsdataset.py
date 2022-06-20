@@ -650,8 +650,10 @@ class WindowsDataset(BaseDataset):
 
         # WindowsDataset _df_to_lists end datestamp warning
         if len(self.ds) != (self.max_len+self.input_size+self.output_size):
-            print('WARNING: _df_to_lists function assumes that panel series share same'+\
-                  'end datestamp. \n This causes leakage during train and incorrect forecast dates.')
+            logging.warning(
+                'WARNING: _df_to_lists function assumes that panel series share same '
+                'end datestamp. \n This causes leakage during train and incorrect forecast dates.'
+            )
 
         self.sample_freq = sample_freq
         self.last_window = last_window
