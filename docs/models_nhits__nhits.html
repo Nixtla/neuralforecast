@@ -128,7 +128,7 @@ nb_path: "nbs/models_nhits__nhits.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="NHITS.forecast" class="doc_header"><code>NHITS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L723" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.forecast</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>1</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>)</p>
+<h4 id="NHITS.forecast" class="doc_header"><code>NHITS.forecast</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L724" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.forecast</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>1</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Method for forecasting self.n_time_out periods after last timestamp of Y_df.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
@@ -138,12 +138,73 @@ X_df: pd.DataFrame
     Note that 'unique_id' and 'ds' must match Y_df plus the forecasting horizon.
 S_df: pd.DataFrame
     Dataframe with static data, needs 'unique_id' column.
+batch_size: int
+    Batch size for forecasting.
+trainer: pl.Trainer
+    Trainer object for model training and evaluation.
+verbose: bool
+    Print dataset information.</p>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
+    Dataframe with forecasts.</p>
+
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="NHITS.predict" class="doc_header"><code>NHITS.predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/models/nhits/nhits.py#L797" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>NHITS.predict</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>batch_size</code></strong>:<code>int</code>=<em><code>1</code></em>, <strong><code>trainer</code></strong>:<code>Trainer</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+</blockquote>
+<p>This function creates rolled predictions for historic <code>Y_df</code>, parses and outputs them
+in a long format <code>Y_hat_df</code> dataframe.</p>
+<p>This function does not returns forecasts outside Y_df dates.
+To get forecasts for future ds use the <code>forecast</code> method.</p>
+<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2>
+<pre><code>Y_df: pd.DataFrame
+    Dataframe with target time-series data, needs 'unique_id','ds' and 'y' columns.
+X_df: pd.DataFrame
+    Dataframe with exogenous time-series data, needs 'unique_id' and 'ds' columns.
+    Note that 'unique_id' and 'ds' must match Y_df.
+S_df: pd.DataFrame
+    Dataframe with static data, needs 'unique_id' column.
 bath_size: int
     Batch size for forecasting.
 trainer: pl.Trainer
-    Trainer object for model training and evaluation.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>forecast_df: pd.DataFrame
-    Dataframe with forecasts.</p>
+    Trainer object for model training and evaluation.
+verbose: bool
+    Print dataset information.
+
+</code></pre>
+<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2>
+<pre><code>Y_hat_df: pd.DataFrame
+    Predictions DataFrame with columns:
+    'unique_id': string/object series identifier
+    'fcds': date stamps marking the forecast creation.
+    'ds': prediction date stamps.
+    'y': historic true values.
+    'y_hat': forecasted values.</code></pre>
 
 </div>
 
@@ -182,7 +243,8 @@ trainer: pl.Trainer
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.epf</span> <span class="kn">import</span> <span class="n">EPF</span>
+<span class="kn">from</span> <span class="nn">neuralforecast.data.datasets.long_horizon</span> <span class="kn">import</span> <span class="n">LongHorizon</span>
+
 <span class="kn">from</span> <span class="nn">neuralforecast.data.tsloader</span> <span class="kn">import</span> <span class="n">TimeSeriesLoader</span>
 
 <span class="kn">import</span> <span class="nn">pylab</span> <span class="k">as</span> <span class="nn">plt</span>
@@ -192,13 +254,32 @@ trainer: pl.Trainer
 
 <span class="n">FONTSIZE</span> <span class="o">=</span> <span class="mi">19</span>
 
-<span class="c1"># Load and plot data</span>
-<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span><span class="s1">&#39;FR&#39;</span><span class="p">])</span>
+<span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">LongHorizon</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;./data&#39;</span><span class="p">,</span> <span class="n">group</span><span class="o">=</span><span class="s1">&#39;ETTm2&#39;</span><span class="p">)</span>
+<span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="s1">&#39;HUFL&#39;</span><span class="p">,</span><span class="s1">&#39;OT&#39;</span><span class="p">])]</span>
+<span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="p">[</span><span class="mi">1000</span><span class="p">:]</span>
+<span class="n">Y_df</span> <span class="o">=</span> <span class="n">Y_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Y_df</span><span class="p">))</span> 
+<span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">])</span>
+</pre></div>
 
-<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;NP&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ds</span><span class="p">,</span> <span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;NP&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#628793&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Price [EUR/MWh]&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">19</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Date&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;OT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">ds</span><span class="p">,</span> <span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="s1">&#39;OT&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#628793&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.4</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">19</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 
@@ -225,10 +306,10 @@ trainer: pl.Trainer
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">mc</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;model&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;n-hits&#39;</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;simple&#39;</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;activation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;SELU&#39;</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;activation&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;ReLU&#39;</span>
 
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span><span class="o">*</span><span class="mi">3</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">24</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_time_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">96</span><span class="o">*</span><span class="mi">2</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_time_out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">96</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_x_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -266,8 +347,7 @@ trainer: pl.Trainer
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;idx_to_sample_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;val_idx_to_sample_freq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;n_val_weeks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">52</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;normalizer_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;median&#39;</span>
+<span class="n">mc</span><span class="p">[</span><span class="s1">&#39;scaler&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;complete_windows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="n">mc</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;H&#39;</span>
 
@@ -302,11 +382,11 @@ trainer: pl.Trainer
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">neuralforecast.experiments.utils</span> <span class="kn">import</span> <span class="n">create_datasets</span>
 
-<span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">scaler_y</span> <span class="o">=</span> <span class="n">create_datasets</span><span class="p">(</span><span class="n">mc</span><span class="o">=</span><span class="n">mc</span><span class="p">,</span>
-                                                                     <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span>
-                                                                     <span class="n">f_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Exogenous1&#39;</span><span class="p">,</span> <span class="s1">&#39;Exogenous2&#39;</span><span class="p">],</span>
-                                                                     <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">294</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span>
-                                                                     <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">728</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">create_datasets</span><span class="p">(</span><span class="n">mc</span><span class="o">=</span><span class="n">mc</span><span class="p">,</span>
+                                                                     <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                                     <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
+                                                                     <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">11520</span><span class="p">,</span>
+                                                                     <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">11520</span><span class="p">)</span>
 
 <span class="n">train_loader</span> <span class="o">=</span> <span class="n">TimeSeriesLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
                                 <span class="n">batch_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">mc</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]),</span>
@@ -433,6 +513,7 @@ trainer: pl.Trainer
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;outputs[0][0].shape&quot;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;outputs[0][1].shape&quot;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;outputs[0][2].shape&quot;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;outputs[0][3].shape&quot;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -473,26 +554,9 @@ trainer: pl.Trainer
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">X_forecast_df</span> <span class="o">=</span> <span class="n">X_df</span><span class="p">[</span><span class="n">X_df</span><span class="p">[</span><span class="s1">&#39;ds&#39;</span><span class="p">]</span><span class="o">&lt;</span><span class="s1">&#39;2016-12-28&#39;</span><span class="p">]</span>
-<span class="n">X_forecast_df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">return_decomposition</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="n">forecast_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forecast</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_forecast_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_forecast_df</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">forecast_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forecast</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_forecast_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">forecast_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -502,6 +566,12 @@ trainer: pl.Trainer
 </div>
     {% endraw %}
 
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Predict">Predict<a class="anchor-link" href="#Predict"> </a></h2>
+</div>
+</div>
+</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -509,7 +579,8 @@ trainer: pl.Trainer
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">forecast_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">Y_hat_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">S_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+<span class="n">Y_hat_df</span>
 </pre></div>
 
     </div>

@@ -595,6 +595,7 @@ class MQNHITS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        ts_idxs = batch['ts_idxs']
         sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
@@ -609,7 +610,7 @@ class MQNHITS(pl.LightningModule):
                                                            insample_mask=available_mask,
                                                            outsample_mask=sample_mask,
                                                            return_decomposition=False)
-        return outsample_y, forecast, outsample_mask
+        return outsample_y, forecast, outsample_mask, ts_idxs
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.model.parameters(),
@@ -687,7 +688,7 @@ def forecast(self: MQNHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df:
     outputs = trainer.predict(self, loader)
 
     # Process forecast and include in forecast_df
-    _, forecast, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+    _, forecast, _, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
 
     print('forecast.shape', forecast.shape)
     forecast = forecast.reshape(-1, self.n_quantiles)

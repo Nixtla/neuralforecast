@@ -220,7 +220,7 @@ class RNN(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
-        idxs = batch['idxs']
+        idxs = batch['ts_idxs']
         sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
@@ -313,6 +313,7 @@ class RNN(pl.LightningModule):
     def forward(self, batch):
         # Parsing batch
         S, Y, X, idxs, sample_mask, available_mask = self.parse_batch(batch)
+        ts_idxs = batch['ts_idxs']
 
         insample_Y = Y[:,:, :self.input_size]
         y_true = Y[:,:, self.input_size:]
@@ -333,7 +334,7 @@ class RNN(pl.LightningModule):
         y_hat=y_hat[sample_condition,:]
         sample_mask=sample_mask[sample_condition,:]
 
-        return y_true, y_hat, sample_mask
+        return y_true, y_hat, sample_mask, ts_idxs
 
     def configure_optimizers(self):
         rnn_optimizer = Adam(params=self.model.parameters(),
@@ -404,10 +405,7 @@ def forecast(self: RNN, Y_df, X_df = None, S_df = None, batch_size=1, trainer=No
     outputs = trainer.predict(self, loader)
 
     # Process forecast and include in forecast_df
-    _, forecast, _ = zip(*outputs)
-
-    # Process forecast and include in forecast_df
-    _, forecast, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+    _, forecast, _, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
     forecast_df['y'] = forecast.flatten()
 
     return forecast_df

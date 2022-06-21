@@ -637,7 +637,7 @@ class ESRNN(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
-        idxs = batch['idxs']
+        idxs = batch['ts_idxs']
         sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 

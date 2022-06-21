@@ -167,55 +167,7 @@ test_mask_df: pd.DataFrame
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="scale_data" class="doc_header"><code>scale_data</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L175" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>scale_data</code>(<strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>mask_df</code></strong>:<code>DataFrame</code>, <strong><code>normalizer_y</code></strong>:<code>str</code>, <strong><code>normalizer_x</code></strong>:<code>str</code>)</p>
-</blockquote>
-<p>Scales input data accordingly to given normalizer parameters.</p>
-<h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>Y_df: pd.DataFrame
-    Target time series with columns ['unique_id', 'ds', 'y'].
-X_df: pd.DataFrame
-    Exogenous time series with columns ['unique_id', 'ds', 'y']
-mask_df: pd.DataFrame
-    Mask dataframe.
-normalizer_y: str
-    Normalizer for scaling Y_df.
-normalizer_x: str
-    Normalizer for scaling X_df.</p>
-<h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>Y_df: pd.DataFrame
-    Scaled target time series.
-X_df: pd.DataFrame
-    Scaled exogenous time series with columns.
-scaler_y: Scaler
-    Scaler object for Y_df.</p>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L220" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="create_datasets" class="doc_header"><code>create_datasets</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L175" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>create_datasets</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Creates train, validation and test datasets.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -238,9 +190,7 @@ ds_in_val: int
 valid_dataset: BaseDataset
     Validation dataset.
 test_dataset: BaseDataset
-    Test dataset.
-scaler_y: Scaler
-    Scaler object for Y_df.</p>
+    Test dataset.</p>
 
 </div>
 
@@ -270,7 +220,7 @@ scaler_y: Scaler
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L335" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>train_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>val_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>test_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>)</p>
+<h4 id="instantiate_loaders" class="doc_header"><code>instantiate_loaders</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L299" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_loaders</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>train_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>val_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>, <strong><code>test_dataset</code></strong>:<a href="/neuralforecast/data__tsdataset.html#BaseDataset"><code>BaseDataset</code></a>)</p>
 </blockquote>
 <p>Creates train, validation and test loader classes.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -316,7 +266,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L406" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_nbeats" class="doc_header"><code>instantiate_nbeats</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L370" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nbeats</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates nbeats model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -352,7 +302,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L456" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_esrnn" class="doc_header"><code>instantiate_esrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L420" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_esrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates esrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -388,7 +338,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_rnn" class="doc_header"><code>instantiate_rnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L505" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_rnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_rnn" class="doc_header"><code>instantiate_rnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L469" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_rnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates esrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -424,7 +374,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L550" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_mqesrnn" class="doc_header"><code>instantiate_mqesrnn</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L514" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqesrnn</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates mqesrnn model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -460,7 +410,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L597" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_nhits" class="doc_header"><code>instantiate_nhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L561" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_nhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates nhits model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -496,7 +446,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_mqnhits" class="doc_header"><code>instantiate_mqnhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L652" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqnhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_mqnhits" class="doc_header"><code>instantiate_mqnhits</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L616" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_mqnhits</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates mqnhits model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -532,7 +482,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L709" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_autoformer" class="doc_header"><code>instantiate_autoformer</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L673" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_autoformer</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates autoformer model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -568,7 +518,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L759" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
+<h4 id="instantiate_model" class="doc_header"><code>instantiate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L723" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>instantiate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>)</p>
 </blockquote>
 <p>Creates one of the models.
 (nbeats, esrnn, mqesrnn, nhits, autoformer)</p>
@@ -605,7 +555,7 @@ test_loader: DataLoader
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L784" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>model</code></strong>:<code>LightningModule</code>, <strong><code>trainer</code></strong>:<code>Trainer</code>, <strong><code>loader</code></strong>:<code>DataLoader</code>, <strong><code>scaler_y</code></strong>:<a href="/neuralforecast/data__scalers.html#Scaler"><code>Scaler</code></a>)</p>
+<h4 id="predict" class="doc_header"><code>predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L748" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>model</code></strong>:<code>LightningModule</code>, <strong><code>trainer</code></strong>:<code>Trainer</code>, <strong><code>loader</code></strong>:<code>DataLoader</code>)</p>
 </blockquote>
 <p>Predicts results on dataset using trained model.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -615,9 +565,7 @@ model: pl.LightningModule
 trainer: pl.Trainer
     Trainer object.
 loader: DataLoader
-    Data loader.
-scaler_y: Scaler
-    Scaler object for target time series.</p>
+    Data loader.</p>
 <h2 id="Returns">Returns<a class="anchor-link" href="#Returns"> </a></h2><p>y_true: np.array
     True values from dataset.
 y_hat: np.array
@@ -655,7 +603,7 @@ meta_data: np.array
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L831" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>:<code>list</code>=<em><code>[]</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="fit" class="doc_header"><code>fit</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L790" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>S_df</code></strong>:<code>DataFrame</code>=<em><code>None</code></em>, <strong><code>ds_in_val</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>ds_in_test</code></strong>:<code>int</code>=<em><code>0</code></em>, <strong><code>f_cols</code></strong>:<code>list</code>=<em><code>[]</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Traines model on given dataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dict
@@ -680,9 +628,7 @@ trainer: pl.Trainer
 val_loader: DataLoader
     Validation loader.
 test_loader: DataLoader
-    Test loader.
-scaler_y: Scaler
-    Scaler object for target time series.</p>
+    Test loader.</p>
 
 </div>
 
@@ -712,7 +658,7 @@ scaler_y: Scaler
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L917" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>)</p>
+<h4 id="model_fit_predict" class="doc_header"><code>model_fit_predict</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L874" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>model_fit_predict</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>verbose</code></strong>:<code>bool</code>)</p>
 </blockquote>
 <p>Traines model on train dataset, then calculates predictions
 on test dataset.</p>
@@ -759,7 +705,7 @@ ds_in_test: int
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L969" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="evaluate_model" class="doc_header"><code>evaluate_model</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L926" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>evaluate_model</code>(<strong><code>mc</code></strong>:<code>dict</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>trials</code></strong>:<code>Trials</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluate model on given dataset.</p>
 <h2 id="Parameters">Parameters<a class="anchor-link" href="#Parameters"> </a></h2><p>mc: dictionary
@@ -832,7 +778,7 @@ loss_kwargs: List
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1110" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
+<h4 id="hyperopt_tunning" class="doc_header"><code>hyperopt_tunning</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/experiments/utils.py#L1062" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>hyperopt_tunning</code>(<strong><code>space</code></strong>:<code>dict</code>, <strong><code>hyperopt_max_evals</code></strong>:<code>int</code>, <strong><code>loss_function_val</code></strong>:<code>callable</code>, <strong><code>loss_functions_test</code></strong>:<code>dict</code>, <strong><code>S_df</code></strong>:<code>DataFrame</code>, <strong><code>Y_df</code></strong>:<code>DataFrame</code>, <strong><code>X_df</code></strong>:<code>DataFrame</code>, <strong><code>f_cols</code></strong>:<code>list</code>, <strong><code>ds_in_val</code></strong>:<code>int</code>, <strong><code>ds_in_test</code></strong>:<code>int</code>, <strong><code>return_forecasts</code></strong>:<code>bool</code>, <strong><code>return_model</code></strong>:<code>bool</code>, <strong><code>save_trials</code></strong>:<code>bool</code>, <strong><code>results_dir</code></strong>:<code>str</code>, <strong><code>step_save_progress</code></strong>:<code>int</code>=<em><code>5</code></em>, <strong><code>loss_kwargs</code></strong>:<code>list</code>=<em><code>None</code></em>, <strong><code>verbose</code></strong>:<code>bool</code>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Evaluates multiple models trained on given dataset.
 Models are trained with different hyperparameters.
@@ -931,7 +877,7 @@ verbose:
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NP&#39;</span><span class="p">,</span> <span class="s1">&#39;FR&#39;</span><span class="p">]</span>
 <span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="p">,</span> <span class="n">S_df</span> <span class="o">=</span> <span class="n">EPF</span><span class="o">.</span><span class="n">load_groups</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
 <span class="n">X_df</span> <span class="o">=</span> <span class="n">X_df</span><span class="p">[[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">,</span> <span class="s1">&#39;ds&#39;</span><span class="p">,</span> <span class="s1">&#39;week_day&#39;</span><span class="p">]]</span>
 </pre></div>
@@ -968,6 +914,8 @@ verbose:
 <span class="n">freq</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">Y_df</span><span class="o">.</span><span class="n">unique_id</span><span class="o">.</span><span class="n">unique</span><span class="p">()[</span><span class="mi">0</span><span class="p">]][</span><span class="s1">&#39;ds&#39;</span><span class="p">])</span> 
 <span class="n">space</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="n">freq</span> <span class="p">])</span>
 
+<span class="n">space</span><span class="p">[</span><span class="s1">&#39;scaler&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;scaler&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="s1">&#39;std&#39;</span> <span class="p">])</span> <span class="c1"># None</span>
+
 <span class="n">model</span><span class="p">,</span> <span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
                                  <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
                                  <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
@@ -990,7 +938,7 @@ verbose:
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 </pre></div>
 
     </div>
@@ -1000,12 +948,6 @@ verbose:
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Without-returning-model">Without returning model<a class="anchor-link" href="#Without-returning-model"> </a></h2>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -1013,23 +955,45 @@ verbose:
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">space</span> <span class="o">=</span> <span class="n">nbeats_space</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;max_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Override max_steps for faster example</span>
- <span class="c1"># The suggested spaces are partial, here we complete them with data specific information</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_series&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_series&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="p">])</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_x&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_x&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">X_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">X_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="p">])</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_s&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_s&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">S_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">S_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">])</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_x_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_x_hidden&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">X_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">X_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="p">])</span>
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;n_s_hidden&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">S_df</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">S_df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">])</span>
-<span class="c1"># Infers freq with first time series</span>
-<span class="n">freq</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">Y_df</span><span class="p">[</span><span class="n">Y_df</span><span class="p">[</span><span class="s1">&#39;unique_id&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">Y_df</span><span class="o">.</span><span class="n">unique_id</span><span class="o">.</span><span class="n">unique</span><span class="p">()[</span><span class="mi">0</span><span class="p">]][</span><span class="s1">&#39;ds&#39;</span><span class="p">])</span> 
-<span class="n">space</span><span class="p">[</span><span class="s1">&#39;frequency&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="p">[</span> <span class="n">freq</span> <span class="p">])</span>
-<span class="n">trials</span> <span class="o">=</span> <span class="n">hyperopt_tunning</span><span class="p">(</span><span class="n">space</span><span class="o">=</span><span class="n">space</span><span class="p">,</span> <span class="n">hyperopt_max_evals</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">loss_function_val</span><span class="o">=</span><span class="n">mae</span><span class="p">,</span>
-                          <span class="n">loss_functions_test</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;mae&#39;</span><span class="p">:</span> <span class="n">mae</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span> <span class="n">rmse</span><span class="p">},</span>
-                          <span class="n">S_df</span><span class="o">=</span><span class="n">S_df</span><span class="p">,</span> <span class="n">Y_df</span><span class="o">=</span><span class="n">Y_df</span><span class="p">,</span> <span class="n">X_df</span><span class="o">=</span><span class="n">X_df</span><span class="p">,</span> <span class="n">f_cols</span><span class="o">=</span><span class="p">[],</span>
-                          <span class="n">ds_in_val</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> <span class="n">ds_in_test</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">24</span><span class="p">,</span> 
-                          <span class="n">return_forecasts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_model</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">save_trials</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
-                          <span class="n">results_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">loss_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">trials</span><span class="o">.</span><span class="n">trials</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;forecasts_test&#39;</span><span class="p">][</span><span class="s1">&#39;test_meta_data&#39;</span><span class="p">]</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">y_true</span> <span class="o">=</span> <span class="n">trials</span><span class="o">.</span><span class="n">trials</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;forecasts_test&#39;</span><span class="p">][</span><span class="s1">&#39;test_y_true&#39;</span><span class="p">]</span>
+<span class="n">y_hat</span> <span class="o">=</span> <span class="n">trials</span><span class="o">.</span><span class="n">trials</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;result&#39;</span><span class="p">][</span><span class="s1">&#39;forecasts_test&#39;</span><span class="p">][</span><span class="s1">&#39;test_y_hat&#39;</span><span class="p">]</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_true</span><span class="p">[::</span><span class="mi">24</span><span class="p">,:]</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_hat</span><span class="p">[::</span><span class="mi">24</span><span class="p">,:]</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">model</span>
 </pre></div>
 
     </div>

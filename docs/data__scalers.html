@@ -47,7 +47,7 @@ nb_path: "nbs/data__scalers.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="Scaler" class="doc_header"><code>class</code> <code>Scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L14" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Scaler</code>(<strong><code>normalizer</code></strong>)</p>
+<h2 id="Scaler" class="doc_header"><code>class</code> <code>Scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L10" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>Scaler</code>(<strong><code>technique</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -71,7 +71,33 @@ nb_path: "nbs/data__scalers.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="norm_scaler" class="doc_header"><code>norm_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L59" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>norm_scaler</code>(<strong><code>x</code></strong>, <strong><code>mask</code></strong>)</p>
+<h4 id="fit_std_scaler" class="doc_header"><code>fit_std_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L118" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>fit_std_scaler</code>(<strong><code>X</code></strong>, <strong><code>mask</code></strong>)</p>
+</blockquote>
+<p>Standardize features by removing the mean and scaling to unit variance.</p>
+<p>The scaled features are computed as:</p>
+$$  ilde{X} = (X-\mu) / \sigma $$
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+
+<div class="output_markdown rendered_html output_subarea ">
+<h4 id="transform_std_scaler" class="doc_header"><code>transform_std_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L133" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>transform_std_scaler</code>(<strong><code>X</code></strong>, <strong><code>center</code></strong>, <strong><code>scale</code></strong>)</p>
 </blockquote>
 
 </div>
@@ -95,201 +121,11 @@ nb_path: "nbs/data__scalers.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="inv_norm_scaler" class="doc_header"><code>inv_norm_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L66" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_norm_scaler</code>(<strong><code>x</code></strong>, <strong><code>x_min</code></strong>, <strong><code>x_max</code></strong>)</p>
+<h4 id="inv_std_scaler" class="doc_header"><code>inv_std_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L136" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_std_scaler</code>(<strong><code>X</code></strong>, <strong><code>center</code></strong>, <strong><code>scale</code></strong>)</p>
 </blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="norm1_scaler" class="doc_header"><code>norm1_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L70" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>norm1_scaler</code>(<strong><code>x</code></strong>, <strong><code>mask</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="inv_norm1_scaler" class="doc_header"><code>inv_norm1_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L78" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_norm1_scaler</code>(<strong><code>x</code></strong>, <strong><code>x_min</code></strong>, <strong><code>x_max</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="std_scaler" class="doc_header"><code>std_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L83" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>std_scaler</code>(<strong><code>x</code></strong>, <strong><code>mask</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="inv_std_scaler" class="doc_header"><code>inv_std_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L90" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_std_scaler</code>(<strong><code>x</code></strong>, <strong><code>x_mean</code></strong>, <strong><code>x_std</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="median_scaler" class="doc_header"><code>median_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L94" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>median_scaler</code>(<strong><code>x</code></strong>, <strong><code>mask</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="inv_median_scaler" class="doc_header"><code>inv_median_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L102" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_median_scaler</code>(<strong><code>x</code></strong>, <strong><code>x_median</code></strong>, <strong><code>x_mad</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="invariant_scaler" class="doc_header"><code>invariant_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L106" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>invariant_scaler</code>(<strong><code>x</code></strong>, <strong><code>mask</code></strong>)</p>
-</blockquote>
-
-</div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_markdown rendered_html output_subarea ">
-<h4 id="inv_invariant_scaler" class="doc_header"><code>inv_invariant_scaler</code><a href="https://github.com/Nixtla/neuralforecast/tree/main/neuralforecast/data/scalers.py#L114" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>inv_invariant_scaler</code>(<strong><code>x</code></strong>, <strong><code>x_median</code></strong>, <strong><code>x_mad</code></strong>)</p>
-</blockquote>
-
+<p>Scale back the data to the original representation.</p>
+<p>The scaled features are computed as:</p>
+$$ X =      ilde{X} * \sigma +\mu $$
 </div>
 
 </div>
@@ -320,9 +156,9 @@ nb_path: "nbs/data__scalers.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">data</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Mean:&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;STD:&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span> <span class="k">as</span> <span class="nn">t</span>
 </pre></div>
 
     </div>
@@ -332,12 +168,6 @@ nb_path: "nbs/data__scalers.ipynb"
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Apply-scaler">Apply scaler<a class="anchor-link" href="#Apply-scaler"> </a></h3>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -345,8 +175,23 @@ nb_path: "nbs/data__scalers.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">scaler</span> <span class="o">=</span> <span class="n">Scaler</span><span class="p">(</span><span class="n">normalizer</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">)</span>
-<span class="n">data_norm</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">TestScaler</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">X_1</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">10000</span><span class="p">))</span>
+        <span class="n">X_2</span> <span class="o">=</span> <span class="mi">5</span><span class="o">*</span><span class="n">t</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">10000</span><span class="p">))</span> <span class="o">+</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">X</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">X_1</span><span class="p">,</span> <span class="n">X_2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span><span class="mi">20000</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">[:,</span><span class="o">-</span><span class="mi">10000</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="n">Scaler</span><span class="p">(</span><span class="n">technique</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_std</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">X_scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">)</span>
+        
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">center_</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">center_</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">scale_</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">center_</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_almost_equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">X_scaled</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -356,12 +201,6 @@ nb_path: "nbs/data__scalers.ipynb"
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Check-mean-and-std">Check mean and std<a class="anchor-link" href="#Check-mean-and-std"> </a></h3>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -369,8 +208,42 @@ nb_path: "nbs/data__scalers.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Mean:&#39;</span><span class="p">,</span> <span class="n">data_norm</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;STD:&#39;</span><span class="p">,</span> <span class="n">data_norm</span><span class="o">.</span><span class="n">std</span><span class="p">())</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test</span> <span class="o">=</span> <span class="n">TestScaler</span><span class="p">()</span>
+<span class="n">test</span><span class="o">.</span><span class="n">test_std</span><span class="p">()</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">center_</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">test</span><span class="o">.</span><span class="n">scaler</span><span class="o">.</span><span class="n">center_</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 
     </div>
