@@ -112,8 +112,7 @@ def nhits_space(horizon: int) -> dict:
             'loss_hypar': hp.choice('loss_hypar', [0.5]),
             'loss_valid': hp.choice('loss_valid', ['MAE']),
             # Data parameters
-            'normalizer_y': hp.choice('normalizer_y', [None]),
-            'normalizer_x': hp.choice('normalizer_x', [None]),
+            'scaler': hp.choice('scaler', [None]),
             'complete_windows':  hp.choice('complete_windows', [True]),
             'idx_to_sample_freq': hp.choice('idx_to_sample_freq', [1]),
             'val_idx_to_sample_freq': hp.choice('val_idx_to_sample_freq', [1]),
@@ -182,8 +181,7 @@ def mqnhits_space(horizon: int) -> dict:
             'loss_hypar': hp.choice('loss_hypar', [0.5]),
             'loss_valid': hp.choice('loss_valid', ['MQ']),
             # Data parameters
-            'normalizer_y': hp.choice('normalizer_y', [None]),
-            'normalizer_x': hp.choice('normalizer_x', [None]),
+            'scaler': hp.choice('scaler', [None]),
             'complete_windows':  hp.choice('complete_windows', [True]),
             'idx_to_sample_freq': hp.choice('idx_to_sample_freq', [1]),
             'val_idx_to_sample_freq': hp.choice('val_idx_to_sample_freq', [1]),
@@ -244,8 +242,7 @@ def nbeats_space(horizon: int) -> dict:
             'loss_hypar': hp.choice('loss_hypar', [0.5]),
             'loss_valid': hp.choice('loss_valid', ['MAE']),
             # Data parameters
-            'normalizer_y': hp.choice('normalizer_y', [None]),
-            'normalizer_x': hp.choice('normalizer_x', [None]),
+            'scaler': hp.choice('scaler', [None]),
             'complete_windows':  hp.choice('complete_windows', [True]),
             'idx_to_sample_freq': hp.choice('idx_to_sample_freq', [1]),
             'val_idx_to_sample_freq': hp.choice('val_idx_to_sample_freq', [1]),
@@ -307,8 +304,7 @@ def rnn_space(horizon: int) -> dict:
             'loss_hypar': hp.choice('loss_hypar', [0.5]),
             'loss_valid': hp.choice('loss_valid', ['MAE']),
             # Data parameters
-            'normalizer_y': hp.choice('normalizer_y', [None]),
-            'normalizer_x': hp.choice('normalizer_x', [None]),
+            'scaler': hp.choice('scaler', [None]),
             'complete_windows':  hp.choice('complete_windows', [True]),
             'idx_to_sample_freq': hp.choice('idx_to_sample_freq', [1]),
             'val_idx_to_sample_freq': hp.choice('val_idx_to_sample_freq', [1]),

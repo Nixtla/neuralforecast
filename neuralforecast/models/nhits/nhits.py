@@ -691,6 +691,7 @@ class NHITS(pl.LightningModule):
         S = batch['S']
         Y = batch['Y']
         X = batch['X']
+        ts_idxs = batch['ts_idxs']
         sample_mask = batch['sample_mask']
         available_mask = batch['available_mask']
 
@@ -705,7 +706,7 @@ class NHITS(pl.LightningModule):
                                                            insample_mask=available_mask,
                                                            outsample_mask=sample_mask,
                                                            return_decomposition=False)
-        return outsample_y, forecast, outsample_mask
+        return outsample_y, forecast, outsample_mask, ts_idxs
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.model.parameters(),
@@ -786,7 +787,7 @@ def forecast(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: p
     outputs = trainer.predict(self, loader)
 
     # Process forecast and include in forecast_df
-    _, forecast, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+    _, forecast, _, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
     forecast_df['y'] = forecast.flatten()
 
     return forecast_df
@@ -863,7 +864,7 @@ def predict(self: NHITS, Y_df: pd.DataFrame, X_df: pd.DataFrame = None, S_df: pd
     # Forecast all rolled windows
     outputs = trainer.predict(self, loader)
 
-    y_true, y_hat, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
+    y_true, y_hat, _, _ = [t.cat(output).cpu().numpy() for output in zip(*outputs)]
 
     #------------------------------------ ds Wrangling -------------------------------------#
 

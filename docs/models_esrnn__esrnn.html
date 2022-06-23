@@ -775,7 +775,7 @@ trainer: pl.Trainer
 <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">dataloader</span><span class="p">)</span>
 <span class="n">S</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;Y&#39;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;X&#39;</span><span class="p">]</span>
 <span class="n">available_mask</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;available_mask&#39;</span><span class="p">]</span>
-<span class="n">idxs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;idxs&#39;</span><span class="p">]</span>
+<span class="n">idxs</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s1">&#39;ts_idxs&#39;</span><span class="p">]</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;S.shape&quot;</span><span class="p">,</span> <span class="n">S</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Y.shape&quot;</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>

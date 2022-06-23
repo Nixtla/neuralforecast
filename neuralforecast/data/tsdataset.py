@@ -32,6 +32,7 @@ class BaseDataset(Dataset):
                  input_size: int = None,
                  output_size: int = None,
                  complete_windows: bool = True,
+                 scaler = None,
                  verbose: bool = False) -> 'BaseDataset':
         """
         Parameters
@@ -131,6 +132,12 @@ class BaseDataset(Dataset):
         # numpy  s_matrix of shape (n_series, n_s)
         # numpy ts_tensor of shape (n_series, n_channels, max_len) n_channels = t_cols + masks
         self.len_series, self.ts_tensor = self._create_tensor()
+
+        # Normalization
+        self.scaler = scaler
+        if self.scaler is not None:
+            self.ts_tensor = self._scale_tensor(ts_tensor=self.ts_tensor)
+
 
         # Defining sampleable time series
         self.ts_idxs = np.arange(self.n_series)
@@ -253,6 +260,21 @@ def _create_tensor(self: BaseDataset) -> Tuple[np.array, t.Tensor]:
     ts_tensor = t.Tensor(ts_tensor)
 
     return len_series, ts_tensor
+
+# Cell
+@patch
+def _scale_tensor(self: BaseDataset, ts_tensor):
+    """ Scale tensor """
+    if self.scaler.fitted == False:
+        mask = ts_tensor[:, self.t_cols.index('available_mask'), :] * \
+               ts_tensor[:, self.t_cols.index('sample_mask'), :]
+
+        self.scaler.fit(X=ts_tensor[:, :self.t_cols.index('available_mask'), :], mask=mask)
+
+    ts_tensor[:, :self.t_cols.index('available_mask'), :] = \
+        self.scaler.transform(ts_tensor[:, :self.t_cols.index('available_mask'), :])
+
+    return ts_tensor
 
 # Cell
 @patch
@@ -391,6 +413,7 @@ class TimeSeriesDataset(BaseDataset):
                  ds_in_test: int = 0,
                  is_test: bool = False,
                  complete_windows: bool = True,
+                 scaler = None,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
         Parameters
@@ -426,6 +449,7 @@ class TimeSeriesDataset(BaseDataset):
                                                 X_df=X_df, S_df=S_df, f_cols=f_cols,
                                                 mask_df=mask_df, ds_in_test=ds_in_test,
                                                 is_test=is_test, complete_windows=complete_windows,
+                                                scaler=scaler,
                                                 verbose=verbose)
 
 # Cell
@@ -469,7 +493,7 @@ def __getitem__(self: TimeSeriesDataset,
     batch = {'S': S, 'Y': Y, 'X': X,
              'available_mask': available_mask,
              'sample_mask': sample_mask,
-             'idxs': ts_idxs}
+             'ts_idxs': ts_idxs}
 
     return batch
 
@@ -488,6 +512,7 @@ class IterateWindowsDataset(BaseDataset):
                  f_cols: Optional[List] = None,
                  mask_df: Optional[pd.DataFrame] = None,
                  ds_in_test: int = 0,
+                 scaler = None,
                  is_test: bool = False,
                  verbose: bool = False) -> 'IterateWindowsDataset':
         """
@@ -524,6 +549,7 @@ class IterateWindowsDataset(BaseDataset):
                                                     X_df=X_df, S_df=S_df, f_cols=f_cols,
                                                     mask_df=mask_df, ds_in_test=ds_in_test,
                                                     is_test=is_test, complete_windows=True,
+                                                    scaler=scaler,
                                                     verbose=verbose)
 
         self.first_sampleable_stamps = np.nonzero(self.ts_tensor[0, self.t_cols.index('sample_mask'), :])[0,0]
@@ -574,7 +600,7 @@ def __getitem__(self: IterateWindowsDataset,
     batch = {'S': S, 'Y': Y, 'X': X,
              'available_mask': available_mask,
              'sample_mask': sample_mask,
-             'idxs': ts_idxs}
+             'ts_idxs': ts_idxs}
 
     return batch
 
@@ -605,6 +631,7 @@ class WindowsDataset(BaseDataset):
                  sample_freq: int = 1,
                  complete_windows: bool = False,
                  last_window: bool = False,
+                 scaler = None,
                  verbose: bool = False) -> 'TimeSeriesDataset':
         """
         Parameters
@@ -643,6 +670,7 @@ class WindowsDataset(BaseDataset):
                                              X_df=X_df, S_df=S_df, f_cols=f_cols,
                                              mask_df=mask_df, ds_in_test=ds_in_test,
                                              is_test=is_test, complete_windows=complete_windows,
+                                             scaler=scaler,
                                              verbose=verbose)
         # WindowsDataset parameters
         self.windows_size = self.input_size + self.output_size
@@ -814,6 +842,6 @@ def __getitem__(self: WindowsDataset,
     batch = {'S': S, 'Y': Y, 'X': X,
              'available_mask': available_mask,
              'sample_mask': sample_mask,
-             'idxs': ts_idxs}
+             'ts_idxs': ts_idxs}
 
     return batch
