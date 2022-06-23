@@ -42,7 +42,7 @@ def get_experiment_space(args):
             'n_lr_decays': hp.choice('n_lr_decays', [3]), 
             'weight_decay': hp.choice('weight_decay', [0] ),
             'max_epochs': hp.choice('max_epochs', [None]),
-            'max_steps': hp.choice('max_steps', [5]), # 1_000
+            'max_steps': hp.choice('max_steps', [1_000]), # 1_000
             'early_stop_patience': hp.choice('early_stop_patience', [10]),
             'eval_freq': hp.choice('eval_freq', [50]),
             'loss_train': hp.choice('loss', ['MQ']),
