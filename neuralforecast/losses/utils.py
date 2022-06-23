@@ -54,8 +54,8 @@ class LossFunction:
         self.percentile = percentile
         self.level_variability_penalty = level_variability_penalty
 
-        self.tau = self.percentile / 100 if isinstance(percentile, int) else None
-        self.quantiles = [tau / 100 for tau in percentile] if isinstance(percentile, list) else None
+        self.tau = self.percentile if isinstance(percentile, int) else None
+        self.quantiles = [tau for tau in percentile] if isinstance(percentile, list) else None
 
 # Cell
 @patch
