@@ -7,6 +7,9 @@ website:
         - core.ipynb
         - section: Deep Learning Models
           contents:
+          - section: Automatic Forecasting
+            contents:
+            - models.ipynb
           - section: RNN Based Models
             contents:
             - models.dilated_rnn.ipynb
