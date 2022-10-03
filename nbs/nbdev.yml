@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "neuralforecast"
+  site-url: "https://Nixtla.github.io/neuralforecast/"
+  description: "Time series forecasting suite using deep learning models"
+  repo-branch: main
+  repo-url: "https://github.com/Nixtla/neuralforecast/tree/main/"
