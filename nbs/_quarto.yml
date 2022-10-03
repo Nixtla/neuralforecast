@@ -16,19 +16,19 @@ format:
 
 website:
   title: "neuralforecast"
-  site-url: "https://Nixtla.github.io/neuralforecast1/"
+  site-url: "https://Nixtla.github.io/neuralforecast/"
   description: "Time series forecasting suite using deep learning models"
   twitter-card: true
   open-graph: true
   repo-branch: main
-  repo-url: "https://github.com/Nixtla/neuralforecast1/tree/main/"
+  repo-url: "https://github.com/Nixtla/neuralforecast/tree/main/"
   repo-actions: [issue]
   navbar:
     background: primary
     search: true
     right:
       - icon: github
-        href: "https://github.com/Nixtla/neuralforecast1/tree/main/"
+        href: "https://github.com/Nixtla/neuralforecast/tree/main/"
   sidebar:
     style: "floating"
 
