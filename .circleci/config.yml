@@ -1,0 +1,79 @@
+version: 2.1
+jobs:
+  nbdev-tests:
+    resource_class: xlarge
+    docker:
+      - image: continuumio/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            conda install mamba -n base -c conda-forge
+            mamba env create -f environment.yml
+      - run:
+          name: Run nbdev tests
+          command: |
+            conda init bash
+            source ~/.bashrc
+            conda activate neuralforecast
+            pip install ./
+            nbdev_test --do_print --timing --n_workers 1
+  test-model-performance:
+    resource_class: xlarge
+    docker:
+      - image: continuumio/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            conda install mamba -n base -c conda-forge
+            mamba env create -f environment.yml
+      - run:
+          name: Run model performance tests
+          command: |
+            conda init bash
+            source ~/.bashrc
+            conda activate neuralforecast
+            pip install -e ".[dev]"
+            cd ./action_files/test_models/
+            pip install -r requirements.txt
+            python -m src.models
+            python -m src.evaluation
+            cd ../../
+      - store_artifacts:
+          path: ./action_files/test_models/data/evaluation.csv
+          destination: evaluation.csv
+  test-model-cv-performance:
+    resource_class: xlarge
+    docker:
+      - image: continuumio/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            conda install mamba -n base -c conda-forge
+            mamba env create -f environment.yml
+      - run:
+          name: Run model performance tests
+          command: |
+            conda init bash
+            source ~/.bashrc
+            conda activate neuralforecast
+            pip install -e ".[dev]"
+            cd ./action_files/test_models/
+            pip install -r requirements.txt
+            python -m src.cv_models
+            cd ../../
+      - store_artifacts:
+          path: ./action_files/test_models/data/cv_evaluation.csv
+          destination: cv_evaluation.csv
+
+workflows:
+  sample:
+    jobs:
+      - nbdev-tests
+      - test-model-performance
+      - test-model-cv-performance

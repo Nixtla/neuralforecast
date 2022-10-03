@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  nb-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2
+
+      - name: Set up python
+        uses: actions/setup-python@v2
+
+      - name: Install nbdev
+        run: pip install nbdev
+
+      - name: Check if all notebooks are cleaned
+        run: |
+          echo "Check we are starting with clean git checkout"
+          if [ -n "$(git status -uno -s)" ]; then echo "git status is not clean"; false; fi
+          echo "Trying to strip out notebooks"
+          nbdev_clean
+          echo "Check that strip out was unnecessary"
+          git status -s # display the status to see which nbs need cleaning up
+          if [ -n "$(git status -uno -s)" ]; then echo -e "!!! Detected unstripped out notebooks\n!!!Remember to run nbdev_install_git_hooks"; false; fi
+  run-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: [3.7, 3.8, 3.9, '3.10']
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2
+
+      - name: Set up environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache-env: true
+
+      - name: Install pip requirements
+        run: pip install ./ 
+
+      - name: Tests
+        run: nbdev_test --do_print --timing --n_workers 1
