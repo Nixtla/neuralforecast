@@ -1,0 +1,38 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - section: API Reference
+        contents:
+        - core.ipynb
+        - section: Deep Learning Models
+          contents:
+          - section: Automatic Forecasting
+            contents:
+            - models.ipynb
+          - section: RNN Based Models
+            contents:
+            - models.dilated_rnn.ipynb
+            - models.gru.ipynb
+            - models.lstm.ipynb
+            - models.rnn.ipynb
+          - section: MLP Based Models
+            contents:
+            - models.mlp.ipynb
+            - models.nbeats.ipynb
+            - models.nhits.ipynb
+          - section: Transformer Based Models
+            contents:
+            - models.tft.ipynb
+          - section: Hierarchical Models
+            contents:
+            - models.gmm_tft.ipynb
+        - section: Evaluation
+          contents:
+          - losses.pytorch.ipynb
+          - losses.numpy.ipynb
+        - section: Utils
+          contents:
+          - tsdataset.ipynb
+          - utils.ipynb
+	
