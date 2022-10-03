@@ -9,12 +9,13 @@ format:
     theme: cosmo
     css: styles.css
     toc: true
-    toc-depth: 4
 
 website:
   twitter-card: true
   open-graph: true
   repo-actions: [issue]
+  sidebar:
+    style: floating
   navbar:
     background: primary
     search: true
@@ -35,4 +36,4 @@ website:
         href: https://twitter.com/nixtlainc
         aria-label: Nixtla Twitter
 
-metadata-files: [nbdev.yml]
+metadata-files: [nbdev.yml, sidebar.yml]
