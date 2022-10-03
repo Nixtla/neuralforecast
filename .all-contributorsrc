@@ -1,0 +1,119 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "FedericoGarza",
+      "name": "fede",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10517170?v=4",
+      "profile": "https://github.com/FedericoGarza",
+      "contributions": [
+        "code",
+        "bug",
+        "doc"
+      ]
+    },
+    {
+      "login": "gdevos010",
+      "name": "Greg DeVos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15316026?v=4",
+      "profile": "https://github.com/gdevos010",
+      "contributions": [
+        "ideas"
+      ]
+    },
+    {
+      "login": "cchallu",
+      "name": "Cristian Challu",
+      "avatar_url": "https://avatars.githubusercontent.com/u/31133398?v=4",
+      "profile": "https://github.com/cchallu",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "mergenthaler",
+      "name": "mergenthaler",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4086186?v=4",
+      "profile": "https://github.com/mergenthaler",
+      "contributions": [
+        "doc",
+        "code"
+      ]
+    },
+    {
+      "login": "kdgutier",
+      "name": "Kin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/19935241?v=4",
+      "profile": "https://github.com/kdgutier",
+      "contributions": [
+        "code",
+        "bug",
+        "data"
+      ]
+    },
+    {
+      "login": "jmoralez",
+      "name": "José Morales",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8473587?v=4",
+      "profile": "https://github.com/jmoralez",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "alejandroxag",
+      "name": "Alejandro",
+      "avatar_url": "https://avatars.githubusercontent.com/u/64334543?v=4",
+      "profile": "https://github.com/alejandroxag",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "stefanialvs",
+      "name": "stefanialvs",
+      "avatar_url": "https://avatars.githubusercontent.com/u/48966177?v=4",
+      "profile": "http://lavattiata.com",
+      "contributions": [
+        "design"
+      ]
+    },
+    {
+      "login": "eltociear",
+      "name": "Ikko Ashimine",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22633385?v=4",
+      "profile": "https://bandism.net/",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "vglaucus",
+      "name": "vglaucus",
+      "avatar_url": "https://avatars.githubusercontent.com/u/75549033?v=4",
+      "profile": "https://github.com/vglaucus",
+      "contributions": [
+        "bug"
+      ]
+    },
+    {
+      "login": "pitmonticone",
+      "name": "Pietro Monticone",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38562595?v=4",
+      "profile": "https://github.com/pitmonticone",
+      "contributions": [
+        "bug"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "neuralforecast",
+  "projectOwner": "Nixtla",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "skipCi": true
+}
