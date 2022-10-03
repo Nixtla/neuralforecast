@@ -2,7 +2,7 @@
 
 <div align="center">
 <!--- <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast1/main/nbs/imgs_indx/logo_mid.png"> --->
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/indx_imgs/branding/logo_mid.png">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/logo_mid.png">
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">User friendly state-of-the-art neural forecasting models.</h3>
 
