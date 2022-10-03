@@ -1,8 +1,5 @@
-ipynb-filters: [nbdev_filter]
-
 project:
   type: website
-  output-dir: _docs
   preview:
     port: 3000
     browser: false
@@ -12,26 +9,31 @@ format:
     theme: cosmo
     css: styles.css
     toc: true
-    toc-depth: 4
 
 website:
-  title: "neuralforecast"
-  site-url: "https://Nixtla.github.io/neuralforecast/"
-  description: "Time series forecasting suite using deep learning models"
   twitter-card: true
   open-graph: true
-  repo-branch: main
-  repo-url: "https://github.com/Nixtla/neuralforecast/tree/main/"
   repo-actions: [issue]
+  sidebar:
+    style: floating
   navbar:
     background: primary
     search: true
+    collapse-below: lg
+    left:
+      - text: "Help"
+        menu:
+          - text: "Report an Issue"
+            icon: bug
+            href: https://github.com/nixtla/neuralforecast/issues
+          - text: "Join our Slack"
+            icon: chat-right-text
+            href: https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A
     right:
       - icon: github
-        href: "https://github.com/Nixtla/neuralforecast/tree/main/"
-  sidebar:
-    style: "floating"
+        href: "https://github.com/nixtla/neuralforecast"
+      - icon: twitter
+        href: https://twitter.com/nixtlainc
+        aria-label: Nixtla Twitter
 
-metadata-files: 
-  - sidebar.yml
-  - custom.yml
+metadata-files: [nbdev.yml, sidebar.yml]
