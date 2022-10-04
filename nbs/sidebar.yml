@@ -37,4 +37,7 @@ website:
           contents:
           - tsdataset.ipynb
           - utils.ipynb
+      - section: Tutorials
+        contents:
+        - examples/UncertaintyIntervals.ipynb
 	
