@@ -2,6 +2,8 @@ website:
   sidebar:
     contents:
       - index.ipynb
+      - examples/Getting_Started_with_NBEATS_and_NHITS.ipynb
+      - examples/Data_Format.ipynb
       - section: API Reference
         contents:
         - core.ipynb
@@ -35,4 +37,7 @@ website:
           contents:
           - tsdataset.ipynb
           - utils.ipynb
+      - section: Tutorials
+        contents:
+        - examples/UncertaintyIntervals.ipynb
 	
