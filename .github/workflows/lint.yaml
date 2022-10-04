@@ -25,4 +25,4 @@ jobs:
         run: mypy neuralforecast/
 
       - name: flake8
-        run: flake8 --select=F neuralforecast/
+        run: flake8 --select=F neuralforecast/ --exclude __init__.py
