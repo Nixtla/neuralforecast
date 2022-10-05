@@ -71,7 +71,8 @@ class TimeSeriesDataset(Dataset):
                  indptr,
                  max_size,
                  static=None,
-                 static_cols=None):
+                 static_cols=None,
+                 sorted=False):
         super().__init__()
 
         self.temporal = torch.tensor(temporal, dtype=torch.float)
@@ -87,6 +88,10 @@ class TimeSeriesDataset(Dataset):
         self.indptr = indptr
         self.n_groups = self.indptr.size - 1
         self.max_size = max_size
+
+        # Upadated flag. To protect consistency, dataset can only be updated once
+        self.updated = False
+        self.sorted = sorted
 
     def __getitem__(self, idx):
         if isinstance(idx, int):
@@ -118,6 +123,52 @@ class TimeSeriesDataset(Dataset):
         if not hasattr(other, 'data') or not hasattr(other, 'indptr'):
             return False
         return np.allclose(self.data, other.data) and np.array_equal(self.indptr, other.indptr)
+
+    def _update_futr_exog(self, df):
+        """Add future exogenous variables to the dataset.
+        """        
+        if self.updated:
+            raise ValueError('Dataset has been updated. No more updates allowed.')
+
+        # Add Nones to missing columns (without available_mask)
+        temporal_cols = self.temporal_cols.copy()
+        temporal_cols = temporal_cols.delete(len(temporal_cols)-1)
+        for col in temporal_cols:
+            if col not in df.columns:
+                df[col] = None
+        
+        # Sort columns to match self.temporal_cols
+        df = df[ ['unique_id','ds'] + temporal_cols.tolist() ]
+
+        # Process df
+        futr_dataset, indices, futr_dates, futr_index = self.from_df(df=df, sort_df=self.sorted)
+
+        # Define and fill new temporal with updated information
+        len_temporal, col_temporal = self.temporal.shape
+        new_temporal = torch.zeros(size=(len_temporal+len(df), col_temporal))
+        new_indptr = [0]
+        new_max_size = 0
+
+        acum = 0
+        for i in range(self.n_groups):
+            series_length = self.indptr[i + 1] - self.indptr[i]
+            new_length = series_length + futr_dataset.indptr[i + 1] - futr_dataset.indptr[i]
+            new_temporal[acum:(acum+series_length), :] = self.temporal[self.indptr[i] : self.indptr[i + 1], :]
+            new_temporal[(acum+series_length):(acum+new_length), :] = \
+                                 futr_dataset.temporal[futr_dataset.indptr[i] : futr_dataset.indptr[i + 1], :]
+            
+            acum += new_length
+            new_indptr.append(acum)
+            if new_length > new_max_size:
+                new_max_size = new_length
+        
+        # Define new dataset
+        self.temporal = new_temporal
+        self.indptr = np.array(new_indptr).astype(np.int32)
+        self.max_size = new_max_size
+        self.updated = True
+
+        return self, indices, futr_dates, futr_index
 
     @staticmethod
     def from_df(df, static_df=None, sort_df=False):
@@ -159,7 +210,7 @@ class TimeSeriesDataset(Dataset):
         dataset = TimeSeriesDataset(
                     temporal=temporal, temporal_cols=temporal_cols,
                     static=static, static_cols=static_cols,
-                    indptr=indptr, max_size=max_size)
+                    indptr=indptr, max_size=max_size, sorted=sort_df)
         return dataset, indices, dates, df.index
 
 # %% ../nbs/tsdataset.ipynb 10

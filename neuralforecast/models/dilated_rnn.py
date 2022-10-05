@@ -261,6 +261,9 @@ class DilatedRNN(BaseRecurrent):
                  dilations: List[List[int]] = [[1, 2], [4, 8]], 
                  add_nl_layer: bool = False,
                  learning_rate: float = 1e-3,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,
                  normalize: bool = True,
                  loss=MAE(),
                  batch_size=32, 
@@ -271,6 +274,9 @@ class DilatedRNN(BaseRecurrent):
         super(DilatedRNN, self).__init__(
             loss=loss,
             batch_size=batch_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
@@ -291,11 +297,16 @@ class DilatedRNN(BaseRecurrent):
         self.add_nl_layer = add_nl_layer
         self.step_size = step_size
 
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
+
         # Instantiate model
         layers = []
         for grp_num in range(len(self.dilations)):
             if grp_num == 0:
-                input_size = self.input_size
+                input_size = input_size + self.hist_exog_size*input_size + \
+                             self.futr_exog_size*(input_size + h) + self.stat_exog_size
             else:
                 input_size = self.state_hsize
             layer = DRNN(input_size,
@@ -312,7 +323,27 @@ class DilatedRNN(BaseRecurrent):
 
         self.adapterW  = nn.Linear(self.state_hsize, self.h)
 
-    def forward(self, insample_y, insample_mask):
+    def forward(self, windows_batch):
+        
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        futr_exog     = windows_batch['futr_exog']
+        hist_exog     = windows_batch['hist_exog']
+        stat_exog     = windows_batch['stat_exog']
+
+        # Flatten inputs [B, W, C, L+H] -> [B, W, C*(L+H)]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size, windows_size = insample_y.shape[:2]
+        if self.hist_exog_size > 0:
+            hist_exog = hist_exog.permute(0,2,1,3) # [B, C, W, L] -> [B, W, C, L]
+            insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size, windows_size, -1) ), dim=2)
+
+        if self.futr_exog_size > 0:
+            futr_exog = futr_exog.permute(0,2,1,3) # [B, C, W, L] -> [B, W, C, L]
+            insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size, windows_size, -1) ), dim=2)
+
+        if self.stat_exog_size > 0:
+            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size, windows_size, -1) ), dim=2)
 
         # RNN forward
         for layer_num in range(len(self.rnn_stack)):

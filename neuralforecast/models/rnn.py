@@ -4,6 +4,7 @@
 __all__ = ['RNN']
 
 # %% ../../nbs/models.rnn.ipynb 5
+import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
@@ -21,6 +22,9 @@ class RNN(BaseRecurrent):
                  bias: bool = True,
                  dropout: float = 0.,
                  learning_rate: float = 1e-3,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,
                  normalize: bool = True,
                  loss=MAE(),
                  batch_size=32, 
@@ -31,6 +35,9 @@ class RNN(BaseRecurrent):
         super(RNN, self).__init__(
             loss=loss,
             batch_size=batch_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
@@ -47,6 +54,13 @@ class RNN(BaseRecurrent):
         self.bias = bias
         self.dropout = dropout
 
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
+
+        input_rnn = input_size + self.hist_exog_size*input_size + \
+                    self.futr_exog_size*(input_size + h) + self.stat_exog_size
+
         # Optimization
         self.learning_rate = learning_rate
         self.loss = loss
@@ -55,7 +69,7 @@ class RNN(BaseRecurrent):
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         # Instantiate model
-        self.rnn = nn.RNN(input_size=self.input_size,
+        self.rnn = nn.RNN(input_size=input_rnn,
                           hidden_size=self.state_hsize,
                           num_layers=self.n_layers,
                           nonlinearity=self.activation,
@@ -64,7 +78,27 @@ class RNN(BaseRecurrent):
                           batch_first=True)
         self.adapterW  = nn.Linear(self.state_hsize, self.h)
 
-    def forward(self, insample_y, insample_mask):
+    def forward(self, windows_batch):
+        
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        futr_exog     = windows_batch['futr_exog']
+        hist_exog     = windows_batch['hist_exog']
+        stat_exog     = windows_batch['stat_exog']
+
+        # Flatten inputs [B, W, C, L+H] -> [B, W, C*(L+H)]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size, windows_size = insample_y.shape[:2]
+        if self.hist_exog_size > 0:
+            hist_exog = hist_exog.permute(0,2,1,3) # [B, C, W, L] -> [B, W, C, L]
+            insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size, windows_size, -1) ), dim=2)
+
+        if self.futr_exog_size > 0:
+            futr_exog = futr_exog.permute(0,2,1,3) # [B, C, W, L] -> [B, W, C, L]
+            insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size, windows_size, -1) ), dim=2)
+
+        if self.stat_exog_size > 0:
+            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size, windows_size, -1) ), dim=2)
 
         # RNN forward
         insample_y, _ = self.rnn(insample_y)

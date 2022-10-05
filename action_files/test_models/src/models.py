@@ -19,6 +19,7 @@ from neuralforecast.models.gru import GRU
 from neuralforecast.models.lstm import LSTM
 from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
+from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.dilated_rnn import DilatedRNN
 
 from neuralforecast.losses.pytorch import SMAPE
@@ -53,6 +54,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         AutoMLP(h=horizon, config=config, num_samples=2, cpus=1),
         NHITS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
+        NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100)
     ]
