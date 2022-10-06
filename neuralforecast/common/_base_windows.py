@@ -13,6 +13,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import TQDMProgressBar
 
 from ..tsdataset import TimeSeriesDataModule
+from ._scalers import TemporalNorm
 
 # %% ../../nbs/common.base_windows.ipynb 5
 class BaseWindows(pl.LightningModule):
@@ -20,7 +21,7 @@ class BaseWindows(pl.LightningModule):
     def __init__(self, h, 
                  loss,
                  batch_size=32,
-                 normalize=False,
+                 scaler_type=None,
                  futr_exog_list=None,
                  hist_exog_list=None,
                  stat_exog_list=None,
@@ -38,7 +39,12 @@ class BaseWindows(pl.LightningModule):
         
         # Loss
         self.loss = loss
-        self.normalize = normalize
+
+        # Scaler
+        if scaler_type is None:
+            self.scaler = None
+        else:
+            self.scaler = TemporalNorm(scaler_type=scaler_type)
         
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -78,8 +84,7 @@ class BaseWindows(pl.LightningModule):
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
-        
-    
+
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
@@ -165,45 +170,52 @@ class BaseWindows(pl.LightningModule):
     def _normalization(self, windows):
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
-        temporal = windows['temporal']           # B, L+H, C
-        temporal_cols = windows['temporal_cols'] # B, L+H, C
-        
-        # to avoid leakage compute means on the lags only
-        temporal_y = temporal[:, :-self.h, temporal_cols.get_loc('y')]
-        temporal_mask = temporal[:, :-self.h, temporal_cols.get_loc('available_mask')]
-        
-        # Take means in the window L+H
-        available_sum = torch.sum(temporal_mask, dim=1, keepdim=True)
-                
-        # Protection: when no observations are available denom = 1
-        mask_safe = available_sum.clone()
-        mask_safe[available_sum==0] = 1
-        
-        y_means = torch.sum(temporal_y * temporal_mask,
-                            dim=1, keepdim=True) / mask_safe
-        y_stds = torch.sqrt(torch.sum(temporal_mask*(temporal_y-y_means)**2,
-                                      dim=1, keepdim=True)/ mask_safe )
+        temporal = windows['temporal']                  # B, L+H, C
+        temporal_cols = windows['temporal_cols'].copy() # B, L+H, C
 
-        # Protection: when no variance or unavailable data change stds=1
-        y_stds[available_sum==0] = 1.0
-        y_stds[y_stds==0] = 1.0
-
-        # Normalize all target variable and replace in windows dict
-        all_y = temporal[:, :, temporal_cols.get_loc('y')]
-        all_y = (all_y - y_means) / y_stds
-        temporal[:, :, temporal_cols.get_loc('y')] = all_y
+        #print('temporal', temporal)
         
+        # To avoid leakage uses only the lags
+        temporal_data_cols = temporal_cols.drop('available_mask').tolist()
+        temporal_data = temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)]
+        temporal_mask = temporal[:, :, temporal_cols.get_loc('available_mask')].clone()
+        temporal_mask[:, -self.h:] = 0.0
+
+        # Normalize. self.scaler stores the shift and scale for inverse transform
+        temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
+
+        #print('temporal_data', temporal_data)
+        
+        # Replace values in windows dict
+        temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)] = temporal_data
         windows['temporal'] = temporal
         
-        return windows, y_means, y_stds
+        return windows
 
-    def _inv_normalization(self, y_hat, y_means, y_stds):
+    def _inv_normalization(self, y_hat, temporal_cols):
         # Receives window predictions [B, H, output]
         # Broadcasts outputs and inverts normalization
-        if self.loss.outputsize_multiplier>1:
-            y_stds = y_stds.unsqueeze(-1)
-            y_means = y_means.unsqueeze(-1)
-        return y_stds * y_hat + y_means
+
+        # Add C dimension
+        if y_hat.ndim == 2:
+            remove_dimension = True
+            y_hat = y_hat.unsqueeze(-1)
+        else:
+            remove_dimension = False
+
+        temporal_data_cols = temporal_cols.drop('available_mask')
+        y_scale = self.scaler.x_scale[:,:,temporal_data_cols.get_indexer(['y'])]
+        y_shift = self.scaler.x_shift[:,:,temporal_data_cols.get_indexer(['y'])]
+
+        y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1)
+        y_shift = torch.repeat_interleave(y_shift, repeats=y_hat.shape[-1], dim=-1)
+
+        y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
+
+        if remove_dimension:
+            y_hat = y_hat.squeeze(-1)
+
+        return y_hat
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
@@ -242,8 +254,8 @@ class BaseWindows(pl.LightningModule):
         windows = self._create_windows(batch, step='train')
         
         # Normalize windows
-        if self.normalize:
-            windows, *_ = self._normalization(windows)
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, outsample_y, outsample_mask, \
@@ -268,8 +280,8 @@ class BaseWindows(pl.LightningModule):
         windows = self._create_windows(batch, step='val')
         
         # Normalize windows
-        if self.normalize:
-            windows, *_ = self._normalization(windows)
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, outsample_y, outsample_mask, \
@@ -297,8 +309,8 @@ class BaseWindows(pl.LightningModule):
         windows = self._create_windows(batch, step='predict')
 
         # Normalize windows
-        if self.normalize:
-            windows, y_means, y_stds = self._normalization(windows)
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, _, _, \
@@ -313,8 +325,9 @@ class BaseWindows(pl.LightningModule):
         y_hat = self(windows_batch)
 
         # Inv Normalize
-        if self.normalize:
-            y_hat = self._inv_normalization(y_hat, y_means, y_stds)
+        if self.scaler is not None:
+            y_hat = self._inv_normalization(y_hat=y_hat,
+                                            temporal_cols=batch['temporal_cols'])
         return y_hat
     
     def fit(self, dataset, val_size=0, test_size=0):
