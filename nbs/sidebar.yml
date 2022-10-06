@@ -2,34 +2,30 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - examples/Getting_Started_with_NBEATS_and_NHITS.ipynb
-      - examples/Data_Format.ipynb
       - section: API Reference
         contents:
         - core.ipynb
-        - section: Deep Learning Models
+        - models.ipynb
+        - section: Model Documentation
           contents:
-          - section: Automatic Forecasting
+          - section: A. RNN-Based
             contents:
-            - models.ipynb
-          - section: RNN Based Models
-            contents:
-            - models.dilated_rnn.ipynb
+            - models.rnn.ipynb
             - models.gru.ipynb
             - models.lstm.ipynb
-            - models.rnn.ipynb
-          - section: MLP Based Models
+            - models.dilated_rnn.ipynb
+          - section: B. MLP-Based
             contents:
             - models.mlp.ipynb
             - models.nbeats.ipynb
             - models.nhits.ipynb
-          - section: Transformer Based Models
+          - section: C. Transformer-Based
             contents:
             - models.tft.ipynb
-          - section: Hierarchical Models
+          - section: D. Hierarchical Forecasting
             contents:
-            - models.gmm_tft.ipynb
-        - section: Evaluation
+            - models.gmm_tft.ipynb        
+        - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb
           - losses.numpy.ipynb
@@ -39,5 +35,6 @@ website:
           - utils.ipynb
       - section: Tutorials
         contents:
+        - examples/Data_Format.ipynb
+        - examples/Getting_Started_with_NBEATS_and_NHITS.ipynb
         - examples/UncertaintyIntervals.ipynb
-	
