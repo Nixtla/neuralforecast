@@ -65,9 +65,13 @@ class NHITSBlock(nn.Module):
     """
     def __init__(self, 
                  input_size: int,
-                 n_theta: int, 
+                 h: int,
+                 n_theta: int,
                  mlp_units: list,
                  basis: nn.Module,
+                 futr_exog_size: int,
+                 hist_exog_size: int,
+                 stat_exog_size: int,
                  n_pool_kernel_size: int,
                  pooling_mode: str,
                  dropout_prob: float,
@@ -76,9 +80,17 @@ class NHITSBlock(nn.Module):
         """
         super().__init__()
 
-        n_time_in_pooled = int(np.ceil(input_size/n_pool_kernel_size))
+        pooled_hist_size = int(np.ceil(input_size/n_pool_kernel_size))
+        pooled_futr_size = int(np.ceil((input_size+h)/n_pool_kernel_size))
+
+        input_size = pooled_hist_size + \
+                     hist_exog_size*pooled_hist_size + \
+                     futr_exog_size*(pooled_futr_size) + stat_exog_size
 
         self.dropout_prob = dropout_prob
+        self.futr_exog_size = futr_exog_size
+        self.hist_exog_size = hist_exog_size
+        self.stat_exog_size = stat_exog_size
         
         assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
         assert pooling_mode in POOLING, f'{pooling_mode} is not in {POOLING}'
@@ -89,7 +101,7 @@ class NHITSBlock(nn.Module):
                                                        stride=n_pool_kernel_size, ceil_mode=True)
 
         # Block MLPs
-        hidden_layers = [nn.Linear(in_features=n_time_in_pooled, 
+        hidden_layers = [nn.Linear(in_features=input_size, 
                                    out_features=mlp_units[0][0])]
         for layer in mlp_units:
             hidden_layers.append(nn.Linear(in_features=layer[0], 
@@ -105,13 +117,33 @@ class NHITSBlock(nn.Module):
         self.layers = nn.Sequential(*layers)
         self.basis = basis
 
-    def forward(self, insample_y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, insample_y: torch.Tensor, futr_exog: torch.Tensor,
+                hist_exog: torch.Tensor, stat_exog: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
         # Pooling
+        # Pool1d needs 3D input, (B,C,L), adding C dimension
         insample_y = insample_y.unsqueeze(1)
         insample_y = self.pooling_layer(insample_y)
         insample_y = insample_y.squeeze(1)
 
+        # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size = len(insample_y)
+        if self.hist_exog_size > 0:
+            hist_exog = hist_exog.permute(0,2,1) # [B, L, C] -> [B, C, L]
+            hist_exog = self.pooling_layer(hist_exog)
+            hist_exog = hist_exog.permute(0,2,1) # [B, C, L] -> [B, L, C]
+            insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.futr_exog_size > 0:
+            futr_exog = futr_exog.permute(0,2,1) # [B, L, C] -> [B, C, L]
+            futr_exog = self.pooling_layer(futr_exog)
+            futr_exog = futr_exog.permute(0,2,1) # [B, C, L] -> [B, L, C]
+            insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.stat_exog_size > 0:
+            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
+            
         # Compute local projection weights and projection
         theta = self.layers(insample_y)
         backcast, forecast = self.basis(theta)
@@ -131,6 +163,9 @@ class NHITS(BaseWindows):
                  interpolation_mode: str = 'linear',
                  dropout_prob_theta = 0.,
                  activation = 'ReLU',
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,
                  learning_rate=1e-3,
                  normalize=False,
                  windows_batch_size: int = 1024,
@@ -149,6 +184,8 @@ class NHITS(BaseWindows):
         `h`: int, Forecast horizon. <br>
         `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
         `activation`: str, Activation function. An item from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid']. <br>
+        `futr_exog_list`: List[str], List of future exogenous variables. <br>
+        `hist_exog_list`: List[str], List of historic exogenous variables. <br>
         `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
         `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
         `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
@@ -163,6 +200,9 @@ class NHITS(BaseWindows):
                                     loss=loss,
                                     batch_size=batch_size,
                                     normalize=normalize,
+                                    futr_exog_list=futr_exog_list,
+                                     hist_exog_list=hist_exog_list,
+                                     stat_exog_list=stat_exog_list,
                                     num_workers_loader=num_workers_loader,
                                     drop_last_loader=drop_last_loader,
                                     random_seed=random_seed,
@@ -171,6 +211,9 @@ class NHITS(BaseWindows):
         self.learning_rate = learning_rate
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
 
         blocks = self.create_stack(stack_types=stack_types, 
                                    n_blocks=n_blocks,
@@ -182,7 +225,10 @@ class NHITS(BaseWindows):
                                    pooling_mode=pooling_mode,
                                    interpolation_mode=interpolation_mode,
                                    dropout_prob_theta=dropout_prob_theta,
-                                   activation=activation)
+                                   activation=activation,
+                                   futr_exog_size=self.futr_exog_size,
+                                   hist_exog_size=self.hist_exog_size,
+                                   stat_exog_size=self.stat_exog_size)
         self.blocks = torch.nn.ModuleList(blocks)
         
         # Adapter with Loss dependent dimensions
@@ -200,7 +246,8 @@ class NHITS(BaseWindows):
                      pooling_mode,
                      interpolation_mode,
                      dropout_prob_theta, 
-                     activation):                     
+                     activation,
+                     futr_exog_size, hist_exog_size, stat_exog_size):                     
 
         block_list = []
         for i in range(len(stack_types)):
@@ -214,20 +261,32 @@ class NHITS(BaseWindows):
                                        interpolation_mode=interpolation_mode)                 
 
                 nbeats_block = NHITSBlock(input_size=input_size,
+                                          h=h,
                                           n_theta=n_theta,
                                           mlp_units=mlp_units,
                                           n_pool_kernel_size=n_pool_kernel_size[i],
                                           pooling_mode=pooling_mode,
                                           basis=basis,
                                           dropout_prob=dropout_prob_theta,
-                                          activation=activation)
+                                          activation=activation,
+                                          futr_exog_size=futr_exog_size,
+                                          hist_exog_size=hist_exog_size,
+                                          stat_exog_size=stat_exog_size)
 
                 # Select type of evaluation and apply it to all layers of block
                 block_list.append(nbeats_block)
                 
         return block_list
 
-    def forward(self, insample_y, insample_mask):
+    def forward(self, windows_batch):
+        
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        insample_mask = windows_batch['insample_mask']
+        futr_exog     = windows_batch['futr_exog']
+        hist_exog     = windows_batch['hist_exog']
+        stat_exog     = windows_batch['stat_exog']
+        
         # insample
         residuals = insample_y.flip(dims=(-1,)) #backcast init
         insample_mask = insample_mask.flip(dims=(-1,))
@@ -236,7 +295,8 @@ class NHITS(BaseWindows):
         block_forecasts = [ forecast.repeat(1, self.h) ]
         
         for i, block in enumerate(self.blocks):
-            backcast, block_forecast = block(insample_y=residuals)
+            backcast, block_forecast = block(insample_y=residuals, futr_exog=futr_exog,
+                                             hist_exog=hist_exog, stat_exog=stat_exog)
             residuals = (residuals - backcast) * insample_mask
             forecast = forecast + block_forecast
             if self.decompose_forecast:

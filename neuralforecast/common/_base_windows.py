@@ -21,6 +21,9 @@ class BaseWindows(pl.LightningModule):
                  loss,
                  batch_size=32,
                  normalize=False,
+                 futr_exog_list=None,
+                 hist_exog_list=None,
+                 stat_exog_list=None,
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1, 
@@ -37,6 +40,11 @@ class BaseWindows(pl.LightningModule):
         self.loss = loss
         self.normalize = normalize
         
+        # Variables
+        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
+        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
+        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+
         # Base arguments
         self.windows_batch_size: int = None
         
@@ -136,7 +144,7 @@ class BaseWindows(pl.LightningModule):
                 else:
                     temporal = batch['temporal'][:, :, cutoff:]
 
-            if step=='predict' and self.test_size == 0:
+            if (step=='predict') and (self.test_size==0) and (len(self.futr_exog_list)==0):
                temporal = self.padder(temporal)
 
             windows = temporal.unfold(dimension=-1,
@@ -197,14 +205,7 @@ class BaseWindows(pl.LightningModule):
             y_means = y_means.unsqueeze(-1)
         return y_stds * y_hat + y_means
 
-    def training_step(self, batch, batch_idx):        
-        # Create windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step='train')
-        
-        # Normalize windows
-        if self.normalize:
-            windows, *_ = self._normalization(windows)
-
+    def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
         y_idx = batch['temporal_cols'].get_loc('y')
         mask_idx = batch['temporal_cols'].get_loc('available_mask')
@@ -213,8 +214,48 @@ class BaseWindows(pl.LightningModule):
         outsample_y = windows['temporal'][:, -self.h:, y_idx]
         outsample_mask = windows['temporal'][:, -self.h:, mask_idx]
 
-        # Input [Ws, L]
-        y_hat = self(insample_y, insample_mask)
+        # Filter historic exogenous variables
+        if len(self.hist_exog_list):
+            hist_exog_idx = windows['temporal_cols'].get_indexer(self.hist_exog_list)
+            hist_exog = windows['temporal'][:, :-self.h, hist_exog_idx]
+        else:
+            hist_exog = None
+        
+        # Filter future exogenous variables
+        if len(self.futr_exog_list):
+            futr_exog_idx = windows['temporal_cols'].get_indexer(self.futr_exog_list)
+            futr_exog = windows['temporal'][:, :, futr_exog_idx]
+        else:
+            futr_exog = None
+        # Filter static variables
+        if len(self.stat_exog_list):
+            static_idx = windows['static_cols'].get_indexer(self.stat_exog_list)
+            stat_exog = windows['static'][:, 0, static_idx]
+        else:
+            stat_exog = None
+
+        return insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog
+
+    def training_step(self, batch, batch_idx):        
+        # Create windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step='train')
+        
+        # Normalize windows
+        if self.normalize:
+            windows, *_ = self._normalization(windows)
+
+        # Parse windows
+        insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
+
+        y_hat = self(windows_batch)
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
         return loss
@@ -230,16 +271,17 @@ class BaseWindows(pl.LightningModule):
         if self.normalize:
             windows, *_ = self._normalization(windows)
 
-        # Filter insample lags from outsample horizon
-        y_idx = batch['temporal_cols'].get_loc('y')
-        mask_idx = batch['temporal_cols'].get_loc('available_mask')
-        insample_y = windows['temporal'][:, :-self.h, y_idx]
-        insample_mask = windows['temporal'][:, :-self.h, mask_idx]
-        outsample_y = windows['temporal'][:, -self.h:, y_idx]
-        outsample_mask = windows['temporal'][:, -self.h:, mask_idx]
-        
-        # Input [Ws, L]
-        y_hat = self(insample_y, insample_mask)
+        # Parse windows
+        insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
+
+        y_hat = self(windows_batch)
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
         return loss
@@ -258,14 +300,17 @@ class BaseWindows(pl.LightningModule):
         if self.normalize:
             windows, y_means, y_stds = self._normalization(windows)
 
-        # Filter insample lags from outsample horizon
-        y_idx = batch['temporal_cols'].get_loc('y')
-        mask_idx = batch['temporal_cols'].get_loc('available_mask')
-        insample_y = windows['temporal'][:, :-self.h, y_idx]
-        insample_mask = windows['temporal'][:, :-self.h, mask_idx]
+        # Parse windows
+        insample_y, insample_mask, _, _, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        # Input [Ws, L]
-        y_hat = self(insample_y, insample_mask)
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
+
+        y_hat = self(windows_batch)
 
         # Inv Normalize
         if self.normalize:
@@ -295,7 +340,7 @@ class BaseWindows(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
         
-    def predict(self, dataset, step_size=1, **data_kwargs):
+    def predict(self, dataset, test_size=None, step_size=1, **data_kwargs):
         """
         Predicts Model.
 
@@ -334,3 +379,6 @@ class BaseWindows(pl.LightningModule):
 
     def forward(self, insample_y, insample_mask):
         raise NotImplementedError('forward')
+
+    def set_test_size(self, test_size):
+        self.test_size = test_size

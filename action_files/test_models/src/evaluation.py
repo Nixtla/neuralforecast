@@ -43,7 +43,7 @@ def evaluate(model: str, dataset: str, group: str):
 
 if __name__ == '__main__':
     groups = ['Other']#, 'Quarterly', 'Monthly']
-    models = ['AutoNHITS', 'AutoNBEATS', 'AutoMLP', 'AutoDilatedRNN', 'TFT', 'NHITS', 'NBEATS', 'MLP', 'DilatedRNN', 'RNN', 'LSTM', 'GRU']
+    models = ['AutoNHITS', 'AutoNBEATS', 'AutoMLP', 'AutoDilatedRNN', 'TFT', 'NHITS', 'NBEATS', 'NBEATSx', 'MLP', 'DilatedRNN', 'RNN', 'LSTM', 'GRU']
     datasets = ['M3']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]

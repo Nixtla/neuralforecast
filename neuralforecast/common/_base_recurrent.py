@@ -18,7 +18,10 @@ class BaseRecurrent(pl.LightningModule):
     
     def __init__(self, 
                  loss,
-                 batch_size=32, 
+                 batch_size=32,
+                 futr_exog_list=None,
+                 hist_exog_list=None,
+                 stat_exog_list=None,
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1, 
@@ -47,6 +50,11 @@ class BaseRecurrent(pl.LightningModule):
         if self.trainer_kwargs.get('devices', None) is None:
             if torch.cuda.is_available():
                 self.trainer_kwargs['devices'] = -1
+
+        # Variables
+        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
+        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
+        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
         
         # DataModule arguments
         self.batch_size = batch_size
@@ -118,7 +126,7 @@ class BaseRecurrent(pl.LightningModule):
             temporal = self.padder(temporal)
 
         if step == 'predict':
-            if self.test_size == 0:
+            if (self.test_size == 0) and (len(self.futr_exog_list)==0):
                 temporal = self.padder(temporal)
 
         # Parse batch
@@ -127,31 +135,69 @@ class BaseRecurrent(pl.LightningModule):
                                   size=window_size,
                                   step=self.step_size)
 
-        # # [B, C, Ws, L+H] - > Ws, C, B, L+H]
-        # windows = windows.transpose(0,2)
-
         # think about interaction available * sample mask
-        windows_batch = dict(Y=windows[:, temporal_cols.get_loc('y'), :, :],
-                            available_mask=windows[:, temporal_cols.get_loc('available_mask'), :, :])
+        # windows_batch = dict(Y=windows[:, temporal_cols.get_loc('y'), :, :],
+        #                     available_mask=windows[:, temporal_cols.get_loc('available_mask'), :, :])
+
+        # [B, C, Ws, L+H]
+        windows_batch = dict(temporal=windows,
+                             static=None,
+                             temporal_cols=temporal_cols)
 
         return windows_batch
+
+    def _parse_windows(self, batch, windows):
+        # [B, C, Ws, L+H]
+        # Filter insample lags from outsample horizon
+        y_idx = batch['temporal_cols'].get_loc('y')
+        mask_idx = batch['temporal_cols'].get_loc('available_mask')
+        insample_y = windows['temporal'][:, y_idx, :, :-self.h]
+        insample_mask = windows['temporal'][:, mask_idx, :, :-self.h]
+        outsample_y = windows['temporal'][:, y_idx, :, -self.h:]
+        outsample_mask = windows['temporal'][:, mask_idx, :, -self.h:]
+
+        # Filter historic exogenous variables
+        if len(self.hist_exog_list):
+            hist_exog_idx = windows['temporal_cols'].get_indexer(self.hist_exog_list)
+            hist_exog = windows['temporal'][:, hist_exog_idx, :, :-self.h]
+        else:
+            hist_exog = None
+        
+        # Filter future exogenous variables
+        if len(self.futr_exog_list):
+            futr_exog_idx = windows['temporal_cols'].get_indexer(self.futr_exog_list)
+            futr_exog = windows['temporal'][:, futr_exog_idx, :, :]
+        else:
+            futr_exog = None
+        # Filter static variables
+        if len(self.stat_exog_list):
+            static_idx = windows['static_cols'].get_indexer(self.stat_exog_list)
+            stat_exog = windows['static'][:, 0, static_idx]
+        else:
+            stat_exog = None
+
+        return insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog
 
     def training_step(self, batch, batch_idx):
         # Normalize
         if self.normalize:
             batch, *_ = self._normalization(batch)
 
+        # Create windows
         windows = self._create_windows(batch, step='train')
 
-        # insample
-        insample_y = windows['Y'][:, :, :-self.h]
-        insample_mask = windows['available_mask'][:, :, :-self.h]
+        # Parse windows
+        insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        # outsample
-        outsample_y = windows['Y'][:, :, -self.h:]
-        outsample_mask = windows['available_mask'][:, :, -self.h:]
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
 
-        y_hat = self(insample_y, insample_mask)
+        y_hat = self(windows_batch)
 
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
@@ -165,18 +211,20 @@ class BaseRecurrent(pl.LightningModule):
         if self.normalize:
             batch, y_means, y_stds = self._normalization(batch)
 
+        # Create windows
         windows = self._create_windows(batch, step='val')
 
-        # insample
-        insample_y = windows['Y'][:, :, :-self.h]
-        insample_mask = windows['available_mask'][:, :, :-self.h]
-        
-        # outsample
-        outsample_y = windows['Y'][:, :, -self.h:]
-        outsample_mask = windows['available_mask'][:, :, -self.h:]
-        
-        #batch_size, input_size
-        y_hat = self(insample_y, insample_mask)
+        # Parse windows
+        insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
+
+        y_hat = self(windows_batch)
 
         # Inv Normalize
         if self.normalize:
@@ -206,11 +254,17 @@ class BaseRecurrent(pl.LightningModule):
 
         windows = self._create_windows(batch, step='predict')
 
-        # insample
-        insample_y = windows['Y'][:, :, :-self.h]
-        insample_mask = windows['available_mask'][:, :, :-self.h]
+        # Parse windows
+        insample_y, insample_mask, _, _, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        y_hat = self(insample_y, insample_mask)
+        windows_batch = dict(insample_y=insample_y, # [Ws, L]
+                             insample_mask=insample_mask, # [Ws, L]
+                             futr_exog=futr_exog, # [Ws, L+H]
+                             hist_exog=hist_exog, # [Ws, L]
+                             stat_exog=stat_exog) # [Ws, 1]
+
+        y_hat = self(windows_batch)
 
         # Inv Normalize
         if self.normalize:
@@ -266,3 +320,6 @@ class BaseRecurrent(pl.LightningModule):
             fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
 
         return fcsts
+
+    def set_test_size(self, test_size):
+        self.test_size = test_size

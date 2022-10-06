@@ -52,10 +52,14 @@ class NeuralForecast:
         `freq`: str, frequency of the data, [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).<br>
         `trainers`: List[typing.Any], optional list of instantiated pytorch lightning trainers.<br>
         """
+        assert all(model.h == models[0].h for model in models), 'All models should have the same horizon'
+
+        self.h = models[0].h
         self.models = models
         self.freq = pd.tseries.frequencies.to_offset(freq)
 
     def _prepare_fit(self, df, sort_df):
+        #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(df=df, sort_df=sort_df)
         self.sort_df = sort_df
 
@@ -96,13 +100,13 @@ class NeuralForecast:
         df = pd.DataFrame({'ds': dates}, index=idx)
         return df
 
-    def predict(self, df: Optional[pd.DataFrame] = None, **data_kwargs):
+    def predict(self, futr_df: Optional[pd.DataFrame] = None, **data_kwargs):
         """Predict with core.NeuralForecast.
 
         Use stored fitted `models` to predict large set of time series from DataFrame `df`.        
 
         **Parameters:**<br>
-        `df`: pandas.DataFrame, with [`unique_id`, `ds`] columns and `df`'s future exogenous.<br>
+        `futr_df`: pandas.DataFrame, with [`unique_id`, `ds`] columns and `df`'s future exogenous.<br>
 
         **Returns:**<br>
         `fcsts_df`: pandas.DataFrame, with `models` columns for point predictions.<br>
@@ -111,10 +115,21 @@ class NeuralForecast:
         for model in self.models:
             cols += [type(model).__name__ + n for n in model.loss.output_names]
 
+        # Placeholder dataframe for predictions with unique_id and ds
+        fcsts_df = self._make_future_df(h=self.h)
+
+        # Update dataset
+        if futr_df is not None:
+            #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
+            self.dataset, _, _, _ = self.dataset._update_futr_exog(futr_df)
+            #self.ds = self.ds.union(futr_ds, sort=True)
+        else:
+            self.dataset, _, _, _ = self.dataset._update_futr_exog(fcsts_df.reset_index())
+
         col_idx = 0
-        h = self.models[0].h
-        fcsts = np.full((h * len(self.uids), len(cols)), fill_value=np.nan)
+        fcsts = np.full((self.h * len(self.uids), len(cols)), fill_value=np.nan)
         for model in self.models:
+            model.set_test_size(self.h) # To predict h steps ahead
             model_fcsts = model.predict(dataset=self.dataset, **data_kwargs)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
@@ -122,7 +137,6 @@ class NeuralForecast:
             col_idx += output_length
 
         # Declare predictions pd.DataFrame
-        fcsts_df = self._make_future_df(h=h)
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, 
                                           index=fcsts_df.index)
         fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)

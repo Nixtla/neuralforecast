@@ -135,3 +135,6 @@ class BaseAuto:
     def predict(self, dataset, step_size=1, **data_kwargs):
         return self.model.predict(dataset=dataset, 
                                   step_size=step_size, **data_kwargs)
+
+    def set_test_size(self, test_size):
+        self.model.set_test_size(test_size)

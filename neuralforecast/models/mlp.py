@@ -18,7 +18,10 @@ class MLP(BaseWindows):
                  h,
                  step_size=1,
                  hidden_size=1024, 
-                 num_layers=2, 
+                 num_layers=2,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,
                  learning_rate=1e-3,
                  normalize=False,
                  loss=MAE(),
@@ -33,6 +36,9 @@ class MLP(BaseWindows):
                                   loss=loss,
                                   batch_size=batch_size,
                                   normalize=normalize,
+                                  futr_exog_list=futr_exog_list,
+                                  hist_exog_list=hist_exog_list,
+                                  stat_exog_list=stat_exog_list,
                                   num_workers_loader=num_workers_loader,
                                   drop_last_loader=drop_last_loader,
                                   random_seed=random_seed,
@@ -44,9 +50,16 @@ class MLP(BaseWindows):
         self.num_layers = num_layers
         self.learning_rate = learning_rate
         self.loss = loss
+
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
+
+        input_size_first_layer = input_size + self.hist_exog_size*input_size + \
+                                 self.futr_exog_size*(input_size + h) + self.stat_exog_size
         
         # MultiLayer Perceptron
-        layers = [nn.Linear(in_features=input_size, out_features=hidden_size)]
+        layers = [nn.Linear(in_features=input_size_first_layer, out_features=hidden_size)]
         for i in range(num_layers - 1):
             layers += [nn.Linear(in_features=hidden_size, out_features=hidden_size)]
         self.mlp = nn.ModuleList(layers)
@@ -55,8 +68,27 @@ class MLP(BaseWindows):
         self.out = nn.Linear(in_features=hidden_size, 
                              out_features=h * self.loss.outputsize_multiplier)
         
-    def forward(self, x, mask):
-        y_pred = x
+    def forward(self, windows_batch):
+        
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        futr_exog     = windows_batch['futr_exog']
+        hist_exog     = windows_batch['hist_exog']
+        stat_exog     = windows_batch['stat_exog']
+
+        # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size = len(insample_y)
+        if self.hist_exog_size > 0:
+            insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.futr_exog_size > 0:
+            insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.stat_exog_size > 0:
+            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
+            
+        y_pred = insample_y.clone()
         for layer in self.mlp:
              y_pred = torch.relu(layer(y_pred))
         y_pred = self.out(y_pred)
