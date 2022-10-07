@@ -47,7 +47,11 @@ class AutoRNN(BaseAuto):
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
-
+        """ Auto RNN
+        
+        **Parameters:**<br>
+        
+        """
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()        
@@ -194,7 +198,7 @@ class AutoDilatedRNN(BaseAuto):
               verbose=verbose
          )
 
-# %% ../nbs/models.ipynb 25
+# %% ../nbs/models.ipynb 26
 class AutoMLP(BaseAuto):
 
     default_config = {
@@ -242,7 +246,7 @@ class AutoMLP(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 29
+# %% ../nbs/models.ipynb 30
 class AutoNBEATS(BaseAuto):
 
     default_config = {
@@ -288,7 +292,7 @@ class AutoNBEATS(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 33
+# %% ../nbs/models.ipynb 34
 class AutoNHITS(BaseAuto):
 
     default_config = {
