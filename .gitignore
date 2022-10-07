@@ -21,3 +21,5 @@ nbs/.last_checked
 _proc
 lightning_logs/
 data/
+
+examples/
