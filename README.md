@@ -57,24 +57,42 @@ To get started follow this [guide](xXmissingXx), where we explore `NBEATS`, exte
 
 Or follow this simple example where we train the `NBEATS` model and predict the classic Box-Jenkins air passengers dataset.
 ```python
+import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+from IPython.display import display, Markdown
 
-from neuralforecast.utils import AirPassengersDF as Y_df
-from neuralforecast.tsdataset import TimeSeriesDataset, TimeSeriesLoader
+import matplotlib.pyplot as plt
+from neuralforecast import NeuralForecast
+from neuralforecast.models import NBEATS, NHITS
+from neuralforecast.utils import AirPassengersDF
 
 # Split data and declare panel dataset
+Y_df = AirPassengersDF
 Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
-Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
+Y_test_df = Y_df[Y_df.ds>'1959-12-31'] # 12 test
 
-# Fit and predict with N-BEATS model
-nforecast = NeuralForecast(models=[NBEATS(input_size=24, h=12)])
-y_hat  = nforecast.fit(df=Y_train_df).predict()
+# Fit and predict with N-BEATS and N-HiTS models
+horizon = len(Y_test_df)
+models = [NBEATS(input_size=2 * horizon, h=horizon, max_epochs=50),
+          NHITS(input_size=2 * horizon, h=horizon, max_epochs=50)]
+nforecast = NeuralForecast(models=models, freq='M')
+nforecast.fit(df=Y_train_df)
+Y_hat_df = nforecast.predict().reset_index()
 
-Y_test_df['N-BEATS'] = y_hat['N-BEATS'].values
-pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plot()
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds'])
+plot_df = pd.concat([Y_train_df, Y_hat_df]).set_index('ds')
+
+plot_df[['y', 'NBEATS', 'NHITS']].plot(ax=ax, linewidth=2)
+
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
 ```
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast1/main/nbs/imgs_indx/nbeats_exaple.png">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/nbeats_example.png">
 
 ## 🎉 New!
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](xXmissingXx) **Multi Quantile NBEATS Example**: Produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperforming AutoARIMA's accuracy in a fraction of the time.
@@ -95,7 +113,7 @@ pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plo
 * **Train and Evaluation Losses** Scale-dependent, percentage and scale independent errors, and parametric likelihoods.
 * **Automatic Model Selection** Parallelized automatic hyperparameter tuning, that efficiently searches best validation configuration.
 * **Simple Interface** Unified SKLearn Interface for `StatsForecast` and `MLForecast` compatibility.
-* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `AutoFormer`, `Informer`, `TFT`, `AutoFormer`, `Informer`, and vanilla `Transformer`. See the entire [collection here](https://nixtla.github.io/neuralforecast1/models.mlp.html).
+* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `AutoFormer`, `Informer`, `TFT`, `AutoFormer`, `Informer`, and vanilla `Transformer`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 
 Missing something? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 
