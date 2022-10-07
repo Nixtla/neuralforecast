@@ -42,7 +42,7 @@ class GMM_TFT(TFT):
                  windows_batch_size=1024,
                  step_size=1,
                  learning_rate=1e-3,
-                 normalize=True,
+                 scaler_type='robust',
                  loss=MAE(),
                  batch_size=32, 
                  num_workers_loader=0,
@@ -72,7 +72,7 @@ class GMM_TFT(TFT):
                                       windows_batch_size=windows_batch_size,
                                       step_size=step_size,
                                       learning_rate=learning_rate,
-                                      normalize=normalize,
+                                      scaler_type=scaler_type,
                                       loss=loss,
                                       batch_size=batch_size ,
                                       num_workers_loader=num_workers_loader,
@@ -94,9 +94,9 @@ class GMM_TFT(TFT):
         # Create windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='train')
 
-        # Normalize
-        if self.normalize:
-            windows, *_ = self._normalization(windows)
+        # Normalize windows
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # outsample
         y_idx = batch['temporal_cols'].get_loc('y')
@@ -124,8 +124,8 @@ class GMM_TFT(TFT):
         windows = self._create_windows(batch, step='predict')
 
         # Normalize windows
-        if self.normalize:
-            windows, y_means, y_stds = self._normalization(windows)
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # [Ws, H, K]
         means_hat = self(x=windows)
@@ -136,8 +136,9 @@ class GMM_TFT(TFT):
                                      means=means_hat, stds=stds,
                                      num_samples=2000)
 
-        # Inv Normalize [Ws, H, Q]
-        if self.normalize:
-            quants = self._inv_normalization(quants, y_means, y_stds)
+        # Inv Normalize
+        if self.scaler is not None:
+            quants = self._inv_normalization(y_hat=quants,
+                                             temporal_cols=batch['temporal_cols'])
 
         return quants

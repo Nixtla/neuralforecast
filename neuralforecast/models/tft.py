@@ -419,7 +419,7 @@ class TFT(BaseWindows):
                  windows_batch_size=1024,
                  step_size=1,
                  learning_rate=1e-3,
-                 normalize=True,
+                 scaler_type='robust',
                  loss=MAE(),
                  batch_size=32, 
                  num_workers_loader=0,
@@ -432,7 +432,7 @@ class TFT(BaseWindows):
         super(TFT, self).__init__(h=h,
                                   loss=loss,
                                   batch_size=batch_size,
-                                  normalize=normalize,
+                                  scaler_type=scaler_type,
                                   num_workers_loader=num_workers_loader,
                                   drop_last_loader=drop_last_loader,
                                   random_seed=random_seed,
@@ -559,9 +559,9 @@ class TFT(BaseWindows):
         # Create windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='train')
 
-        # Normalize
-        if self.normalize:
-            windows, *_ = self._normalization(windows)
+        # Normalize windows
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         # outsample
         y_idx = batch['temporal_cols'].get_loc('y')
@@ -585,13 +585,14 @@ class TFT(BaseWindows):
         windows = self._create_windows(batch, step='predict')
 
         # Normalize windows
-        if self.normalize:
-            windows, y_means, y_stds = self._normalization(windows)
+        if self.scaler is not None:
+            windows = self._normalization(windows=windows)
 
         y_hat = self(x=windows)
 
         # Inv Normalize
-        if self.normalize:
-            y_hat = self._inv_normalization(y_hat, y_means, y_stds)
+        if self.scaler is not None:
+            y_hat = self._inv_normalization(y_hat=y_hat,
+                                            temporal_cols=batch['temporal_cols'])
 
         return y_hat
