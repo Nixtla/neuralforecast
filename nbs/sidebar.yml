@@ -29,6 +29,12 @@ website:
           contents:
           - losses.pytorch.ipynb
           - losses.numpy.ipynb
+        - section: Common Components
+          contents:
+          - common.base_auto.ipynb
+          - common.base_recurrent.ipynb
+          - common.base_windows.ipynb
+          - common.scalers.ipynb
         - section: Utils
           contents:
           - tsdataset.ipynb
