@@ -48,7 +48,8 @@ class NeuralForecast:
         time series variable.
 
         **Parameters:**<br>
-        `models`: List[typing.Any], list of instantiated objects models.StatsForecast.<br>
+        `h`: int, forecast horizon.<br>
+        `models`: List[typing.Any], instantiated `neuralforecast.models` see [collection here](https://nixtla.github.io/neuralforecast/models.html).<br>
         `freq`: str, frequency of the data, [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).<br>
         `trainers`: List[typing.Any], optional list of instantiated pytorch lightning trainers.<br>
         """

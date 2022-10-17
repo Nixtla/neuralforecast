@@ -47,7 +47,11 @@ class AutoRNN(BaseAuto):
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
-
+        """ Auto RNN
+        
+        **Parameters:**<br>
+        
+        """
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()        
@@ -66,9 +70,9 @@ class AutoRNN(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 12
+# %% ../nbs/models.ipynb 13
 class AutoLSTM(BaseAuto):
-    
+
     default_config = {
         "input_size_multiplier": [1, 2, 3],
         "h": None,
@@ -80,7 +84,7 @@ class AutoLSTM(BaseAuto):
         "loss": tune.choice([MAE(), MSE()]),
         "random_seed": tune.randint(1, 20)
     }
-    
+
     def __init__(self,
                  h,
                  config, 
@@ -108,7 +112,7 @@ class AutoLSTM(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 16
+# %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
 
     default_config = {
@@ -150,7 +154,7 @@ class AutoGRU(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 20
+# %% ../nbs/models.ipynb 21
 class AutoDilatedRNN(BaseAuto):
 
     default_config = {
@@ -194,7 +198,7 @@ class AutoDilatedRNN(BaseAuto):
               verbose=verbose
          )
 
-# %% ../nbs/models.ipynb 24
+# %% ../nbs/models.ipynb 26
 class AutoMLP(BaseAuto):
 
     default_config = {
@@ -242,7 +246,7 @@ class AutoMLP(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 28
+# %% ../nbs/models.ipynb 30
 class AutoNBEATS(BaseAuto):
 
     default_config = {
@@ -288,7 +292,7 @@ class AutoNBEATS(BaseAuto):
               verbose=verbose
         )
 
-# %% ../nbs/models.ipynb 32
+# %% ../nbs/models.ipynb 34
 class AutoNHITS(BaseAuto):
 
     default_config = {

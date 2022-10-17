@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['BaseAuto']
 
-# %% ../../nbs/common.base_auto.ipynb 4
+# %% ../../nbs/common.base_auto.ipynb 5
 from copy import deepcopy
 from os import cpu_count
 
@@ -15,7 +15,7 @@ from ray.tune.search.basic_variant import BasicVariantGenerator
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/common.base_auto.ipynb 5
+# %% ../../nbs/common.base_auto.ipynb 6
 def train_tune(config_step, cls_model, dataset, val_size, test_size):
     metrics = {"loss": "ptl/val_loss"}
     callbacks = [TQDMProgressBar(), TuneReportCallback(metrics, on="validation_end")]
@@ -29,7 +29,7 @@ def train_tune(config_step, cls_model, dataset, val_size, test_size):
         test_size=test_size
     )
 
-# %% ../../nbs/common.base_auto.ipynb 6
+# %% ../../nbs/common.base_auto.ipynb 7
 def tune_model(
         cls_model, 
         dataset, 
@@ -76,13 +76,32 @@ def tune_model(
     results = tuner.fit()
     return results
 
-# %% ../../nbs/common.base_auto.ipynb 7
-# If None overwrite with default
-
-
 # %% ../../nbs/common.base_auto.ipynb 8
 class BaseAuto:
+    """ BaseAuto 
     
+    Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to 
+    give access to a wide variety of hyperparameter optimization tools ranging 
+    from classic grid search, to Bayesian optimization and HyperBand algorithm.
+
+    The validation loss to be optimized is defined by the `config['loss']` dictionary
+    value, the config also contains the rest of the hyperparameter search space.
+
+    It is important to note that the success of this hyperparameter optimization
+    heavily relies on a strong correlation between the validation and test periods.
+
+    **Parameters:**<br>
+    `cls_model`: PyTorch/PyTorchLightning model, see `neuralforecast.models` [collection here](https://nixtla.github.io/neuralforecast/models.html).<br>
+    `h`: int, forecast horizon.<br>
+    `config`: dict, dictionary with ray.tune defined search space.<br>
+    `search_alg`: ray.tune.search variant, BasicVariantGenerator, HyperOptSearch, DragonflySearch, TuneBOHB for details
+        see [tune.search](https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#).<br>
+    `num_samples`: int, number of hyperparameter optimization steps/samples.<br>
+    `cpus`: int, number of cpus to use during optimization, default all available.<br>
+    `gpus`: int, number of gpus to use during optimization, default all available.<br>
+    `refit_wo_val`: bool, number of gpus to use during optimization, default all available.<br>
+    `verbose`: bool, wether print partial outputs.<br>
+    """
     def __init__(self, 
                  cls_model,
                  h,
@@ -107,6 +126,22 @@ class BaseAuto:
         self.loss = self.config.get('loss', MAE())
         
     def fit(self, dataset, val_size=0, test_size=0):
+        """ BaseAuto.fit
+
+        Perform the hyperparameter optimization as specified by the BaseAuto configuration 
+        dictionary `config`.
+        
+        The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with 
+        the validation set that sequentially precedes the test set.
+
+        **Parameters:**<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
+        `val_size`: int, size of temporal validation set (needs to be bigger than 0).<br>
+        `test_size`: int, size of temporal test set (default 0).<br>
+
+        **Returns:**<br>
+        `self`: fitted instance of `BaseAuto` with best hyperparameters and results<br>.
+        """
         #we need val_size > 0 to perform
         #hyperparameter selection.
         search_alg = deepcopy(self.search_alg)
@@ -133,6 +168,18 @@ class BaseAuto:
         self.results = results
         
     def predict(self, dataset, step_size=1, **data_kwargs):
+        """ BaseAuto.predict
+
+        Predictions of the best performing model on validation.
+
+        **Parameters:**<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
+        `step_size`: int, steps between sequential predictions, (default 1).<br>
+        `**data_kwarg`: additional parameters for the dataset module.<br>
+
+        **Returns:**<br>
+        `y_hat`: numpy predictions of the `NeuralForecast` model.<br>
+        """
         return self.model.predict(dataset=dataset, 
                                   step_size=step_size, **data_kwargs)
 
