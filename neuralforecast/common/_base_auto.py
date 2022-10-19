@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks import TQDMProgressBar
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
+import pytorch_lightning as pl
 
 from ..losses.pytorch import MAE
 
@@ -77,7 +78,7 @@ def tune_model(
     return results
 
 # %% ../../nbs/common.base_auto.ipynb 8
-class BaseAuto:
+class BaseAuto(pl.LightningModule):
     """ BaseAuto 
     
     Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to 
@@ -112,7 +113,8 @@ class BaseAuto:
                  gpus=torch.cuda.device_count(),
                  refit_wo_val=False,
                  verbose=False):
-        
+        super(BaseAuto, self).__init__()
+        self.save_hyperparameters() # Allows instantiation from a checkpoint from class
         config['h'] = h
         self.cls_model = cls_model
         self.h = h
@@ -185,3 +187,13 @@ class BaseAuto:
 
     def set_test_size(self, test_size):
         self.model.set_test_size(test_size)
+
+    def save(self, path):
+        """ BaseAuto.save
+
+        Save the fitted model to disk.
+
+        **Parameters:**<br>
+        `path`: str, path to save the model.<br>
+        """
+        self.model.trainer.save_checkpoint(path)
