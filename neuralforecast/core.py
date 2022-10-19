@@ -99,6 +99,7 @@ class NeuralForecast:
         """
         assert (df is not None) or (self._dataset_stored), 'You need to provide a df or have a stored dataset'
 
+        # Process and save new dataset (in self)
         if df is not None:
             self._prepare_fit(df=df, sort_df=sort_df)
         else:
@@ -125,7 +126,11 @@ class NeuralForecast:
         df = pd.DataFrame({'ds': dates}, index=idx)
         return df
 
-    def predict(self, futr_df: Optional[pd.DataFrame] = None, **data_kwargs):
+    def predict(self,
+                df: Optional[pd.DataFrame] = None,
+                futr_df: Optional[pd.DataFrame] = None,
+                sort_df: bool = True,
+                **data_kwargs):
         """Predict with core.NeuralForecast.
 
         Use stored fitted `models` to predict large set of time series from DataFrame `df`.        
@@ -136,6 +141,14 @@ class NeuralForecast:
         **Returns:**<br>
         `fcsts_df`: pandas.DataFrame, with `models` columns for point predictions.<br>
         """
+        assert (df is not None) or (self._dataset_stored), 'You need to provide a df or have a stored dataset'
+
+        # Process and save new dataset (in self)
+        if df is not None:
+            self._prepare_fit(df=df, sort_df=sort_df)
+        else:
+            print('Using stored dataset.')
+
         cols = []
         count_names = {'model': 0}
         for model in self.models:
