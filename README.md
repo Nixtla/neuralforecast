@@ -95,8 +95,9 @@ ax.grid()
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/nbeats_example.png">
 
 ## 🎉 New!
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](xXmissingXx) **Multi Quantile NBEATS Example**: Produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperforming AutoARIMA's accuracy in a fraction of the time.
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](xXmissingXx) **Long Horizon N-HiTS Example**:  Load, train, and tune hyperparameters, to achieve SoTA. Outperform Award Winning Transformers by 25% in 50x less time.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb) **Quick Start**: Minimal usage example of the NeuralForecast library on Box's AirPassengers Data.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/UncertaintyIntervals.ipynb) **Multi Quantile NBEATS Example**: Produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperforming AutoARIMA's accuracy in a fraction of the time.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/LongHorizon_with_NHITS.ipynb) **Long Horizon N-HiTS Example**:  Load, train, and tune hyperparameters, to achieve Long-Horizon SoTA. Outperform Award Winning Transformers by 25% in 50x less time.
 
 ## 🔥  Highlights
 
