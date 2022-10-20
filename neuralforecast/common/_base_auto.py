@@ -8,11 +8,12 @@ from copy import deepcopy
 from os import cpu_count
 
 import torch
+import pytorch_lightning as pl
+
 from pytorch_lightning.callbacks import TQDMProgressBar
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
-import pytorch_lightning as pl
 
 from ..losses.pytorch import MAE
 
