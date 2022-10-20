@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NBEATS']
 
-# %% ../../nbs/models.nbeats.ipynb 5
+# %% ../../nbs/models.nbeats.ipynb 6
 from typing import Tuple
 
 import numpy as np
@@ -13,7 +13,7 @@ import torch.nn as nn
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nbeats.ipynb 6
+# %% ../../nbs/models.nbeats.ipynb 7
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int):
         super().__init__()
@@ -70,7 +70,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum('bp,pt->bt', theta[:, :cut_point], self.forecast_basis)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 7
+# %% ../../nbs/models.nbeats.ipynb 8
 ACTIVATIONS = ['ReLU',
                'Softplus',
                'Tanh',
@@ -121,7 +121,7 @@ class NBEATSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 8
+# %% ../../nbs/models.nbeats.ipynb 9
 class NBEATS(BaseWindows):
     def __init__(self, 
                  input_size,

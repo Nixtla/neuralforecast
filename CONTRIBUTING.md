@@ -65,7 +65,7 @@ This project uses a couple of linters to validate different aspects of the code.
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
 
 ### 8. Cleaning notebooks
-Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes.
+Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/examples`, unless you intend to change the examples.
 
 ## Do you want to contribute to the documentation?
 
