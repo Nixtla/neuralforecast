@@ -17,8 +17,9 @@ website:
           - section: B. MLP-Based
             contents:
             - models.mlp.ipynb
-            - models.nbeats.ipynb
             - models.nhits.ipynb
+            - models.nbeats.ipynb
+            - models.nbeatsx.ipynb
           - section: C. Transformer-Based
             contents:
             - models.tft.ipynb

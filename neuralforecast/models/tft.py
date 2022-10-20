@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['TFT']
 
-# %% ../../nbs/models.tft.ipynb 2
+# %% ../../nbs/models.tft.ipynb 3
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,7 +20,7 @@ from typing import Tuple, Optional, Iterable, Any
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.tft.ipynb 6
+# %% ../../nbs/models.tft.ipynb 8
 class MaybeLayerNorm(nn.Module):
     def __init__(self, output_size, hidden_size, eps):
         super().__init__()
@@ -74,7 +74,7 @@ class GRN(nn.Module):
         x = self.layer_norm(x)
         return x
 
-# %% ../../nbs/models.tft.ipynb 8
+# %% ../../nbs/models.tft.ipynb 11
 class TFTEmbedding(nn.Module):
     def __init__(self, hidden_size,
                  s_cat_inp_lens, s_cont_inp_size,
@@ -216,7 +216,7 @@ class VariableSelectionNetwork(nn.Module):
 
         return variable_ctx, sparse_weights
 
-# %% ../../nbs/models.tft.ipynb 10
+# %% ../../nbs/models.tft.ipynb 13
 class InterpretableMultiHeadAttention(nn.Module):
     def __init__(self, n_head, hidden_size, example_length,
                  attn_dropout, dropout):
@@ -268,7 +268,7 @@ class InterpretableMultiHeadAttention(nn.Module):
 
         return out, attn_vec
 
-# %% ../../nbs/models.tft.ipynb 12
+# %% ../../nbs/models.tft.ipynb 16
 class StaticCovariateEncoder(nn.Module):
     def __init__(self, hidden_size, num_static_vars, dropout):
         super().__init__()
@@ -292,7 +292,7 @@ class StaticCovariateEncoder(nn.Module):
 
         return cs, ce, ch, cc
 
-# %% ../../nbs/models.tft.ipynb 13
+# %% ../../nbs/models.tft.ipynb 18
 class TemporalCovariateEncoder(nn.Module):
     def __init__(self, hidden_size, 
                  num_historic_vars, num_future_vars, dropout):
@@ -333,7 +333,7 @@ class TemporalCovariateEncoder(nn.Module):
         temporal_features = self.input_gate_ln(temporal_features)      
         return temporal_features
 
-# %% ../../nbs/models.tft.ipynb 14
+# %% ../../nbs/models.tft.ipynb 20
 class TemporalFusionDecoder(nn.Module):
     def __init__(self, 
                  n_head, hidden_size, 
@@ -393,7 +393,7 @@ class TemporalFusionDecoder(nn.Module):
 
         return x
 
-# %% ../../nbs/models.tft.ipynb 15
+# %% ../../nbs/models.tft.ipynb 22
 class TFT(BaseWindows):
 
     def __init__(self,
