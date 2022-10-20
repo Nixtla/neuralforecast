@@ -4,13 +4,13 @@
 __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
+import os
+import pickle
+from os.path import isfile, join
 from typing import Any, List, Optional
 
-import os
-from os.path import isfile, join
 import numpy as np
 import pandas as pd
-import pickle
 
 from .tsdataset import TimeSeriesDataset
 from .models import (DilatedRNN, GMM_TFT, TFT, GRU, LSTM,
@@ -43,7 +43,7 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
 # %% ../nbs/core.ipynb 9
 MODEL_FILENAME_DICT = {'dilatedrnn': DilatedRNN, 'gmm_tft': GMM_TFT, 'gru': GRU, 'lstm': LSTM,
                        'mlp': MLP, 'nbeats': NBEATS, 'nbeatsx': NBEATSx, 'nhits': NHITS, 'rnn': RNN, 'tft': TFT,
-                       'autodilatedrnn': DilatedRNN, 'autogru': GRU, 'autolstm': LSTM,
+                       'autodilatedrnn': DilatedRNN, 'autogru': GRU, 'autolstm': LSTM, 'autornn': RNN,
                        'automlp': MLP, 'autonbeats': NBEATS, 'autonhits': NHITS}
 
 # %% ../nbs/core.ipynb 10
@@ -72,18 +72,17 @@ class NeuralForecast:
 
         # Flags and attributes
         self._fitted = False
-        self._dataset_stored = False
 
     def _prepare_fit(self, df, sort_df):
         #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(df=df, sort_df=sort_df)
         self.sort_df = sort_df
-        self._dataset_stored = True
 
     def fit(self,
             df: Optional[pd.DataFrame] = None,
             val_size: Optional[int] = 0,
-            sort_df: bool = True):
+            sort_df: bool = True,
+            verbose: bool = False):
         """Fit the core.NeuralForecast.
 
         Fit `models` to a large set of time series from DataFrame `df`.
@@ -97,13 +96,14 @@ class NeuralForecast:
         **Returns:**<br>
         `self`: Returns with stored `NeuralForecast` fitted `models`.
         """
-        assert (df is not None) or (self._dataset_stored), 'You need to provide a df or have a stored dataset'
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
 
         # Process and save new dataset (in self)
         if df is not None:
             self._prepare_fit(df=df, sort_df=sort_df)
         else:
-            print('Using stored dataset.')
+            if verbose: print('Using stored dataset.')
 
         #train + validation
         for model in self.models:
@@ -130,6 +130,7 @@ class NeuralForecast:
                 df: Optional[pd.DataFrame] = None,
                 futr_df: Optional[pd.DataFrame] = None,
                 sort_df: bool = True,
+                verbose: bool = False,
                 **data_kwargs):
         """Predict with core.NeuralForecast.
 
@@ -141,13 +142,14 @@ class NeuralForecast:
         **Returns:**<br>
         `fcsts_df`: pandas.DataFrame, with `models` columns for point predictions.<br>
         """
-        assert (df is not None) or (self._dataset_stored), 'You need to provide a df or have a stored dataset'
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
 
         # Process and save new dataset (in self)
         if df is not None:
             self._prepare_fit(df=df, sort_df=sort_df)
         else:
-            print('Using stored dataset.')
+            if verbose: print('Using stored dataset.')
 
         cols = []
         count_names = {'model': 0}
@@ -191,6 +193,7 @@ class NeuralForecast:
                          val_size: Optional[int] = 0, 
                          test_size: Optional[int] = None,
                          sort_df: bool = True,
+                         verbose: bool = False,
                          **data_kwargs):
         """Temporal Cross-Validation with core.NeuralForecast.
 
@@ -208,13 +211,14 @@ class NeuralForecast:
         `fcsts_df`: pandas.DataFrame, with insample `models` columns for point predictions and probabilistic
         predictions for all fitted `models`.<br>        
         """
-        assert (df is not None) or (self._dataset_stored), 'You need to provide a df or have a stored dataset'
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
 
         # Declare predictions pd.DataFrame
         if df is not None:
             self._prepare_fit(df=df, sort_df=sort_df)
         else:
-            print('Using stored dataset.')
+            if verbose: print('Using stored dataset.')
 
         cols = []
         count_names = {'model': 0}
@@ -307,7 +311,7 @@ class NeuralForecast:
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
 
         # Save dataset
-        if (save_dataset) and (self._dataset_stored):
+        if (save_dataset) and (hasattr(self, 'dataset')):
             with open(f"{path}/dataset.pkl", "wb") as f:
                 pickle.dump(self.dataset, f)
         elif save_dataset:
@@ -327,7 +331,7 @@ class NeuralForecast:
                 pickle.dump(config_dict, f)
 
     @staticmethod
-    def load(path):
+    def load(path, verbose=False):
         """ Load NeuralForecast
 
         `core.NeuralForecast`'s method to load checkpoint from path.
@@ -342,31 +346,29 @@ class NeuralForecast:
         if len(models_ckpt) == 0:
             raise Exception('No model found in directory.') 
         
-        print(10 * '-' + ' Loading models ' + 10 * '-')
+        if verbose: print(10 * '-' + ' Loading models ' + 10 * '-')
         models = []
         for model in models_ckpt:
             model_name = model.split('_')[0]
             models.append(MODEL_FILENAME_DICT[model_name].load_from_checkpoint(f"{path}/{model}"))
-            print(f"Model {model_name} loaded.")
+            if verbose: print(f"Model {model_name} loaded.")
 
-        print(f"Loaded {len(models)} models.")
-
-        print(10*'-' + ' Loading dataset ' + 10*'-')
+        if verbose: print(10*'-' + ' Loading dataset ' + 10*'-')
         # Load dataset
         if 'dataset.pkl' in files:
             with open(f"{path}/dataset.pkl", "rb") as f:
                 dataset = pickle.load(f)
-            print('Dataset loaded.')
+            if verbose: print('Dataset loaded.')
         else:
             dataset = None
-            print('No dataset found in directory.')
+            if verbose: print('No dataset found in directory.')
         
-        print(10*'-' + ' Loading configuration ' + 10*'-')
+        if verbose: print(10*'-' + ' Loading configuration ' + 10*'-')
         # Load configuration
         if 'configuration.pkl' in files:
             with open(f"{path}/configuration.pkl", "rb") as f:
                 config_dict = pickle.load(f)
-            print('Configuration loaded.')
+            if verbose: print('Configuration loaded.')
         else:
             raise Exception('No configuration found in directory.')
 
@@ -380,7 +382,6 @@ class NeuralForecast:
             neuralforecast.last_dates = config_dict['last_dates']
             neuralforecast.ds = config_dict['ds']
             neuralforecast.sort_df = config_dict['sort_df']
-            neuralforecast._dataset_stored = True
 
         # Fitted flag
         neuralforecast._fitted = config_dict['_fitted']

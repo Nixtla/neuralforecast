@@ -112,7 +112,7 @@ class BaseAuto(pl.LightningModule):
                  num_samples=10,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
-                 refit_wo_val=False,
+                 refit_with_val=False,
                  verbose=False):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters() # Allows instantiation from a checkpoint from class
@@ -124,7 +124,7 @@ class BaseAuto(pl.LightningModule):
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
-        self.refit_wo_val = refit_wo_val
+        self.refit_with_val = refit_with_val
         self.verbose = verbose
         self.loss = self.config.get('loss', MAE())
         
@@ -165,7 +165,7 @@ class BaseAuto(pl.LightningModule):
         self.model = self.cls_model(**best_config)
         self.model.fit(
             dataset=dataset, 
-            val_size=val_size * (1 - self.refit_wo_val), 
+            val_size=val_size * (1 - self.refit_with_val), 
             test_size=test_size,
         )
         self.results = results
