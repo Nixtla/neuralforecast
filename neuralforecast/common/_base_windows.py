@@ -12,15 +12,20 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import TQDMProgressBar
 
-from ..tsdataset import TimeSeriesDataModule
 from ._scalers import TemporalNorm
+from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_windows.ipynb 5
 class BaseWindows(pl.LightningModule):
 
-    def __init__(self, h, 
+    def __init__(self, 
+                 h,
+                 input_size,
                  loss,
+                 learning_rate,
                  batch_size=32,
+                 windows_batch_size=1024,
+                 step_size=1,
                  scaler_type=None,
                  futr_exog_list=None,
                  hist_exog_list=None,
@@ -33,12 +38,18 @@ class BaseWindows(pl.LightningModule):
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
         
-        # Padder to complete train windows
+        # Padder to complete train windows, 
+        # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
+        self.input_size = input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
         
-        # Loss
+        # BaseWindows optimization attributes
         self.loss = loss
+        self.learning_rate = learning_rate
+        self.batch_size = batch_size
+        self.windows_batch_size = windows_batch_size
+        self.step_size = step_size
 
         # Scaler
         if scaler_type is None:
@@ -50,16 +61,10 @@ class BaseWindows(pl.LightningModule):
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
         self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
         self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
-
-        # Base arguments
-        self.windows_batch_size: int = None
         
         # Fit arguments
-        self.val_size: int = 0
-        self.test_size: int = 0
-
-        # Predict arguments
-        self.step_size: int = 1
+        self.val_size = 0
+        self.test_size = 0
 
         # Model state
         self.decompose_forecast = False
@@ -81,7 +86,6 @@ class BaseWindows(pl.LightningModule):
                 self.trainer_kwargs['devices'] = -1
         
         # DataModule arguments
-        self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
 
@@ -360,7 +364,7 @@ class BaseWindows(pl.LightningModule):
         **Parameters:**<br>
         `dataset`: TimeSeriesDataset.<br>
         `trainer`: pl.Trainer.<br>
-        `step_size`: int, Step size between each window.<br>
+        `step_size`: int=1, Step size between each window.<br>
         `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
         """
         self.predict_step_size = step_size
