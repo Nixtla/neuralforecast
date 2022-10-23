@@ -13,8 +13,8 @@ from ..common._base_recurrent import BaseRecurrent
 # %% ../../nbs/models.rnn.ipynb 6
 class RNN(BaseRecurrent):
     def __init__(self,
-                 input_size: int,
                  h: int,
+                 input_size: int,
                  state_hsize: int = 200, 
                  step_size: int = 1,
                  n_layers: int = 2,
@@ -25,16 +25,20 @@ class RNN(BaseRecurrent):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
-                 normalize: bool = True,
                  loss=MAE(),
-                 batch_size=32, 
+                 batch_size=32,
+                 scaler_type: str='robust',
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1,
                  **trainer_kwargs):
         super(RNN, self).__init__(
+            h = h,
+            input_size = input_size,
             loss=loss,
+            learning_rate = learning_rate,
             batch_size=batch_size,
+            scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -45,8 +49,6 @@ class RNN(BaseRecurrent):
         )
 
         # Architecture
-        self.input_size = input_size
-        self.h = h
         self.state_hsize = state_hsize
         self.step_size = step_size
         self.n_layers = n_layers
@@ -60,13 +62,6 @@ class RNN(BaseRecurrent):
 
         input_rnn = input_size + self.hist_exog_size*input_size + \
                     self.futr_exog_size*(input_size + h) + self.stat_exog_size
-
-        # Optimization
-        self.learning_rate = learning_rate
-        self.loss = loss
-        self.normalize = normalize
-        self.random_seed = random_seed
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         # Instantiate model
         self.rnn = nn.RNN(input_size=input_rnn,
