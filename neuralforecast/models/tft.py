@@ -395,10 +395,46 @@ class TemporalFusionDecoder(nn.Module):
 
 # %% ../../nbs/models.tft.ipynb 23
 class TFT(BaseWindows):
+    """ TFT
 
+    The Temporal Fusion Transformer architecture (TFT) is an Sequence-to-Sequence 
+    model that combines static, historic and future available data to predict an
+    univariate target. The method combines gating layers, an LSTM recurrent encoder, 
+    with and interpretable multi-head attention layer and a multi-step forecasting 
+    strategy decoder.
+
+    **Parameters:**<br>
+    `h`: int, Forecast horizon. <br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `hidden_size`: int, units of embeddings and encoders.<br>
+    `s_cont_cols`: str list, continuous static exogenous columns.<br>
+    `s_cat_cols`: str list, categoric static exogenous columns.<br>
+    `o_cat_cols`: str list, categoric historic exogenous columns.<br>
+    `o_cont_cols`: str list, continuous historic exogenous columns.<br>
+    `k_cont_cols`: str list, continuous future exogenous columns.<br>
+    `k_cat_cols`: str list, categoric future exogenous columns.<br>
+    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
+    `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float (0, 1), initial optimization learning rate.<br>
+    `batch_size`: int, number of different series in each batch.<br>
+    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str=None, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int, random seed initialization for replicability.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+
+    **References:**<br>
+    - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister, 
+    "Temporal Fusion Transformers for interpretable multi-horizon time series forecasting"](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
+    """
     def __init__(self,
-                 input_size,
                  h,
+                 input_size,
                  tgt_size=1,
                  hidden_size=128,
                  s_cont_cols=None,
@@ -416,33 +452,31 @@ class TFT(BaseWindows):
                  n_head=4,
                  attn_dropout=0.0,
                  dropout=0.1,
+                 loss=MAE(),
+                 learning_rate=1e-3,
+                 batch_size=32,
                  windows_batch_size=1024,
                  step_size=1,
-                 learning_rate=1e-3,
                  scaler_type='robust',
-                 loss=MAE(),
-                 batch_size=32, 
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1,
                  **trainer_kwargs
                  ):
-
         # Inherit BaseWindows class
         super(TFT, self).__init__(h=h,
+                                  input_size=input_size,
                                   loss=loss,
+                                  learning_rate=learning_rate,
                                   batch_size=batch_size,
+                                  windows_batch_size=windows_batch_size,
+                                  step_size=step_size,
                                   scaler_type=scaler_type,
                                   num_workers_loader=num_workers_loader,
                                   drop_last_loader=drop_last_loader,
                                   random_seed=random_seed,
                                   **trainer_kwargs)
 
-        self.windows_batch_size = windows_batch_size
-        self.step_size = step_size
-        self.learning_rate = learning_rate
-
-        self.input_size = input_size
         self.example_length = input_size + h
 
         # Parse lists hyperparameters

@@ -123,64 +123,81 @@ class NBEATSBlock(nn.Module):
 
 # %% ../../nbs/models.nbeats.ipynb 9
 class NBEATS(BaseWindows):
-    def __init__(self, 
-                 input_size,
+    """ NBEATS
+
+    The Neural Basis Expansion Analysis for Time Series (NBEATS), is a simple and yet
+    effective architecture, it is built with a deep stack of MLPs with the doubly 
+    residual connections. It has a generic and interpretable architecture depending
+    on the blocks it uses. Its interpretable architecture is recommended for scarce
+    data settings, as it regularizes its predictions through projections unto harmonic
+    and trend basis well-suited for most forecasting tasks.
+
+    **Parameters:**<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
+    `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
+    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
+    `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
+    `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float, initial optimization learning rate (0,1).<br>
+    `batch_size`: int, number of different series in each batch.<br>
+    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References:**<br>
+    -[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, Yoshua Bengio (2019). 
+    "N-BEATS: Neural basis expansion analysis for interpretable time series forecasting".](https://arxiv.org/abs/1905.10437)
+    """
+    def __init__(self,
                  h,
-                 n_polynomials=2,
-                 n_harmonics=2,
+                 input_size,
+                 n_harmonics: int = 2,
+                 n_polynomials: int = 2,
                  stack_types: list = ['identity', 'trend', 'seasonality'],
                  n_blocks: list = [1, 1, 1],
                  mlp_units: list = 3 * [[512, 512]],
-                 dropout_prob_theta = 0.,
-                 activation = 'ReLU',
-                 shared_weights=False,
-                 learning_rate=1e-3,
-                 scaler_type=None,
+                 dropout_prob_theta: float = 0.,
+                 activation: str = 'ReLU',
+                 shared_weights: bool = False,
+                 loss=MAE(),
+                 learning_rate: float = 1e-3,
+                 batch_size: int = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 loss=MAE(),
-                 batch_size=32, 
-                 num_workers_loader=0,
-                 drop_last_loader=False,
+                 scaler_type: str = None,
                  random_seed=1,
+                 num_workers_loader: int = 0,
+                 drop_last_loader: bool = False,
                  **trainer_kwargs):
-        """
-        N-BEATS Model.
-        
-        **Parameters:**<br>
-        `input_size`: int, insample_size.<br>
-        `h`: int, Forecast horizon. <br>
-        `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-        `activation`: str, Activation function. An item from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid']. <br>
-        `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
-        `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
-        `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
-        `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-        `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-        `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-        `learning_rate`: float, Learning rate between (0, 1).<br>
-        `loss`: Callable, Loss to optimize.<br>
-        `random_seed`: int, random_seed for pseudo random pytorch initializer and numpy random generator.<br>
-        """
         # Inherit BaseWindows class
-        super(NBEATS, self).__init__(h=h, 
+        super(NBEATS, self).__init__(h=h,
+                                     input_size=input_size,
                                      loss=loss,
+                                     learning_rate=learning_rate,
                                      batch_size=batch_size,
+                                     windows_batch_size=windows_batch_size,
+                                     step_size=step_size,
                                      scaler_type=scaler_type,
                                      num_workers_loader=num_workers_loader,
                                      drop_last_loader=drop_last_loader,
                                      random_seed=random_seed,
                                      **trainer_kwargs)
 
-        self.input_size = input_size
-        self.learning_rate = learning_rate
-        self.windows_batch_size = windows_batch_size
-        self.step_size = step_size
-
-        blocks = self.create_stack(stack_types=stack_types, 
-                                   n_blocks=n_blocks,
+        # Architecture
+        blocks = self.create_stack(h=h,
                                    input_size=input_size,
-                                   h=h,
+                                   stack_types=stack_types, 
+                                   n_blocks=n_blocks,
                                    mlp_units=mlp_units,
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation,
@@ -188,7 +205,7 @@ class NBEATS(BaseWindows):
                                    n_polynomials=n_polynomials, 
                                    n_harmonics=n_harmonics)
         self.blocks = torch.nn.ModuleList(blocks)
-        
+
         # Adapter with Loss dependent dimensions
         if self.loss.outputsize_multiplier > 1:
             self.out = nn.Linear(in_features=h,

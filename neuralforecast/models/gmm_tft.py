@@ -7,20 +7,16 @@ __all__ = ['GMM_TFT']
 import torch
 import torch.nn as nn
 
-import logging
-import warnings
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-warnings.filterwarnings("ignore")
-
 from .tft import TFT
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.gmm_tft.ipynb 4
+# %% ../../nbs/models.gmm_tft.ipynb 5
 class GMM_TFT(TFT):
-
+    """
+    """
     def __init__(self,
-                 input_size,
                  h,
+                 input_size,
                  K=100,
                  tgt_size=1,
                  hidden_size=128,
@@ -39,19 +35,19 @@ class GMM_TFT(TFT):
                  n_head=4,
                  attn_dropout=0.0,
                  dropout=0.1,
+                 loss=MAE(),
+                 learning_rate=1e-3,
+                 batch_size=32,
                  windows_batch_size=1024,
                  step_size=1,
-                 learning_rate=1e-3,
                  scaler_type='robust',
-                 loss=MAE(),
-                 batch_size=32, 
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1,
                  **trainer_kwargs):
         # Inherit TFT class and extend it with GMM
-        super(GMM_TFT, self).__init__(input_size=input_size,
-                                      h=h,
+        super(GMM_TFT, self).__init__(h=h,
+                                      input_size=input_size,
                                       tgt_size=tgt_size,
                                       hidden_size=hidden_size,
                                       s_cont_cols=s_cont_cols,
@@ -69,12 +65,12 @@ class GMM_TFT(TFT):
                                       n_head=n_head,
                                       attn_dropout=attn_dropout,
                                       dropout=dropout,
+                                      loss=loss,
+                                      learning_rate=learning_rate,
+                                      batch_size=batch_size,
                                       windows_batch_size=windows_batch_size,
                                       step_size=step_size,
-                                      learning_rate=learning_rate,
                                       scaler_type=scaler_type,
-                                      loss=loss,
-                                      batch_size=batch_size ,
                                       num_workers_loader=num_workers_loader,
                                       drop_last_loader=drop_last_loader,
                                       random_seed=random_seed,
