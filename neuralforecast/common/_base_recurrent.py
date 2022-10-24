@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['BaseRecurrent']
 
-# %% ../../nbs/common.base_recurrent.ipynb 4
+# %% ../../nbs/common.base_recurrent.ipynb 5
 import random
 
 import numpy as np
@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import TQDMProgressBar
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 
-# %% ../../nbs/common.base_recurrent.ipynb 5
+# %% ../../nbs/common.base_recurrent.ipynb 6
 class BaseRecurrent(pl.LightningModule):
     
     def __init__(self,
@@ -301,15 +301,22 @@ class BaseRecurrent(pl.LightningModule):
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0):
-        """
-        Fits Model.
-        
+        """ Fit.
+
+        The `fit` method, optimizes the neural network's weights using the
+        initialization parameters (`learning_rate`, `batch_size`, ...)
+        and the `loss` function as defined during the initialization. 
+        Within `fit` we use a PyTorch Lightning `Trainer` that
+        inherits the initialization's `self.trainer_kwargs`, to customize
+        its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+        The method is designed to be compatible with SKLearn-like classes
+        and in particular to be compatible with the StatsForecast library.
+
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `val_size`: int, validation size.<br>
-        `test_size`: int, test size.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `val_size`: int, validation size for temporal cross-validation.<br>
+        `test_size`: int, test size for temporal cross-validation.<br>
         """
         self.val_size = val_size
         self.test_size = test_size
@@ -322,14 +329,15 @@ class BaseRecurrent(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
-    def predict(self, dataset, step_size=1, **data_kwargs):
-        """
-        Predicts RNN Model.
+    def predict(self, dataset, step_size=1, **data_module_kwargs):
+        """ Predict.
+
+        Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `step_size`: int=1, Step size between each window.<br>
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         if step_size != self.step_size:
             print(f'WARNING: step_size {step_size} different than self.step_size, \
@@ -341,7 +349,7 @@ class BaseRecurrent(pl.LightningModule):
         datamodule = TimeSeriesDataModule(
             dataset,
             num_workers=self.num_workers_loader,
-            **data_kwargs
+            **data_module_kwargs
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:

@@ -30,11 +30,11 @@ class MLP(BaseWindows):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float, initial optimization learning rate (0,1).<br>
-    `batch_size`: int, number of differentseries in each batch.<br>
+    `batch_size`: int=32, number of differentseries in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, if None uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `scaler_type`: str=None, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
@@ -53,9 +53,9 @@ class MLP(BaseWindows):
                  windows_batch_size=1024,
                  step_size=1,
                  scaler_type=None,
+                 random_seed=1,
                  num_workers_loader=0,
                  drop_last_loader=False,
-                 random_seed=1,
                  **trainer_kwargs):
 
         # Inherit BaseWindows class
