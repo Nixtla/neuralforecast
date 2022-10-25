@@ -188,8 +188,6 @@ class BaseWindows(pl.LightningModule):
         temporal = windows['temporal']                  # B, L+H, C
         temporal_cols = windows['temporal_cols'].copy() # B, L+H, C
 
-        #print('temporal', temporal)
-        
         # To avoid leakage uses only the lags
         temporal_data_cols = temporal_cols.drop('available_mask').tolist()
         temporal_data = temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)]
@@ -199,14 +197,10 @@ class BaseWindows(pl.LightningModule):
         # Normalize. self.scaler stores the shift and scale for inverse transform
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
-        #print('temporal_data', temporal_data)
-        # print('temporal_data', temporal_data.max())
-        # print('scaler', self.scaler.x_scale.min())
-        
         # Replace values in windows dict
         temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)] = temporal_data
         windows['temporal'] = temporal
-        
+
         return windows
 
     def _inv_normalization(self, y_hat, temporal_cols):
