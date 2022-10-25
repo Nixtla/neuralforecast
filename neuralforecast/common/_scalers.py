@@ -50,7 +50,7 @@ def masked_mean(x, mask, dim=1, keepdim=True):
     return x_mean
 
 # %% ../../nbs/common.scalers.ipynb 11
-def minmax_scaler(x, mask, eps=1e-8):
+def minmax_scaler(x, mask, eps=1e-6):
     """ MinMax Scaler
 
     Standardizes temporal features by ensuring its range dweels between
@@ -74,15 +74,20 @@ def minmax_scaler(x, mask, eps=1e-8):
     x_max = torch.max(x + max_mask, dim=1, keepdim=True)[0]
     x_min = torch.min(x + min_mask, dim=1, keepdim=True)[0]
 
-    z = (x - x_min) / (x_max - x_min + eps)
-    return z, x_min, x_max
+    # x_range and prevent division by zero
+    x_range = x_max - x_min
+    x_range[x_range==0] = 1.0
+    x_range = x_range + eps
+
+    z = (x - x_min) / x_range
+    return z, x_min, x_range
 
 # %% ../../nbs/common.scalers.ipynb 12
-def inv_minmax_scaler(z, x_min, x_max, eps=1e-8):
-    return z * ((x_max - x_min) + eps) + x_min
+def inv_minmax_scaler(z, x_min, x_range):
+    return z * x_range + x_min
 
 # %% ../../nbs/common.scalers.ipynb 14
-def minmax1_scaler(x, mask, eps=1e-8):
+def minmax1_scaler(x, mask, eps=1e-6):
     """ MinMax1 Scaler
 
     Standardizes temporal features by ensuring its range dweels between
@@ -106,17 +111,22 @@ def minmax1_scaler(x, mask, eps=1e-8):
     x_max = torch.max(x + max_mask, dim=1, keepdim=True)[0]
     x_min = torch.min(x + min_mask, dim=1, keepdim=True)[0]
 
-    x = (x - x_min) / ((x_max - x_min) + eps)
+    # x_range and prevent division by zero
+    x_range = x_max - x_min
+    x_range[x_range==0] = 1.0
+    x_range = x_range + eps
+
+    x = (x - x_min) / x_range
     z = x * (2) - 1
-    return z, x_min, x_max
+    return z, x_min, x_range
 
 # %% ../../nbs/common.scalers.ipynb 15
-def inv_minmax1_scaler(z, x_min, x_max, eps=1e-8):
+def inv_minmax1_scaler(z, x_min, x_range):
     z = (z + 1) / 2
-    return z * ((x_max - x_min) + eps) + x_min
+    return z * x_range + x_min
 
 # %% ../../nbs/common.scalers.ipynb 17
-def std_scaler(x, mask, eps=1e-8):
+def std_scaler(x, mask, eps=1e-6):
     """ Standard Scaler
 
     Standardizes temporal features by removing the mean and scaling
@@ -135,17 +145,21 @@ def std_scaler(x, mask, eps=1e-8):
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
     x_means = masked_mean(x, mask)
-    x_stds = torch.sqrt(masked_mean((x-x_means)**2, mask)) 
+    x_stds = torch.sqrt(masked_mean((x-x_means)**2, mask))
+    
+    # Protect against division by zero
+    x_stds[x_stds==0] = 1.0
+    x_stds = x_stds + eps
 
-    z = (x - x_means) / (x_stds + eps)
+    z = (x - x_means) / x_stds
     return z, x_means, x_stds
 
 # %% ../../nbs/common.scalers.ipynb 18
-def inv_std_scaler(z, x_mean, x_std, eps=1e-8):
-    return (z * (x_std + eps)) + x_mean
+def inv_std_scaler(z, x_mean, x_std):
+    return (z * x_std) + x_mean
 
 # %% ../../nbs/common.scalers.ipynb 20
-def robust_scaler(x, mask):
+def robust_scaler(x, mask, eps=1e-6):
     """ Robust Median Scaler
 
     Standardizes temporal features by removing the median and scaling
@@ -177,6 +191,10 @@ def robust_scaler(x, mask):
     x_stds = torch.sqrt(masked_mean((x-x_means)**2, mask))        
     x_mad_aux = x_stds / 0.6744897501960817
     x_mad = x_mad * (x_mad>0) + x_mad_aux * (x_mad==0)
+    
+    # Protect against division by zero
+    x_mad[x_mad==0] = 1.0
+    x_mad = x_mad + eps
 
     z = (x - x_median) / x_mad
     return z, x_median, x_mad
@@ -186,7 +204,7 @@ def inv_robust_scaler(z, x_median, x_mad):
     return z * x_mad + x_median
 
 # %% ../../nbs/common.scalers.ipynb 23
-def invariant_scaler(x, mask):
+def invariant_scaler(x, mask, eps=1e-6):
     """ Invariant Median Scaler
 
     Standardizes temporal features by removing the median and scaling
@@ -216,6 +234,10 @@ def invariant_scaler(x, mask):
     x_mad_aux = x_stds / 0.6744897501960817
     x_mad = x_mad * (x_mad>0) + x_mad_aux * (x_mad==0)
 
+    # Protect against division by zero
+    x_mad[x_mad==0] = 1.0
+    x_mad = x_mad + eps
+    
     z = torch.arcsinh((x - x_median) / x_mad)
     return z, x_median, x_mad
 
