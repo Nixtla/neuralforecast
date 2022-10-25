@@ -13,7 +13,7 @@ import torch.nn as nn
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nbeatsx.ipynb 6
+# %% ../../nbs/models.nbeatsx.ipynb 8
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int):
         super().__init__()
@@ -70,7 +70,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum('bp,pt->bt', theta[:, :cut_point], self.forecast_basis)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeatsx.ipynb 7
+# %% ../../nbs/models.nbeatsx.ipynb 9
 ACTIVATIONS = ['ReLU',
                'Softplus',
                'Tanh',
@@ -86,9 +86,9 @@ class NBEATSBlock(nn.Module):
     def __init__(self, 
                  input_size: int,
                  h: int,
-                 futr_exog_size: int,
-                 hist_exog_size: int,
-                 stat_exog_size: int,
+                 futr_input_size: int,
+                 hist_input_size: int,
+                 stat_input_size: int,
                  n_theta: int, 
                  mlp_units: list,
                  basis: nn.Module, 
@@ -99,18 +99,18 @@ class NBEATSBlock(nn.Module):
         super().__init__()
 
         self.dropout_prob = dropout_prob
-        self.futr_exog_size = futr_exog_size
-        self.hist_exog_size = hist_exog_size
-        self.stat_exog_size = stat_exog_size
+        self.futr_input_size = futr_input_size
+        self.hist_input_size = hist_input_size
+        self.stat_input_size = stat_input_size
         
         assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
         activ = getattr(nn, activation)()
 
-        # Input vector for the block is y_lags (input_size) + historical exogenous (hist_exog_size*input_size)
-        #  + future exogenous (futr_exog_size*input_size) + static exogenous (stat_exog_size)
+        # Input vector for the block is y_lags (input_size) + historical exogenous (hist_input_size*input_size)
+        #  + future exogenous (futr_input_size*input_size) + static exogenous (stat_input_size)
         # [ Y_[t-L:t], X_[t-L:t], F_[t-L:t+H], S ]
-        input_size = input_size + hist_exog_size*input_size + \
-                     futr_exog_size*(input_size + h) + stat_exog_size
+        input_size = input_size + hist_input_size*input_size + \
+                     futr_input_size*(input_size + h) + stat_input_size
         
         hidden_layers = [nn.Linear(in_features=input_size,
                                    out_features=mlp_units[0][0])]
@@ -134,13 +134,13 @@ class NBEATSBlock(nn.Module):
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)
-        if self.hist_exog_size > 0:
+        if self.hist_input_size > 0:
             insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size,-1) ), dim=1)
 
-        if self.futr_exog_size > 0:
+        if self.futr_input_size > 0:
             insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size,-1) ), dim=1)
 
-        if self.stat_exog_size > 0:
+        if self.stat_input_size > 0:
             insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
             
         # Compute local projection weights and projection
@@ -148,13 +148,50 @@ class NBEATSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeatsx.ipynb 8
+# %% ../../nbs/models.nbeatsx.ipynb 10
 class NBEATSx(BaseWindows):
-    def __init__(self, 
-                 input_size,
+    """ NBEATSx
+
+    The Neural Basis Expansion Analysis with Exogenous variables (NBEATSx) is a simple
+    and effective deep learning architecture. It is built with a deep stack of MLPs with
+    doubly residual connections. The NBEATSx architecture includes additional exogenous
+    blocks, extending NBEATS capabilities and interpretability. With its interpretable
+    version, NBEATSx decomposes its predictions on seasonality, trend, and exogenous effects.
+
+    **Parameters:**<br>
+    `h`: int, Forecast horizon. <br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
+    `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
+    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
+    `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
+    `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float, initial optimization learning rate.<br>
+    `batch_size`: int, number of different series in each batch.<br>
+    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str=None, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int, random seed initialization for replicability.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+
+    **References:**<br>
+    -[Kin G. Olivares, Cristian Challu, Grzegorz Marcjasz, Rafał Weron, Artur Dubrawski (2021). 
+    "Neural basis expansion analysis with exogenous variables: Forecasting electricity prices with NBEATSx".](https://arxiv.org/abs/2104.05522)
+    """
+    def __init__(self,
                  h,
-                 n_polynomials=2,
+                 input_size,
                  n_harmonics=2,
+                 n_polynomials=2,
                  stack_types: list = ['identity', 'trend', 'seasonality'],
                  n_blocks: list = [1, 1, 1],
                  mlp_units: list = 3 * [[512, 512]],
@@ -164,72 +201,53 @@ class NBEATSx(BaseWindows):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
+                 loss=MAE(),
                  learning_rate=1e-3,
-                 scaler_type=None,
+                 batch_size=32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 loss=MAE(),
-                 batch_size=32, 
+                 scaler_type=None,
+                 random_seed=1,
                  num_workers_loader=0,
                  drop_last_loader=False,
-                 random_seed=1,
                  **trainer_kwargs):
-        """
-        N-BEATSx Model.
-        
-        **Parameters:**<br>
-        `input_size`: int, insample_size.<br>
-        `h`: int, Forecast horizon. <br>
-        `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-        `activation`: str, Activation function. An item from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid']. <br>
-        `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
-        `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
-        `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
-        `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-        `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-        `futr_exog_list`: List[str], List of future exogenous variables. <br>
-        `hist_exog_list`: List[str], List of historic exogenous variables. <br>
-        `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-        `learning_rate`: float, Learning rate between (0, 1).<br>
-        `loss`: Callable, Loss to optimize.<br>
-        `random_seed`: int, random_seed for pseudo random pytorch initializer and numpy random generator.<br>
-        """
         # Inherit BaseWindows class
         super(NBEATSx, self).__init__(h=h, 
-                                     loss=loss,
-                                     batch_size=batch_size,
-                                     scaler_type=scaler_type,
-                                     futr_exog_list=futr_exog_list,
-                                     hist_exog_list=hist_exog_list,
-                                     stat_exog_list=stat_exog_list,
-                                     num_workers_loader=num_workers_loader,
-                                     drop_last_loader=drop_last_loader,
-                                     random_seed=random_seed,
-                                     **trainer_kwargs)
+                                      input_size = input_size,
+                                      loss=loss,
+                                      learning_rate = learning_rate,
+                                      batch_size=batch_size,
+                                      windows_batch_size = windows_batch_size,
+                                      step_size = step_size,
+                                      scaler_type=scaler_type,
+                                      futr_exog_list=futr_exog_list,
+                                      hist_exog_list=hist_exog_list,
+                                      stat_exog_list=stat_exog_list,
+                                      num_workers_loader=num_workers_loader,
+                                      drop_last_loader=drop_last_loader,
+                                      random_seed=random_seed,
+                                      **trainer_kwargs)
 
-        self.input_size = input_size
-        self.learning_rate = learning_rate
-        self.windows_batch_size = windows_batch_size
-        self.step_size = step_size
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
+        # Architecture
+        self.futr_input_size = len(self.futr_exog_list)
+        self.hist_input_size = len(self.hist_exog_list)
+        self.stat_input_size = len(self.stat_exog_list)
 
-        blocks = self.create_stack(stack_types=stack_types, 
-                                   n_blocks=n_blocks,
+        blocks = self.create_stack(h=h,
                                    input_size=input_size,
-                                   h=h,
+                                   stack_types=stack_types, 
+                                   n_blocks=n_blocks,
                                    mlp_units=mlp_units,
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation,
                                    shared_weights=shared_weights,
                                    n_polynomials=n_polynomials, 
                                    n_harmonics=n_harmonics,
-                                   futr_exog_size=self.futr_exog_size,
-                                   hist_exog_size=self.hist_exog_size,
-                                   stat_exog_size=self.stat_exog_size)
+                                   futr_input_size=self.futr_input_size,
+                                   hist_input_size=self.hist_input_size,
+                                   stat_input_size=self.stat_input_size)
         self.blocks = torch.nn.ModuleList(blocks)
-        
+
         # Adapter with Loss dependent dimensions
         if self.loss.outputsize_multiplier > 1:
             self.out = nn.Linear(in_features=h,
@@ -243,7 +261,7 @@ class NBEATSx(BaseWindows):
                      dropout_prob_theta, 
                      activation, shared_weights,
                      n_polynomials, n_harmonics,
-                     futr_exog_size, hist_exog_size, stat_exog_size):                    
+                     futr_input_size, hist_input_size, stat_input_size):                    
 
         block_list = []
         for i in range(len(stack_types)):
@@ -274,9 +292,9 @@ class NBEATSx(BaseWindows):
 
                     nbeats_block = NBEATSBlock(input_size=input_size,
                                                h=h,
-                                               futr_exog_size=futr_exog_size,
-                                               hist_exog_size=hist_exog_size,
-                                               stat_exog_size=stat_exog_size,
+                                               futr_input_size=futr_input_size,
+                                               hist_input_size=hist_input_size,
+                                               stat_input_size=stat_input_size,
                                                n_theta=n_theta,
                                                mlp_units=mlp_units,
                                                basis=basis,

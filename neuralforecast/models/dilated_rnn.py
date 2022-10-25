@@ -253,8 +253,8 @@ class DRNN(nn.Module):
 # %% ../../nbs/models.dilated_rnn.ipynb 11
 class DilatedRNN(BaseRecurrent):
     def __init__(self,
-                 input_size: int,
                  h: int,
+                 input_size: int,
                  cell_type: str = 'LSTM',
                  state_hsize: int = 200, 
                  step_size: int = 1,
@@ -264,16 +264,20 @@ class DilatedRNN(BaseRecurrent):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
-                 normalize: bool = True,
                  loss=MAE(),
-                 batch_size=32, 
+                 batch_size=32,
+                 scaler_type: str='robust',
                  num_workers_loader=0,
                  drop_last_loader=False,
                  random_seed=1,
                  **trainer_kwargs):
         super(DilatedRNN, self).__init__(
+            h=h,
+            input_size = input_size,
             loss=loss,
+            learning_rate = learning_rate,
             batch_size=batch_size,
+            scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -282,14 +286,6 @@ class DilatedRNN(BaseRecurrent):
             random_seed=random_seed,
             **trainer_kwargs
         )
-
-        self.input_size = input_size
-        self.h = h
-        self.learning_rate = learning_rate
-        self.loss = loss
-        self.normalize = normalize
-        self.random_seed = random_seed
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         self.cell_type = cell_type
         self.state_hsize = state_hsize

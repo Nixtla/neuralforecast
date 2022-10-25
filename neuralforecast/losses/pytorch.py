@@ -499,11 +499,10 @@ class PMM:
         This Poisson Mixture statistical model assumes independence across groups of 
         data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-        $$ P\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} P\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
-        \prod_{\beta\in[g_{i}]}
-        \left(
-        \sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} 
-        \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k})\right)$$        
+        $$ P\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+        \prod_{ [g_{i}] \in \mathcal{G}} P \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
+        \prod_{\\beta\in[g_{i}]} 
+        \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
 
         **References:**<br>
         [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
@@ -606,11 +605,11 @@ class GMM:
         This Gaussian Mixture statistical model assumes independence across groups of 
         data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-        $$ P\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} P\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
-        \prod_{\beta\in[g_{i}]}
-        \left(
-        \sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} 
-        \mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)$$
+        $$ P\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+        \prod_{ [g_{i}] \in \mathcal{G}} P\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
+        \prod_{\\beta\in[g_{i}]}
+        \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} 
+        \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
 
         **References:**<br>
         [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)

@@ -6,7 +6,7 @@ website:
         contents:
         - core.ipynb
         - models.ipynb
-        - section: Model Documentation
+        - section: Models' Documentation
           contents:
           - section: A. RNN-Based
             contents:
@@ -17,8 +17,9 @@ website:
           - section: B. MLP-Based
             contents:
             - models.mlp.ipynb
-            - models.nbeats.ipynb
             - models.nhits.ipynb
+            - models.nbeats.ipynb
+            - models.nbeatsx.ipynb
           - section: C. Transformer-Based
             contents:
             - models.tft.ipynb
@@ -35,6 +36,7 @@ website:
           - common.base_recurrent.ipynb
           - common.base_windows.ipynb
           - common.scalers.ipynb
+          - common.encoders.ipynb
         - section: Utils
           contents:
           - tsdataset.ipynb

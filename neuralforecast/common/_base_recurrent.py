@@ -3,22 +3,28 @@
 # %% auto 0
 __all__ = ['BaseRecurrent']
 
-# %% ../../nbs/common.base_recurrent.ipynb 4
+# %% ../../nbs/common.base_recurrent.ipynb 5
 import random
 
 import numpy as np
-import pytorch_lightning as pl
 import torch
+import torch.nn as nn
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import TQDMProgressBar
 
+from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 
-# %% ../../nbs/common.base_recurrent.ipynb 5
+# %% ../../nbs/common.base_recurrent.ipynb 6
 class BaseRecurrent(pl.LightningModule):
     
-    def __init__(self, 
+    def __init__(self,
+                 h,
+                 input_size,
                  loss,
+                 learning_rate,
                  batch_size=32,
+                 scaler_type=None,
                  futr_exog_list=None,
                  hist_exog_list=None,
                  stat_exog_list=None,
@@ -31,12 +37,38 @@ class BaseRecurrent(pl.LightningModule):
         self.save_hyperparameters() # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
-        #fit arguments
-        self.val_size: int = 0
-        self.test_size: int = 0
-        #predict arguments
-        self.step_size: int = 1
-        
+
+        # Padder to complete train windows, 
+        # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
+        self.h = h
+        self.input_size = input_size
+        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+
+        # Loss
+        self.loss = loss
+        self.learning_rate = learning_rate
+
+        # Scaler
+        # TODO: clean hack and add correct use of self.scaler
+        if scaler_type is None:
+            self.normalize = False
+            self.scaler = None
+        else:
+            self.normalize = True
+            self.scaler = TemporalNorm(scaler_type=scaler_type)
+
+        # Variables
+        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
+        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
+        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+
+        # Fit arguments
+        self.val_size = 0
+        self.test_size = 0
+
+        # Predict arguments
+        self.step_size = 1
+
         # Trainer
         # we need to instantiate the trainer each time we want to use it
         self.trainer_kwargs = {**trainer_kwargs}
@@ -51,13 +83,8 @@ class BaseRecurrent(pl.LightningModule):
                 self.trainer_kwargs['accelerator'] = "gpu"
         if self.trainer_kwargs.get('devices', None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs['devices'] = -1
+                self.trainer_kwargs['devices'] = -1        
 
-        # Variables
-        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
-        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
-        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
-        
         # DataModule arguments
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
@@ -143,8 +170,9 @@ class BaseRecurrent(pl.LightningModule):
 
         # [B, C, Ws, L+H]
         windows_batch = dict(temporal=windows,
-                             static=None,
-                             temporal_cols=temporal_cols)
+                             temporal_cols=temporal_cols,
+                             static=batch.get('static', None),
+                             static_cols=batch.get('static_cols', None))
 
         return windows_batch
 
@@ -174,7 +202,7 @@ class BaseRecurrent(pl.LightningModule):
         # Filter static variables
         if len(self.stat_exog_list):
             static_idx = windows['static_cols'].get_indexer(self.stat_exog_list)
-            stat_exog = windows['static'][:, 0, static_idx]
+            stat_exog = windows['static'][:, static_idx]
         else:
             stat_exog = None
 
@@ -202,7 +230,7 @@ class BaseRecurrent(pl.LightningModule):
         y_hat = self(windows_batch)
 
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
-        self.log('train_loss', loss, prog_bar=True, on_epoch=True)
+        self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -239,7 +267,7 @@ class BaseRecurrent(pl.LightningModule):
         outsample_mask = outsample_mask[:, -val_windows:-1, :]
 
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
-        self.log('val_loss', loss, prog_bar=True, on_epoch=True)
+        self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
 
         return loss
 
@@ -247,7 +275,7 @@ class BaseRecurrent(pl.LightningModule):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(outputs).mean()
-        self.log("ptl/val_loss", avg_loss)
+        self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
 
     def predict_step(self, batch, batch_idx):
         # Normalize
@@ -275,15 +303,22 @@ class BaseRecurrent(pl.LightningModule):
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0):
-        """
-        Fits Model.
-        
+        """ Fit.
+
+        The `fit` method, optimizes the neural network's weights using the
+        initialization parameters (`learning_rate`, `batch_size`, ...)
+        and the `loss` function as defined during the initialization. 
+        Within `fit` we use a PyTorch Lightning `Trainer` that
+        inherits the initialization's `self.trainer_kwargs`, to customize
+        its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+        The method is designed to be compatible with SKLearn-like classes
+        and in particular to be compatible with the StatsForecast library.
+
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `val_size`: int, validation size.<br>
-        `test_size`: int, test size.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `val_size`: int, validation size for temporal cross-validation.<br>
+        `test_size`: int, test size for temporal cross-validation.<br>
         """
         self.val_size = val_size
         self.test_size = test_size
@@ -296,14 +331,15 @@ class BaseRecurrent(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
-    def predict(self, dataset, step_size=1, **data_kwargs):
-        """
-        Predicts RNN Model.
-        
+    def predict(self, dataset, step_size=1, **data_module_kwargs):
+        """ Predict.
+
+        Neural network prediction with PL's `Trainer` execution of `predict_step`.
+
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `step_size`: int=1, Step size between each window.<br>
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         if step_size != self.step_size:
             print(f'WARNING: step_size {step_size} different than self.step_size, \
@@ -312,7 +348,12 @@ class BaseRecurrent(pl.LightningModule):
         self.predict_step_size = self.step_size
         # fcsts (window, batch, h)
         trainer = pl.Trainer(**self.trainer_kwargs)
-        fcsts = trainer.predict(self, datamodule=TimeSeriesDataModule(dataset, **data_kwargs))
+        datamodule = TimeSeriesDataModule(
+            dataset,
+            num_workers=self.num_workers_loader,
+            **data_module_kwargs
+        )
+        fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:
             fcsts = torch.vstack([fcst[:, -(1+(self.test_size-self.h)//self.step_size ):,:] for fcst in fcsts])
             fcsts = fcsts.numpy().flatten()

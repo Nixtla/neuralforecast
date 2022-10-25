@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NHITS']
 
-# %% ../../nbs/models.nhits.ipynb 3
+# %% ../../nbs/models.nhits.ipynb 5
 from typing import Tuple
 
 import numpy as np
@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nhits.ipynb 6
+# %% ../../nbs/models.nhits.ipynb 8
 class _IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, interpolation_mode: str):
         super().__init__()
@@ -47,7 +47,7 @@ class _IdentityBasis(nn.Module):
 
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 7
+# %% ../../nbs/models.nhits.ipynb 9
 ACTIVATIONS = ['ReLU',
                'Softplus',
                'Tanh',
@@ -69,28 +69,26 @@ class NHITSBlock(nn.Module):
                  n_theta: int,
                  mlp_units: list,
                  basis: nn.Module,
-                 futr_exog_size: int,
-                 hist_exog_size: int,
-                 stat_exog_size: int,
+                 futr_input_size: int,
+                 hist_input_size: int,
+                 stat_input_size: int,
                  n_pool_kernel_size: int,
                  pooling_mode: str,
                  dropout_prob: float,
                  activation: str):
-        """
-        """
         super().__init__()
 
         pooled_hist_size = int(np.ceil(input_size/n_pool_kernel_size))
         pooled_futr_size = int(np.ceil((input_size+h)/n_pool_kernel_size))
 
         input_size = pooled_hist_size + \
-                     hist_exog_size*pooled_hist_size + \
-                     futr_exog_size*(pooled_futr_size) + stat_exog_size
+                     hist_input_size*pooled_hist_size + \
+                     futr_input_size*(pooled_futr_size) + stat_input_size
 
         self.dropout_prob = dropout_prob
-        self.futr_exog_size = futr_exog_size
-        self.hist_exog_size = hist_exog_size
-        self.stat_exog_size = stat_exog_size
+        self.futr_input_size = futr_input_size
+        self.hist_input_size = hist_input_size
+        self.stat_input_size = stat_input_size
         
         assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
         assert pooling_mode in POOLING, f'{pooling_mode} is not in {POOLING}'
@@ -129,19 +127,19 @@ class NHITSBlock(nn.Module):
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)
-        if self.hist_exog_size > 0:
+        if self.hist_input_size > 0:
             hist_exog = hist_exog.permute(0,2,1) # [B, L, C] -> [B, C, L]
             hist_exog = self.pooling_layer(hist_exog)
             hist_exog = hist_exog.permute(0,2,1) # [B, C, L] -> [B, L, C]
             insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size,-1) ), dim=1)
 
-        if self.futr_exog_size > 0:
+        if self.futr_input_size > 0:
             futr_exog = futr_exog.permute(0,2,1) # [B, L, C] -> [B, C, L]
             futr_exog = self.pooling_layer(futr_exog)
             futr_exog = futr_exog.permute(0,2,1) # [B, C, L] -> [B, L, C]
             insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size,-1) ), dim=1)
 
-        if self.stat_exog_size > 0:
+        if self.stat_input_size > 0:
             insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
             
         # Compute local projection weights and projection
@@ -149,11 +147,43 @@ class NHITSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 8
+# %% ../../nbs/models.nhits.ipynb 10
 class NHITS(BaseWindows):
+    """ NHITS
+
+    The Neural Hierarchical Interpolation for Time Series (NHITS), is an MLP-based deep
+    neural architecture with backward and forward residual links. NHITS tackles volatility and
+    memory complexity challenges, by locally specializing its sequential predictions into
+    the signals frequencies with hierarchical interpolation and pooling.
+
+    **Parameters:**<br>
+    `input_size`: int, insample_size.<br>
+    `h`: int, Forecast horizon. <br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
+    `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
+    `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
+    `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
+    `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
+    `learning_rate`: float, Learning rate between (0, 1).<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+
+    **References:**<br>
+    -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza, 
+    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".](https://arxiv.org/abs/2201.12886)
+    """
     def __init__(self, 
-                 input_size,
                  h,
+                 input_size,
                  stack_types: list = ['identity', 'identity', 'identity'],
                  n_blocks: list = [1, 1, 1],
                  mlp_units: list = 3 * [[512, 512]],
@@ -166,59 +196,41 @@ class NHITS(BaseWindows):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
+                 loss=MAE(),
                  learning_rate=1e-3,
-                 scaler_type=None,
+                 batch_size=32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 loss=MAE(),
-                 batch_size=32, 
+                 scaler_type=None,
+                 random_seed=1,
                  num_workers_loader=0,
                  drop_last_loader=False,
-                 random_seed=1,
                  **trainer_kwargs):
-        """
-        N-HiTS Model.
-        
-        **Parameters:**<br>
-        `input_size`: int, insample_size.<br>
-        `h`: int, Forecast horizon. <br>
-        `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-        `activation`: str, Activation function. An item from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid']. <br>
-        `futr_exog_list`: List[str], List of future exogenous variables. <br>
-        `hist_exog_list`: List[str], List of historic exogenous variables. <br>
-        `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
-        `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
-        `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
-        `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-        `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-        `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-        `learning_rate`: float, Learning rate between (0, 1).<br>
-        `loss`: Callable, Loss to optimize.<br>
-        `random_seed`: int, random_seed for pseudo random pytorch initializer and numpy random generator.<br>
-        """
-        super(NHITS, self).__init__(h=h, 
+        # Inherit BaseWindows class
+        super(NHITS, self).__init__(h=h,
+                                    input_size=input_size,
                                     loss=loss,
+                                    learning_rate=learning_rate,
                                     batch_size=batch_size,
+                                    windows_batch_size=windows_batch_size,
+                                    step_size=step_size,
                                     scaler_type=scaler_type,
                                     futr_exog_list=futr_exog_list,
-                                     hist_exog_list=hist_exog_list,
-                                     stat_exog_list=stat_exog_list,
+                                    hist_exog_list=hist_exog_list,
+                                    stat_exog_list=stat_exog_list,
                                     num_workers_loader=num_workers_loader,
                                     drop_last_loader=drop_last_loader,
                                     random_seed=random_seed,
                                     **trainer_kwargs)
-        self.input_size = input_size
-        self.learning_rate = learning_rate
-        self.windows_batch_size = windows_batch_size
-        self.step_size = step_size
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
 
-        blocks = self.create_stack(stack_types=stack_types, 
-                                   n_blocks=n_blocks,
+        self.futr_input_size = len(self.futr_exog_list)
+        self.hist_input_size = len(self.hist_exog_list)
+        self.stat_input_size = len(self.stat_exog_list)
+
+        blocks = self.create_stack(h=h,
                                    input_size=input_size,
-                                   h=h,
+                                   stack_types=stack_types, 
+                                   n_blocks=n_blocks,
                                    mlp_units=mlp_units,
                                    n_pool_kernel_size=n_pool_kernel_size,
                                    n_freq_downsample=n_freq_downsample,
@@ -226,9 +238,9 @@ class NHITS(BaseWindows):
                                    interpolation_mode=interpolation_mode,
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation,
-                                   futr_exog_size=self.futr_exog_size,
-                                   hist_exog_size=self.hist_exog_size,
-                                   stat_exog_size=self.stat_exog_size)
+                                   futr_input_size=self.futr_input_size,
+                                   hist_input_size=self.hist_input_size,
+                                   stat_input_size=self.stat_input_size)
         self.blocks = torch.nn.ModuleList(blocks)
         
         # Adapter with Loss dependent dimensions
@@ -247,7 +259,7 @@ class NHITS(BaseWindows):
                      interpolation_mode,
                      dropout_prob_theta, 
                      activation,
-                     futr_exog_size, hist_exog_size, stat_exog_size):                     
+                     futr_input_size, hist_input_size, stat_input_size):                     
 
         block_list = []
         for i in range(len(stack_types)):
@@ -260,8 +272,8 @@ class NHITS(BaseWindows):
                                        forecast_size=h,
                                        interpolation_mode=interpolation_mode)                 
 
-                nbeats_block = NHITSBlock(input_size=input_size,
-                                          h=h,
+                nbeats_block = NHITSBlock(h=h,
+                                          input_size=input_size,
                                           n_theta=n_theta,
                                           mlp_units=mlp_units,
                                           n_pool_kernel_size=n_pool_kernel_size[i],
@@ -269,9 +281,9 @@ class NHITS(BaseWindows):
                                           basis=basis,
                                           dropout_prob=dropout_prob_theta,
                                           activation=activation,
-                                          futr_exog_size=futr_exog_size,
-                                          hist_exog_size=hist_exog_size,
-                                          stat_exog_size=stat_exog_size)
+                                          futr_input_size=futr_input_size,
+                                          hist_input_size=hist_input_size,
+                                          stat_input_size=stat_input_size)
 
                 # Select type of evaluation and apply it to all layers of block
                 block_list.append(nbeats_block)
