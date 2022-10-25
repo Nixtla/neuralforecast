@@ -6,7 +6,7 @@ website:
         contents:
         - core.ipynb
         - models.ipynb
-        - section: Model Documentation
+        - section: Models' Documentation
           contents:
           - section: A. RNN-Based
             contents:

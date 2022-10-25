@@ -3,34 +3,62 @@
 # %% auto 0
 __all__ = ['RNN']
 
-# %% ../../nbs/models.rnn.ipynb 5
+# %% ../../nbs/models.rnn.ipynb 6
 import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 
-# %% ../../nbs/models.rnn.ipynb 6
+# %% ../../nbs/models.rnn.ipynb 7
 class RNN(BaseRecurrent):
+    """ RNN
+
+    Multi Layer Elman RNN (RNN), with simple multi-step MLP decoder.
+    The network has `tanh` or `relu` non-linearities, it is trained using 
+    ADAM stochastic gradient descent. The network accepts static, historic 
+    and future exogenous data, flattens the inputs.
+
+    **Parameters:**<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `n_layers`: int=2, number of layers for the RNN.<br>
+    `state_hsize`: int=200, units for the RNN's hidden state size.<br>
+    `activation`: str=`tanh`, type of RNN activation from `tanh` or `relu`.<br>
+    `bias`: bool=True, whether or not to use biases b_ih, b_hh within RNN units.<br>
+    `dropout`: float=0., dropout regularization applied to RNN outputs.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float=1e-3, initial optimization learning rate (0,1).<br>
+    `batch_size`: int=32, number of differentseries in each batch.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+    """
     def __init__(self,
                  h: int,
                  input_size: int,
-                 state_hsize: int = 200, 
-                 step_size: int = 1,
                  n_layers: int = 2,
+                 state_hsize: int = 200,
                  activation: str = 'tanh',
                  bias: bool = True,
                  dropout: float = 0.,
-                 learning_rate: float = 1e-3,
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
                  loss=MAE(),
+                 learning_rate: float = 1e-3,
                  batch_size=32,
+                 step_size: int = 1,
                  scaler_type: str='robust',
+                 random_seed=1,
                  num_workers_loader=0,
                  drop_last_loader=False,
-                 random_seed=1,
                  **trainer_kwargs):
         super(RNN, self).__init__(
             h = h,

@@ -335,15 +335,22 @@ class BaseWindows(pl.LightningModule):
         return y_hat
     
     def fit(self, dataset, val_size=0, test_size=0):
-        """
-        Fits Model.
-        
+        """ Fit.
+
+        The `fit` method, optimizes the neural network's weights using the
+        initialization parameters (`learning_rate`, `windows_batch_size`, ...)
+        and the `loss` function as defined during the initialization. 
+        Within `fit` we use a PyTorch Lightning `Trainer` that
+        inherits the initialization's `self.trainer_kwargs`, to customize
+        its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+        The method is designed to be compatible with SKLearn-like classes
+        and in particular to be compatible with the StatsForecast library.
+
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `val_size`: int, validation size.<br>
-        `test_size`: int, test size.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `val_size`: int, validation size for temporal cross-validation.<br>
+        `test_size`: int, test size for temporal cross-validation.<br>
         """
         self.val_size = val_size
         self.test_size = test_size
@@ -353,42 +360,44 @@ class BaseWindows(pl.LightningModule):
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader
         )
-        
+
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
         
-    def predict(self, dataset, test_size=None, step_size=1, **data_kwargs):
-        """
-        Predicts Model.
+    def predict(self, dataset, test_size=None, step_size=1, **data_module_kwargs):
+        """ Predict.
+
+        Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `test_size`: int=None, test size for temporal cross-validation.<br>
         `step_size`: int=1, Step size between each window.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         self.predict_step_size = step_size
         self.decompose_forecast = False
-        datamodule = TimeSeriesDataModule(dataset, **data_kwargs)
+        datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)        
         fcsts = torch.vstack(fcsts).numpy().flatten()    
         fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
         return fcsts
 
-    def decompose(self, dataset, step_size=1, **data_kwargs):
-        """
-        Predicts with decomposition.
-        
+    def decompose(self, dataset, step_size=1, **data_module_kwargs):
+        """ Decompose Predictions.
+
+        Decompose the predictions through the network's layers.
+        Available methods are `ESRNN`, `NHITS`, `NBEATS`, and `NBEATSx`.
+
         **Parameters:**<br>
-        `dataset`: TimeSeriesDataset.<br>
-        `trainer`: pl.Trainer.<br>
-        `step_size`: int, Step size between each window.<br>
-        `data_kwargs`: extra arguments to be passed to TimeSeriesDataModule.
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation here](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `step_size`: int=1, step size between each window of temporal data.<br>
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         self.predict_step_size = step_size
         self.decompose_forecast = True
-        datamodule = TimeSeriesDataModule(dataset, **data_kwargs)
+        datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         self.decompose_forecast = False # Default decomposition back to false
