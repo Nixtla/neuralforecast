@@ -121,10 +121,19 @@ class BaseWindows(pl.LightningModule):
             windows = windows.reshape(-1, window_size, len(temporal_cols))
 
             available_idx = temporal_cols.get_loc('available_mask')
+            # Sample condition
             sample_condition = windows[:, -self.h:, available_idx]
             sample_condition = torch.sum(sample_condition, axis=1)
-            sample_condition = (sample_condition > 0)
-            windows = windows[sample_condition]
+            # Available condition
+            available_condition = windows[:, :-self.h, available_idx]
+            available_condition = torch.sum(available_condition, axis=1)
+            # Final condition
+            final_condition = (sample_condition > 0) & (available_condition > 0)
+            windows = windows[final_condition]
+
+            # Protection of empty windows
+            if final_condition.sum() == 0:
+                raise Exception('No windows available for training')
 
             # Sample windows
             n_windows = len(windows)
@@ -191,6 +200,8 @@ class BaseWindows(pl.LightningModule):
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         #print('temporal_data', temporal_data)
+        # print('temporal_data', temporal_data.max())
+        # print('scaler', self.scaler.x_scale.min())
         
         # Replace values in windows dict
         temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)] = temporal_data
