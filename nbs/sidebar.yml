@@ -48,3 +48,4 @@ website:
         - examples/UncertaintyIntervals.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
         - examples/Save_Load_models.ipynb
+        - examples/Transfer_Learning.ipynb
