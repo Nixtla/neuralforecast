@@ -35,6 +35,8 @@ class BaseWindows(pl.LightningModule):
                  random_seed=1, 
                  **trainer_kwargs):
         super(BaseWindows, self).__init__()
+
+        self.save_hyperparameters() # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
         
@@ -408,3 +410,13 @@ class BaseWindows(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.test_size = test_size
+
+    def save(self, path):
+        """ BaseWindows.save
+
+        Save the fitted model to disk.
+
+        **Parameters:**<br>
+        `path`: str, path to save the model.<br>
+        """
+        self.trainer.save_checkpoint(path)

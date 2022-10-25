@@ -4,12 +4,17 @@
 __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
+import os
+import pickle
+from os.path import isfile, join
 from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
 
 from .tsdataset import TimeSeriesDataset
+from .models import (DilatedRNN, GMM_TFT, TFT, GRU, LSTM,
+                                   RNN, NBEATS, NBEATSx, NHITS, MLP)
 
 # %% ../nbs/core.ipynb 5
 def _cv_dates(last_dates, freq, h, test_size, step_size=1):
@@ -36,6 +41,12 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
     return dates
 
 # %% ../nbs/core.ipynb 9
+MODEL_FILENAME_DICT = {'dilatedrnn': DilatedRNN, 'gmm_tft': GMM_TFT, 'gru': GRU, 'lstm': LSTM,
+                       'mlp': MLP, 'nbeats': NBEATS, 'nbeatsx': NBEATSx, 'nhits': NHITS, 'rnn': RNN, 'tft': TFT,
+                       'autodilatedrnn': DilatedRNN, 'autogru': GRU, 'autolstm': LSTM, 'autornn': RNN,
+                       'automlp': MLP, 'autonbeats': NBEATS, 'autonhits': NHITS}
+
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
     
     def __init__(self, 
@@ -59,15 +70,19 @@ class NeuralForecast:
         self.models = models
         self.freq = pd.tseries.frequencies.to_offset(freq)
 
+        # Flags and attributes
+        self._fitted = False
+
     def _prepare_fit(self, df, sort_df):
         #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(df=df, sort_df=sort_df)
         self.sort_df = sort_df
 
     def fit(self,
-            df: Optional[pd.DataFrame],
+            df: Optional[pd.DataFrame] = None,
             val_size: Optional[int] = 0,
-            sort_df: bool = True):
+            sort_df: bool = True,
+            verbose: bool = False):
         """Fit the core.NeuralForecast.
 
         Fit `models` to a large set of time series from DataFrame `df`.
@@ -81,11 +96,21 @@ class NeuralForecast:
         **Returns:**<br>
         `self`: Returns with stored `NeuralForecast` fitted `models`.
         """
-        self._prepare_fit(df, sort_df)
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
+
+        # Process and save new dataset (in self)
+        if df is not None:
+            self._prepare_fit(df=df, sort_df=sort_df)
+        else:
+            if verbose: print('Using stored dataset.')
+
         #train + validation
         for model in self.models:
             model.fit(self.dataset, val_size=val_size)
         #train with the full dataset
+
+        self._fitted = True
 
     def _make_future_df(self, h: int):
         if issubclass(self.last_dates.dtype.type, np.integer):
@@ -101,7 +126,12 @@ class NeuralForecast:
         df = pd.DataFrame({'ds': dates}, index=idx)
         return df
 
-    def predict(self, futr_df: Optional[pd.DataFrame] = None, **data_kwargs):
+    def predict(self,
+                df: Optional[pd.DataFrame] = None,
+                futr_df: Optional[pd.DataFrame] = None,
+                sort_df: bool = True,
+                verbose: bool = False,
+                **data_kwargs):
         """Predict with core.NeuralForecast.
 
         Use stored fitted `models` to predict large set of time series from DataFrame `df`.        
@@ -112,26 +142,38 @@ class NeuralForecast:
         **Returns:**<br>
         `fcsts_df`: pandas.DataFrame, with `models` columns for point predictions.<br>
         """
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
+
+        # Process and save new dataset (in self)
+        if df is not None:
+            self._prepare_fit(df=df, sort_df=sort_df)
+        else:
+            if verbose: print('Using stored dataset.')
+
         cols = []
+        count_names = {'model': 0}
         for model in self.models:
-            cols += [type(model).__name__ + n for n in model.loss.output_names]
+            model_name = type(model).__name__
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            cols += [model_name + n for n in model.loss.output_names]
 
         # Placeholder dataframe for predictions with unique_id and ds
         fcsts_df = self._make_future_df(h=self.h)
 
-        # Update dataset
+        # Update and define new forecasting dataset
         if futr_df is not None:
-            #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
-            self.dataset, _, _, _ = self.dataset._update_futr_exog(futr_df)
-            #self.ds = self.ds.union(futr_ds, sort=True)
+            dataset = TimeSeriesDataset.update_dataset(dataset=self.dataset, future_df=futr_df)
         else:
-            self.dataset, _, _, _ = self.dataset._update_futr_exog(fcsts_df.reset_index())
+            dataset = TimeSeriesDataset.update_dataset(dataset=self.dataset, future_df=fcsts_df.reset_index())
 
         col_idx = 0
         fcsts = np.full((self.h * len(self.uids), len(cols)), fill_value=np.nan)
         for model in self.models:
             model.set_test_size(self.h) # To predict h steps ahead
-            model_fcsts = model.predict(dataset=self.dataset, **data_kwargs)
+            model_fcsts = model.predict(dataset=dataset, **data_kwargs)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
             fcsts[:,col_idx:col_idx+output_length] = model_fcsts
@@ -151,6 +193,7 @@ class NeuralForecast:
                          val_size: Optional[int] = 0, 
                          test_size: Optional[int] = None,
                          sort_df: bool = True,
+                         verbose: bool = False,
                          **data_kwargs):
         """Temporal Cross-Validation with core.NeuralForecast.
 
@@ -168,9 +211,23 @@ class NeuralForecast:
         `fcsts_df`: pandas.DataFrame, with insample `models` columns for point predictions and probabilistic
         predictions for all fitted `models`.<br>        
         """
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
+
+        # Declare predictions pd.DataFrame
+        if df is not None:
+            self._prepare_fit(df=df, sort_df=sort_df)
+        else:
+            if verbose: print('Using stored dataset.')
+
         cols = []
+        count_names = {'model': 0}
         for model in self.models:
-            cols += [type(model).__name__ + n for n in model.loss.output_names]            
+            model_name = type(model).__name__
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            cols += [model_name + n for n in model.loss.output_names]            
 
         h = self.models[0].h
         if test_size is None:
@@ -184,8 +241,6 @@ class NeuralForecast:
         else:
             raise Exception('you must define `n_windows` or `test_size` but not both')
 
-        # Declare predictions pd.DataFrame
-        self._prepare_fit(df=df, sort_df=sort_df)
         fcsts_df = _cv_dates(last_dates=self.last_dates, freq=self.freq, 
                              h=h, test_size=test_size, step_size=step_size)
         idx = pd.Index(np.repeat(self.uids, h * n_windows), name='unique_id')
@@ -214,3 +269,121 @@ class NeuralForecast:
         fcsts_df = fcsts_df.merge(df, how='left', on=['unique_id', 'ds'])
         return fcsts_df
         
+    # Save list of models with pytorch lightning save_checkpoint function
+    def save(self, path: str, model_index: Optional[List]=None, save_dataset: bool=True, overwrite: bool=False):
+        """ Save NeuralForecast core class.
+
+        `core.NeuralForecast`'s method to save current status of models, dataset, and configuration.
+
+        *Parameters:*<br>
+        `path`: str, directory to save current status.<br>
+        `model_index`: Optional[List] = None, optional list to specify which models from list of self.models to save.<br>
+        `save_dataset`: bool = True, whether to save dataset or not.<br>
+        `overwrite`: bool = False, whether to overwrite files or not.<br>
+        """
+        # Standarize path without '/'
+        if path[-1] == '/':
+            path = path[:-1]
+
+        # Model index list
+        if model_index is None:
+            model_index = list(range(len(self.models)))
+
+        # Create directory if not exists
+        os.makedirs(path, exist_ok = True)
+
+        # Check if directory is empty to protect overwriting files
+        dir = os.listdir(path)
+        
+        # Checking if the list is empty or not
+        if (len(dir) > 0) and (not overwrite):
+            raise Exception('Directory is not empty. Set `overwrite=True` to overwrite files.')
+
+        # Save models
+        count_names = {'model': 0}
+        for i, model in enumerate(self.models):
+            # Skip model if not in list
+            if i not in model_index:
+                continue
+
+            model_name = type(model).__name__.lower().replace('_', '')
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
+
+        # Save dataset
+        if (save_dataset) and (hasattr(self, 'dataset')):
+            with open(f"{path}/dataset.pkl", "wb") as f:
+                pickle.dump(self.dataset, f)
+        elif save_dataset:
+            raise Exception('You need to have a stored dataset to save it, \
+                             set `save_dataset=False` to skip saving dataset.')
+
+        # Save configuration and parameters
+        config_dict = {'h': self.h,
+                       'freq': self.freq,
+                       'uids': self.uids,
+                       'last_dates': self.last_dates,
+                       'ds': self.ds,
+                       'sort_df': self.sort_df,
+                       '_fitted': self._fitted}
+
+        with open(f"{path}/configuration.pkl", "wb") as f:
+                pickle.dump(config_dict, f)
+
+    @staticmethod
+    def load(path, verbose=False):
+        """ Load NeuralForecast
+
+        `core.NeuralForecast`'s method to load checkpoint from path.
+
+        *Parameters:*<br>
+        `path`: str, directory to save current status.<br>
+        """
+        files = [f for f in os.listdir(path) if isfile(join(path, f))]
+
+        # Load models
+        models_ckpt = [f for f in files if f.endswith('.ckpt')]
+        if len(models_ckpt) == 0:
+            raise Exception('No model found in directory.') 
+        
+        if verbose: print(10 * '-' + ' Loading models ' + 10 * '-')
+        models = []
+        for model in models_ckpt:
+            model_name = model.split('_')[0]
+            models.append(MODEL_FILENAME_DICT[model_name].load_from_checkpoint(f"{path}/{model}"))
+            if verbose: print(f"Model {model_name} loaded.")
+
+        if verbose: print(10*'-' + ' Loading dataset ' + 10*'-')
+        # Load dataset
+        if 'dataset.pkl' in files:
+            with open(f"{path}/dataset.pkl", "rb") as f:
+                dataset = pickle.load(f)
+            if verbose: print('Dataset loaded.')
+        else:
+            dataset = None
+            if verbose: print('No dataset found in directory.')
+        
+        if verbose: print(10*'-' + ' Loading configuration ' + 10*'-')
+        # Load configuration
+        if 'configuration.pkl' in files:
+            with open(f"{path}/configuration.pkl", "rb") as f:
+                config_dict = pickle.load(f)
+            if verbose: print('Configuration loaded.')
+        else:
+            raise Exception('No configuration found in directory.')
+
+        # Create NeuralForecast object
+        neuralforecast = NeuralForecast(models=models, freq=config_dict['freq'])
+
+        # Dataset
+        if dataset is not None:
+            neuralforecast.dataset = dataset
+            neuralforecast.uids = config_dict['uids']
+            neuralforecast.last_dates = config_dict['last_dates']
+            neuralforecast.ds = config_dict['ds']
+            neuralforecast.sort_df = config_dict['sort_df']
+
+        # Fitted flag
+        neuralforecast._fitted = config_dict['_fitted']
+
+        return neuralforecast

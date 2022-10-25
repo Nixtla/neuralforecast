@@ -44,6 +44,7 @@ class AutoRNN(BaseAuto):
                  config=None, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -65,6 +66,7 @@ class AutoRNN(BaseAuto):
               config=config, 
               search_alg=search_alg,
               num_samples=num_samples, 
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -90,6 +92,7 @@ class AutoLSTM(BaseAuto):
                  config, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -106,7 +109,8 @@ class AutoLSTM(BaseAuto):
               h=h,
               config=config,
               search_alg=search_alg,
-              num_samples=num_samples, 
+              num_samples=num_samples,
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -132,6 +136,7 @@ class AutoGRU(BaseAuto):
                  config,
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -148,7 +153,8 @@ class AutoGRU(BaseAuto):
               h=h,
               config=config, 
               search_alg=search_alg,
-              num_samples=num_samples, 
+              num_samples=num_samples,
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -176,6 +182,7 @@ class AutoDilatedRNN(BaseAuto):
                  config, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -193,6 +200,7 @@ class AutoDilatedRNN(BaseAuto):
               config=config,
               search_alg=search_alg,
               num_samples=num_samples, 
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -220,6 +228,7 @@ class AutoMLP(BaseAuto):
                  config, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -241,6 +250,7 @@ class AutoMLP(BaseAuto):
               config=config, 
               search_alg=search_alg,
               num_samples=num_samples, 
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -266,6 +276,7 @@ class AutoNBEATS(BaseAuto):
                  config=None, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -287,6 +298,7 @@ class AutoNBEATS(BaseAuto):
               config=config,
               search_alg=search_alg,
               num_samples=num_samples, 
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
@@ -317,6 +329,7 @@ class AutoNHITS(BaseAuto):
                  config=None, 
                  search_alg=BasicVariantGenerator(random_state=1),
                  num_samples=10,
+                 refit_with_val=False,
                  cpus=cpu_count(),
                  gpus=torch.cuda.device_count(),
                  verbose=False):
@@ -337,7 +350,8 @@ class AutoNHITS(BaseAuto):
               h=h,
               config=config,
               search_alg=search_alg,
-              num_samples=num_samples, 
+              num_samples=num_samples,
+              refit_with_val=refit_with_val,
               cpus=cpus,
               gpus=gpus,
               verbose=verbose
