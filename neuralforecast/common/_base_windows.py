@@ -115,21 +115,29 @@ class BaseWindows(pl.LightningModule):
                                       size=window_size, 
                                       step=self.step_size)
 
-            # [batch, channels, windows, window_size] 0, 1, 2, 3
-            # -> [batch * windows, window_size, channels] 0, 2, 3, 1
+            # [B, C, Ws, L+H] 0, 1, 2, 3
+            # -> [B * Ws, L+H, C] 0, 2, 3, 1
+            windows_per_serie = windows.shape[2]
             windows = windows.permute(0, 2, 3, 1).contiguous()
             windows = windows.reshape(-1, window_size, len(temporal_cols))
 
+            # Sample and Available conditions
             available_idx = temporal_cols.get_loc('available_mask')
-            # Sample condition
             sample_condition = windows[:, -self.h:, available_idx]
             sample_condition = torch.sum(sample_condition, axis=1)
-            # Available condition
             available_condition = windows[:, :-self.h, available_idx]
             available_condition = torch.sum(available_condition, axis=1)
-            # Final condition
             final_condition = (sample_condition > 0) & (available_condition > 0)
             windows = windows[final_condition]
+
+            # Parse Static data to match windows
+            # [B, S_in] -> [B, Ws, S_in] -> [B*Ws, S_in]
+            static = batch.get('static', None)
+            static_cols=batch.get('static_cols', None)
+            if static is not None:
+                static = torch.repeat_interleave(static, 
+                                    repeats=windows_per_serie, dim=0)
+                static = static[final_condition]
 
             # Protection of empty windows
             if final_condition.sum() == 0:
@@ -142,11 +150,16 @@ class BaseWindows(pl.LightningModule):
                                           size=self.windows_batch_size,
                                           replace=(n_windows < self.windows_batch_size))
                 windows = windows[w_idxs]
+                
+                if static is not None:
+                    static = static[w_idxs]
 
             # think about interaction available * sample mask
+            # [B, C, Ws, L+H]
             windows_batch = dict(temporal=windows,
-                                 static=None,
-                                 temporal_cols=temporal_cols)
+                                 temporal_cols=temporal_cols,
+                                 static=static,
+                                 static_cols=static_cols)
             return windows_batch
 
         elif step in ['predict', 'val']:
@@ -173,11 +186,20 @@ class BaseWindows(pl.LightningModule):
 
             # [batch, channels, windows, window_size] 0, 1, 2, 3
             # -> [batch * windows, window_size, channels] 0, 2, 3, 1
+            windows_per_serie = windows.shape[2]
             windows = windows.permute(0, 2, 3, 1).contiguous()
             windows = windows.reshape(-1, window_size, len(temporal_cols))
+
+            static = batch.get('static', None)
+            static_cols=batch.get('static_cols', None)
+            if static is not None:
+                static = torch.repeat_interleave(static, 
+                                    repeats=windows_per_serie, dim=0)
+
             windows_batch = dict(temporal=windows,
-                                 static=None,
-                                 temporal_cols=temporal_cols)
+                                 temporal_cols=temporal_cols,
+                                 static=static,
+                                 static_cols=static_cols)
             return windows_batch
         else:
             raise ValueError(f'Unknown step {step}')
@@ -253,7 +275,7 @@ class BaseWindows(pl.LightningModule):
         # Filter static variables
         if len(self.stat_exog_list):
             static_idx = windows['static_cols'].get_indexer(self.stat_exog_list)
-            stat_exog = windows['static'][:, 0, static_idx]
+            stat_exog = windows['static'][:, static_idx]
         else:
             stat_exog = None
 

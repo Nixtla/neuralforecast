@@ -23,11 +23,11 @@ class MLP(BaseWindows):
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
-    `n_layers`: int, number of layers for the MLP.<br>
-    `hidden_size`: int, number of units for each layer of the MLP.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>    
+    `n_layers`: int, number of layers for the MLP.<br>
+    `hidden_size`: int, number of units for each layer of the MLP.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float, initial optimization learning rate (0,1).<br>
     `batch_size`: int=32, number of differentseries in each batch.<br>
@@ -42,11 +42,11 @@ class MLP(BaseWindows):
     def __init__(self,
                  h,
                  input_size,
+                 futr_exog_list=None,
+                 hist_exog_list=None,
+                 stat_exog_list=None,                 
                  num_layers=2,
                  hidden_size=1024,
-                 futr_exog_list = None,
-                 hist_exog_list = None,
-                 stat_exog_list = None,
                  loss=MAE(),
                  learning_rate=1e-3,
                  batch_size=32,
@@ -61,15 +61,15 @@ class MLP(BaseWindows):
         # Inherit BaseWindows class
         super(MLP, self).__init__(h=h,
                                   input_size=input_size,
+                                  futr_exog_list=futr_exog_list,
+                                  hist_exog_list=hist_exog_list,
+                                  stat_exog_list=stat_exog_list,                                  
                                   loss=loss,
                                   learning_rate=learning_rate,
                                   batch_size=batch_size,
                                   windows_batch_size=windows_batch_size,
                                   step_size=step_size,
                                   scaler_type=scaler_type,
-                                  futr_exog_list=futr_exog_list,
-                                  hist_exog_list=hist_exog_list,
-                                  stat_exog_list=stat_exog_list,
                                   num_workers_loader=num_workers_loader,
                                   drop_last_loader=drop_last_loader,
                                   random_seed=random_seed,
@@ -83,7 +83,7 @@ class MLP(BaseWindows):
         self.hist_input_size = len(self.hist_exog_list)
         self.stat_input_size = len(self.stat_exog_list)
 
-        input_size_first_layer = input_size + self.hist_input_size*input_size + \
+        input_size_first_layer = input_size + self.hist_input_size * input_size + \
                                  self.futr_input_size*(input_size + h) + self.stat_input_size
 
         # MultiLayer Perceptron
@@ -103,7 +103,7 @@ class MLP(BaseWindows):
         futr_exog     = windows_batch['futr_exog']
         hist_exog     = windows_batch['hist_exog']
         stat_exog     = windows_batch['stat_exog']
-
+        
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)

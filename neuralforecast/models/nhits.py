@@ -82,8 +82,8 @@ class NHITSBlock(nn.Module):
         pooled_futr_size = int(np.ceil((input_size+h)/n_pool_kernel_size))
 
         input_size = pooled_hist_size + \
-                     hist_input_size*pooled_hist_size + \
-                     futr_input_size*(pooled_futr_size) + stat_input_size
+                     hist_input_size * pooled_hist_size + \
+                     futr_input_size * pooled_futr_size + stat_input_size
 
         self.dropout_prob = dropout_prob
         self.futr_input_size = futr_input_size
@@ -141,7 +141,7 @@ class NHITSBlock(nn.Module):
 
         if self.stat_input_size > 0:
             insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
-            
+
         # Compute local projection weights and projection
         theta = self.layers(insample_y)
         backcast, forecast = self.basis(theta)
@@ -157,13 +157,13 @@ class NHITS(BaseWindows):
     the signals frequencies with hierarchical interpolation and pooling.
 
     **Parameters:**<br>
-    `input_size`: int, insample_size.<br>
     `h`: int, Forecast horizon. <br>
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
@@ -184,6 +184,9 @@ class NHITS(BaseWindows):
     def __init__(self, 
                  h,
                  input_size,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
                  stack_types: list = ['identity', 'identity', 'identity'],
                  n_blocks: list = [1, 1, 1],
                  mlp_units: list = 3 * [[512, 512]],
@@ -193,9 +196,6 @@ class NHITS(BaseWindows):
                  interpolation_mode: str = 'linear',
                  dropout_prob_theta = 0.,
                  activation = 'ReLU',
-                 futr_exog_list = None,
-                 hist_exog_list = None,
-                 stat_exog_list = None,
                  loss=MAE(),
                  learning_rate=1e-3,
                  batch_size=32,
@@ -206,30 +206,35 @@ class NHITS(BaseWindows):
                  num_workers_loader=0,
                  drop_last_loader=False,
                  **trainer_kwargs):
+
         # Inherit BaseWindows class
         super(NHITS, self).__init__(h=h,
                                     input_size=input_size,
+                                    futr_exog_list=futr_exog_list,
+                                    hist_exog_list=hist_exog_list,
+                                    stat_exog_list=stat_exog_list,                                    
                                     loss=loss,
                                     learning_rate=learning_rate,
                                     batch_size=batch_size,
                                     windows_batch_size=windows_batch_size,
                                     step_size=step_size,
                                     scaler_type=scaler_type,
-                                    futr_exog_list=futr_exog_list,
-                                    hist_exog_list=hist_exog_list,
-                                    stat_exog_list=stat_exog_list,
                                     num_workers_loader=num_workers_loader,
                                     drop_last_loader=drop_last_loader,
                                     random_seed=random_seed,
                                     **trainer_kwargs)
 
+        # Architecture
         self.futr_input_size = len(self.futr_exog_list)
         self.hist_input_size = len(self.hist_exog_list)
         self.stat_input_size = len(self.stat_exog_list)
 
         blocks = self.create_stack(h=h,
                                    input_size=input_size,
-                                   stack_types=stack_types, 
+                                   stack_types=stack_types,
+                                   futr_input_size=self.futr_input_size,
+                                   hist_input_size=self.hist_input_size,
+                                   stat_input_size=self.stat_input_size,                                   
                                    n_blocks=n_blocks,
                                    mlp_units=mlp_units,
                                    n_pool_kernel_size=n_pool_kernel_size,
@@ -237,10 +242,7 @@ class NHITS(BaseWindows):
                                    pooling_mode=pooling_mode,
                                    interpolation_mode=interpolation_mode,
                                    dropout_prob_theta=dropout_prob_theta,
-                                   activation=activation,
-                                   futr_input_size=self.futr_input_size,
-                                   hist_input_size=self.hist_input_size,
-                                   stat_input_size=self.stat_input_size)
+                                   activation=activation)
         self.blocks = torch.nn.ModuleList(blocks)
         
         # Adapter with Loss dependent dimensions
@@ -248,10 +250,11 @@ class NHITS(BaseWindows):
             self.out = nn.Linear(in_features=h,
                         out_features=h*self.loss.outputsize_multiplier)
 
-    def create_stack(self, stack_types, 
-                     n_blocks, 
-                     input_size, 
+    def create_stack(self,
                      h, 
+                     input_size,    
+                     stack_types, 
+                     n_blocks,
                      mlp_units,
                      n_pool_kernel_size,
                      n_freq_downsample,
@@ -274,16 +277,16 @@ class NHITS(BaseWindows):
 
                 nbeats_block = NHITSBlock(h=h,
                                           input_size=input_size,
+                                          futr_input_size=futr_input_size,
+                                          hist_input_size=hist_input_size,
+                                          stat_input_size=stat_input_size,                                          
                                           n_theta=n_theta,
                                           mlp_units=mlp_units,
                                           n_pool_kernel_size=n_pool_kernel_size[i],
                                           pooling_mode=pooling_mode,
                                           basis=basis,
                                           dropout_prob=dropout_prob_theta,
-                                          activation=activation,
-                                          futr_input_size=futr_input_size,
-                                          hist_input_size=hist_input_size,
-                                          stat_input_size=stat_input_size)
+                                          activation=activation)
 
                 # Select type of evaluation and apply it to all layers of block
                 block_list.append(nbeats_block)
