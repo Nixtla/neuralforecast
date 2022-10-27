@@ -73,13 +73,16 @@ class NeuralForecast:
         # Flags and attributes
         self._fitted = False
 
-    def _prepare_fit(self, df, sort_df):
+    def _prepare_fit(self, df, static_df, sort_df):
         #TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
-        self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(df=df, sort_df=sort_df)
+        self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(df=df,
+                                                                                      static_df=static_df,
+                                                                                      sort_df=sort_df)
         self.sort_df = sort_df
 
     def fit(self,
             df: Optional[pd.DataFrame] = None,
+            static_df: Optional[pd.DataFrame] = None,
             val_size: Optional[int] = 0,
             sort_df: bool = True,
             verbose: bool = False):
@@ -101,7 +104,7 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
-            self._prepare_fit(df=df, sort_df=sort_df)
+            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
         else:
             if verbose: print('Using stored dataset.')
 
@@ -128,6 +131,7 @@ class NeuralForecast:
 
     def predict(self,
                 df: Optional[pd.DataFrame] = None,
+                static_df: Optional[pd.DataFrame] = None,
                 futr_df: Optional[pd.DataFrame] = None,
                 sort_df: bool = True,
                 verbose: bool = False,
@@ -147,7 +151,7 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
-            self._prepare_fit(df=df, sort_df=sort_df)
+            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
         else:
             if verbose: print('Using stored dataset.')
 
@@ -188,6 +192,7 @@ class NeuralForecast:
     
     def cross_validation(self,
                          df: pd.DataFrame = None,
+                         static_df: Optional[pd.DataFrame] = None,
                          n_windows: int = 1,
                          step_size: int = 1,
                          val_size: Optional[int] = 0, 
@@ -216,7 +221,7 @@ class NeuralForecast:
 
         # Declare predictions pd.DataFrame
         if df is not None:
-            self._prepare_fit(df=df, sort_df=sort_df)
+            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
         else:
             if verbose: print('Using stored dataset.')
 

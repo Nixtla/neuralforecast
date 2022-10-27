@@ -15,7 +15,7 @@ import warnings
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")
 
-from typing import Tuple, Optional, Iterable, Any
+from typing import Tuple, Optional
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
@@ -76,11 +76,7 @@ class GRN(nn.Module):
 
 # %% ../../nbs/models.tft.ipynb 13
 class TFTEmbedding(nn.Module):
-    def __init__(self, hidden_size,
-                 s_cat_inp_lens, s_cont_inp_size,
-                 k_cat_inp_lens, k_cont_inp_size,
-                 o_cat_inp_lens, o_cont_inp_size,
-                 tgt_size):
+    def __init__(self, hidden_size, stat_input_size, futr_input_size, hist_input_size, tgt_size):
         super().__init__()
         # There are 7 types of input:
         # 1. Static categorical
@@ -93,37 +89,28 @@ class TFTEmbedding(nn.Module):
 
         self.hidden_size = hidden_size
 
-        self.s_cat_inp_lens  = s_cat_inp_lens
-        self.s_cont_inp_size = s_cont_inp_size
-        self.k_cat_inp_lens  = k_cat_inp_lens
-        self.k_cont_inp_size = k_cont_inp_size
-        self.o_cat_inp_lens  = o_cat_inp_lens
-        self.o_cont_inp_size = o_cont_inp_size
+        #self.s_cat_inp_lens  = s_cat_inp_lens
+        self.stat_input_size = stat_input_size
+        #self.k_cat_inp_lens  = k_cat_inp_lens
+        self.futr_input_size = futr_input_size
+        #self.s_cat_inp_lens  = s_cat_inp_lens
+        self.hist_input_size = hist_input_size
         self.tgt_size        = tgt_size
 
-        print('s_cat_inp_lens', s_cat_inp_lens)
-        print('s_cont_inp_size', s_cont_inp_size)
-        print('k_cat_inp_lens', k_cat_inp_lens)
-        print('k_cont_inp_size', k_cont_inp_size)
-        print('o_cat_inp_lens', o_cat_inp_lens)
-        print('o_cont_inp_size', o_cont_inp_size)
-
-        #assert 1<0
-
         # Instantiate Categorical Embeddings if lens is not None
-        for attr, lens in [('s_cat_embed', s_cat_inp_lens), 
-                           ('k_cat_embed', k_cat_inp_lens),
-                           ('o_cat_embed', o_cat_inp_lens)]:
-            if lens:
-                embed = nn.ModuleList([nn.Embedding(n, hidden_size) for n in lens])
-                setattr(self, attr, embed)
-            else:
-                setattr(self, attr, None)
+        # for attr, lens in [('s_cat_embed', s_cat_inp_lens), 
+        #                    ('k_cat_embed', k_cat_inp_lens),
+        #                    ('o_cat_embed', k_cat_inp_lens)]:
+        #     if lens:
+        #         embed = nn.ModuleList([nn.Embedding(n, hidden_size) for n in lens])
+        #         setattr(self, attr, embed)
+        #     else:
+        #         setattr(self, attr, None)
 
         # Instantiate Continuous Embeddings if size is not None
-        for attr, size in [('s_cont_embedding', s_cont_inp_size), 
-                           ('k_cont_embedding', k_cont_inp_size),
-                           ('o_cont_embedding', o_cont_inp_size),
+        for attr, size in [('s_cont_embedding', stat_input_size), 
+                           ('k_cont_embedding', futr_input_size),
+                           ('o_cont_embedding', hist_input_size),
                            ('tgt_embedding', tgt_size)]:
             if size:
                 vectors = nn.Parameter(torch.Tensor(size, hidden_size))
@@ -136,67 +123,37 @@ class TFTEmbedding(nn.Module):
                 setattr(self, attr+'_bias', None)
 
     def _apply_embedding(self,
-                         cat: Optional[Tensor],
                          cont: Optional[Tensor],
-                         cat_emb: Iterable[Any], 
                          cont_emb: Tensor,
                          cont_bias: Tensor,
                          ):
 
-        if (cat is None) and (cont is None):
-            return None
-
-        if (cat is not None):
-            e_cat = torch.stack([embed(cat[...,i]) \
-                               for i, embed in enumerate(cat_emb)], dim=-2)
         if (cont is not None):
             #the line below is equivalent to following einsums
             #e_cont = torch.einsum('btf,fh->bthf', cont, cont_emb)
             #e_cont = torch.einsum('bf,fh->bhf', cont, cont_emb)          
             e_cont = torch.mul(cont.unsqueeze(-1), cont_emb)
             e_cont = e_cont + cont_bias
-
-        if (cat is not None) and (cont is None):
-            return e_cat
-
-        if (cat is None) and (cont is not None):
             return e_cont
-
-        if (cat is not None) and (cont is not None):
-            return torch.cat([e_cat, e_cont], dim=-2)
         
         return None
 
     def forward(self, target_inp, 
-                s_cat_inp=None, s_cont_inp=None, k_cat_inp=None, 
-                k_cont_inp=None, o_cat_inp=None, o_cont_inp=None):
+                stat_exog=None, futr_exog=None, hist_exog=None):
         # temporal/static categorical/continuous known/observed input 
         # tries to get input, if fails returns None
 
         # Static inputs are expected to be equal for all timesteps
         # For memory efficiency there is no assert statement
-        s_cat_inp = s_cat_inp[:,:] if s_cat_inp is not None else None
-        s_cont_inp = s_cont_inp[:,:] if s_cont_inp is not None else None
+        stat_exog = stat_exog[:,:] if stat_exog is not None else None
 
-        print('type(s_cat_inp)', type(s_cat_inp))
-        print('type(s_cont_inp)', type(s_cont_inp))
-
-        print('type(k_cat_inp)', type(k_cat_inp))
-        print('type(k_cont_inp)', type(k_cont_inp))
-
-        print('type(o_cat_inp)', type(o_cat_inp))
-        print('type(o_cont_inp)', type(o_cont_inp))
-
-        s_inp = self._apply_embedding(s_cat_inp, s_cont_inp,
-                                      cat_emb=self.s_cat_embed,
+        s_inp = self._apply_embedding(stat_exog,
                                       cont_emb=self.s_cont_embedding_vectors,
                                       cont_bias=self.s_cont_embedding_bias)
-        k_inp = self._apply_embedding(k_cat_inp, k_cont_inp,
-                                      cat_emb=self.k_cat_embed,
+        k_inp = self._apply_embedding(futr_exog,
                                       cont_emb=self.k_cont_embedding_vectors,
                                       cont_bias=self.k_cont_embedding_bias)
-        o_inp = self._apply_embedding(o_cat_inp, o_cont_inp,
-                                      cat_emb=self.o_cat_embed,
+        o_inp = self._apply_embedding(hist_exog,
                                       cont_emb=self.o_cont_embedding_vectors,
                                       cont_bias=self.o_cont_embedding_bias)
 
@@ -426,12 +383,9 @@ class TFT(BaseWindows):
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `stat_cont_list`: str list, static continuous columns.<br>
-    `hist_cont_list`: str list, historic continuous columns.<br>
-    `futr_cont_list`: str list, future continuous columns.<br>
-    `stat_cat_list`: str list, categoric static exogenous columns.<br>
-    `hist_cat_list`: str list, categoric historic exogenous columns.<br>
-    `futr_cat_list`: str list, categoric future exogenous columns.<br>
+    `stat_exog_list`: str list, static continuous columns.<br>
+    `hist_exog_list`: str list, historic continuous columns.<br>
+    `futr_exog_list`: str list, future continuous columns.<br>
     `hidden_size`: int, units of embeddings and encoders.<br>
     `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
@@ -456,15 +410,9 @@ class TFT(BaseWindows):
                  h,
                  input_size,
                  tgt_size=1,
-                 stat_cont_list=None,
-                 hist_cont_list=None,
-                 futr_cont_list=None,
-                 stat_cat_list=None,
-                 hist_cat_list=None,
-                 futr_cat_list=None,
-                 s_cat_inp_lens=None,
-                 k_cat_inp_lens=None,
-                 o_cat_inp_lens=None,
+                 stat_exog_list=None,
+                 hist_exog_list=None,
+                 futr_exog_list=None,
                  hidden_size=128,
                  n_head=4,
                  attn_dropout=0.0,
@@ -498,45 +446,31 @@ class TFT(BaseWindows):
         self.example_length = input_size + h
 
         # Parse lists hyperparameters
-        self.stat_cont_list = [] if stat_cont_list is None else stat_cont_list
-        self.stat_cat_list  = [] if stat_cat_list is None else stat_cat_list
-        self.hist_cont_list = [] if hist_cont_list is None else hist_cont_list
-        self.hist_cat_list  = [] if hist_cat_list is None else hist_cat_list
-        self.futr_cont_list = [] if futr_cont_list is None else futr_cont_list
-        self.futr_cat_list  = [] if futr_cat_list is None else futr_cat_list
+        self.stat_exog_list = [] if stat_exog_list is None else stat_exog_list
+        self.hist_exog_list = [] if hist_exog_list is None else hist_exog_list
+        self.futr_exog_list = [] if futr_exog_list is None else futr_exog_list
 
-        s_cat_inp_lens = [] if s_cat_inp_lens is None else s_cat_inp_lens
-        k_cat_inp_lens = [] if k_cat_inp_lens is None else k_cat_inp_lens
-        o_cat_inp_lens = [] if o_cat_inp_lens is None else o_cat_inp_lens
-
-        s_cont_inp_size = len(self.stat_cont_list)
-        k_cont_inp_size = len(self.futr_cont_list)
-        o_cont_inp_size = len(self.futr_cont_list)
-
-        num_static_vars = s_cont_inp_size + len(s_cat_inp_lens)
-        num_future_vars = k_cont_inp_size + len(k_cat_inp_lens)
-        num_observ_vars = o_cont_inp_size + len(o_cat_inp_lens)
-        num_historic_vars = num_future_vars + num_observ_vars + tgt_size
+        stat_input_size = len(self.stat_exog_list)
+        futr_input_size = max(len(self.futr_exog_list), 1)
+        hist_input_size = len(self.hist_exog_list)
+        num_historic_vars = futr_input_size + hist_input_size + tgt_size
 
         #------------------------------- Encoders -----------------------------#
         self.embedding = TFTEmbedding(hidden_size=hidden_size,
-                                      s_cat_inp_lens=s_cat_inp_lens,
-                                      s_cont_inp_size=s_cont_inp_size,
-                                      k_cat_inp_lens=k_cat_inp_lens, 
-                                      k_cont_inp_size=k_cont_inp_size,
-                                      o_cat_inp_lens=o_cat_inp_lens,
-                                      o_cont_inp_size=o_cont_inp_size,
+                                      stat_input_size=stat_input_size,
+                                      futr_input_size=futr_input_size,
+                                      hist_input_size=hist_input_size,
                                       tgt_size=tgt_size)
         
         self.static_encoder = StaticCovariateEncoder(
                                       hidden_size=hidden_size,
-                                      num_static_vars=num_static_vars,
+                                      num_static_vars=stat_input_size,
                                       dropout=dropout)
 
         self.temporal_encoder = TemporalCovariateEncoder(
                                       hidden_size=hidden_size,
                                       num_historic_vars=num_historic_vars,
-                                      num_future_vars=num_future_vars,
+                                      num_future_vars=futr_input_size,
                                       dropout=dropout)
 
         #------------------------------ Decoders -----------------------------#
@@ -550,46 +484,51 @@ class TFT(BaseWindows):
 
         # Adapter with Loss dependent dimensions
         self.output_adapter = nn.Linear(in_features=hidden_size,
-                                 out_features=self.loss.outputsize_multiplier)
+                                        out_features=self.loss.outputsize_multiplier)
 
     def forward(self, x):
 
         # Extract static and temporal features
         y_idx = x['temporal_cols'].get_loc('y')
-        target_inp = x['temporal'][:, :, y_idx, None]
-
-        s_cont_inp = None
-        o_cont_inp = None
-
-        if len(self.futr_cont_list) > 0:
-            k_cont_inp = x['temporal'][:, :, x['temporal_cols'].get_indexer(self.futr_cont_list)]
+        y_insample = x['temporal'][:, :, y_idx, None]
+        
+        # Historic variables
+        if len(self.hist_exog_list) > 0:
+            hist_exog = x['temporal'][:, :, x['temporal_cols'].get_indexer(self.hist_exog_list)]
         else:
-            k_cont_inp = x['temporal'][:, [-self.h-1], y_idx]
-            k_cont_inp = k_cont_inp[:,:,None].repeat(1, self.example_length, 1)
-            print('Inputa k_cont_inp')
-            print('k_cont_inp.shape', k_cont_inp.shape)
-            print('type(k_cont_inp)', type(k_cont_inp))
-            print('\n\n')
+            hist_exog = None
 
-        # TODO: improve dictionary unpacking
-        s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(target_inp=target_inp,
-                                                             s_cont_inp=s_cont_inp,
-                                                             o_cont_inp=o_cont_inp,
-                                                             k_cont_inp=k_cont_inp)
+        # Future variables
+        if len(self.futr_exog_list) > 0:
+            futr_exog = x['temporal'][:, :, x['temporal_cols'].get_indexer(self.futr_exog_list)]
+        else:
+            futr_exog = x['temporal'][:, [-self.h-1], y_idx]
+            futr_exog = futr_exog[:,:,None].repeat(1, self.example_length, 1)
+
+        # Static variables
+        if len(self.stat_exog_list) > 0:
+            static_idx = x['static_cols'].get_indexer(self.stat_exog_list)
+            stat_exog = x['static'][:, static_idx]
+        else:
+            stat_exog = None
+
+        s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(target_inp=y_insample, 
+                                                             hist_exog=hist_exog,
+                                                             futr_exog=futr_exog,
+                                                             stat_exog=stat_exog)
 
         #-------------------------------- Inputs ------------------------------#
         # Static context
         if s_inp is not None:
-            print('s_inp.shape', s_inp.shape)
             cs, ce, ch, cc = self.static_encoder(s_inp)
             ch, cc = ch.unsqueeze(0), cc.unsqueeze(0) # LSTM initial states
         else:
             # If None add zeros
             batch_size, example_length, target_size, hidden_size = t_observed_tgt.shape
-            cs = torch.zeros(size=(batch_size, hidden_size)).to(target_inp.device)
-            ce = torch.zeros(size=(batch_size, hidden_size)).to(target_inp.device)
-            ch = torch.zeros(size=(1, batch_size, hidden_size)).to(target_inp.device)
-            cc = torch.zeros(size=(1, batch_size, hidden_size)).to(target_inp.device)
+            cs = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
+            ce = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
+            ch = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
+            cc = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
 
         # Historical inputs
         _historical_inputs = [k_inp[:,:self.input_size,:],

@@ -339,7 +339,8 @@ class DilatedRNN(BaseRecurrent):
             insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size, windows_size, -1) ), dim=2)
 
         if self.stat_exog_size > 0:
-            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size, windows_size, -1) ), dim=2)
+            stat_exog = stat_exog.unsqueeze(1).repeat(1, windows_size, 1) # [B, C] -> [B, W, C]
+            insample_y = torch.cat(( insample_y, stat_exog ), dim=2)
 
         # RNN forward
         for layer_num in range(len(self.rnn_stack)):
