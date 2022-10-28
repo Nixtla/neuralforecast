@@ -78,39 +78,23 @@ class GRN(nn.Module):
 class TFTEmbedding(nn.Module):
     def __init__(self, hidden_size, stat_input_size, futr_input_size, hist_input_size, tgt_size):
         super().__init__()
-        # There are 7 types of input:
-        # 1. Static categorical
-        # 2. Static continuous
-        # 3. Temporal known a priori categorical
-        # 4. Temporal known a priori continuous
-        # 5. Temporal observed categorical
-        # 6. Temporal observed continuous
-        # 7. Temporal observed targets (time series obseved so far)
+        # There are 4 types of input:
+        # 1. Static continuous
+        # 2. Temporal known a priori continuous
+        # 3. Temporal observed continuous
+        # 4. Temporal observed targets (time series obseved so far)
 
         self.hidden_size = hidden_size
 
-        #self.s_cat_inp_lens  = s_cat_inp_lens
         self.stat_input_size = stat_input_size
-        #self.k_cat_inp_lens  = k_cat_inp_lens
         self.futr_input_size = futr_input_size
-        #self.s_cat_inp_lens  = s_cat_inp_lens
         self.hist_input_size = hist_input_size
         self.tgt_size        = tgt_size
 
-        # Instantiate Categorical Embeddings if lens is not None
-        # for attr, lens in [('s_cat_embed', s_cat_inp_lens), 
-        #                    ('k_cat_embed', k_cat_inp_lens),
-        #                    ('o_cat_embed', k_cat_inp_lens)]:
-        #     if lens:
-        #         embed = nn.ModuleList([nn.Embedding(n, hidden_size) for n in lens])
-        #         setattr(self, attr, embed)
-        #     else:
-        #         setattr(self, attr, None)
-
         # Instantiate Continuous Embeddings if size is not None
-        for attr, size in [('s_cont_embedding', stat_input_size), 
-                           ('k_cont_embedding', futr_input_size),
-                           ('o_cont_embedding', hist_input_size),
+        for attr, size in [('stat_exog_embedding', stat_input_size), 
+                           ('futr_exog_embedding', futr_input_size),
+                           ('hist_exog_embedding', hist_input_size),
                            ('tgt_embedding', tgt_size)]:
             if size:
                 vectors = nn.Parameter(torch.Tensor(size, hidden_size))
@@ -147,15 +131,15 @@ class TFTEmbedding(nn.Module):
         # For memory efficiency there is no assert statement
         stat_exog = stat_exog[:,:] if stat_exog is not None else None
 
-        s_inp = self._apply_embedding(stat_exog,
-                                      cont_emb=self.s_cont_embedding_vectors,
-                                      cont_bias=self.s_cont_embedding_bias)
-        k_inp = self._apply_embedding(futr_exog,
-                                      cont_emb=self.k_cont_embedding_vectors,
-                                      cont_bias=self.k_cont_embedding_bias)
-        o_inp = self._apply_embedding(hist_exog,
-                                      cont_emb=self.o_cont_embedding_vectors,
-                                      cont_bias=self.o_cont_embedding_bias)
+        s_inp = self._apply_embedding(cont=stat_exog,
+                                      cont_emb=self.stat_exog_embedding_vectors,
+                                      cont_bias=self.stat_exog_embedding_bias)
+        k_inp = self._apply_embedding(cont=futr_exog,
+                                      cont_emb=self.futr_exog_embedding_vectors,
+                                      cont_bias=self.futr_exog_embedding_bias)
+        o_inp = self._apply_embedding(cont=hist_exog,
+                                      cont_emb=self.hist_exog_embedding_vectors,
+                                      cont_bias=self.hist_exog_embedding_bias)
 
         # Temporal observed targets
         # t_observed_tgt = torch.einsum('btf,fh->btfh', 
@@ -542,12 +526,13 @@ class TFT(BaseWindows):
 
         #---------------------------- Encode/Decode ---------------------------#
         # Embeddings + VSN + LSTM encoders
-        temporal_features = self.temporal_encoder(historical_inputs,
-                                                  future_inputs,
-                                                  cs, ch, cc)
+        temporal_features = self.temporal_encoder(historical_inputs=historical_inputs,
+                                                  future_inputs=future_inputs,
+                                                  cs=cs, ch=ch, cc=cc)
 
         # Static enrichment, Attention and decoders
-        temporal_features = self.temporal_fusion_decoder(temporal_features, ce)
+        temporal_features = self.temporal_fusion_decoder(temporal_features=temporal_features,
+                                                         ce=ce)
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)

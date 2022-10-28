@@ -93,6 +93,7 @@ class NeuralForecast:
 
         **Parameters:**<br>
         `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
+        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
         `val_size`: int, size of validation set.<br>
         `sort_df`: bool, sort df before fitting.
 
@@ -141,6 +142,8 @@ class NeuralForecast:
         Use stored fitted `models` to predict large set of time series from DataFrame `df`.        
 
         **Parameters:**<br>
+        `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
+        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
         `futr_df`: pandas.DataFrame, with [`unique_id`, `ds`] columns and `df`'s future exogenous.<br>
 
         **Returns:**<br>
@@ -207,6 +210,7 @@ class NeuralForecast:
 
         *Parameters:*<br>
         `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
+        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
         `n_windows`: int, number of windows used for cross validation.<br>
         `step_size`: int = 1, step size between each window.<br>
         `val_size`: Optional[int] = None, length of validation size. If passed, set `n_windows=None`.<br>
