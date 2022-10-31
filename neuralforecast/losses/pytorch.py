@@ -382,13 +382,14 @@ class MQLoss(torch.nn.Module):
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
 
     def adapt_output(self, y_pred):
