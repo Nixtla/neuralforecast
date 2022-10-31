@@ -378,6 +378,7 @@ class MQLoss(torch.nn.Module):
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
         [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
         """
+        super(MQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
