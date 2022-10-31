@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'PMM', 'GMM']
 
-# %% ../../nbs/losses.pytorch.ipynb 4
+# %% ../../nbs/losses.pytorch.ipynb 3
 import math
 import numpy as np
 import torch
@@ -349,7 +349,7 @@ def quantiles_to_outputs(quantiles):
     return quantiles, output_names
 
 # %% ../../nbs/losses.pytorch.ipynb 46
-class MQLoss:
+class MQLoss(torch.nn.Module):
     
     def __init__(self, level=[80, 90], quantiles=None):
         """  Multi-Quantile loss
