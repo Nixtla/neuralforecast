@@ -319,6 +319,9 @@ class BaseRecurrent(pl.LightningModule):
         The method is designed to be compatible with SKLearn-like classes
         and in particular to be compatible with the StatsForecast library.
 
+        By default the `model` is not saving training checkpoints to protect 
+        disk memory, to get them change `enable_checkpointing=True` in `__init__`.        
+
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `val_size`: int, validation size for temporal cross-validation.<br>
