@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'PMM', 'GMM']
 
-# %% ../../nbs/losses.pytorch.ipynb 4
+# %% ../../nbs/losses.pytorch.ipynb 3
 import math
 import numpy as np
 import torch
@@ -19,7 +19,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return div
 
 # %% ../../nbs/losses.pytorch.ipynb 8
-class MAE:
+class MAE(torch.nn.Module):
     
     def __init__(self):
         """Mean Absolute Error
@@ -33,6 +33,7 @@ class MAE:
         
         $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
         """
+        super(MAE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -57,7 +58,7 @@ class MAE:
         return mae
 
 # %% ../../nbs/losses.pytorch.ipynb 13
-class MSE:
+class MSE(torch.nn.Module):
     
     def __init__(self):
         """  Mean Squared Error
@@ -71,6 +72,7 @@ class MSE:
         
         $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
         """
+        super(MSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -96,7 +98,7 @@ class MSE:
         return mse
 
 # %% ../../nbs/losses.pytorch.ipynb 18
-class RMSE:
+class RMSE(torch.nn.Module):
     
     def __init__(self):
         """ Root Mean Squared Error
@@ -113,6 +115,7 @@ class RMSE:
         
         $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
         """
+        super(RMSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -139,7 +142,7 @@ class RMSE:
         return mse
 
 # %% ../../nbs/losses.pytorch.ipynb 24
-class MAPE:
+class MAPE(torch.nn.Module):
     
     def __init__(self):
         """ Mean Absolute Percentage Error
@@ -154,6 +157,7 @@ class MAPE:
         
         $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
         """
+        super(MAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -179,7 +183,7 @@ class MAPE:
         return mape
 
 # %% ../../nbs/losses.pytorch.ipynb 29
-class SMAPE:
+class SMAPE(torch.nn.Module):
     def __init__(self):
         """ Symmetric Mean Absolute Percentage Error
         
@@ -198,6 +202,7 @@ class SMAPE:
         **References:**<br>
         [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
         """
+        super(SMAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -225,7 +230,7 @@ class SMAPE:
         return smape
 
 # %% ../../nbs/losses.pytorch.ipynb 34
-class MASE:
+class MASE(torch.nn.Module):
 
     def __init__(self, seasonality: int):
         """ Mean Absolute Scaled Error 
@@ -246,6 +251,7 @@ class MASE:
         [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
         [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
         """
+        super(MASE, self).__init__()
         self.seasonality = seasonality
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -276,7 +282,7 @@ class MASE:
         return mase
 
 # %% ../../nbs/losses.pytorch.ipynb 40
-class QuantileLoss:
+class QuantileLoss(torch.nn.Module):
     
     def __init__(self, q):
         """ Quantile Loss
@@ -295,6 +301,7 @@ class QuantileLoss:
         **References:**<br>
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
         """
+        super(QuantileLoss, self).__init__()
         self.q = q
         self.outputsize_multiplier = 1
         self.output_names = [f'_ql{q}']
@@ -349,7 +356,7 @@ def quantiles_to_outputs(quantiles):
     return quantiles, output_names
 
 # %% ../../nbs/losses.pytorch.ipynb 46
-class MQLoss:
+class MQLoss(torch.nn.Module):
     
     def __init__(self, level=[80, 90], quantiles=None):
         """  Multi-Quantile loss
@@ -378,16 +385,18 @@ class MQLoss:
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
         [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
         """
+        super(MQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
 
     def adapt_output(self, y_pred):
@@ -426,7 +435,7 @@ class MQLoss:
         return torch.sum(mqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 51
-class wMQLoss:
+class wMQLoss(torch.nn.Module):
     
     def __init__(self, level=[80, 90], quantiles=None):
         """ Weighted Multi-Quantile loss
@@ -446,16 +455,18 @@ class wMQLoss:
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
         [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
         """
+        super(wMQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
 
     def adapt_output(self, y_pred):
@@ -491,7 +502,7 @@ class wMQLoss:
         return torch.mean(wmqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 56
-class PMM:
+class PMM(torch.nn.Module):
 
     def __init__(self, level=[80, 90], quantiles=None):
         """ Poisson Mixture Mesh
@@ -505,20 +516,24 @@ class PMM:
         \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
 
         **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
+        super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
-        
+
     def sample(self, weights, lambdas, num_samples=500):        
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
@@ -597,7 +612,7 @@ class PMM:
 
 
 # %% ../../nbs/losses.pytorch.ipynb 60
-class GMM:
+class GMM(torch.nn.Module):
 
     def __init__(self, level=[80, 90], quantiles=None):
         """ Gaussian Mixture Mesh
@@ -612,26 +627,29 @@ class GMM:
         \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
 
         **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
+        super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
-        
-        # Depends on the model
+            quantiles = torch.Tensor(quantiles)
+
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
-        
+
     def sample(self, weights, means, stds, num_samples=500):
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
-        
+
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
