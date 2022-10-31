@@ -39,13 +39,13 @@ class BaseWindows(pl.LightningModule):
         self.save_hyperparameters() # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
-        
+
         # Padder to complete train windows, 
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
-        
+
         # BaseWindows optimization attributes
         self.loss = loss
         self.learning_rate = learning_rate
@@ -58,19 +58,19 @@ class BaseWindows(pl.LightningModule):
             self.scaler = None
         else:
             self.scaler = TemporalNorm(scaler_type=scaler_type)
-        
+
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
         self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
         self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
-        
+
         # Fit arguments
         self.val_size = 0
         self.test_size = 0
 
         # Model state
         self.decompose_forecast = False
-        
+
         # Trainer
         # we need to instantiate the trainer each time we want to use it
         self.trainer_kwargs = {**trainer_kwargs}
@@ -86,7 +86,11 @@ class BaseWindows(pl.LightningModule):
         if self.trainer_kwargs.get('devices', None) is None:
             if torch.cuda.is_available():
                 self.trainer_kwargs['devices'] = -1
-        
+
+        # Avoid saturating local memory, disabled fit model checkpoints
+        if self.trainer_kwargs.get('enable_checkpointing', None) is None:
+           self.trainer_kwargs['enable_checkpointing'] = False
+
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
@@ -392,7 +396,7 @@ class BaseWindows(pl.LightningModule):
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
-        
+
     def predict(self, dataset, test_size=None, step_size=1, **data_module_kwargs):
         """ Predict.
 

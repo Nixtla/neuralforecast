@@ -33,7 +33,7 @@ class BaseRecurrent(pl.LightningModule):
                  random_seed=1, 
                  **trainer_kwargs):
         super(BaseRecurrent, self).__init__()
-        
+
         self.save_hyperparameters() # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
@@ -83,13 +83,17 @@ class BaseRecurrent(pl.LightningModule):
                 self.trainer_kwargs['accelerator'] = "gpu"
         if self.trainer_kwargs.get('devices', None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs['devices'] = -1        
+                self.trainer_kwargs['devices'] = -1
+
+        # Avoid saturating local memory, disabled fit model checkpoints
+        if self.trainer_kwargs.get('enable_checkpointing', None) is None:
+           self.trainer_kwargs['enable_checkpointing'] = False
 
         # DataModule arguments
         self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
-    
+
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
