@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NBEATS']
 
-# %% ../../nbs/models.nbeats.ipynb 6
+# %% ../../nbs/models.nbeats.ipynb 5
 from typing import Tuple
 
 import numpy as np
@@ -168,7 +168,7 @@ class NBEATS(BaseWindows):
                  mlp_units: list = 3 * [[512, 512]],
                  dropout_prob_theta: float = 0.,
                  activation: str = 'ReLU',
-                 shared_weights: bool = False,
+                 shared_weights: bool = False,                 
                  loss=MAE(),
                  learning_rate: float = 1e-3,
                  batch_size: int = 32,
@@ -179,6 +179,7 @@ class NBEATS(BaseWindows):
                  num_workers_loader: int = 0,
                  drop_last_loader: bool = False,
                  **trainer_kwargs):
+
         # Inherit BaseWindows class
         super(NBEATS, self).__init__(h=h,
                                      input_size=input_size,
@@ -265,8 +266,8 @@ class NBEATS(BaseWindows):
         insample_y    = windows_batch['insample_y']
         insample_mask = windows_batch['insample_mask']
 
-        # insample
-        residuals = insample_y.flip(dims=(-1,)) #backcast init
+        # NBEATS' forward
+        residuals = insample_y.flip(dims=(-1,)) # backcast init
         insample_mask = insample_mask.flip(dims=(-1,))
         forecast = insample_y[:, -1:] # Level with Naive1
 

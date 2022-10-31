@@ -106,11 +106,12 @@ class NBEATSBlock(nn.Module):
         assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
         activ = getattr(nn, activation)()
 
-        # Input vector for the block is y_lags (input_size) + historical exogenous (hist_input_size*input_size)
-        #  + future exogenous (futr_input_size*input_size) + static exogenous (stat_input_size)
+        # Input vector for the block is 
+        # y_lags (input_size) + historical exogenous (hist_input_size*input_size) + 
+        # future exogenous (futr_input_size*input_size) + static exogenous (stat_input_size)
         # [ Y_[t-L:t], X_[t-L:t], F_[t-L:t+H], S ]
-        input_size = input_size + hist_input_size*input_size + \
-                     futr_input_size*(input_size + h) + stat_input_size
+        input_size = input_size + hist_input_size * input_size + \
+                     futr_input_size * (input_size + h) + stat_input_size
         
         hidden_layers = [nn.Linear(in_features=input_size,
                                    out_features=mlp_units[0][0])]
@@ -142,7 +143,7 @@ class NBEATSBlock(nn.Module):
 
         if self.stat_input_size > 0:
             insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
-            
+
         # Compute local projection weights and projection
         theta = self.layers(insample_y)
         backcast, forecast = self.basis(theta)
@@ -160,7 +161,10 @@ class NBEATSx(BaseWindows):
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
-    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>    
     `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
@@ -169,9 +173,6 @@ class NBEATSx(BaseWindows):
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float, initial optimization learning rate.<br>
     `batch_size`: int, number of different series in each batch.<br>
@@ -190,6 +191,9 @@ class NBEATSx(BaseWindows):
     def __init__(self,
                  h,
                  input_size,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
                  n_harmonics=2,
                  n_polynomials=2,
                  stack_types: list = ['identity', 'trend', 'seasonality'],
@@ -198,9 +202,6 @@ class NBEATSx(BaseWindows):
                  dropout_prob_theta = 0.,
                  activation = 'ReLU',
                  shared_weights=False,
-                 futr_exog_list = None,
-                 hist_exog_list = None,
-                 stat_exog_list = None,
                  loss=MAE(),
                  learning_rate=1e-3,
                  batch_size=32,
@@ -211,18 +212,19 @@ class NBEATSx(BaseWindows):
                  num_workers_loader=0,
                  drop_last_loader=False,
                  **trainer_kwargs):
+
         # Inherit BaseWindows class
         super(NBEATSx, self).__init__(h=h, 
                                       input_size = input_size,
+                                      futr_exog_list=futr_exog_list,
+                                      hist_exog_list=hist_exog_list,
+                                      stat_exog_list=stat_exog_list,                                      
                                       loss=loss,
                                       learning_rate = learning_rate,
                                       batch_size=batch_size,
                                       windows_batch_size = windows_batch_size,
                                       step_size = step_size,
                                       scaler_type=scaler_type,
-                                      futr_exog_list=futr_exog_list,
-                                      hist_exog_list=hist_exog_list,
-                                      stat_exog_list=stat_exog_list,
                                       num_workers_loader=num_workers_loader,
                                       drop_last_loader=drop_last_loader,
                                       random_seed=random_seed,
@@ -235,17 +237,17 @@ class NBEATSx(BaseWindows):
 
         blocks = self.create_stack(h=h,
                                    input_size=input_size,
+                                   futr_input_size=self.futr_input_size,
+                                   hist_input_size=self.hist_input_size,
+                                   stat_input_size=self.stat_input_size,                                   
                                    stack_types=stack_types, 
                                    n_blocks=n_blocks,
                                    mlp_units=mlp_units,
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation,
                                    shared_weights=shared_weights,
-                                   n_polynomials=n_polynomials, 
-                                   n_harmonics=n_harmonics,
-                                   futr_input_size=self.futr_input_size,
-                                   hist_input_size=self.hist_input_size,
-                                   stat_input_size=self.stat_input_size)
+                                   n_polynomials=n_polynomials,
+                                   n_harmonics=n_harmonics)
         self.blocks = torch.nn.ModuleList(blocks)
 
         # Adapter with Loss dependent dimensions
@@ -253,12 +255,13 @@ class NBEATSx(BaseWindows):
             self.out = nn.Linear(in_features=h,
                         out_features=h*self.loss.outputsize_multiplier)
 
-    def create_stack(self, stack_types, 
-                     n_blocks, 
-                     input_size, 
-                     h, 
-                     mlp_units, 
-                     dropout_prob_theta, 
+    def create_stack(self,
+                     h,
+                     input_size,
+                     stack_types,
+                     n_blocks,
+                     mlp_units,
+                     dropout_prob_theta,
                      activation, shared_weights,
                      n_polynomials, n_harmonics,
                      futr_input_size, hist_input_size, stat_input_size):                    
