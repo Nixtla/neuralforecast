@@ -19,7 +19,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return div
 
 # %% ../../nbs/losses.pytorch.ipynb 8
-class MAE:
+class MAE(torch.nn.Module):
     
     def __init__(self):
         """Mean Absolute Error
@@ -33,6 +33,7 @@ class MAE:
         
         $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
         """
+        super(MAE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -57,7 +58,7 @@ class MAE:
         return mae
 
 # %% ../../nbs/losses.pytorch.ipynb 13
-class MSE:
+class MSE(torch.nn.Module):
     
     def __init__(self):
         """  Mean Squared Error
@@ -71,6 +72,7 @@ class MSE:
         
         $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
         """
+        super(MSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -96,7 +98,7 @@ class MSE:
         return mse
 
 # %% ../../nbs/losses.pytorch.ipynb 18
-class RMSE:
+class RMSE(torch.nn.Module):
     
     def __init__(self):
         """ Root Mean Squared Error
@@ -113,6 +115,7 @@ class RMSE:
         
         $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
         """
+        super(RMSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -139,7 +142,7 @@ class RMSE:
         return mse
 
 # %% ../../nbs/losses.pytorch.ipynb 24
-class MAPE:
+class MAPE(torch.nn.Module):
     
     def __init__(self):
         """ Mean Absolute Percentage Error
@@ -154,6 +157,7 @@ class MAPE:
         
         $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
         """
+        super(MAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -179,7 +183,7 @@ class MAPE:
         return mape
 
 # %% ../../nbs/losses.pytorch.ipynb 29
-class SMAPE:
+class SMAPE(torch.nn.Module):
     def __init__(self):
         """ Symmetric Mean Absolute Percentage Error
         
@@ -198,6 +202,7 @@ class SMAPE:
         **References:**<br>
         [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
         """
+        super(SMAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
         
@@ -225,7 +230,7 @@ class SMAPE:
         return smape
 
 # %% ../../nbs/losses.pytorch.ipynb 34
-class MASE:
+class MASE(torch.nn.Module):
 
     def __init__(self, seasonality: int):
         """ Mean Absolute Scaled Error 
@@ -246,6 +251,7 @@ class MASE:
         [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
         [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
         """
+        super(MASE, self).__init__()
         self.seasonality = seasonality
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -276,7 +282,7 @@ class MASE:
         return mase
 
 # %% ../../nbs/losses.pytorch.ipynb 40
-class QuantileLoss:
+class QuantileLoss(torch.nn.Module):
     
     def __init__(self, q):
         """ Quantile Loss
@@ -295,6 +301,7 @@ class QuantileLoss:
         **References:**<br>
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
         """
+        super(QuantileLoss, self).__init__()
         self.q = q
         self.outputsize_multiplier = 1
         self.output_names = [f'_ql{q}']
@@ -509,7 +516,9 @@ class PMM(torch.nn.Module):
         \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
 
         **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
@@ -618,7 +627,9 @@ class GMM(torch.nn.Module):
         \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
 
         **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
