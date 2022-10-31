@@ -428,7 +428,7 @@ class MQLoss(torch.nn.Module):
         return torch.sum(mqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 51
-class wMQLoss:
+class wMQLoss(torch.nn.Module):
     
     def __init__(self, level=[80, 90], quantiles=None):
         """ Weighted Multi-Quantile loss
@@ -448,16 +448,18 @@ class wMQLoss:
         [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
         [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
         """
+        super(wMQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
 
     def adapt_output(self, y_pred):
@@ -493,7 +495,7 @@ class wMQLoss:
         return torch.mean(wmqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 56
-class PMM:
+class PMM(torch.nn.Module):
 
     def __init__(self, level=[80, 90], quantiles=None):
         """ Poisson Mixture Mesh
@@ -509,18 +511,20 @@ class PMM:
         **References:**<br>
         [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
+        super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
+            quantiles = torch.Tensor(quantiles)
 
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
-        
+
     def sample(self, weights, lambdas, num_samples=500):        
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
@@ -599,7 +603,7 @@ class PMM:
 
 
 # %% ../../nbs/losses.pytorch.ipynb 60
-class GMM:
+class GMM(torch.nn.Module):
 
     def __init__(self, level=[80, 90], quantiles=None):
         """ Gaussian Mixture Mesh
@@ -616,24 +620,25 @@ class GMM:
         **References:**<br>
         [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
         """
+        super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            self.quantiles = torch.Tensor(qs)
+            quantiles = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            self.quantiles = torch.Tensor(quantiles)
-        
-        # Depends on the model
+            quantiles = torch.Tensor(quantiles)
+
+        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
-        
+
     def sample(self, weights, means, stds, num_samples=500):
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
-        
+
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
