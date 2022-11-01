@@ -283,6 +283,8 @@ class NeuralForecast:
         """ Save NeuralForecast core class.
 
         `core.NeuralForecast`'s method to save current status of models, dataset, and configuration.
+        Note that by default the `models` are not saving training checkpoints to save disk memory,
+        to get them change the individual model `**trainer_kwargs` to include `enable_checkpointing=True`.
 
         *Parameters:*<br>
         `path`: str, directory to save current status.<br>
