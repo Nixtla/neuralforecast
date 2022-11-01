@@ -3,7 +3,7 @@
 d = { 'settings': { 'branch': 'main',
                 'doc_baseurl': '/neuralforecast/',
                 'doc_host': 'https://Nixtla.github.io',
-                'git_url': 'https://github.com/Nixtla/neuralforecast/tree/main/',
+                'git_url': 'https://github.com/Nixtla/neuralforecast/',
                 'lib_path': 'neuralforecast'},
   'syms': { 'neuralforecast.auto': { 'neuralforecast.auto.AutoDilatedRNN': ('models.html#autodilatedrnn', 'neuralforecast/auto.py'),
                                      'neuralforecast.auto.AutoDilatedRNN.__init__': ( 'models.html#autodilatedrnn.__init__',
