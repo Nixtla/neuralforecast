@@ -57,7 +57,7 @@ class BaseWindows(pl.LightningModule):
         if scaler_type is None:
             self.scaler = None
         else:
-            self.scaler = TemporalNorm(scaler_type=scaler_type)
+            self.scaler = TemporalNorm(scaler_type=scaler_type, dim=1) # Time dimension is 1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -221,6 +221,7 @@ class BaseWindows(pl.LightningModule):
         temporal_mask[:, -self.h:] = 0.0
 
         # Normalize. self.scaler stores the shift and scale for inverse transform
+        temporal_mask = temporal_mask.unsqueeze(-1) # Add channel dimension for scaler.transform.
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         # Replace values in windows dict
