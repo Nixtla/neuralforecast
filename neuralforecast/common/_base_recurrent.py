@@ -24,7 +24,7 @@ class BaseRecurrent(pl.LightningModule):
                  loss,
                  learning_rate,
                  batch_size=32,
-                 scaler_type=None,
+                 scaler_type='robust',
                  futr_exog_list=None,
                  hist_exog_list=None,
                  stat_exog_list=None,
@@ -49,13 +49,10 @@ class BaseRecurrent(pl.LightningModule):
         self.learning_rate = learning_rate
 
         # Scaler
-        # TODO: clean hack and add correct use of self.scaler
         if scaler_type is None:
-            self.normalize = False
             self.scaler = None
         else:
-            self.normalize = True
-            self.scaler = TemporalNorm(scaler_type=scaler_type)
+            self.scaler = TemporalNorm(scaler_type=scaler_type, dim=-1) # Time dimension is -1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -103,28 +100,45 @@ class BaseRecurrent(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _normalization(self, batch):
-        temporal = batch['temporal']
-        temporal_cols = batch['temporal_cols']
+
+        temporal = batch['temporal'] # B, C, T
+        temporal_cols = batch['temporal_cols'].copy()
+
+        # Separate data and mask
+        temporal_data_cols = temporal_cols.drop('available_mask').tolist()
+        temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :]
+        temporal_mask = temporal[:, temporal_cols.get_loc('available_mask'), :].clone()
 
         # Remove validation and test set to prevent leakeage
         if self.val_size + self.test_size > 0:
-                cutoff = -self.val_size - self.test_size
-                temporal = temporal[:, :, :cutoff]
+            cutoff = self.val_size + self.test_size
+            temporal_mask[:, -cutoff:] = 0
 
-        temporal_y = temporal[:, temporal_cols.get_loc('y'), :]
-        temporal_mask = temporal[:, temporal_cols.get_loc('available_mask'), :]
+        # Normalize. self.scaler stores the shift and scale for inverse transform
+        temporal_mask = temporal_mask.unsqueeze(1) # Add channel dimension for scaler.transform.
+        temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
-        y_means = torch.sum(temporal_y * temporal_mask, dim=-1, keepdim=True) / torch.sum(temporal_mask, dim=-1, keepdim=True)
-        y_stds = torch.sqrt(torch.sum(temporal_mask*(temporal_y-y_means)**2, dim=-1, keepdim=True)/ \
-                            torch.sum(temporal_mask, dim=-1, keepdim=True) )
-
-        temporal_y = (temporal_y - y_means) / y_stds
-        temporal[:, temporal_cols.get_loc('y'), :] = temporal_y
+        # Replace values in windows dict
+        temporal[:, temporal_cols.get_indexer(temporal_data_cols), :] = temporal_data
+        batch['temporal'] = temporal
         
-        return batch, y_means, y_stds
+        return batch
 
-    def _inv_normalization(self, y_hat, y_means, y_stds):
-        return y_stds[:, None]*y_hat + y_means[:, None]
+    def _inv_normalization(self, y_hat, temporal_cols):
+        # Receives window predictions [B, W, H]
+        # Broadcasts outputs and inverts normalization
+
+        # Get y scale and shift, and add W dimension
+        temporal_data_cols = temporal_cols.drop('available_mask')
+        y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), :]
+        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), :]
+
+        y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[1], dim=1)
+        y_shift = torch.repeat_interleave(y_shift, repeats=y_hat.shape[1], dim=1)
+
+        y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
+
+        return y_hat
 
     def _create_windows(self, batch, step):
         temporal = batch['temporal']
@@ -215,8 +229,8 @@ class BaseRecurrent(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         # Normalize
-        if self.normalize:
-            batch, *_ = self._normalization(batch)
+        if self.scaler is not None:
+            batch = self._normalization(batch)
 
         # Create windows
         windows = self._create_windows(batch, step='train')
@@ -242,8 +256,8 @@ class BaseRecurrent(pl.LightningModule):
             return np.nan
 
         # Normalize
-        if self.normalize:
-            batch, y_means, y_stds = self._normalization(batch)
+        if self.scaler is not None:
+            batch = self._normalization(batch)
 
         # Create windows
         windows = self._create_windows(batch, step='val')
@@ -259,10 +273,6 @@ class BaseRecurrent(pl.LightningModule):
                              stat_exog=stat_exog) # [Ws, 1]
 
         y_hat = self(windows_batch)
-
-        # Inv Normalize
-        if self.normalize:
-            y_hat = self._inv_normalization(y_hat, y_means, y_stds)
 
         # Remove train y_hat
         val_windows = (self.val_size // self.step_size) + 1
@@ -283,8 +293,8 @@ class BaseRecurrent(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         # Normalize
-        if self.normalize:
-            batch, y_means, y_stds = self._normalization(batch)
+        if self.scaler is not None:
+            batch = self._normalization(batch)
 
         windows = self._create_windows(batch, step='predict')
 
@@ -301,8 +311,9 @@ class BaseRecurrent(pl.LightningModule):
         y_hat = self(windows_batch)
 
         # Inv Normalize
-        if self.normalize:
-            y_hat = self._inv_normalization(y_hat, y_means, y_stds)
+        if self.scaler is not None:
+            y_hat = self._inv_normalization(y_hat=y_hat,
+                                            temporal_cols=batch['temporal_cols'])
 
         return y_hat
 
