@@ -63,9 +63,6 @@ class BaseRecurrent(pl.LightningModule):
         self.val_size = 0
         self.test_size = 0
 
-        # Predict arguments
-        self.step_size = 1
-
         # Trainer
         # we need to instantiate the trainer each time we want to use it
         self.trainer_kwargs = {**trainer_kwargs}
@@ -99,7 +96,7 @@ class BaseRecurrent(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def _normalization(self, batch):
+    def _normalization(self, batch, val_size=0, test_size=0):
 
         temporal = batch['temporal'] # B, C, T
         temporal_cols = batch['temporal_cols'].copy()
@@ -110,8 +107,8 @@ class BaseRecurrent(pl.LightningModule):
         temporal_mask = temporal[:, temporal_cols.get_loc('available_mask'), :].clone()
 
         # Remove validation and test set to prevent leakeage
-        if self.val_size + self.test_size > 0:
-            cutoff = self.val_size + self.test_size
+        if val_size + test_size > 0:
+            cutoff = val_size + test_size
             temporal_mask[:, -cutoff:] = 0
 
         # Normalize. self.scaler stores the shift and scale for inverse transform
@@ -125,16 +122,16 @@ class BaseRecurrent(pl.LightningModule):
         return batch
 
     def _inv_normalization(self, y_hat, temporal_cols):
-        # Receives window predictions [B, W, H]
+        # Receives window predictions [B, seq_len, H, output]
         # Broadcasts outputs and inverts normalization
 
-        # Get y scale and shift, and add W dimension
+        # Get 'y' scale and shift, and add W dimension
         temporal_data_cols = temporal_cols.drop('available_mask')
-        y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), :]
-        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), :]
+        y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
+        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
 
-        y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[1], dim=1)
-        y_shift = torch.repeat_interleave(y_shift, repeats=y_hat.shape[1], dim=1)
+        y_scale = y_scale[:,None,None,None] * torch.ones_like(y_hat) # [B,1,1,1] -> [B,seq_len,H,output]
+        y_shift = y_shift[:,None,None,None] * torch.ones_like(y_hat) # [B,1,1,1] -> [B,seq_len,H,output]
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
 
@@ -143,10 +140,6 @@ class BaseRecurrent(pl.LightningModule):
     def _create_windows(self, batch, step):
         temporal = batch['temporal']
         temporal_cols = batch['temporal_cols']
-
-        assert temporal.shape[-1] % self.step_size == 0, f'Temporal length of batch should be multiple of {self.step_size}.'
-        assert self.val_size % self.step_size == 0, f'Validation size should be multiple of {self.step_size}.'
-        assert self.test_size % self.step_size == 0, f'Test size should be multiple of {self.step_size}.'
 
         if step == 'train':
             if self.val_size + self.test_size > 0:
@@ -159,7 +152,7 @@ class BaseRecurrent(pl.LightningModule):
             min_time_stamp = int(av_condition.min())
             
             available_ts = temporal.shape[-1] - min_time_stamp + 1 # +1, inclusive counting
-            if available_ts < self.input_size + self.h:
+            if available_ts < 1 + self.h:
                 raise Exception(
                     'Time series too short for given input and output size. \n'
                     f'Available timestamps: {available_ts}'
@@ -177,16 +170,19 @@ class BaseRecurrent(pl.LightningModule):
                 temporal = self.padder(temporal)
 
         # Parse batch
-        window_size = self.input_size + self.h
+        window_size = 1 + self.h # 1 for current t and h for future
         windows = temporal.unfold(dimension=-1,
                                   size=window_size,
-                                  step=self.step_size)
+                                  step=1)
 
-        # think about interaction available * sample mask
-        # windows_batch = dict(Y=windows[:, temporal_cols.get_loc('y'), :, :],
-        #                     available_mask=windows[:, temporal_cols.get_loc('available_mask'), :, :])
+        # Truncated backprogatation during training (shorten sequence where RNNs unroll)
+        n_windows = windows.shape[2]
+        if (step == 'train') and (self.input_size > 0) and (n_windows > self.input_size):
+            max_sampleable_time = n_windows-self.input_size+1
+            start = np.random.choice(max_sampleable_time)
+            windows = windows[:, :, start:(start+self.input_size), :]
 
-        # [B, C, Ws, L+H]
+        # [B, C, input_size, 1+H]
         windows_batch = dict(temporal=windows,
                              temporal_cols=temporal_cols,
                              static=batch.get('static', None),
@@ -195,7 +191,7 @@ class BaseRecurrent(pl.LightningModule):
         return windows_batch
 
     def _parse_windows(self, batch, windows):
-        # [B, C, Ws, L+H]
+        # [B, C, seq_len, 1+H]
         # Filter insample lags from outsample horizon
         y_idx = batch['temporal_cols'].get_loc('y')
         mask_idx = batch['temporal_cols'].get_loc('available_mask')
@@ -230,7 +226,7 @@ class BaseRecurrent(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # Normalize
         if self.scaler is not None:
-            batch = self._normalization(batch)
+            batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
 
         # Create windows
         windows = self._create_windows(batch, step='train')
@@ -239,13 +235,17 @@ class BaseRecurrent(pl.LightningModule):
         insample_y, insample_mask, outsample_y, outsample_mask, \
                hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(insample_y=insample_y, # [B, seq_len, 1]
+                             insample_mask=insample_mask, # [B, seq_len, 1]
+                             futr_exog=futr_exog, # [B, F, seq_len, 1+H]
+                             hist_exog=hist_exog, # [B, C, seq_len]
+                             stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch)
+        y_hat = self(windows_batch) # [B, seq_len, H, output]
+
+        # Remove last y_hat dimension if unidimensional loss (for MAE, RMSE, etc.)
+        if y_hat.shape[-1] == 1:
+            y_hat = y_hat.squeeze(-1)
 
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
@@ -257,7 +257,7 @@ class BaseRecurrent(pl.LightningModule):
 
         # Normalize
         if self.scaler is not None:
-            batch = self._normalization(batch)
+            batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
 
         # Create windows
         windows = self._create_windows(batch, step='val')
@@ -266,19 +266,23 @@ class BaseRecurrent(pl.LightningModule):
         insample_y, insample_mask, outsample_y, outsample_mask, \
                hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(insample_y=insample_y, # [B, seq_len, 1]
+                             insample_mask=insample_mask, # [B, seq_len, 1]
+                             futr_exog=futr_exog, # [B, F, seq_len, 1+H]
+                             hist_exog=hist_exog, # [B, C, seq_len]
+                             stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch)
+        y_hat = self(windows_batch) # [B, seq_len, H, output]
 
-        # Remove train y_hat
-        val_windows = (self.val_size // self.step_size) + 1
-        y_hat = y_hat[:, -val_windows:-1, :]
+        # Remove train y_hat (+1 and -1 for padded last window with zeros)
+        val_windows = (self.val_size) + 1
+        y_hat = y_hat[:, -val_windows:-1, :, :]
         outsample_y = outsample_y[:, -val_windows:-1, :]
         outsample_mask = outsample_mask[:, -val_windows:-1, :]
+
+        # Remove last y_hat dimension if unidimensional loss (for MAE, RMSE, etc.)
+        if y_hat.shape[-1] == 1:
+            y_hat = y_hat.squeeze(-1)
 
         loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
@@ -294,7 +298,7 @@ class BaseRecurrent(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         # Normalize
         if self.scaler is not None:
-            batch = self._normalization(batch)
+            batch = self._normalization(batch, val_size=0, test_size=self.test_size)
 
         windows = self._create_windows(batch, step='predict')
 
@@ -302,13 +306,13 @@ class BaseRecurrent(pl.LightningModule):
         insample_y, insample_mask, _, _, \
                hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(insample_y=insample_y, # [B, seq_len, 1]
+                             insample_mask=insample_mask, # [B, seq_len, 1]
+                             futr_exog=futr_exog, # [B, F, seq_len, 1+H]
+                             hist_exog=hist_exog, # [B, C, seq_len]
+                             stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch)
+        y_hat = self(windows_batch) # [B, seq_len, H, output]
 
         # Inv Normalize
         if self.scaler is not None:
@@ -359,11 +363,9 @@ class BaseRecurrent(pl.LightningModule):
         `step_size`: int=1, Step size between each window.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
-        if step_size != self.step_size:
-            print(f'WARNING: step_size {step_size} different than self.step_size, \
-                   using self.step_size from training instead!')
+        if step_size > 1:
+            raise Exception('Recurrent models do not support step_size > 1')
 
-        self.predict_step_size = self.step_size
         # fcsts (window, batch, h)
         trainer = pl.Trainer(**self.trainer_kwargs)
         datamodule = TimeSeriesDataModule(
@@ -373,11 +375,12 @@ class BaseRecurrent(pl.LightningModule):
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:
-            fcsts = torch.vstack([fcst[:, -(1+(self.test_size-self.h)//self.step_size ):,:] for fcst in fcsts])
+            # Remove warmup windows (from train and validation)
+            fcsts = torch.vstack([fcst[:, -(1+self.test_size-self.h):,:,:] for fcst in fcsts])
             fcsts = fcsts.numpy().flatten()
             fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
         else:
-            fcsts = torch.vstack([fcst[:, -1:, :] for fcst in fcsts]).numpy().flatten()
+            fcsts = torch.vstack([fcst[:,-1:,:,:] for fcst in fcsts]).numpy().flatten()
             fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
 
         return fcsts
