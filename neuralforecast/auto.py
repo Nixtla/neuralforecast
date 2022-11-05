@@ -28,10 +28,12 @@ from .losses.pytorch import MSE
 class AutoRNN(BaseAuto):
     
     default_config = {
-        "input_size_multiplier": [1, 2, 3],
+        "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
-        "state_hsize": tune.choice([100, 200, 300]),
-        "n_layers": tune.randint(1, 4),
+        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_n_layers": tune.randint(1, 4),
+        "context_size": tune.choice([5, 10, 50]),
+        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -76,10 +78,12 @@ class AutoRNN(BaseAuto):
 class AutoLSTM(BaseAuto):
 
     default_config = {
-        "input_size_multiplier": [1, 2, 3],
+        "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
-        "state_hsize": tune.choice([100, 200, 300]),
-        "n_layers": tune.randint(1, 4),
+        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_n_layers": tune.randint(1, 4),
+        "context_size": tune.choice([5, 10, 50]),
+        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -120,10 +124,12 @@ class AutoLSTM(BaseAuto):
 class AutoGRU(BaseAuto):
 
     default_config = {
-        "input_size_multiplier": [1, 2, 3],
+        "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
-        "state_hsize": tune.choice([100, 200, 300]),
-        "n_layers": tune.randint(1, 4),
+        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_n_layers": tune.randint(1, 4),
+        "context_size": tune.choice([5, 10, 50]),
+        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -164,12 +170,13 @@ class AutoGRU(BaseAuto):
 class AutoDilatedRNN(BaseAuto):
 
     default_config = {
-        "input_size_multiplier": [1, 2, 3],
+        "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
         "cell_type": tune.choice(['LSTM', 'GRU']),
-        "state_hsize": tune.choice([100, 200, 300]),
+        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "dilations": tune.choice([ [[1, 2], [4, 8]], [[1, 2, 4, 8]] ]),
-        "add_nl_layer": tune.choice([True, False]),
+        "context_size": tune.choice([5, 10, 50]),
+        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),

@@ -44,11 +44,15 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         "loss": SMAPE(),
         "max_epochs": 100
     }
+    config_drnn = {'input_size': tune.choice([2 * horizon, 3 * horizon]),
+                   'encoder_hidden_size': tune.choice([50]),
+                   'max_epochs': 50}
     models = [
-        DilatedRNN(h=horizon, input_size=2 * horizon, state_hsize=50, max_epochs=100),
-        RNN(h=horizon, input_size=2 * horizon, state_hsize=50, max_epochs=100),
-        LSTM(h=horizon, input_size=2 * horizon, state_hsize=50, max_epochs=100),
-        GRU(h=horizon, input_size=2 * horizon, state_hsize=50, max_epochs=100),
+        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
+        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
+        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
+        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
+        AutoDilatedRNN(h=horizon, config=config_drnn, num_samples=2, cpus=1),
         AutoNBEATS(h=horizon, config=config_nbeats, num_samples=2, cpus=1),
         AutoNHITS(h=horizon, config=config_nbeats, num_samples=2, cpus=1),
         AutoMLP(h=horizon, config=config, num_samples=2, cpus=1),
