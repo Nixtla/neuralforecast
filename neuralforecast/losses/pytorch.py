@@ -4,6 +4,8 @@
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'PMM', 'GMM']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
+from typing import Union
+
 import math
 import numpy as np
 import torch
@@ -40,7 +42,8 @@ class MAE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -79,7 +82,8 @@ class MSE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -122,7 +126,8 @@ class RMSE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -164,7 +169,8 @@ class MAPE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -209,7 +215,8 @@ class SMAPE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -259,7 +266,8 @@ class MASE(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,  y_insample: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,  y_insample: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
@@ -309,7 +317,8 @@ class QuantileLoss(torch.nn.Module):
     def adapt_output(self, y_pred):
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -408,7 +417,8 @@ class MQLoss(torch.nn.Module):
                              self.outputsize_multiplier)
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -478,7 +488,8 @@ class wMQLoss(torch.nn.Module):
                              self.outputsize_multiplier)
         return y_pred
     
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, mask: torch.Tensor = None):
+    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
+                 mask: Union[torch.Tensor, None] = None):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -580,7 +591,7 @@ class PMM(torch.nn.Module):
                           y: torch.Tensor,
                           weights: torch.Tensor,
                           lambdas: torch.Tensor,
-                          mask: torch.Tensor=None):
+                          mask: Union[torch.Tensor, None] = None):
 
         if mask is None: 
             mask = torch.ones_like(y)
@@ -606,7 +617,7 @@ class PMM(torch.nn.Module):
     def __call__(self, y: torch.Tensor,
                  weights: torch.Tensor,
                  lambdas: torch.Tensor,
-                 mask: torch.Tensor=None):
+                 mask: Union[torch.Tensor, None] = None):
         
         return self.neglog_likelihood(y=y, weights=weights, lambdas=lambdas, mask=mask)
 
@@ -695,7 +706,7 @@ class GMM(torch.nn.Module):
                           weights: torch.Tensor,
                           means: torch.Tensor,
                           stds: torch.Tensor,
-                          mask: torch.Tensor=None):
+                          mask: Union[torch.Tensor, None] = None):
 
         if mask is None: 
             mask = torch.ones_like(means)
@@ -723,7 +734,7 @@ class GMM(torch.nn.Module):
                  weights: torch.Tensor,
                  means: torch.Tensor,
                  stds: torch.Tensor,
-                 mask: torch.Tensor=None):
+                 mask: Union[torch.Tensor, None] = None):
 
         return self.neglog_likelihood(y=y, weights=weights,
                                  means=means, stds=stds, mask=mask)

@@ -174,7 +174,7 @@ class NBEATS(BaseWindows):
                  batch_size: int = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 scaler_type: str = None,
+                 scaler_type=None,
                  random_seed=1,
                  num_workers_loader: int = 0,
                  drop_last_loader: bool = False,
