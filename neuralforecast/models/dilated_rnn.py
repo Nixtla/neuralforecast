@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['DilatedRNN']
 
-# %% ../../nbs/models.dilated_rnn.ipynb 5
+# %% ../../nbs/models.dilated_rnn.ipynb 6
 from typing import List
 
 import torch
@@ -13,7 +13,7 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP
 
-# %% ../../nbs/models.dilated_rnn.ipynb 6
+# %% ../../nbs/models.dilated_rnn.ipynb 7
 class LSTMCell(nn.Module):
     def __init__(self, input_size, hidden_size, dropout=0.):
         super(LSTMCell, self).__init__()
@@ -41,7 +41,7 @@ class LSTMCell(nn.Module):
 
         return hy, (hy, cy)
 
-# %% ../../nbs/models.dilated_rnn.ipynb 7
+# %% ../../nbs/models.dilated_rnn.ipynb 8
 class ResLSTMCell(nn.Module):
     def __init__(self, input_size, hidden_size, dropout=0.):
         super(ResLSTMCell, self).__init__()
@@ -82,7 +82,7 @@ class ResLSTMCell(nn.Module):
             hy = outgate * (ry + torch.matmul(inputs, self.weight_ir.t()))
         return hy, (hy, cy)
 
-# %% ../../nbs/models.dilated_rnn.ipynb 8
+# %% ../../nbs/models.dilated_rnn.ipynb 9
 class ResLSTMLayer(nn.Module):
     def __init__(self, input_size, hidden_size, dropout=0.):
         super(ResLSTMLayer, self).__init__()
@@ -99,7 +99,7 @@ class ResLSTMLayer(nn.Module):
         outputs = torch.stack(outputs)
         return outputs, hidden
 
-# %% ../../nbs/models.dilated_rnn.ipynb 9
+# %% ../../nbs/models.dilated_rnn.ipynb 10
 class AttentiveLSTMLayer(nn.Module):
     def __init__(self, input_size, hidden_size, dropout=0.0):
         super(AttentiveLSTMLayer, self).__init__()
@@ -134,7 +134,7 @@ class AttentiveLSTMLayer(nn.Module):
         outputs = torch.stack(outputs)
         return outputs, hidden
 
-# %% ../../nbs/models.dilated_rnn.ipynb 10
+# %% ../../nbs/models.dilated_rnn.ipynb 11
 class DRNN(nn.Module):
 
     def __init__(self, n_input, n_hidden, n_layers, dilations, dropout=0, cell_type='GRU', batch_first=True):
@@ -251,7 +251,7 @@ class DRNN(nn.Module):
         dilated_inputs = torch.cat([inputs[j::rate, :, :] for j in range(rate)], 1)
         return dilated_inputs
 
-# %% ../../nbs/models.dilated_rnn.ipynb 11
+# %% ../../nbs/models.dilated_rnn.ipynb 12
 class DilatedRNN(BaseRecurrent):
     """ DilatedRNN
 
