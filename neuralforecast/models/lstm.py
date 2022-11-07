@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['LSTM']
 
-# %% ../../nbs/models.lstm.ipynb 5
+# %% ../../nbs/models.lstm.ipynb 6
 import torch
 import torch.nn as nn
 
@@ -11,7 +11,7 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP
 
-# %% ../../nbs/models.lstm.ipynb 6
+# %% ../../nbs/models.lstm.ipynb 7
 class LSTM(BaseRecurrent):
     """ LSTM
 
