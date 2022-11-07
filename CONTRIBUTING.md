@@ -27,12 +27,12 @@ Bug fixes and features are added through pull requests (PRs).
 
 ### Local setup for working on a PR
 
-#### 1. Clone the repository
+#### Clone the repository
 * HTTPS: `git clone https://github.com/Nixtla/neuralforecast.git`
 * SSH: `git clone git@github.com:Nixtla/neuralforecast.git`
 * GitHub CLI: `gh repo clone Nixtla/neuralforecast`
 
-#### 2. Set up a conda environment
+#### Set up a conda environment
 The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
 Once you have `conda` go to the top level directory of the repository and run:
@@ -40,31 +40,34 @@ Once you have `conda` go to the top level directory of the repository and run:
 conda env create -f environment.yml
 ```
 
-#### 3. Install the library
+#### Install the library
 Once you have your environment setup, activate it using `conda activate neuralforecast` and then install the library in editable mode using `pip install -e ".[dev]"`
 
-#### 4. Install git hooks
+#### Install git hooks
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
 ```
 nbdev_install_hooks
 ```
 
-### 5. Building the library
+### Preview Changes
+You can preview changes in your local browser before pushing by using the `nbdev_preview`.
+
+### Building the library
 The library is built using the notebooks contained in the `nbs` folder. If you want to make any changes to the library you have to find the relevant notebook, make your changes and then call:
 ```
  nbdev_export
  ```
 
-### 6. Linters
+### Linters
 This project uses a couple of linters to validate different aspects of the code. Before opening a PR, please make sure that it passes all the linting tasks by following the next steps.
 
 * `mypy neuralforecast/`
 * `flake8 --select=F neuralforecast/`
 
-### 7. Running tests
+### Running tests
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
 
-### 8. Cleaning notebooks
+### Cleaning notebooks
 Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/examples`, unless you intend to change the examples.
 
 ## Do you want to contribute to the documentation?
