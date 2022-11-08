@@ -43,7 +43,7 @@ website:
           - utils.ipynb
       - section: Tutorials
         contents:
-        - examples/Getting_Started_with_NBEATS_and_NHITS.ipynb
+        - examples/Getting_Started.ipynb
         - examples/Data_Format.ipynb
         - examples/UncertaintyIntervals.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
