@@ -12,4 +12,4 @@ dependencies:
   - pip
   - pip:
     - nbdev
-    - "ray[tune]"
+    - "ray[tune]==2.0.1"
