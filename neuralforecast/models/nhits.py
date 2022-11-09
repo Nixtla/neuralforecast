@@ -16,35 +16,38 @@ from ..common._base_windows import BaseWindows
 
 # %% ../../nbs/models.nhits.ipynb 8
 class _IdentityBasis(nn.Module):
-    def __init__(self, backcast_size: int, forecast_size: int, interpolation_mode: str):
+    def __init__(self, backcast_size: int, forecast_size: int, 
+                 interpolation_mode: str, out_features: int=1):
         super().__init__()
         assert (interpolation_mode in ['linear','nearest']) or ('cubic' in interpolation_mode)
         self.forecast_size = forecast_size
         self.backcast_size = backcast_size
         self.interpolation_mode = interpolation_mode
+        self.out_features = out_features
  
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 
         backcast = theta[:, :self.backcast_size]
         knots = theta[:, self.backcast_size:]
 
-        if self.interpolation_mode=='nearest':
-            knots = knots[:,None,:]
+        # Interpolation is performed on default dim=-1
+        knots = knots.reshape(len(knots), self.out_features, -1)
+        if self.interpolation_mode in ['nearest', 'linear']:
+            #knots = knots[:,None,:]
             forecast = F.interpolate(knots, size=self.forecast_size, mode=self.interpolation_mode)
-            forecast = forecast[:,0,:]
-        elif self.interpolation_mode=='linear':
-            knots = knots[:,None,:]
-            forecast = F.interpolate(knots, size=self.forecast_size, mode=self.interpolation_mode)
-            forecast = forecast[:,0,:]
+            #forecast = forecast[:,0,:]
         elif 'cubic' in self.interpolation_mode:
             batch_size = len(backcast)
-            knots = knots[:,None,None,:]
+            knots = knots[:,None,:,:]
             forecast = torch.zeros((len(knots), self.forecast_size)).to(knots.device)
             n_batches = int(np.ceil(len(knots)/batch_size))
             for i in range(n_batches):
-                forecast_i = F.interpolate(knots[i*batch_size:(i+1)*batch_size], size=self.forecast_size, mode='bicubic')
-                forecast[i*batch_size:(i+1)*batch_size] += forecast_i[:,0,0,:]
+                forecast_i = F.interpolate(knots[i*batch_size:(i+1)*batch_size], 
+                                           size=self.forecast_size, mode='bicubic')
+                forecast[i*batch_size:(i+1)*batch_size] += forecast_i[:,0,:,:]
 
+        # [B,Q,H] -> [B,H,Q]
+        forecast = forecast.permute(0, 2, 1)
         return backcast, forecast
 
 # %% ../../nbs/models.nhits.ipynb 9
@@ -270,10 +273,10 @@ class NHITS(BaseWindows):
 
                 assert stack_types[i] == 'identity', f'Block type {stack_types[i]} not found!'
 
-                n_theta = (input_size + max(h//n_freq_downsample[i], 1) )
-                basis = _IdentityBasis(backcast_size=input_size,
-                                       forecast_size=h,
-                                       interpolation_mode=interpolation_mode)                 
+                n_theta = (input_size + self.loss.outputsize_multiplier*max(h//n_freq_downsample[i], 1) )
+                basis = _IdentityBasis(backcast_size=input_size, forecast_size=h,
+                                       out_features=self.loss.outputsize_multiplier,
+                                       interpolation_mode=interpolation_mode)
 
                 nbeats_block = NHITSBlock(h=h,
                                           input_size=input_size,
@@ -305,27 +308,26 @@ class NHITS(BaseWindows):
         # insample
         residuals = insample_y.flip(dims=(-1,)) #backcast init
         insample_mask = insample_mask.flip(dims=(-1,))
-        forecast = insample_y[:, -1:] # Level with Naive1
-
-        block_forecasts = [ forecast.repeat(1, self.h) ]
         
+        forecast = insample_y[:, -1:, None] # Level with Naive1
+        block_forecasts = [ forecast.repeat(1, self.h, 1) ]
         for i, block in enumerate(self.blocks):
             backcast, block_forecast = block(insample_y=residuals, futr_exog=futr_exog,
                                              hist_exog=hist_exog, stat_exog=stat_exog)
             residuals = (residuals - backcast) * insample_mask
             forecast = forecast + block_forecast
+            
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
 
         if self.decompose_forecast:
-            # (n_batch, n_blocks, h)
+            # (n_batch, n_blocks, h, output_size)
             block_forecasts = torch.stack(block_forecasts)
-            block_forecasts = block_forecasts.permute(1,0,2)
+            block_forecasts = block_forecasts.permute(1,0,2,3)
+            block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            
             # Last dimension Adapter
-            if self.loss.outputsize_multiplier > 1:
-                forecast = forecast[:,:,None] + \
-                          self.loss.adapt_output(self.out(forecast))
+            if self.loss.outputsize_multiplier==1:
+                forecast = forecast.squeeze(-1)
             return forecast
