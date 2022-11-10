@@ -15,19 +15,25 @@ from ..common._base_windows import BaseWindows
 
 # %% ../../nbs/models.nbeats.ipynb 7
 class IdentityBasis(nn.Module):
-    def __init__(self, backcast_size: int, forecast_size: int):
+    def __init__(self, backcast_size: int, forecast_size: int,
+                 out_features: int=1):
         super().__init__()
+        self.out_features = out_features
         self.forecast_size = forecast_size
         self.backcast_size = backcast_size
  
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         backcast = theta[:, :self.backcast_size]
-        forecast = theta[:, -self.forecast_size:]
+        forecast = theta[:, self.backcast_size:]
+        forecast = forecast.reshape(len(forecast), -1, self.out_features)
         return backcast, forecast
 
 class TrendBasis(nn.Module):
-    def __init__(self, degree_of_polynomial: int, backcast_size: int, forecast_size: int):
+    def __init__(self, degree_of_polynomial: int,
+                 backcast_size: int, forecast_size: int,
+                 out_features: int=1):
         super().__init__()
+        self.out_features = out_features
         polynomial_size = degree_of_polynomial + 1
         self.backcast_basis = nn.Parameter(
             torch.tensor(np.concatenate([np.power(np.arange(backcast_size, dtype=float) / backcast_size, i)[None, :]
@@ -37,14 +43,20 @@ class TrendBasis(nn.Module):
                                     for i in range(polynomial_size)]), dtype=torch.float32), requires_grad=False)
     
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        cut_point = self.forecast_basis.shape[0]
-        backcast = torch.einsum('bp,pt->bt', theta[:, cut_point:], self.backcast_basis)
-        forecast = torch.einsum('bp,pt->bt', theta[:, :cut_point], self.forecast_basis)
+        polynomial_size = self.forecast_basis.shape[0] # [polynomial_size, L+H]
+        backcast_theta = theta[:, :polynomial_size]
+        forecast_theta = theta[:, polynomial_size:]
+        forecast_theta = forecast_theta.reshape(len(forecast_theta),polynomial_size,-1)
+        backcast = torch.einsum('bp,pt->bt', backcast_theta, self.backcast_basis)
+        forecast = torch.einsum('bpq,pt->btq', forecast_theta, self.forecast_basis)
         return backcast, forecast
 
 class SeasonalityBasis(nn.Module):
-    def __init__(self, harmonics: int, backcast_size: int, forecast_size: int):
+    def __init__(self, harmonics: int, 
+                 backcast_size: int, forecast_size: int,
+                 out_features: int=1):
         super().__init__()
+        self.out_features = out_features
         frequency = np.append(np.zeros(1, dtype=float),
                                         np.arange(harmonics, harmonics / 2 * forecast_size,
                                                     dtype=float) / harmonics)[None, :]
@@ -65,9 +77,12 @@ class SeasonalityBasis(nn.Module):
         self.forecast_basis = nn.Parameter(forecast_template, requires_grad=False)
 
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        cut_point = self.forecast_basis.shape[0]
-        backcast = torch.einsum('bp,pt->bt', theta[:, cut_point:], self.backcast_basis)
-        forecast = torch.einsum('bp,pt->bt', theta[:, :cut_point], self.forecast_basis)
+        harmonic_size = self.forecast_basis.shape[0] # [harmonic_size, L+H]
+        backcast_theta = theta[:, :harmonic_size]
+        forecast_theta = theta[:, harmonic_size:]
+        forecast_theta = forecast_theta.reshape(len(forecast_theta),harmonic_size,-1)
+        backcast = torch.einsum('bp,pt->bt', backcast_theta, self.backcast_basis)
+        forecast = torch.einsum('bpq,pt->btq', forecast_theta, self.forecast_basis)
         return backcast, forecast
 
 # %% ../../nbs/models.nbeats.ipynb 8
@@ -207,11 +222,6 @@ class NBEATS(BaseWindows):
                                    n_harmonics=n_harmonics)
         self.blocks = torch.nn.ModuleList(blocks)
 
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(in_features=h,
-                        out_features=h*self.loss.outputsize_multiplier)
-
     def create_stack(self, stack_types, 
                      n_blocks, 
                      input_size, 
@@ -230,21 +240,22 @@ class NBEATS(BaseWindows):
                     nbeats_block = block_list[-1]
                 else:
                     if stack_types[i] == 'seasonality':
-                        n_theta = 4 * int(np.ceil(n_harmonics / 2 * h) - (n_harmonics - 1))
+                        n_theta = 2 * (self.loss.outputsize_multiplier + 1) * \
+                                  int(np.ceil(n_harmonics / 2 * h) - (n_harmonics - 1))
                         basis = SeasonalityBasis(harmonics=n_harmonics,
-                                                 backcast_size=input_size,
-                                                 forecast_size=h)
+                                                 backcast_size=input_size,forecast_size=h,
+                                                 out_features=self.loss.outputsize_multiplier)
 
                     elif stack_types[i] == 'trend':
-                        n_theta = 2 * (n_polynomials + 1)
+                        n_theta = (self.loss.outputsize_multiplier + 1) * (n_polynomials + 1)
                         basis = TrendBasis(degree_of_polynomial=n_polynomials,
-                                           backcast_size=input_size,
-                                           forecast_size=h)
+                                           backcast_size=input_size,forecast_size=h,
+                                           out_features=self.loss.outputsize_multiplier)
 
                     elif stack_types[i] == 'identity':
-                        n_theta = input_size + h
-                        basis = IdentityBasis(backcast_size=input_size,
-                                              forecast_size=h)                      
+                        n_theta = input_size + self.loss.outputsize_multiplier * h
+                        basis = IdentityBasis(backcast_size=input_size, forecast_size=h,
+                                              out_features=self.loss.outputsize_multiplier)
                     else:
                         raise ValueError(f'Block type {stack_types[i]} not found!')
 
@@ -269,27 +280,25 @@ class NBEATS(BaseWindows):
         # NBEATS' forward
         residuals = insample_y.flip(dims=(-1,)) # backcast init
         insample_mask = insample_mask.flip(dims=(-1,))
-        forecast = insample_y[:, -1:] # Level with Naive1
-
-        block_forecasts = [ forecast.repeat(1, self.h) ]
         
+        forecast = insample_y[:, -1:, None] # Level with Naive1
+        block_forecasts = [ forecast.repeat(1, self.h, 1) ]
         for i, block in enumerate(self.blocks):
             backcast, block_forecast = block(insample_y=residuals)
             residuals = (residuals - backcast) * insample_mask
             forecast = forecast + block_forecast
-            
+
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
 
         if self.decompose_forecast:
-            # (n_batch, n_blocks, h)
+            # (n_batch, n_blocks, h, out_features)
             block_forecasts = torch.stack(block_forecasts)
-            block_forecasts = block_forecasts.permute(1,0,2)
+            block_forecasts = block_forecasts.permute(1,0,2,3)
+            block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            
             # Last dimension Adapter
-            if self.loss.outputsize_multiplier > 1:
-                forecast = forecast[:,:,None] + \
-                           self.loss.adapt_output(self.out(forecast))
+            if self.loss.outputsize_multiplier==1:
+                forecast = forecast.squeeze(-1)
             return forecast
