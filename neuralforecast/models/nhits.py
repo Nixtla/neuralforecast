@@ -30,7 +30,7 @@ class _IdentityBasis(nn.Module):
         backcast = theta[:, :self.backcast_size]
         knots = theta[:, self.backcast_size:]
 
-        # Interpolation is performed on default dim=-1
+        # Interpolation is performed on default dim=-1 := H
         knots = knots.reshape(len(knots), self.out_features, -1)
         if self.interpolation_mode in ['nearest', 'linear']:
             #knots = knots[:,None,:]
