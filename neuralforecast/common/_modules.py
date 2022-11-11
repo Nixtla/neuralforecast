@@ -6,10 +6,10 @@ __all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolution
 # %% ../../nbs/common.modules.ipynb 3
 import torch.nn as nn
 
-# %% ../../nbs/common.modules.ipynb 6
-ACTIVATIONS = ['ReLU','Softplus','Tanh','SELU',
-               'LeakyReLU','PReLU','Sigmoid']
-               
+# %% ../../nbs/common.modules.ipynb 5
+ACTIVATIONS = ['ReLU','Softplus','Tanh','SELU','LeakyReLU','PReLU','Sigmoid']
+
+# %% ../../nbs/common.modules.ipynb 7
 class MLP(nn.Module):
     """Multi-Layer Perceptron Class
 
@@ -46,10 +46,7 @@ class MLP(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-# %% ../../nbs/common.modules.ipynb 8
-ACTIVATIONS = ['ReLU','Softplus','Tanh','SELU',
-               'LeakyReLU','PReLU','Sigmoid']
-
+# %% ../../nbs/common.modules.ipynb 9
 class Chomp1d(nn.Module):
     """ Chomp1d
 
@@ -111,7 +108,7 @@ class CausalConv1d(nn.Module):
     def forward(self, x):
         return self.causalconv(x)
 
-# %% ../../nbs/common.modules.ipynb 10
+# %% ../../nbs/common.modules.ipynb 11
 class TemporalConvolutionEncoder(nn.Module):
     """ Temporal Convolution Encoder
 
