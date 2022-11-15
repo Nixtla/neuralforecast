@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['TCN']
 
-# %% ../../nbs/models.tcn.ipynb 3
+# %% ../../nbs/models.tcn.ipynb 4
 from typing import Tuple
 
 import numpy as np
@@ -14,11 +14,13 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP, TemporalConvolutionEncoder
 
-# %% ../../nbs/models.tcn.ipynb 5
+# %% ../../nbs/models.tcn.ipynb 6
 class TCN(BaseRecurrent):
     """ TCN
 
     Temporal Convolution Network (TCN), with MLP decoder.
+    The historical encoder uses dilated skip connections to obtain efficient long memory,
+    while the rest of the architecture allows for future exogenous alignment.
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
