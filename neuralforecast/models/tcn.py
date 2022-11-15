@@ -141,7 +141,7 @@ class TCN(BaseRecurrent):
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
         # RNN forward
-        hidden_state, _ = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
+        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
 
         if self.futr_exog_size > 0:
             futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
