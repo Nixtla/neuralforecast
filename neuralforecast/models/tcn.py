@@ -4,9 +4,6 @@
 __all__ = ['TCN']
 
 # %% ../../nbs/models.tcn.ipynb 4
-from typing import Tuple
-
-import numpy as np
 import torch
 import torch.nn as nn
 
