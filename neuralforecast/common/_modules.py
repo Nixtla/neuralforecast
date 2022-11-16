@@ -119,7 +119,9 @@ class TemporalConvolutionEncoder(nn.Module):
 
     **Parameters:**<br>
     `in_channels`: int, dimension of `x` input's initial channels.<br> 
-    `out_channels`: int, dimension of `x` outputs's channels.<br> 
+    `out_channels`: int, dimension of `x` outputs's channels.<br>
+    `kernel_size`: int, size of the convolving kernel.<br>
+    `dilations`: int list, controls the temporal spacing between the kernel points.<br>
     `activation`: str, identifying activations from PyTorch activations.
         select from 'ReLU','Softplus','Tanh','SELU', 'LeakyReLU','PReLU','Sigmoid'.<br>
 
@@ -127,27 +129,16 @@ class TemporalConvolutionEncoder(nn.Module):
     `x`: tensor, torch tensor of dim [N,T,C_out].<br>
     """
     # TODO: Add dilations parameter and change layers declaration to for loop
-    def __init__(self, in_channels, out_channels, kernel_size, 
-                 activation:str='ReLU', stride:int=1):
+    def __init__(self, in_channels, out_channels, 
+                 kernel_size, dilations,
+                 activation:str='ReLU'):
         super(TemporalConvolutionEncoder, self).__init__()
-        layers = [CausalConv1d(in_channels=in_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*1, 
-                               activation=activation, dilation=1),
-                  CausalConv1d(in_channels=out_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*2, 
-                               activation=activation, dilation=2),
-                  CausalConv1d(in_channels=out_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*4, 
-                               activation=activation, dilation=4),
-                  CausalConv1d(in_channels=out_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*8, 
-                               activation=activation, dilation=8),
-                  CausalConv1d(in_channels=out_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*16, 
-                               activation=activation, dilation=16),
-                  CausalConv1d(in_channels=out_channels, out_channels=out_channels, 
-                               kernel_size=kernel_size, padding=(kernel_size-1)*32, 
-                               activation=activation, dilation=32)]
+        layers = []
+        for dilation in dilations:
+            layers.append(CausalConv1d(in_channels=in_channels, out_channels=out_channels, 
+                                        kernel_size=kernel_size, padding=(kernel_size-1)*dilation, 
+                                        activation=activation, dilation=dilation))
+            in_channels = out_channels
         self.tcn = nn.Sequential(*layers)
 
     def forward(self, x):

@@ -3,7 +3,9 @@
 # %% auto 0
 __all__ = ['TCN']
 
-# %% ../../nbs/models.tcn.ipynb 4
+# %% ../../nbs/models.tcn.ipynb 5
+from typing import List
+
 import torch
 import torch.nn as nn
 
@@ -11,7 +13,7 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP, TemporalConvolutionEncoder
 
-# %% ../../nbs/models.tcn.ipynb 6
+# %% ../../nbs/models.tcn.ipynb 7
 class TCN(BaseRecurrent):
     """ TCN
 
@@ -22,9 +24,10 @@ class TCN(BaseRecurrent):
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `encoder_n_layers`: int=2, number of layers for the RNN.<br>
-    `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
-    `encoder_activation`: str=`tanh`, type of RNN activation from `tanh` or `relu`.<br>
+    `kernel_size`: int, size of the convolving kernel.<br>
+    `dilations`: int list, ontrols the temporal spacing between the kernel points; also known as the à trous algorithm.<br>
+    `encoder_hidden_size`: int=200, units for the TCN's hidden state size.<br>
+    `encoder_activation`: str=`tanh`, type of TCN activation from `tanh` or `relu`.<br>
     `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
     `decoder_hidden_size`: int=200, size of hidden layer for the MLP decoder.<br>
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
@@ -43,7 +46,8 @@ class TCN(BaseRecurrent):
     def __init__(self,
                  h: int,
                  input_size: int = -1,
-                 encoder_n_layers: int = 2,
+                 kernel_size: int = 2,
+                 dilations: List[int] = [1, 2, 4, 8, 16],
                  encoder_hidden_size: int = 200,
                  encoder_activation: str = 'ReLU',
                  context_size: int = 10,
@@ -77,8 +81,9 @@ class TCN(BaseRecurrent):
         )
 
         #----------------------------------- Parse dimensions -----------------------------------#
-        # RNN
-        self.encoder_n_layers = encoder_n_layers
+        # TCN
+        self.kernel_size = kernel_size
+        self.dilations = dilations
         self.encoder_hidden_size = encoder_hidden_size
         self.encoder_activation = encoder_activation
         
@@ -93,19 +98,18 @@ class TCN(BaseRecurrent):
         self.hist_exog_size = len(self.hist_exog_list)
         self.stat_exog_size = len(self.stat_exog_list)
         
-        # RNN input size (1 for target variable y)
+        # TCN input size (1 for target variable y)
         input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
 
         
         #---------------------------------- Instantiate Model -----------------------------------#
         # Instantiate historic encoder
-        # TODO: add kernel_size and dilations/num_layers parameters.
         self.hist_encoder = TemporalConvolutionEncoder(
                                    in_channels=input_encoder,
                                    out_channels=self.encoder_hidden_size,
-                                   kernel_size=2, # Almost like lags
+                                   kernel_size=self.kernel_size, # Almost like lags
+                                   dilations=self.dilations,
                                    activation=self.encoder_activation)
-                                   #num_layers=self.encoder_n_layers)
 
         # Context adapter
         self.context_adapter = nn.Linear(in_features=self.encoder_hidden_size + self.futr_exog_size * h,
@@ -139,8 +143,8 @@ class TCN(BaseRecurrent):
             stat_exog = stat_exog.unsqueeze(1).repeat(1, seq_len, 1) # [B, S] -> [B, seq_len, S]
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
-        # RNN forward
-        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
+        # TCN forward
+        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, tcn_hidden_state]
 
         if self.futr_exog_size > 0:
             futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
