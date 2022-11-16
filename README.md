@@ -53,7 +53,7 @@ pip install -e .
 </details>
 
 ## 🏃🏻‍♀️🏃 Getting Started
-To get started follow this [guide](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
+To get started follow this [guide](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
 
 Or follow this simple example where we train the `NBEATS` model and predict the classic Box-Jenkins air passengers dataset.
 ```python
