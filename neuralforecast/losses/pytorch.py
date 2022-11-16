@@ -22,19 +22,18 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 # %% ../../nbs/losses.pytorch.ipynb 8
 class MAE(torch.nn.Module):
-    
-    def __init__(self):
-        """Mean Absolute Error
+    """Mean Absolute Error
 
-        Calculates Mean Absolute Error between
-        `y` and `y_hat`. MAE measures the relative prediction
-        accuracy of a forecasting method by calculating the
-        deviation of the prediction and the true
-        value at a given time and averages these devations
-        over the length of the series.
-        
-        $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
-        """
+    Calculates Mean Absolute Error between
+    `y` and `y_hat`. MAE measures the relative prediction
+    accuracy of a forecasting method by calculating the
+    deviation of the prediction and the true
+    value at a given time and averages these devations
+    over the length of the series.
+    
+    $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
+    """    
+    def __init__(self):
         super(MAE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -62,19 +61,18 @@ class MAE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 13
 class MSE(torch.nn.Module):
-    
-    def __init__(self):
-        """  Mean Squared Error
+    """  Mean Squared Error
 
-        Calculates Mean Squared Error between
-        `y` and `y_hat`. MSE measures the relative prediction
-        accuracy of a forecasting method by calculating the 
-        squared deviation of the prediction and the true
-        value at a given time, and averages these devations
-        over the length of the series.
-        
-        $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
-        """
+    Calculates Mean Squared Error between
+    `y` and `y_hat`. MSE measures the relative prediction
+    accuracy of a forecasting method by calculating the 
+    squared deviation of the prediction and the true
+    value at a given time, and averages these devations
+    over the length of the series.
+    
+    $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
+    """    
+    def __init__(self):
         super(MSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -103,22 +101,21 @@ class MSE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 18
 class RMSE(torch.nn.Module):
-    
-    def __init__(self):
-        """ Root Mean Squared Error
+    """ Root Mean Squared Error
 
-        Calculates Root Mean Squared Error between
-        `y` and `y_hat`. RMSE measures the relative prediction
-        accuracy of a forecasting method by calculating the squared deviation
-        of the prediction and the observed value at a given time and
-        averages these devations over the length of the series.
-        Finally the RMSE will be in the same scale
-        as the original time series so its comparison with other
-        series is possible only if they share a common scale. 
-        RMSE has a direct connection to the L2 norm.
-        
-        $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
-        """
+    Calculates Root Mean Squared Error between
+    `y` and `y_hat`. RMSE measures the relative prediction
+    accuracy of a forecasting method by calculating the squared deviation
+    of the prediction and the observed value at a given time and
+    averages these devations over the length of the series.
+    Finally the RMSE will be in the same scale
+    as the original time series so its comparison with other
+    series is possible only if they share a common scale. 
+    RMSE has a direct connection to the L2 norm.
+    
+    $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
+    """
+    def __init__(self):
         super(RMSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -148,20 +145,19 @@ class RMSE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 24
 class MAPE(torch.nn.Module):
-    
-    def __init__(self):
-        """ Mean Absolute Percentage Error
+    """ Mean Absolute Percentage Error
 
-        Calculates Mean Absolute Percentage Error  between
-        `y` and `y_hat`. MAPE measures the relative prediction
-        accuracy of a forecasting method by calculating the percentual deviation
-        of the prediction and the observed value at a given time and
-        averages these devations over the length of the series.
-        The closer to zero an observed value is, the higher penalty MAPE loss
-        assigns to the corresponding error.
-        
-        $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
-        """
+    Calculates Mean Absolute Percentage Error  between
+    `y` and `y_hat`. MAPE measures the relative prediction
+    accuracy of a forecasting method by calculating the percentual deviation
+    of the prediction and the observed value at a given time and
+    averages these devations over the length of the series.
+    The closer to zero an observed value is, the higher penalty MAPE loss
+    assigns to the corresponding error.
+    
+    $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
+    """    
+    def __init__(self):
         super(MAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -190,24 +186,24 @@ class MAPE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 29
 class SMAPE(torch.nn.Module):
+    """ Symmetric Mean Absolute Percentage Error
+
+    Calculates Symmetric Mean Absolute Percentage Error between
+    `y` and `y_hat`. SMAPE measures the relative prediction
+    accuracy of a forecasting method by calculating the relative deviation
+    of the prediction and the observed value scaled by the sum of the
+    absolute values for the prediction and observed value at a
+    given time, then averages these devations over the length
+    of the series. This allows the SMAPE to have bounds between
+    0% and 200% which is desireble compared to normal MAPE that
+    may be undetermined when the target is zero.
+
+    $$ \mathrm{sMAPE}_{2}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
+
+    **References:**<br>
+    [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+    """
     def __init__(self):
-        """ Symmetric Mean Absolute Percentage Error
-        
-        Calculates Symmetric Mean Absolute Percentage Error between
-        `y` and `y_hat`. SMAPE measures the relative prediction
-        accuracy of a forecasting method by calculating the relative deviation
-        of the prediction and the observed value scaled by the sum of the
-        absolute values for the prediction and observed value at a
-        given time, then averages these devations over the length
-        of the series. This allows the SMAPE to have bounds between
-        0% and 200% which is desireble compared to normal MAPE that
-        may be undetermined when the target is zero.
-        
-        $$ \mathrm{sMAPE}_{2}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
-        
-        **References:**<br>
-        [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
-        """
         super(SMAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
@@ -238,26 +234,25 @@ class SMAPE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 34
 class MASE(torch.nn.Module):
+    """ Mean Absolute Scaled Error 
+    Calculates the Mean Absolute Scaled Error between
+    `y` and `y_hat`. MASE measures the relative prediction
+    accuracy of a forecasting method by comparinng the mean absolute errors
+    of the prediction and the observed value against the mean
+    absolute errors of the seasonal naive model.
+    The MASE partially composed the Overall Weighted Average (OWA), 
+    used in the M4 Competition.
+    
+    $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
 
+    **Parameters:**<br>
+    `seasonality`: int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
+    
+    **References:**<br>
+    [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+    [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
+    """
     def __init__(self, seasonality: int):
-        """ Mean Absolute Scaled Error 
-        Calculates the Mean Absolute Scaled Error between
-        `y` and `y_hat`. MASE measures the relative prediction
-        accuracy of a forecasting method by comparinng the mean absolute errors
-        of the prediction and the observed value against the mean
-        absolute errors of the seasonal naive model.
-        The MASE partially composed the Overall Weighted Average (OWA), 
-        used in the M4 Competition.
-        
-        $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
-
-        **Parameters:**<br>
-        `seasonality`: int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
-        
-        **References:**<br>
-        [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
-        [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
-        """
         super(MASE, self).__init__()
         self.seasonality = seasonality
         self.outputsize_multiplier = 1
@@ -291,24 +286,23 @@ class MASE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 40
 class QuantileLoss(torch.nn.Module):
-    
+    """ Quantile Loss
+
+    Computes the quantile loss between `y` and `y_hat`.
+    QL measures the deviation of a quantile forecast.
+    By weighting the absolute deviation in a non symmetric way, the
+    loss pays more attention to under or over estimation.
+    A common value for q is 0.5 for the deviation from the median (Pinball loss).
+
+    $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
+
+    **Parameters:**<br>
+    `q`: float, between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.<br>
+
+    **References:**<br>
+    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+    """
     def __init__(self, q):
-        """ Quantile Loss
-
-        Computes the quantile loss between `y` and `y_hat`.
-        QL measures the deviation of a quantile forecast.
-        By weighting the absolute deviation in a non symmetric way, the
-        loss pays more attention to under or over estimation.
-        A common value for q is 0.5 for the deviation from the median (Pinball loss).
-
-        $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
-
-        **Parameters:**<br>
-        `q`: float, between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.<br>
-
-        **References:**<br>
-        [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
-        """
         super(QuantileLoss, self).__init__()
         self.q = q
         self.outputsize_multiplier = 1
@@ -366,34 +360,33 @@ def quantiles_to_outputs(quantiles):
 
 # %% ../../nbs/losses.pytorch.ipynb 46
 class MQLoss(torch.nn.Module):
+    """  Multi-Quantile loss
+
+    Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
+    MQL calculates the average multi-quantile Loss for
+    a given set of quantiles, based on the absolute 
+    difference between predicted quantiles and observed values.
     
+    $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
+    
+    The limit behavior of MQL allows to measure the accuracy 
+    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with 
+    the continuous ranked probability score (CRPS). This can be achieved 
+    through a numerical integration technique, that discretizes the quantiles 
+    and treats the CRPS integral with a left Riemann approximation, averaging over 
+    uniformly distanced quantiles.    
+    
+    $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
+
+    **Parameters:**<br>
+    `level`: int list [0,100]. Probability levels for prediction intervals (Defaults median).
+    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
+
+    **References:**<br>
+    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
+    [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
+    """
     def __init__(self, level=[80, 90], quantiles=None):
-        """  Multi-Quantile loss
-    
-        Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
-        MQL calculates the average multi-quantile Loss for
-        a given set of quantiles, based on the absolute 
-        difference between predicted quantiles and observed values.
-        
-        $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
-        
-        The limit behavior of MQL allows to measure the accuracy 
-        of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with 
-        the continuous ranked probability score (CRPS). This can be achieved 
-        through a numerical integration technique, that discretizes the quantiles 
-        and treats the CRPS integral with a left Riemann approximation, averaging over 
-        uniformly distanced quantiles.    
-        
-        $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
-
-        **Parameters:**<br>
-        `level`: int list [0,100]. Probability levels for prediction intervals (Defaults median).
-        `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
-
-        **References:**<br>
-        [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
-        [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
-        """
         super(MQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -446,25 +439,24 @@ class MQLoss(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 51
 class wMQLoss(torch.nn.Module):
+    """ Weighted Multi-Quantile loss
     
-    def __init__(self, level=[80, 90], quantiles=None):
-        """ Weighted Multi-Quantile loss
+    Calculates the Weighted Multi-Quantile loss (WMQL) between `y` and `y_hat`.
+    WMQL calculates the weighted average multi-quantile Loss for
+    a given set of quantiles, based on the absolute 
+    difference between predicted quantiles and observed values.  
         
-        Calculates the Weighted Multi-Quantile loss (WMQL) between `y` and `y_hat`.
-        WMQL calculates the weighted average multi-quantile Loss for
-        a given set of quantiles, based on the absolute 
-        difference between predicted quantiles and observed values.  
-            
-        $$ \mathrm{wMQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \\frac{\mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau})}{\\sum^{t+H}_{\\tau=t+1} |y_{\\tau}|} $$
-        
-        **Parameters:**<br>
-        `level`: int list [0,100]. Probability levels for prediction intervals (Defaults median).
-        `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
+    $$ \mathrm{wMQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \\frac{\mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau})}{\\sum^{t+H}_{\\tau=t+1} |y_{\\tau}|} $$
+    
+    **Parameters:**<br>
+    `level`: int list [0,100]. Probability levels for prediction intervals (Defaults median).
+    `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
 
-        **References:**<br>
-        [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
-        [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
-        """
+    **References:**<br>
+    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
+    [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
+    """
+    def __init__(self, level=[80, 90], quantiles=None):
         super(wMQLoss, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -514,23 +506,22 @@ class wMQLoss(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 56
 class PMM(torch.nn.Module):
+    """ Poisson Mixture Mesh
 
+    This Poisson Mixture statistical model assumes independence across groups of 
+    data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
+
+    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
+    \prod_{\\beta\in[g_{i}]} 
+    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
+
+    **References:**<br>
+    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+    Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+    """
     def __init__(self, level=[80, 90], quantiles=None):
-        """ Poisson Mixture Mesh
-
-        This Poisson Mixture statistical model assumes independence across groups of 
-        data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
-
-        $$ P\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
-        \prod_{ [g_{i}] \in \mathcal{G}} P \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
-        \prod_{\\beta\in[g_{i}]} 
-        \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
-
-        **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
-        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
-        """
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -622,26 +613,25 @@ class PMM(torch.nn.Module):
         return self.neglog_likelihood(y=y, weights=weights, lambdas=lambdas, mask=mask)
 
 
-# %% ../../nbs/losses.pytorch.ipynb 60
+# %% ../../nbs/losses.pytorch.ipynb 63
 class GMM(torch.nn.Module):
+    """ Gaussian Mixture Mesh
 
+    This Gaussian Mixture statistical model assumes independence across groups of 
+    data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
+
+    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
+    \prod_{\\beta\in[g_{i}]}
+    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} 
+    \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
+
+    **References:**<br>
+    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
+    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+    Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+    """
     def __init__(self, level=[80, 90], quantiles=None):
-        """ Gaussian Mixture Mesh
-
-        This Gaussian Mixture statistical model assumes independence across groups of 
-        data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
-
-        $$ P\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
-        \prod_{ [g_{i}] \in \mathcal{G}} P\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
-        \prod_{\\beta\in[g_{i}]}
-        \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} 
-        \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
-
-        **References:**<br>
-        [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-        Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
-        Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
-        """
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
