@@ -53,7 +53,7 @@ pip install -e .
 </details>
 
 ## 🏃🏻‍♀️🏃 Getting Started
-To get started follow this [guide](xXmissingXx), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
+To get started follow this [guide](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
 
 Or follow this simple example where we train the `NBEATS` model and predict the classic Box-Jenkins air passengers dataset.
 ```python
@@ -108,13 +108,13 @@ ax.grid()
 
 ## 🎊 Features 
 
-* **Exogenous Variables**: Static, lagged and future exogenous support for models like `TFT`, `NBEATSx` and `ESRNN`.
-* **Forecast Interpretability**: Plot trend, seasonality and exogenous `NBEATS`, `NHITS`, `ESRNN` prediction components.
+* **Exogenous Variables**: Static, lagged and future exogenous support.
+* **Forecast Interpretability**: Plot trend, seasonality and exogenous `NBEATS`, `NHITS`, `TFT`, `ESRNN` prediction components.
 * **Probabilistic Forecasting**: Simple model adapters for quantile losses and parametric distributions.
 * **Train and Evaluation Losses** Scale-dependent, percentage and scale independent errors, and parametric likelihoods.
 * **Automatic Model Selection** Parallelized automatic hyperparameter tuning, that efficiently searches best validation configuration.
 * **Simple Interface** Unified SKLearn Interface for `StatsForecast` and `MLForecast` compatibility.
-* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `AutoFormer`, `Informer`, `TFT`, `AutoFormer`, `Informer`, and vanilla `Transformer`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `TCN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `AutoFormer`, `Informer`, `TFT`, `AutoFormer`, `Informer`, and vanilla `Transformer`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 
 Missing something? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 

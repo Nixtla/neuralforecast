@@ -14,6 +14,7 @@ website:
             - models.gru.ipynb
             - models.lstm.ipynb
             - models.dilated_rnn.ipynb
+            - models.tcn.ipynb
           - section: B. MLP-Based
             contents:
             - models.mlp.ipynb

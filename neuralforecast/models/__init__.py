@@ -1,11 +1,14 @@
-__all__ = ['NBEATS', 'NHITS', 'RNN', 'DilatedRNN', 'GRU', 'LSTM', 'TFT', 'GMM_TFT', 'MLP', 'NBEATSx']
-from .nbeats import NBEATS
-from .nhits import NHITS
+__all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DilatedRNN',
+           'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
+           'TFT', 'GMM_TFT']
 from .rnn import RNN
-from .dilated_rnn import DilatedRNN
 from .gru import GRU
 from .lstm import LSTM
+from .tcn import TCN
+from .dilated_rnn import DilatedRNN
+from .mlp import MLP
+from .nhits import NHITS
+from .nbeats import NBEATS
+from .nbeatsx import NBEATSx
 from .tft import TFT
 from .gmm_tft import GMM_TFT
-from .mlp import MLP
-from .nbeatsx import NBEATSx

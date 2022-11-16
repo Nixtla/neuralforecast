@@ -13,8 +13,11 @@ import numpy as np
 import pandas as pd
 
 from .tsdataset import TimeSeriesDataset
-from .models import (DilatedRNN, GMM_TFT, TFT, GRU, LSTM,
-                                   RNN, NBEATS, NBEATSx, NHITS, MLP)
+from neuralforecast.models import (
+    GRU, LSTM, RNN, TCN, DilatedRNN,
+    MLP, NHITS, NBEATS, NBEATSx, 
+    TFT, GMM_TFT, 
+)
 
 # %% ../nbs/core.ipynb 5
 def _cv_dates(last_dates, freq, h, test_size, step_size=1):
@@ -41,9 +44,12 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
     return dates
 
 # %% ../nbs/core.ipynb 9
-MODEL_FILENAME_DICT = {'dilatedrnn': DilatedRNN, 'gmm_tft': GMM_TFT, 'gru': GRU, 'lstm': LSTM,
-                       'mlp': MLP, 'nbeats': NBEATS, 'nbeatsx': NBEATSx, 'nhits': NHITS, 'rnn': RNN, 'tft': TFT,
-                       'autodilatedrnn': DilatedRNN, 'autogru': GRU, 'autolstm': LSTM, 'autornn': RNN,
+MODEL_FILENAME_DICT = {'gru': GRU, 'lstm': LSTM, 'rnn': RNN, 
+                       'tcn': TCN, 'dilatedrnn': DilatedRNN,
+                       'mlp': MLP, 'nbeats': NBEATS, 'nbeatsx': NBEATSx, 'nhits': NHITS,  'tft': TFT,
+                       'gmm_tft': GMM_TFT, 
+                       'autogru': GRU, 'autolstm': LSTM, 'autornn': RNN,
+                       'autotcn': TCN, 'autodilatedrnn': DilatedRNN,
                        'automlp': MLP, 'autonbeats': NBEATS, 'autonhits': NHITS}
 
 # %% ../nbs/core.ipynb 10
