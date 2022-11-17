@@ -4,11 +4,21 @@
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'PMM', 'GMM']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
-from typing import Union
+from typing import Optional, Union
 
 import math
 import numpy as np
 import torch
+from torch.distributions import StudentT
+# from torch.distributions import (
+#     Beta,
+#     Distribution,
+#     Gamma,
+#     NegativeBinomial,
+#     Normal,
+#     Poisson,
+#     StudentT,
+# )
 
 # %% ../../nbs/losses.pytorch.ipynb 5
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -505,6 +515,39 @@ class wMQLoss(torch.nn.Module):
         return torch.mean(wmqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 56
+def weighted_average(x: torch.Tensor, 
+                     weights: Optional[torch.Tensor]=None, dim=None) -> torch.Tensor:
+    """
+    Computes the weighted average of a given tensor across a given dim, masking
+    values associated with weight zero,
+    meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`.
+    Parameters
+    ----------
+    x
+        Input tensor, of which the average must be computed.
+    weights
+        Weights tensor, of the same shape as `x`.
+    dim
+        The dim along which to average `x`
+    Returns
+    -------
+    Tensor:
+        The tensor with values averaged along the specified `dim`.
+    """
+    if weights is not None:
+        weighted_tensor = torch.where(
+            weights != 0, x * weights, torch.zeros_like(x)
+        )
+        sum_weights = torch.clamp(
+            weights.sum(dim=dim) if dim else weights.sum(), min=1.0
+        )
+        return (
+            weighted_tensor.sum(dim=dim) if dim else weighted_tensor.sum()
+        ) / sum_weights
+    else:
+        return x.mean(dim=dim)
+
+# %% ../../nbs/losses.pytorch.ipynb 62
 class PMM(torch.nn.Module):
     """ Poisson Mixture Mesh
 
@@ -613,7 +656,7 @@ class PMM(torch.nn.Module):
         return self.neglog_likelihood(y=y, weights=weights, lambdas=lambdas, mask=mask)
 
 
-# %% ../../nbs/losses.pytorch.ipynb 63
+# %% ../../nbs/losses.pytorch.ipynb 69
 class GMM(torch.nn.Module):
     """ Gaussian Mixture Mesh
 

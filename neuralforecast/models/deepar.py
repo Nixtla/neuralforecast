@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['DeepAR']
 
-# %% ../../nbs/models.deepar.ipynb 5
+# %% ../../nbs/models.deepar.ipynb 6
 from typing import List
 
 import torch
@@ -13,19 +13,63 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP, TemporalConvolutionEncoder
 
-# %% ../../nbs/models.deepar.ipynb 7
+# %% ../../nbs/models.deepar.ipynb 8
+class StaticCovariateEncoder(nn.Module):
+    def __init__(self, in_features, out_features):
+        super(StaticCovariateEncoder, self).__init__()
+        layers = [nn.Dropout(p=0.5),
+                  nn.Linear(in_features=in_features, 
+                            out_features=out_features),
+                  nn.ReLU()]
+        self.encoder = nn.Sequential(*layers)
+
+    def forward(self, x, repeats):        
+        # Apply Static Encoder and repeat data.
+        # [N,S_in] -> [N,S_out] -> [N,T,S_out]
+        x = self.encoder(x)
+        x = x.unsqueeze(1).repeat(1, repeats, 1)
+        return x
+
+# %% ../../nbs/models.deepar.ipynb 9
 class DeepAR(BaseRecurrent):
     """ DeepAR
 
+    The DeepAR architecture produces predictive distributions based on
+    an autoreggresive recurrent neural network, its outputs use a multi-step 
+    recurrent forecasting strategy.
+
     **Parameters:**<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `stat_hidden_size`: int, dimension of the embedding space for each static feature.<br>
+    `encoder_n_layers`: int=2, number of layers for the LSTM.<br>
+    `encoder_hidden_size`: int=200, units for the LSTM's hidden state size.<br>
+    `encoder_activation`: str=`tanh`, type of LSTM activation from `tanh` or `relu`.<br>
+    `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within LSTM units.<br>
+    `encoder_dropout`: float=0., dropout regularization applied to LSTM outputs.<br>
+    `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
+    `decoder_hidden_size`: int=200, size of hidden layer for the MLP decoder.<br>
+    `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float=1e-3, initial optimization learning rate (0,1).<br>
+    `batch_size`: int=32, number of differentseries in each batch.<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
     """
     def __init__(self,
                  h: int,
                  input_size: int = -1,
-                 kernel_size: int = 2,
-                 dilations: List[int] = [1, 2, 4, 8, 16],
+                 stat_hidden_size: int = 10,
+                 encoder_n_layers: int = 2,
                  encoder_hidden_size: int = 200,
-                 encoder_activation: str = 'ReLU',
+                 encoder_bias: bool = True,
+                 encoder_dropout: float = 0.,
                  context_size: int = 10,
                  decoder_hidden_size: int = 200,
                  decoder_layers: int = 2,
@@ -55,37 +99,40 @@ class DeepAR(BaseRecurrent):
             random_seed=random_seed,
             **trainer_kwargs
         )
+        #---------------------------------------- Parsing dimensions --------------------------------------#
+        # Parsing input dimensions
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
+        self.stat_hidden_size = stat_hidden_size if self.stat_exog_size>0 else 0
 
-        #----------------------------------- Parse dimensions -----------------------------------#
-        # DeepAR encoder
-        self.kernel_size = kernel_size
-        self.dilations = dilations
+        # LSTM
+        self.encoder_n_layers = encoder_n_layers
         self.encoder_hidden_size = encoder_hidden_size
-        self.encoder_activation = encoder_activation
-        
+        self.encoder_bias = encoder_bias
+        self.encoder_dropout = encoder_dropout
+
         # Context adapter
         self.context_size = context_size
 
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
         self.decoder_layers = decoder_layers
-
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
         
-        # DeepAR input size (1 for target variable y)
-        input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
+        # LSTM input size (1 for target variable y)
+        input_encoder = 1 + self.hist_exog_size + self.stat_hidden_size
 
-        
-        #---------------------------------- Instantiate Model -----------------------------------#
-        # Instantiate historic encoder
-        self.hist_encoder = TemporalConvolutionEncoder(
-                                   in_channels=input_encoder,
-                                   out_channels=self.encoder_hidden_size,
-                                   kernel_size=self.kernel_size, # Almost like lags
-                                   dilations=self.dilations,
-                                   activation=self.encoder_activation)
+        #-------------------------------------- Instantiate Components ------------------------------------#
+        # Instantiate model components
+        self.stat_encoder = StaticCovariateEncoder(
+                                            in_features=self.stat_exog_size,
+                                            out_features=stat_hidden_size)
+        self.hist_encoder = nn.LSTM(input_size=input_encoder,
+                                    hidden_size=self.encoder_hidden_size,
+                                    num_layers=self.encoder_n_layers,
+                                    bias=self.encoder_bias,
+                                    dropout=self.encoder_dropout,
+                                    batch_first=True)
 
         # Context adapter
         self.context_adapter = nn.Linear(in_features=self.encoder_hidden_size + self.futr_exog_size * h,
@@ -116,11 +163,11 @@ class DeepAR(BaseRecurrent):
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 
         if self.stat_exog_size > 0:
-            stat_exog = stat_exog.unsqueeze(1).repeat(1, seq_len, 1) # [B, S] -> [B, seq_len, S]
-            encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
+            stat_hidden = self.stat_encoder(x=stat_exog, repeats=seq_len)  # [B, seq_len, S_out]
+            encoder_input = torch.cat((encoder_input, stat_hidden), dim=2)
 
-        # TCN forward
-        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, tcn_hidden_state]
+        # RNN forward
+        hidden_state, _ = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
 
         if self.futr_exog_size > 0:
             futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
