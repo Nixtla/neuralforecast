@@ -14,7 +14,7 @@ import pandas as pd
 
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
-    GRU, LSTM, RNN, TCN, DilatedRNN,
+    GRU, LSTM, RNN, TCN, DeepAR, DilatedRNN,
     MLP, NHITS, NBEATS, NBEATSx, 
     TFT, GMM_TFT, 
 )
@@ -45,11 +45,11 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
 
 # %% ../nbs/core.ipynb 9
 MODEL_FILENAME_DICT = {'gru': GRU, 'lstm': LSTM, 'rnn': RNN, 
-                       'tcn': TCN, 'dilatedrnn': DilatedRNN,
+                       'tcn': TCN, 'deepar': DeepAR, 'dilatedrnn': DilatedRNN,
                        'mlp': MLP, 'nbeats': NBEATS, 'nbeatsx': NBEATSx, 'nhits': NHITS,  'tft': TFT,
                        'gmm_tft': GMM_TFT, 
                        'autogru': GRU, 'autolstm': LSTM, 'autornn': RNN,
-                       'autotcn': TCN, 'autodilatedrnn': DilatedRNN,
+                       'autotcn': TCN, 'autodeepar': DeepAR, 'autodilatedrnn': DilatedRNN,
                        'automlp': MLP, 'autonbeats': NBEATS, 'autonhits': NHITS}
 
 # %% ../nbs/core.ipynb 10
