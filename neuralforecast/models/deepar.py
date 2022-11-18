@@ -9,7 +9,7 @@ from typing import List
 import torch
 import torch.nn as nn
 
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, StudentTLoss
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP, TemporalConvolutionEncoder
 
@@ -32,7 +32,7 @@ class StaticCovariateEncoder(nn.Module):
 
 # %% ../../nbs/models.deepar.ipynb 9
 class DeepAR(BaseRecurrent):
-    """ DeepAR
+    """ DeepAR1
 
     The DeepAR architecture produces predictive distributions based on
     an autoreggresive recurrent neural network, its outputs use a multi-step 
@@ -76,7 +76,7 @@ class DeepAR(BaseRecurrent):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
-                 loss=MAE(),
+                 loss = StudentTLoss(level=[80, 90]),
                  learning_rate: float = 1e-3,
                  batch_size=32,
                  scaler_type: str='robust',
@@ -118,7 +118,7 @@ class DeepAR(BaseRecurrent):
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
         self.decoder_layers = decoder_layers
-        
+
         # LSTM input size (1 for target variable y)
         input_encoder = 1 + self.hist_exog_size + self.stat_hidden_size
 
@@ -127,12 +127,20 @@ class DeepAR(BaseRecurrent):
         self.stat_encoder = StaticCovariateEncoder(
                                             in_features=self.stat_exog_size,
                                             out_features=stat_hidden_size)
-        self.hist_encoder = nn.LSTM(input_size=input_encoder,
-                                    hidden_size=self.encoder_hidden_size,
-                                    num_layers=self.encoder_n_layers,
-                                    bias=self.encoder_bias,
-                                    dropout=self.encoder_dropout,
-                                    batch_first=True)
+#         self.hist_encoder = nn.LSTM(input_size=input_encoder,
+#                                     hidden_size=self.encoder_hidden_size,
+#                                     num_layers=self.encoder_n_layers,
+#                                     bias=self.encoder_bias,
+#                                     dropout=self.encoder_dropout,
+#                                     batch_first=True)
+        
+        # Instantiate historic encoder
+        self.hist_encoder = TemporalConvolutionEncoder(
+                                   in_channels=input_encoder,
+                                   out_channels=self.encoder_hidden_size,
+                                   kernel_size=2, # Almost like lags
+                                   dilations=[1,2,4,8,16,32],
+                                   activation='ReLU')
 
         # Context adapter
         self.context_adapter = nn.Linear(in_features=self.encoder_hidden_size + self.futr_exog_size * h,
@@ -140,14 +148,15 @@ class DeepAR(BaseRecurrent):
 
         # Decoder MLP
         self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-                               out_features=self.loss.outputsize_multiplier,
+                               out_features=self.decoder_hidden_size,
                                hidden_size=self.decoder_hidden_size,
                                num_layers=self.decoder_layers,
                                activation='ReLU',
                                dropout=0.0)
+        self.adapter = loss.output_distribution.get_args_proj(in_features=decoder_hidden_size)
 
     def forward(self, windows_batch):
-        
+
         # Parse windows_batch
         encoder_input = windows_batch['insample_y'] # [B, seq_len, 1]
         futr_exog     = windows_batch['futr_exog']
@@ -167,7 +176,8 @@ class DeepAR(BaseRecurrent):
             encoder_input = torch.cat((encoder_input, stat_hidden), dim=2)
 
         # RNN forward
-        hidden_state, _ = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
+        #hidden_state, _ = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
+        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, rnn_hidden_state]
 
         if self.futr_exog_size > 0:
             futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
@@ -182,6 +192,63 @@ class DeepAR(BaseRecurrent):
             context = torch.cat((context, futr_exog), dim=-1)
 
         # Final forecast
-        y_hat = self.mlp_decoder(context)
-        
-        return y_hat
+        hidden = self.mlp_decoder(context)
+        distr_args = self.adapter(hidden)
+
+        return distr_args
+
+    def training_step(self, batch, batch_idx):
+        # Normalize
+        if self.scaler is not None:
+            batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
+
+        # Create windows
+        windows = self._create_windows(batch, step='train')
+
+        # Parse windows
+        insample_y, insample_mask, outsample_y, outsample_mask, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+
+        windows_batch = dict(insample_y=insample_y, # [B, seq_len, 1]
+                             insample_mask=insample_mask, # [B, seq_len, 1]
+                             futr_exog=futr_exog, # [B, F, seq_len, 1+H]
+                             hist_exog=hist_exog, # [B, C, seq_len]
+                             stat_exog=stat_exog) # [B, S]
+
+        distr_args = self(windows_batch) # tuple([B, seq_len, H, output])
+
+        loss = self.loss(y=outsample_y,
+                         distr_args=distr_args,
+                         loc=None,
+                         scale=None,
+                         mask=outsample_mask)
+
+        self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
+        return loss
+
+    def predict_step(self, batch, batch_idx):
+        # Normalize
+        if self.scaler is not None:
+            batch = self._normalization(batch, val_size=0, test_size=self.test_size)
+
+        windows = self._create_windows(batch, step='predict')
+
+        # Parse windows
+        insample_y, insample_mask, _, _, \
+               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+
+        windows_batch = dict(insample_y=insample_y, # [B, seq_len, 1]
+                             insample_mask=insample_mask, # [B, seq_len, 1]
+                             futr_exog=futr_exog, # [B, F, seq_len, 1+H]
+                             hist_exog=hist_exog, # [B, C, seq_len]
+                             stat_exog=stat_exog) # [B, S]
+
+        distr_args = self(windows_batch) # tuple([B, seq_len, H], ...)
+        B, T, H = distr_args[0].size()        
+        flatten_distr_args = [arg.view(B*T, H) for arg in distr_args]
+        _, quants = self.loss.sample(distr_args=flatten_distr_args,
+                                     loc=None,
+                                     scale=None,
+                                     num_samples=500)
+        quants = quants.view(B, T, H, -1)
+        return quants
