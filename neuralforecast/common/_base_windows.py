@@ -305,8 +305,18 @@ class BaseWindows(pl.LightningModule):
                              hist_exog=hist_exog, # [Ws, L]
                              stat_exog=stat_exog) # [Ws, 1]
 
-        y_hat = self(windows_batch)
-        loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
+        output = self(windows_batch)
+
+        # Possibility of distribution_outputs
+        if self.loss.is_distribution_output:
+            loss = self.loss(y=outsample_y,
+                             distr_args=output,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
+
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
         return loss
 
@@ -360,7 +370,17 @@ class BaseWindows(pl.LightningModule):
                              hist_exog=hist_exog, # [Ws, L]
                              stat_exog=stat_exog) # [Ws, 1]
 
-        y_hat = self(windows_batch)
+        output = self(windows_batch)
+
+        # Obtain empirical quantiles
+        if self.loss.is_distribution_output:
+            _, y_hat = self.loss.sample(distr_args=output,
+                                        loc=None,
+                                        scale=None,
+                                        num_samples=500)
+        # Parse tuple's first entry
+        else:
+            y_hat = output[0] 
 
         # Inv Normalize
         if self.scaler is not None:

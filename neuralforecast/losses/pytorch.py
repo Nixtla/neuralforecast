@@ -37,7 +37,45 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     div[div == float('inf')] = 0.0
     return div
 
-# %% ../../nbs/losses.pytorch.ipynb 8
+# %% ../../nbs/losses.pytorch.ipynb 6
+class Adapter(torch.nn.Module):
+    """
+    PyTorch module that automatically defines a dense layer that 
+    projects the last hidden layer to the losses' arguments.
+
+    **Parameters**<br>
+    `in_features`: int, dimension of input.<br>
+    `args_dim`: dictionary, dimension of each loss argument.<br>
+    `domain_map`: function, a function that receives network's outputs and 
+        adapts them to match the losses' domain. Example distributions with
+        parameters constraints.<br>
+    """
+    def __init__(self,
+                 in_features: int,
+                 args_dim: Dict[str, int],
+                 domain_map,
+                 **kwargs,) -> None:
+        super().__init__(**kwargs)
+        self.args_dim = args_dim
+        self.proj = torch.nn.ModuleList(
+            [torch.nn.Linear(in_features, dim) for dim in args_dim.values()]
+        )
+        self.domain_map = domain_map
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
+        x = [proj(x) for proj in self.proj]
+        return self.domain_map(*x)
+
+
+class LambdaLayer(torch.nn.Module):
+    def __init__(self, function):
+        super().__init__()
+        self._func = function
+
+    def forward(self, x, *args):
+        return self._func(x, *args)
+
+# %% ../../nbs/losses.pytorch.ipynb 9
 class MAE(torch.nn.Module):
     """Mean Absolute Error
 
@@ -47,16 +85,22 @@ class MAE(torch.nn.Module):
     deviation of the prediction and the true
     value at a given time and averages these devations
     over the length of the series.
-    
+
     $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
     """    
     def __init__(self):
         super(MAE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features, 
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
                  mask: Union[torch.Tensor, None] = None):
@@ -65,7 +109,7 @@ class MAE(torch.nn.Module):
         `y`: tensor, Actual values.<br>
         `y_hat`: tensor, Predicted values.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
-        
+
         **Returns:**<br>
         `mae`: tensor (single value).
         """
@@ -76,7 +120,7 @@ class MAE(torch.nn.Module):
         mae = torch.mean(mae)
         return mae
 
-# %% ../../nbs/losses.pytorch.ipynb 13
+# %% ../../nbs/losses.pytorch.ipynb 14
 class MSE(torch.nn.Module):
     """  Mean Squared Error
 
@@ -93,10 +137,16 @@ class MSE(torch.nn.Module):
         super(MSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -116,7 +166,7 @@ class MSE(torch.nn.Module):
         mse = torch.mean(mse)
         return mse
 
-# %% ../../nbs/losses.pytorch.ipynb 18
+# %% ../../nbs/losses.pytorch.ipynb 19
 class RMSE(torch.nn.Module):
     """ Root Mean Squared Error
 
@@ -136,10 +186,16 @@ class RMSE(torch.nn.Module):
         super(RMSE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -160,7 +216,7 @@ class RMSE(torch.nn.Module):
         mse = torch.sqrt(mse)
         return mse
 
-# %% ../../nbs/losses.pytorch.ipynb 24
+# %% ../../nbs/losses.pytorch.ipynb 25
 class MAPE(torch.nn.Module):
     """ Mean Absolute Percentage Error
 
@@ -178,10 +234,16 @@ class MAPE(torch.nn.Module):
         super(MAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -201,7 +263,7 @@ class MAPE(torch.nn.Module):
         mape = torch.mean(mape)
         return mape
 
-# %% ../../nbs/losses.pytorch.ipynb 29
+# %% ../../nbs/losses.pytorch.ipynb 30
 class SMAPE(torch.nn.Module):
     """ Symmetric Mean Absolute Percentage Error
 
@@ -224,10 +286,16 @@ class SMAPE(torch.nn.Module):
         super(SMAPE, self).__init__()
         self.outputsize_multiplier = 1
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -249,7 +317,7 @@ class SMAPE(torch.nn.Module):
         smape = 2 * torch.mean(smape)
         return smape
 
-# %% ../../nbs/losses.pytorch.ipynb 34
+# %% ../../nbs/losses.pytorch.ipynb 35
 class MASE(torch.nn.Module):
     """ Mean Absolute Scaled Error 
     Calculates the Mean Absolute Scaled Error between
@@ -271,13 +339,19 @@ class MASE(torch.nn.Module):
     """
     def __init__(self, seasonality: int):
         super(MASE, self).__init__()
-        self.seasonality = seasonality
         self.outputsize_multiplier = 1
+        self.seasonality = seasonality
         self.output_names = ['']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,  y_insample: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -301,7 +375,7 @@ class MASE(torch.nn.Module):
         mase = torch.mean(mase)
         return mase
 
-# %% ../../nbs/losses.pytorch.ipynb 40
+# %% ../../nbs/losses.pytorch.ipynb 41
 class QuantileLoss(torch.nn.Module):
     """ Quantile Loss
 
@@ -321,13 +395,19 @@ class QuantileLoss(torch.nn.Module):
     """
     def __init__(self, q):
         super(QuantileLoss, self).__init__()
-        self.q = q
         self.outputsize_multiplier = 1
+        self.q = q
         self.output_names = [f'_ql{q}']
-        
-    def adapt_output(self, y_pred):
-        return y_pred
-    
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat.squeeze(-1)]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'y_hat': 1},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -348,7 +428,7 @@ class QuantileLoss(torch.nn.Module):
         quantile_loss = torch.mean(loss)
         return quantile_loss
 
-# %% ../../nbs/losses.pytorch.ipynb 45
+# %% ../../nbs/losses.pytorch.ipynb 46
 def level_to_outputs(level):
     qs = sum([[50-l/2, 50+l/2] for l in level], [])
     output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
@@ -375,7 +455,7 @@ def quantiles_to_outputs(quantiles):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../../nbs/losses.pytorch.ipynb 46
+# %% ../../nbs/losses.pytorch.ipynb 47
 class MQLoss(torch.nn.Module):
     """  Multi-Quantile loss
 
@@ -416,17 +496,17 @@ class MQLoss(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
-        self.outputsize_multiplier = len(self.output_names)
+        self.outputsize_multiplier = len(self.quantiles)
+        self.is_distribution_output = False
 
-    def adapt_output(self, y_pred):
-        # Model output is adapted to have quantiles in the last dim
-        all_but_last_dims = y_pred.size()[:-1]
-        last_dim = y_pred.size()[-1]
-        y_pred = y_pred.view(*all_but_last_dims, 
-                             last_dim//self.outputsize_multiplier,
-                             self.outputsize_multiplier)
-        return y_pred
-    
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat]
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'quantiles': len(self.quantiles)},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -454,7 +534,7 @@ class MQLoss(torch.nn.Module):
         mqloss = (1/n_q) * mqloss * mask
         return torch.sum(mqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 51
+# %% ../../nbs/losses.pytorch.ipynb 52
 class wMQLoss(torch.nn.Module):
     """ Weighted Multi-Quantile loss
     
@@ -486,17 +566,17 @@ class wMQLoss(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
-        self.outputsize_multiplier = len(self.output_names)
+        self.outputsize_multiplier = len(self.quantiles)
+        self.is_distribution_output = False
 
-    def adapt_output(self, y_pred):
-        # Model output is adapted to have quantiles in the last dim
-        all_but_last_dims = y_pred.size()[:-1]
-        last_dim = y_pred.size()[-1]
-        y_pred = y_pred.view(*all_but_last_dims, 
-                             last_dim//self.outputsize_multiplier,
-                             self.outputsize_multiplier)
-        return y_pred
-    
+    def domain_map(self, y_hat: torch.Tensor):
+        return [y_hat]        
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features,
+                       args_dim={'quantiles': len(self.quantiles)},
+                       domain_map=self.domain_map)
+
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
         """
@@ -517,11 +597,12 @@ class wMQLoss(torch.nn.Module):
         s1_q = torch.maximum(error, torch.zeros_like(error))
         loss = (self.quantiles * sq + (1 - self.quantiles) * s1_q)
         
+        mask = mask.unsqueeze(-1)
         wmqloss = _divide_no_nan(torch.sum(loss * mask, axis=-2), 
                                  torch.sum(torch.abs(y.unsqueeze(-1)) * mask, axis=-2))
         return torch.mean(wmqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 56
+# %% ../../nbs/losses.pytorch.ipynb 57
 def weighted_average(x: torch.Tensor, 
                      weights: Optional[torch.Tensor]=None, dim=None) -> torch.Tensor:
     """
@@ -550,16 +631,7 @@ def weighted_average(x: torch.Tensor,
     else:
         return x.mean(dim=dim)
 
-# %% ../../nbs/losses.pytorch.ipynb 57
-class LambdaLayer(torch.nn.Module):
-    def __init__(self, function):
-        super().__init__()
-        self._func = function
-
-    def forward(self, x, *args):
-        return self._func(x, *args)
-
-
+# %% ../../nbs/losses.pytorch.ipynb 58
 class AffineTransformed(TransformedDistribution):
     """
     Represents the distribution of an affinely transformed random variable.
@@ -605,52 +677,12 @@ class AffineTransformed(TransformedDistribution):
         """
         return self.variance.sqrt()
 
-# %% ../../nbs/losses.pytorch.ipynb 58
-class PtArgProj(torch.nn.Module):
-    """
-
-    A PyTorch module that can be used to project from a dense layer
-    to PyTorch distribution arguments.
-
-    Parameters
-    ----------
-    in_features
-        Size of the incoming features.
-    dim_args
-        Dictionary with string key and int value
-        dimension of each arguments that will be passed to the domain
-        map, the names are not used.
-    domain_map
-        Function returning a tuple containing one tensor
-        a function or a nn.Module. This will be called with num_args
-        arguments and should return a tuple of outputs that will be
-        used when calling the distribution constructor.
-    """
-
-    def __init__(
-        self,
-        in_features: int,
-        args_dim: Dict[str, int],
-        domain_map: Callable[..., Tuple[torch.Tensor]],
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.args_dim = args_dim
-        self.proj = torch.nn.ModuleList(
-            [torch.nn.Linear(in_features, dim) for dim in args_dim.values()]
-        )
-        self.domain_map = domain_map
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
-        params_unbounded = [proj(x) for proj in self.proj]
-
-        return self.domain_map(*params_unbounded)
-
-
+# %% ../../nbs/losses.pytorch.ipynb 59
 class Output:
     """
     Class to connect a network to some output.
     """
+
     in_features: int
     args_dim: Dict[str, int]
     _dtype: Type = np.float32
@@ -663,8 +695,8 @@ class Output:
     def dtype(self, dtype: Type):
         self._dtype = dtype
 
-    def get_args_proj(self, in_features: int) -> torch.nn.Module:
-        return PtArgProj(
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(
             in_features=in_features,
             args_dim=self.args_dim,
             domain_map=LambdaLayer(self.domain_map),
@@ -747,7 +779,7 @@ class DistributionOutput(Output):
         """
         raise NotImplementedError()
 
-# %% ../../nbs/losses.pytorch.ipynb 59
+# %% ../../nbs/losses.pytorch.ipynb 60
 class StudentTOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
     distr_cls: type = StudentT
@@ -772,23 +804,6 @@ class NormalOutput(DistributionOutput):
     def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
         scale = F.softplus(scale)
         return loc.squeeze(-1), scale.squeeze(-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-# %% ../../nbs/losses.pytorch.ipynb 60
-class StudentTOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
-    distr_cls: type = StudentT
-
-    @classmethod
-    def domain_map(
-        cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
-    ):
-        scale = F.softplus(scale)
-        df = 2.0 + F.softplus(df)
-        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
     @property
     def event_shape(self) -> Tuple:
@@ -828,9 +843,15 @@ class StudentTLoss(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
+        self.is_distribution_output = True
 
         #self.output_distribution = StudentTOutput()
         self.output_distribution = NormalOutput()
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features, 
+                       args_dim=self.output_distribution.args_dim,
+                       domain_map=self.output_distribution.domain_map)
 
     def sample(self,
                distr_args: torch.Tensor,
@@ -877,7 +898,8 @@ class StudentTLoss(torch.nn.Module):
         #     print('\n\n')
         #     print('loss_values', loss_values)
         #     print('\n\n')
-        loss_weights = torch.abs(y) * mask
+        # loss_weights = torch.abs(y) * mask
+        loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
 # %% ../../nbs/losses.pytorch.ipynb 68
@@ -897,7 +919,7 @@ class PMM(torch.nn.Module):
     Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, level=[80, 90], quantiles=None):
+    def __init__(self, n_lambdas=10, level=[80, 90], quantiles=None):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -910,15 +932,28 @@ class PMM(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
-        self.outputsize_multiplier = len(self.output_names)
 
-    def sample(self, weights, lambdas, num_samples=500):
+        self.outputsize_multiplier = n_lambdas
+        self.is_distribution_output = True
+
+    def domain_map(self, lambdas_hat: torch.Tensor):
+        lambdas_hat = F.softplus(lambdas_hat)
+        return (lambdas_hat,)#, weights
+
+    def get_adapter(self, in_features: int) -> torch.nn.Module:
+        return Adapter(in_features=in_features, 
+                       args_dim={'lambdas': self.n_lambdas},
+                       domain_map=self.domain_map)
+
+    def sample(self, distr_args, num_samples=500, loc=None, scale=None):
+        lambdas = distr_args[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
 
         # Sample K ~ Mult(weights)
         # shared across B, H
-        weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+        # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+        weights = (1/K) * torch.ones_like(lambdas).to(lambdas.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -956,15 +991,22 @@ class PMM(torch.nn.Module):
     
     def neglog_likelihood(self,
                           y: torch.Tensor,
-                          weights: torch.Tensor,
-                          lambdas: torch.Tensor,
-                          mask: Union[torch.Tensor, None] = None):
-
+                          distr_args: torch.Tensor,
+                          mask: Union[torch.Tensor, None] = None,
+                          loc: Union[torch.Tensor, None] = None,
+                          scale: Union[torch.Tensor, None] = None):
         if mask is None: 
             mask = torch.ones_like(y)
 
-        B, H, K = lambdas.size()
         eps  = 1e-10
+        lambdas = distr_args[0]
+        B, H, K = lambdas.size()
+
+        lambdas = distr_args[0]
+        weights = (1/K) * torch.ones_like(lambdas).to(lambdas.device)
+
+        y = y[:,:,None]
+        mask = mask[:,:,None]
         
         log = y * torch.log(lambdas + eps) - lambdas\
               - ( (y) * torch.log(y + eps) - y )   # Stirling's Factorial
@@ -982,11 +1024,13 @@ class PMM(torch.nn.Module):
         return loss
     
     def __call__(self, y: torch.Tensor,
-                 weights: torch.Tensor,
-                 lambdas: torch.Tensor,
-                 mask: Union[torch.Tensor, None] = None):
-        
-        return self.neglog_likelihood(y=y, weights=weights, lambdas=lambdas, mask=mask)
+                 distr_args: Tuple[torch.Tensor],
+                 mask: Union[torch.Tensor, None] = None,
+                 loc: Union[torch.Tensor, None] = None,
+                 scale: Union[torch.Tensor, None] = None):
+
+        return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask,
+                                      loc=loc, scale=scale)
 
 
 # %% ../../nbs/losses.pytorch.ipynb 75
@@ -1021,6 +1065,7 @@ class GMM(torch.nn.Module):
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
         self.outputsize_multiplier = len(self.output_names)
+        self.is_distribution_output = True
 
     def sample(self, weights, means, stds, num_samples=500):
         B, H, K = means.size()

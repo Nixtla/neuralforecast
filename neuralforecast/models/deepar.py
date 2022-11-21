@@ -139,7 +139,7 @@ class DeepAR(BaseRecurrent):
                                    in_channels=input_encoder,
                                    out_channels=self.encoder_hidden_size,
                                    kernel_size=2, # Almost like lags
-                                   dilations=[1,2,4,8,16,32],
+                                   dilations=[1,2,4,8,16],
                                    activation='ReLU')
 
         # Context adapter
@@ -148,12 +148,20 @@ class DeepAR(BaseRecurrent):
 
         # Decoder MLP
         self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-                               out_features=self.decoder_hidden_size,
-                               hidden_size=self.decoder_hidden_size,
-                               num_layers=self.decoder_layers,
-                               activation='ReLU',
-                               dropout=0.0)
-        self.adapter = loss.output_distribution.get_args_proj(in_features=decoder_hidden_size)
+                              out_features=self.decoder_hidden_size,
+                              hidden_size=self.decoder_hidden_size,
+                              num_layers=self.decoder_layers,
+                              activation='ReLU',
+                              dropout=0.0)
+        self.adapter = loss.get_adapter(in_features=decoder_hidden_size)
+        
+#         # Decoder MLP
+#         self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
+#                                out_features=self.loss.outputsize_multiplier,
+#                                hidden_size=self.decoder_hidden_size,
+#                                num_layers=self.decoder_layers,
+#                                activation='ReLU',
+#                                dropout=0.0)        
 
     def forward(self, windows_batch):
 
@@ -193,9 +201,9 @@ class DeepAR(BaseRecurrent):
 
         # Final forecast
         hidden = self.mlp_decoder(context)
-        distr_args = self.adapter(hidden)
+        output = self.adapter(hidden)
 
-        return distr_args
+        return output
 
     def training_step(self, batch, batch_idx):
         # Normalize
@@ -215,13 +223,16 @@ class DeepAR(BaseRecurrent):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
-        distr_args = self(windows_batch) # tuple([B, seq_len, H, output])
-
-        loss = self.loss(y=outsample_y,
-                         distr_args=distr_args,
-                         loc=None,
-                         scale=None,
-                         mask=outsample_mask)
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
+        
+        if self.loss.is_distribution_output:
+            loss = self.loss(y=outsample_y,
+                             distr_args=output,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
 
         self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
         return loss
@@ -242,13 +253,17 @@ class DeepAR(BaseRecurrent):
                              futr_exog=futr_exog, # [B, F, seq_len, 1+H]
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
-
-        distr_args = self(windows_batch) # tuple([B, seq_len, H], ...)
-        B, T, H = distr_args[0].size()        
-        flatten_distr_args = [arg.view(B*T, H) for arg in distr_args]
-        _, quants = self.loss.sample(distr_args=flatten_distr_args,
-                                     loc=None,
-                                     scale=None,
-                                     num_samples=500)
-        quants = quants.view(B, T, H, -1)
-        return quants
+        output = self(windows_batch) # tuple([B, seq_len, H], ...)
+        
+        if self.loss.is_distribution_output:
+            # Obtain empirical quantiles
+            B, T, H = output[0].size()
+            flatten_distr_args = [arg.view(B*T, H) for arg in output]
+            _, quants = self.loss.sample(distr_args=flatten_distr_args,
+                                        loc=None,
+                                        scale=None,
+                                        num_samples=500)
+            y_hat = quants.view(B, T, H, -1)
+        else:
+            y_hat = output[0] # Parse tuple's first entry
+        return y_hat

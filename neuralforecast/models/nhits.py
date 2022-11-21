@@ -247,11 +247,6 @@ class NHITS(BaseWindows):
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation)
         self.blocks = torch.nn.ModuleList(blocks)
-        
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(in_features=h,
-                        out_features=h*self.loss.outputsize_multiplier)
 
     def create_stack(self,
                      h, 
@@ -319,6 +314,9 @@ class NHITS(BaseWindows):
             
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
+        
+        # Adapting output's domain
+        forecast = self.loss.domain_map(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, output_size)
@@ -327,7 +325,4 @@ class NHITS(BaseWindows):
             block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            # Last dimension Adapter
-            if self.loss.outputsize_multiplier==1:
-                forecast = forecast.squeeze(-1)
             return forecast

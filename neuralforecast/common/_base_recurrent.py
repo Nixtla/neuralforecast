@@ -376,12 +376,13 @@ class BaseRecurrent(pl.LightningModule):
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:
             # Remove warmup windows (from train and validation)
-            fcsts = torch.vstack([fcst[:, -(1+self.test_size-self.h):,:,:] for fcst in fcsts])
+            # [N,T,H,output], avoid indexing last dim for univariate output compatibility
+            fcsts = torch.vstack([fcst[:, -(1+self.test_size-self.h):,:] for fcst in fcsts])
             fcsts = fcsts.numpy().flatten()
-            fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
+            fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         else:
             fcsts = torch.vstack([fcst[:,-1:,:,:] for fcst in fcsts]).numpy().flatten()
-            fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
+            fcsts = fcsts.reshape(-1, len(self.loss.output_names))
 
         return fcsts
 
