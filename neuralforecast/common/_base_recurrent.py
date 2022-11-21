@@ -241,13 +241,17 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch) # [B, seq_len, H, output]
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
+        
+        if self.loss.is_distribution_output:
+            loss = self.loss(y=outsample_y,
+                             distr_args=output,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
 
-        # Remove last y_hat dimension if unidimensional loss (for MAE, RMSE, etc.)
-        if y_hat.shape[-1] == 1:
-            y_hat = y_hat.squeeze(-1)
-
-        loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
         return loss
 
@@ -311,8 +315,20 @@ class BaseRecurrent(pl.LightningModule):
                              futr_exog=futr_exog, # [B, F, seq_len, 1+H]
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
-
-        y_hat = self(windows_batch) # [B, seq_len, H, output]
+        output = self(windows_batch) # tuple([B, seq_len, H], ...)
+        
+        # Obtain empirical quantiles
+        if self.loss.is_distribution_output:
+            B, T, H = output[0].size()
+            flatten_distr_args = [arg.view(B*T, H) for arg in output]
+            _, quants = self.loss.sample(distr_args=flatten_distr_args,
+                                        loc=None,
+                                        scale=None,
+                                        num_samples=500)
+            y_hat = quants.view(B, T, H, -1)
+        # Parse tuple's first entry
+        else:
+            y_hat = output[0]
 
         # Inv Normalize
         if self.scaler is not None:
