@@ -247,6 +247,7 @@ class NHITS(BaseWindows):
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation)
         self.blocks = torch.nn.ModuleList(blocks)
+        self.adapter = loss.get_adapter(in_features=self.loss.outputsize_multiplier)
 
     def create_stack(self,
                      h, 
@@ -317,6 +318,7 @@ class NHITS(BaseWindows):
         
         # Adapting output's domain
         forecast = self.loss.domain_map(forecast)
+        #forecast = self.adapter(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, output_size)

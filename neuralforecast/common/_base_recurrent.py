@@ -244,6 +244,11 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch) # tuple([B, seq_len, H, output])
         
         if self.loss.is_distribution_output:
+            #B = output[0].size()[0]
+            #T = output[0].size()[1]
+            #H = output[0].size()[2]
+            #output = [arg.view(B*T, H, -1) for arg in output]
+            #outsample_y = outsample_y.view(B*T, H)
             loss = self.loss(y=outsample_y,
                              distr_args=output,
                              loc=None,
@@ -319,12 +324,14 @@ class BaseRecurrent(pl.LightningModule):
         
         # Obtain empirical quantiles
         if self.loss.is_distribution_output:
-            B, T, H = output[0].size()
-            flatten_distr_args = [arg.view(B*T, H) for arg in output]
-            _, quants = self.loss.sample(distr_args=flatten_distr_args,
-                                        loc=None,
-                                        scale=None,
-                                        num_samples=500)
+            B = output[0].size()[0]
+            T = output[0].size()[1]
+            H = output[0].size()[2]
+            output = [arg.view(B*T, H) for arg in output]
+            _, quants = self.loss.sample(distr_args=output,
+                                         loc=None,
+                                         scale=None,
+                                         num_samples=500)
             y_hat = quants.view(B, T, H, -1)
         # Parse tuple's first entry
         else:

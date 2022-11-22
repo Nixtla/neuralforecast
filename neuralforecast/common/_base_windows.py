@@ -438,7 +438,7 @@ class BaseWindows(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)        
         fcsts = torch.vstack(fcsts).numpy().flatten()    
-        fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
+        fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
     def decompose(self, dataset, step_size=1, **data_module_kwargs):

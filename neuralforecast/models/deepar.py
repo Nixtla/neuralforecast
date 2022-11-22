@@ -9,7 +9,7 @@ from typing import List
 import torch
 import torch.nn as nn
 
-from ..losses.pytorch import MAE, StudentTLoss
+from ..losses.pytorch import MAE, MQLoss
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP, TemporalConvolutionEncoder
 
@@ -76,7 +76,7 @@ class DeepAR(BaseRecurrent):
                  futr_exog_list = None,
                  hist_exog_list = None,
                  stat_exog_list = None,
-                 loss = StudentTLoss(level=[80, 90]),
+                 loss = MQLoss(level=[80, 90]),
                  learning_rate: float = 1e-3,
                  batch_size=32,
                  scaler_type: str='robust',
@@ -85,20 +85,19 @@ class DeepAR(BaseRecurrent):
                  drop_last_loader=False,
                  **trainer_kwargs):
         super(DeepAR, self).__init__(
-            h = h,
-            input_size = input_size,
-            loss=loss,
-            learning_rate = learning_rate,
-            batch_size=batch_size,
-            scaler_type=scaler_type,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
-            stat_exog_list=stat_exog_list,
-            num_workers_loader=num_workers_loader,
-            drop_last_loader=drop_last_loader,
-            random_seed=random_seed,
-            **trainer_kwargs
-        )
+              h = h,
+              input_size = input_size,
+              loss=loss,
+              learning_rate = learning_rate,
+              batch_size=batch_size,
+              scaler_type=scaler_type,
+              futr_exog_list=futr_exog_list,
+              hist_exog_list=hist_exog_list,
+              stat_exog_list=stat_exog_list,
+              num_workers_loader=num_workers_loader,
+              drop_last_loader=drop_last_loader,
+              random_seed=random_seed,
+              **trainer_kwargs)
         #---------------------------------------- Parsing dimensions --------------------------------------#
         # Parsing input dimensions
         self.futr_exog_size = len(self.futr_exog_list)
@@ -148,20 +147,11 @@ class DeepAR(BaseRecurrent):
 
         # Decoder MLP
         self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-                              out_features=self.decoder_hidden_size,
-                              hidden_size=self.decoder_hidden_size,
-                              num_layers=self.decoder_layers,
-                              activation='ReLU',
-                              dropout=0.0)
-        self.adapter = loss.get_adapter(in_features=decoder_hidden_size)
-        
-#         # Decoder MLP
-#         self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-#                                out_features=self.loss.outputsize_multiplier,
-#                                hidden_size=self.decoder_hidden_size,
-#                                num_layers=self.decoder_layers,
-#                                activation='ReLU',
-#                                dropout=0.0)        
+                               out_features=self.loss.outputsize_multiplier,
+                               hidden_size=self.decoder_hidden_size,
+                               num_layers=self.decoder_layers,
+                               activation='ReLU',
+                               dropout=0.0)
 
     def forward(self, windows_batch):
 
@@ -200,7 +190,7 @@ class DeepAR(BaseRecurrent):
             context = torch.cat((context, futr_exog), dim=-1)
 
         # Final forecast
-        hidden = self.mlp_decoder(context)
-        output = self.adapter(hidden) # Adapt + Domain map
+        output = self.mlp_decoder(context)
+        output = self.loss.domain_map(output)
 
         return output
