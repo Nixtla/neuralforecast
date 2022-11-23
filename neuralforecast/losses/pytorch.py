@@ -27,8 +27,6 @@ from torch.distributions import (
 #     StudentT,
 # )
 
-# from neuralforecast.common.modules import MLP
-
 # %% ../../nbs/losses.pytorch.ipynb 5
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
@@ -39,89 +37,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     div[div == float('inf')] = 0.0
     return div
 
-# %% ../../nbs/losses.pytorch.ipynb 6
-ACTIVATIONS = ['ReLU','Softplus','Tanh','SELU','LeakyReLU','PReLU','Sigmoid']
-
-class MLP(torch.nn.Module):
-    """Multi-Layer Perceptron Class
-
-    **Parameters:**<br>
-    `in_features`: int, dimension of input.<br>
-    `out_features`: int, dimension of output.<br>
-    `activation`: str, activation function to use.<br>
-    `hidden_size`: int, dimension of hidden layers.<br>
-    `num_layers`: int, number of hidden layers.<br>
-    `dropout`: float, dropout rate.<br>
-    """
-    def __init__(self, in_features, out_features, activation, hidden_size, num_layers, dropout):
-        super().__init__()
-        assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
-        
-        self.activation = getattr(torch.nn, activation)()
-
-        # MultiLayer Perceptron
-        # Input layer
-        layers = [torch.nn.Linear(in_features=in_features, out_features=hidden_size),
-                  self.activation,
-                  torch.nn.Dropout(dropout)]
-        # Hidden layers
-        for i in range(num_layers - 2):
-            layers += [torch.nn.Linear(in_features=hidden_size, out_features=hidden_size),
-                       self.activation,
-                       torch.nn.Dropout(dropout)]
-        # Output layer
-        layers += [torch.nn.Linear(in_features=hidden_size, out_features=out_features)]
-
-        # Store in layers as ModuleList
-        self.layers = torch.nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.layers(x)
-
-
-class Adapter(torch.nn.Module):
-    """
-    PyTorch module that automatically defines a dense layer that 
-    projects the last hidden layer to the losses' arguments.
-
-    **Parameters**<br>
-    `in_features`: int, dimension of input.<br>
-    `args_dim`: dictionary, dimension of each loss argument.<br>
-    `domain_map`: function, a function that receives network's outputs and 
-        adapts them to match the losses' domain. Example distributions with
-        parameters constraints.<br>
-    """
-    def __init__(self,
-                 in_features: int,
-                 args_dim: Dict[str, int],
-                 domain_map,
-                 **kwargs,) -> None:
-        super().__init__(**kwargs)
-        self.args_dim = args_dim
-        #self.proj = torch.nn.ModuleList(
-        #    [torch.nn.Linear(in_features, dim) for dim in args_dim.values()]
-        #)
-        self.proj = torch.nn.ModuleList(
-            [MLP(in_features=in_features, out_features=dim,
-                 activation='ReLU', hidden_size=10, num_layers=2, dropout=0.)
-                 for dim in args_dim.values()]
-        )
-        self.domain_map = domain_map
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
-        x = [proj(x) for proj in self.proj]
-        return self.domain_map(*x)
-
-
-class LambdaLayer(torch.nn.Module):
-    def __init__(self, function):
-        super().__init__()
-        self._func = function
-
-    def forward(self, x, *args):
-        return self._func(x, *args)
-
-# %% ../../nbs/losses.pytorch.ipynb 9
+# %% ../../nbs/losses.pytorch.ipynb 8
 class MAE(torch.nn.Module):
     """Mean Absolute Error
 
@@ -166,7 +82,7 @@ class MAE(torch.nn.Module):
         mae = torch.mean(mae)
         return mae
 
-# %% ../../nbs/losses.pytorch.ipynb 14
+# %% ../../nbs/losses.pytorch.ipynb 13
 class MSE(torch.nn.Module):
     """  Mean Squared Error
 
@@ -212,7 +128,7 @@ class MSE(torch.nn.Module):
         mse = torch.mean(mse)
         return mse
 
-# %% ../../nbs/losses.pytorch.ipynb 19
+# %% ../../nbs/losses.pytorch.ipynb 18
 class RMSE(torch.nn.Module):
     """ Root Mean Squared Error
 
@@ -262,7 +178,7 @@ class RMSE(torch.nn.Module):
         mse = torch.sqrt(mse)
         return mse
 
-# %% ../../nbs/losses.pytorch.ipynb 25
+# %% ../../nbs/losses.pytorch.ipynb 24
 class MAPE(torch.nn.Module):
     """ Mean Absolute Percentage Error
 
@@ -309,7 +225,7 @@ class MAPE(torch.nn.Module):
         mape = torch.mean(mape)
         return mape
 
-# %% ../../nbs/losses.pytorch.ipynb 30
+# %% ../../nbs/losses.pytorch.ipynb 29
 class SMAPE(torch.nn.Module):
     """ Symmetric Mean Absolute Percentage Error
 
@@ -363,7 +279,7 @@ class SMAPE(torch.nn.Module):
         smape = 2 * torch.mean(smape)
         return smape
 
-# %% ../../nbs/losses.pytorch.ipynb 35
+# %% ../../nbs/losses.pytorch.ipynb 34
 class MASE(torch.nn.Module):
     """ Mean Absolute Scaled Error 
     Calculates the Mean Absolute Scaled Error between
@@ -421,7 +337,7 @@ class MASE(torch.nn.Module):
         mase = torch.mean(mase)
         return mase
 
-# %% ../../nbs/losses.pytorch.ipynb 41
+# %% ../../nbs/losses.pytorch.ipynb 40
 class QuantileLoss(torch.nn.Module):
     """ Quantile Loss
 
@@ -474,7 +390,7 @@ class QuantileLoss(torch.nn.Module):
         quantile_loss = torch.mean(loss)
         return quantile_loss
 
-# %% ../../nbs/losses.pytorch.ipynb 46
+# %% ../../nbs/losses.pytorch.ipynb 45
 def level_to_outputs(level):
     qs = sum([[50-l/2, 50+l/2] for l in level], [])
     output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
@@ -501,7 +417,7 @@ def quantiles_to_outputs(quantiles):
             output_names.append('-median')
     return quantiles, output_names
 
-# %% ../../nbs/losses.pytorch.ipynb 47
+# %% ../../nbs/losses.pytorch.ipynb 46
 class MQLoss(torch.nn.Module):
     """  Multi-Quantile loss
 
@@ -580,7 +496,7 @@ class MQLoss(torch.nn.Module):
         mqloss = (1/n_q) * mqloss * mask
         return torch.sum(mqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 52
+# %% ../../nbs/losses.pytorch.ipynb 51
 class wMQLoss(torch.nn.Module):
     """ Weighted Multi-Quantile loss
     
@@ -648,7 +564,7 @@ class wMQLoss(torch.nn.Module):
                                  torch.sum(torch.abs(y.unsqueeze(-1)) * mask, axis=-2))
         return torch.mean(wmqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 57
+# %% ../../nbs/losses.pytorch.ipynb 56
 def weighted_average(x: torch.Tensor, 
                      weights: Optional[torch.Tensor]=None, dim=None) -> torch.Tensor:
     """
@@ -677,7 +593,7 @@ def weighted_average(x: torch.Tensor,
     else:
         return x.mean(dim=dim)
 
-# %% ../../nbs/losses.pytorch.ipynb 58
+# %% ../../nbs/losses.pytorch.ipynb 57
 class AffineTransformed(TransformedDistribution):
     """
     Represents the distribution of an affinely transformed random variable.
@@ -723,7 +639,7 @@ class AffineTransformed(TransformedDistribution):
         """
         return self.variance.sqrt()
 
-# %% ../../nbs/losses.pytorch.ipynb 59
+# %% ../../nbs/losses.pytorch.ipynb 58
 class Output:
     """
     Class to connect a network to some output.
@@ -740,13 +656,6 @@ class Output:
     @dtype.setter
     def dtype(self, dtype: Type):
         self._dtype = dtype
-
-    def get_adapter(self, in_features: int) -> torch.nn.Module:
-        return Adapter(
-            in_features=in_features,
-            args_dim=self.args_dim,
-            domain_map=LambdaLayer(self.domain_map),
-        )
 
     def domain_map(self, *args: torch.Tensor):
         raise NotImplementedError()
@@ -825,15 +734,22 @@ class DistributionOutput(Output):
         """
         raise NotImplementedError()
 
-# %% ../../nbs/losses.pytorch.ipynb 60
+# %% ../../nbs/losses.pytorch.ipynb 59
 class StudentTOutput(DistributionOutput):
+    """
+    $$ \mathrm{P} \\left( y \\right) = 
+    \\frac{\\Gamma \\left(\\frac{\\nu+1}{2} \\right)} {\\sqrt{\\nu\\pi}\,\\Gamma \\left(\\frac{\\nu}{2} \\right)} \\left(1+\\frac{y^2}{\\nu} \\right)^{-\\frac{\\nu+1}{2}} $$
+
+    where $\\nu$ stands for the degrees of freedom. The class inherits PyTorch's StudentT module's
+    `sample` and `log_prob` methods, from which we construct the training loss and this module's
+    inference.
+    """
     args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
     distr_cls: type = StudentT
 
     @classmethod
-    def domain_map(
-        cls, df: torch.Tensor, loc: torch.Tensor, scale: torch.Tensor
-    ):
+    def domain_map(cls, input: torch.Tensor):
+        df, loc, scale = torch.tensor_split(input, 3, dim=-1)
         scale = F.softplus(scale)
         df = 2.0 + F.softplus(df)
         return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
@@ -845,17 +761,12 @@ class StudentTOutput(DistributionOutput):
 class NormalOutput(DistributionOutput):
     args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
     distr_cls: type = Normal
-
-    # @classmethod
-    # def domain_map(cls, loc: torch.Tensor, scale: torch.Tensor):
-    #     scale = F.softplus(scale)
-    #     return loc.squeeze(-1), scale.squeeze(-1)
+    
     @classmethod
-    def domain_map(cls, input: torch.Tensor):
-        #loc = input[]
-        #scale = input[]
-        scale = F.softplus(scale)
-        return loc.squeeze(-1), scale.squeeze(-1)    
+    def domain_map(cls, input: torch.Tensor, eps: float=50):
+        loc, scale = torch.tensor_split(input, 2, dim=-1)
+        scale = F.softplus(scale) + eps
+        return loc.squeeze(-1), scale.squeeze(-1)
 
     @property
     def event_shape(self) -> Tuple:
@@ -874,28 +785,22 @@ class PoissonOutput(DistributionOutput):
     def event_shape(self) -> Tuple:
         return ()        
 
-# %% ../../nbs/losses.pytorch.ipynb 61
+# %% ../../nbs/losses.pytorch.ipynb 60
 class DistributionLoss(torch.nn.Module):
-    """ StudentTLoss
+    """ DistributionLoss
 
     The T-Student statistical model assumes independence,
     and the following probability for individual observations of the target variable $y$:
 
-    $$ \mathrm{P} \\left( y \\right) = 
-    \\frac{\\Gamma \\left(\\frac{\\nu+1}{2} \\right)} {\\sqrt{\\nu\\pi}\,\\Gamma \\left(\\frac{\\nu}{2} \\right)} \\left(1+\\frac{y^2}{\\nu} \\right)^{-\\frac{\\nu+1}{2}} $$
-
-    where $\\nu$ stands for the degrees of freedom. The class inherits PyTorch's StudentT module's
-    `sample` and `log_prob` methods, from which we construct the training loss and this module's
-    inference.
-
     **Parameters:**<br>
-    `df`: degrees of freedom.<br>
+    `output_distribution`: torch.distributions.Distribution class.<br>
     `level`: float list 0-100, confidence levels for prediction intervals.<br>
     `quantiles`: float list 0.-1, alternative to levels target quantiles.<br><br>
 
     **References:**<br>
     [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)
     """
+    #def __init__(self, output_distribution, level=[80, 90], quantiles=None):
     def __init__(self, level=[80, 90], quantiles=None):
         super(DistributionLoss, self).__init__()
         if level:
@@ -909,19 +814,26 @@ class DistributionLoss(torch.nn.Module):
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
         #self.output_distribution = StudentTOutput()
-        #self.output_distribution = NormalOutput()
-        self.output_distribution = PoissonOutput()
+        self.output_distribution = NormalOutput()
+        #self.output_distribution = PoissonOutput()
+        #self.output_distribution = output_distribution
 
         self.outputsize_multiplier = sum(self.output_distribution.args_dim.values())
         self.is_distribution_output = True
 
     def domain_map(self, input):
-        return self.output_distribution.domain_map(input)
+        """ Domain Map
 
-    def get_adapter(self, in_features: int) -> torch.nn.Module:
-        return Adapter(in_features=in_features, 
-                       args_dim=self.output_distribution.args_dim,
-                       domain_map=self.output_distribution.domain_map,)
+        Maps input into distribution constraints, by construction input's 
+        last dimension is of matching `distr_args` length.
+
+        **Parameters:**<br>
+        `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+
+        **Returns:**<br>
+        `Tuple(tensors)`: tuple with tensors of distribution arguments.<br>
+        """
+        return self.output_distribution.domain_map(input)
 
     def sample(self,
                distr_args: torch.Tensor,
@@ -931,7 +843,8 @@ class DistributionLoss(torch.nn.Module):
         B, H = distr_args[0].size()
         Q = len(self.quantiles)
 
-        # Sample y ~ loc + StudentT(distr_args) * scale independently
+        # Sample y ~ loc + Distribution(distr_args) * scale independently
+        # Uses AffineTransformed Distribution
         distr = self.output_distribution.distribution(distr_args=distr_args, 
                                                       loc=loc, scale=scale)                                    
         samples = distr.sample(sample_shape=(num_samples,))
@@ -948,7 +861,6 @@ class DistributionLoss(torch.nn.Module):
         # Final reshapes
         samples = samples.view(B, H, num_samples)
         quants  = quants.view(B, H, Q)
-
         return samples, quants
 
     def __call__(self,
@@ -962,33 +874,10 @@ class DistributionLoss(torch.nn.Module):
         distr = self.output_distribution.distribution(distr_args=distr_args, 
                                                       loc=loc, scale=scale)
         loss_values = -distr.log_prob(y)
-
-        # eps  = 1e-10
-        # lambdas = distr_args[0]
-        # B, H = lambdas.size()
-
-        # lambdas = distr_args[0]
-        # #weights = torch.ones_like(lambdas).to(lambdas.device)
-
-        # #y = y[:,:,None]
-        # #mask = mask[:,:,None]
-        
-        # loglik = y * torch.log(lambdas + eps) - lambdas\
-        #       - ( (y) * torch.log(y + eps) - y )   # Stirling's Factorial
-
-        # #log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
-        # #log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
-        
-        # # Numerical stability mixture and loglik
-        # #log_max = torch.amax(log, dim=2, keepdim=True) # [1,1,K] (collapsed joints)
-        # #lik     = weights * torch.exp(log-log_max)     # Take max
-        # #loglik  = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max # Return max
-        # loglik  = loglik * mask #replace with mask
-        # loss_values = -torch.mean(loglik)
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 68
+# %% ../../nbs/losses.pytorch.ipynb 65
 class PMM(torch.nn.Module):
     """ Poisson Mixture Mesh
 
@@ -1119,7 +1008,7 @@ class PMM(torch.nn.Module):
                                       loc=loc, scale=scale)
 
 
-# %% ../../nbs/losses.pytorch.ipynb 75
+# %% ../../nbs/losses.pytorch.ipynb 72
 class GMM(torch.nn.Module):
     """ Gaussian Mixture Mesh
 
