@@ -599,11 +599,11 @@ class AffineTransformed(TransformedDistribution):
     Represents the distribution of an affinely transformed random variable.
     This is the distribution of ``Y = scale * X + loc``, where ``X`` is a
     random variable distributed according to ``base_distribution``.
-    
+
     $$ X \sim BaseDistribution$$
     $$ Y \sim f(X) \sim TransformedDidstribution(BaseDistribution, f)$$
     $$ log(P(Y)) = log(P(X)) + log|det (dX/dY)|$$
-    
+
     **Parameters**<br>
     `base_distribution`: Original distribution.<br>
     `loc`: Translation parameter of the affine transformation.<br>
@@ -640,169 +640,93 @@ class AffineTransformed(TransformedDistribution):
         return self.variance.sqrt()
 
 # %% ../../nbs/losses.pytorch.ipynb 58
-class Output:
+def student_domain_map(input: torch.Tensor):
     """
-    Class to connect a network to some output.
+    Maps input into distribution constraints, by construction input's 
+    last dimension is of matching `distr_args` length.
+
+    **Parameters:**<br>
+    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+
+    **Returns:**<br>
+    `(df, loc, scale)`: tuple with tensors of StudentT distribution arguments.<br>
     """
+    df, loc, scale = torch.tensor_split(input, 3, dim=-1)
+    scale = F.softplus(scale)
+    df = 2.0 + F.softplus(df)
+    return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
-    in_features: int
-    args_dim: Dict[str, int]
-    _dtype: Type = np.float32
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @dtype.setter
-    def dtype(self, dtype: Type):
-        self._dtype = dtype
-
-    def domain_map(self, *args: torch.Tensor):
-        raise NotImplementedError()
-
-
-class DistributionOutput(Output):
+def normal_domain_map(input: torch.Tensor, eps: float=50):
     """
-    Class to construct a distribution given the output of a network.
+    Maps input into distribution constraints, by construction input's 
+    last dimension is of matching `distr_args` length.
+
+    **Parameters:**<br>
+    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+
+    **Returns:**<br>
+    `(loc, scale)`: tuple with tensors of Normal distribution arguments.<br>
     """
+    loc, scale = torch.tensor_split(input, 2, dim=-1)
+    scale = F.softplus(scale) + eps
+    return loc.squeeze(-1), scale.squeeze(-1)
 
-    distr_cls: type
+def poisson_domain_map(input: torch.Tensor):
+    """
+    Maps input into distribution constraints, by construction input's 
+    last dimension is of matching `distr_args` length.
 
-    def __init__(self) -> None:
-        pass
+    **Parameters:**<br>
+    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
 
-    def _base_distribution(self, distr_args):
-        return self.distr_cls(*distr_args)
-
-    def distribution(
-        self,
-        distr_args,
-        loc: Optional[torch.Tensor] = None,
-        scale: Optional[torch.Tensor] = None,
-    ) -> Distribution:
-        """
-        Construct the associated distribution, given the collection of
-        constructor arguments and, optionally, a scale tensor.
-        Parameters
-        ----------
-        distr_args
-            Constructor arguments for the underlying Distribution type.
-        loc
-            Optional tensor, of the same shape as the
-            batch_shape+event_shape of the resulting distribution.
-        scale
-            Optional tensor, of the same shape as the
-            batch_shape+event_shape of the resulting distribution.
-        """
-        distr = self._base_distribution(distr_args)
-        if loc is None and scale is None:
-            return distr
-        else:
-            return AffineTransformed(distr, loc=loc, scale=scale)
-
-    @property
-    def event_shape(self) -> Tuple:
-        """
-        Shape of each individual event contemplated by the distributions
-        that this object constructs.
-        """
-        raise NotImplementedError()
-
-    @property
-    def event_dim(self) -> int:
-        """
-        Number of event dimensions, i.e., length of the `event_shape` tuple,
-        of the distributions that this object constructs.
-        """
-        return len(self.event_shape)
-
-    @property
-    def value_in_support(self) -> float:
-        """
-        A float that will have a valid numeric value when computing the
-        log-loss of the corresponding distribution. By default 0.0.
-        This value will be used when padding data series.
-        """
-        return 0.0
-
-    def domain_map(self, *args: torch.Tensor):
-        """
-        Converts arguments to the right shape and domain. The domain depends
-        on the type of distribution, while the correct shape is obtained by
-        reshaping the trailing axis in such a way that the returned tensors
-        define a distribution of the right event_shape.
-        """
-        raise NotImplementedError()
+    **Returns:**<br>
+    `(loc, scale)`: tuple with tensors of Poisson distribution arguments.<br>
+    """
+    rate_pos = F.softplus(input).clone()
+    return (rate_pos.squeeze(-1),)
 
 # %% ../../nbs/losses.pytorch.ipynb 59
-class StudentTOutput(DistributionOutput):
-    """
-    $$ \mathrm{P} \\left( y \\right) = 
-    \\frac{\\Gamma \\left(\\frac{\\nu+1}{2} \\right)} {\\sqrt{\\nu\\pi}\,\\Gamma \\left(\\frac{\\nu}{2} \\right)} \\left(1+\\frac{y^2}{\\nu} \\right)^{-\\frac{\\nu+1}{2}} $$
-
-    where $\\nu$ stands for the degrees of freedom. The class inherits PyTorch's StudentT module's
-    `sample` and `log_prob` methods, from which we construct the training loss and this module's
-    inference.
-    """
-    args_dim: Dict[str, int] = {"df": 1, "loc": 1, "scale": 1}
-    distr_cls: type = StudentT
-
-    @classmethod
-    def domain_map(cls, input: torch.Tensor):
-        df, loc, scale = torch.tensor_split(input, 3, dim=-1)
-        scale = F.softplus(scale)
-        df = 2.0 + F.softplus(df)
-        return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-class NormalOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"loc": 1, "scale": 1}
-    distr_cls: type = Normal
-    
-    @classmethod
-    def domain_map(cls, input: torch.Tensor, eps: float=50):
-        loc, scale = torch.tensor_split(input, 2, dim=-1)
-        scale = F.softplus(scale) + eps
-        return loc.squeeze(-1), scale.squeeze(-1)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()
-
-class PoissonOutput(DistributionOutput):
-    args_dim: Dict[str, int] = {"rate": 1}
-    distr_cls: type = Poisson
-
-    @classmethod
-    def domain_map(cls, input: torch.Tensor):
-        rate_pos = F.softplus(input).clone()
-        return (rate_pos.squeeze(-1),)
-
-    @property
-    def event_shape(self) -> Tuple:
-        return ()        
-
-# %% ../../nbs/losses.pytorch.ipynb 60
 class DistributionLoss(torch.nn.Module):
     """ DistributionLoss
 
-    The T-Student statistical model assumes independence,
-    and the following probability for individual observations of the target variable $y$:
+    This PyTorch module wraps the `torch.distribution` classes allowing it to 
+    interact with NeuralForecast models modularly. It shares the negative 
+    log-likelihood as the optimization objective and a sample method to 
+    generate empirically the quantiles defined by the `level` list.
+
+    Additionally, it implements a distribution transformation that factorizes the
+    scale-dependent likelihood parameters into a base scale and a multiplier 
+    efficiently learnable within the network's non-linearities operating ranges.
+
+    Available distributions:
+    - Poisson
+    - Normal
+    - StudentT
 
     **Parameters:**<br>
-    `output_distribution`: torch.distributions.Distribution class.<br>
+    `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
     `level`: float list 0-100, confidence levels for prediction intervals.<br>
     `quantiles`: float list 0.-1, alternative to levels target quantiles.<br><br>
 
     **References:**<br>
-    [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)
+    - [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)<br>
+    - [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020).
+       "DeepAR: Probabilistic forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br>
     """
-    #def __init__(self, output_distribution, level=[80, 90], quantiles=None):
-    def __init__(self, level=[80, 90], quantiles=None):
+    def __init__(self, distribution, level=[80, 90], quantiles=None):
         super(DistributionLoss, self).__init__()
+
+        available_distributions = dict(Normal=Normal,
+                                       Poisson=Poisson,
+                                       StudentT=StudentT,)
+        domain_maps = dict(Normal=normal_domain_map,
+                           Poisson=poisson_domain_map,
+                           StudentT=student_domain_map,)
+        assert (distribution in available_distributions.keys()), f'{distribution} not available'
+
+        self._base_distribution = available_distributions[distribution]
+        self.domain_map = domain_maps[distribution]
+
         if level:
             qs, self.output_names = level_to_outputs(level)
             quantiles = torch.Tensor(qs)
@@ -813,40 +737,62 @@ class DistributionLoss(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
-        #self.output_distribution = StudentTOutput()
-        self.output_distribution = NormalOutput()
-        #self.output_distribution = PoissonOutput()
-        #self.output_distribution = output_distribution
-
-        self.outputsize_multiplier = sum(self.output_distribution.args_dim.values())
+        self.outputsize_multiplier = len(self._base_distribution.arg_constraints.keys())
         self.is_distribution_output = True
 
-    def domain_map(self, input):
-        """ Domain Map
-
-        Maps input into distribution constraints, by construction input's 
-        last dimension is of matching `distr_args` length.
-
-        **Parameters:**<br>
-        `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
-
-        **Returns:**<br>
-        `Tuple(tensors)`: tuple with tensors of distribution arguments.<br>
+    def get_distribution(self,
+                         distr_args,
+                         loc: Optional[torch.Tensor] = None,
+                         scale: Optional[torch.Tensor] = None,) -> Distribution:
         """
-        return self.output_distribution.domain_map(input)
+        Construct the associated Pytorch Distribution, given the collection of
+        constructor arguments and, optionally, location and scale tensors.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+               of the resulting distribution.<br>
+
+        **Returns**<br>
+        `Distribution`: AffineTransformed distribution.<br>
+        """
+        # TODO: domain_map output dictionary rather instead of ordered tuple
+        # to improve instantiation of the base distributions.
+        distr = self._base_distribution(*distr_args)
+        if loc is None and scale is None:
+            return distr
+        else:
+            return AffineTransformed(distr, loc=loc, scale=scale)        
 
     def sample(self,
                distr_args: torch.Tensor,
                loc: torch.Tensor,
                scale: torch.Tensor,
                num_samples: int=500):
+        """
+        Construct the empirical quantiles from the Pytorch Distribution, 
+        sampling from it `num_samples` independently.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+               of the resulting distribution.<br>
+        `num_samples`: int=500, number of samples for the empirical quantiles.<br>
+
+        **Returns**<br>
+        `samples`: tensor, shape [B,H,`num_samples`].<br>
+        `quantiles`: tensor, empirical quantiles defined by `levels`.<br>
+        """
         B, H = distr_args[0].size()
         Q = len(self.quantiles)
 
-        # Sample y ~ loc + Distribution(distr_args) * scale independently
-        # Uses AffineTransformed Distribution
-        distr = self.output_distribution.distribution(distr_args=distr_args, 
-                                                      loc=loc, scale=scale)                                    
+        # Construct AffineTransformed Distribution to
+        # sample y ~ loc + Distribution(distr_args) * scale independently
+        distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
         samples = distr.sample(sample_shape=(num_samples,))
         samples = samples.permute(1,2,0) # [samples,B,H] -> [B,H,samples]
         samples = samples.to(distr_args[0].device)
@@ -869,15 +815,34 @@ class DistributionLoss(torch.nn.Module):
                  loc: torch.Tensor,
                  scale: torch.Tensor,
                  mask: Union[torch.Tensor, None] = None):
+        """
+        Computes the negative log-likelihood objective function. 
+        To estimate the following predictive distribution:
 
-        # Construct associated PyTorch distribution
-        distr = self.output_distribution.distribution(distr_args=distr_args, 
-                                                      loc=loc, scale=scale)
+        $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
+
+        where $\\theta$ represents the distributions parameters. It aditionally 
+        summarizes the objective signal using a weighted average using the `mask` tensor. 
+
+        **Parameters**<br>
+        `y`: tensor, Actual values.<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+               of the resulting distribution.<br>
+        `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
+
+        **Returns**<br>
+        `loss`: scalar, weighted loss function against which backpropagation will be performed.<br>
+        """
+        # Construct AffineTransformed Distribution
+        distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
         loss_values = -distr.log_prob(y)
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 65
+# %% ../../nbs/losses.pytorch.ipynb 64
 class PMM(torch.nn.Module):
     """ Poisson Mixture Mesh
 
@@ -914,11 +879,6 @@ class PMM(torch.nn.Module):
     def domain_map(self, lambdas_hat: torch.Tensor):
         lambdas_hat = F.softplus(lambdas_hat)
         return (lambdas_hat,)#, weights
-
-    def get_adapter(self, in_features: int) -> torch.nn.Module:
-        return Adapter(in_features=in_features, 
-                       args_dim={'lambdas': self.outputsize_multiplier},
-                       domain_map=self.domain_map)
 
     def sample(self, distr_args, num_samples=500, loc=None, scale=None):
         lambdas = distr_args[0]
@@ -1008,7 +968,7 @@ class PMM(torch.nn.Module):
                                       loc=loc, scale=scale)
 
 
-# %% ../../nbs/losses.pytorch.ipynb 72
+# %% ../../nbs/losses.pytorch.ipynb 71
 class GMM(torch.nn.Module):
     """ Gaussian Mixture Mesh
 
