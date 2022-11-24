@@ -286,14 +286,14 @@ class BaseRecurrent(pl.LightningModule):
         outsample_mask = outsample_mask[:, -val_windows:-1, :]        
         
         if self.loss.is_distribution_output:
-            distr_args = [arg[:, -val_windows:-1, :, :] for arg in output]
+            distr_args = [arg[:, -val_windows:-1] for arg in output]
             loss = self.loss(y=outsample_y,
                              distr_args=distr_args,
                              loc=None,
                              scale=None,
                              mask=outsample_mask)        
         else:
-            y_hat = output[:, -val_windows:-1, :, :]
+            y_hat = output[:, -val_windows:-1, :]
             loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
 
         self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
@@ -408,7 +408,7 @@ class BaseRecurrent(pl.LightningModule):
             fcsts = fcsts.numpy().flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         else:
-            fcsts = torch.vstack([fcst[:,-1:,:,:] for fcst in fcsts]).numpy().flatten()
+            fcsts = torch.vstack([fcst[:,-1:,:] for fcst in fcsts]).numpy().flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 

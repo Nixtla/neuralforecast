@@ -37,7 +37,7 @@ website:
           - common.base_recurrent.ipynb
           - common.base_windows.ipynb
           - common.scalers.ipynb
-          - common.encoders.ipynb
+          - common.modules.ipynb
         - section: Utils
           contents:
           - tsdataset.ipynb

@@ -4,7 +4,7 @@
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'DistributionLoss', 'PMM', 'GMM']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
-from typing import Optional, Union, Tuple, Callable, Type, Dict
+from typing import Optional, Union, Tuple
 
 import math
 import numpy as np
@@ -915,7 +915,7 @@ class PMM(torch.nn.Module):
     
     def neglog_likelihood(self,
                           y: torch.Tensor,
-                          distr_args: torch.Tensor,
+                          distr_args: Tuple[torch.Tensor],
                           mask: Union[torch.Tensor, None] = None,
                           loc: Union[torch.Tensor, None] = None,
                           scale: Union[torch.Tensor, None] = None):
