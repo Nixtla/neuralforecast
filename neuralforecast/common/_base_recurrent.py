@@ -277,19 +277,25 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch) # [B, seq_len, H, output]
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
 
         # Remove train y_hat (+1 and -1 for padded last window with zeros)
+        # tuple([B, seq_len, H, output]) -> tuple([B, validation_size, H, output])
         val_windows = (self.val_size) + 1
-        y_hat = y_hat[:, -val_windows:-1, :, :]
         outsample_y = outsample_y[:, -val_windows:-1, :]
-        outsample_mask = outsample_mask[:, -val_windows:-1, :]
+        outsample_mask = outsample_mask[:, -val_windows:-1, :]        
+        
+        if self.loss.is_distribution_output:
+            distr_args = [arg[:, -val_windows:-1, :, :] for arg in output]
+            loss = self.loss(y=outsample_y,
+                             distr_args=distr_args,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)        
+        else:
+            y_hat = output[:, -val_windows:-1, :, :]
+            loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
 
-        # Remove last y_hat dimension if unidimensional loss (for MAE, RMSE, etc.)
-        if y_hat.shape[-1] == 1:
-            y_hat = y_hat.squeeze(-1)
-
-        loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
 
         return loss
@@ -316,6 +322,7 @@ class BaseRecurrent(pl.LightningModule):
                              futr_exog=futr_exog, # [B, F, seq_len, 1+H]
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
+
         output = self(windows_batch) # tuple([B, seq_len, H], ...)
 
         # Obtain empirical quantiles
@@ -329,6 +336,7 @@ class BaseRecurrent(pl.LightningModule):
                                          scale=None,
                                          num_samples=500)
             y_hat = quants.view(B, T, H, -1)
+
         # Parse tuple's first entry
         else:
             y_hat = output
