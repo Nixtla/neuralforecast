@@ -120,5 +120,5 @@ class MLP(BaseWindows):
         for layer in self.mlp:
              y_pred = torch.relu(layer(y_pred))
         y_pred = self.out(y_pred)
-        y_pred = self.loss.adapt_output(y_pred)
+        y_pred = self.loss.domain_map(y_pred)
         return y_pred

@@ -241,13 +241,22 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
-        y_hat = self(windows_batch) # [B, seq_len, H, output]
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
+        
+        if self.loss.is_distribution_output:
+            #B = output[0].size()[0]
+            #T = output[0].size()[1]
+            #H = output[0].size()[2]
+            #output = [arg.view(B*T, H, -1) for arg in output]
+            #outsample_y = outsample_y.view(B*T, H)
+            loss = self.loss(y=outsample_y,
+                             distr_args=output,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
 
-        # Remove last y_hat dimension if unidimensional loss (for MAE, RMSE, etc.)
-        if y_hat.shape[-1] == 1:
-            y_hat = y_hat.squeeze(-1)
-
-        loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
         return loss
 
@@ -311,8 +320,22 @@ class BaseRecurrent(pl.LightningModule):
                              futr_exog=futr_exog, # [B, F, seq_len, 1+H]
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
-
-        y_hat = self(windows_batch) # [B, seq_len, H, output]
+        output = self(windows_batch) # tuple([B, seq_len, H], ...)
+        
+        # Obtain empirical quantiles
+        if self.loss.is_distribution_output:
+            B = output[0].size()[0]
+            T = output[0].size()[1]
+            H = output[0].size()[2]
+            output = [arg.view(B*T, H) for arg in output]
+            _, quants = self.loss.sample(distr_args=output,
+                                         loc=None,
+                                         scale=None,
+                                         num_samples=500)
+            y_hat = quants.view(B, T, H, -1)
+        # Parse tuple's first entry
+        else:
+            y_hat = output[0]
 
         # Inv Normalize
         if self.scaler is not None:
@@ -376,12 +399,13 @@ class BaseRecurrent(pl.LightningModule):
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:
             # Remove warmup windows (from train and validation)
-            fcsts = torch.vstack([fcst[:, -(1+self.test_size-self.h):,:,:] for fcst in fcsts])
+            # [N,T,H,output], avoid indexing last dim for univariate output compatibility
+            fcsts = torch.vstack([fcst[:, -(1+self.test_size-self.h):,:] for fcst in fcsts])
             fcsts = fcsts.numpy().flatten()
-            fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
+            fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         else:
             fcsts = torch.vstack([fcst[:,-1:,:,:] for fcst in fcsts]).numpy().flatten()
-            fcsts = fcsts.reshape(-1, self.loss.outputsize_multiplier)
+            fcsts = fcsts.reshape(-1, len(self.loss.output_names))
 
         return fcsts
 
