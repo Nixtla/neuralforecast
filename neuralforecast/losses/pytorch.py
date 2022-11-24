@@ -57,7 +57,11 @@ class MAE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
                  mask: Union[torch.Tensor, None] = None):
@@ -97,7 +101,11 @@ class MSE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
                  mask: Union[torch.Tensor, None] = None):
@@ -141,7 +149,11 @@ class RMSE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -184,7 +196,11 @@ class MAPE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -231,7 +247,11 @@ class SMAPE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -282,7 +302,11 @@ class MASE(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,  y_insample: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -333,7 +357,11 @@ class QuantileLoss(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat.squeeze(-1)]
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -427,7 +455,10 @@ class MQLoss(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat]
+        """
+        Identity domain map [B,T,H,Q]/[B,H,Q]
+        """
+        return y_hat
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):
@@ -492,7 +523,10 @@ class wMQLoss(torch.nn.Module):
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
-        return [y_hat]
+        """
+        Identity domain map [B,T,H,Q]/[B,H,Q]
+        """
+        return y_hat
 
     def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
                  mask: Union[torch.Tensor, None] = None):

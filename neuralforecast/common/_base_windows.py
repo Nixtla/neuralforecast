@@ -315,7 +315,7 @@ class BaseWindows(pl.LightningModule):
                              scale=None,
                              mask=outsample_mask)
         else:
-            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
         return loss
@@ -351,7 +351,7 @@ class BaseWindows(pl.LightningModule):
                              scale=None,
                              mask=outsample_mask)
         else:
-            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log('val_loss', loss, prog_bar=True, on_epoch=True)
         return loss
@@ -390,7 +390,7 @@ class BaseWindows(pl.LightningModule):
                                         num_samples=500)
         # Parse tuple's first entry
         else:
-            y_hat = output[0]
+            y_hat = output
 
         # Inv Normalize
         if self.scaler is not None:

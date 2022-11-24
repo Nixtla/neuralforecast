@@ -118,7 +118,7 @@ class BaseRecurrent(pl.LightningModule):
         # Replace values in windows dict
         temporal[:, temporal_cols.get_indexer(temporal_data_cols), :] = temporal_data
         batch['temporal'] = temporal
-        
+
         return batch
 
     def _inv_normalization(self, y_hat, temporal_cols):
@@ -130,8 +130,9 @@ class BaseRecurrent(pl.LightningModule):
         y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
         y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
 
-        y_scale = y_scale[:,None,None,None] * torch.ones_like(y_hat) # [B,1,1,1] -> [B,seq_len,H,output]
-        y_shift = y_shift[:,None,None,None] * torch.ones_like(y_hat) # [B,1,1,1] -> [B,seq_len,H,output]
+        # Expand scale and shift to y_hat dimensions
+        y_scale = y_scale.view(*y_scale.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)
+        y_shift = y_shift.view(*y_shift.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
 
@@ -244,18 +245,13 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch) # tuple([B, seq_len, H, output])
         
         if self.loss.is_distribution_output:
-            #B = output[0].size()[0]
-            #T = output[0].size()[1]
-            #H = output[0].size()[2]
-            #output = [arg.view(B*T, H, -1) for arg in output]
-            #outsample_y = outsample_y.view(B*T, H)
             loss = self.loss(y=outsample_y,
                              distr_args=output,
                              loc=None,
                              scale=None,
                              mask=outsample_mask)
         else:
-            loss = self.loss(y=outsample_y, y_hat=output[0], mask=outsample_mask)
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log('train_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
         return loss
@@ -321,7 +317,7 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
         output = self(windows_batch) # tuple([B, seq_len, H], ...)
-        
+
         # Obtain empirical quantiles
         if self.loss.is_distribution_output:
             B = output[0].size()[0]
@@ -335,7 +331,7 @@ class BaseRecurrent(pl.LightningModule):
             y_hat = quants.view(B, T, H, -1)
         # Parse tuple's first entry
         else:
-            y_hat = output[0]
+            y_hat = output
 
         # Inv Normalize
         if self.scaler is not None:
@@ -406,7 +402,6 @@ class BaseRecurrent(pl.LightningModule):
         else:
             fcsts = torch.vstack([fcst[:,-1:,:,:] for fcst in fcsts]).numpy().flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
-
         return fcsts
 
     def set_test_size(self, test_size):
