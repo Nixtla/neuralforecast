@@ -402,6 +402,7 @@ class DilatedRNN(BaseRecurrent):
             context = torch.cat((context, futr_exog), dim=-1)
 
         # Final forecast
-        y_hat = self.mlp_decoder(context)
+        output = self.mlp_decoder(context)
+        output = self.loss.domain_map(output)
         
-        return y_hat
+        return output

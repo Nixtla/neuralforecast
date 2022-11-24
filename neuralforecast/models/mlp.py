@@ -103,7 +103,7 @@ class MLP(BaseWindows):
         futr_exog     = windows_batch['futr_exog']
         hist_exog     = windows_batch['hist_exog']
         stat_exog     = windows_batch['stat_exog']
-        
+
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)
@@ -120,5 +120,5 @@ class MLP(BaseWindows):
         for layer in self.mlp:
              y_pred = torch.relu(layer(y_pred))
         y_pred = self.out(y_pred)
-        y_pred = self.loss.adapt_output(y_pred)
+        y_pred = self.loss.domain_map(y_pred)
         return y_pred

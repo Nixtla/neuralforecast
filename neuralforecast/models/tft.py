@@ -536,8 +536,7 @@ class TFT(BaseWindows):
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
-        if self.loss.outputsize_multiplier==1:
-            y_hat = y_hat.squeeze(-1)
+        y_hat = self.loss.domain_map(y_hat)
 
         return y_hat
     
@@ -558,11 +557,20 @@ class TFT(BaseWindows):
         mask_idx = batch['temporal_cols'].get_loc('available_mask')
         outsample_y = windows['temporal'][:, -self.h:, y_idx]
         outsample_mask = windows['temporal'][:, -self.h:, mask_idx]
+        
+        # batch_size, input_size
+        output = self(x=windows)
 
-        #batch_size, input_size
-        y_hat = self(x=windows)
+        # Possibility of distribution_outputs
+        if self.loss.is_distribution_output:
+            loss = self.loss(y=outsample_y,
+                             distr_args=output,
+                             loc=None,
+                             scale=None,
+                             mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)        
 
-        loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
         self.log('train_loss', loss, prog_bar=True, on_epoch=True)
         return loss
 
@@ -578,7 +586,17 @@ class TFT(BaseWindows):
         if self.scaler is not None:
             windows = self._normalization(windows=windows)
 
-        y_hat = self(x=windows)
+        output = self(x=windows)
+
+        # Obtain empirical quantiles
+        if self.loss.is_distribution_output:
+            _, y_hat = self.loss.sample(distr_args=output,
+                                        loc=None,
+                                        scale=None,
+                                        num_samples=500)
+        # Parse tuple's first entry
+        else:
+            y_hat = output        
 
         # Inv Normalize
         if self.scaler is not None:

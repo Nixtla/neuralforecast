@@ -173,8 +173,12 @@ class NHITS(BaseWindows):
     `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
     `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-    `learning_rate`: float, Learning rate between (0, 1).<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float, Learning rate between (0, 1).<br>
+    `batch_size`: int, number of different series in each batch.<br>
+    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>    
+    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -199,15 +203,15 @@ class NHITS(BaseWindows):
                  interpolation_mode: str = 'linear',
                  dropout_prob_theta = 0.,
                  activation = 'ReLU',
-                 loss=MAE(),
-                 learning_rate=1e-3,
-                 batch_size=32,
+                 loss = MAE(),
+                 learning_rate = 1e-3,
+                 batch_size = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 scaler_type=None,
-                 random_seed=1,
-                 num_workers_loader=0,
-                 drop_last_loader=False,
+                 scaler_type = None,
+                 random_seed = 1,
+                 num_workers_loader = 0,
+                 drop_last_loader = False,
                  **trainer_kwargs):
 
         # Inherit BaseWindows class
@@ -247,11 +251,6 @@ class NHITS(BaseWindows):
                                    dropout_prob_theta=dropout_prob_theta,
                                    activation=activation)
         self.blocks = torch.nn.ModuleList(blocks)
-        
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(in_features=h,
-                        out_features=h*self.loss.outputsize_multiplier)
 
     def create_stack(self,
                      h, 
@@ -319,6 +318,9 @@ class NHITS(BaseWindows):
             
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
+        
+        # Adapting output's domain
+        forecast = self.loss.domain_map(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, output_size)
@@ -327,7 +329,4 @@ class NHITS(BaseWindows):
             block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            # Last dimension Adapter
-            if self.loss.outputsize_multiplier==1:
-                forecast = forecast.squeeze(-1)
             return forecast

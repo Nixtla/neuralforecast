@@ -179,14 +179,14 @@ class NBEATSx(BaseWindows):
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>    
+    `futr_exog_list`: str list, future exogenous columns.<br>
     `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float, initial optimization learning rate.<br>
@@ -197,7 +197,7 @@ class NBEATSx(BaseWindows):
     `random_seed`: int, random seed initialization for replicability.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
     -[Kin G. Olivares, Cristian Challu, Grzegorz Marcjasz, Rafał Weron, Artur Dubrawski (2021). 
@@ -216,16 +216,16 @@ class NBEATSx(BaseWindows):
                  mlp_units: list = 3 * [[512, 512]],
                  dropout_prob_theta = 0.,
                  activation = 'ReLU',
-                 shared_weights=False,
-                 loss=MAE(),
-                 learning_rate=1e-3,
-                 batch_size=32,
+                 shared_weights = False,
+                 loss = MAE(),
+                 learning_rate = 1e-3,
+                 batch_size = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 scaler_type=None,
-                 random_seed=1,
-                 num_workers_loader=0,
-                 drop_last_loader=False,
+                 scaler_type = None,
+                 random_seed = 1,
+                 num_workers_loader = 0,
+                 drop_last_loader = False,
                  **trainer_kwargs):
 
         # Inherit BaseWindows class
@@ -349,6 +349,9 @@ class NBEATSx(BaseWindows):
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
 
+        # Adapting output's domain
+        forecast = self.loss.domain_map(forecast)                
+
         if self.decompose_forecast:
             # (n_batch, n_blocks, h)
             block_forecasts = torch.stack(block_forecasts)
@@ -356,7 +359,4 @@ class NBEATSx(BaseWindows):
             block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            # Last dimension Adapter
-            if self.loss.outputsize_multiplier==1:
-                forecast = forecast.squeeze(-1)
             return forecast
