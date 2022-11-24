@@ -103,7 +103,7 @@ class MLP(BaseWindows):
         futr_exog     = windows_batch['futr_exog']
         hist_exog     = windows_batch['hist_exog']
         stat_exog     = windows_batch['stat_exog']
-        
+
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)

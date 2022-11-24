@@ -291,6 +291,9 @@ class NBEATS(BaseWindows):
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
 
+        # Adapting output's domain
+        forecast = self.loss.domain_map(forecast)                
+
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, out_features)
             block_forecasts = torch.stack(block_forecasts)
@@ -298,7 +301,4 @@ class NBEATS(BaseWindows):
             block_forecasts = block_forecasts.squeeze(-1) # univariate output
             return block_forecasts
         else:
-            # Last dimension Adapter
-            if self.loss.outputsize_multiplier==1:
-                forecast = forecast.squeeze(-1)
             return forecast
