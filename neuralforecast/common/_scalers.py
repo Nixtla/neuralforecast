@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['masked_median', 'masked_mean', 'minmax_scaler', 'minmax1_scaler', 'std_scaler', 'robust_scaler', 'invariant_scaler',
-           'TemporalNorm']
+           'identity_scaler', 'TemporalNorm']
 
 # %% ../../nbs/common.scalers.ipynb 4
 import torch
@@ -259,7 +259,19 @@ def invariant_scaler(x, mask, dim=-1, eps=1e-6):
 def inv_invariant_scaler(z, x_median, x_mad):
     return torch.sinh(z) * x_mad + x_median
 
+# %% ../../nbs/common.scalers.ipynb 26
+def identity_scaler(x, mask, dim=-1, eps=1e-6):
+    """ Identity Scaler
+    """
+    x_shift = torch.zeros_like(x)[:,[0],:]
+    x_scale = torch.ones_like(x)[:,[0],:]
+    return x, x_shift, x_scale
+
 # %% ../../nbs/common.scalers.ipynb 27
+def inv_identity_scaler(z, x_shift, x_scale):
+    return z * x_scale + x_shift
+
+# %% ../../nbs/common.scalers.ipynb 30
 class TemporalNorm(nn.Module):
     """ Temporal Normalization
 
@@ -272,20 +284,22 @@ class TemporalNorm(nn.Module):
 
     **Parameters:**<br>
     `scaler_type`: str, defines the type of scaler used by TemporalNorm.
-                    available [`standard`, `robust`, `minmax`, `minmax1`, `invariant`].<br>
+                    available [`identity`, `standard`, `robust`, `minmax`, `minmax1`, `invariant`].<br>
     `dim` (int, optional): Dimension over to compute scale and shift. Defaults to -1.<br>
     `eps` (float, optional): Small value to avoid division by zero. Defaults to 1e-6.<br>
                     
     """    
     def __init__(self, scaler_type='robust', dim=-1, eps=1e-6):
         super().__init__()
-        scalers = dict(standard=std_scaler,
+        scalers = dict(identity=identity_scaler,
+                       standard=std_scaler,
                        robust=robust_scaler,
                        minmax=minmax_scaler,
                        minmax1=minmax1_scaler,
                        invariant=invariant_scaler,
                       )
-        inverse_scalers = dict(standard=inv_std_scaler,
+        inverse_scalers = dict(identity=inv_identity_scaler,
+                               standard=inv_std_scaler,
                                robust=inv_robust_scaler,
                                minmax=inv_minmax_scaler,
                                minmax1=inv_minmax1_scaler,
