@@ -26,7 +26,7 @@ class BaseWindows(pl.LightningModule):
                  batch_size=32,
                  windows_batch_size=1024,
                  step_size=1,
-                 scaler_type=None,
+                 scaler_type='identity',
                  futr_exog_list=None,
                  hist_exog_list=None,
                  stat_exog_list=None,
@@ -54,10 +54,7 @@ class BaseWindows(pl.LightningModule):
         self.step_size = step_size
 
         # Scaler
-        if scaler_type is None:
-            self.scaler = None
-        else:
-            self.scaler = TemporalNorm(scaler_type=scaler_type, dim=1) # Time dimension is 1.
+        self.scaler = TemporalNorm(scaler_type=scaler_type, dim=1) # Time dimension is 1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -252,8 +249,10 @@ class BaseWindows(pl.LightningModule):
 
         if remove_dimension:
             y_hat = y_hat.squeeze(-1)
+            y_shift = y_shift.squeeze(-1)
+            y_scale = y_scale.squeeze(-1)
 
-        return y_hat
+        return y_hat, y_shift, y_scale
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
@@ -288,12 +287,9 @@ class BaseWindows(pl.LightningModule):
                hist_exog, futr_exog, stat_exog
 
     def training_step(self, batch, batch_idx):        
-        # Create windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='train')
-        
-        # Normalize windows
-        if self.scaler is not None:
-            windows = self._normalization(windows=windows)
+        windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, outsample_y, outsample_mask, \
@@ -305,15 +301,16 @@ class BaseWindows(pl.LightningModule):
                              hist_exog=hist_exog, # [Ws, L]
                              stat_exog=stat_exog) # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Possibility of distribution_outputs
         if self.loss.is_distribution_output:
-            loss = self.loss(y=outsample_y,
-                             distr_args=output,
-                             loc=None,
-                             scale=None,
-                             mask=outsample_mask)
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -324,12 +321,9 @@ class BaseWindows(pl.LightningModule):
         if self.val_size == 0:
             return np.nan
         
-        # Create windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='val')
-        
-        # Normalize windows
-        if self.scaler is not None:
-            windows = self._normalization(windows=windows)
+        windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, outsample_y, outsample_mask, \
@@ -341,15 +335,16 @@ class BaseWindows(pl.LightningModule):
                              hist_exog=hist_exog, # [Ws, L]
                              stat_exog=stat_exog) # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Possibility of distribution_outputs
         if self.loss.is_distribution_output:
-            loss = self.loss(y=outsample_y,
-                             distr_args=output,
-                             loc=None,
-                             scale=None,
-                             mask=outsample_mask)
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -363,12 +358,9 @@ class BaseWindows(pl.LightningModule):
         self.log("ptl/val_loss", avg_loss)
     
     def predict_step(self, batch, batch_idx):        
-        # Create windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='predict')
-
-        # Normalize windows
-        if self.scaler is not None:
-            windows = self._normalization(windows=windows)
+        windows = self._normalization(windows=windows)
 
         # Parse windows
         insample_y, insample_mask, _, _, \
@@ -380,21 +372,15 @@ class BaseWindows(pl.LightningModule):
                              hist_exog=hist_exog, # [Ws, L]
                              stat_exog=stat_exog) # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Obtain empirical quantiles
         if self.loss.is_distribution_output:
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
             _, y_hat = self.loss.sample(distr_args=output,
-                                        loc=None,
-                                        scale=None,
-                                        num_samples=500)
-        # Parse tuple's first entry
+                                        loc=y_shift, scale=y_scale, num_samples=500)
         else:
-            y_hat = output
-
-        # Inv Normalize
-        if self.scaler is not None:
-            y_hat = self._inv_normalization(y_hat=y_hat,
+            y_hat, _, _ = self._inv_normalization(y_hat=output,
                                             temporal_cols=batch['temporal_cols'])
         return y_hat
     
