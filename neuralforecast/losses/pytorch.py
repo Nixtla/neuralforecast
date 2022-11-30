@@ -694,8 +694,8 @@ class DistributionLoss(torch.nn.Module):
 
     **Parameters:**<br>
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
-    `level`: float list 0-100, confidence levels for prediction intervals.<br>
-    `quantiles`: float list 0.-1, alternative to levels target quantiles.<br><br>
+    `level`: float list [0,100], confidence levels for prediction intervals.<br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
 
     **References:**<br>
     - [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)<br>
@@ -843,12 +843,17 @@ class PMM(torch.nn.Module):
     \prod_{\\beta\in[g_{i}]} 
     \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
 
+    **Parameters:**<br>
+    `n_components`: int=10, the number of mixture components.<br>
+    `level`: float list [0,100], confidence levels for prediction intervals.<br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
+
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
     Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, n_lambdas=10, level=[80, 90], quantiles=None):
+    def __init__(self, n_components=10, level=[80, 90], quantiles=None):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -862,7 +867,7 @@ class PMM(torch.nn.Module):
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
-        self.outputsize_multiplier = n_lambdas
+        self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
     def domain_map(self, lambdas_hat: torch.Tensor):
@@ -970,12 +975,17 @@ class GMM(torch.nn.Module):
     \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} 
     \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
 
+    **Parameters:**<br>
+    `n_components`: int=10, the number of mixture components.<br>
+    `level`: float list [0,100], confidence levels for prediction intervals.<br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>    
+
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
     Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, level=[80, 90], quantiles=None):
+    def __init__(self, n_components=1, level=[80, 90], quantiles=None):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -988,7 +998,8 @@ class GMM(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
-        self.outputsize_multiplier = len(self.output_names)
+
+        self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
     def sample(self, weights, means, stds, num_samples=500):

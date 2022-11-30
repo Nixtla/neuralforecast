@@ -1,6 +1,6 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
-           'TFT', 'GMM_TFT']
+           'TFT']
 from .rnn import RNN
 from .gru import GRU
 from .lstm import LSTM
@@ -11,4 +11,3 @@ from .nhits import NHITS
 from .nbeats import NBEATS
 from .nbeatsx import NBEATSx
 from .tft import TFT
-from .gmm_tft import GMM_TFT

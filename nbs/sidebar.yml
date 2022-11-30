@@ -24,9 +24,6 @@ website:
           - section: C. Transformer-Based
             contents:
             - models.tft.ipynb
-          - section: D. Hierarchical Forecasting
-            contents:
-            - models.gmm_tft.ipynb        
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb
