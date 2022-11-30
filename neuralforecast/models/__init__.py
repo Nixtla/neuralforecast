@@ -1,6 +1,5 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DilatedRNN',
-           'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
-           'TFT']
+           'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'TFT']
 from .rnn import RNN
 from .gru import GRU
 from .lstm import LSTM
