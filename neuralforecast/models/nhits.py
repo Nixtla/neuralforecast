@@ -177,8 +177,8 @@ class NHITS(BaseWindows):
     `learning_rate`: float, Learning rate between (0, 1).<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>    
-    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -186,7 +186,8 @@ class NHITS(BaseWindows):
 
     **References:**<br>
     -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza, 
-    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".](https://arxiv.org/abs/2201.12886)
+    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".
+    Accepted at the Thirty-Seventh AAAI Conference on Artificial Intelligence.](https://arxiv.org/abs/2201.12886)
     """
     def __init__(self, 
                  h,
@@ -208,7 +209,7 @@ class NHITS(BaseWindows):
                  batch_size = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 scaler_type = None,
+                 scaler_type = 'identity',
                  random_seed = 1,
                  num_workers_loader = 0,
                  drop_last_loader = False,

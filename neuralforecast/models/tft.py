@@ -380,7 +380,7 @@ class TFT(BaseWindows):
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str=None, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -545,29 +545,26 @@ class TFT(BaseWindows):
         # allow the model to receive future exogenous available
         # at the time of the prediction.
         
-        # Create windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='train')
+        windows = self._normalization(windows=windows)
 
-        # Normalize windows
-        if self.scaler is not None:
-            windows = self._normalization(windows=windows)
-
-        # outsample
+        # Parse outsample data
         y_idx = batch['temporal_cols'].get_loc('y')
         mask_idx = batch['temporal_cols'].get_loc('available_mask')
         outsample_y = windows['temporal'][:, -self.h:, y_idx]
         outsample_mask = windows['temporal'][:, -self.h:, mask_idx]
-        
-        # batch_size, input_size
-        output = self(x=windows)
 
-        # Possibility of distribution_outputs
+        # Model predictions
+        output = self(x=windows)
         if self.loss.is_distribution_output:
-            loss = self.loss(y=outsample_y,
-                             distr_args=output,
-                             loc=None,
-                             scale=None,
-                             mask=outsample_mask)
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)        
 
@@ -579,28 +576,19 @@ class TFT(BaseWindows):
         # allow the model to receive future exogenous available
         # at the time of the prediction.        
         
-        # Create windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step='predict')
+        windows = self._normalization(windows=windows)
 
-        # Normalize windows
-        if self.scaler is not None:
-            windows = self._normalization(windows=windows)
-
+        # Model predictions
         output = self(x=windows)
-
-        # Obtain empirical quantiles
         if self.loss.is_distribution_output:
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
             _, y_hat = self.loss.sample(distr_args=output,
-                                        loc=None,
-                                        scale=None,
-                                        num_samples=500)
-        # Parse tuple's first entry
+                                        loc=y_shift, scale=y_scale, num_samples=500)
         else:
-            y_hat = output        
-
-        # Inv Normalize
-        if self.scaler is not None:
-            y_hat = self._inv_normalization(y_hat=y_hat,
+            y_hat, _, _ = self._inv_normalization(y_hat=output,
                                             temporal_cols=batch['temporal_cols'])
 
         return y_hat

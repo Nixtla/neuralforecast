@@ -163,7 +163,7 @@ class NBEATS(BaseWindows):
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -189,7 +189,7 @@ class NBEATS(BaseWindows):
                  batch_size: int = 32,
                  windows_batch_size: int = 1024,
                  step_size: int = 1,
-                 scaler_type=None,
+                 scaler_type='identity',
                  random_seed=1,
                  num_workers_loader: int = 0,
                  drop_last_loader: bool = False,
