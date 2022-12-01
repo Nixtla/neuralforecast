@@ -94,6 +94,7 @@ class BaseRecurrent(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _normalization(self, batch, val_size=0, test_size=0):
+
         temporal = batch['temporal'] # B, C, T
         temporal_cols = batch['temporal_cols'].copy()
 
@@ -123,12 +124,12 @@ class BaseRecurrent(pl.LightningModule):
 
         # Get 'y' scale and shift, and add W dimension
         temporal_data_cols = temporal_cols.drop('available_mask')
+        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]        
         y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
-        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
 
         # Expand scale and shift to y_hat dimensions
+        y_shift = y_shift.view(*y_shift.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)        
         y_scale = y_scale.view(*y_scale.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)
-        y_shift = y_shift.view(*y_shift.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
 
@@ -238,11 +239,8 @@ class BaseRecurrent(pl.LightningModule):
         # Model predictions
         output = self(windows_batch) # tuple([B, seq_len, H, output])
         if self.loss.is_distribution_output:
-            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
             outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
                                             temporal_cols=batch['temporal_cols'])
-            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            #assert torch.min(outsample_y) > 0
             loss = self.loss(y=outsample_y, distr_args=output,
                              loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
@@ -276,7 +274,7 @@ class BaseRecurrent(pl.LightningModule):
         outsample_mask = outsample_mask[:, -val_windows:-1, :]        
 
         # Model predictions
-        output = self(windows_batch) # tuple([B, seq_len, H, output])        
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
         if self.loss.is_distribution_output:
             distr_args = [arg[:, -val_windows:-1] for arg in output]
             outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
@@ -288,7 +286,6 @@ class BaseRecurrent(pl.LightningModule):
             loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
 
         self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
-
         return loss
 
     def validation_epoch_end(self, outputs):
@@ -312,21 +309,22 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
-        # Model predictions
+        # Model Predictions
         output = self(windows_batch) # tuple([B, seq_len, H], ...)
         if self.loss.is_distribution_output:
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
             B = output[0].size()[0]
             T = output[0].size()[1]
             H = output[0].size()[2]
             output = [arg.view(B*T, H) for arg in output]
-            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
-                                            temporal_cols=batch['temporal_cols'])
+            y_shift = y_shift.repeat_interleave(repeats=T, dim=0).squeeze(-1)
+            y_scale = y_scale.repeat_interleave(repeats=T, dim=0).squeeze(-1)
             _, quants = self.loss.sample(distr_args=output,
-                                        loc=y_shift, scale=y_scale, num_samples=500)
+                                         loc=y_shift, scale=y_scale, num_samples=500)
             y_hat = quants.view(B, T, H, -1)
-
         else:
-            y_hat = self._inv_normalization(y_hat=output,
+            y_hat, _, _ = self._inv_normalization(y_hat=output,
                                             temporal_cols=batch['temporal_cols'])
 
         return y_hat
