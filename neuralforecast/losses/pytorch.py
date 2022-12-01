@@ -681,30 +681,31 @@ class AffineTransformed(TransformedDistribution):
         return self.variance.sqrt()
 
 # %% ../../nbs/losses.pytorch.ipynb 58
-def student_domain_map(input: torch.Tensor):
+def student_domain_map(input: torch.Tensor, eps: float=0.1):
     """
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `eps`: float, helps the initialization of scale for easier optimization.<br>
 
     **Returns:**<br>
     `(df, loc, scale)`: tuple with tensors of StudentT distribution arguments.<br>
     """
     df, loc, scale = torch.tensor_split(input, 3, dim=-1)
-    scale = F.softplus(scale)
+    scale = F.softplus(scale) + eps
     df = 2.0 + F.softplus(df)
     return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
-
-def normal_domain_map(input: torch.Tensor, eps: float = 50):
+def normal_domain_map(input: torch.Tensor, eps: float=0.1):
     """
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `eps`: float, helps the initialization of scale for easier optimization.<br>
 
     **Returns:**<br>
     `(loc, scale)`: tuple with tensors of Normal distribution arguments.<br>

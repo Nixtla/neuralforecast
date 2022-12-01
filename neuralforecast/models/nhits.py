@@ -204,44 +204,46 @@ class NHITS(BaseWindows):
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
+<<<<<<< HEAD
     `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+=======
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+>>>>>>> upstream/main
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
-    -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza,
-    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".](https://arxiv.org/abs/2201.12886)
+    -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza, 
+    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".
+    Accepted at the Thirty-Seventh AAAI Conference on Artificial Intelligence.](https://arxiv.org/abs/2201.12886)
     """
-
-    def __init__(
-        self,
-        h,
-        input_size,
-        futr_exog_list=None,
-        hist_exog_list=None,
-        stat_exog_list=None,
-        stack_types: list = ["identity", "identity", "identity"],
-        n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[512, 512]],
-        n_pool_kernel_size: list = [2, 2, 1],
-        n_freq_downsample: list = [4, 2, 1],
-        pooling_mode: str = "MaxPool1d",
-        interpolation_mode: str = "linear",
-        dropout_prob_theta=0.0,
-        activation="ReLU",
-        loss=MAE(),
-        learning_rate=1e-3,
-        batch_size=32,
-        windows_batch_size: int = 1024,
-        step_size: int = 1,
-        scaler_type=None,
-        random_seed=1,
-        num_workers_loader=0,
-        drop_last_loader=False,
-        **trainer_kwargs,
-    ):
+    def __init__(self, 
+                 h,
+                 input_size,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
+                 stack_types: list = ['identity', 'identity', 'identity'],
+                 n_blocks: list = [1, 1, 1],
+                 mlp_units: list = 3 * [[512, 512]],
+                 n_pool_kernel_size: list = [2, 2, 1],
+                 n_freq_downsample: list = [4, 2, 1],
+                 pooling_mode: str = 'MaxPool1d',
+                 interpolation_mode: str = 'linear',
+                 dropout_prob_theta = 0.,
+                 activation = 'ReLU',
+                 loss = MAE(),
+                 learning_rate = 1e-3,
+                 batch_size = 32,
+                 windows_batch_size: int = 1024,
+                 step_size: int = 1,
+                 scaler_type = 'identity',
+                 random_seed = 1,
+                 num_workers_loader = 0,
+                 drop_last_loader = False,
+                 **trainer_kwargs):
 
         # Inherit BaseWindows class
         super(NHITS, self).__init__(

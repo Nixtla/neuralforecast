@@ -260,7 +260,7 @@ class NBEATSx(BaseWindows):
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str=None, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -270,33 +270,30 @@ class NBEATSx(BaseWindows):
     -[Kin G. Olivares, Cristian Challu, Grzegorz Marcjasz, Rafał Weron, Artur Dubrawski (2021).
     "Neural basis expansion analysis with exogenous variables: Forecasting electricity prices with NBEATSx".](https://arxiv.org/abs/2104.05522)
     """
-
-    def __init__(
-        self,
-        h,
-        input_size,
-        futr_exog_list=None,
-        hist_exog_list=None,
-        stat_exog_list=None,
-        n_harmonics=2,
-        n_polynomials=2,
-        stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[512, 512]],
-        dropout_prob_theta=0.0,
-        activation="ReLU",
-        shared_weights=False,
-        loss=MAE(),
-        learning_rate=1e-3,
-        batch_size=32,
-        windows_batch_size: int = 1024,
-        step_size: int = 1,
-        scaler_type=None,
-        random_seed=1,
-        num_workers_loader=0,
-        drop_last_loader=False,
-        **trainer_kwargs,
-    ):
+    def __init__(self,
+                 h,
+                 input_size,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
+                 n_harmonics=2,
+                 n_polynomials=2,
+                 stack_types: list = ['identity', 'trend', 'seasonality'],
+                 n_blocks: list = [1, 1, 1],
+                 mlp_units: list = 3 * [[512, 512]],
+                 dropout_prob_theta = 0.,
+                 activation = 'ReLU',
+                 shared_weights = False,
+                 loss = MAE(),
+                 learning_rate = 1e-3,
+                 batch_size = 32,
+                 windows_batch_size: int = 1024,
+                 step_size: int = 1,
+                 scaler_type = 'identity',
+                 random_seed = 1,
+                 num_workers_loader = 0,
+                 drop_last_loader = False,
+                 **trainer_kwargs):
 
         # Inherit BaseWindows class
         super(NBEATSx, self).__init__(

@@ -215,7 +215,7 @@ class NBEATS(BaseWindows):
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str, type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -225,30 +225,27 @@ class NBEATS(BaseWindows):
     -[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, Yoshua Bengio (2019).
     "N-BEATS: Neural basis expansion analysis for interpretable time series forecasting".](https://arxiv.org/abs/1905.10437)
     """
-
-    def __init__(
-        self,
-        h,
-        input_size,
-        n_harmonics: int = 2,
-        n_polynomials: int = 2,
-        stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[512, 512]],
-        dropout_prob_theta: float = 0.0,
-        activation: str = "ReLU",
-        shared_weights: bool = False,
-        loss=MAE(),
-        learning_rate: float = 1e-3,
-        batch_size: int = 32,
-        windows_batch_size: int = 1024,
-        step_size: int = 1,
-        scaler_type=None,
-        random_seed=1,
-        num_workers_loader: int = 0,
-        drop_last_loader: bool = False,
-        **trainer_kwargs,
-    ):
+    def __init__(self,
+                 h,
+                 input_size,
+                 n_harmonics: int = 2,
+                 n_polynomials: int = 2,
+                 stack_types: list = ['identity', 'trend', 'seasonality'],
+                 n_blocks: list = [1, 1, 1],
+                 mlp_units: list = 3 * [[512, 512]],
+                 dropout_prob_theta: float = 0.,
+                 activation: str = 'ReLU',
+                 shared_weights: bool = False,                 
+                 loss=MAE(),
+                 learning_rate: float = 1e-3,
+                 batch_size: int = 32,
+                 windows_batch_size: int = 1024,
+                 step_size: int = 1,
+                 scaler_type='identity',
+                 random_seed=1,
+                 num_workers_loader: int = 0,
+                 drop_last_loader: bool = False,
+                 **trainer_kwargs):
 
         # Inherit BaseWindows class
         super(NBEATS, self).__init__(

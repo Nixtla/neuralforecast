@@ -17,24 +17,23 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_windows.ipynb 5
 class BaseWindows(pl.LightningModule):
-    def __init__(
-        self,
-        h,
-        input_size,
-        loss,
-        learning_rate,
-        batch_size=32,
-        windows_batch_size=1024,
-        step_size=1,
-        scaler_type=None,
-        futr_exog_list=None,
-        hist_exog_list=None,
-        stat_exog_list=None,
-        num_workers_loader=0,
-        drop_last_loader=False,
-        random_seed=1,
-        **trainer_kwargs,
-    ):
+
+    def __init__(self, 
+                 h,
+                 input_size,
+                 loss,
+                 learning_rate,
+                 batch_size=32,
+                 windows_batch_size=1024,
+                 step_size=1,
+                 scaler_type='identity',
+                 futr_exog_list=None,
+                 hist_exog_list=None,
+                 stat_exog_list=None,
+                 num_workers_loader=0,
+                 drop_last_loader=False,
+                 random_seed=1, 
+                 **trainer_kwargs):
         super(BaseWindows, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
@@ -55,12 +54,7 @@ class BaseWindows(pl.LightningModule):
         self.step_size = step_size
 
         # Scaler
-        if scaler_type is None:
-            self.scaler = None
-        else:
-            self.scaler = TemporalNorm(
-                scaler_type=scaler_type, dim=1
-            )  # Time dimension is 1.
+        self.scaler = TemporalNorm(scaler_type=scaler_type, dim=1) # Time dimension is 1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -271,8 +265,10 @@ class BaseWindows(pl.LightningModule):
 
         if remove_dimension:
             y_hat = y_hat.squeeze(-1)
+            y_shift = y_shift.squeeze(-1)
+            y_scale = y_scale.squeeze(-1)
 
-        return y_hat
+        return y_hat, y_shift, y_scale
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
@@ -313,6 +309,7 @@ class BaseWindows(pl.LightningModule):
             stat_exog,
         )
 
+<<<<<<< HEAD
     def training_step(self, batch, batch_idx):
         # Create windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="train")
@@ -320,6 +317,12 @@ class BaseWindows(pl.LightningModule):
         # Normalize windows
         if self.scaler is not None:
             windows = self._normalization(windows=windows)
+=======
+    def training_step(self, batch, batch_idx):        
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step='train')
+        windows = self._normalization(windows=windows)
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -340,10 +343,10 @@ class BaseWindows(pl.LightningModule):
             stat_exog=stat_exog,
         )  # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Possibility of distribution_outputs
         if self.loss.is_distribution_output:
+<<<<<<< HEAD
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,
@@ -351,6 +354,15 @@ class BaseWindows(pl.LightningModule):
                 scale=None,
                 mask=outsample_mask,
             )
+=======
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+>>>>>>> upstream/main
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -360,6 +372,7 @@ class BaseWindows(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         if self.val_size == 0:
             return np.nan
+<<<<<<< HEAD
 
         # Create windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="val")
@@ -367,6 +380,12 @@ class BaseWindows(pl.LightningModule):
         # Normalize windows
         if self.scaler is not None:
             windows = self._normalization(windows=windows)
+=======
+        
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step='val')
+        windows = self._normalization(windows=windows)
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -387,10 +406,10 @@ class BaseWindows(pl.LightningModule):
             stat_exog=stat_exog,
         )  # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Possibility of distribution_outputs
         if self.loss.is_distribution_output:
+<<<<<<< HEAD
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,
@@ -398,6 +417,15 @@ class BaseWindows(pl.LightningModule):
                 scale=None,
                 mask=outsample_mask,
             )
+=======
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+>>>>>>> upstream/main
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -409,6 +437,7 @@ class BaseWindows(pl.LightningModule):
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
+<<<<<<< HEAD
 
     def predict_step(self, batch, batch_idx):
         # Create windows [Ws, L+H, C]
@@ -417,6 +446,13 @@ class BaseWindows(pl.LightningModule):
         # Normalize windows
         if self.scaler is not None:
             windows = self._normalization(windows=windows)
+=======
+    
+    def predict_step(self, batch, batch_idx):        
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step='predict')
+        windows = self._normalization(windows=windows)
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -437,10 +473,10 @@ class BaseWindows(pl.LightningModule):
             stat_exog=stat_exog,
         )  # [Ws, 1]
 
+        # Model Predictions
         output = self(windows_batch)
-
-        # Obtain empirical quantiles
         if self.loss.is_distribution_output:
+<<<<<<< HEAD
             _, y_hat = self.loss.sample(
                 distr_args=output, loc=None, scale=None, num_samples=500
             )
@@ -462,6 +498,15 @@ class BaseWindows(pl.LightningModule):
             )
             y_hat = torch.concat((params_hat, y_hat), axis=2)
 
+=======
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
+            _, y_hat = self.loss.sample(distr_args=output,
+                                        loc=y_shift, scale=y_scale, num_samples=500)
+        else:
+            y_hat, _, _ = self._inv_normalization(y_hat=output,
+                                            temporal_cols=batch['temporal_cols'])
+>>>>>>> upstream/main
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0):

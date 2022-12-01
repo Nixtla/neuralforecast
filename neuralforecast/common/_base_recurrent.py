@@ -50,12 +50,7 @@ class BaseRecurrent(pl.LightningModule):
         self.learning_rate = learning_rate
 
         # Scaler
-        if scaler_type is None:
-            self.scaler = None
-        else:
-            self.scaler = TemporalNorm(
-                scaler_type=scaler_type, dim=-1
-            )  # Time dimension is -1.
+        self.scaler = TemporalNorm(scaler_type=scaler_type, dim=-1) # Time dimension is -1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -133,6 +128,7 @@ class BaseRecurrent(pl.LightningModule):
         # Broadcasts outputs and inverts normalization
 
         # Get 'y' scale and shift, and add W dimension
+<<<<<<< HEAD
         temporal_data_cols = temporal_cols.drop("available_mask")
         y_scale = self.scaler.x_scale[
             :, temporal_data_cols.get_indexer(["y"]), 0
@@ -148,10 +144,19 @@ class BaseRecurrent(pl.LightningModule):
         y_shift = y_shift.view(
             *y_shift.shape, *(1,) * (y_hat.ndim - 1)
         )  # .expand(y_hat)
+=======
+        temporal_data_cols = temporal_cols.drop('available_mask')
+        y_shift = self.scaler.x_shift[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]        
+        y_scale = self.scaler.x_scale[:, temporal_data_cols.get_indexer(['y']), 0].flatten() #[B,C,T] -> [B]
+
+        # Expand scale and shift to y_hat dimensions
+        y_shift = y_shift.view(*y_shift.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)        
+        y_scale = y_scale.view(*y_scale.shape, *(1,)*(y_hat.ndim-1))#.expand(y_hat)
+>>>>>>> upstream/main
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
 
-        return y_hat
+        return y_hat, y_shift, y_scale
 
     def _create_windows(self, batch, step):
         temporal = batch["temporal"]
@@ -257,6 +262,7 @@ class BaseRecurrent(pl.LightningModule):
         )
 
     def training_step(self, batch, batch_idx):
+<<<<<<< HEAD
         # Normalize
         if self.scaler is not None:
             batch = self._normalization(
@@ -265,6 +271,11 @@ class BaseRecurrent(pl.LightningModule):
 
         # Create windows
         windows = self._create_windows(batch, step="train")
+=======
+        # Create and normalize windows [Ws, L+H, C]
+        batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
+        windows = self._create_windows(batch, step='train')
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -287,6 +298,7 @@ class BaseRecurrent(pl.LightningModule):
 
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
 
+<<<<<<< HEAD
         if self.loss.is_distribution_output:
             loss = self.loss(
                 y=outsample_y,
@@ -295,6 +307,15 @@ class BaseRecurrent(pl.LightningModule):
                 scale=None,
                 mask=outsample_mask,
             )
+=======
+        # Model predictions
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
+        if self.loss.is_distribution_output:
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+>>>>>>> upstream/main
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -307,6 +328,7 @@ class BaseRecurrent(pl.LightningModule):
         if self.val_size == 0:
             return np.nan
 
+<<<<<<< HEAD
         # Normalize
         if self.scaler is not None:
             batch = self._normalization(
@@ -315,6 +337,11 @@ class BaseRecurrent(pl.LightningModule):
 
         # Create windows
         windows = self._create_windows(batch, step="val")
+=======
+        # Create and normalize windows [Ws, L+H, C]
+        batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
+        windows = self._create_windows(batch, step='val')
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -335,12 +362,16 @@ class BaseRecurrent(pl.LightningModule):
             stat_exog=stat_exog,
         )  # [B, S]
 
+<<<<<<< HEAD
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
 
+=======
+>>>>>>> upstream/main
         # Remove train y_hat (+1 and -1 for padded last window with zeros)
         # tuple([B, seq_len, H, output]) -> tuple([B, validation_size, H, output])
         val_windows = (self.val_size) + 1
         outsample_y = outsample_y[:, -val_windows:-1, :]
+<<<<<<< HEAD
         outsample_mask = outsample_mask[:, -val_windows:-1, :]
 
         if self.loss.is_distribution_output:
@@ -352,14 +383,30 @@ class BaseRecurrent(pl.LightningModule):
                 scale=None,
                 mask=outsample_mask,
             )
+=======
+        outsample_mask = outsample_mask[:, -val_windows:-1, :]        
+
+        # Model predictions
+        output = self(windows_batch) # tuple([B, seq_len, H, output])
+        if self.loss.is_distribution_output:
+            distr_args = [arg[:, -val_windows:-1] for arg in output]
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            loss = self.loss(y=outsample_y, distr_args=distr_args,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+>>>>>>> upstream/main
         else:
             y_hat = output[:, -val_windows:-1, :]
             loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
 
+<<<<<<< HEAD
         self.log(
             "val_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
         )
 
+=======
+        self.log('val_loss', loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True)
+>>>>>>> upstream/main
         return loss
 
     def validation_epoch_end(self, outputs):
@@ -369,11 +416,17 @@ class BaseRecurrent(pl.LightningModule):
         self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
 
     def predict_step(self, batch, batch_idx):
+<<<<<<< HEAD
         # Normalize
         if self.scaler is not None:
             batch = self._normalization(batch, val_size=0, test_size=self.test_size)
 
         windows = self._create_windows(batch, step="predict")
+=======
+        # Create and normalize windows [Ws, L+H, C]
+        batch = self._normalization(batch, val_size=0, test_size=self.test_size)
+        windows = self._create_windows(batch, step='predict')
+>>>>>>> upstream/main
 
         # Parse windows
         (
@@ -394,21 +447,35 @@ class BaseRecurrent(pl.LightningModule):
             stat_exog=stat_exog,
         )  # [B, S]
 
+<<<<<<< HEAD
         output = self(windows_batch)  # tuple([B, seq_len, H], ...)
 
         # Obtain empirical quantiles
+=======
+        # Model Predictions
+        output = self(windows_batch) # tuple([B, seq_len, H], ...)
+>>>>>>> upstream/main
         if self.loss.is_distribution_output:
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
             B = output[0].size()[0]
             T = output[0].size()[1]
             H = output[0].size()[2]
+<<<<<<< HEAD
             output = [arg.view(B * T, H) for arg in output]
             _, quants = self.loss.sample(
                 distr_args=output, loc=None, scale=None, num_samples=500
             )
+=======
+            output = [arg.view(B*T, H) for arg in output]
+            y_shift = y_shift.repeat_interleave(repeats=T, dim=0).squeeze(-1)
+            y_scale = y_scale.repeat_interleave(repeats=T, dim=0).squeeze(-1)
+            _, quants = self.loss.sample(distr_args=output,
+                                         loc=y_shift, scale=y_scale, num_samples=500)
+>>>>>>> upstream/main
             y_hat = quants.view(B, T, H, -1)
-
-        # Parse tuple's first entry
         else:
+<<<<<<< HEAD
             y_hat = output
 
         # Inv Normalize
@@ -424,6 +491,10 @@ class BaseRecurrent(pl.LightningModule):
                 params_hat, (len(windows["temporal"]), self.h, -1)
             )
             y_hat = torch.concat((params_hat, y_hat), axis=2)
+=======
+            y_hat, _, _ = self._inv_normalization(y_hat=output,
+                                            temporal_cols=batch['temporal_cols'])
+>>>>>>> upstream/main
 
         return y_hat
 
