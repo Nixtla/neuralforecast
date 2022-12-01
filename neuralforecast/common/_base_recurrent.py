@@ -49,10 +49,7 @@ class BaseRecurrent(pl.LightningModule):
         self.learning_rate = learning_rate
 
         # Scaler
-        if scaler_type is None:
-            self.scaler = None
-        else:
-            self.scaler = TemporalNorm(scaler_type=scaler_type, dim=-1) # Time dimension is -1.
+        self.scaler = TemporalNorm(scaler_type=scaler_type, dim=-1) # Time dimension is -1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -97,7 +94,6 @@ class BaseRecurrent(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _normalization(self, batch, val_size=0, test_size=0):
-
         temporal = batch['temporal'] # B, C, T
         temporal_cols = batch['temporal_cols'].copy()
 
@@ -225,11 +221,8 @@ class BaseRecurrent(pl.LightningModule):
                hist_exog, futr_exog, stat_exog
 
     def training_step(self, batch, batch_idx):
-        # Normalize
-        if self.scaler is not None:
-            batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
-
-        # Create windows
+        # Create and normalize windows [Ws, L+H, C]
+        batch = self._normalization(batch, val_size=self.val_size, test_size=self.test_size)
         windows = self._create_windows(batch, step='train')
 
         # Parse windows
@@ -242,14 +235,16 @@ class BaseRecurrent(pl.LightningModule):
                              hist_exog=hist_exog, # [B, C, seq_len]
                              stat_exog=stat_exog) # [B, S]
 
+        # Model predictions
         output = self(windows_batch) # tuple([B, seq_len, H, output])
-        
         if self.loss.is_distribution_output:
-            loss = self.loss(y=outsample_y,
-                             distr_args=output,
-                             loc=None,
-                             scale=None,
-                             mask=outsample_mask)
+            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            #assert torch.min(outsample_y) > 0
+            loss = self.loss(y=outsample_y, distr_args=output,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -284,11 +279,10 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch) # tuple([B, seq_len, H, output])        
         if self.loss.is_distribution_output:
             distr_args = [arg[:, -val_windows:-1] for arg in output]
-            loss = self.loss(y=outsample_y,
-                             distr_args=distr_args,
-                             loc=None,
-                             scale=None,
-                             mask=outsample_mask)        
+            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
+                                            temporal_cols=batch['temporal_cols'])
+            loss = self.loss(y=outsample_y, distr_args=distr_args,
+                             loc=y_shift, scale=y_scale, mask=outsample_mask)
         else:
             y_hat = output[:, -val_windows:-1, :]
             loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
@@ -325,19 +319,14 @@ class BaseRecurrent(pl.LightningModule):
             T = output[0].size()[1]
             H = output[0].size()[2]
             output = [arg.view(B*T, H) for arg in output]
+            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
+                                            temporal_cols=batch['temporal_cols'])
             _, quants = self.loss.sample(distr_args=output,
-                                         loc=None,
-                                         scale=None,
-                                         num_samples=500)
+                                        loc=y_shift, scale=y_scale, num_samples=500)
             y_hat = quants.view(B, T, H, -1)
 
-        # Parse tuple's first entry
         else:
-            y_hat = output
-
-        # Inv Normalize
-        if self.scaler is not None:
-            y_hat = self._inv_normalization(y_hat=y_hat,
+            y_hat = self._inv_normalization(y_hat=output,
                                             temporal_cols=batch['temporal_cols'])
 
         return y_hat
