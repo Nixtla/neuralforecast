@@ -304,20 +304,20 @@ class TemporalNorm(nn.Module):
     """    
     def __init__(self, scaler_type='robust', dim=-1, eps=1e-6):
         super().__init__()
-        scalers = dict(identity=identity_scaler,
-                       standard=std_scaler,
-                       robust=robust_scaler,
-                       minmax=minmax_scaler,
-                       minmax1=minmax1_scaler,
-                       invariant=invariant_scaler,
-                      )
-        inverse_scalers = dict(identity=inv_identity_scaler,
-                               standard=inv_std_scaler,
-                               robust=inv_robust_scaler,
-                               minmax=inv_minmax_scaler,
-                               minmax1=inv_minmax1_scaler,
-                               invariant=inv_invariant_scaler,
-                              )
+        scalers = {None: identity_scaler,
+                   'identity': identity_scaler,
+                   'standard': std_scaler,
+                   'robust': robust_scaler,
+                   'minmax': minmax_scaler,
+                   'minmax1': minmax1_scaler,
+                   'invariant':invariant_scaler,}
+        inverse_scalers = {None: inv_identity_scaler,
+                    'identity': inv_identity_scaler,
+                    'standard': inv_std_scaler,
+                    'robust': inv_robust_scaler,
+                    'minmax': inv_minmax_scaler,
+                    'minmax1': inv_minmax1_scaler,
+                    'invariant': inv_invariant_scaler,}
         assert (scaler_type in scalers.keys()), f'{scaler_type} not defined'
 
         self.scaler = scalers[scaler_type]
