@@ -723,7 +723,7 @@ def poisson_domain_map(input: torch.Tensor):
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
 
     **Returns:**<br>
-    `(loc, scale)`: tuple with tensors of Poisson distribution arguments.<br>
+    `(loc)`: tuple with tensors of Poisson distribution arguments.<br>
     """
     rate_pos = F.softplus(input).clone()
     return (rate_pos.squeeze(-1),)
@@ -772,6 +772,12 @@ class DistributionLoss(torch.nn.Module):
             Poisson=poisson_domain_map,
             StudentT=student_domain_map,
         )
+        output_name_maps = dict(
+            Normal=["-loc", "-scale"],
+            Poisson=["-loc"],
+            StudentT=["-df", "-loc", "-scale"],
+        )
+
         assert (
             distribution in available_distributions.keys()
         ), f"{distribution} not available"
@@ -789,8 +795,7 @@ class DistributionLoss(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         if return_params:
-            rate_name = ["-rate"]
-            self.output_names = self.output_names + rate_name
+            self.output_names = self.output_names + output_name_maps[distribution]
 
         self.return_params = return_params
 
@@ -1092,7 +1097,8 @@ class GMM(torch.nn.Module):
 
         if return_params:
             mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
-            self.output_names = self.output_names + mu_names
+            std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + mu_names + std_names
 
         self.return_params = return_params
 

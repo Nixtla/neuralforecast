@@ -456,8 +456,9 @@ class BaseWindows(pl.LightningModule):
 
         # Combine output params and output quantiles
         if hasattr(self.loss, "return_params") and self.loss.return_params:
+            params_hat = torch.stack(output, dim=-1)
             params_hat = torch.reshape(
-                output[0], (output[0].size(dim=0), output[0].size(dim=1), -1)
+                params_hat, (len(windows["temporal"]), self.h, -1)
             )
             y_hat = torch.concat((params_hat, y_hat), axis=2)
 
