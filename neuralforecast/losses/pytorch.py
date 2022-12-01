@@ -17,6 +17,7 @@ from torch.distributions import (
     Distribution,
     TransformedDistribution,
 )
+
 # from torch.distributions import (
 #     Beta,
 #     Distribution,
@@ -34,7 +35,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
     div = a / b
     div[div != div] = 0.0
-    div[div == float('inf')] = 0.0
+    div[div == float("inf")] = 0.0
     return div
 
 # %% ../../nbs/losses.pytorch.ipynb 8
@@ -49,11 +50,12 @@ class MAE(torch.nn.Module):
     over the length of the series.
 
     $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
-    """    
+    """
+
     def __init__(self):
         super(MAE, self).__init__()
         self.outputsize_multiplier = 1
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -63,8 +65,12 @@ class MAE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -83,21 +89,22 @@ class MAE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 13
 class MSE(torch.nn.Module):
-    """  Mean Squared Error
+    """Mean Squared Error
 
     Calculates Mean Squared Error between
     `y` and `y_hat`. MSE measures the relative prediction
-    accuracy of a forecasting method by calculating the 
+    accuracy of a forecasting method by calculating the
     squared deviation of the prediction and the true
     value at a given time, and averages these devations
     over the length of the series.
-    
+
     $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
-    """    
+    """
+
     def __init__(self):
         super(MSE, self).__init__()
         self.outputsize_multiplier = 1
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -107,8 +114,12 @@ class MSE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -121,14 +132,14 @@ class MSE(torch.nn.Module):
         if mask is None:
             mask = torch.ones_like(y_hat)
 
-        mse = (y - y_hat)**2
+        mse = (y - y_hat) ** 2
         mse = mask * mse
         mse = torch.mean(mse)
         return mse
 
 # %% ../../nbs/losses.pytorch.ipynb 18
 class RMSE(torch.nn.Module):
-    """ Root Mean Squared Error
+    """Root Mean Squared Error
 
     Calculates Root Mean Squared Error between
     `y` and `y_hat`. RMSE measures the relative prediction
@@ -137,15 +148,16 @@ class RMSE(torch.nn.Module):
     averages these devations over the length of the series.
     Finally the RMSE will be in the same scale
     as the original time series so its comparison with other
-    series is possible only if they share a common scale. 
+    series is possible only if they share a common scale.
     RMSE has a direct connection to the L2 norm.
-    
+
     $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
     """
+
     def __init__(self):
         super(RMSE, self).__init__()
         self.outputsize_multiplier = 1
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -155,8 +167,12 @@ class RMSE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -166,10 +182,10 @@ class RMSE(torch.nn.Module):
         **Returns:**<br>
         `rmse`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
-        mse = (y - y_hat)**2
+        mse = (y - y_hat) ** 2
         mse = mask * mse
         mse = torch.mean(mse)
         mse = torch.sqrt(mse)
@@ -177,7 +193,7 @@ class RMSE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 24
 class MAPE(torch.nn.Module):
-    """ Mean Absolute Percentage Error
+    """Mean Absolute Percentage Error
 
     Calculates Mean Absolute Percentage Error  between
     `y` and `y_hat`. MAPE measures the relative prediction
@@ -186,13 +202,14 @@ class MAPE(torch.nn.Module):
     averages these devations over the length of the series.
     The closer to zero an observed value is, the higher penalty MAPE loss
     assigns to the corresponding error.
-    
+
     $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
-    """    
+    """
+
     def __init__(self):
         super(MAPE, self).__init__()
         self.outputsize_multiplier = 1
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -202,8 +219,12 @@ class MAPE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -213,7 +234,7 @@ class MAPE(torch.nn.Module):
         **Returns:**<br>
         `mape`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         mask = _divide_no_nan(mask, torch.abs(y))
@@ -223,7 +244,7 @@ class MAPE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 29
 class SMAPE(torch.nn.Module):
-    """ Symmetric Mean Absolute Percentage Error
+    """Symmetric Mean Absolute Percentage Error
 
     Calculates Symmetric Mean Absolute Percentage Error between
     `y` and `y_hat`. SMAPE measures the relative prediction
@@ -240,10 +261,11 @@ class SMAPE(torch.nn.Module):
     **References:**<br>
     [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
+
     def __init__(self):
         super(SMAPE, self).__init__()
         self.outputsize_multiplier = 1
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -253,8 +275,12 @@ class SMAPE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -264,7 +290,7 @@ class SMAPE(torch.nn.Module):
         **Returns:**<br>
         `smape`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         delta_y = torch.abs((y - y_hat))
@@ -276,29 +302,30 @@ class SMAPE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 34
 class MASE(torch.nn.Module):
-    """ Mean Absolute Scaled Error 
+    """Mean Absolute Scaled Error
     Calculates the Mean Absolute Scaled Error between
     `y` and `y_hat`. MASE measures the relative prediction
     accuracy of a forecasting method by comparinng the mean absolute errors
     of the prediction and the observed value against the mean
     absolute errors of the seasonal naive model.
-    The MASE partially composed the Overall Weighted Average (OWA), 
+    The MASE partially composed the Overall Weighted Average (OWA),
     used in the M4 Competition.
-    
+
     $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
 
     **Parameters:**<br>
     `seasonality`: int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
-    
+
     **References:**<br>
     [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
     [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
     """
+
     def __init__(self, seasonality: int):
         super(MASE, self).__init__()
         self.outputsize_multiplier = 1
         self.seasonality = seasonality
-        self.output_names = ['']
+        self.output_names = [""]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -308,8 +335,13 @@ class MASE(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor,  y_insample: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
@@ -320,12 +352,16 @@ class MASE(torch.nn.Module):
         **Returns:**<br>
         `mase`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         delta_y = torch.abs(y - y_hat)
-        scale = torch.mean(torch.abs(y_insample[:, self.seasonality:] - \
-                                     y_insample[:, :-self.seasonality]), axis=1)
+        scale = torch.mean(
+            torch.abs(
+                y_insample[:, self.seasonality :] - y_insample[:, : -self.seasonality]
+            ),
+            axis=1,
+        )
         mase = _divide_no_nan(delta_y, scale[:, None])
         mase = mase * mask
         mase = torch.mean(mase)
@@ -333,7 +369,7 @@ class MASE(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 40
 class QuantileLoss(torch.nn.Module):
-    """ Quantile Loss
+    """Quantile Loss
 
     Computes the quantile loss between `y` and `y_hat`.
     QL measures the deviation of a quantile forecast.
@@ -349,11 +385,12 @@ class QuantileLoss(torch.nn.Module):
     **References:**<br>
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
     """
+
     def __init__(self, q):
         super(QuantileLoss, self).__init__()
         self.outputsize_multiplier = 1
         self.q = q
-        self.output_names = [f'_ql{q}']
+        self.output_names = [f"_ql{q}"]
         self.is_distribution_output = False
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -363,8 +400,12 @@ class QuantileLoss(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -374,7 +415,7 @@ class QuantileLoss(torch.nn.Module):
         **Returns:**<br>
         `quantile_loss`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         delta_y = y - y_hat
@@ -385,8 +426,8 @@ class QuantileLoss(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 45
 def level_to_outputs(level):
-    qs = sum([[50-l/2, 50+l/2] for l in level], [])
-    output_names = sum([[f'-lo-{l}', f'-hi-{l}'] for l in level], [])
+    qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
+    output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
 
     sort_idx = np.argsort(qs)
     quantiles = np.array(qs)[sort_idx]
@@ -395,39 +436,40 @@ def level_to_outputs(level):
     quantiles = np.concatenate([np.array([50]), quantiles])
     quantiles = torch.Tensor(quantiles) / 100
     output_names = list(np.array(output_names)[sort_idx])
-    output_names.insert(0, '-median')
-    
+    output_names.insert(0, "-median")
+
     return quantiles, output_names
+
 
 def quantiles_to_outputs(quantiles):
     output_names = []
     for q in quantiles:
-        if q<.50:
-            output_names.append(f'-lo-{np.round(100-200*q,2)}')
-        elif q>.50:
-            output_names.append(f'-hi-{np.round(100-200*(1-q),2)}')
+        if q < 0.50:
+            output_names.append(f"-lo-{np.round(100-200*q,2)}")
+        elif q > 0.50:
+            output_names.append(f"-hi-{np.round(100-200*(1-q),2)}")
         else:
-            output_names.append('-median')
+            output_names.append("-median")
     return quantiles, output_names
 
 # %% ../../nbs/losses.pytorch.ipynb 46
 class MQLoss(torch.nn.Module):
-    """  Multi-Quantile loss
+    """Multi-Quantile loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
-    a given set of quantiles, based on the absolute 
+    a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
-    
+
     $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
-    
-    The limit behavior of MQL allows to measure the accuracy 
-    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with 
-    the continuous ranked probability score (CRPS). This can be achieved 
-    through a numerical integration technique, that discretizes the quantiles 
-    and treats the CRPS integral with a left Riemann approximation, averaging over 
-    uniformly distanced quantiles.    
-    
+
+    The limit behavior of MQL allows to measure the accuracy
+    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
+    the continuous ranked probability score (CRPS). This can be achieved
+    through a numerical integration technique, that discretizes the quantiles
+    and treats the CRPS integral with a left Riemann approximation, averaging over
+    uniformly distanced quantiles.
+
     $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
     **Parameters:**<br>
@@ -438,6 +480,7 @@ class MQLoss(torch.nn.Module):
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
     [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
+
     def __init__(self, level=[80, 90], quantiles=None):
         super(MQLoss, self).__init__()
         # Transform level to MQLoss parameters
@@ -460,8 +503,12 @@ class MQLoss(torch.nn.Module):
         """
         return y_hat
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -471,33 +518,33 @@ class MQLoss(torch.nn.Module):
         **Returns:**<br>
         `mqloss`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         n_q = len(self.quantiles)
-        
-        error  = y_hat - y.unsqueeze(-1)
-        sq     = torch.maximum(-error, torch.zeros_like(error))
-        s1_q   = torch.maximum(error, torch.zeros_like(error))
-        mqloss = (self.quantiles * sq + (1 - self.quantiles) * s1_q)
-            
+
+        error = y_hat - y.unsqueeze(-1)
+        sq = torch.maximum(-error, torch.zeros_like(error))
+        s1_q = torch.maximum(error, torch.zeros_like(error))
+        mqloss = self.quantiles * sq + (1 - self.quantiles) * s1_q
+
         # Match y/weights dimensions and compute weighted average
         mask = mask / torch.sum(mask)
         mask = mask.unsqueeze(-1)
-        mqloss = (1/n_q) * mqloss * mask
+        mqloss = (1 / n_q) * mqloss * mask
         return torch.sum(mqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 51
 class wMQLoss(torch.nn.Module):
-    """ Weighted Multi-Quantile loss
-    
+    """Weighted Multi-Quantile loss
+
     Calculates the Weighted Multi-Quantile loss (WMQL) between `y` and `y_hat`.
     WMQL calculates the weighted average multi-quantile Loss for
-    a given set of quantiles, based on the absolute 
-    difference between predicted quantiles and observed values.  
-        
+    a given set of quantiles, based on the absolute
+    difference between predicted quantiles and observed values.
+
     $$ \mathrm{wMQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \\frac{\mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau})}{\\sum^{t+H}_{\\tau=t+1} |y_{\\tau}|} $$
-    
+
     **Parameters:**<br>
     `level`: int list [0,100]. Probability levels for prediction intervals (Defaults median).
     `quantiles`: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.
@@ -506,6 +553,7 @@ class wMQLoss(torch.nn.Module):
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
     [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
+
     def __init__(self, level=[80, 90], quantiles=None):
         super(wMQLoss, self).__init__()
         # Transform level to MQLoss parameters
@@ -528,8 +576,12 @@ class wMQLoss(torch.nn.Module):
         """
         return y_hat
 
-    def __call__(self, y: torch.Tensor, y_hat: torch.Tensor, 
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -539,23 +591,26 @@ class wMQLoss(torch.nn.Module):
         **Returns:**<br>
         `mqloss`: tensor (single value).
         """
-        if mask is None: 
+        if mask is None:
             mask = torch.ones_like(y_hat)
 
         error = y_hat - y.unsqueeze(-1)
-        
+
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
-        loss = (self.quantiles * sq + (1 - self.quantiles) * s1_q)
-        
+        loss = self.quantiles * sq + (1 - self.quantiles) * s1_q
+
         mask = mask.unsqueeze(-1)
-        wmqloss = _divide_no_nan(torch.sum(loss * mask, axis=-2), 
-                                 torch.sum(torch.abs(y.unsqueeze(-1)) * mask, axis=-2))
+        wmqloss = _divide_no_nan(
+            torch.sum(loss * mask, axis=-2),
+            torch.sum(torch.abs(y.unsqueeze(-1)) * mask, axis=-2),
+        )
         return torch.mean(wmqloss)
 
 # %% ../../nbs/losses.pytorch.ipynb 56
-def weighted_average(x: torch.Tensor, 
-                     weights: Optional[torch.Tensor]=None, dim=None) -> torch.Tensor:
+def weighted_average(
+    x: torch.Tensor, weights: Optional[torch.Tensor] = None, dim=None
+) -> torch.Tensor:
     """
     Computes the weighted average of a given tensor across a given dim, masking
     values associated with weight zero,
@@ -570,9 +625,7 @@ def weighted_average(x: torch.Tensor,
     `Tensor`: The tensor with values averaged along the specified `dim`.<br>
     """
     if weights is not None:
-        weighted_tensor = torch.where(
-            weights != 0, x * weights, torch.zeros_like(x)
-        )
+        weighted_tensor = torch.where(weights != 0, x * weights, torch.zeros_like(x))
         sum_weights = torch.clamp(
             weights.sum(dim=dim) if dim else weights.sum(), min=1.0
         )
@@ -598,14 +651,13 @@ class AffineTransformed(TransformedDistribution):
     `loc`: Translation parameter of the affine transformation.<br>
     `scale`: Scaling parameter of the affine transformation.<br>
     """
+
     def __init__(self, base_distribution: Distribution, loc=None, scale=None):
 
         self.scale = 1.0 if scale is None else scale
         self.loc = 0.0 if loc is None else loc
 
-        super().__init__(
-            base_distribution, [AffineTransform(self.loc, self.scale)]
-        )
+        super().__init__(base_distribution, [AffineTransform(self.loc, self.scale)])
 
     @property
     def mean(self):
@@ -631,7 +683,7 @@ class AffineTransformed(TransformedDistribution):
 # %% ../../nbs/losses.pytorch.ipynb 58
 def student_domain_map(input: torch.Tensor):
     """
-    Maps input into distribution constraints, by construction input's 
+    Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
@@ -645,9 +697,10 @@ def student_domain_map(input: torch.Tensor):
     df = 2.0 + F.softplus(df)
     return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
-def normal_domain_map(input: torch.Tensor, eps: float=50):
+
+def normal_domain_map(input: torch.Tensor, eps: float = 50):
     """
-    Maps input into distribution constraints, by construction input's 
+    Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
@@ -660,9 +713,10 @@ def normal_domain_map(input: torch.Tensor, eps: float=50):
     scale = F.softplus(scale) + eps
     return loc.squeeze(-1), scale.squeeze(-1)
 
+
 def poisson_domain_map(input: torch.Tensor):
     """
-    Maps input into distribution constraints, by construction input's 
+    Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
@@ -676,15 +730,15 @@ def poisson_domain_map(input: torch.Tensor):
 
 # %% ../../nbs/losses.pytorch.ipynb 59
 class DistributionLoss(torch.nn.Module):
-    """ DistributionLoss
+    """DistributionLoss
 
-    This PyTorch module wraps the `torch.distribution` classes allowing it to 
-    interact with NeuralForecast models modularly. It shares the negative 
-    log-likelihood as the optimization objective and a sample method to 
+    This PyTorch module wraps the `torch.distribution` classes allowing it to
+    interact with NeuralForecast models modularly. It shares the negative
+    log-likelihood as the optimization objective and a sample method to
     generate empirically the quantiles defined by the `level` list.
 
     Additionally, it implements a distribution transformation that factorizes the
-    scale-dependent likelihood parameters into a base scale and a multiplier 
+    scale-dependent likelihood parameters into a base scale and a multiplier
     efficiently learnable within the network's non-linearities operating ranges.
 
     Available distributions:
@@ -702,16 +756,25 @@ class DistributionLoss(torch.nn.Module):
     - [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020).
        "DeepAR: Probabilistic forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br>
     """
-    def __init__(self, distribution, level=[80, 90], quantiles=None):
+
+    def __init__(
+        self, distribution, level=[80, 90], quantiles=None, return_params=False
+    ):
         super(DistributionLoss, self).__init__()
 
-        available_distributions = dict(Normal=Normal,
-                                       Poisson=Poisson,
-                                       StudentT=StudentT,)
-        domain_maps = dict(Normal=normal_domain_map,
-                           Poisson=poisson_domain_map,
-                           StudentT=student_domain_map,)
-        assert (distribution in available_distributions.keys()), f'{distribution} not available'
+        available_distributions = dict(
+            Normal=Normal,
+            Poisson=Poisson,
+            StudentT=StudentT,
+        )
+        domain_maps = dict(
+            Normal=normal_domain_map,
+            Poisson=poisson_domain_map,
+            StudentT=student_domain_map,
+        )
+        assert (
+            distribution in available_distributions.keys()
+        ), f"{distribution} not available"
 
         self._base_distribution = available_distributions[distribution]
         self.domain_map = domain_maps[distribution]
@@ -724,15 +787,24 @@ class DistributionLoss(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
+
+        if return_params:
+            rate_name = ["-rate"]
+            self.output_names = self.output_names + rate_name
+
+        self.return_params = return_params
+
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
         self.outputsize_multiplier = len(self._base_distribution.arg_constraints.keys())
         self.is_distribution_output = True
 
-    def get_distribution(self,
-                         distr_args,
-                         loc: Optional[torch.Tensor] = None,
-                         scale: Optional[torch.Tensor] = None,) -> Distribution:
+    def get_distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ) -> Distribution:
         """
         Construct the associated Pytorch Distribution, given the collection of
         constructor arguments and, optionally, location and scale tensors.
@@ -741,7 +813,7 @@ class DistributionLoss(torch.nn.Module):
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
         `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
                of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution.<br>
 
         **Returns**<br>
@@ -753,22 +825,24 @@ class DistributionLoss(torch.nn.Module):
         if loc is None and scale is None:
             return distr
         else:
-            return AffineTransformed(distr, loc=loc, scale=scale)        
+            return AffineTransformed(distr, loc=loc, scale=scale)
 
-    def sample(self,
-               distr_args: torch.Tensor,
-               loc: torch.Tensor,
-               scale: torch.Tensor,
-               num_samples: int=500):
+    def sample(
+        self,
+        distr_args: torch.Tensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        num_samples: int = 500,
+    ):
         """
-        Construct the empirical quantiles from the Pytorch Distribution, 
+        Construct the empirical quantiles from the Pytorch Distribution,
         sampling from it `num_samples` independently.
 
         **Parameters**<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
         `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
                of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution.<br>
         `num_samples`: int=500, number of samples for the empirical quantiles.<br>
 
@@ -783,42 +857,43 @@ class DistributionLoss(torch.nn.Module):
         # sample y ~ loc + Distribution(distr_args) * scale independently
         distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
         samples = distr.sample(sample_shape=(num_samples,))
-        samples = samples.permute(1,2,0) # [samples,B,H] -> [B,H,samples]
+        samples = samples.permute(1, 2, 0)  # [samples,B,H] -> [B,H,samples]
         samples = samples.to(distr_args[0].device)
-        samples = samples.view(B*H, num_samples)
+        samples = samples.view(B * H, num_samples)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(distr_args[0].device)
-        quants = torch.quantile(input=samples, 
-                                q=quantiles_device, dim=1)
-        quants = quants.permute((1,0)) # [Q, B*H] -> [B*H, Q]
+        quants = torch.quantile(input=samples, q=quantiles_device, dim=1)
+        quants = quants.permute((1, 0))  # [Q, B*H] -> [B*H, Q]
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
-        quants  = quants.view(B, H, Q)
+        quants = quants.view(B, H, Q)
         return samples, quants
 
-    def __call__(self,
-                 y: torch.Tensor,
-                 distr_args: torch.Tensor,
-                 loc: torch.Tensor,
-                 scale: torch.Tensor,
-                 mask: Union[torch.Tensor, None] = None):
+    def __call__(
+        self,
+        y: torch.Tensor,
+        distr_args: torch.Tensor,
+        loc: torch.Tensor,
+        scale: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
         """
-        Computes the negative log-likelihood objective function. 
+        Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
         $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
 
-        where $\\theta$ represents the distributions parameters. It aditionally 
-        summarizes the objective signal using a weighted average using the `mask` tensor. 
+        where $\\theta$ represents the distributions parameters. It aditionally
+        summarizes the objective signal using a weighted average using the `mask` tensor.
 
         **Parameters**<br>
         `y`: tensor, Actual values.<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
         `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
                of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape 
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
 
@@ -833,14 +908,14 @@ class DistributionLoss(torch.nn.Module):
 
 # %% ../../nbs/losses.pytorch.ipynb 64
 class PMM(torch.nn.Module):
-    """ Poisson Mixture Mesh
+    """Poisson Mixture Mesh
 
-    This Poisson Mixture statistical model assumes independence across groups of 
+    This Poisson Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
     \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
-    \prod_{\\beta\in[g_{i}]} 
+    \prod_{\\beta\in[g_{i}]}
     \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
 
     **Parameters:**<br>
@@ -849,11 +924,14 @@ class PMM(torch.nn.Module):
     `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
 
     **References:**<br>
-    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
+    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, n_components=10, level=[80, 90], quantiles=None):
+
+    def __init__(
+        self, n_components=10, level=[80, 90], quantiles=None, return_params=False
+    ):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -865,6 +943,12 @@ class PMM(torch.nn.Module):
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
 
+        if return_params:
+            lambda_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + lambda_names
+
+        self.return_params = return_params
+
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
         self.outputsize_multiplier = n_components
@@ -872,7 +956,7 @@ class PMM(torch.nn.Module):
 
     def domain_map(self, lambdas_hat: torch.Tensor):
         lambdas_hat = F.softplus(lambdas_hat)
-        return (lambdas_hat,)#, weights
+        return (lambdas_hat,)  # , weights
 
     def sample(self, distr_args, num_samples=500, loc=None, scale=None):
         lambdas = distr_args[0]
@@ -882,17 +966,17 @@ class PMM(torch.nn.Module):
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
-        weights = (1/K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
-        lambdas = lambdas.flatten()        
+        lambdas = lambdas.flatten()
 
         # Vectorization trick to recover row_idx
-        sample_idxs = torch.multinomial(input=weights, 
-                                        num_samples=num_samples,
-                                        replacement=True)
-        aux_col_idx = torch.unsqueeze(torch.arange(B*H),-1) * K
+        sample_idxs = torch.multinomial(
+            input=weights, num_samples=num_samples, replacement=True
+        )
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(lambdas.device)
@@ -905,87 +989,96 @@ class PMM(torch.nn.Module):
 
         # Sample y ~ Poisson(lambda) independently
         samples = torch.poisson(sample_lambdas).to(lambdas.device)
-        samples = samples.view(B*H, num_samples)
+        samples = samples.view(B * H, num_samples)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(lambdas.device)
         quants = torch.quantile(input=samples, q=quantiles_device, dim=1)
-        quants = quants.permute((1,0)) # Q, B*H
+        quants = quants.permute((1, 0))  # Q, B*H
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
-        quants  = quants.view(B, H, Q)
+        quants = quants.view(B, H, Q)
 
-        return samples, quants        
-    
-    def neglog_likelihood(self,
-                          y: torch.Tensor,
-                          distr_args: Tuple[torch.Tensor],
-                          mask: Union[torch.Tensor, None] = None,
-                          loc: Union[torch.Tensor, None] = None,
-                          scale: Union[torch.Tensor, None] = None):
-        if mask is None: 
+        return samples, quants
+
+    def neglog_likelihood(
+        self,
+        y: torch.Tensor,
+        distr_args: Tuple[torch.Tensor],
+        mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
+    ):
+        if mask is None:
             mask = torch.ones_like(y)
 
-        eps  = 1e-10
+        eps = 1e-10
         lambdas = distr_args[0]
         B, H, K = lambdas.size()
 
         lambdas = distr_args[0]
-        weights = (1/K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
 
-        y = y[:,:,None]
-        mask = mask[:,:,None]
-        
-        log = y * torch.log(lambdas + eps) - lambdas\
-              - ( (y) * torch.log(y + eps) - y )   # Stirling's Factorial
+        y = y[:, :, None]
+        mask = mask[:, :, None]
 
-        #log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
-        #log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
-        
+        log = (
+            y * torch.log(lambdas + eps) - lambdas - ((y) * torch.log(y + eps) - y)
+        )  # Stirling's Factorial
+
+        # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
+        # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
+
         # Numerical stability mixture and loglik
-        log_max = torch.amax(log, dim=2, keepdim=True) # [1,1,K] (collapsed joints)
-        lik     = weights * torch.exp(log-log_max)     # Take max
-        loglik  = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max # Return max
-        loglik  = loglik * mask #replace with mask
-        
+        log_max = torch.amax(log, dim=2, keepdim=True)  # [1,1,K] (collapsed joints)
+        lik = weights * torch.exp(log - log_max)  # Take max
+        loglik = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max  # Return max
+        loglik = loglik * mask  # replace with mask
+
         loss = -torch.mean(loglik)
         return loss
-    
-    def __call__(self, y: torch.Tensor,
-                 distr_args: Tuple[torch.Tensor],
-                 mask: Union[torch.Tensor, None] = None,
-                 loc: Union[torch.Tensor, None] = None,
-                 scale: Union[torch.Tensor, None] = None):
 
-        return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask,
-                                      loc=loc, scale=scale)
+    def __call__(
+        self,
+        y: torch.Tensor,
+        distr_args: Tuple[torch.Tensor],
+        mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
+    ):
 
+        return self.neglog_likelihood(
+            y=y, distr_args=distr_args, mask=mask, loc=loc, scale=scale
+        )
 
 # %% ../../nbs/losses.pytorch.ipynb 71
 class GMM(torch.nn.Module):
-    """ Gaussian Mixture Mesh
+    """Gaussian Mixture Mesh
 
-    This Gaussian Mixture statistical model assumes independence across groups of 
+    This Gaussian Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) = 
+    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
     \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
     \prod_{\\beta\in[g_{i}]}
-    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} 
+    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
     \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
 
     **Parameters:**<br>
     `n_components`: int=10, the number of mixture components.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
-    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>    
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
 
     **References:**<br>
-    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
-    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
+    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, n_components=1, level=[80, 90], quantiles=None):
+
+    def __init__(
+        self, n_components=1, level=[80, 90], quantiles=None, return_params=False
+    ):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -996,6 +1089,12 @@ class GMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
+
+        if return_params:
+            mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + mu_names
+
+        self.return_params = return_params
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
 
@@ -1017,10 +1116,10 @@ class GMM(torch.nn.Module):
         stds = stds.flatten()
 
         # Vectorization trick to recover row_idx
-        sample_idxs = torch.multinomial(input=weights, 
-                                        num_samples=num_samples,
-                                        replacement=True)
-        aux_col_idx = torch.unsqueeze(torch.arange(B*H),-1) * K
+        sample_idxs = torch.multinomial(
+            input=weights, num_samples=num_samples, replacement=True
+        )
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(means.device)
@@ -1030,57 +1129,64 @@ class GMM(torch.nn.Module):
         sample_idxs = sample_idxs.flatten()
 
         sample_means = means[sample_idxs]
-        sample_stds  = stds[sample_idxs]
+        sample_stds = stds[sample_idxs]
 
         # Sample y ~ Normal(mu, std) independently
         samples = torch.normal(sample_means, sample_stds).to(means.device)
-        samples = samples.view(B*H, num_samples)
+        samples = samples.view(B * H, num_samples)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(means.device)
         quants = torch.quantile(input=samples, q=quantiles_device, dim=1)
-        quants = quants.permute((1,0)) # Q, B*H
+        quants = quants.permute((1, 0))  # Q, B*H
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
-        quants  = quants.view(B, H, Q)
+        quants = quants.view(B, H, Q)
 
-        return samples, quants        
-    
-    def neglog_likelihood(self,
-                          y: torch.Tensor,
-                          weights: torch.Tensor,
-                          means: torch.Tensor,
-                          stds: torch.Tensor,
-                          mask: Union[torch.Tensor, None] = None):
+        return samples, quants
 
-        if mask is None: 
+    def neglog_likelihood(
+        self,
+        y: torch.Tensor,
+        weights: torch.Tensor,
+        means: torch.Tensor,
+        stds: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
+
+        if mask is None:
             mask = torch.ones_like(means)
 
         B, H, K = means.size()
         # eps  = 1e-10
-        
-        log  = -0.5 * ((1/stds)*(y - means))**2\
-                - torch.log(((2*math.pi)**(0.5)) * stds)
 
-        #log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
-        #log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
+        log = -0.5 * ((1 / stds) * (y - means)) ** 2 - torch.log(
+            ((2 * math.pi) ** (0.5)) * stds
+        )
+
+        # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
+        # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
 
         # Numerical stability mixture and loglik
-        log_max = torch.amax(log, dim=2, keepdim=True) # [1,1,K] (collapsed joints)
-        lik     = weights * torch.exp(log-log_max)     # Take max
-        loglik  = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max # Return max
-        
-        loglik  = loglik * mask #replace with mask
+        log_max = torch.amax(log, dim=2, keepdim=True)  # [1,1,K] (collapsed joints)
+        lik = weights * torch.exp(log - log_max)  # Take max
+        loglik = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max  # Return max
+
+        loglik = loglik * mask  # replace with mask
 
         loss = -torch.mean(loglik)
         return loss
-    
-    def __call__(self, y: torch.Tensor,
-                 weights: torch.Tensor,
-                 means: torch.Tensor,
-                 stds: torch.Tensor,
-                 mask: Union[torch.Tensor, None] = None):
 
-        return self.neglog_likelihood(y=y, weights=weights,
-                                 means=means, stds=stds, mask=mask)
+    def __call__(
+        self,
+        y: torch.Tensor,
+        weights: torch.Tensor,
+        means: torch.Tensor,
+        stds: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
+
+        return self.neglog_likelihood(
+            y=y, weights=weights, means=means, stds=stds, mask=mask
+        )
