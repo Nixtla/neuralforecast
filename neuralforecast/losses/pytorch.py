@@ -671,7 +671,7 @@ def poisson_domain_map(input: torch.Tensor):
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
 
     **Returns:**<br>
-    `(loc, scale)`: tuple with tensors of Poisson distribution arguments.<br>
+    `(loc,)`: tuple with tensors of Poisson distribution arguments.<br>
     """
     rate_pos = F.softplus(input).clone()
     return (rate_pos.squeeze(-1),)
@@ -697,14 +697,15 @@ class DistributionLoss(torch.nn.Module):
     **Parameters:**<br>
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
-    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
 
     **References:**<br>
     - [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)<br>
     - [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020).
        "DeepAR: Probabilistic forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br>
     """
-    def __init__(self, distribution, level=[80, 90], quantiles=None):
+    def __init__(self, distribution, level=[80, 90], quantiles=None, return_params=False):
         super(DistributionLoss, self).__init__()
 
         available_distributions = dict(Normal=Normal,
@@ -713,10 +714,14 @@ class DistributionLoss(torch.nn.Module):
         domain_maps = dict(Normal=normal_domain_map,
                            Poisson=poisson_domain_map,
                            StudentT=student_domain_map,)
+        param_names = dict(Normal=["-loc", "-scale"],
+                           Poisson=["-loc"],
+                           StudentT=["-df", "-loc", "-scale"],)
         assert (distribution in available_distributions.keys()), f'{distribution} not available'
 
         self._base_distribution = available_distributions[distribution]
         self.domain_map = domain_maps[distribution]
+        self.param_names = param_names[distribution]
 
         if level:
             qs, self.output_names = level_to_outputs(level)
@@ -727,6 +732,11 @@ class DistributionLoss(torch.nn.Module):
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+
+        # If True, predict_step will return Distribution's parameters
+        self.return_params = return_params
+        if self.return_params:
+            self.output_names = self.output_names + self.param_names
 
         self.outputsize_multiplier = len(self._base_distribution.arg_constraints.keys())
         self.is_distribution_output = True
@@ -848,14 +858,15 @@ class PMM(torch.nn.Module):
     **Parameters:**<br>
     `n_components`: int=10, the number of mixture components.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
-    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
 
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
     Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, n_components=10, level=[80, 90], quantiles=None):
+    def __init__(self, n_components=10, level=[80, 90], quantiles=None, return_params=False):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -868,6 +879,12 @@ class PMM(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+
+        # If True, predict_step will return Distribution's parameters
+        self.return_params = return_params
+        if self.return_params:
+            self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + self.param_names
 
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
@@ -980,14 +997,15 @@ class GMM(torch.nn.Module):
     **Parameters:**<br>
     `n_components`: int=10, the number of mixture components.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
-    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br><br>    
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
 
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. 
     Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
     Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
-    def __init__(self, n_components=1, level=[80, 90], quantiles=None):
+    def __init__(self, n_components=1, level=[80, 90], quantiles=None, return_params=False):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
         if level:
@@ -1000,6 +1018,12 @@ class GMM(torch.nn.Module):
             quantiles = torch.Tensor(quantiles)
 
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+
+        # If True, predict_step will return Distribution's parameters
+        self.return_params = return_params
+        if self.return_params:
+            self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + self.param_names        
 
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
