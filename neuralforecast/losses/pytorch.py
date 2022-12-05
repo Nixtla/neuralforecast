@@ -583,52 +583,6 @@ def weighted_average(x: torch.Tensor,
         return x.mean(dim=dim)
 
 # %% ../../nbs/losses.pytorch.ipynb 57
-class AffineTransformed(TransformedDistribution):
-    """
-    Represents the distribution of an affinely transformed random variable.
-    This is the distribution of ``Y = scale * X + loc``, where ``X`` is a
-    random variable distributed according to ``base_distribution``.
-
-    $$ X \sim BaseDistribution$$
-    $$ Y \sim f(X) \sim TransformedDidstribution(BaseDistribution, f)$$
-    $$ log(P(Y)) = log(P(X)) + log|det (dX/dY)|$$
-
-    **Parameters**<br>
-    `base_distribution`: Original distribution.<br>
-    `loc`: Translation parameter of the affine transformation.<br>
-    `scale`: Scaling parameter of the affine transformation.<br>
-    """
-    def __init__(self, base_distribution: Distribution, loc=None, scale=None):
-
-        self.scale = 1.0 if scale is None else scale
-        self.loc = 0.0 if loc is None else loc
-
-        super().__init__(
-            base_distribution, [AffineTransform(self.loc, self.scale)]
-        )
-
-    @property
-    def mean(self):
-        """
-        Returns the mean of the distribution.
-        """
-        return self.base_dist.mean * self.scale + self.loc
-
-    @property
-    def variance(self):
-        """
-        Returns the variance of the distribution.
-        """
-        return self.base_dist.variance * self.scale**2
-
-    @property
-    def stddev(self):
-        """
-        Returns the standard deviation of the distribution.
-        """
-        return self.variance.sqrt()
-
-# %% ../../nbs/losses.pytorch.ipynb 58
 def student_domain_map(input: torch.Tensor, eps: float=0.1):
     """
     Maps input into distribution constraints, by construction input's 
@@ -676,7 +630,7 @@ def poisson_domain_map(input: torch.Tensor):
     rate_pos = F.softplus(input).clone()
     return (rate_pos.squeeze(-1),)
 
-# %% ../../nbs/losses.pytorch.ipynb 59
+# %% ../../nbs/losses.pytorch.ipynb 58
 class DistributionLoss(torch.nn.Module):
     """ DistributionLoss
 
@@ -755,7 +709,7 @@ class DistributionLoss(torch.nn.Module):
         if loc is None and scale is None:
             return distr
         else:
-            return AffineTransformed(distr, loc=loc, scale=scale)        
+            return TransformedDistribution(distr, [AffineTransform(loc=loc, scale=scale)])
 
     def sample(self,
                distr_args: torch.Tensor,
@@ -833,7 +787,7 @@ class DistributionLoss(torch.nn.Module):
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 64
+# %% ../../nbs/losses.pytorch.ipynb 63
 class PMM(torch.nn.Module):
     """ Poisson Mixture Mesh
 
@@ -964,7 +918,7 @@ class PMM(torch.nn.Module):
                                       loc=loc, scale=scale)
 
 
-# %% ../../nbs/losses.pytorch.ipynb 71
+# %% ../../nbs/losses.pytorch.ipynb 70
 class GMM(torch.nn.Module):
     """ Gaussian Mixture Mesh
 
