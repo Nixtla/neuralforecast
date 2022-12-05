@@ -15,7 +15,7 @@ from ..common._modules import MLP
 
 # %% ../../nbs/models.dilated_rnn.ipynb 7
 class LSTMCell(nn.Module):
-    def __init__(self, input_size, hidden_size, dropout=0.):
+    def __init__(self, input_size, hidden_size, dropout=0.0):
         super(LSTMCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -27,8 +27,12 @@ class LSTMCell(nn.Module):
 
     def forward(self, inputs, hidden):
         hx, cx = hidden[0].squeeze(0), hidden[1].squeeze(0)
-        gates = (torch.matmul(inputs, self.weight_ih.t()) + self.bias_ih +
-                         torch.matmul(hx, self.weight_hh.t()) + self.bias_hh)
+        gates = (
+            torch.matmul(inputs, self.weight_ih.t())
+            + self.bias_ih
+            + torch.matmul(hx, self.weight_hh.t())
+            + self.bias_hh
+        )
         ingate, forgetgate, cellgate, outgate = gates.chunk(4, 1)
 
         ingate = torch.sigmoid(ingate)
@@ -43,10 +47,10 @@ class LSTMCell(nn.Module):
 
 # %% ../../nbs/models.dilated_rnn.ipynb 8
 class ResLSTMCell(nn.Module):
-    def __init__(self, input_size, hidden_size, dropout=0.):
+    def __init__(self, input_size, hidden_size, dropout=0.0):
         super(ResLSTMCell, self).__init__()
-        self.register_buffer('input_size', torch.Tensor([input_size]))
-        self.register_buffer('hidden_size', torch.Tensor([hidden_size]))
+        self.register_buffer("input_size", torch.Tensor([input_size]))
+        self.register_buffer("hidden_size", torch.Tensor([hidden_size]))
         self.weight_ii = nn.Parameter(torch.randn(3 * hidden_size, input_size))
         self.weight_ic = nn.Parameter(torch.randn(3 * hidden_size, hidden_size))
         self.weight_ih = nn.Parameter(torch.randn(3 * hidden_size, hidden_size))
@@ -61,9 +65,14 @@ class ResLSTMCell(nn.Module):
     def forward(self, inputs, hidden):
         hx, cx = hidden[0].squeeze(0), hidden[1].squeeze(0)
 
-        ifo_gates = (torch.matmul(inputs, self.weight_ii.t()) + self.bias_ii +
-                                  torch.matmul(hx, self.weight_ih.t()) + self.bias_ih +
-                                  torch.matmul(cx, self.weight_ic.t()) + self.bias_ic)
+        ifo_gates = (
+            torch.matmul(inputs, self.weight_ii.t())
+            + self.bias_ii
+            + torch.matmul(hx, self.weight_ih.t())
+            + self.bias_ih
+            + torch.matmul(cx, self.weight_ic.t())
+            + self.bias_ic
+        )
         ingate, forgetgate, outgate = ifo_gates.chunk(3, 1)
 
         cellgate = torch.matmul(hx, self.weight_hh.t()) + self.bias_hh
@@ -84,18 +93,18 @@ class ResLSTMCell(nn.Module):
 
 # %% ../../nbs/models.dilated_rnn.ipynb 9
 class ResLSTMLayer(nn.Module):
-    def __init__(self, input_size, hidden_size, dropout=0.):
+    def __init__(self, input_size, hidden_size, dropout=0.0):
         super(ResLSTMLayer, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.cell = ResLSTMCell(input_size, hidden_size, dropout=0.)
+        self.cell = ResLSTMCell(input_size, hidden_size, dropout=0.0)
 
     def forward(self, inputs, hidden):
         inputs = inputs.unbind(0)
         outputs = []
         for i in range(len(inputs)):
-                out, hidden = self.cell(inputs[i], hidden)
-                outputs += [out]
+            out, hidden = self.cell(inputs[i], hidden)
+            outputs += [out]
         outputs = torch.stack(outputs)
         return outputs, hidden
 
@@ -109,9 +118,11 @@ class AttentiveLSTMLayer(nn.Module):
         self.attention_hsize = attention_hsize
 
         self.cell = LSTMCell(input_size, hidden_size)
-        self.attn_layer = nn.Sequential(nn.Linear(2 * hidden_size + input_size, attention_hsize),
-                                        nn.Tanh(),
-                                        nn.Linear(attention_hsize, 1))
+        self.attn_layer = nn.Sequential(
+            nn.Linear(2 * hidden_size + input_size, attention_hsize),
+            nn.Tanh(),
+            nn.Linear(attention_hsize, 1),
+        )
         self.softmax = nn.Softmax(dim=0)
         self.dropout = dropout
 
@@ -127,8 +138,9 @@ class AttentiveLSTMLayer(nn.Module):
             x = torch.cat((inputs, hx_rep, cx_rep), dim=-1)
             l = self.attn_layer(x)
             beta = self.softmax(l)
-            context = torch.bmm(beta.permute(1, 2, 0),
-                                inputs.permute(1, 0, 2)).squeeze(1)
+            context = torch.bmm(beta.permute(1, 2, 0), inputs.permute(1, 0, 2)).squeeze(
+                1
+            )
             out, hidden = self.cell(context, hidden)
             outputs += [out]
         outputs = torch.stack(outputs)
@@ -136,8 +148,16 @@ class AttentiveLSTMLayer(nn.Module):
 
 # %% ../../nbs/models.dilated_rnn.ipynb 11
 class DRNN(nn.Module):
-
-    def __init__(self, n_input, n_hidden, n_layers, dilations, dropout=0, cell_type='GRU', batch_first=True):
+    def __init__(
+        self,
+        n_input,
+        n_hidden,
+        n_layers,
+        dilations,
+        dropout=0,
+        cell_type="GRU",
+        batch_first=True,
+    ):
         super(DRNN, self).__init__()
 
         self.dilations = dilations
@@ -191,28 +211,36 @@ class DRNN(nn.Module):
         dilated_inputs = self._prepare_inputs(inputs, rate)
 
         if hidden is None:
-            dilated_outputs, hidden = self._apply_cell(dilated_inputs, cell, batch_size, rate, hidden_size)
+            dilated_outputs, hidden = self._apply_cell(
+                dilated_inputs, cell, batch_size, rate, hidden_size
+            )
         else:
             hidden = self._prepare_inputs(hidden, rate)
-            dilated_outputs, hidden = self._apply_cell(dilated_inputs, cell, batch_size, rate, hidden_size,
-                                                       hidden=hidden)
+            dilated_outputs, hidden = self._apply_cell(
+                dilated_inputs, cell, batch_size, rate, hidden_size, hidden=hidden
+            )
 
         splitted_outputs = self._split_outputs(dilated_outputs, rate)
         outputs = self._unpad_outputs(splitted_outputs, n_steps)
 
         return outputs, hidden
 
-    def _apply_cell(self, dilated_inputs, cell, batch_size, rate, hidden_size, hidden=None):
+    def _apply_cell(
+        self, dilated_inputs, cell, batch_size, rate, hidden_size, hidden=None
+    ):
         if hidden is None:
-            hidden = torch.zeros(batch_size * rate, hidden_size,
-                                 dtype=dilated_inputs.dtype,
-                                 device=dilated_inputs.device)
+            hidden = torch.zeros(
+                batch_size * rate,
+                hidden_size,
+                dtype=dilated_inputs.dtype,
+                device=dilated_inputs.device,
+            )
             hidden = hidden.unsqueeze(0)
-            
-            if self.cell_type in ['LSTM', 'ResLSTM', 'AttentiveLSTM']:
+
+            if self.cell_type in ["LSTM", "ResLSTM", "AttentiveLSTM"]:
                 hidden = (hidden, hidden)
-                
-        dilated_outputs, hidden = cell(dilated_inputs, hidden) # compatibility hack
+
+        dilated_outputs, hidden = cell(dilated_inputs, hidden)  # compatibility hack
 
         return dilated_outputs, hidden
 
@@ -222,12 +250,15 @@ class DRNN(nn.Module):
     def _split_outputs(self, dilated_outputs, rate):
         batchsize = dilated_outputs.size(1) // rate
 
-        blocks = [dilated_outputs[:, i * batchsize: (i + 1) * batchsize, :] for i in range(rate)]
+        blocks = [
+            dilated_outputs[:, i * batchsize : (i + 1) * batchsize, :]
+            for i in range(rate)
+        ]
 
         interleaved = torch.stack((blocks)).transpose(1, 0).contiguous()
-        interleaved = interleaved.view(dilated_outputs.size(0) * rate,
-                                       batchsize,
-                                       dilated_outputs.size(2))
+        interleaved = interleaved.view(
+            dilated_outputs.size(0) * rate, batchsize, dilated_outputs.size(2)
+        )
         return interleaved
 
     def _pad_inputs(self, inputs, n_steps, rate):
@@ -236,11 +267,13 @@ class DRNN(nn.Module):
         if not iseven:
             dilated_steps = n_steps // rate + 1
 
-            zeros_ = torch.zeros(dilated_steps * rate - inputs.size(0),
-                                 inputs.size(1),
-                                 inputs.size(2), 
-                                 dtype=inputs.dtype,
-                                 device=inputs.device)
+            zeros_ = torch.zeros(
+                dilated_steps * rate - inputs.size(0),
+                inputs.size(1),
+                inputs.size(2),
+                dtype=inputs.dtype,
+                device=inputs.device,
+            )
             inputs = torch.cat((inputs, zeros_))
         else:
             dilated_steps = n_steps // rate
@@ -253,7 +286,7 @@ class DRNN(nn.Module):
 
 # %% ../../nbs/models.dilated_rnn.ipynb 12
 class DilatedRNN(BaseRecurrent):
-    """ DilatedRNN
+    """DilatedRNN
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
@@ -275,34 +308,37 @@ class DilatedRNN(BaseRecurrent):
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
-    def __init__(self,
-                 h: int,
-                 input_size: int = -1,
-                 cell_type: str = 'LSTM',
-                 dilations: List[List[int]] = [[1, 2], [4, 8]],
-                 encoder_hidden_size: int = 200,
-                 context_size: int = 10,
-                 decoder_hidden_size: int = 200,
-                 decoder_layers: int = 2,
-                 futr_exog_list = None,
-                 hist_exog_list = None,
-                 stat_exog_list = None,
-                 loss=MAE(),
-                 learning_rate: float = 1e-3,
-                 batch_size=32,
-                 step_size: int = 1,
-                 scaler_type: str='robust',
-                 random_seed=1,
-                 num_workers_loader=0,
-                 drop_last_loader=False,
-                 **trainer_kwargs):
+
+    def __init__(
+        self,
+        h: int,
+        input_size: int = -1,
+        cell_type: str = "LSTM",
+        dilations: List[List[int]] = [[1, 2], [4, 8]],
+        encoder_hidden_size: int = 200,
+        context_size: int = 10,
+        decoder_hidden_size: int = 200,
+        decoder_layers: int = 2,
+        futr_exog_list=None,
+        hist_exog_list=None,
+        stat_exog_list=None,
+        loss=MAE(),
+        learning_rate: float = 1e-3,
+        batch_size=32,
+        step_size: int = 1,
+        scaler_type: str = "robust",
+        random_seed=1,
+        num_workers_loader=0,
+        drop_last_loader=False,
+        **trainer_kwargs
+    ):
         super(DilatedRNN, self).__init__(
-            h = h,
-            input_size = input_size,
+            h=h,
+            input_size=input_size,
             loss=loss,
-            learning_rate = learning_rate,
+            learning_rate=learning_rate,
             batch_size=batch_size,
             scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
@@ -318,7 +354,7 @@ class DilatedRNN(BaseRecurrent):
         self.cell_type = cell_type
         self.dilations = dilations
         self.encoder_hidden_size = encoder_hidden_size
-        
+
         # Context adapter
         self.context_size = context_size
 
@@ -329,7 +365,7 @@ class DilatedRNN(BaseRecurrent):
         self.futr_exog_size = len(self.futr_exog_list)
         self.hist_exog_size = len(self.hist_exog_list)
         self.stat_exog_size = len(self.stat_exog_list)
-        
+
         # RNN input size (1 for target variable y)
         input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
 
@@ -340,45 +376,55 @@ class DilatedRNN(BaseRecurrent):
                 input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
             else:
                 input_encoder = self.encoder_hidden_size
-            layer = DRNN(input_encoder,
-                         self.encoder_hidden_size,
-                         n_layers=len(self.dilations[grp_num]),
-                         dilations=self.dilations[grp_num],
-                         cell_type=self.cell_type)
+            layer = DRNN(
+                input_encoder,
+                self.encoder_hidden_size,
+                n_layers=len(self.dilations[grp_num]),
+                dilations=self.dilations[grp_num],
+                cell_type=self.cell_type,
+            )
             layers.append(layer)
 
         self.rnn_stack = nn.Sequential(*layers)
 
         # Context adapter
-        self.context_adapter = nn.Linear(in_features=self.encoder_hidden_size + self.futr_exog_size * h,
-                                         out_features=self.context_size * h)
+        self.context_adapter = nn.Linear(
+            in_features=self.encoder_hidden_size + self.futr_exog_size * h,
+            out_features=self.context_size * h,
+        )
 
         # Decoder MLP
-        self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-                               out_features=self.loss.outputsize_multiplier,
-                               hidden_size=self.decoder_hidden_size,
-                               num_layers=self.decoder_layers,
-                               activation='ReLU',
-                               dropout=0.0)
+        self.mlp_decoder = MLP(
+            in_features=self.context_size + self.futr_exog_size,
+            out_features=self.loss.outputsize_multiplier,
+            hidden_size=self.decoder_hidden_size,
+            num_layers=self.decoder_layers,
+            activation="ReLU",
+            dropout=0.0,
+        )
 
     def forward(self, windows_batch):
-        
+
         # Parse windows_batch
-        encoder_input = windows_batch['insample_y'] # [B, seq_len, 1]
-        futr_exog     = windows_batch['futr_exog']
-        hist_exog     = windows_batch['hist_exog']
-        stat_exog     = windows_batch['stat_exog']
+        encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
+        futr_exog = windows_batch["futr_exog"]
+        hist_exog = windows_batch["hist_exog"]
+        stat_exog = windows_batch["stat_exog"]
 
         # Concatenate y, historic and static inputs
         # [B, C, seq_len, 1] -> [B, seq_len, C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | S ]
         batch_size, seq_len = encoder_input.shape[:2]
         if self.hist_exog_size > 0:
-            hist_exog = hist_exog.permute(0,2,1,3).squeeze(-1) # [B, X, seq_len, 1] -> [B, seq_len, X]
+            hist_exog = hist_exog.permute(0, 2, 1, 3).squeeze(
+                -1
+            )  # [B, X, seq_len, 1] -> [B, seq_len, X]
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 
         if self.stat_exog_size > 0:
-            stat_exog = stat_exog.unsqueeze(1).repeat(1, seq_len, 1) # [B, S] -> [B, seq_len, S]
+            stat_exog = stat_exog.unsqueeze(1).repeat(
+                1, seq_len, 1
+            )  # [B, S] -> [B, seq_len, S]
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
         # DilatedRNN forward
@@ -390,8 +436,12 @@ class DilatedRNN(BaseRecurrent):
             encoder_input = output
 
         if self.futr_exog_size > 0:
-            futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
-            encoder_input = torch.cat(( encoder_input, futr_exog.reshape(batch_size, seq_len, -1)), dim=2)
+            futr_exog = futr_exog.permute(0, 2, 3, 1)[
+                :, :, 1:, :
+            ]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
+            encoder_input = torch.cat(
+                (encoder_input, futr_exog.reshape(batch_size, seq_len, -1)), dim=2
+            )
 
         # Context adapter
         context = self.context_adapter(encoder_input)
@@ -404,5 +454,5 @@ class DilatedRNN(BaseRecurrent):
         # Final forecast
         output = self.mlp_decoder(context)
         output = self.loss.domain_map(output)
-        
+
         return output

@@ -17,30 +17,31 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_windows.ipynb 5
 class BaseWindows(pl.LightningModule):
-
-    def __init__(self, 
-                 h,
-                 input_size,
-                 loss,
-                 learning_rate,
-                 batch_size=32,
-                 windows_batch_size=1024,
-                 step_size=1,
-                 scaler_type='identity',
-                 futr_exog_list=None,
-                 hist_exog_list=None,
-                 stat_exog_list=None,
-                 num_workers_loader=0,
-                 drop_last_loader=False,
-                 random_seed=1, 
-                 **trainer_kwargs):
+    def __init__(
+        self,
+        h,
+        input_size,
+        loss,
+        learning_rate,
+        batch_size=32,
+        windows_batch_size=1024,
+        step_size=1,
+        scaler_type="identity",
+        futr_exog_list=None,
+        hist_exog_list=None,
+        stat_exog_list=None,
+        num_workers_loader=0,
+        drop_last_loader=False,
+        random_seed=1,
+        **trainer_kwargs,
+    ):
         super(BaseWindows, self).__init__()
 
-        self.save_hyperparameters() # Allows instantiation from a checkpoint from class
+        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
 
-        # Padder to complete train windows, 
+        # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
@@ -54,7 +55,9 @@ class BaseWindows(pl.LightningModule):
         self.step_size = step_size
 
         # Scaler
-        self.scaler = TemporalNorm(scaler_type=scaler_type, dim=1) # Time dimension is 1.
+        self.scaler = TemporalNorm(
+            scaler_type=scaler_type, dim=1
+        )  # Time dimension is 1.
 
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
@@ -71,22 +74,24 @@ class BaseWindows(pl.LightningModule):
         # Trainer
         # we need to instantiate the trainer each time we want to use it
         self.trainer_kwargs = {**trainer_kwargs}
-        if self.trainer_kwargs.get('callbacks', None) is None:
-            self.trainer_kwargs = {**{'callbacks': [TQDMProgressBar()], **trainer_kwargs}}
+        if self.trainer_kwargs.get("callbacks", None) is None:
+            self.trainer_kwargs = {
+                **{"callbacks": [TQDMProgressBar()], **trainer_kwargs}
+            }
         else:
             self.trainer_kwargs = trainer_kwargs
 
         # Add GPU accelerator if available
-        if self.trainer_kwargs.get('accelerator', None) is None:
+        if self.trainer_kwargs.get("accelerator", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs['accelerator'] = "gpu"
-        if self.trainer_kwargs.get('devices', None) is None:
+                self.trainer_kwargs["accelerator"] = "gpu"
+        if self.trainer_kwargs.get("devices", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs['devices'] = -1
+                self.trainer_kwargs["devices"] = -1
 
         # Avoid saturating local memory, disabled fit model checkpoints
-        if self.trainer_kwargs.get('enable_checkpointing', None) is None:
-           self.trainer_kwargs['enable_checkpointing'] = False
+        if self.trainer_kwargs.get("enable_checkpointing", None) is None:
+            self.trainer_kwargs["enable_checkpointing"] = False
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
@@ -96,25 +101,25 @@ class BaseWindows(pl.LightningModule):
         torch.manual_seed(self.random_seed)
         np.random.seed(self.random_seed)
         random.seed(self.random_seed)
-        
+
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _create_windows(self, batch, step):
         # Parse common data
         window_size = self.input_size + self.h
-        temporal_cols = batch['temporal_cols']
-        temporal = batch['temporal']
+        temporal_cols = batch["temporal_cols"]
+        temporal = batch["temporal"]
 
-        if step == 'train':
+        if step == "train":
             if self.val_size + self.test_size > 0:
                 cutoff = -self.val_size - self.test_size
                 temporal = temporal[:, :, :cutoff]
 
             temporal = self.padder(temporal)
-            windows = temporal.unfold(dimension=-1, 
-                                      size=window_size, 
-                                      step=self.step_size)
+            windows = temporal.unfold(
+                dimension=-1, size=window_size, step=self.step_size
+            )
 
             # [B, C, Ws, L+H] 0, 1, 2, 3
             # -> [B * Ws, L+H, C] 0, 2, 3, 1
@@ -123,67 +128,76 @@ class BaseWindows(pl.LightningModule):
             windows = windows.reshape(-1, window_size, len(temporal_cols))
 
             # Sample and Available conditions
-            available_idx = temporal_cols.get_loc('available_mask')
-            sample_condition = windows[:, -self.h:, available_idx]
+            available_idx = temporal_cols.get_loc("available_mask")
+            sample_condition = windows[:, -self.h :, available_idx]
             sample_condition = torch.sum(sample_condition, axis=1)
-            available_condition = windows[:, :-self.h, available_idx]
+            available_condition = windows[:, : -self.h, available_idx]
             available_condition = torch.sum(available_condition, axis=1)
             final_condition = (sample_condition > 0) & (available_condition > 0)
             windows = windows[final_condition]
 
             # Parse Static data to match windows
             # [B, S_in] -> [B, Ws, S_in] -> [B*Ws, S_in]
-            static = batch.get('static', None)
-            static_cols=batch.get('static_cols', None)
+            static = batch.get("static", None)
+            static_cols = batch.get("static_cols", None)
             if static is not None:
-                static = torch.repeat_interleave(static, 
-                                    repeats=windows_per_serie, dim=0)
+                static = torch.repeat_interleave(
+                    static, repeats=windows_per_serie, dim=0
+                )
                 static = static[final_condition]
 
             # Protection of empty windows
             if final_condition.sum() == 0:
-                raise Exception('No windows available for training')
+                raise Exception("No windows available for training")
 
             # Sample windows
             n_windows = len(windows)
             if self.windows_batch_size is not None:
-                w_idxs = np.random.choice(n_windows, 
-                                          size=self.windows_batch_size,
-                                          replace=(n_windows < self.windows_batch_size))
+                w_idxs = np.random.choice(
+                    n_windows,
+                    size=self.windows_batch_size,
+                    replace=(n_windows < self.windows_batch_size),
+                )
                 windows = windows[w_idxs]
-                
+
                 if static is not None:
                     static = static[w_idxs]
 
             # think about interaction available * sample mask
             # [B, C, Ws, L+H]
-            windows_batch = dict(temporal=windows,
-                                 temporal_cols=temporal_cols,
-                                 static=static,
-                                 static_cols=static_cols)
+            windows_batch = dict(
+                temporal=windows,
+                temporal_cols=temporal_cols,
+                static=static,
+                static_cols=static_cols,
+            )
             return windows_batch
 
-        elif step in ['predict', 'val']:
+        elif step in ["predict", "val"]:
 
-            if step == 'predict':
+            if step == "predict":
                 predict_step_size = self.predict_step_size
-                cutoff = - self.input_size - self.test_size
-                temporal = batch['temporal'][:, :, cutoff:]
+                cutoff = -self.input_size - self.test_size
+                temporal = batch["temporal"][:, :, cutoff:]
 
-            elif step == 'val':
+            elif step == "val":
                 predict_step_size = self.step_size
                 cutoff = -self.input_size - self.val_size - self.test_size
                 if self.test_size > 0:
-                    temporal = batch['temporal'][:, :, cutoff:-self.test_size]
+                    temporal = batch["temporal"][:, :, cutoff : -self.test_size]
                 else:
-                    temporal = batch['temporal'][:, :, cutoff:]
+                    temporal = batch["temporal"][:, :, cutoff:]
 
-            if (step=='predict') and (self.test_size==0) and (len(self.futr_exog_list)==0):
-               temporal = self.padder(temporal)
+            if (
+                (step == "predict")
+                and (self.test_size == 0)
+                and (len(self.futr_exog_list) == 0)
+            ):
+                temporal = self.padder(temporal)
 
-            windows = temporal.unfold(dimension=-1,
-                                      size=window_size,
-                                      step=predict_step_size)
+            windows = temporal.unfold(
+                dimension=-1, size=window_size, step=predict_step_size
+            )
 
             # [batch, channels, windows, window_size] 0, 1, 2, 3
             # -> [batch * windows, window_size, channels] 0, 2, 3, 1
@@ -191,39 +205,44 @@ class BaseWindows(pl.LightningModule):
             windows = windows.permute(0, 2, 3, 1).contiguous()
             windows = windows.reshape(-1, window_size, len(temporal_cols))
 
-            static = batch.get('static', None)
-            static_cols=batch.get('static_cols', None)
+            static = batch.get("static", None)
+            static_cols = batch.get("static_cols", None)
             if static is not None:
-                static = torch.repeat_interleave(static, 
-                                    repeats=windows_per_serie, dim=0)
+                static = torch.repeat_interleave(
+                    static, repeats=windows_per_serie, dim=0
+                )
 
-            windows_batch = dict(temporal=windows,
-                                 temporal_cols=temporal_cols,
-                                 static=static,
-                                 static_cols=static_cols)
+            windows_batch = dict(
+                temporal=windows,
+                temporal_cols=temporal_cols,
+                static=static,
+                static_cols=static_cols,
+            )
             return windows_batch
         else:
-            raise ValueError(f'Unknown step {step}')
-            
+            raise ValueError(f"Unknown step {step}")
+
     def _normalization(self, windows):
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
-        temporal = windows['temporal']                  # B, L+H, C
-        temporal_cols = windows['temporal_cols'].copy() # B, L+H, C
+        temporal = windows["temporal"]  # B, L+H, C
+        temporal_cols = windows["temporal_cols"].copy()  # B, L+H, C
 
         # To avoid leakage uses only the lags
-        temporal_data_cols = temporal_cols.drop('available_mask').tolist()
+        temporal_data_cols = temporal_cols.drop("available_mask").tolist()
         temporal_data = temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)]
-        temporal_mask = temporal[:, :, temporal_cols.get_loc('available_mask')].clone()
-        temporal_mask[:, -self.h:] = 0.0
+        temporal_mask = temporal[:, :, temporal_cols.get_loc("available_mask")].clone()
+        temporal_mask[:, -self.h :] = 0.0
 
         # Normalize. self.scaler stores the shift and scale for inverse transform
-        temporal_mask = temporal_mask.unsqueeze(-1) # Add channel dimension for scaler.transform.
+        temporal_mask = temporal_mask.unsqueeze(
+            -1
+        )  # Add channel dimension for scaler.transform.
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         # Replace values in windows dict
         temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)] = temporal_data
-        windows['temporal'] = temporal
+        windows["temporal"] = temporal
 
         return windows
 
@@ -238,9 +257,9 @@ class BaseWindows(pl.LightningModule):
         else:
             remove_dimension = False
 
-        temporal_data_cols = temporal_cols.drop('available_mask')
-        y_scale = self.scaler.x_scale[:,:,temporal_data_cols.get_indexer(['y'])]
-        y_shift = self.scaler.x_shift[:,:,temporal_data_cols.get_indexer(['y'])]
+        temporal_data_cols = temporal_cols.drop("available_mask")
+        y_scale = self.scaler.x_scale[:, :, temporal_data_cols.get_indexer(["y"])]
+        y_shift = self.scaler.x_shift[:, :, temporal_data_cols.get_indexer(["y"])]
 
         y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1)
         y_shift = torch.repeat_interleave(y_shift, repeats=y_hat.shape[-1], dim=-1)
@@ -256,145 +275,196 @@ class BaseWindows(pl.LightningModule):
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
-        y_idx = batch['temporal_cols'].get_loc('y')
-        mask_idx = batch['temporal_cols'].get_loc('available_mask')
-        insample_y = windows['temporal'][:, :-self.h, y_idx]
-        insample_mask = windows['temporal'][:, :-self.h, mask_idx]
-        outsample_y = windows['temporal'][:, -self.h:, y_idx]
-        outsample_mask = windows['temporal'][:, -self.h:, mask_idx]
+        y_idx = batch["temporal_cols"].get_loc("y")
+        mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        insample_y = windows["temporal"][:, : -self.h, y_idx]
+        insample_mask = windows["temporal"][:, : -self.h, mask_idx]
+        outsample_y = windows["temporal"][:, -self.h :, y_idx]
+        outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
 
         # Filter historic exogenous variables
         if len(self.hist_exog_list):
-            hist_exog_idx = windows['temporal_cols'].get_indexer(self.hist_exog_list)
-            hist_exog = windows['temporal'][:, :-self.h, hist_exog_idx]
+            hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
+            hist_exog = windows["temporal"][:, : -self.h, hist_exog_idx]
         else:
             hist_exog = None
-        
+
         # Filter future exogenous variables
         if len(self.futr_exog_list):
-            futr_exog_idx = windows['temporal_cols'].get_indexer(self.futr_exog_list)
-            futr_exog = windows['temporal'][:, :, futr_exog_idx]
+            futr_exog_idx = windows["temporal_cols"].get_indexer(self.futr_exog_list)
+            futr_exog = windows["temporal"][:, :, futr_exog_idx]
         else:
             futr_exog = None
         # Filter static variables
         if len(self.stat_exog_list):
-            static_idx = windows['static_cols'].get_indexer(self.stat_exog_list)
-            stat_exog = windows['static'][:, static_idx]
+            static_idx = windows["static_cols"].get_indexer(self.stat_exog_list)
+            stat_exog = windows["static"][:, static_idx]
         else:
             stat_exog = None
 
-        return insample_y, insample_mask, outsample_y, outsample_mask, \
-               hist_exog, futr_exog, stat_exog
+        return (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        )
 
-    def training_step(self, batch, batch_idx):        
+    def training_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step='train')
+        windows = self._create_windows(batch, step="train")
         windows = self._normalization(windows=windows)
 
         # Parse windows
-        insample_y, insample_mask, outsample_y, outsample_mask, \
-               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+        (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L]
+            insample_mask=insample_mask,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L+H]
+            hist_exog=hist_exog,  # [Ws, L]
+            stat_exog=stat_exog,
+        )  # [Ws, 1]
 
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
-            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
-                                            temporal_cols=batch['temporal_cols'])
-            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            #assert torch.min(outsample_y) > 0
-            loss = self.loss(y=outsample_y, distr_args=output,
-                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+            )
+            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            # assert torch.min(outsample_y) > 0
+            loss = self.loss(
+                y=outsample_y,
+                distr_args=output,
+                loc=y_shift,
+                scale=y_scale,
+                mask=outsample_mask,
+            )
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
-        self.log('train_loss', loss, prog_bar=True, on_epoch=True)
+        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         if self.val_size == 0:
             return np.nan
-        
+
         # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step='val')
+        windows = self._create_windows(batch, step="val")
         windows = self._normalization(windows=windows)
 
         # Parse windows
-        insample_y, insample_mask, outsample_y, outsample_mask, \
-               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+        (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L]
+            insample_mask=insample_mask,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L+H]
+            hist_exog=hist_exog,  # [Ws, L]
+            stat_exog=stat_exog,
+        )  # [Ws, 1]
 
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            #print('1. torch.min(outsample_y)', torch.min(outsample_y))
-            outsample_y, y_shift, y_scale = self._inv_normalization(y_hat=outsample_y,
-                                            temporal_cols=batch['temporal_cols'])
-            #print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            #assert torch.min(outsample_y) > 0
-            loss = self.loss(y=outsample_y, distr_args=output,
-                             loc=y_shift, scale=y_scale, mask=outsample_mask)
+            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+            )
+            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            # assert torch.min(outsample_y) > 0
+            loss = self.loss(
+                y=outsample_y,
+                distr_args=output,
+                loc=y_shift,
+                scale=y_scale,
+                mask=outsample_mask,
+            )
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
-        self.log('val_loss', loss, prog_bar=True, on_epoch=True)
+        self.log("val_loss", loss, prog_bar=True, on_epoch=True)
         return loss
-    
+
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
-    
-    def predict_step(self, batch, batch_idx):        
+
+    def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step='predict')
+        windows = self._create_windows(batch, step="predict")
         windows = self._normalization(windows=windows)
 
         # Parse windows
-        insample_y, insample_mask, _, _, \
-               hist_exog, futr_exog, stat_exog = self._parse_windows(batch, windows)
+        (
+            insample_y,
+            insample_mask,
+            _,
+            _,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
 
-        windows_batch = dict(insample_y=insample_y, # [Ws, L]
-                             insample_mask=insample_mask, # [Ws, L]
-                             futr_exog=futr_exog, # [Ws, L+H]
-                             hist_exog=hist_exog, # [Ws, L]
-                             stat_exog=stat_exog) # [Ws, 1]
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L]
+            insample_mask=insample_mask,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L+H]
+            hist_exog=hist_exog,  # [Ws, L]
+            stat_exog=stat_exog,
+        )  # [Ws, 1]
 
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            _, y_shift, y_scale = self._inv_normalization(y_hat=output[0],
-                                            temporal_cols=batch['temporal_cols'])
-            _, y_hat = self.loss.sample(distr_args=output,
-                                        loc=y_shift, scale=y_scale, num_samples=500)
+            _, y_shift, y_scale = self._inv_normalization(
+                y_hat=output[0], temporal_cols=batch["temporal_cols"]
+            )
+            _, y_hat = self.loss.sample(
+                distr_args=output, loc=y_shift, scale=y_scale, num_samples=500
+            )
 
             if self.loss.return_params:
                 params_hat = torch.stack(output, dim=-1)
-                params_hat = torch.reshape(params_hat, (len(windows["temporal"]), self.h, -1))
-                y_hat = torch.concat((params_hat, y_hat), axis=2)                                        
+                params_hat = torch.reshape(
+                    params_hat, (len(windows["temporal"]), self.h, -1)
+                )
+                y_hat = torch.concat((params_hat, y_hat), axis=2)
         else:
-            y_hat, _, _ = self._inv_normalization(y_hat=output,
-                                            temporal_cols=batch['temporal_cols'])
+            y_hat, _, _ = self._inv_normalization(
+                y_hat=output, temporal_cols=batch["temporal_cols"]
+            )
         return y_hat
-    
+
     def fit(self, dataset, val_size=0, test_size=0):
-        """ Fit.
+        """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
         initialization parameters (`learning_rate`, `windows_batch_size`, ...)
-        and the `loss` function as defined during the initialization. 
+        and the `loss` function as defined during the initialization.
         Within `fit` we use a PyTorch Lightning `Trainer` that
         inherits the initialization's `self.trainer_kwargs`, to customize
         its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
@@ -402,7 +472,7 @@ class BaseWindows(pl.LightningModule):
         The method is designed to be compatible with SKLearn-like classes
         and in particular to be compatible with the StatsForecast library.
 
-        By default the `model` is not saving training checkpoints to protect 
+        By default the `model` is not saving training checkpoints to protect
         disk memory, to get them change `enable_checkpointing=True` in `__init__`.
 
         **Parameters:**<br>
@@ -413,17 +483,17 @@ class BaseWindows(pl.LightningModule):
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
-            dataset, 
+            dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers_loader,
-            drop_last=self.drop_last_loader
+            drop_last=self.drop_last_loader,
         )
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
     def predict(self, dataset, test_size=None, step_size=1, **data_module_kwargs):
-        """ Predict.
+        """Predict.
 
         Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
@@ -437,13 +507,13 @@ class BaseWindows(pl.LightningModule):
         self.decompose_forecast = False
         datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
         trainer = pl.Trainer(**self.trainer_kwargs)
-        fcsts = trainer.predict(self, datamodule=datamodule)        
-        fcsts = torch.vstack(fcsts).numpy().flatten()    
+        fcsts = trainer.predict(self, datamodule=datamodule)
+        fcsts = torch.vstack(fcsts).numpy().flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
     def decompose(self, dataset, step_size=1, **data_module_kwargs):
-        """ Decompose Predictions.
+        """Decompose Predictions.
 
         Decompose the predictions through the network's layers.
         Available methods are `ESRNN`, `NHITS`, `NBEATS`, and `NBEATSx`.
@@ -458,17 +528,17 @@ class BaseWindows(pl.LightningModule):
         datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
-        self.decompose_forecast = False # Default decomposition back to false
+        self.decompose_forecast = False  # Default decomposition back to false
         return torch.vstack(fcsts).numpy()
 
     def forward(self, insample_y, insample_mask):
-        raise NotImplementedError('forward')
+        raise NotImplementedError("forward")
 
     def set_test_size(self, test_size):
         self.test_size = test_size
 
     def save(self, path):
-        """ BaseWindows.save
+        """BaseWindows.save
 
         Save the fitted model to disk.
 
