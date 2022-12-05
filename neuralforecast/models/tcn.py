@@ -15,7 +15,7 @@ from ..common._modules import MLP, TemporalConvolutionEncoder
 
 # %% ../../nbs/models.tcn.ipynb 7
 class TCN(BaseRecurrent):
-    """ TCN
+    """TCN
 
     Temporal Convolution Network (TCN), with MLP decoder.
     The historical encoder uses dilated skip connections to obtain efficient long memory,
@@ -41,34 +41,37 @@ class TCN(BaseRecurrent):
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
-    def __init__(self,
-                 h: int,
-                 input_size: int = -1,
-                 kernel_size: int = 2,
-                 dilations: List[int] = [1, 2, 4, 8, 16],
-                 encoder_hidden_size: int = 200,
-                 encoder_activation: str = 'ReLU',
-                 context_size: int = 10,
-                 decoder_hidden_size: int = 200,
-                 decoder_layers: int = 2,
-                 futr_exog_list = None,
-                 hist_exog_list = None,
-                 stat_exog_list = None,
-                 loss=MAE(),
-                 learning_rate: float = 1e-3,
-                 batch_size=32,
-                 scaler_type: str='robust',
-                 random_seed=1,
-                 num_workers_loader=0,
-                 drop_last_loader=False,
-                 **trainer_kwargs):
+
+    def __init__(
+        self,
+        h: int,
+        input_size: int = -1,
+        kernel_size: int = 2,
+        dilations: List[int] = [1, 2, 4, 8, 16],
+        encoder_hidden_size: int = 200,
+        encoder_activation: str = "ReLU",
+        context_size: int = 10,
+        decoder_hidden_size: int = 200,
+        decoder_layers: int = 2,
+        futr_exog_list=None,
+        hist_exog_list=None,
+        stat_exog_list=None,
+        loss=MAE(),
+        learning_rate: float = 1e-3,
+        batch_size=32,
+        scaler_type: str = "robust",
+        random_seed=1,
+        num_workers_loader=0,
+        drop_last_loader=False,
+        **trainer_kwargs
+    ):
         super(TCN, self).__init__(
-            h = h,
-            input_size = input_size,
+            h=h,
+            input_size=input_size,
             loss=loss,
-            learning_rate = learning_rate,
+            learning_rate=learning_rate,
             batch_size=batch_size,
             scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
@@ -80,13 +83,13 @@ class TCN(BaseRecurrent):
             **trainer_kwargs
         )
 
-        #----------------------------------- Parse dimensions -----------------------------------#
+        # ----------------------------------- Parse dimensions -----------------------------------#
         # TCN
         self.kernel_size = kernel_size
         self.dilations = dilations
         self.encoder_hidden_size = encoder_hidden_size
         self.encoder_activation = encoder_activation
-        
+
         # Context adapter
         self.context_size = context_size
 
@@ -97,58 +100,72 @@ class TCN(BaseRecurrent):
         self.futr_exog_size = len(self.futr_exog_list)
         self.hist_exog_size = len(self.hist_exog_list)
         self.stat_exog_size = len(self.stat_exog_list)
-        
+
         # TCN input size (1 for target variable y)
         input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
 
-        
-        #---------------------------------- Instantiate Model -----------------------------------#
+        # ---------------------------------- Instantiate Model -----------------------------------#
         # Instantiate historic encoder
         self.hist_encoder = TemporalConvolutionEncoder(
-                                   in_channels=input_encoder,
-                                   out_channels=self.encoder_hidden_size,
-                                   kernel_size=self.kernel_size, # Almost like lags
-                                   dilations=self.dilations,
-                                   activation=self.encoder_activation)
+            in_channels=input_encoder,
+            out_channels=self.encoder_hidden_size,
+            kernel_size=self.kernel_size,  # Almost like lags
+            dilations=self.dilations,
+            activation=self.encoder_activation,
+        )
 
         # Context adapter
-        self.context_adapter = nn.Linear(in_features=self.encoder_hidden_size + self.futr_exog_size * h,
-                                         out_features=self.context_size * h)
+        self.context_adapter = nn.Linear(
+            in_features=self.encoder_hidden_size + self.futr_exog_size * h,
+            out_features=self.context_size * h,
+        )
 
         # Decoder MLP
-        self.mlp_decoder = MLP(in_features=self.context_size + self.futr_exog_size,
-                               out_features=self.loss.outputsize_multiplier,
-                               hidden_size=self.decoder_hidden_size,
-                               num_layers=self.decoder_layers,
-                               activation='ReLU',
-                               dropout=0.0)
+        self.mlp_decoder = MLP(
+            in_features=self.context_size + self.futr_exog_size,
+            out_features=self.loss.outputsize_multiplier,
+            hidden_size=self.decoder_hidden_size,
+            num_layers=self.decoder_layers,
+            activation="ReLU",
+            dropout=0.0,
+        )
 
     def forward(self, windows_batch):
-        
+
         # Parse windows_batch
-        encoder_input = windows_batch['insample_y'] # [B, seq_len, 1]
-        futr_exog     = windows_batch['futr_exog']
-        hist_exog     = windows_batch['hist_exog']
-        stat_exog     = windows_batch['stat_exog']
+        encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
+        futr_exog = windows_batch["futr_exog"]
+        hist_exog = windows_batch["hist_exog"]
+        stat_exog = windows_batch["stat_exog"]
 
         # Concatenate y, historic and static inputs
         # [B, C, seq_len, 1] -> [B, seq_len, C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | S ]
         batch_size, seq_len = encoder_input.shape[:2]
         if self.hist_exog_size > 0:
-            hist_exog = hist_exog.permute(0,2,1,3).squeeze(-1) # [B, X, seq_len, 1] -> [B, seq_len, X]
+            hist_exog = hist_exog.permute(0, 2, 1, 3).squeeze(
+                -1
+            )  # [B, X, seq_len, 1] -> [B, seq_len, X]
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 
         if self.stat_exog_size > 0:
-            stat_exog = stat_exog.unsqueeze(1).repeat(1, seq_len, 1) # [B, S] -> [B, seq_len, S]
+            stat_exog = stat_exog.unsqueeze(1).repeat(
+                1, seq_len, 1
+            )  # [B, S] -> [B, seq_len, S]
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
         # TCN forward
-        hidden_state = self.hist_encoder(encoder_input) # [B, seq_len, tcn_hidden_state]
+        hidden_state = self.hist_encoder(
+            encoder_input
+        )  # [B, seq_len, tcn_hidden_state]
 
         if self.futr_exog_size > 0:
-            futr_exog = futr_exog.permute(0,2,3,1)[:,:,1:,:]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
-            hidden_state = torch.cat(( hidden_state, futr_exog.reshape(batch_size, seq_len, -1)), dim=2)
+            futr_exog = futr_exog.permute(0, 2, 3, 1)[
+                :, :, 1:, :
+            ]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
+            hidden_state = torch.cat(
+                (hidden_state, futr_exog.reshape(batch_size, seq_len, -1)), dim=2
+            )
 
         # Context adapter
         context = self.context_adapter(hidden_state)
@@ -161,5 +178,5 @@ class TCN(BaseRecurrent):
         # Final forecast
         output = self.mlp_decoder(context)
         output = self.loss.domain_map(output)
-        
+
         return output
