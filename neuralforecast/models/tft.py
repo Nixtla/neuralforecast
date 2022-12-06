@@ -641,6 +641,7 @@ class TFT(BaseWindows):
             _, y_hat = self.loss.sample(
                 distr_args=output, loc=y_shift, scale=y_scale, num_samples=500
             )
+
             if self.loss.return_params:
                 params_hat = torch.stack(output, dim=-1)
                 params_hat = torch.reshape(
