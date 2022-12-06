@@ -46,7 +46,7 @@ jobs:
       - name: Set up environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          python-version: ${{ matrix.python-version }}
+          extra-specs: python=${{ matrix.python-version }}
           cache-env: true
 
       - name: Install pip requirements
