@@ -641,6 +641,13 @@ class TFT(BaseWindows):
             _, y_hat = self.loss.sample(
                 distr_args=output, loc=y_shift, scale=y_scale, num_samples=500
             )
+
+            if self.loss.return_params:
+                params_hat = torch.stack(output, dim=-1)
+                params_hat = torch.reshape(
+                    params_hat, (len(windows["temporal"]), self.h, -1)
+                )
+                y_hat = torch.concat((y_hat, params_hat), axis=2)
         else:
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
