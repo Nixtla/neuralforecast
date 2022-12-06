@@ -426,7 +426,7 @@ class BaseRecurrent(pl.LightningModule):
                 params_hat = torch.reshape(
                     params_hat, (len(windows["temporal"]), self.h, -1)
                 )
-                y_hat = torch.concat((params_hat, y_hat), axis=2)
+                y_hat = torch.concat((y_hat, params_hat), axis=2)
         else:
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
