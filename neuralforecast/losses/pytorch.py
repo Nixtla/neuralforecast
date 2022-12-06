@@ -707,6 +707,7 @@ class DistributionLoss(torch.nn.Module):
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
     `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
+    `num_samples`: int=500, number of samples for the empirical quantiles.<br>
     `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
 
     **References:**<br>
@@ -716,7 +717,12 @@ class DistributionLoss(torch.nn.Module):
     """
 
     def __init__(
-        self, distribution, level=[80, 90], quantiles=None, return_params=False
+        self,
+        distribution,
+        level=[80, 90],
+        quantiles=None,
+        num_samples=500,
+        return_params=False,
     ):
         super(DistributionLoss, self).__init__()
 
@@ -752,6 +758,7 @@ class DistributionLoss(torch.nn.Module):
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+        self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
@@ -796,10 +803,10 @@ class DistributionLoss(torch.nn.Module):
         distr_args: torch.Tensor,
         loc: torch.Tensor,
         scale: torch.Tensor,
-        num_samples: int = 500,
+        num_samples: Optional[int] = None,
     ):
         """
-        Construct the empirical quantiles from the Pytorch Distribution,
+        Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
 
         **Parameters**<br>
@@ -808,12 +815,15 @@ class DistributionLoss(torch.nn.Module):
                of the resulting distribution.<br>
         `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution.<br>
-        `num_samples`: int=500, number of samples for the empirical quantiles.<br>
+        `num_samples`: int=500, overwrite number of samples for the empirical quantiles.<br>
 
         **Returns**<br>
         `samples`: tensor, shape [B,H,`num_samples`].<br>
         `quantiles`: tensor, empirical quantiles defined by `levels`.<br>
         """
+        if num_samples is None:
+            num_samples = self.num_samples
+
         B, H = distr_args[0].size()
         Q = len(self.quantiles)
 
@@ -895,7 +905,12 @@ class PMM(torch.nn.Module):
     """
 
     def __init__(
-        self, n_components=10, level=[80, 90], quantiles=None, return_params=False
+        self,
+        n_components=10,
+        level=[80, 90],
+        quantiles=None,
+        num_samples=500,
+        return_params=False,
     ):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
@@ -907,8 +922,8 @@ class PMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
-
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+        self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
@@ -923,7 +938,26 @@ class PMM(torch.nn.Module):
         lambdas_hat = F.softplus(lambdas_hat)
         return (lambdas_hat,)  # , weights
 
-    def sample(self, distr_args, num_samples=500, loc=None, scale=None):
+    def sample(self, distr_args, loc=None, scale=None, num_samples=None):
+        """
+        Construct the empirical quantiles from the estimated Distribution,
+        sampling from it `num_samples` independently.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+        `num_samples`: int=500, overwrites number of samples for the empirical quantiles.<br>
+
+        **Returns**<br>
+        `samples`: tensor, shape [B,H,`num_samples`].<br>
+        `quantiles`: tensor, empirical quantiles defined by `levels`.<br>
+        """
+        if num_samples is None:
+            num_samples = self.num_samples
+
         lambdas = distr_args[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
@@ -1043,7 +1077,12 @@ class GMM(torch.nn.Module):
     """
 
     def __init__(
-        self, n_components=1, level=[80, 90], quantiles=None, return_params=False
+        self,
+        n_components=1,
+        level=[80, 90],
+        quantiles=None,
+        num_samples=500,
+        return_params=False,
     ):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
@@ -1055,8 +1094,8 @@ class GMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             quantiles = torch.Tensor(quantiles)
-
         self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+        self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
@@ -1067,7 +1106,26 @@ class GMM(torch.nn.Module):
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
-    def sample(self, weights, means, stds, num_samples=500):
+    def sample(self, weights, means, stds, num_samples=None):
+        """
+        Construct the empirical quantiles from the estimated Distribution,
+        sampling from it `num_samples` independently.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+        `num_samples`: int=500, number of samples for the empirical quantiles.<br>
+
+        **Returns**<br>
+        `samples`: tensor, shape [B,H,`num_samples`].<br>
+        `quantiles`: tensor, empirical quantiles defined by `levels`.<br>
+        """
+        if num_samples is None:
+            num_samples = self.num_samples
+
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
