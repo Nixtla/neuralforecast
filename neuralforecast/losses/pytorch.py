@@ -1106,7 +1106,7 @@ class GMM(torch.nn.Module):
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
-    def sample(self, weights, means, stds, num_samples=None):
+    def sample(self, distr_args, loc=None, scale=None, num_samples=None):
         """
         Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
@@ -1126,6 +1126,9 @@ class GMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
+        means = distr_args[0]
+        stds = distr_args[1]
+
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
@@ -1133,6 +1136,8 @@ class GMM(torch.nn.Module):
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+
+        weights = (1 / K) * torch.ones_like(means).to(means.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1173,17 +1178,25 @@ class GMM(torch.nn.Module):
     def neglog_likelihood(
         self,
         y: torch.Tensor,
-        weights: torch.Tensor,
-        means: torch.Tensor,
-        stds: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
     ):
 
         if mask is None:
-            mask = torch.ones_like(means)
+            mask = torch.ones_like(y)
+
+        means = distr_args[0]
+        stds = distr_args[1]
 
         B, H, K = means.size()
+
+        weights = (1 / K) * torch.ones_like(means).to(means.device)
         # eps  = 1e-10
+
+        y = y[:, :, None]
+        mask = mask[:, :, None]
 
         log = -0.5 * ((1 / stds) * (y - means)) ** 2 - torch.log(
             ((2 * math.pi) ** (0.5)) * stds
@@ -1205,12 +1218,12 @@ class GMM(torch.nn.Module):
     def __call__(
         self,
         y: torch.Tensor,
-        weights: torch.Tensor,
-        means: torch.Tensor,
-        stds: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
     ):
 
         return self.neglog_likelihood(
-            y=y, weights=weights, means=means, stds=stds, mask=mask
+            y=y, distr_args=distr_args, mask=mask, loc=loc, scale=scale
         )
