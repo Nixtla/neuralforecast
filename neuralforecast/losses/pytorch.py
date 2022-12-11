@@ -1100,11 +1100,17 @@ class GMM(torch.nn.Module):
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
         if self.return_params:
-            self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
-            self.output_names = self.output_names + self.param_names
+            mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
+            std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + mu_names + std_names
 
-        self.outputsize_multiplier = n_components
+        self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
+
+    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.1):
+        loc, scale = torch.tensor_split(params_hat, 2, dim=-1)
+        scale = F.softplus(scale) + eps
+        return (loc.squeeze(-1), scale.squeeze(-1))
 
     def sample(self, distr_args, loc=None, scale=None, num_samples=None):
         """
