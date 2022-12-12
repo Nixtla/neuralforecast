@@ -934,6 +934,21 @@ class PMM(torch.nn.Module):
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
+    def get_distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ):
+
+        if loc is None and scale is None:
+            return distr_args
+        elif loc is not None and scale is not None:
+            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
+            scale = scale.view(distr_args[0].size(dim=0), 1, -1)
+            lambda_scaled = (distr_args[0] * scale) + loc
+            return (lambda_scaled,)
+
     def domain_map(self, lambdas_hat: torch.Tensor):
         lambdas_hat = F.softplus(lambdas_hat)
         return (lambdas_hat,)  # , weights
@@ -958,7 +973,7 @@ class PMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        lambdas = distr_args[0]
+        lambdas = self.get_distribution(distr_args, loc, scale)[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
 
@@ -1013,10 +1028,9 @@ class PMM(torch.nn.Module):
             mask = torch.ones_like(y)
 
         eps = 1e-10
-        lambdas = distr_args[0]
+        lambdas = self.get_distribution(distr_args, loc, scale)[0]
         B, H, K = lambdas.size()
 
-        lambdas = distr_args[0]
         weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
 
         y = y[:, :, None]
@@ -1107,10 +1121,26 @@ class GMM(torch.nn.Module):
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
-    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.1):
+    def get_distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ):
+
+        if loc is None and scale is None:
+            return distr_args
+        elif loc is not None and scale is not None:
+            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
+            scale = scale.view(distr_args[1].size(dim=0), 1, -1)
+            mu_scaled = (distr_args[0] * scale) + loc
+            std_scaled = distr_args[1] * scale
+            return (mu_scaled, std_scaled)
+
+    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.2):
         loc, scale = torch.tensor_split(params_hat, 2, dim=-1)
         scale = F.softplus(scale) + eps
-        return (loc.squeeze(-1), scale.squeeze(-1))
+        return (loc, scale)
 
     def sample(self, distr_args, loc=None, scale=None, num_samples=None):
         """
@@ -1132,8 +1162,7 @@ class GMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        means = distr_args[0]
-        stds = distr_args[1]
+        means, stds = self.get_distribution(distr_args, loc, scale)
 
         B, H, K = means.size()
         Q = len(self.quantiles)
@@ -1193,8 +1222,7 @@ class GMM(torch.nn.Module):
         if mask is None:
             mask = torch.ones_like(y)
 
-        means = distr_args[0]
-        stds = distr_args[1]
+        means, stds = self.get_distribution(distr_args, loc, scale)
 
         B, H, K = means.size()
 
