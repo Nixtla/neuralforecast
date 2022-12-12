@@ -1107,10 +1107,10 @@ class GMM(torch.nn.Module):
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
-    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.1):
+    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.2):
         loc, scale = torch.tensor_split(params_hat, 2, dim=-1)
         scale = F.softplus(scale) + eps
-        return (loc.squeeze(-1), scale.squeeze(-1))
+        return (loc, scale)
 
     def sample(self, distr_args, loc=None, scale=None, num_samples=None):
         """
