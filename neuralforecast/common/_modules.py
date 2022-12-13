@@ -7,7 +7,7 @@ __all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolution
 import torch.nn as nn
 
 # %% ../../nbs/common.modules.ipynb 5
-ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
+ACTIVATIONS = ['ReLU','Softplus','Tanh','SELU','LeakyReLU','PReLU','Sigmoid']
 
 # %% ../../nbs/common.modules.ipynb 7
 class MLP(nn.Module):
@@ -21,29 +21,22 @@ class MLP(nn.Module):
     `num_layers`: int, number of hidden layers.<br>
     `dropout`: float, dropout rate.<br>
     """
-
-    def __init__(
-        self, in_features, out_features, activation, hidden_size, num_layers, dropout
-    ):
+    def __init__(self, in_features, out_features, activation, hidden_size, num_layers, dropout):
         super().__init__()
-        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-
+        assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
+        
         self.activation = getattr(nn, activation)()
 
         # MultiLayer Perceptron
         # Input layer
-        layers = [
-            nn.Linear(in_features=in_features, out_features=hidden_size),
-            self.activation,
-            nn.Dropout(dropout),
-        ]
+        layers = [nn.Linear(in_features=in_features, out_features=hidden_size),
+                  self.activation,
+                  nn.Dropout(dropout)]
         # Hidden layers
         for i in range(num_layers - 2):
-            layers += [
-                nn.Linear(in_features=hidden_size, out_features=hidden_size),
-                self.activation,
-                nn.Dropout(dropout),
-            ]
+            layers += [nn.Linear(in_features=hidden_size, out_features=hidden_size),
+                       self.activation,
+                       nn.Dropout(dropout)]
         # Output layer
         layers += [nn.Linear(in_features=hidden_size, out_features=out_features)]
 
@@ -55,26 +48,25 @@ class MLP(nn.Module):
 
 # %% ../../nbs/common.modules.ipynb 9
 class Chomp1d(nn.Module):
-    """Chomp1d
+    """ Chomp1d
 
     Receives `x` input of dim [N,C,T], and trims it so that only
-    'time available' information is used.
+    'time available' information is used. 
     Used by one dimensional causal convolutions `CausalConv1d`.
 
     **Parameters:**<br>
     `horizon`: int, length of outsample values to skip.
     """
-
     def __init__(self, horizon):
         super(Chomp1d, self).__init__()
         self.horizon = horizon
 
     def forward(self, x):
-        return x[:, :, : -self.horizon].contiguous()
+        return x[:, :, :-self.horizon].contiguous()
 
 
 class CausalConv1d(nn.Module):
-    """Causal Convolution 1d
+    """ Causal Convolution 1d
 
     Receives `x` input of dim [N,C_in,T], and computes a causal convolution
     in the time dimension. Skipping the H steps of the forecast horizon, through
@@ -89,58 +81,44 @@ class CausalConv1d(nn.Module):
     connections. If $d=1$ one recovers a normal convolution.
 
     **Parameters:**<br>
-    `in_channels`: int, dimension of `x` input's initial channels.<br>
-    `out_channels`: int, dimension of `x` outputs's channels.<br>
+    `in_channels`: int, dimension of `x` input's initial channels.<br> 
+    `out_channels`: int, dimension of `x` outputs's channels.<br> 
     `activation`: str, identifying activations from PyTorch activations.
         select from 'ReLU','Softplus','Tanh','SELU', 'LeakyReLU','PReLU','Sigmoid'.<br>
     `padding`: int, number of zero padding used to the left.<br>
     `kernel_size`: int, convolution's kernel size.<br>
     `dilation`: int, dilation skip connections.<br>
-
+    
     **Returns:**<br>
     `x`: tensor, torch tensor of dim [N,C_out,T] activation(conv1d(inputs, kernel) + bias). <br>
     """
-
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        padding,
-        dilation,
-        activation,
-        stride: int = 1,
-    ):
+    def __init__(self, in_channels, out_channels, kernel_size,
+                 padding, dilation, activation, stride:int=1):
         super(CausalConv1d, self).__init__()
-        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-
-        self.conv = nn.Conv1d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-        )
-
-        self.chomp = Chomp1d(padding)
+        assert activation in ACTIVATIONS, f'{activation} is not in {ACTIVATIONS}'
+        
+        self.conv       = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, 
+                                    kernel_size=kernel_size, stride=stride, padding=padding,
+                                    dilation=dilation)
+        
+        self.chomp      = Chomp1d(padding)
         self.activation = getattr(nn, activation)()
         self.causalconv = nn.Sequential(self.conv, self.chomp, self.activation)
-
+    
     def forward(self, x):
         return self.causalconv(x)
 
 # %% ../../nbs/common.modules.ipynb 11
 class TemporalConvolutionEncoder(nn.Module):
-    """Temporal Convolution Encoder
+    """ Temporal Convolution Encoder
 
     Receives `x` input of dim [N,T,C_in], permutes it to  [N,C_in,T]
     applies a deep stack of exponentially dilated causal convolutions.
-    The exponentially increasing dilations of the convolutions allow for
+    The exponentially increasing dilations of the convolutions allow for 
     the creation of weighted averages of exponentially large long-term memory.
 
     **Parameters:**<br>
-    `in_channels`: int, dimension of `x` input's initial channels.<br>
+    `in_channels`: int, dimension of `x` input's initial channels.<br> 
     `out_channels`: int, dimension of `x` outputs's channels.<br>
     `kernel_size`: int, size of the convolving kernel.<br>
     `dilations`: int list, controls the temporal spacing between the kernel points.<br>
@@ -150,29 +128,16 @@ class TemporalConvolutionEncoder(nn.Module):
     **Returns:**<br>
     `x`: tensor, torch tensor of dim [N,T,C_out].<br>
     """
-
     # TODO: Add dilations parameter and change layers declaration to for loop
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        dilations,
-        activation: str = "ReLU",
-    ):
+    def __init__(self, in_channels, out_channels, 
+                 kernel_size, dilations,
+                 activation:str='ReLU'):
         super(TemporalConvolutionEncoder, self).__init__()
         layers = []
         for dilation in dilations:
-            layers.append(
-                CausalConv1d(
-                    in_channels=in_channels,
-                    out_channels=out_channels,
-                    kernel_size=kernel_size,
-                    padding=(kernel_size - 1) * dilation,
-                    activation=activation,
-                    dilation=dilation,
-                )
-            )
+            layers.append(CausalConv1d(in_channels=in_channels, out_channels=out_channels, 
+                                        kernel_size=kernel_size, padding=(kernel_size-1)*dilation, 
+                                        activation=activation, dilation=dilation))
             in_channels = out_channels
         self.tcn = nn.Sequential(*layers)
 

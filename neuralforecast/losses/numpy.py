@@ -15,25 +15,20 @@ def _divide_no_nan(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     div = a / b
     div[div != div] = 0.0
-    div[div == float("inf")] = 0.0
+    div[div == float('inf')] = 0.0
     return div
 
 # %% ../../nbs/losses.numpy.ipynb 7
-def _metric_protections(
-    y: np.ndarray, y_hat: np.ndarray, weights: Optional[np.ndarray]
-) -> None:
-    assert (weights is None) or (np.sum(weights) > 0), "Sum of weights cannot be 0"
-    assert (weights is None) or (
-        weights.shape == y.shape
-    ), f"Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}"
+def _metric_protections(y: np.ndarray, y_hat: np.ndarray, 
+                        weights: Optional[np.ndarray]) -> None:
+    assert (weights is None) or (np.sum(weights) > 0), 'Sum of weights cannot be 0'
+    assert (weights is None) or (weights.shape == y.shape),\
+        f'Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}'
 
 # %% ../../nbs/losses.numpy.ipynb 10
-def mae(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
+def mae(y: np.ndarray, y_hat: np.ndarray,
+        weights: Optional[np.ndarray] = None,
+        axis: Optional[int] = None) -> Union[float, np.ndarray]:
     """Mean Absolute Error
 
     Calculates Mean Absolute Error between
@@ -51,32 +46,29 @@ def mae(
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
 
     **Returns:**<br>
-    `mae`: numpy array, (single value).
+    `mae`: numpy array, (single value).    
     """
     _metric_protections(y, y_hat, weights)
-
+    
     delta_y = np.abs(y - y_hat)
     if weights is not None:
-        mae = np.average(
-            delta_y[~np.isnan(delta_y)], weights=weights[~np.isnan(delta_y)], axis=axis
-        )
+        mae = np.average(delta_y[~np.isnan(delta_y)], 
+                         weights=weights[~np.isnan(delta_y)],
+                         axis=axis)
     else:
         mae = np.nanmean(delta_y, axis=axis)
-
+        
     return mae
 
 # %% ../../nbs/losses.numpy.ipynb 14
-def mse(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Mean Squared Error
+def mse(y: np.ndarray, y_hat: np.ndarray, 
+        weights: Optional[np.ndarray] = None,
+        axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """  Mean Squared Error
 
     Calculates Mean Squared Error between
     `y` and `y_hat`. MSE measures the relative prediction
-    accuracy of a forecasting method by calculating the
+    accuracy of a forecasting method by calculating the 
     squared deviation of the prediction and the true
     value at a given time, and averages these devations
     over the length of the series.
@@ -95,22 +87,19 @@ def mse(
 
     delta_y = np.square(y - y_hat)
     if weights is not None:
-        mse = np.average(
-            delta_y[~np.isnan(delta_y)], weights=weights[~np.isnan(delta_y)], axis=axis
-        )
+        mse = np.average(delta_y[~np.isnan(delta_y)],
+                         weights=weights[~np.isnan(delta_y)],
+                         axis=axis)
     else:
         mse = np.nanmean(delta_y, axis=axis)
 
     return mse
 
 # %% ../../nbs/losses.numpy.ipynb 18
-def rmse(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Root Mean Squared Error
+def rmse(y: np.ndarray, y_hat: np.ndarray,
+         weights: Optional[np.ndarray] = None,
+         axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ Root Mean Squared Error
 
     Calculates Root Mean Squared Error between
     `y` and `y_hat`. RMSE measures the relative prediction
@@ -135,13 +124,10 @@ def rmse(
     return np.sqrt(mse(y, y_hat, weights, axis))
 
 # %% ../../nbs/losses.numpy.ipynb 23
-def mape(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Mean Absolute Percentage Error
+def mape(y: np.ndarray, y_hat: np.ndarray, 
+         weights: Optional[np.ndarray] = None,
+         axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ Mean Absolute Percentage Error
 
     Calculates Mean Absolute Percentage Error  between
     `y` and `y_hat`. MAPE measures the relative prediction
@@ -162,22 +148,19 @@ def mape(
     `mape`: numpy array, (single value).
     """
     _metric_protections(y, y_hat, weights)
-
+        
     delta_y = np.abs(y - y_hat)
     scale = np.abs(y)
     mape = _divide_no_nan(delta_y, scale)
     mape = np.average(mape, weights=weights, axis=axis)
-
+    
     return mape
 
 # %% ../../nbs/losses.numpy.ipynb 27
-def smape(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Symmetric Mean Absolute Percentage Error
+def smape(y: np.ndarray, y_hat: np.ndarray,
+          weights: Optional[np.ndarray] = None,
+          axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ Symmetric Mean Absolute Percentage Error
 
     Calculates Symmetric Mean Absolute Percentage Error between
     `y` and `y_hat`. SMAPE measures the relative prediction
@@ -198,40 +181,37 @@ def smape(
 
     **Returns:**<br>
     `smape`: numpy array, (single value).
-
+    
     **References:**<br>
     [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
     _metric_protections(y, y_hat, weights)
-
+        
     delta_y = np.abs(y - y_hat)
     scale = np.abs(y) + np.abs(y_hat)
     smape = _divide_no_nan(delta_y, scale)
     smape = 2 * np.average(smape, weights=weights, axis=axis)
-
+    
     if isinstance(smape, float):
-        assert smape <= 2, "SMAPE should be lower than 200"
+        assert smape <= 2, 'SMAPE should be lower than 200'
     else:
-        assert all(smape <= 2), "SMAPE should be lower than 200"
-
+        assert all(smape <= 2), 'SMAPE should be lower than 200'
+    
     return smape
 
 # %% ../../nbs/losses.numpy.ipynb 31
-def mase(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    y_train: np.ndarray,
-    seasonality: int,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Mean Absolute Scaled Error
+def mase(y: np.ndarray, y_hat: np.ndarray, 
+         y_train: np.ndarray,
+         seasonality: int,
+         weights: Optional[np.ndarray] = None,
+         axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ Mean Absolute Scaled Error 
     Calculates the Mean Absolute Scaled Error between
     `y` and `y_hat`. MASE measures the relative prediction
     accuracy of a forecasting method by comparinng the mean absolute errors
     of the prediction and the observed value against the mean
     absolute errors of the seasonal naive model.
-    The MASE partially composed the Overall Weighted Average (OWA),
+    The MASE partially composed the Overall Weighted Average (OWA), 
     used in the M4 Competition.
 
     $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
@@ -240,12 +220,12 @@ def mase(
     `y`: numpy array, (batch_size, output_size), Actual values.<br>
     `y_hat`: numpy array, (batch_size, output_size)), Predicted values.<br>
     `y_insample`: numpy array, (batch_size, input_size), Actual insample Seasonal Naive predictions.<br>
-    `seasonality`: int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
+    `seasonality`: int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.        
     `mask`: numpy array, Specifies date stamps per serie to consider in loss.<br>
 
     **Returns:**<br>
     `mase`: numpy array, (single value).
-
+    
     **References:**<br>
     [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
     [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
@@ -261,31 +241,28 @@ def mase(
     return mase
 
 # %% ../../nbs/losses.numpy.ipynb 35
-def rmae(
-    y: np.ndarray,
-    y_hat1: np.ndarray,
-    y_hat2: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """RMAE
-
+def rmae(y: np.ndarray, 
+         y_hat1: np.ndarray, y_hat2: np.ndarray, 
+         weights: Optional[np.ndarray] = None,
+         axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ RMAE
+            
     Calculates Relative Mean Absolute Error (RMAE) between
     two sets of forecasts (from two different forecasting methods).
-    A number smaller than one implies that the forecast in the
+    A number smaller than one implies that the forecast in the 
     numerator is better than the forecast in the denominator.
-
+    
     $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau})} $$
-
+    
     **Parameters:**<br>
     `y`: numpy array, observed values.<br>
     `y_hat1`: numpy array. Predicted values of first model.<br>
     `y_hat2`: numpy array. Predicted values of baseline model.<br>
     `weights`: numpy array, optional. Weights for weighted average.<br>
-    `axis`: None or int, optional.Axis or axes along which to average a.<br>
+    `axis`: None or int, optional.Axis or axes along which to average a.<br> 
         The default, axis=None, will average over all of the elements of
         the input array.
-
+    
     **Returns:**<br>
     `rmae`: numpy array or double.
 
@@ -299,14 +276,10 @@ def rmae(
     return rmae
 
 # %% ../../nbs/losses.numpy.ipynb 40
-def quantile_loss(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    q: float = 0.5,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Quantile Loss
+def quantile_loss(y: np.ndarray, y_hat: np.ndarray, q: float = 0.5, 
+                  weights: Optional[np.ndarray] = None,
+                  axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """ Quantile Loss
 
     Computes the quantile loss between `y` and `y_hat`.
     QL measures the deviation of a quantile forecast.
@@ -324,7 +297,7 @@ def quantile_loss(
 
     **Returns:**<br>
     `quantile_loss`: numpy array, (single value).
-
+    
     **References:**<br>
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
     """
@@ -334,37 +307,34 @@ def quantile_loss(
     loss = np.maximum(q * delta_y, (q - 1) * delta_y)
 
     if weights is not None:
-        quantile_loss = np.average(
-            loss[~np.isnan(loss)], weights=weights[~np.isnan(loss)], axis=axis
-        )
+        quantile_loss = np.average(loss[~np.isnan(loss)], 
+                             weights=weights[~np.isnan(loss)],
+                             axis=axis)
     else:
         quantile_loss = np.nanmean(loss, axis=axis)
-
+        
     return quantile_loss
 
 # %% ../../nbs/losses.numpy.ipynb 44
-def mqloss(
-    y: np.ndarray,
-    y_hat: np.ndarray,
-    quantiles: np.ndarray,
-    weights: Optional[np.ndarray] = None,
-    axis: Optional[int] = None,
-) -> Union[float, np.ndarray]:
-    """Multi-Quantile loss
+def mqloss(y: np.ndarray, y_hat: np.ndarray, 
+           quantiles: np.ndarray, 
+           weights: Optional[np.ndarray] = None,
+           axis: Optional[int] = None) -> Union[float, np.ndarray]:
+    """  Multi-Quantile loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
-    a given set of quantiles, based on the absolute
+    a given set of quantiles, based on the absolute 
     difference between predicted quantiles and observed values.
 
     $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
 
-    The limit behavior of MQL allows to measure the accuracy
-    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
-    the continuous ranked probability score (CRPS). This can be achieved
-    through a numerical integration technique, that discretizes the quantiles
-    and treats the CRPS integral with a left Riemann approximation, averaging over
-    uniformly distanced quantiles.
+    The limit behavior of MQL allows to measure the accuracy 
+    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with 
+    the continuous ranked probability score (CRPS). This can be achieved 
+    through a numerical integration technique, that discretizes the quantiles 
+    and treats the CRPS integral with a left Riemann approximation, averaging over 
+    uniformly distanced quantiles.    
 
     $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
 
@@ -376,25 +346,24 @@ def mqloss(
 
     **Returns:**<br>
     `mqloss`: numpy array, (single value).
-
+    
     **References:**<br>
     [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)<br>
     [James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
     """
-    if weights is None:
-        weights = np.ones(y.shape)
-
+    if weights is None: weights = np.ones(y.shape)
+        
     _metric_protections(y, y_hat, weights)
     n_q = len(quantiles)
-
-    y_rep = np.expand_dims(y, axis=-1)
-    error = y_hat - y_rep
-    sq = np.maximum(-error, np.zeros_like(error))
-    s1_q = np.maximum(error, np.zeros_like(error))
-    mqloss = quantiles * sq + (1 - quantiles) * s1_q
-
+    
+    y_rep  = np.expand_dims(y, axis=-1)
+    error  = y_hat - y_rep
+    sq     = np.maximum(-error, np.zeros_like(error))
+    s1_q   = np.maximum(error, np.zeros_like(error))
+    mqloss = (quantiles * sq + (1 - quantiles) * s1_q)
+    
     # Match y/weights dimensions and compute weighted average
     weights = np.repeat(np.expand_dims(weights, axis=-1), repeats=n_q, axis=-1)
-    mqloss = np.average(mqloss, weights=weights, axis=axis)
+    mqloss  = np.average(mqloss, weights=weights, axis=axis)
 
     return mqloss

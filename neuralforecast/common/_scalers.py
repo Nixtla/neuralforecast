@@ -10,9 +10,9 @@ import torch.nn as nn
 
 # %% ../../nbs/common.scalers.ipynb 7
 def masked_median(x, mask, dim=-1, keepdim=True):
-    """Masked Median
+    """ Masked Median
 
-    Compute the median of tensor `x` along dim, ignoring values where
+    Compute the median of tensor `x` along dim, ignoring values where 
     `mask` is False. `x` and `mask` need to be broadcastable.
 
     **Parameters:**<br>
@@ -26,15 +26,14 @@ def masked_median(x, mask, dim=-1, keepdim=True):
     **Returns:**<br>
     `x_median`: torch.Tensor with normalized values.
     """
-    x_nan = x.float().masked_fill(mask < 1, float("nan"))
+    x_nan = x.float().masked_fill(mask<1, float("nan"))
     x_median, _ = x_nan.nanmedian(dim=dim, keepdim=keepdim)
     return x_median
 
-
 def masked_mean(x, mask, dim=-1, keepdim=True):
-    """Masked  Mean
+    """ Masked  Mean
 
-    Compute the mean of tensor `x` along dimension, ignoring values where
+    Compute the mean of tensor `x` along dimension, ignoring values where 
     `mask` is False. `x` and `mask` need to be broadcastable.
 
     **Parameters:**<br>
@@ -48,16 +47,16 @@ def masked_mean(x, mask, dim=-1, keepdim=True):
     **Returns:**<br>
     `x_mean`: torch.Tensor with normalized values.
     """
-    x_nan = x.float().masked_fill(mask < 1, float("nan"))
+    x_nan = x.float().masked_fill(mask<1, float("nan"))
     x_mean = x_nan.nanmean(dim=dim, keepdim=keepdim)
     return x_mean
 
 # %% ../../nbs/common.scalers.ipynb 11
 def minmax_scaler(x, mask, eps=1e-6, dim=-1):
-    """MinMax Scaler
+    """ MinMax Scaler
 
     Standardizes temporal features by ensuring its range dweels between
-    [0,1] range. This transformation is often used as an alternative
+    [0,1] range. This transformation is often used as an alternative 
     to the standard scaler. The scaled features are obtained as:
 
     $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
@@ -74,14 +73,14 @@ def minmax_scaler(x, mask, eps=1e-6, dim=-1):
     **Returns:**<br>
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
-    max_mask = (mask == 0) * (-1e12)
-    min_mask = (mask == 0) * (1e12)
+    max_mask = (mask==0) * (-1e12)
+    min_mask = (mask==0) * (1e12)
     x_max = torch.max(x + max_mask, dim=dim, keepdim=True)[0]
     x_min = torch.min(x + min_mask, dim=dim, keepdim=True)[0]
 
     # x_range and prevent division by zero
     x_range = x_max - x_min
-    x_range[x_range == 0] = 1.0
+    x_range[x_range==0] = 1.0
     x_range = x_range + eps
 
     z = (x - x_min) / x_range
@@ -93,11 +92,11 @@ def inv_minmax_scaler(z, x_min, x_range):
 
 # %% ../../nbs/common.scalers.ipynb 14
 def minmax1_scaler(x, mask, eps=1e-6, dim=-1):
-    """MinMax1 Scaler
+    """ MinMax1 Scaler
 
     Standardizes temporal features by ensuring its range dweels between
-    [-1,1] range. This transformation is often used as an alternative
-    to the standard scaler or classic Min Max Scaler.
+    [-1,1] range. This transformation is often used as an alternative 
+    to the standard scaler or classic Min Max Scaler. 
     The scaled features are obtained as:
 
     $$\mathbf{z} = 2 (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/ (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})-1$$
@@ -113,14 +112,14 @@ def minmax1_scaler(x, mask, eps=1e-6, dim=-1):
     **Returns:**<br>
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
-    max_mask = (mask == 0) * (-1e12)
-    min_mask = (mask == 0) * (1e12)
+    max_mask = (mask==0) * (-1e12)
+    min_mask = (mask==0) * (1e12)
     x_max = torch.max(x + max_mask, dim=dim, keepdim=True)[0]
     x_min = torch.min(x + min_mask, dim=dim, keepdim=True)[0]
 
     # x_range and prevent division by zero
     x_range = x_max - x_min
-    x_range[x_range == 0] = 1.0
+    x_range[x_range==0] = 1.0
     x_range = x_range + eps
 
     x = (x - x_min) / x_range
@@ -134,10 +133,10 @@ def inv_minmax1_scaler(z, x_min, x_range):
 
 # %% ../../nbs/common.scalers.ipynb 17
 def std_scaler(x, mask, dim=-1, eps=1e-6):
-    """Standard Scaler
+    """ Standard Scaler
 
     Standardizes features by removing the mean and scaling
-    to unit variance along the `dim` dimension.
+    to unit variance along the `dim` dimension. 
 
     For example, for `base_windows` models, the scaled features are obtained as (with dim=1):
 
@@ -155,10 +154,10 @@ def std_scaler(x, mask, dim=-1, eps=1e-6):
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
     x_means = masked_mean(x=x, mask=mask, dim=dim)
-    x_stds = torch.sqrt(masked_mean(x=(x - x_means) ** 2, mask=mask, dim=dim))
-
+    x_stds = torch.sqrt(masked_mean(x=(x-x_means)**2, mask=mask, dim=dim))
+    
     # Protect against division by zero
-    x_stds[x_stds == 0] = 1.0
+    x_stds[x_stds==0] = 1.0
     x_stds = x_stds + eps
 
     z = (x - x_means) / x_stds
@@ -170,18 +169,18 @@ def inv_std_scaler(z, x_mean, x_std):
 
 # %% ../../nbs/common.scalers.ipynb 20
 def robust_scaler(x, mask, dim=-1, eps=1e-6):
-    """Robust Median Scaler
+    """ Robust Median Scaler
 
     Standardizes features by removing the median and scaling
     with the mean absolute deviation (mad) a robust estimator of variance.
-    This scaler is particularly useful with noisy data where outliers can
+    This scaler is particularly useful with noisy data where outliers can 
     heavily influence the sample mean / variance in a negative way.
     In these scenarios the median and amd give better results.
-
+    
     For example, for `base_windows` models, the scaled features are obtained as (with dim=1):
 
     $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\\textrm{median}(\mathbf{x})_{[B,1,C]})/\\textrm{mad}(\mathbf{x})_{[B,1,C]}$$
-
+        
     $$\\textrm{mad}(\mathbf{x}) = \\frac{1}{N} \sum_{}|\mathbf{x} - \mathrm{median}(x)|$$
 
     **Parameters:**<br>
@@ -196,16 +195,16 @@ def robust_scaler(x, mask, dim=-1, eps=1e-6):
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
     x_median = masked_median(x=x, mask=mask, dim=dim)
-    x_mad = masked_median(x=torch.abs(x - x_median), mask=mask, dim=dim)
+    x_mad = masked_median(x=torch.abs(x-x_median), mask=mask, dim=dim)
 
     # Protect x_mad=0 values
     x_means = masked_mean(x=x, mask=mask, dim=dim)
-    x_stds = torch.sqrt(masked_mean(x=(x - x_means) ** 2, mask=mask, dim=dim))
+    x_stds = torch.sqrt(masked_mean(x=(x-x_means)**2, mask=mask, dim=dim))  
     x_mad_aux = x_stds / 0.6744897501960817
-    x_mad = x_mad * (x_mad > 0) + x_mad_aux * (x_mad == 0)
-
+    x_mad = x_mad * (x_mad>0) + x_mad_aux * (x_mad==0)
+    
     # Protect against division by zero
-    x_mad[x_mad == 0] = 1.0
+    x_mad[x_mad==0] = 1.0
     x_mad = x_mad + eps
 
     z = (x - x_median) / x_mad
@@ -217,7 +216,7 @@ def inv_robust_scaler(z, x_median, x_mad):
 
 # %% ../../nbs/common.scalers.ipynb 23
 def invariant_scaler(x, mask, dim=-1, eps=1e-6):
-    """Invariant Median Scaler
+    """ Invariant Median Scaler
 
     Standardizes features by removing the median and scaling
     with the mean absolute deviation (mad) a robust estimator of variance.
@@ -241,18 +240,18 @@ def invariant_scaler(x, mask, dim=-1, eps=1e-6):
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
     x_median = masked_median(x=x, mask=mask, dim=dim)
-    x_mad = masked_median(x=torch.abs(x - x_median), mask=mask, dim=dim)
+    x_mad = masked_median(x=torch.abs(x-x_median), mask=mask, dim=dim)
 
     # Protect x_mad=0 values
     x_means = masked_mean(x=x, mask=mask, dim=dim)
-    x_stds = torch.sqrt(masked_mean(x=(x - x_means) ** 2, mask=mask, dim=dim))
+    x_stds = torch.sqrt(masked_mean(x=(x-x_means)**2, mask=mask, dim=dim))        
     x_mad_aux = x_stds / 0.6744897501960817
-    x_mad = x_mad * (x_mad > 0) + x_mad_aux * (x_mad == 0)
+    x_mad = x_mad * (x_mad>0) + x_mad_aux * (x_mad==0)
 
     # Protect against division by zero
-    x_mad[x_mad == 0] = 1.0
+    x_mad[x_mad==0] = 1.0
     x_mad = x_mad + eps
-
+    
     z = torch.arcsinh((x - x_median) / x_mad)
     return z, x_median, x_mad
 
@@ -262,7 +261,7 @@ def inv_invariant_scaler(z, x_median, x_mad):
 
 # %% ../../nbs/common.scalers.ipynb 26
 def identity_scaler(x, mask, dim=-1, eps=1e-6):
-    """Identity Scaler
+    """ Identity Scaler
 
     A placeholder identity scaler, that is argument insensitive.
 
@@ -277,8 +276,8 @@ def identity_scaler(x, mask, dim=-1, eps=1e-6):
     **Returns:**<br>
     `x`: original torch.Tensor `x`.
     """
-    x_shift = torch.zeros_like(x)[:, [0], :]
-    x_scale = torch.ones_like(x)[:, [0], :]
+    x_shift = torch.zeros_like(x)[:,[0],:]
+    x_scale = torch.ones_like(x)[:,[0],:]
     return x, x_shift, x_scale
 
 # %% ../../nbs/common.scalers.ipynb 27
@@ -287,11 +286,11 @@ def inv_identity_scaler(z, x_shift, x_scale):
 
 # %% ../../nbs/common.scalers.ipynb 30
 class TemporalNorm(nn.Module):
-    """Temporal Normalization
+    """ Temporal Normalization
 
-    Standardization of the features is a common requirement for many
-    machine learning estimators, and it is commonly achieved by removing
-    the level and scaling its variance. The `TemporalNorm` module applies
+    Standardization of the features is a common requirement for many 
+    machine learning estimators, and it is commonly achieved by removing 
+    the level and scaling its variance. The `TemporalNorm` module applies 
     temporal normalization over the batch of inputs as defined by the type of scaler.
 
     $$\mathbf{z}_{[B,T,C]} = \\textrm{Scaler}(\mathbf{x}_{[B,T,C]})$$
@@ -301,30 +300,25 @@ class TemporalNorm(nn.Module):
                     available [`identity`, `standard`, `robust`, `minmax`, `minmax1`, `invariant`].<br>
     `dim` (int, optional): Dimension over to compute scale and shift. Defaults to -1.<br>
     `eps` (float, optional): Small value to avoid division by zero. Defaults to 1e-6.<br>
-
-    """
-
-    def __init__(self, scaler_type="robust", dim=-1, eps=1e-6):
+                    
+    """    
+    def __init__(self, scaler_type='robust', dim=-1, eps=1e-6):
         super().__init__()
-        scalers = {
-            None: identity_scaler,
-            "identity": identity_scaler,
-            "standard": std_scaler,
-            "robust": robust_scaler,
-            "minmax": minmax_scaler,
-            "minmax1": minmax1_scaler,
-            "invariant": invariant_scaler,
-        }
-        inverse_scalers = {
-            None: inv_identity_scaler,
-            "identity": inv_identity_scaler,
-            "standard": inv_std_scaler,
-            "robust": inv_robust_scaler,
-            "minmax": inv_minmax_scaler,
-            "minmax1": inv_minmax1_scaler,
-            "invariant": inv_invariant_scaler,
-        }
-        assert scaler_type in scalers.keys(), f"{scaler_type} not defined"
+        scalers = {None: identity_scaler,
+                   'identity': identity_scaler,
+                   'standard': std_scaler,
+                   'robust': robust_scaler,
+                   'minmax': minmax_scaler,
+                   'minmax1': minmax1_scaler,
+                   'invariant':invariant_scaler,}
+        inverse_scalers = {None: inv_identity_scaler,
+                    'identity': inv_identity_scaler,
+                    'standard': inv_std_scaler,
+                    'robust': inv_robust_scaler,
+                    'minmax': inv_minmax_scaler,
+                    'minmax1': inv_minmax1_scaler,
+                    'invariant': inv_invariant_scaler,}
+        assert (scaler_type in scalers.keys()), f'{scaler_type} not defined'
 
         self.scaler = scalers[scaler_type]
         self.inverse_scaler = inverse_scalers[scaler_type]
@@ -332,27 +326,27 @@ class TemporalNorm(nn.Module):
         self.dim = dim
         self.eps = eps
 
-    # @torch.no_grad()
+    #@torch.no_grad()
     def transform(self, x, mask):
-        """Center and scale the data.
+        """ Center and scale the data.
 
         **Parameters:**<br>
         `x`: torch.Tensor shape [batch, time, channels].<br>
         `mask`: torch Tensor bool, shape  [batch, time] where `x` is valid and False
                 where `x` should be masked. Mask should not be all False in any column of
                 dimension dim to avoid NaNs from zero division.<br>
-
+        
         **Returns:**<br>
-        `z`: torch.Tensor same shape as `x`, except scaled.
+        `z`: torch.Tensor same shape as `x`, except scaled.        
         """
         z, x_shift, x_scale = self.scaler(x=x, mask=mask, dim=self.dim, eps=self.eps)
         self.x_shift = x_shift
         self.x_scale = x_scale
         return z
 
-    # @torch.no_grad()
+    #@torch.no_grad()
     def inverse_transform(self, z, x_shift=None, x_scale=None):
-        """Scale back the data to the original representation.
+        """ Scale back the data to the original representation.
 
         **Parameters:**<br>
         `z`: torch.Tensor shape [batch, time, channels], scaled.<br>

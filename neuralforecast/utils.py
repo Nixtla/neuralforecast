@@ -12,16 +12,14 @@ import numpy as np
 import pandas as pd
 
 # %% ../nbs/utils.ipynb 6
-def generate_series(
-    n_series: int,
-    freq: str = "D",
-    min_length: int = 50,
-    max_length: int = 500,
-    n_temporal_features: int = 0,
-    n_static_features: int = 0,
-    equal_ends: bool = False,
-    seed: int = 0,
-) -> pd.DataFrame:
+def generate_series(n_series: int,
+                    freq: str = 'D',
+                    min_length: int = 50,
+                    max_length: int = 500,
+                    n_temporal_features: int = 0,
+                    n_static_features: int = 0,
+                    equal_ends: bool = False,
+                    seed: int = 0) -> pd.DataFrame:
     """Generate Synthetic Panel Series.
 
     Generates `n_series` of frequency `freq` of different lengths in the interval [`min_length`, `max_length`].
@@ -41,24 +39,26 @@ def generate_series(
     **Returns:**<br>
     `freq`: pandas.DataFrame, synthetic panel with columns [`unique_id`, `ds`, `y`] and exogenous.
     """
-    seasonalities = {"D": 7, "M": 12}
+    seasonalities = {'D': 7, 'M': 12}
     season = seasonalities[freq]
 
     rng = np.random.RandomState(seed)
     series_lengths = rng.randint(min_length, max_length + 1, n_series)
     total_length = series_lengths.sum()
 
-    dates = pd.date_range("2000-01-01", periods=max_length, freq=freq).values
-    uids = [np.repeat(i, serie_length) for i, serie_length in enumerate(series_lengths)]
+    dates = pd.date_range('2000-01-01', periods=max_length, freq=freq).values
+    uids = [
+        np.repeat(i, serie_length) for i, serie_length in enumerate(series_lengths)
+    ]
     if equal_ends:
         ds = [dates[-serie_length:] for serie_length in series_lengths]
     else:
         ds = [dates[:serie_length] for serie_length in series_lengths]
 
     y = np.arange(total_length) % season + rng.rand(total_length) * 0.5
-    temporal_df = pd.DataFrame(
-        dict(unique_id=chain.from_iterable(uids), ds=chain.from_iterable(ds), y=y)
-    )
+    temporal_df = pd.DataFrame(dict(unique_id=chain.from_iterable(uids),
+                                    ds=chain.from_iterable(ds),
+                                    y=y))
 
     random.seed(seed)
     for i in range(n_temporal_features):
@@ -66,226 +66,77 @@ def generate_series(
         temporal_values = [
             [random.randint(0, 100)] * serie_length for serie_length in series_lengths
         ]
-        temporal_df[f"temporal_{i}"] = np.hstack(temporal_values)
-        temporal_df[f"temporal_{i}"] = temporal_df[f"temporal_{i}"].astype("category")
+        temporal_df[f'temporal_{i}'] = np.hstack(temporal_values)
+        temporal_df[f'temporal_{i}'] = temporal_df[f'temporal_{i}'].astype('category')
         if i == 0:
-            temporal_df["y"] = temporal_df["y"] * (
-                1 + temporal_df[f"temporal_{i}"].cat.codes
-            )
+            temporal_df['y'] = temporal_df['y'] * \
+                                  (1 + temporal_df[f'temporal_{i}'].cat.codes)
 
-    temporal_df["unique_id"] = temporal_df["unique_id"].astype("category")
-    temporal_df["unique_id"] = temporal_df["unique_id"].cat.as_ordered()
-    temporal_df = temporal_df.set_index("unique_id")
+    temporal_df['unique_id'] = temporal_df['unique_id'].astype('category')
+    temporal_df['unique_id'] = temporal_df['unique_id'].cat.as_ordered()
+    temporal_df = temporal_df.set_index('unique_id')
 
     if n_static_features > 0:
-        static_features = np.random.uniform(
-            low=0.0, high=1.0, size=(n_series, n_static_features)
-        )
-        static_df = pd.DataFrame.from_records(
-            static_features, columns=[f"static_{i}" for i in range(n_static_features)]
-        )
-
-        static_df["unique_id"] = np.arange(n_series)
-        static_df["unique_id"] = static_df["unique_id"].astype("category")
-        static_df["unique_id"] = static_df["unique_id"].cat.as_ordered()
-        static_df = static_df.set_index("unique_id")
+        static_features = np.random.uniform(low=0.0, high=1.0, 
+                        size=(n_series, n_static_features))
+        static_df = pd.DataFrame.from_records(static_features, 
+                           columns = [f'static_{i}'for i in  range(n_static_features)])
+        
+        static_df['unique_id'] = np.arange(n_series)
+        static_df['unique_id'] = static_df['unique_id'].astype('category')
+        static_df['unique_id'] = static_df['unique_id'].cat.as_ordered()
+        static_df = static_df.set_index('unique_id')        
 
         return temporal_df, static_df
 
     return temporal_df
 
 # %% ../nbs/utils.ipynb 11
-AirPassengers = np.array(
-    [
-        112.0,
-        118.0,
-        132.0,
-        129.0,
-        121.0,
-        135.0,
-        148.0,
-        148.0,
-        136.0,
-        119.0,
-        104.0,
-        118.0,
-        115.0,
-        126.0,
-        141.0,
-        135.0,
-        125.0,
-        149.0,
-        170.0,
-        170.0,
-        158.0,
-        133.0,
-        114.0,
-        140.0,
-        145.0,
-        150.0,
-        178.0,
-        163.0,
-        172.0,
-        178.0,
-        199.0,
-        199.0,
-        184.0,
-        162.0,
-        146.0,
-        166.0,
-        171.0,
-        180.0,
-        193.0,
-        181.0,
-        183.0,
-        218.0,
-        230.0,
-        242.0,
-        209.0,
-        191.0,
-        172.0,
-        194.0,
-        196.0,
-        196.0,
-        236.0,
-        235.0,
-        229.0,
-        243.0,
-        264.0,
-        272.0,
-        237.0,
-        211.0,
-        180.0,
-        201.0,
-        204.0,
-        188.0,
-        235.0,
-        227.0,
-        234.0,
-        264.0,
-        302.0,
-        293.0,
-        259.0,
-        229.0,
-        203.0,
-        229.0,
-        242.0,
-        233.0,
-        267.0,
-        269.0,
-        270.0,
-        315.0,
-        364.0,
-        347.0,
-        312.0,
-        274.0,
-        237.0,
-        278.0,
-        284.0,
-        277.0,
-        317.0,
-        313.0,
-        318.0,
-        374.0,
-        413.0,
-        405.0,
-        355.0,
-        306.0,
-        271.0,
-        306.0,
-        315.0,
-        301.0,
-        356.0,
-        348.0,
-        355.0,
-        422.0,
-        465.0,
-        467.0,
-        404.0,
-        347.0,
-        305.0,
-        336.0,
-        340.0,
-        318.0,
-        362.0,
-        348.0,
-        363.0,
-        435.0,
-        491.0,
-        505.0,
-        404.0,
-        359.0,
-        310.0,
-        337.0,
-        360.0,
-        342.0,
-        406.0,
-        396.0,
-        420.0,
-        472.0,
-        548.0,
-        559.0,
-        463.0,
-        407.0,
-        362.0,
-        405.0,
-        417.0,
-        391.0,
-        419.0,
-        461.0,
-        472.0,
-        535.0,
-        622.0,
-        606.0,
-        508.0,
-        461.0,
-        390.0,
-        432.0,
-    ],
-    dtype=np.float32,
-)
+AirPassengers = np.array([112., 118., 132., 129., 121., 135., 148., 148., 136., 119., 104.,
+                          118., 115., 126., 141., 135., 125., 149., 170., 170., 158., 133.,
+                          114., 140., 145., 150., 178., 163., 172., 178., 199., 199., 184.,
+                          162., 146., 166., 171., 180., 193., 181., 183., 218., 230., 242.,
+                          209., 191., 172., 194., 196., 196., 236., 235., 229., 243., 264.,
+                          272., 237., 211., 180., 201., 204., 188., 235., 227., 234., 264.,
+                          302., 293., 259., 229., 203., 229., 242., 233., 267., 269., 270.,
+                          315., 364., 347., 312., 274., 237., 278., 284., 277., 317., 313.,
+                          318., 374., 413., 405., 355., 306., 271., 306., 315., 301., 356.,
+                          348., 355., 422., 465., 467., 404., 347., 305., 336., 340., 318.,
+                          362., 348., 363., 435., 491., 505., 404., 359., 310., 337., 360.,
+                          342., 406., 396., 420., 472., 548., 559., 463., 407., 362., 405.,
+                          417., 391., 419., 461., 472., 535., 622., 606., 508., 461., 390.,
+                          432.], dtype=np.float32)
 
 # %% ../nbs/utils.ipynb 12
-AirPassengersDF = pd.DataFrame(
-    {
-        "unique_id": np.ones(len(AirPassengers)),
-        "ds": pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M"),
-        "y": AirPassengers,
-    }
-)
+AirPassengersDF = pd.DataFrame({'unique_id': np.ones(len(AirPassengers)),
+                                'ds': pd.date_range(start='1949-01-01',
+                                                    periods=len(AirPassengers), freq='M'),
+                                'y': AirPassengers})
 
 # %% ../nbs/utils.ipynb 18
 # Declare Panel Data
-unique_id = np.concatenate(
-    [["Airline1"] * len(AirPassengers), ["Airline2"] * len(AirPassengers)]
-)
-ds = np.concatenate(
-    [
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-    ]
-)
-y = np.concatenate([AirPassengers, AirPassengers + 300])
+unique_id = np.concatenate([['Airline1']*len(AirPassengers), ['Airline2']*len(AirPassengers)])
+ds = np.concatenate([pd.date_range(start='1949-01-01', 
+                                   periods=len(AirPassengers), freq='M').values,
+                     pd.date_range(start='1949-01-01', 
+                                   periods=len(AirPassengers), freq='M').values])
+y = np.concatenate([AirPassengers, AirPassengers+300])
 
-AirPassengersPanel = pd.DataFrame({"unique_id": unique_id, "ds": ds, "y": y})
+AirPassengersPanel = pd.DataFrame({'unique_id': unique_id, 'ds': ds, 'y': y})
 
 # For future exogenous variables
 # Declare SeasonalNaive12 and fill first 12 values with y
-snaive = (
-    AirPassengersPanel.groupby("unique_id")["y"]
-    .shift(periods=12)
-    .reset_index(drop=True)
-)
-AirPassengersPanel["trend"] = range(len(AirPassengersPanel))
-AirPassengersPanel["y_[lag12]"] = snaive
-AirPassengersPanel["y_[lag12]"].fillna(AirPassengersPanel["y"], inplace=True)
+snaive = AirPassengersPanel.groupby('unique_id')['y'].shift(periods=12).reset_index(drop=True)
+AirPassengersPanel['trend'] = range(len(AirPassengersPanel))
+AirPassengersPanel['y_[lag12]'] = snaive
+AirPassengersPanel['y_[lag12]'].fillna(AirPassengersPanel['y'], inplace=True)
 
 # Declare Static Data
-unique_id = np.array(["Airline1", "Airline2"])
+unique_id = np.array(['Airline1', 'Airline2'])
 airline1_dummy = [0, 1]
 airline2_dummy = [1, 0]
-AirPassengersStatic = pd.DataFrame(
-    {"unique_id": unique_id, "airline1": airline1_dummy, "airline2": airline2_dummy}
-)
+AirPassengersStatic = pd.DataFrame({'unique_id': unique_id,
+                                    'airline1': airline1_dummy,
+                                    'airline2': airline2_dummy})
 
-AirPassengersPanel.groupby("unique_id").tail(4)
+AirPassengersPanel.groupby('unique_id').tail(4)
