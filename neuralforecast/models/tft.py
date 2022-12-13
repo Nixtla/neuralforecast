@@ -4,6 +4,7 @@
 __all__ = ['TFT']
 
 # %% ../../nbs/models.tft.ipynb 4
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -622,6 +623,52 @@ class TFT(BaseWindows):
 
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        # Deviates from orignal `BaseWindows.training_step` to
+        # allow the model to receive future exogenous available
+        # at the time of the prediction.
+
+        if self.val_size == 0:
+            return np.nan
+
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step="val")
+        windows = self._normalization(windows=windows)
+
+        # Parse outsample data
+        y_idx = batch["temporal_cols"].get_loc("y")
+        mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        outsample_y = windows["temporal"][:, -self.h :, y_idx]
+        outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
+
+        # Model predictions
+        output = self(x=windows)
+        if self.loss.is_distribution_output:
+            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
+            outsample_y, y_shift, y_scale = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+            )
+            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
+            # assert torch.min(outsample_y) > 0
+            loss = self.loss(
+                y=outsample_y,
+                distr_args=output,
+                loc=y_shift,
+                scale=y_scale,
+                mask=outsample_mask,
+            )
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+
+        self.log("val_loss", loss, prog_bar=True, on_epoch=True)
+        return loss
+
+    def validation_epoch_end(self, outputs):
+        if self.val_size == 0:
+            return
+        avg_loss = torch.stack(outputs).mean()
+        self.log("ptl/val_loss", avg_loss)
 
     def predict_step(self, batch, batch_idx):
         # Deviates from orignal `BaseWindows.training_step` to
