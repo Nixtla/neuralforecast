@@ -114,12 +114,10 @@ class BaseAuto(pl.LightningModule):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
-        assert (
-            config.get("h", None) is None
-        ), "Please use `h` argument instead of `config['h']`."
-        assert (
-            config.get("loss", None) is None
-        ), "Please use `loss` argument instead of `config['loss']`."
+        if config.get("h", None) is not None:
+            raise Exception("Please use `h` argument instead of `config['h']`.")
+        if config.get("loss", None) is not None:
+            raise Exception("Please use `loss` argument instead of `config['loss']`.")
 
         # Deepcopy to avoid modifying the original config
         config_base = deepcopy(config)

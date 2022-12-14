@@ -474,7 +474,7 @@ class AutoTFT(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "hidden_size": tune.choice([64, 128, 256]),
-        "n_heads": tune.choice([4, 8]),
+        "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
