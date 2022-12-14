@@ -61,7 +61,6 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        AutoTFT(h=horizon, loss=SMAPE(), config=None, num_samples=2, cpus=1)
     ]
     for model in models:
         model_name = type(model).__name__
