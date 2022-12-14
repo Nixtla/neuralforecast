@@ -20,7 +20,7 @@ from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.tft import TFT
 
 from neuralforecast.auto import (
-    AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN
+    AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN, AutoTFT
 )
 
 from neuralforecast.losses.pytorch import SMAPE
@@ -54,15 +54,16 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_epochs=100),
         LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
         GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
-        AutoDilatedRNN(h=horizon, config=config_drnn, num_samples=2, cpus=1),
-        AutoNBEATS(h=horizon, config=config_nbeats, num_samples=2, cpus=1),
-        AutoNHITS(h=horizon, config=config_nbeats, num_samples=2, cpus=1),
-        AutoMLP(h=horizon, config=config, num_samples=2, cpus=1),
+        AutoDilatedRNN(h=horizon, loss=SMAPE(), config=config_drnn, num_samples=2, cpus=1),
+        AutoNBEATS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
+        AutoNHITS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
+        AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
         NHITS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
-        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100)
+        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
+        AutoTFT(h=horizon, loss=SMAPE(), config=None, num_samples=2, cpus=1)
     ]
     for model in models:
         model_name = type(model).__name__
