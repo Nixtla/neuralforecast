@@ -25,7 +25,6 @@ from .models.nhits import NHITS
 from .models.tft import TFT
 
 from .losses.pytorch import MAE
-from .losses.pytorch import MSE
 
 # %% ../nbs/models.ipynb 8
 class AutoRNN(BaseAuto):
@@ -40,7 +39,7 @@ class AutoRNN(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -48,6 +47,7 @@ class AutoRNN(BaseAuto):
     def __init__(
         self,
         h,
+        loss=MAE(),
         config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -72,6 +72,7 @@ class AutoRNN(BaseAuto):
         super(AutoRNN, self).__init__(
             cls_model=RNN,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -94,7 +95,7 @@ class AutoLSTM(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -102,7 +103,8 @@ class AutoLSTM(BaseAuto):
     def __init__(
         self,
         h,
-        config,
+        loss=MAE(),
+        config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
@@ -122,6 +124,7 @@ class AutoLSTM(BaseAuto):
         super(AutoLSTM, self).__init__(
             cls_model=LSTM,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -144,7 +147,7 @@ class AutoGRU(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -152,7 +155,8 @@ class AutoGRU(BaseAuto):
     def __init__(
         self,
         h,
-        config,
+        loss=MAE(),
+        config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
@@ -172,6 +176,7 @@ class AutoGRU(BaseAuto):
         super(AutoGRU, self).__init__(
             cls_model=GRU,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -193,7 +198,7 @@ class AutoTCN(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
-        "loss": tune.choice([MAE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -201,7 +206,8 @@ class AutoTCN(BaseAuto):
     def __init__(
         self,
         h,
-        config,
+        loss=MAE(),
+        config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
@@ -221,6 +227,7 @@ class AutoTCN(BaseAuto):
         super(AutoTCN, self).__init__(
             cls_model=TCN,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -244,7 +251,7 @@ class AutoDilatedRNN(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -252,7 +259,8 @@ class AutoDilatedRNN(BaseAuto):
     def __init__(
         self,
         h,
-        config,
+        loss=MAE(),
+        config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
@@ -272,6 +280,7 @@ class AutoDilatedRNN(BaseAuto):
         super(AutoDilatedRNN, self).__init__(
             cls_model=DilatedRNN,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -294,7 +303,7 @@ class AutoMLP(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -302,7 +311,8 @@ class AutoMLP(BaseAuto):
     def __init__(
         self,
         h,
-        config,
+        loss=MAE(),
+        config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
@@ -326,6 +336,7 @@ class AutoMLP(BaseAuto):
         super(AutoMLP, self).__init__(
             cls_model=MLP,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -346,7 +357,7 @@ class AutoNBEATS(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -354,6 +365,7 @@ class AutoNBEATS(BaseAuto):
     def __init__(
         self,
         h,
+        loss=MAE(),
         config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -378,6 +390,7 @@ class AutoNBEATS(BaseAuto):
         super(AutoNBEATS, self).__init__(
             cls_model=NBEATS,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -411,7 +424,7 @@ class AutoNHITS(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
-        "loss": tune.choice([MAE(), MSE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -419,6 +432,7 @@ class AutoNHITS(BaseAuto):
     def __init__(
         self,
         h,
+        loss=MAE(),
         config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -443,6 +457,7 @@ class AutoNHITS(BaseAuto):
         super(AutoNHITS, self).__init__(
             cls_model=NHITS,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
@@ -459,13 +474,13 @@ class AutoTFT(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "hidden_size": tune.choice([64, 128, 256]),
-        "n_heads": tune.choice([4, 8]),
+        "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
-        "loss": tune.choice([MAE()]),
+        "loss": None,
         "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
@@ -473,6 +488,7 @@ class AutoTFT(BaseAuto):
     def __init__(
         self,
         h,
+        loss=MAE(),
         config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -497,6 +513,7 @@ class AutoTFT(BaseAuto):
         super(AutoTFT, self).__init__(
             cls_model=TFT,
             h=h,
+            loss=loss,
             config=config,
             search_alg=search_alg,
             num_samples=num_samples,
