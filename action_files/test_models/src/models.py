@@ -34,7 +34,6 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
     train['ds'] = pd.to_datetime(train['ds']) 
     config_nbeats = {
         "mlp_units": tune.choice([3 * [[512, 512]]]),
-        "loss": SMAPE(),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon, 4 * horizon]),
         "max_epochs": 100
     }
@@ -42,7 +41,6 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         "hidden_size": tune.choice([256, 512, 1024]),
         "num_layers": tune.choice([2, 4, 6]),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon]),
-        "loss": SMAPE(),
         "max_epochs": 100
     }
     config_drnn = {'input_size': tune.choice([2 * horizon, 3 * horizon]),
