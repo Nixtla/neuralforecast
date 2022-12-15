@@ -7,6 +7,7 @@ website:
       - text: "--"
       - section: "Getting Started"
         contents:
+        - examples/Installation.ipynb
         - examples/Getting_Started.ipynb
         - examples/Data_Format.ipynb
       - section: "Tutorials"
