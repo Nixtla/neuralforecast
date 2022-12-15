@@ -1,7 +1,22 @@
 website:
+  reader-mode: false
   sidebar:
+    collapse-level: 1
     contents:
       - index.ipynb
+      - text: "--"
+      - section: "Getting Started"
+        contents:
+        - examples/Getting_Started.ipynb
+        - examples/Data_Format.ipynb
+      - section: "Tutorials"
+        contents:
+        - examples/Forecasting_TFT.ipynb
+        - examples/LongHorizon_with_NHITS.ipynb
+        - examples/UncertaintyIntervals.ipynb
+        - examples/LongHorizon_Probabilistic.ipynb
+        - examples/Save_Load_models.ipynb
+        - examples/Transfer_Learning.ipynb
       - section: API Reference
         contents:
         - core.ipynb
@@ -39,13 +54,6 @@ website:
           contents:
           - tsdataset.ipynb
           - utils.ipynb
-      - section: Tutorials
+      - section: Community
         contents:
-        - examples/Getting_Started.ipynb
-        - examples/Data_Format.ipynb
-        - examples/UncertaintyIntervals.ipynb
-        - examples/LongHorizon_with_NHITS.ipynb
-        - examples/LongHorizon_Probabilistic.ipynb
-        - examples/Forecasting_TFT.ipynb
-        - examples/Save_Load_models.ipynb
-        - examples/Transfer_Learning.ipynb
+          - Contributing
