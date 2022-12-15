@@ -10,13 +10,13 @@ website:
         - examples/Installation.ipynb
         - examples/Getting_Started.ipynb
         - examples/Data_Format.ipynb
+        - examples/Save_Load_models.ipynb
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
         - examples/UncertaintyIntervals.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
-        - examples/Save_Load_models.ipynb
         - examples/Transfer_Learning.ipynb
       - section: API Reference
         contents:
