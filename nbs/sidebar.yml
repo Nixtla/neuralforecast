@@ -46,5 +46,6 @@ website:
         - examples/UncertaintyIntervals.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
+        - examples/Forecasting_TFT.ipynb
         - examples/Save_Load_models.ipynb
         - examples/Transfer_Learning.ipynb
