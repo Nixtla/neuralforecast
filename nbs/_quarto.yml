@@ -32,7 +32,7 @@ website:
           - text: "StatsForecast ⚡️"
             href: https://github.com/nixtla/statsforecast
           - text: "HierarchicalForecast 👑"
-            href: "https://github.com/nixtla/hierachicalforecast"
+            href: "https://github.com/nixtla/hierarchicalforecast"
           
       - text: "Help"
         menu:
