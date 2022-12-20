@@ -934,6 +934,21 @@ class PMM(torch.nn.Module):
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
+    def get_distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ):
+
+        if loc is None and scale is None:
+            return distr_args
+        elif loc is not None and scale is not None:
+            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
+            scale = scale.view(distr_args[0].size(dim=0), 1, -1)
+            lambda_scaled = (distr_args[0] * scale) + loc
+            return (lambda_scaled,)
+
     def domain_map(self, lambdas_hat: torch.Tensor):
         lambdas_hat = F.softplus(lambdas_hat)
         return (lambdas_hat,)  # , weights
@@ -958,7 +973,7 @@ class PMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        lambdas = distr_args[0]
+        lambdas = self.get_distribution(distr_args, loc, scale)[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
 
@@ -1013,10 +1028,9 @@ class PMM(torch.nn.Module):
             mask = torch.ones_like(y)
 
         eps = 1e-10
-        lambdas = distr_args[0]
+        lambdas = self.get_distribution(distr_args, loc, scale)[0]
         B, H, K = lambdas.size()
 
-        lambdas = distr_args[0]
         weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
 
         y = y[:, :, None]
@@ -1100,13 +1114,35 @@ class GMM(torch.nn.Module):
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
         if self.return_params:
-            self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
-            self.output_names = self.output_names + self.param_names
+            mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
+            std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
+            self.output_names = self.output_names + mu_names + std_names
 
-        self.outputsize_multiplier = n_components
+        self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
-    def sample(self, weights, means, stds, num_samples=None):
+    def get_distribution(
+        self,
+        distr_args,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+    ):
+
+        if loc is None and scale is None:
+            return distr_args
+        elif loc is not None and scale is not None:
+            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
+            scale = scale.view(distr_args[1].size(dim=0), 1, -1)
+            mu_scaled = (distr_args[0] * scale) + loc
+            std_scaled = distr_args[1] * scale
+            return (mu_scaled, std_scaled)
+
+    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.2):
+        loc, scale = torch.tensor_split(params_hat, 2, dim=-1)
+        scale = F.softplus(scale) + eps
+        return (loc, scale)
+
+    def sample(self, distr_args, loc=None, scale=None, num_samples=None):
         """
         Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
@@ -1126,6 +1162,8 @@ class GMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
+        means, stds = self.get_distribution(distr_args, loc, scale)
+
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
@@ -1133,6 +1171,8 @@ class GMM(torch.nn.Module):
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+
+        weights = (1 / K) * torch.ones_like(means).to(means.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1173,17 +1213,24 @@ class GMM(torch.nn.Module):
     def neglog_likelihood(
         self,
         y: torch.Tensor,
-        weights: torch.Tensor,
-        means: torch.Tensor,
-        stds: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
     ):
 
         if mask is None:
-            mask = torch.ones_like(means)
+            mask = torch.ones_like(y)
+
+        means, stds = self.get_distribution(distr_args, loc, scale)
 
         B, H, K = means.size()
+
+        weights = (1 / K) * torch.ones_like(means).to(means.device)
         # eps  = 1e-10
+
+        y = y[:, :, None]
+        mask = mask[:, :, None]
 
         log = -0.5 * ((1 / stds) * (y - means)) ** 2 - torch.log(
             ((2 * math.pi) ** (0.5)) * stds
@@ -1205,12 +1252,12 @@ class GMM(torch.nn.Module):
     def __call__(
         self,
         y: torch.Tensor,
-        weights: torch.Tensor,
-        means: torch.Tensor,
-        stds: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
     ):
 
         return self.neglog_likelihood(
-            y=y, weights=weights, means=means, stds=stds, mask=mask
+            y=y, distr_args=distr_args, mask=mask, loc=loc, scale=scale
         )

@@ -102,6 +102,7 @@ class BaseAuto(pl.LightningModule):
         self,
         cls_model,
         h,
+        loss,
         config,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -112,10 +113,21 @@ class BaseAuto(pl.LightningModule):
     ):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
-        config["h"] = h
+
+        if config.get("h", None) is not None:
+            raise Exception("Please use `h` argument instead of `config['h']`.")
+        if config.get("loss", None) is not None:
+            raise Exception("Please use `loss` argument instead of `config['loss']`.")
+
+        # Deepcopy to avoid modifying the original config
+        config_base = deepcopy(config)
+
+        config_base["h"] = h
+        config_base["loss"] = loss
         self.cls_model = cls_model
         self.h = h
-        self.config = config
+        self.loss = loss
+        self.config = config_base
         self.num_samples = num_samples
         self.search_alg = search_alg
         self.cpus = cpus
