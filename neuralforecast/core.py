@@ -130,7 +130,7 @@ class NeuralForecast:
 
     def fit(
         self,
-        df: pd.DataFrame,
+        df: Optional[pd.DataFrame] = None,
         static_df: Optional[pd.DataFrame] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
@@ -143,8 +143,9 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas.DataFrame
+        df : pandas.DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`] and static exogenous.
         val_size : int, optional (default=0)
@@ -278,7 +279,7 @@ class NeuralForecast:
 
     def cross_validation(
         self,
-        df: pd.DataFrame,
+        df: Optional[pd.DataFrame] = None,
         static_df: Optional[pd.DataFrame] = None,
         n_windows: int = 1,
         step_size: int = 1,
@@ -295,8 +296,9 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas.DataFrame
+        df : pandas.DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`] and static exogenous.
         n_windows : int (default=1)
