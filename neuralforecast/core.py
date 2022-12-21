@@ -96,11 +96,19 @@ class NeuralForecast:
         and datestamps with the `unique_id` and `ds` columns. The `y` column denotes the target
         time series variable.
 
-        **Parameters:**<br>
-        `h`: int, forecast horizon.<br>
-        `models`: List[typing.Any], instantiated `neuralforecast.models` see [collection here](https://nixtla.github.io/neuralforecast/models.html).<br>
-        `freq`: str, frequency of the data, [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).<br>
-        `trainers`: List[typing.Any], optional list of instantiated pytorch lightning trainers.<br>
+        Parameters
+        ----------
+        models : List[typing.Any]
+            Instantiated `neuralforecast.models`
+            see [collection here](https://nixtla.github.io/neuralforecast/models.html).
+        freq : str
+            Frequency of the data,
+            see [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+
+        Returns
+        -------
+        self : NeuralForecast
+            Returns instantiated `NeuralForecast` class.
         """
         assert all(
             model.h == models[0].h for model in models
@@ -133,14 +141,24 @@ class NeuralForecast:
         Fit `models` to a large set of time series from DataFrame `df`.
         and store fitted models for later inspection.
 
-        **Parameters:**<br>
-        `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
-        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
-        `val_size`: int, size of validation set.<br>
-        `sort_df`: bool, sort df before fitting.
+        Parameters
+        ----------
+        df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
+        static_df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+        val_size : int, optional (default=0)
+            Size of validation set.
+        sort_df : bool, optional (default=False)
+            Sort `df` before fitting.
+        verbose : bool (default=False)
+            Print processing steps.
 
-        **Returns:**<br>
-        `self`: Returns with stored `NeuralForecast` fitted `models`.
+        Returns
+        -------
+        self : NeuralForecast
+            Returns `NeuralForecast` class with fitted `models`.
         """
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
@@ -189,13 +207,27 @@ class NeuralForecast:
 
         Use stored fitted `models` to predict large set of time series from DataFrame `df`.
 
-        **Parameters:**<br>
-        `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
-        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
-        `futr_df`: pandas.DataFrame, with [`unique_id`, `ds`] columns and `df`'s future exogenous.<br>
+        Parameters
+        ----------
+        df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If a DataFrame is passed, it is used to generate forecasts.
+        static_df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+        futr_df : pandas.DataFrame, optional (default=None)
+            DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
+        sort_df : bool (default=True)
+            Sort `df` before fitting.
+        verbose : bool (default=False)
+            Print processing steps.
+        data_kwargs : kwargs
+            Extra arguments to be passed to the dataset within each model.
 
-        **Returns:**<br>
-        `fcsts_df`: pandas.DataFrame, with `models` columns for point predictions.<br>
+        Returns
+        -------
+        fcsts_df : pandas.DataFrame
+            DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
         """
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
@@ -247,7 +279,7 @@ class NeuralForecast:
 
     def cross_validation(
         self,
-        df: pd.DataFrame = None,
+        df: Optional[pd.DataFrame] = None,
         static_df: Optional[pd.DataFrame] = None,
         n_windows: int = 1,
         step_size: int = 1,
@@ -262,17 +294,33 @@ class NeuralForecast:
         `core.NeuralForecast`'s cross-validation efficiently fits a list of NeuralForecast
         models through multiple windows, in either chained or rolled manner.
 
-        *Parameters:*<br>
-        `df`: pandas.DataFrame, with columns [`unique_id`, `ds`, `y`] and exogenous.<br>
-        `static_df`: pandas.DataFrame, with columns [`unique_id`, `ds`] and static exogenous.<br>
-        `n_windows`: int, number of windows used for cross validation.<br>
-        `step_size`: int = 1, step size between each window.<br>
-        `val_size`: Optional[int] = None, length of validation size. If passed, set `n_windows=None`.<br>
-        `test_size`: Optional[int] = None, length of test size. If passed, set `n_windows=None`.<br>
+        Parameters
+        ----------
+        df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
+        static_df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+        n_windows : int (default=1)
+            Number of windows used for cross validation.
+        step_size : int (default=1)
+            Step size between each window.
+        val_size : int, optional (default=None)
+            Length of validation size. If passed, set `n_windows=None`.
+        test_size : int, optional (default=None)
+            Length of test size. If passed, set `n_windows=None`.
+        sort_df : bool (default=True)
+            Sort `df` before fitting.
+        verbose : bool (default=False)
+            Print processing steps.
+        data_kwargs : kwargs
+            Extra arguments to be passed to the dataset within each model.
 
-        *Returns:*<br>
-        `fcsts_df`: pandas.DataFrame, with insample `models` columns for point predictions and probabilistic
-        predictions for all fitted `models`.<br>
+        Returns
+        -------
+        fcsts_df : pandas.DataFrame
+            DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
         """
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
@@ -352,11 +400,16 @@ class NeuralForecast:
         Note that by default the `models` are not saving training checkpoints to save disk memory,
         to get them change the individual model `**trainer_kwargs` to include `enable_checkpointing=True`.
 
-        *Parameters:*<br>
-        `path`: str, directory to save current status.<br>
-        `model_index`: Optional[List] = None, optional list to specify which models from list of self.models to save.<br>
-        `save_dataset`: bool = True, whether to save dataset or not.<br>
-        `overwrite`: bool = False, whether to overwrite files or not.<br>
+        Parameters
+        ----------
+        path : str
+            Directory to save current status.
+        model_index : list, optional (default=None)
+            List to specify which models from list of self.models to save.
+        save_dataset : bool (default=True)
+            Whether to save dataset or not.
+        overwrite : bool (default=False)
+            Whether to overwrite files or not.
         """
         # Standarize path without '/'
         if path[-1] == "/":
@@ -419,8 +472,15 @@ class NeuralForecast:
 
         `core.NeuralForecast`'s method to load checkpoint from path.
 
-        *Parameters:*<br>
-        `path`: str, directory to save current status.<br>
+        Parameters
+        -----------
+        path : str
+            Directory to save current status.
+
+        Returns
+        -------
+        result : NeuralForecast
+            Instantiated `NeuralForecast` class.
         """
         files = [f for f in os.listdir(path) if isfile(join(path, f))]
 
