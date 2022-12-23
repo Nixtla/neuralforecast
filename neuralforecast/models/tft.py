@@ -402,7 +402,11 @@ class TFT(BaseWindows):
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float (0, 1), initial optimization learning rate.<br>
+    `max_steps`: int, maximum number of training steps.<br>
+    `learning_rate`: float, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
@@ -421,23 +425,27 @@ class TFT(BaseWindows):
         self,
         h,
         input_size,
-        tgt_size=1,
+        tgt_size: int = 1,
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
-        hidden_size=128,
-        n_head=4,
-        attn_dropout=0.0,
-        dropout=0.1,
+        hidden_size: int = 128,
+        n_head: int = 4,
+        attn_dropout: float = 0.0,
+        dropout: float = 0.1,
         loss=MAE(),
-        learning_rate=1e-3,
-        batch_size=32,
-        windows_batch_size=1024,
-        step_size=1,
-        scaler_type="robust",
+        max_steps: int = 1000,
+        learning_rate: float = 1e-3,
+        num_lr_decays: int = 3,
+        early_stop_patience_steps: int = -1,
+        val_check_steps: int = 100,
+        batch_size: int = 32,
+        windows_batch_size: int = 1024,
+        step_size: int = 1,
+        scaler_type: str = "robust",
         num_workers_loader=0,
         drop_last_loader=False,
-        random_seed=1,
+        random_seed: int = 1,
         **trainer_kwargs
     ):
 
@@ -446,7 +454,11 @@ class TFT(BaseWindows):
             h=h,
             input_size=input_size,
             loss=loss,
+            max_steps=max_steps,
             learning_rate=learning_rate,
+            num_lr_decays=num_lr_decays,
+            early_stop_patience_steps=early_stop_patience_steps,
+            val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
             step_size=step_size,
@@ -605,12 +617,9 @@ class TFT(BaseWindows):
         # Model predictions
         output = self(x=windows)
         if self.loss.is_distribution_output:
-            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
             outsample_y, y_shift, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            # assert torch.min(outsample_y) > 0
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,
@@ -645,12 +654,9 @@ class TFT(BaseWindows):
         # Model predictions
         output = self(x=windows)
         if self.loss.is_distribution_output:
-            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
             outsample_y, y_shift, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            # assert torch.min(outsample_y) > 0
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,

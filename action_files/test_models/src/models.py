@@ -35,32 +35,35 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
     config_nbeats = {
         "mlp_units": tune.choice([3 * [[512, 512]]]),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon, 4 * horizon]),
-        "max_epochs": 100
+        "max_steps": 100,
+        "val_check_steps": 10
     }
     config = {
         "hidden_size": tune.choice([256, 512, 1024]),
         "num_layers": tune.choice([2, 4, 6]),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon]),
-        "max_epochs": 100
+        "max_steps": 100,
+        "val_check_steps": 10
     }
     config_drnn = {'input_size': tune.choice([2 * horizon, 3 * horizon]),
                    'encoder_hidden_size': tune.choice([50]),
-                   'max_epochs': 50}
+                   'max_steps': 50,
+                   "val_check_steps": 10}
     models = [
-        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
-        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
-        TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_epochs=100),
-        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
-        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
+        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=50),
+        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=50),
+        TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=100),
+        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=50),
+        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=50),
         AutoDilatedRNN(h=horizon, loss=SMAPE(), config=config_drnn, num_samples=2, cpus=1),
         AutoNBEATS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoNHITS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
-        NHITS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
-        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
+        NHITS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=100),
+        NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=100),
+        NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=100),
+        MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_steps=300),
+        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=100),
     ]
     for model in models:
         model_name = type(model).__name__

@@ -8,8 +8,8 @@ dependencies:
   - numpy>=1.21.6
   - pandas>=1.3.5
   - pytorch>=1.12.0
-  - pytorch-lightning==1.6.5
+  - pytorch-lightning==1.8.6
   - pip
   - pip:
     - nbdev
-    - "ray[tune]==2.0.1"
+    - "ray[tune]==2.2.0"

@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import TQDMProgressBar
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
@@ -23,8 +24,12 @@ class BaseRecurrent(pl.LightningModule):
         input_size,
         loss,
         learning_rate,
+        max_steps,
+        val_check_steps,
         batch_size=32,
         scaler_type="robust",
+        num_lr_decays=0,
+        early_stop_patience_steps=-1,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -48,6 +53,16 @@ class BaseRecurrent(pl.LightningModule):
         # Loss
         self.loss = loss
         self.learning_rate = learning_rate
+        self.max_steps = max_steps
+        self.num_lr_decays = num_lr_decays
+        self.lr_decay_steps = (
+            max(max_steps // self.num_lr_decays, 1)
+            if self.num_lr_decays > 0
+            else max_steps
+        )
+        self.early_stop_patience_steps = early_stop_patience_steps
+        self.val_check_steps = val_check_steps
+        self.batch_size = batch_size
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -63,30 +78,46 @@ class BaseRecurrent(pl.LightningModule):
         self.val_size = 0
         self.test_size = 0
 
-        # Trainer
-        # we need to instantiate the trainer each time we want to use it
-        self.trainer_kwargs = {**trainer_kwargs}
-        if self.trainer_kwargs.get("callbacks", None) is None:
-            self.trainer_kwargs = {
-                **{"callbacks": [TQDMProgressBar()], **trainer_kwargs}
-            }
-        else:
-            self.trainer_kwargs = trainer_kwargs
+        ## Trainer arguments ##
+        # Max steps, validation steps and check_val_every_n_epoch
+        trainer_kwargs = {
+            **trainer_kwargs,
+            **{"max_steps": max_steps},
+            **{"val_check_interval": val_check_steps},
+            **{"check_val_every_n_epoch": None},
+        }
+
+        if "max_epochs" in trainer_kwargs.keys():
+            raise Exception("max_epochs is deprecated, use max_steps instead.")
+
+        # Callbacks
+        if trainer_kwargs.get("callbacks", None) is None:
+            callbacks = [TQDMProgressBar()]
+            # Early stopping
+            if self.early_stop_patience_steps > 0:
+                callbacks += [
+                    EarlyStopping(
+                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                    )
+                ]
+
+            trainer_kwargs["callbacks"] = callbacks
 
         # Add GPU accelerator if available
-        if self.trainer_kwargs.get("accelerator", None) is None:
+        if trainer_kwargs.get("accelerator", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs["accelerator"] = "gpu"
-        if self.trainer_kwargs.get("devices", None) is None:
+                trainer_kwargs["accelerator"] = "gpu"
+        if trainer_kwargs.get("devices", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs["devices"] = -1
+                trainer_kwargs["devices"] = -1
 
         # Avoid saturating local memory, disabled fit model checkpoints
-        if self.trainer_kwargs.get("enable_checkpointing", None) is None:
-            self.trainer_kwargs["enable_checkpointing"] = False
+        if trainer_kwargs.get("enable_checkpointing", None) is None:
+            trainer_kwargs["enable_checkpointing"] = False
+
+        self.trainer_kwargs = trainer_kwargs
 
         # DataModule arguments
-        self.batch_size = batch_size
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
 
@@ -96,7 +127,15 @@ class BaseRecurrent(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = {
+            "scheduler": torch.optim.lr_scheduler.StepLR(
+                optimizer, self.lr_decay_steps, 0.5
+            ),
+            "frequency": 1,
+            "interval": "step",
+        }
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _normalization(self, batch, val_size=0, test_size=0):
 
