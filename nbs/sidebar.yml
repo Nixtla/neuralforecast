@@ -10,6 +10,7 @@ website:
         - examples/Installation.ipynb
         - examples/Getting_Started.ipynb
         - examples/Data_Format.ipynb
+        - examples/Exogenous_Variables.ipynb
         - examples/Save_Load_models.ipynb
       - section: "Tutorials"
         contents:
