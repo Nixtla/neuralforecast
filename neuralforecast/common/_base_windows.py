@@ -5,6 +5,7 @@ __all__ = ['BaseWindows']
 
 # %% ../../nbs/common.base_windows.ipynb 4
 import random
+import warnings
 
 import numpy as np
 import torch
@@ -90,7 +91,7 @@ class BaseWindows(pl.LightningModule):
         trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
 
         if "max_epochs" in trainer_kwargs.keys():
-            raise Exception("max_epochs is deprecated, use max_steps instead.")
+            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
 
         # Callbacks
         if trainer_kwargs.get("callbacks", None) is None:
