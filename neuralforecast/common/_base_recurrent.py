@@ -80,12 +80,7 @@ class BaseRecurrent(pl.LightningModule):
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
-        trainer_kwargs = {
-            **trainer_kwargs,
-            **{"max_steps": max_steps},
-            **{"val_check_interval": val_check_steps},
-            **{"check_val_every_n_epoch": None},
-        }
+        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
 
         if "max_epochs" in trainer_kwargs.keys():
             raise Exception("max_epochs is deprecated, use max_steps instead.")
@@ -502,6 +497,26 @@ class BaseRecurrent(pl.LightningModule):
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
         )
+
+        ### Check validation every steps ###
+        steps_in_epoch = np.ceil(dataset.n_groups / self.batch_size)
+
+        # In v1.6.5 of PL, val_check_interval can be used for multiple validation steps
+        # within one epoch (steps_in_epoch > self.val_check_steps)
+        if steps_in_epoch > self.val_check_steps:
+            val_check_interval = self.val_check_steps / steps_in_epoch
+            check_val_every_n_epoch = 1
+        # Use check_val_every_n_epoch to check validation at end of some epochs,
+        # closest to self.val_check_steps.
+        else:
+            val_check_interval = None
+            check_val_every_n_epoch = int(
+                np.round(self.val_check_steps / steps_in_epoch)
+            )
+
+        self.trainer_kwargs["val_check_interval"] = val_check_interval
+        self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
+
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
