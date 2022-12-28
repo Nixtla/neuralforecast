@@ -255,11 +255,11 @@ class NBEATSx(BaseWindows):
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int, maximum number of training steps.<br>
-    `learning_rate`: float, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int, Number of training steps between every validation loss check.<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>

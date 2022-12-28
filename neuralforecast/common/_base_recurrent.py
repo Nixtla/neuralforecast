@@ -59,7 +59,7 @@ class BaseRecurrent(pl.LightningModule):
         self.lr_decay_steps = (
             max(max_steps // self.num_lr_decays, 1)
             if self.num_lr_decays > 0
-            else max_steps
+            else 1000000000
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
@@ -81,10 +81,10 @@ class BaseRecurrent(pl.LightningModule):
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
-        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
-
         if "max_epochs" in trainer_kwargs.keys():
             warnings.warn("max_epochs will be deprecated, use max_steps instead.")
+        else:
+            trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
 
         # Callbacks
         if trainer_kwargs.get("callbacks", None) is None:

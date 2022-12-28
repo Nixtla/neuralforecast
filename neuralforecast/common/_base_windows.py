@@ -61,7 +61,7 @@ class BaseWindows(pl.LightningModule):
         self.lr_decay_steps = (
             max(max_steps // self.num_lr_decays, 1)
             if self.num_lr_decays > 0
-            else max_steps
+            else 1000000000
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
