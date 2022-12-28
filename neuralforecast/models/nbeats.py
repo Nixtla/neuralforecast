@@ -211,7 +211,11 @@ class NBEATS(BaseWindows):
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float, initial optimization learning rate (0,1).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
@@ -239,12 +243,16 @@ class NBEATS(BaseWindows):
         activation: str = "ReLU",
         shared_weights: bool = False,
         loss=MAE(),
+        max_steps: int = 1000,
         learning_rate: float = 1e-3,
+        num_lr_decays: int = 3,
+        early_stop_patience_steps: int = -1,
+        val_check_steps: int = 100,
         batch_size: int = 32,
         windows_batch_size: int = 1024,
         step_size: int = 1,
-        scaler_type="identity",
-        random_seed=1,
+        scaler_type: str = "identity",
+        random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         **trainer_kwargs,
@@ -255,8 +263,11 @@ class NBEATS(BaseWindows):
             h=h,
             input_size=input_size,
             loss=loss,
+            max_steps=max_steps,
             learning_rate=learning_rate,
-            batch_size=batch_size,
+            num_lr_decays=num_lr_decays,
+            early_stop_patience_steps=early_stop_patience_steps,
+            val_check_steps=val_check_steps,
             windows_batch_size=windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,

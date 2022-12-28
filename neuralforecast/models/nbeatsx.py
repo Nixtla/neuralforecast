@@ -253,10 +253,13 @@ class NBEATSx(BaseWindows):
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float, initial optimization learning rate.<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
@@ -287,7 +290,11 @@ class NBEATSx(BaseWindows):
         activation="ReLU",
         shared_weights=False,
         loss=MAE(),
-        learning_rate=1e-3,
+        max_steps: int = 1000,
+        learning_rate: float = 1e-3,
+        num_lr_decays: int = 3,
+        early_stop_patience_steps: int = -1,
+        val_check_steps: int = 100,
         batch_size=32,
         windows_batch_size: int = 1024,
         step_size: int = 1,
@@ -306,7 +313,11 @@ class NBEATSx(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             loss=loss,
+            max_steps=max_steps,
             learning_rate=learning_rate,
+            num_lr_decays=num_lr_decays,
+            early_stop_patience_steps=early_stop_patience_steps,
+            val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
             step_size=step_size,

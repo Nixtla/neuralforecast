@@ -5,12 +5,14 @@ __all__ = ['BaseWindows']
 
 # %% ../../nbs/common.base_windows.ipynb 4
 import random
+import warnings
 
 import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import TQDMProgressBar
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
@@ -23,9 +25,13 @@ class BaseWindows(pl.LightningModule):
         input_size,
         loss,
         learning_rate,
+        max_steps,
+        val_check_steps,
         batch_size=32,
         windows_batch_size=1024,
         step_size=1,
+        num_lr_decays=0,
+        early_stop_patience_steps=-1,
         scaler_type="identity",
         futr_exog_list=None,
         hist_exog_list=None,
@@ -50,6 +56,13 @@ class BaseWindows(pl.LightningModule):
         # BaseWindows optimization attributes
         self.loss = loss
         self.learning_rate = learning_rate
+        self.max_steps = max_steps
+        self.num_lr_decays = num_lr_decays
+        self.lr_decay_steps = (
+            max(max_steps // self.num_lr_decays, 1) if self.num_lr_decays > 0 else 10e7
+        )
+        self.early_stop_patience_steps = early_stop_patience_steps
+        self.val_check_steps = val_check_steps
         self.batch_size = batch_size
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
@@ -71,27 +84,42 @@ class BaseWindows(pl.LightningModule):
         # Model state
         self.decompose_forecast = False
 
-        # Trainer
-        # we need to instantiate the trainer each time we want to use it
-        self.trainer_kwargs = {**trainer_kwargs}
-        if self.trainer_kwargs.get("callbacks", None) is None:
-            self.trainer_kwargs = {
-                **{"callbacks": [TQDMProgressBar()], **trainer_kwargs}
-            }
+        ## Trainer arguments ##
+        # Max steps, validation steps and check_val_every_n_epoch
+        if "max_epochs" in trainer_kwargs.keys():
+            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
         else:
-            self.trainer_kwargs = trainer_kwargs
+            trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
+
+        if "max_epochs" in trainer_kwargs.keys():
+            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
+
+        # Callbacks
+        if trainer_kwargs.get("callbacks", None) is None:
+            callbacks = [TQDMProgressBar()]
+            # Early stopping
+            if self.early_stop_patience_steps > 0:
+                callbacks += [
+                    EarlyStopping(
+                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                    )
+                ]
+
+            trainer_kwargs["callbacks"] = callbacks
 
         # Add GPU accelerator if available
-        if self.trainer_kwargs.get("accelerator", None) is None:
+        if trainer_kwargs.get("accelerator", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs["accelerator"] = "gpu"
-        if self.trainer_kwargs.get("devices", None) is None:
+                trainer_kwargs["accelerator"] = "gpu"
+        if trainer_kwargs.get("devices", None) is None:
             if torch.cuda.is_available():
-                self.trainer_kwargs["devices"] = -1
+                trainer_kwargs["devices"] = -1
 
         # Avoid saturating local memory, disabled fit model checkpoints
-        if self.trainer_kwargs.get("enable_checkpointing", None) is None:
-            self.trainer_kwargs["enable_checkpointing"] = False
+        if trainer_kwargs.get("enable_checkpointing", None) is None:
+            trainer_kwargs["enable_checkpointing"] = False
+
+        self.trainer_kwargs = trainer_kwargs
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
@@ -103,7 +131,15 @@ class BaseWindows(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = {
+            "scheduler": torch.optim.lr_scheduler.StepLR(
+                optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
+            ),
+            "frequency": 1,
+            "interval": "step",
+        }
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _create_windows(self, batch, step):
         # Parse common data
@@ -339,12 +375,9 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
             outsample_y, y_shift, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            # assert torch.min(outsample_y) > 0
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,
@@ -356,6 +389,7 @@ class BaseWindows(pl.LightningModule):
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -388,12 +422,9 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            # print('1. torch.min(outsample_y)', torch.min(outsample_y))
             outsample_y, y_shift, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            # print('2. torch.min(outsample_y)', torch.min(outsample_y))
-            # assert torch.min(outsample_y) > 0
             loss = self.loss(
                 y=outsample_y,
                 distr_args=output,
@@ -488,6 +519,25 @@ class BaseWindows(pl.LightningModule):
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
         )
+
+        ### Check validation every steps ###
+        steps_in_epoch = np.ceil(dataset.n_groups / self.batch_size)
+
+        # In v1.6.5 of PL, val_check_interval can be used for multiple validation steps
+        # within one epoch (steps_in_epoch > self.val_check_steps)
+        if steps_in_epoch > self.val_check_steps:
+            val_check_interval = self.val_check_steps / steps_in_epoch
+            check_val_every_n_epoch = 1
+        # Use check_val_every_n_epoch to check validation at end of some epochs,
+        # closest to self.val_check_steps.
+        else:
+            val_check_interval = None
+            check_val_every_n_epoch = int(
+                np.round(self.val_check_steps / steps_in_epoch)
+            )
+
+        self.trainer_kwargs["val_check_interval"] = val_check_interval
+        self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)

@@ -191,7 +191,6 @@ class NHITS(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
@@ -200,7 +199,11 @@ class NHITS(BaseWindows):
     `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float, Learning rate between (0, 1).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
@@ -233,12 +236,16 @@ class NHITS(BaseWindows):
         dropout_prob_theta=0.0,
         activation="ReLU",
         loss=MAE(),
-        learning_rate=1e-3,
-        batch_size=32,
+        max_steps: int = 1000,
+        learning_rate: float = 1e-3,
+        num_lr_decays: int = 3,
+        early_stop_patience_steps: int = -1,
+        val_check_steps: int = 100,
+        batch_size: int = 32,
         windows_batch_size: int = 1024,
         step_size: int = 1,
-        scaler_type="identity",
-        random_seed=1,
+        scaler_type: str = "identity",
+        random_seed: int = 1,
         num_workers_loader=0,
         drop_last_loader=False,
         **trainer_kwargs,
@@ -252,7 +259,11 @@ class NHITS(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             loss=loss,
+            max_steps=max_steps,
             learning_rate=learning_rate,
+            num_lr_decays=num_lr_decays,
+            early_stop_patience_steps=early_stop_patience_steps,
+            val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
             step_size=step_size,

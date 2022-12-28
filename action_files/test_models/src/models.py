@@ -35,17 +35,20 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
     config_nbeats = {
         "mlp_units": tune.choice([3 * [[512, 512]]]),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon, 4 * horizon]),
-        "max_epochs": 100
+        "max_epochs": 100,
+        "val_check_steps": 100
     }
     config = {
         "hidden_size": tune.choice([256, 512, 1024]),
         "num_layers": tune.choice([2, 4, 6]),
         "input_size": tune.choice([2 * horizon, 3 * horizon, horizon]),
-        "max_epochs": 100
+        "max_epochs": 100,
+        "val_check_steps": 100
     }
     config_drnn = {'input_size': tune.choice([2 * horizon, 3 * horizon]),
                    'encoder_hidden_size': tune.choice([50]),
-                   'max_epochs': 50}
+                   'max_epochs': 50,
+                   "val_check_steps": 100}
     models = [
         DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
         RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),

@@ -40,7 +40,6 @@ class AutoRNN(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -96,7 +95,6 @@ class AutoLSTM(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -148,7 +146,6 @@ class AutoGRU(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -199,7 +196,6 @@ class AutoTCN(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -252,7 +248,6 @@ class AutoDilatedRNN(BaseAuto):
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -304,7 +299,6 @@ class AutoMLP(BaseAuto):
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -358,7 +352,6 @@ class AutoNBEATS(BaseAuto):
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -425,7 +418,6 @@ class AutoNHITS(BaseAuto):
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
@@ -481,7 +473,6 @@ class AutoTFT(BaseAuto):
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
-        "check_val_every_n_epoch": tune.choice([100]),
         "random_seed": tune.randint(1, 20),
     }
 
