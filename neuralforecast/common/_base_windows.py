@@ -556,7 +556,15 @@ class BaseWindows(pl.LightningModule):
         self.predict_step_size = step_size
         self.decompose_forecast = False
         datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
-        trainer = pl.Trainer(**self.trainer_kwargs)
+
+        # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+
+        trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         fcsts = torch.vstack(fcsts).numpy().flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))

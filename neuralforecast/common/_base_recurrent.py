@@ -533,7 +533,15 @@ class BaseRecurrent(pl.LightningModule):
             raise Exception("Recurrent models do not support step_size > 1")
 
         # fcsts (window, batch, h)
-        trainer = pl.Trainer(**self.trainer_kwargs)
+        # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+
+        trainer = pl.Trainer(**pred_trainer_kwargs)
+
         datamodule = TimeSeriesDataModule(
             dataset, num_workers=self.num_workers_loader, **data_module_kwargs
         )
