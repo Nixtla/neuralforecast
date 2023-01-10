@@ -479,10 +479,14 @@ class BaseWindows(pl.LightningModule):
             )
 
             if self.loss.return_params:
-                params_hat = torch.stack(output, dim=-1)
+                params_hat = self.loss.get_params(
+                    distr_args=output, loc=y_shift, scale=y_scale
+                )
+                params_hat = torch.stack(params_hat, dim=-1)
                 params_hat = torch.reshape(
                     params_hat, (len(windows["temporal"]), self.h, -1)
                 )
+
                 y_hat = torch.concat((y_hat, params_hat), axis=2)
         else:
             y_hat, _, _ = self._inv_normalization(
