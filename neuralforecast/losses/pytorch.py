@@ -798,6 +798,28 @@ class DistributionLoss(torch.nn.Module):
                 distr, [AffineTransform(loc=loc, scale=scale)]
             )
 
+    def get_params(
+        self,
+        distr_args: Tuple[torch.Tensor],
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
+    ):
+        """
+        Return scaled parameters of the distribution.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+
+        **Returns**<br>
+        `lambdas`: Tuple, one tensor of shape [B,H,K].<br>
+        """
+
+        return distr_args
+
     def sample(
         self,
         distr_args: torch.Tensor,
@@ -1016,6 +1038,29 @@ class PMM(torch.nn.Module):
 
         return samples, quants
 
+    def get_params(
+        self,
+        distr_args: Tuple[torch.Tensor],
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
+    ):
+        """
+        Return scaled parameters of the distribution.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+
+        **Returns**<br>
+        `lambdas`: Tuple, one tensor of shape [B,H,K].<br>
+        """
+        lambdas = self.get_distribution(distr_args, loc, scale)[0]
+
+        return (lambdas,)
+
     def neglog_likelihood(
         self,
         y: torch.Tensor,
@@ -1209,6 +1254,29 @@ class GMM(torch.nn.Module):
         quants = quants.view(B, H, Q)
 
         return samples, quants
+
+    def get_params(
+        self,
+        distr_args: Tuple[torch.Tensor],
+        loc: Union[torch.Tensor, None] = None,
+        scale: Union[torch.Tensor, None] = None,
+    ):
+        """
+        Return scaled parameters of the distribution.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+
+        **Returns**<br>
+        `params`: Tuple, two tensors of shape [B,H,K] with means and stds.<br>
+        """
+        means, stds = self.get_distribution(distr_args, loc, scale)
+
+        return (means, stds)
 
     def neglog_likelihood(
         self,
