@@ -1161,7 +1161,8 @@ class GMM(torch.nn.Module):
         if self.return_params:
             mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
             std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
-            self.output_names = self.output_names + mu_names + std_names
+            mu_std_names = [i for j in zip(mu_names, std_names) for i in j]
+            self.output_names = self.output_names + mu_std_names
 
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
