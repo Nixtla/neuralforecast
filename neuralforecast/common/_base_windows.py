@@ -295,19 +295,19 @@ class BaseWindows(pl.LightningModule):
 
         temporal_data_cols = temporal_cols.drop("available_mask")
         y_scale = self.scaler.x_scale[:, :, temporal_data_cols.get_indexer(["y"])]
-        y_shift = self.scaler.x_shift[:, :, temporal_data_cols.get_indexer(["y"])]
+        y_loc = self.scaler.x_shift[:, :, temporal_data_cols.get_indexer(["y"])]
 
         y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1)
-        y_shift = torch.repeat_interleave(y_shift, repeats=y_hat.shape[-1], dim=-1)
+        y_loc = torch.repeat_interleave(y_loc, repeats=y_hat.shape[-1], dim=-1)
 
-        y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_shift)
+        y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         if remove_dimension:
             y_hat = y_hat.squeeze(-1)
-            y_shift = y_shift.squeeze(-1)
+            y_loc = y_loc.squeeze(-1)
             y_scale = y_scale.squeeze(-1)
 
-        return y_hat, y_shift, y_scale
+        return y_hat, y_loc, y_scale
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
@@ -375,16 +375,13 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            outsample_y, y_shift, y_scale = self._inv_normalization(
+            outsample_y, y_loc, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            loss = self.loss(
-                y=outsample_y,
-                distr_args=output,
-                loc=y_shift,
-                scale=y_scale,
-                mask=outsample_mask,
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
             )
+            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -422,16 +419,13 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            outsample_y, y_shift, y_scale = self._inv_normalization(
+            outsample_y, y_loc, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
-            loss = self.loss(
-                y=outsample_y,
-                distr_args=output,
-                loc=y_shift,
-                scale=y_scale,
-                mask=outsample_mask,
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
             )
+            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
@@ -471,23 +465,20 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            _, y_shift, y_scale = self._inv_normalization(
+            _, y_loc, y_scale = self._inv_normalization(
                 y_hat=output[0], temporal_cols=batch["temporal_cols"]
             )
-            _, y_hat = self.loss.sample(
-                distr_args=output, loc=y_shift, scale=y_scale, num_samples=500
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
             )
+            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
 
             if self.loss.return_params:
-                params_hat = self.loss.get_params(
-                    distr_args=output, loc=y_shift, scale=y_scale
+                distr_args = torch.stack(distr_args, dim=-1)
+                distr_args = torch.reshape(
+                    distr_args, (len(windows["temporal"]), self.h, -1)
                 )
-                params_hat = torch.stack(params_hat, dim=-1)
-                params_hat = torch.reshape(
-                    params_hat, (len(windows["temporal"]), self.h, -1)
-                )
-
-                y_hat = torch.concat((y_hat, params_hat), axis=2)
+                y_hat = torch.concat((y_hat, distr_args), axis=2)
         else:
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
