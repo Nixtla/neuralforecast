@@ -12,11 +12,9 @@ import torch
 
 import torch.nn.functional as F
 from torch.distributions import Normal, StudentT, Poisson
-from torch.distributions import (
-    AffineTransform,
-    Distribution,
-    TransformedDistribution,
-)
+from torch.distributions import Distribution
+
+# from torch.distributions import AffineTransform, TransformedDistribution
 
 # from torch.distributions import (
 #     Beta,
@@ -636,7 +634,7 @@ def weighted_average(
         return x.mean(dim=dim)
 
 # %% ../../nbs/losses.pytorch.ipynb 57
-def student_domain_map(input: torch.Tensor, eps: float = 0.1):
+def student_domain_map(input: torch.Tensor):
     """
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
@@ -649,12 +647,26 @@ def student_domain_map(input: torch.Tensor, eps: float = 0.1):
     `(df, loc, scale)`: tuple with tensors of StudentT distribution arguments.<br>
     """
     df, loc, scale = torch.tensor_split(input, 3, dim=-1)
-    scale = F.softplus(scale) + eps
-    df = 2.0 + F.softplus(df)
     return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
 
 
-def normal_domain_map(input: torch.Tensor, eps: float = 0.1):
+def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
+    """Normal Scale Decouple
+
+    Stabilizes model's output optimization, by learning residual
+    variance and residual location based on anchoring `loc`, `scale`.
+    Also adds StudentT domain protection to the distribution parameters.
+    """
+    df, mean, tscale = output
+    if (loc is not None) and (scale is not None):
+        mean = (mean * scale) + loc
+        eps = eps * scale
+    df = 2.0 + F.softplus(df)
+    tscale = F.softplus(tscale) + eps
+    return (df, mean, tscale)
+
+
+def normal_domain_map(input: torch.Tensor):
     """
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
@@ -664,11 +676,25 @@ def normal_domain_map(input: torch.Tensor, eps: float = 0.1):
     `eps`: float, helps the initialization of scale for easier optimization.<br>
 
     **Returns:**<br>
-    `(loc, scale)`: tuple with tensors of Normal distribution arguments.<br>
+    `(mean, std)`: tuple with tensors of Normal distribution arguments.<br>
     """
-    loc, scale = torch.tensor_split(input, 2, dim=-1)
-    scale = F.softplus(scale) + eps
-    return loc.squeeze(-1), scale.squeeze(-1)
+    mean, std = torch.tensor_split(input, 2, dim=-1)
+    return mean.squeeze(-1), std.squeeze(-1)
+
+
+def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
+    """Normal Scale Decouple
+
+    Stabilizes model's output optimization, by learning residual
+    variance and residual location based on anchoring `loc`, `scale`.
+    Also adds Normal domain protection to the distribution parameters.
+    """
+    mean, std = output
+    if (loc is not None) and (scale is not None):
+        mean = (mean * scale) + loc
+        eps = eps * scale
+    std = F.softplus(std) + eps
+    return (mean, std)
 
 
 def poisson_domain_map(input: torch.Tensor):
@@ -680,10 +706,23 @@ def poisson_domain_map(input: torch.Tensor):
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
 
     **Returns:**<br>
-    `(loc,)`: tuple with tensors of Poisson distribution arguments.<br>
+    `(rate,)`: tuple with tensors of Poisson distribution arguments.<br>
     """
-    rate_pos = F.softplus(input).clone()
-    return (rate_pos.squeeze(-1),)
+    return (input.squeeze(-1),)
+
+
+def poisson_scale_decouple(output, loc=None, scale=None):
+    """Poisson Scale Decouple
+
+    Stabilizes model's output optimization, by learning residual
+    variance and residual location based on anchoring `loc`, `scale`.
+    Also adds Poisson domain protection to the distribution parameters.
+    """
+    rate = output[0]
+    if (loc is not None) and (scale is not None):
+        rate = (rate * scale) + loc
+    rate = F.softplus(rate)  # .clone()
+    return (rate,)
 
 # %% ../../nbs/losses.pytorch.ipynb 58
 class DistributionLoss(torch.nn.Module):
@@ -736,6 +775,11 @@ class DistributionLoss(torch.nn.Module):
             Poisson=poisson_domain_map,
             StudentT=student_domain_map,
         )
+        scale_decouples = dict(
+            Normal=normal_scale_decouple,
+            Poisson=poisson_scale_decouple,
+            StudentT=student_scale_decouple,
+        )
         param_names = dict(
             Normal=["-loc", "-scale"],
             Poisson=["-loc"],
@@ -745,8 +789,10 @@ class DistributionLoss(torch.nn.Module):
             distribution in available_distributions.keys()
         ), f"{distribution} not available"
 
+        self.distribution = distribution
         self._base_distribution = available_distributions[distribution]
         self.domain_map = domain_maps[distribution]
+        self.scale_decouple = scale_decouples[distribution]
         self.param_names = param_names[distribution]
 
         if level:
@@ -768,65 +814,24 @@ class DistributionLoss(torch.nn.Module):
         self.outputsize_multiplier = len(self._base_distribution.arg_constraints.keys())
         self.is_distribution_output = True
 
-    def get_distribution(
-        self,
-        distr_args,
-        loc: Optional[torch.Tensor] = None,
-        scale: Optional[torch.Tensor] = None,
-    ) -> Distribution:
+    def get_distribution(self, distr_args) -> Distribution:
         """
         Construct the associated Pytorch Distribution, given the collection of
         constructor arguments and, optionally, location and scale tensors.
 
         **Parameters**<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
 
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
         # TODO: domain_map output dictionary rather instead of ordered tuple
         # to improve instantiation of the base distributions.
+        # TransformedDistribution(distr, [AffineTransform(loc=loc, scale=scale)])
         distr = self._base_distribution(*distr_args)
-        if loc is None and scale is None:
-            return distr
-        else:
-            return TransformedDistribution(
-                distr, [AffineTransform(loc=loc, scale=scale)]
-            )
+        return distr
 
-    def get_params(
-        self,
-        distr_args: Tuple[torch.Tensor],
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
-    ):
-        """
-        Return scaled parameters of the distribution.
-
-        **Parameters**<br>
-        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
-
-        **Returns**<br>
-        `lambdas`: Tuple, one tensor of shape [B,H,K].<br>
-        """
-
-        return distr_args
-
-    def sample(
-        self,
-        distr_args: torch.Tensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
-        num_samples: Optional[int] = None,
-    ):
+    def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
         """
         Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
@@ -851,7 +856,8 @@ class DistributionLoss(torch.nn.Module):
 
         # Construct AffineTransformed Distribution to
         # sample y ~ loc + Distribution(distr_args) * scale independently
-        distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
+        # distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
+        distr = self.get_distribution(distr_args=distr_args)
         samples = distr.sample(sample_shape=(num_samples,))
         samples = samples.permute(1, 2, 0)  # [samples,B,H] -> [B,H,samples]
         samples = samples.to(distr_args[0].device)
@@ -871,8 +877,6 @@ class DistributionLoss(torch.nn.Module):
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
-        loc: torch.Tensor,
-        scale: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ):
         """
@@ -897,7 +901,8 @@ class DistributionLoss(torch.nn.Module):
         `loss`: scalar, weighted loss function against which backpropagation will be performed.<br>
         """
         # Construct AffineTransformed Distribution
-        distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
+        # distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
+        distr = self.get_distribution(distr_args=distr_args)
         loss_values = -distr.log_prob(y)
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
@@ -956,26 +961,30 @@ class PMM(torch.nn.Module):
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
-    def get_distribution(
+    def domain_map(self, output: torch.Tensor):
+        return (output,)  # , weights
+
+    def scale_decouple(
         self,
-        distr_args,
+        output,
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
     ):
+        """Scale Decouple
 
-        if loc is None and scale is None:
-            return distr_args
-        elif loc is not None and scale is not None:
-            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
-            scale = scale.view(distr_args[0].size(dim=0), 1, -1)
-            lambda_scaled = (distr_args[0] * scale) + loc
-            return (lambda_scaled,)
+        Stabilizes model's output optimization, by learning residual
+        variance and residual location based on anchoring `loc`, `scale`.
+        Also adds domain protection to the distribution parameters.
+        """
+        lambdas = output[0]
+        if (loc is not None) and (scale is not None):
+            loc = loc.view(lambdas.size(dim=0), 1, -1)
+            scale = scale.view(lambdas.size(dim=0), 1, -1)
+            lambdas = (lambdas * scale) + loc
+        lambdas = F.softplus(lambdas)
+        return (lambdas,)
 
-    def domain_map(self, lambdas_hat: torch.Tensor):
-        lambdas_hat = F.softplus(lambdas_hat)
-        return (lambdas_hat,)  # , weights
-
-    def sample(self, distr_args, loc=None, scale=None, num_samples=None):
+    def sample(self, distr_args, num_samples=None):
         """
         Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
@@ -995,7 +1004,7 @@ class PMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        lambdas = self.get_distribution(distr_args, loc, scale)[0]
+        lambdas = distr_args[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
 
@@ -1038,42 +1047,17 @@ class PMM(torch.nn.Module):
 
         return samples, quants
 
-    def get_params(
-        self,
-        distr_args: Tuple[torch.Tensor],
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
-    ):
-        """
-        Return scaled parameters of the distribution.
-
-        **Parameters**<br>
-        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
-
-        **Returns**<br>
-        `lambdas`: Tuple, one tensor of shape [B,H,K].<br>
-        """
-        lambdas = self.get_distribution(distr_args, loc, scale)[0]
-
-        return (lambdas,)
-
     def neglog_likelihood(
         self,
         y: torch.Tensor,
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
     ):
         if mask is None:
             mask = torch.ones_like(y)
 
         eps = 1e-10
-        lambdas = self.get_distribution(distr_args, loc, scale)[0]
+        lambdas = distr_args[0]
         B, H, K = lambdas.size()
 
         weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
@@ -1102,13 +1086,9 @@ class PMM(torch.nn.Module):
         y: torch.Tensor,
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
     ):
 
-        return self.neglog_likelihood(
-            y=y, distr_args=distr_args, mask=mask, loc=loc, scale=scale
-        )
+        return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 70
 class GMM(torch.nn.Module):
@@ -1167,28 +1147,33 @@ class GMM(torch.nn.Module):
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
-    def get_distribution(
+    def domain_map(self, output: torch.Tensor):
+        means, stds = torch.tensor_split(output, 2, dim=-1)
+        return (means, stds)
+
+    def scale_decouple(
         self,
-        distr_args,
+        output,
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
+        eps: float = 0.2,
     ):
+        """Scale Decouple
 
-        if loc is None and scale is None:
-            return distr_args
-        elif loc is not None and scale is not None:
-            loc = loc.view(distr_args[0].size(dim=0), 1, -1)
-            scale = scale.view(distr_args[1].size(dim=0), 1, -1)
-            mu_scaled = (distr_args[0] * scale) + loc
-            std_scaled = distr_args[1] * scale
-            return (mu_scaled, std_scaled)
+        Stabilizes model's output optimization, by learning residual
+        variance and residual location based on anchoring `loc`, `scale`.
+        Also adds domain protection to the distribution parameters.
+        """
+        means, stds = output
+        if (loc is not None) and (scale is not None):
+            loc = loc.view(means.size(dim=0), 1, -1)
+            scale = scale.view(means.size(dim=0), 1, -1)
+            means = (means * scale) + loc
+            eps = eps * scale
+        stds = F.softplus(stds) + eps
+        return (means, stds)
 
-    def domain_map(self, params_hat: torch.Tensor, eps: float = 0.2):
-        loc, scale = torch.tensor_split(params_hat, 2, dim=-1)
-        scale = F.softplus(scale) + eps
-        return (loc, scale)
-
-    def sample(self, distr_args, loc=None, scale=None, num_samples=None):
+    def sample(self, distr_args, num_samples=None):
         """
         Construct the empirical quantiles from the estimated Distribution,
         sampling from it `num_samples` independently.
@@ -1208,8 +1193,7 @@ class GMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        means, stds = self.get_distribution(distr_args, loc, scale)
-
+        means, stds = distr_args
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
@@ -1256,43 +1240,17 @@ class GMM(torch.nn.Module):
 
         return samples, quants
 
-    def get_params(
-        self,
-        distr_args: Tuple[torch.Tensor],
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
-    ):
-        """
-        Return scaled parameters of the distribution.
-
-        **Parameters**<br>
-        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
-
-        **Returns**<br>
-        `params`: Tuple, two tensors of shape [B,H,K] with means and stds.<br>
-        """
-        means, stds = self.get_distribution(distr_args, loc, scale)
-
-        return (means, stds)
-
     def neglog_likelihood(
         self,
         y: torch.Tensor,
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
     ):
 
         if mask is None:
             mask = torch.ones_like(y)
 
-        means, stds = self.get_distribution(distr_args, loc, scale)
-
+        means, stds = distr_args
         B, H, K = means.size()
 
         weights = (1 / K) * torch.ones_like(means).to(means.device)
@@ -1323,10 +1281,6 @@ class GMM(torch.nn.Module):
         y: torch.Tensor,
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
-        loc: Union[torch.Tensor, None] = None,
-        scale: Union[torch.Tensor, None] = None,
     ):
 
-        return self.neglog_likelihood(
-            y=y, distr_args=distr_args, mask=mask, loc=loc, scale=scale
-        )
+        return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
