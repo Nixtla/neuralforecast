@@ -964,10 +964,6 @@ class PMM(torch.nn.Module):
     def domain_map(self, output: torch.Tensor):
         return (output,)  # , weights
 
-    def protect_domain(self, distr_args):
-        lambdas = F.softplus(distr_args[0])
-        return (lambdas,)
-
     def scale_decouple(
         self,
         output,
