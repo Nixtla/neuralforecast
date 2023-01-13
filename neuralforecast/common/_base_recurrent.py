@@ -381,9 +381,9 @@ class BaseRecurrent(pl.LightningModule):
             B = output[0].size()[0]
             T = output[0].size()[1]
             H = output[0].size()[2]
-            output = [arg.view(-1, *(arg.size()[2:])) for arg in output]
-            outsample_y = outsample_y.view(B * T, H)
-            outsample_mask = outsample_mask.view(B * T, H)
+            output = [arg.reshape(-1, *(arg.size()[2:])) for arg in output]
+            outsample_y = outsample_y.reshape(B * T, H)
+            outsample_mask = outsample_mask.reshape(B * T, H)
             y_loc = y_loc.repeat_interleave(repeats=T, dim=0).squeeze(-1)
             y_scale = y_scale.repeat_interleave(repeats=T, dim=0).squeeze(-1)
             distr_args = self.loss.scale_decouple(
@@ -438,7 +438,7 @@ class BaseRecurrent(pl.LightningModule):
             B = output[0].size()[0]
             T = output[0].size()[1]
             H = output[0].size()[2]
-            output = [arg.view(-1, *(arg.size()[2:])) for arg in output]
+            output = [arg.reshape(-1, *(arg.size()[2:])) for arg in output]
             y_loc = y_loc.repeat_interleave(repeats=T, dim=0).squeeze(-1)
             y_scale = y_scale.repeat_interleave(repeats=T, dim=0).squeeze(-1)
             distr_args = self.loss.scale_decouple(
