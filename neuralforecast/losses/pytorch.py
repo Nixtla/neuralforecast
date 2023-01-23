@@ -1054,7 +1054,9 @@ class PMM(torch.nn.Module):
         mask: Union[torch.Tensor, None] = None,
     ):
         if mask is None:
-            mask = torch.ones_like(y)
+            mask = (y > 0) * 1
+        else:
+            mask = mask * ((y > 0) * 1)
 
         eps = 1e-10
         lambdas = distr_args[0]
@@ -1064,6 +1066,8 @@ class PMM(torch.nn.Module):
 
         y = y[:, :, None]
         mask = mask[:, :, None]
+
+        y = y * mask  # Protect target variable negative entries
 
         log = (
             y * torch.log(lambdas + eps) - lambdas - ((y) * torch.log(y + eps) - y)
@@ -1165,12 +1169,12 @@ class GMM(torch.nn.Module):
         Also adds domain protection to the distribution parameters.
         """
         means, stds = output
+        stds = F.softplus(stds)
         if (loc is not None) and (scale is not None):
             loc = loc.view(means.size(dim=0), 1, -1)
             scale = scale.view(means.size(dim=0), 1, -1)
             means = (means * scale) + loc
-            eps = eps * scale
-        stds = F.softplus(stds) + eps
+            stds = (stds + eps) * scale
         return (means, stds)
 
     def sample(self, distr_args, num_samples=None):
