@@ -657,12 +657,13 @@ def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
     variance and residual location based on anchoring `loc`, `scale`.
     Also adds StudentT domain protection to the distribution parameters.
     """
+    print("new student scale decoouple")
     df, mean, tscale = output
+    tscale = F.softplus(tscale)
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
-        eps = eps * scale
+        tscale = (tscale + eps) * scale
     df = 2.0 + F.softplus(df)
-    tscale = F.softplus(tscale) + eps
     return (df, mean, tscale)
 
 
@@ -689,11 +690,12 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     variance and residual location based on anchoring `loc`, `scale`.
     Also adds Normal domain protection to the distribution parameters.
     """
+    print("new normal scale decoouple")
     mean, std = output
+    std = F.softplus(std)
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
-        eps = eps * scale
-    std = F.softplus(std) + eps
+        std = (std + eps) * scale
     return (mean, std)
 
 
