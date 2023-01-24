@@ -484,14 +484,14 @@ class MQLoss(torch.nn.Module):
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            quantiles = torch.Tensor(qs)
+            qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            quantiles = torch.Tensor(quantiles)
+            qs = torch.Tensor(quantiles)
 
-        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.outputsize_multiplier = len(self.quantiles)
         self.is_distribution_output = False
 
@@ -557,14 +557,14 @@ class wMQLoss(torch.nn.Module):
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            quantiles = torch.Tensor(qs)
+            qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            quantiles = torch.Tensor(quantiles)
+            qs = torch.Tensor(quantiles)
 
-        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.outputsize_multiplier = len(self.quantiles)
         self.is_distribution_output = False
 
@@ -797,13 +797,13 @@ class DistributionLoss(torch.nn.Module):
 
         if level:
             qs, self.output_names = level_to_outputs(level)
-            quantiles = torch.Tensor(qs)
+            qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            quantiles = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+            qs = torch.Tensor(quantiles)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
@@ -907,7 +907,7 @@ class DistributionLoss(torch.nn.Module):
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 63
+# %% ../../nbs/losses.pytorch.ipynb 64
 class PMM(torch.nn.Module):
     """Poisson Mixture Mesh
 
@@ -943,13 +943,13 @@ class PMM(torch.nn.Module):
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            quantiles = torch.Tensor(qs)
+            qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            quantiles = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+            qs = torch.Tensor(quantiles)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
@@ -1054,7 +1054,9 @@ class PMM(torch.nn.Module):
         mask: Union[torch.Tensor, None] = None,
     ):
         if mask is None:
-            mask = torch.ones_like(y)
+            mask = (y > 0) * 1
+        else:
+            mask = mask * ((y > 0) * 1)
 
         eps = 1e-10
         lambdas = distr_args[0]
@@ -1064,6 +1066,8 @@ class PMM(torch.nn.Module):
 
         y = y[:, :, None]
         mask = mask[:, :, None]
+
+        y = y * mask  # Protect target variable negative entries
 
         log = (
             y * torch.log(lambdas + eps) - lambdas - ((y) * torch.log(y + eps) - y)
@@ -1090,7 +1094,7 @@ class PMM(torch.nn.Module):
 
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 70
+# %% ../../nbs/losses.pytorch.ipynb 72
 class GMM(torch.nn.Module):
     """Gaussian Mixture Mesh
 
@@ -1127,13 +1131,13 @@ class GMM(torch.nn.Module):
         # Transform level to MQLoss parameters
         if level:
             qs, self.output_names = level_to_outputs(level)
-            quantiles = torch.Tensor(qs)
+            qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
-            quantiles = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(quantiles, requires_grad=False)
+            qs = torch.Tensor(quantiles)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
 
         # If True, predict_step will return Distribution's parameters
