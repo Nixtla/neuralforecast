@@ -468,7 +468,6 @@ class TFT(BaseWindows):
             random_seed=random_seed,
             **trainer_kwargs
         )
-
         self.example_length = input_size + h
 
         # Parse lists hyperparameters
