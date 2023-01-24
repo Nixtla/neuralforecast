@@ -658,11 +658,11 @@ def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
     Also adds StudentT domain protection to the distribution parameters.
     """
     df, mean, tscale = output
+    tscale = F.softplus(tscale)
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
-        eps = eps * scale
+        tscale = (tscale + eps) * scale
     df = 2.0 + F.softplus(df)
-    tscale = F.softplus(tscale) + eps
     return (df, mean, tscale)
 
 
@@ -690,10 +690,10 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     Also adds Normal domain protection to the distribution parameters.
     """
     mean, std = output
+    std = F.softplus(std)
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
-        eps = eps * scale
-    std = F.softplus(std) + eps
+        std = (std + eps) * scale
     return (mean, std)
 
 
@@ -1169,12 +1169,12 @@ class GMM(torch.nn.Module):
         Also adds domain protection to the distribution parameters.
         """
         means, stds = output
+        stds = F.softplus(stds)
         if (loc is not None) and (scale is not None):
             loc = loc.view(means.size(dim=0), 1, -1)
             scale = scale.view(means.size(dim=0), 1, -1)
             means = (means * scale) + loc
-            eps = eps * scale
-        stds = F.softplus(stds) + eps
+            stds = (stds + eps) * scale
         return (means, stds)
 
     def sample(self, distr_args, num_samples=None):
