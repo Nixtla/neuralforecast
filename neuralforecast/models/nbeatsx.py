@@ -4,7 +4,7 @@
 __all__ = ['NBEATSx']
 
 # %% ../../nbs/models.nbeatsx.ipynb 5
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 import torch
@@ -300,12 +300,12 @@ class NBEATSx(BaseWindows):
         val_check_steps: int = 100,
         batch_size=32,
         windows_batch_size: int = 1024,
-        valid_batch_size: int = None,
+        valid_batch_size: Optional[int] = None,
         step_size: int = 1,
-        scaler_type="identity",
-        random_seed=1,
-        num_workers_loader=0,
-        drop_last_loader=False,
+        scaler_type: str = "identity",
+        random_seed: int = 1,
+        num_workers_loader: int = 0,
+        drop_last_loader: bool = False,
         **trainer_kwargs,
     ):
 

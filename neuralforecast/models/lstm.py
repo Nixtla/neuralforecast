@@ -4,6 +4,8 @@
 __all__ = ['LSTM']
 
 # %% ../../nbs/models.lstm.ipynb 6
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -72,7 +74,7 @@ class LSTM(BaseRecurrent):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size=32,
-        valid_batch_size=None,
+        valid_batch_size: Optional[int] = None,
         scaler_type: str = "robust",
         random_seed=1,
         num_workers_loader=0,

@@ -4,7 +4,7 @@
 __all__ = ['NHITS']
 
 # %% ../../nbs/models.nhits.ipynb 5
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 import torch
@@ -246,7 +246,7 @@ class NHITS(BaseWindows):
         val_check_steps: int = 100,
         batch_size: int = 32,
         windows_batch_size: int = 1024,
-        valid_batch_size: int = None,
+        valid_batch_size: Optional[int] = None,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,

@@ -4,6 +4,8 @@
 __all__ = ['MLP']
 
 # %% ../../nbs/models.mlp.ipynb 5
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -63,13 +65,13 @@ class MLP(BaseWindows):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
-        valid_batch_size: int = None,
+        valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader=0,
-        drop_last_loader=False,
+        num_workers_loader: int = 0,
+        drop_last_loader: bool = False,
         **trainer_kwargs
     ):
 

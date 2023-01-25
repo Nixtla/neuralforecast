@@ -4,7 +4,7 @@
 __all__ = ['DilatedRNN']
 
 # %% ../../nbs/models.dilated_rnn.ipynb 6
-from typing import List
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -338,12 +338,12 @@ class DilatedRNN(BaseRecurrent):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size=32,
-        valid_batch_size=None,
+        valid_batch_size: Optional[int] = None,
         step_size: int = 1,
         scaler_type: str = "robust",
-        random_seed=1,
-        num_workers_loader=0,
-        drop_last_loader=False,
+        random_seed: int = 1,
+        num_workers_loader: int = 0,
+        drop_last_loader: bool = False,
         **trainer_kwargs
     ):
         super(DilatedRNN, self).__init__(

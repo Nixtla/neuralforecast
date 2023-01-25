@@ -4,7 +4,7 @@
 __all__ = ['TCN']
 
 # %% ../../nbs/models.tcn.ipynb 5
-from typing import List
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
@@ -70,7 +70,7 @@ class TCN(BaseRecurrent):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
-        valid_batch_size: int = None,
+        valid_batch_size: Optional[int] = None,
         scaler_type: str = "robust",
         random_seed: int = 1,
         num_workers_loader=0,
