@@ -307,7 +307,8 @@ class DilatedRNN(BaseRecurrent):
     `num_lr_decays`: int, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of differentseries in each batch.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -337,6 +338,7 @@ class DilatedRNN(BaseRecurrent):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size=32,
+        valid_batch_size=None,
         step_size: int = 1,
         scaler_type: str = "robust",
         random_seed=1,
@@ -355,6 +357,7 @@ class DilatedRNN(BaseRecurrent):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
             scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,

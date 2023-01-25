@@ -28,7 +28,8 @@ class BaseRecurrent(pl.LightningModule):
         learning_rate,
         max_steps,
         val_check_steps,
-        batch_size=32,
+        batch_size,
+        valid_batch_size,
         scaler_type="robust",
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -59,6 +60,13 @@ class BaseRecurrent(pl.LightningModule):
         else:
             self.valid_loss = valid_loss
 
+        # Valid batch_size
+        self.batch_size = batch_size
+        if valid_batch_size == None:
+            self.valid_batch_size = batch_size
+        else:
+            self.valid_batch_size = valid_batch_size
+
         # Optimization
         self.learning_rate = learning_rate
         self.max_steps = max_steps
@@ -68,7 +76,6 @@ class BaseRecurrent(pl.LightningModule):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
-        self.batch_size = batch_size
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -491,8 +498,9 @@ class BaseRecurrent(pl.LightningModule):
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
-            dataset,
+            dataset=dataset,
             batch_size=self.batch_size,
+            valid_batch_size=self.valid_batch_size,
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
         )
@@ -543,7 +551,10 @@ class BaseRecurrent(pl.LightningModule):
         trainer = pl.Trainer(**pred_trainer_kwargs)
 
         datamodule = TimeSeriesDataModule(
-            dataset, num_workers=self.num_workers_loader, **data_module_kwargs
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            num_workers=self.num_workers_loader,
+            **data_module_kwargs,
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:

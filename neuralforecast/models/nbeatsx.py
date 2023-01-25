@@ -263,6 +263,7 @@ class NBEATSx(BaseWindows):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -299,6 +300,7 @@ class NBEATSx(BaseWindows):
         val_check_steps: int = 100,
         batch_size=32,
         windows_batch_size: int = 1024,
+        valid_batch_size: int = None,
         step_size: int = 1,
         scaler_type="identity",
         random_seed=1,
@@ -323,6 +325,7 @@ class NBEATSx(BaseWindows):
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
+            valid_batch_size=valid_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,

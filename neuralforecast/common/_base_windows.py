@@ -28,8 +28,9 @@ class BaseWindows(pl.LightningModule):
         learning_rate,
         max_steps,
         val_check_steps,
-        batch_size=32,
-        windows_batch_size=1024,
+        batch_size,
+        windows_batch_size,
+        valid_batch_size,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -61,6 +62,13 @@ class BaseWindows(pl.LightningModule):
         else:
             self.valid_loss = valid_loss
 
+        # Valid batch_size
+        self.batch_size = batch_size
+        if valid_batch_size == None:
+            self.valid_batch_size = batch_size
+        else:
+            self.valid_batch_size = valid_batch_size
+
         # Optimization
         self.learning_rate = learning_rate
         self.max_steps = max_steps
@@ -70,7 +78,6 @@ class BaseWindows(pl.LightningModule):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
-        self.batch_size = batch_size
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
 
@@ -454,23 +461,6 @@ class BaseWindows(pl.LightningModule):
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
 
-    # def complete_validation_epoch_end(self, outputs):
-    #     if self.val_size == 0:
-    #         return
-    #     # TODO: perform partial measures to not move entire y, y_hat, and mask
-    #     # valid_loss = torch.stack(outputs).mean()
-    #     y = torch.vstack([x['y'] for x in outputs])
-    #     mask = torch.vstack([x['mask'] for x in outputs])
-    #     y_hat = torch.vstack([x['y_hat'] for x in outputs])
-    #     distr_args = torch.vstack([x['distr_args'] for x in outputs])
-
-    #     if self.valid_loss.is_distribution_output:
-    #         valid_loss = self.loss(y=y, distr_args=distr_args, mask=mask)
-    #     else:
-    #         valid_loss = self.valid_loss(y=y, y_hat=y_hat, mask=mask)
-
-    #     self.log("ptl/val_loss", valid_loss, prog_bar=True, on_epoch=True)
-
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="predict")
@@ -542,8 +532,9 @@ class BaseWindows(pl.LightningModule):
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
-            dataset,
+            dataset=dataset,
             batch_size=self.batch_size,
+            valid_batch_size=self.valid_batch_size,
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
         )
@@ -583,7 +574,11 @@ class BaseWindows(pl.LightningModule):
         """
         self.predict_step_size = step_size
         self.decompose_forecast = False
-        datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
+        datamodule = TimeSeriesDataModule(
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            **data_module_kwargs,
+        )
 
         # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
         pred_trainer_kwargs = self.trainer_kwargs.copy()
@@ -611,7 +606,11 @@ class BaseWindows(pl.LightningModule):
         """
         self.predict_step_size = step_size
         self.decompose_forecast = True
-        datamodule = TimeSeriesDataModule(dataset, **data_module_kwargs)
+        datamodule = TimeSeriesDataModule(
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            **data_module_kwargs,
+        )
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         self.decompose_forecast = False  # Default decomposition back to false

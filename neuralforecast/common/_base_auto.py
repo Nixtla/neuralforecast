@@ -118,21 +118,27 @@ class BaseAuto(pl.LightningModule):
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
         if config.get("h", None) is not None:
-            raise Exception("Please use `h` argument instead of `config['h']`.")
+            raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config.get("loss", None) is not None:
-            raise Exception("Please use `loss` argument instead of `config['loss']`.")
+            raise Exception(
+                "Please use `loss` init argument instead of `config['loss']`."
+            )
+        if config.get("valid_loss", None) is not None:
+            raise Exception(
+                "Please use `valid_loss` init argument instead of `config['valid_loss']`."
+            )
 
         # Deepcopy to avoid modifying the original config
         config_base = deepcopy(config)
 
         config_base["h"] = h
         config_base["loss"] = loss
+        if valid_loss is None:
+            valid_loss = loss
         config_base["valid_loss"] = valid_loss
         self.cls_model = cls_model
         self.h = h
         self.loss = loss
-        if valid_loss is None:
-            self.valid_loss = loss
         self.config = config_base
         self.num_samples = num_samples
         self.search_alg = search_alg
