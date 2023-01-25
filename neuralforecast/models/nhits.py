@@ -199,6 +199,7 @@ class NHITS(BaseWindows):
     `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -236,6 +237,7 @@ class NHITS(BaseWindows):
         dropout_prob_theta=0.0,
         activation="ReLU",
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = 3,

@@ -29,6 +29,7 @@ class MLP(BaseWindows):
     `n_layers`: int, number of layers for the MLP.<br>
     `hidden_size`: int, number of units for each layer of the MLP.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -54,6 +55,7 @@ class MLP(BaseWindows):
         num_layers=2,
         hidden_size=1024,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = -1,
@@ -76,6 +78,7 @@ class MLP(BaseWindows):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            loss=loss,
             loss=loss,
             max_steps=max_steps,
             learning_rate=learning_rate,

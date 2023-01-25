@@ -255,6 +255,7 @@ class NBEATSx(BaseWindows):
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -290,6 +291,7 @@ class NBEATSx(BaseWindows):
         activation="ReLU",
         shared_weights=False,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = 3,
