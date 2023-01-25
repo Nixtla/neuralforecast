@@ -24,6 +24,7 @@ class BaseRecurrent(pl.LightningModule):
         h,
         input_size,
         loss,
+        valid_loss,
         learning_rate,
         max_steps,
         val_check_steps,
@@ -53,6 +54,12 @@ class BaseRecurrent(pl.LightningModule):
 
         # Loss
         self.loss = loss
+        if valid_loss == None:
+            self.valid_loss = loss
+        else:
+            self.valid_loss = valid_loss
+
+        # Optimization
         self.learning_rate = learning_rate
         self.max_steps = max_steps
         self.num_lr_decays = num_lr_decays

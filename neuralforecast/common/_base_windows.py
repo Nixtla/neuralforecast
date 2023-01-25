@@ -24,6 +24,7 @@ class BaseWindows(pl.LightningModule):
         h,
         input_size,
         loss,
+        valid_loss,
         learning_rate,
         max_steps,
         val_check_steps,
@@ -53,8 +54,14 @@ class BaseWindows(pl.LightningModule):
         self.input_size = input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
-        # BaseWindows optimization attributes
+        # Loss
         self.loss = loss
+        if valid_loss == None:
+            self.valid_loss = loss
+        else:
+            self.valid_loss = valid_loss
+
+        # Optimization
         self.learning_rate = learning_rate
         self.max_steps = max_steps
         self.num_lr_decays = num_lr_decays
