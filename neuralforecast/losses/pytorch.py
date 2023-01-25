@@ -482,9 +482,8 @@ class MQLoss(torch.nn.Module):
     def __init__(self, level=[80, 90], quantiles=None):
         super(MQLoss, self).__init__()
         # Transform level to MQLoss parameters
-        if level:
-            qs, self.output_names = level_to_outputs(level)
-            qs = torch.Tensor(qs)
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
@@ -555,9 +554,8 @@ class wMQLoss(torch.nn.Module):
     def __init__(self, level=[80, 90], quantiles=None):
         super(wMQLoss, self).__init__()
         # Transform level to MQLoss parameters
-        if level:
-            qs, self.output_names = level_to_outputs(level)
-            qs = torch.Tensor(qs)
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
@@ -795,9 +793,8 @@ class DistributionLoss(torch.nn.Module):
         self.scale_decouple = scale_decouples[distribution]
         self.param_names = param_names[distribution]
 
-        if level:
-            qs, self.output_names = level_to_outputs(level)
-            qs = torch.Tensor(qs)
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
@@ -941,9 +938,8 @@ class PMM(torch.nn.Module):
     ):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
-        if level:
-            qs, self.output_names = level_to_outputs(level)
-            qs = torch.Tensor(qs)
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
@@ -1129,9 +1125,8 @@ class GMM(torch.nn.Module):
     ):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
-        if level:
-            qs, self.output_names = level_to_outputs(level)
-            qs = torch.Tensor(qs)
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
 
         # Transform quantiles to homogeneus output names
         if quantiles is not None:
