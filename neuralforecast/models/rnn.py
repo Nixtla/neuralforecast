@@ -35,6 +35,7 @@ class RNN(BaseRecurrent):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -64,6 +65,7 @@ class RNN(BaseRecurrent):
         hist_exog_list=None,
         stat_exog_list=None,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = -1,
@@ -80,6 +82,7 @@ class RNN(BaseRecurrent):
             h=h,
             input_size=input_size,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,

@@ -456,6 +456,7 @@ class TFT(BaseWindows):
             h=h,
             input_size=input_size,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,

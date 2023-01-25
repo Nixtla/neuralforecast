@@ -79,7 +79,7 @@ class MLP(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             loss=loss,
-            loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
