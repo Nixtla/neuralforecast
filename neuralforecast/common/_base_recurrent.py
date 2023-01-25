@@ -403,15 +403,26 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
         else:
             y_hat = output[:, -val_windows:-1, :]
-            loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=y_hat, mask=outsample_mask
+            )
 
         self.log(
-            "val_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
+            "valid_loss",
+            valid_loss,
+            batch_size=self.batch_size,
+            prog_bar=True,
+            on_epoch=True,
         )
-        return loss
+        return valid_loss
 
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
@@ -524,8 +535,8 @@ class BaseRecurrent(pl.LightningModule):
         self.trainer_kwargs["val_check_interval"] = val_check_interval
         self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
 
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
+        self.trainer = pl.Trainer(**self.trainer_kwargs)
+        self.trainer.fit(self, datamodule=datamodule)
 
     def predict(self, dataset, step_size=1, **data_module_kwargs):
         """Predict.

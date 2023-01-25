@@ -558,8 +558,8 @@ class BaseWindows(pl.LightningModule):
         self.trainer_kwargs["val_check_interval"] = val_check_interval
         self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
 
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
+        self.trainer = pl.Trainer(**self.trainer_kwargs)
+        self.trainer.fit(self, datamodule=datamodule)
 
     def predict(self, dataset, test_size=None, step_size=1, **data_module_kwargs):
         """Predict.
