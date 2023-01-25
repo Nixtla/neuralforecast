@@ -432,34 +432,44 @@ class BaseWindows(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
             _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
-        else:
-            distr_args = None  # Placeholder for valid_loss evaluation
-            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
-        self.log("val_loss", loss, prog_bar=True, on_epoch=True)
-        # return loss
-        return dict(
-            y=outsample_y, y_hat=output, mask=outsample_mask, distr_args=distr_args
-        )
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
+        else:
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=output, mask=outsample_mask
+            )
+
+        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        return valid_loss
+        # return dict(y=outsample_y, y_hat=output, mask=outsample_mask, distr_args=distr_args)
 
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
             return
-        # TODO: perform partial measures to not move entire y, y_hat, and mask
-        # valid_loss = torch.stack(outputs).mean()
-        y = torch.vstack([x["y"] for x in outputs])
-        mask = torch.vstack([x["mask"] for x in outputs])
-        y_hat = torch.vstack([x["y_hat"] for x in outputs])
-        distr_args = torch.vstack([x["distr_args"] for x in outputs])
+        avg_loss = torch.stack(outputs).mean()
+        self.log("ptl/val_loss", avg_loss)
 
-        if self.valid_loss.is_distribution_output:
-            valid_loss = self.loss(y=y, distr_args=distr_args, mask=mask)
-        else:
-            valid_loss = self.valid_loss(y=y, y_hat=y_hat, mask=mask)
+    # def complete_validation_epoch_end(self, outputs):
+    #     if self.val_size == 0:
+    #         return
+    #     # TODO: perform partial measures to not move entire y, y_hat, and mask
+    #     # valid_loss = torch.stack(outputs).mean()
+    #     y = torch.vstack([x['y'] for x in outputs])
+    #     mask = torch.vstack([x['mask'] for x in outputs])
+    #     y_hat = torch.vstack([x['y_hat'] for x in outputs])
+    #     distr_args = torch.vstack([x['distr_args'] for x in outputs])
 
-        self.log("ptl/val_loss", valid_loss, prog_bar=True, on_epoch=True)
+    #     if self.valid_loss.is_distribution_output:
+    #         valid_loss = self.loss(y=y, distr_args=distr_args, mask=mask)
+    #     else:
+    #         valid_loss = self.valid_loss(y=y, y_hat=y_hat, mask=mask)
+
+    #     self.log("ptl/val_loss", valid_loss, prog_bar=True, on_epoch=True)
 
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
