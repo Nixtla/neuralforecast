@@ -59,6 +59,8 @@ class BaseRecurrent(pl.LightningModule):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
+        self.train_trajectories = []
+        self.valid_trajectories = []
 
         # Valid batch_size
         self.batch_size = batch_size
@@ -348,6 +350,7 @@ class BaseRecurrent(pl.LightningModule):
         self.log(
             "train_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
         )
+        self.train_trajectories.append(loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -429,6 +432,7 @@ class BaseRecurrent(pl.LightningModule):
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
+        self.valid_trajectories.append(avg_loss)
 
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]

@@ -633,6 +633,7 @@ class TFT(BaseWindows):
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
+        self.train_trajectories.append(loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -682,6 +683,7 @@ class TFT(BaseWindows):
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
+        self.valid_trajectories.append(avg_loss)
 
     def predict_step(self, batch, batch_idx):
         # Deviates from orignal `BaseWindows.training_step` to

@@ -61,6 +61,8 @@ class BaseWindows(pl.LightningModule):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
+        self.train_trajectories = []
+        self.valid_trajectories = []
 
         # Valid batch_size
         self.batch_size = batch_size
@@ -400,7 +402,7 @@ class BaseWindows(pl.LightningModule):
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
-
+        self.train_trajectories.append(loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -453,13 +455,13 @@ class BaseWindows(pl.LightningModule):
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
         return valid_loss
-        # return dict(y=outsample_y, y_hat=output, mask=outsample_mask, distr_args=distr_args)
 
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
+        self.valid_trajectories.append(avg_loss)
 
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
