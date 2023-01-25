@@ -639,6 +639,7 @@ class sCRPS(torch.nn.Module):
     def __init__(self, level=[80, 90], quantiles=None):
         super(sCRPS, self).__init__()
         self.mql = MQLoss(level=level, quantiles=quantiles)
+        self.is_distribution_output = False
 
     def __call__(
         self,
