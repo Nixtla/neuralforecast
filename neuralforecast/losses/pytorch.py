@@ -12,20 +12,8 @@ import numpy as np
 import torch
 
 import torch.nn.functional as F
-from torch.distributions import Normal, StudentT, Poisson
 from torch.distributions import Distribution
-
-# from torch.distributions import AffineTransform, TransformedDistribution
-
-# from torch.distributions import (
-#     Beta,
-#     Distribution,
-#     Gamma,
-#     NegativeBinomial,
-#     Normal,
-#     Poisson,
-#     StudentT,
-# )
+from torch.distributions import Normal, StudentT, Poisson, NegativeBinomial
 
 # %% ../../nbs/losses.pytorch.ipynb 5
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
@@ -692,7 +680,7 @@ def weighted_average(
 
 # %% ../../nbs/losses.pytorch.ipynb 60
 def student_domain_map(input: torch.Tensor):
-    """
+    """Student T Domain Map
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
@@ -724,7 +712,7 @@ def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
 
 
 def normal_domain_map(input: torch.Tensor):
-    """
+    """Normal Domain Map
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
@@ -748,14 +736,17 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     """
     mean, std = output
     std = F.softplus(std)
+    print("mean.shape", mean.shape)
     if (loc is not None) and (scale is not None):
+        print("scale.shape", scale.shape)
+        print("loc.shape", loc.shape)
         mean = (mean * scale) + loc
         std = (std + eps) * scale
     return (mean, std)
 
 
 def poisson_domain_map(input: torch.Tensor):
-    """
+    """Poisson Domain Map
     Maps input into distribution constraints, by construction input's
     last dimension is of matching `distr_args` length.
 
@@ -781,6 +772,36 @@ def poisson_scale_decouple(output, loc=None, scale=None):
     rate = F.softplus(rate)  # .clone()
     return (rate,)
 
+
+def nbinomial_domain_map(input: torch.Tensor):
+    """Negative Binomial Domain Map
+    Maps input into distribution constraints, by construction input's
+    last dimension is of matching `distr_args` length.
+
+    **Parameters:**<br>
+    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+
+    **Returns:**<br>
+    `(total_count, probs)`: tuple with tensors of N.Binomial distribution arguments.<br>
+    """
+    total_count, probs = torch.tensor_split(input, 2, dim=-1)
+    return total_count.squeeze(-1), probs.squeeze(-1)
+
+
+def nbinomial_scale_decouple(output, loc=None, scale=None):
+    """Negative Binomial Scale Decouple
+
+    Stabilizes model's output optimization, by learning total
+    count and logits based on anchoring `loc`, `scale`.
+    Also adds Negative Binomial domain protection to the distribution parameters.
+    """
+    total_count, probs = output
+    if (loc is not None) and (scale is not None):
+        total_count = (total_count * scale) + loc
+    total_count = F.softplus(total_count)
+    probs = F.sigmoid(probs)
+    return (total_count, probs)
+
 # %% ../../nbs/losses.pytorch.ipynb 61
 class DistributionLoss(torch.nn.Module):
     """DistributionLoss
@@ -798,6 +819,7 @@ class DistributionLoss(torch.nn.Module):
     - Poisson
     - Normal
     - StudentT
+    - NegativeBinomial
 
     **Parameters:**<br>
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
@@ -826,21 +848,25 @@ class DistributionLoss(torch.nn.Module):
             Normal=Normal,
             Poisson=Poisson,
             StudentT=StudentT,
+            NegativeBinomial=NegativeBinomial,
         )
         domain_maps = dict(
             Normal=normal_domain_map,
             Poisson=poisson_domain_map,
             StudentT=student_domain_map,
+            NegativeBinomial=nbinomial_domain_map,
         )
         scale_decouples = dict(
             Normal=normal_scale_decouple,
             Poisson=poisson_scale_decouple,
             StudentT=student_scale_decouple,
+            NegativeBinomial=nbinomial_scale_decouple,
         )
         param_names = dict(
             Normal=["-loc", "-scale"],
             Poisson=["-loc"],
             StudentT=["-df", "-loc", "-scale"],
+            NegativeBinomial=["-total_count", "-logits"],
         )
         assert (
             distribution in available_distributions.keys()
@@ -867,7 +893,7 @@ class DistributionLoss(torch.nn.Module):
         if self.return_params:
             self.output_names = self.output_names + self.param_names
 
-        self.outputsize_multiplier = len(self._base_distribution.arg_constraints.keys())
+        self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
 
     def get_distribution(self, distr_args) -> Distribution:
@@ -1125,9 +1151,6 @@ class PMM(torch.nn.Module):
         y = y * mask  # Protect target variable negative entries
 
         log = y.xlogy(lambdas + eps) - lambdas - (y + 1).lgamma()
-
-        # log = y * torch.log(lambdas + eps) - lambdas\
-        #      - ( (y) * torch.log(y + eps) - y )   # Stirling's Factorial
 
         # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
         # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
