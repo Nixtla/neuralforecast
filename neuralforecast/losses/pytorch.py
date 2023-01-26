@@ -1124,9 +1124,10 @@ class PMM(torch.nn.Module):
 
         y = y * mask  # Protect target variable negative entries
 
-        log = (
-            y * torch.log(lambdas + eps) - lambdas - ((y) * torch.log(y + eps) - y)
-        )  # Stirling's Factorial
+        log = y.xlogy(lambdas + eps) - lambdas - (y + 1).lgamma()
+
+        # log = y * torch.log(lambdas + eps) - lambdas\
+        #      - ( (y) * torch.log(y + eps) - y )   # Stirling's Factorial
 
         # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
         # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
@@ -1317,8 +1318,12 @@ class GMM(torch.nn.Module):
         y = y[:, :, None]
         mask = mask[:, :, None]
 
-        log = -0.5 * ((1 / stds) * (y - means)) ** 2 - torch.log(
-            ((2 * math.pi) ** (0.5)) * stds
+        var = stds**2
+        log_stds = torch.log(stds)
+        log = (
+            -((y - means) ** 2 / (2 * var))
+            - log_stds
+            - math.log(math.sqrt(2 * math.pi))
         )
 
         # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
