@@ -247,11 +247,17 @@ class TimeSeriesDataset(Dataset):
 # %% ../nbs/tsdataset.ipynb 10
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
-        self, dataset: TimeSeriesDataset, batch_size=32, num_workers=0, drop_last=False
+        self,
+        dataset: TimeSeriesDataset,
+        batch_size=32,
+        valid_batch_size=1024,
+        num_workers=0,
+        drop_last=False,
     ):
         super().__init__()
         self.dataset = dataset
         self.batch_size = batch_size
+        self.valid_batch_size = valid_batch_size
         self.num_workers = num_workers
         self.drop_last = drop_last
 
@@ -268,7 +274,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         loader = TimeSeriesLoader(
             self.dataset,
-            batch_size=self.batch_size,
+            batch_size=self.valid_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
             drop_last=self.drop_last,
@@ -278,7 +284,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
     def predict_dataloader(self):
         loader = TimeSeriesLoader(
             self.dataset,
-            batch_size=self.batch_size,
+            batch_size=self.valid_batch_size,
             num_workers=self.num_workers,
             shuffle=False,
         )
