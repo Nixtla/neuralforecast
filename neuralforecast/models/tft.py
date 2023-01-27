@@ -402,6 +402,7 @@ class TFT(BaseWindows):
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -409,6 +410,7 @@ class TFT(BaseWindows):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -434,6 +436,7 @@ class TFT(BaseWindows):
         attn_dropout: float = 0.0,
         dropout: float = 0.1,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = -1,
@@ -441,6 +444,7 @@ class TFT(BaseWindows):
         val_check_steps: int = 100,
         batch_size: int = 32,
         windows_batch_size: int = 1024,
+        valid_batch_size: Optional[int] = None,
         step_size: int = 1,
         scaler_type: str = "robust",
         num_workers_loader=0,
@@ -454,6 +458,7 @@ class TFT(BaseWindows):
             h=h,
             input_size=input_size,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
@@ -461,6 +466,7 @@ class TFT(BaseWindows):
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
+            valid_batch_size=valid_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
@@ -468,7 +474,6 @@ class TFT(BaseWindows):
             random_seed=random_seed,
             **trainer_kwargs
         )
-
         self.example_length = input_size + h
 
         # Parse lists hyperparameters
@@ -628,6 +633,7 @@ class TFT(BaseWindows):
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
+        self.train_trajectories.append((self.global_step, float(loss)))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -648,8 +654,8 @@ class TFT(BaseWindows):
         outsample_y = windows["temporal"][:, -self.h :, y_idx]
         outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
 
-        # Model predictions
-        output = self(x=windows)
+        # Model Predictions
+        output = self(windows)
         if self.loss.is_distribution_output:
             outsample_y, y_loc, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
@@ -657,18 +663,27 @@ class TFT(BaseWindows):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
-        else:
-            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+            _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
 
-        self.log("val_loss", loss, prog_bar=True, on_epoch=True)
-        return loss
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
+        else:
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=output, mask=outsample_mask
+            )
+
+        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        return valid_loss
 
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss)
+        self.valid_trajectories.append((self.global_step, float(avg_loss)))
 
     def predict_step(self, batch, batch_idx):
         # Deviates from orignal `BaseWindows.training_step` to

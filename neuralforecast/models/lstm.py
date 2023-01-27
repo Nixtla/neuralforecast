@@ -4,6 +4,8 @@
 __all__ = ['LSTM']
 
 # %% ../../nbs/models.lstm.ipynb 6
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -35,12 +37,14 @@ class LSTM(BaseRecurrent):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of differentseries in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
@@ -63,12 +67,14 @@ class LSTM(BaseRecurrent):
         hist_exog_list=None,
         stat_exog_list=None,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size=32,
+        valid_batch_size: Optional[int] = None,
         scaler_type: str = "robust",
         random_seed=1,
         num_workers_loader=0,
@@ -79,12 +85,14 @@ class LSTM(BaseRecurrent):
             h=h,
             input_size=input_size,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
             scaler_type=scaler_type,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,

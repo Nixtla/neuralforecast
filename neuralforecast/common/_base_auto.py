@@ -88,6 +88,8 @@ class BaseAuto(pl.LightningModule):
     **Parameters:**<br>
     `cls_model`: PyTorch/PyTorchLightning model, see `neuralforecast.models` [collection here](https://nixtla.github.io/neuralforecast/models.html).<br>
     `h`: int, forecast horizon.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `config`: dict, dictionary with ray.tune defined search space.<br>
     `search_alg`: ray.tune.search variant, BasicVariantGenerator, HyperOptSearch, DragonflySearch, TuneBOHB for details
         see [tune.search](https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#).<br>
@@ -103,6 +105,7 @@ class BaseAuto(pl.LightningModule):
         cls_model,
         h,
         loss,
+        valid_loss,
         config,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
@@ -115,15 +118,24 @@ class BaseAuto(pl.LightningModule):
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
         if config.get("h", None) is not None:
-            raise Exception("Please use `h` argument instead of `config['h']`.")
+            raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config.get("loss", None) is not None:
-            raise Exception("Please use `loss` argument instead of `config['loss']`.")
+            raise Exception(
+                "Please use `loss` init argument instead of `config['loss']`."
+            )
+        if config.get("valid_loss", None) is not None:
+            raise Exception(
+                "Please use `valid_loss` init argument instead of `config['valid_loss']`."
+            )
 
         # Deepcopy to avoid modifying the original config
         config_base = deepcopy(config)
 
         config_base["h"] = h
         config_base["loss"] = loss
+        if valid_loss is None:
+            valid_loss = loss
+        config_base["valid_loss"] = valid_loss
         self.cls_model = cls_model
         self.h = h
         self.loss = loss
@@ -135,6 +147,7 @@ class BaseAuto(pl.LightningModule):
         self.refit_with_val = refit_with_val
         self.verbose = verbose
         self.loss = self.config.get("loss", MAE())
+        self.valid_loss = self.config.get("valid_loss", self.loss)
 
     def fit(self, dataset, val_size=0, test_size=0):
         """BaseAuto.fit
