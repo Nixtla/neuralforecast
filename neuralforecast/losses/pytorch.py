@@ -782,10 +782,10 @@ def nbinomial_domain_map(input: torch.Tensor):
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
 
     **Returns:**<br>
-    `(total_count, probs)`: tuple with tensors of N.Binomial distribution arguments.<br>
+    `(total_count, alpha)`: tuple with tensors of N.Binomial distribution arguments.<br>
     """
-    total_count, probs = torch.tensor_split(input, 2, dim=-1)
-    return total_count.squeeze(-1), probs.squeeze(-1)
+    mu, alpha = torch.tensor_split(input, 2, dim=-1)
+    return mu.squeeze(-1), alpha.squeeze(-1)
 
 
 def nbinomial_scale_decouple(output, loc=None, scale=None):
@@ -795,13 +795,31 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     count and logits based on anchoring `loc`, `scale`.
     Also adds Negative Binomial domain protection to the distribution parameters.
     """
-    total_count, probs = output
+    mu, alpha = output
+    mu = F.softplus(mu) + 1e-8
+    alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
     if (loc is not None) and (scale is not None):
-        # total_count = (total_count * scale) + loc
-        probs += scale.log() / 10
-    total_count = F.softplus(total_count)
-    probs = F.sigmoid(probs)
+        mu *= loc
+        alpha /= loc
+
+    # mu = total_count * (probs/(1-probs))
+    # => probs = mu / (total_count + mu)
+    # => probs = mu / [total_count * (1 + mu * (1/total_count))]
+    total_count = 1.0 / alpha
+    probs = mu * alpha / (1.0 + mu * alpha)
     return (total_count, probs)
+
+
+# mu, alpha = distr_args
+
+# if scale is not None:
+#     mu *= scale
+#     alpha /= scale  # FIXME: wrong calculation
+#     #alpha += (scale - 1) / mu   # TODO: if scale < 1, alpha can be negative
+#     #alpha = alpha.clamp(min=1e-8)
+
+# r = 1.0 / alpha
+# p = mu * alpha / (1.0 + mu * alpha)     # p = mu / (r+mu)
 
 # %% ../../nbs/losses.pytorch.ipynb 61
 def est_lambda(mu, rho):
