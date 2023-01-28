@@ -797,7 +797,8 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     """
     total_count, probs = output
     if (loc is not None) and (scale is not None):
-        total_count = (total_count * scale) + loc
+        # total_count = (total_count * scale) + loc
+        probs += scale.log() / 10
     total_count = F.softplus(total_count)
     probs = F.sigmoid(probs)
     return (total_count, probs)
