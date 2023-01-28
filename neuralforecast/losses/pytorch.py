@@ -804,6 +804,127 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     return (total_count, probs)
 
 # %% ../../nbs/losses.pytorch.ipynb 61
+def est_lambda(mu, rho):
+    return mu ** (2 - rho) / (2 - rho)
+
+
+def est_alpha(rho):
+    return (2 - rho) / (rho - 1)
+
+
+def est_beta(mu, rho):
+    return mu ** (1 - rho) / (rho - 1)
+
+
+class Tweedie(Distribution):
+    """Tweedie Distribution
+
+    The Tweedie distribution is a compound probability, special case of exponential
+    dispersion models EDMs defined by its mean-variance relationship.
+    The distribution particularly useful to model sparse series as the probability has
+    possitive mass at zero but otherwise is continuous.
+
+    $Y \sim \mathrm{ED}(\\mu,\\sigma^{2}) \qquad
+    \mathbb{P}(y|\\mu ,\\sigma^{2})=h(\\sigma^{2},y) \\exp \\left({\\frac {\\theta y-A(\\theta )}{\\sigma^{2}}}\\right)$<br>
+
+    $\mu =A'(\\theta ) \qquad \mathrm{Var}(Y) = \\sigma^{2} \\mu^{\\rho}$
+
+    Cases of the variance relationship include Normal (`rho` = 0), Poisson (`rho` = 1),
+    Gamma (`rho` = 2), inverse Gaussian (`rho` = 3).
+
+    **Parameters:**<br>
+    `log_mu`: tensor, with log of means.<br>
+    `rho`: float, Tweedie variance power (1,2). Fixed across all observations.<br>
+    `sigma2`: tensor, Tweedie variance. Currently fixed in 1.<br>
+
+    **References:**<br>
+    - [Tweedie, M. C. K. (1984). An index which distinguishes between some important exponential families. Statistics: Applications and New Directions.
+    Proceedings of the Indian Statistical Institute Golden Jubilee International Conference (Eds. J. K. Ghosh and J. Roy), pp. 579-604. Calcutta: Indian Statistical Institute.]()<br>
+    - [Jorgensen, B. (1987). Exponential Dispersion Models. Journal of the Royal Statistical Society.
+       Series B (Methodological), 49(2), 127–162. http://www.jstor.org/stable/2345415](http://www.jstor.org/stable/2345415)<br>
+    """
+
+    def __init__(self, log_mu, rho, validate_args=None):
+        # TODO: add sigma2 dispersion
+        # TODO add constraints
+        # arg_constraints = {'log_mu': constraints.real, 'rho': constraints.positive}
+        # support = constraints.real
+        self.log_mu = log_mu
+        self.rho = rho
+        assert rho > 1 and rho < 2, f"rho={rho} parameter needs to be between (1,2)."
+
+        batch_shape = log_mu.size()
+        super(Tweedie, self).__init__(batch_shape, validate_args=validate_args)
+
+    @property
+    def mean(self):
+        return torch.exp(self.log_mu)
+
+    @property
+    def variance(self):
+        return torch.ones_line(self.log_mu)  # TODO need to be assigned
+
+    def sample(self, sample_shape=torch.Size()):
+        shape = self._extended_shape(sample_shape)
+        with torch.no_grad():
+            mu = self.mean
+            rho = self.rho * torch.ones_like(mu)
+            sigma2 = 1  # TODO
+
+            rate = est_lambda(mu, rho) / sigma2  # rate for poisson
+            alpha = est_alpha(rho)  # alpha for Gamma distribution
+            beta = est_beta(mu, rho) / sigma2  # beta for Gamma distribution
+
+            # Expand for sample
+            rate = rate.expand(shape)
+            alpha = alpha.expand(shape)
+            beta = beta.expand(shape)
+
+            N = torch.poisson(rate)
+            gamma = torch.distributions.gamma.Gamma(N * alpha, beta)
+            samples = gamma.sample()
+            samples[N == 0] = 0
+
+            return samples
+
+    def log_prob(self, y_true):
+        rho = self.rho
+        y_pred = self.log_mu
+
+        a = y_true * torch.exp((1 - rho) * y_pred) / (1 - rho)
+        b = torch.exp((2 - rho) * y_pred) / (2 - rho)
+
+        return a - b
+
+
+def tweedie_domain_map(input: torch.Tensor):
+    """Tweedie Domain Map
+    Maps input into distribution constraints, by construction input's
+    last dimension is of matching `distr_args` length.
+
+    **Parameters:**<br>
+    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+
+    **Returns:**<br>
+    `(log_mu,)`: tuple with tensors of Tweedie distribution arguments.<br>
+    """
+    # log_mu, probs = torch.tensor_split(input, 2, dim=-1)
+    return (input.squeeze(-1),)
+
+
+def tweedie_scale_decouple(output, loc=None, scale=None):
+    """Tweedie Scale Decouple
+
+    Stabilizes model's output optimization, by learning total
+    count and logits based on anchoring `loc`, `scale`.
+    Also adds Tweedie domain protection to the distribution parameters.
+    """
+    log_mu = output[0]
+    if (loc is not None) and (scale is not None):
+        log_mu += torch.log(loc)  # TODO : rho scaling
+    return (log_mu,)
+
+# %% ../../nbs/losses.pytorch.ipynb 63
 class DistributionLoss(torch.nn.Module):
     """DistributionLoss
 
@@ -821,6 +942,7 @@ class DistributionLoss(torch.nn.Module):
     - Normal
     - StudentT
     - NegativeBinomial
+    - Tweedie
 
     **Parameters:**<br>
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
@@ -842,6 +964,7 @@ class DistributionLoss(torch.nn.Module):
         quantiles=None,
         num_samples=500,
         return_params=False,
+        **distribution_kwargs,
     ):
         super(DistributionLoss, self).__init__()
 
@@ -850,24 +973,28 @@ class DistributionLoss(torch.nn.Module):
             Poisson=Poisson,
             StudentT=StudentT,
             NegativeBinomial=NegativeBinomial,
+            Tweedie=Tweedie,
         )
         domain_maps = dict(
             Normal=normal_domain_map,
             Poisson=poisson_domain_map,
             StudentT=student_domain_map,
             NegativeBinomial=nbinomial_domain_map,
+            Tweedie=tweedie_domain_map,
         )
         scale_decouples = dict(
             Normal=normal_scale_decouple,
             Poisson=poisson_scale_decouple,
             StudentT=student_scale_decouple,
             NegativeBinomial=nbinomial_scale_decouple,
+            Tweedie=tweedie_scale_decouple,
         )
         param_names = dict(
             Normal=["-loc", "-scale"],
             Poisson=["-loc"],
             StudentT=["-df", "-loc", "-scale"],
             NegativeBinomial=["-total_count", "-logits"],
+            Tweedie=["-log_mu"],
         )
         assert (
             distribution in available_distributions.keys()
@@ -878,6 +1005,8 @@ class DistributionLoss(torch.nn.Module):
         self.domain_map = domain_maps[distribution]
         self.scale_decouple = scale_decouples[distribution]
         self.param_names = param_names[distribution]
+
+        self.distribution_kwargs = distribution_kwargs
 
         qs, self.output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
@@ -897,7 +1026,7 @@ class DistributionLoss(torch.nn.Module):
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
 
-    def get_distribution(self, distr_args) -> Distribution:
+    def get_distribution(self, distr_args, **distribution_kwargs) -> Distribution:
         """
         Construct the associated Pytorch Distribution, given the collection of
         constructor arguments and, optionally, location and scale tensors.
@@ -908,10 +1037,8 @@ class DistributionLoss(torch.nn.Module):
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
-        # TODO: domain_map output dictionary rather instead of ordered tuple
-        # to improve instantiation of the base distributions.
         # TransformedDistribution(distr, [AffineTransform(loc=loc, scale=scale)])
-        distr = self._base_distribution(*distr_args)
+        distr = self._base_distribution(*distr_args, **distribution_kwargs)
         return distr
 
     def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
@@ -937,10 +1064,8 @@ class DistributionLoss(torch.nn.Module):
         B, H = distr_args[0].size()
         Q = len(self.quantiles)
 
-        # Construct AffineTransformed Distribution to
-        # sample y ~ loc + Distribution(distr_args) * scale independently
-        # distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
-        distr = self.get_distribution(distr_args=distr_args)
+        # Instantiate Scaled Decoupled Distribution
+        distr = self.get_distribution(distr_args=distr_args, **self.distribution_kwargs)
         samples = distr.sample(sample_shape=(num_samples,))
         samples = samples.permute(1, 2, 0)  # [samples,B,H] -> [B,H,samples]
         samples = samples.to(distr_args[0].device)
@@ -983,14 +1108,13 @@ class DistributionLoss(torch.nn.Module):
         **Returns**<br>
         `loss`: scalar, weighted loss function against which backpropagation will be performed.<br>
         """
-        # Construct AffineTransformed Distribution
-        # distr = self.get_distribution(distr_args=distr_args, loc=loc, scale=scale)
-        distr = self.get_distribution(distr_args=distr_args)
+        # Instantiate Scaled Decoupled Distribution
+        distr = self.get_distribution(distr_args=distr_args, **self.distribution_kwargs)
         loss_values = -distr.log_prob(y)
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 67
+# %% ../../nbs/losses.pytorch.ipynb 69
 class PMM(torch.nn.Module):
     """Poisson Mixture Mesh
 
@@ -1174,7 +1298,7 @@ class PMM(torch.nn.Module):
 
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 75
+# %% ../../nbs/losses.pytorch.ipynb 77
 class GMM(torch.nn.Module):
     """Gaussian Mixture Mesh
 
