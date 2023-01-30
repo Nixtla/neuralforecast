@@ -4,6 +4,8 @@
 __all__ = ['MLP']
 
 # %% ../../nbs/models.mlp.ipynb 5
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -29,12 +31,14 @@ class MLP(BaseWindows):
     `n_layers`: int, number of layers for the MLP.<br>
     `hidden_size`: int, number of units for each layer of the MLP.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of differentseries in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, if None uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -54,18 +58,20 @@ class MLP(BaseWindows):
         num_layers=2,
         hidden_size=1024,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader=0,
-        drop_last_loader=False,
+        num_workers_loader: int = 0,
+        drop_last_loader: bool = False,
         **trainer_kwargs
     ):
 
@@ -77,12 +83,14 @@ class MLP(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
             windows_batch_size=windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,

@@ -24,10 +24,12 @@ class BaseRecurrent(pl.LightningModule):
         h,
         input_size,
         loss,
+        valid_loss,
         learning_rate,
         max_steps,
         val_check_steps,
-        batch_size=32,
+        batch_size,
+        valid_batch_size,
         scaler_type="robust",
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -53,6 +55,21 @@ class BaseRecurrent(pl.LightningModule):
 
         # Loss
         self.loss = loss
+        if valid_loss == None:
+            self.valid_loss = loss
+        else:
+            self.valid_loss = valid_loss
+        self.train_trajectories = []
+        self.valid_trajectories = []
+
+        # Valid batch_size
+        self.batch_size = batch_size
+        if valid_batch_size == None:
+            self.valid_batch_size = batch_size
+        else:
+            self.valid_batch_size = valid_batch_size
+
+        # Optimization
         self.learning_rate = learning_rate
         self.max_steps = max_steps
         self.num_lr_decays = num_lr_decays
@@ -61,7 +78,6 @@ class BaseRecurrent(pl.LightningModule):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
-        self.batch_size = batch_size
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -334,6 +350,7 @@ class BaseRecurrent(pl.LightningModule):
         self.log(
             "train_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
         )
+        self.train_trajectories.append((self.global_step, float(loss)))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -389,21 +406,33 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
         else:
             y_hat = output[:, -val_windows:-1, :]
-            loss = self.loss(y=outsample_y, y_hat=y_hat, mask=outsample_mask)
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=y_hat, mask=outsample_mask
+            )
 
         self.log(
-            "val_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
+            "valid_loss",
+            valid_loss,
+            batch_size=self.batch_size,
+            prog_bar=True,
+            on_epoch=True,
         )
-        return loss
+        return valid_loss
 
     def validation_epoch_end(self, outputs):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(outputs).mean()
         self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
+        self.valid_trajectories.append((self.global_step, float(avg_loss)))
 
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
@@ -484,8 +513,9 @@ class BaseRecurrent(pl.LightningModule):
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
-            dataset,
+            dataset=dataset,
             batch_size=self.batch_size,
+            valid_batch_size=self.valid_batch_size,
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
         )
@@ -536,7 +566,10 @@ class BaseRecurrent(pl.LightningModule):
         trainer = pl.Trainer(**pred_trainer_kwargs)
 
         datamodule = TimeSeriesDataModule(
-            dataset, num_workers=self.num_workers_loader, **data_module_kwargs
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            num_workers=self.num_workers_loader,
+            **data_module_kwargs,
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:

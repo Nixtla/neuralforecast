@@ -4,7 +4,7 @@
 __all__ = ['NBEATSx']
 
 # %% ../../nbs/models.nbeatsx.ipynb 5
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 import torch
@@ -255,6 +255,7 @@ class NBEATSx(BaseWindows):
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -262,6 +263,7 @@ class NBEATSx(BaseWindows):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -290,6 +292,7 @@ class NBEATSx(BaseWindows):
         activation="ReLU",
         shared_weights=False,
         loss=MAE(),
+        valid_loss=None,
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = 3,
@@ -297,11 +300,12 @@ class NBEATSx(BaseWindows):
         val_check_steps: int = 100,
         batch_size=32,
         windows_batch_size: int = 1024,
+        valid_batch_size: Optional[int] = None,
         step_size: int = 1,
-        scaler_type="identity",
-        random_seed=1,
-        num_workers_loader=0,
-        drop_last_loader=False,
+        scaler_type: str = "identity",
+        random_seed: int = 1,
+        num_workers_loader: int = 0,
+        drop_last_loader: bool = False,
         **trainer_kwargs,
     ):
 
@@ -313,6 +317,7 @@ class NBEATSx(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             loss=loss,
+            valid_loss=valid_loss,
             max_steps=max_steps,
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
@@ -320,6 +325,7 @@ class NBEATSx(BaseWindows):
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
+            valid_batch_size=valid_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
