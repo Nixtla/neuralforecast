@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'sCRPS', 'DistributionLoss', 'PMM',
-           'GMM']
+           'GMM', 'NBMM']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
 from typing import Optional, Union, Tuple
@@ -800,26 +800,14 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
     if (loc is not None) and (scale is not None):
         mu *= loc
-        alpha /= loc
+        alpha /= loc + 1.0
 
     # mu = total_count * (probs/(1-probs))
     # => probs = mu / (total_count + mu)
     # => probs = mu / [total_count * (1 + mu * (1/total_count))]
     total_count = 1.0 / alpha
-    probs = mu * alpha / (1.0 + mu * alpha)
+    probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
     return (total_count, probs)
-
-
-# mu, alpha = distr_args
-
-# if scale is not None:
-#     mu *= scale
-#     alpha /= scale  # FIXME: wrong calculation
-#     #alpha += (scale - 1) / mu   # TODO: if scale < 1, alpha can be negative
-#     #alpha = alpha.clamp(min=1e-8)
-
-# r = 1.0 / alpha
-# p = mu * alpha / (1.0 + mu * alpha)     # p = mu / (r+mu)
 
 # %% ../../nbs/losses.pytorch.ipynb 61
 def est_lambda(mu, rho):
@@ -1491,6 +1479,216 @@ class GMM(torch.nn.Module):
             - log_stds
             - math.log(math.sqrt(2 * math.pi))
         )
+
+        # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
+        # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
+
+        # Numerical stability mixture and loglik
+        log_max = torch.amax(log, dim=2, keepdim=True)  # [1,1,K] (collapsed joints)
+        lik = weights * torch.exp(log - log_max)  # Take max
+        loglik = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max  # Return max
+
+        loglik = loglik * mask  # replace with mask
+
+        loss = -torch.mean(loglik)
+        return loss
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
+        mask: Union[torch.Tensor, None] = None,
+    ):
+
+        return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
+
+# %% ../../nbs/losses.pytorch.ipynb 85
+class NBMM(torch.nn.Module):
+    """Negative Binomial Mixture Mesh
+
+    This N. Binomial Mixture statistical model assumes independence across groups of
+    data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
+
+    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
+    \prod_{\\beta\in[g_{i}]}
+    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
+    \mathrm{NBinomial}(y_{\\beta,\\tau}, \hat{r}_{\\beta,\\tau,k}, \hat{p}_{\\beta,\\tau,k})\\right)$$
+
+    **Parameters:**<br>
+    `n_components`: int=10, the number of mixture components.<br>
+    `level`: float list [0,100], confidence levels for prediction intervals.<br>
+    `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
+
+    **References:**<br>
+    [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
+    Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International
+    Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+    """
+
+    def __init__(
+        self,
+        n_components=1,
+        level=[80, 90],
+        quantiles=None,
+        num_samples=500,
+        return_params=False,
+    ):
+        super(NBMM, self).__init__()
+        # Transform level to MQLoss parameters
+        qs, self.output_names = level_to_outputs(level)
+        qs = torch.Tensor(qs)
+
+        # Transform quantiles to homogeneus output names
+        if quantiles is not None:
+            _, self.output_names = quantiles_to_outputs(quantiles)
+            qs = torch.Tensor(quantiles)
+        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.num_samples = num_samples
+
+        # If True, predict_step will return Distribution's parameters
+        self.return_params = return_params
+        if self.return_params:
+            total_count_names = [
+                f"-total_count-{i}" for i in range(1, n_components + 1)
+            ]
+            probs_names = [f"-probs-{i}" for i in range(1, n_components + 1)]
+            param_names = [i for j in zip(total_count_names, probs_names) for i in j]
+            self.output_names = self.output_names + param_names
+
+        self.outputsize_multiplier = 2 * n_components
+        self.is_distribution_output = True
+
+    def domain_map(self, output: torch.Tensor):
+        mu, alpha = torch.tensor_split(output, 2, dim=-1)
+        return (mu, alpha)
+
+    def scale_decouple(
+        self,
+        output,
+        loc: Optional[torch.Tensor] = None,
+        scale: Optional[torch.Tensor] = None,
+        eps: float = 0.2,
+    ):
+        """Scale Decouple
+
+        Stabilizes model's output optimization, by learning residual
+        variance and residual location based on anchoring `loc`, `scale`.
+        Also adds domain protection to the distribution parameters.
+        """
+        # Efficient NBinomial parametrization
+        mu, alpha = output
+        mu = F.softplus(mu) + 1e-8
+        alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
+        if (loc is not None) and (scale is not None):
+            loc = loc.view(mu.size(dim=0), 1, -1)
+            mu *= loc
+            alpha /= loc + 1.0
+
+        # mu = total_count * (probs/(1-probs))
+        # => probs = mu / (total_count + mu)
+        # => probs = mu / [total_count * (1 + mu * (1/total_count))]
+        total_count = 1.0 / alpha
+        probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
+        return (total_count, probs)
+
+    def sample(self, distr_args, num_samples=None):
+        """
+        Construct the empirical quantiles from the estimated Distribution,
+        sampling from it `num_samples` independently.
+
+        **Parameters**<br>
+        `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
+        `num_samples`: int=500, number of samples for the empirical quantiles.<br>
+
+        **Returns**<br>
+        `samples`: tensor, shape [B,H,`num_samples`].<br>
+        `quantiles`: tensor, empirical quantiles defined by `levels`.<br>
+        """
+        if num_samples is None:
+            num_samples = self.num_samples
+
+        total_count, probs = distr_args
+        B, H, K = total_count.size()
+        Q = len(self.quantiles)
+        assert total_count.shape == probs.shape
+
+        # Sample K ~ Mult(weights)
+        # shared across B, H
+        # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+
+        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+
+        # Avoid loop, vectorize
+        weights = weights.reshape(-1, K)
+        total_count = total_count.flatten()
+        probs = probs.flatten()
+
+        # Vectorization trick to recover row_idx
+        sample_idxs = torch.multinomial(
+            input=weights, num_samples=num_samples, replacement=True
+        )
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+
+        # To device
+        sample_idxs = sample_idxs.to(probs.device)
+        aux_col_idx = aux_col_idx.to(probs.device)
+
+        sample_idxs = sample_idxs + aux_col_idx
+        sample_idxs = sample_idxs.flatten()
+
+        sample_total_count = total_count[sample_idxs]
+        sample_probs = probs[sample_idxs]
+
+        # Sample y ~ NBinomial(total_count, probs) independently
+        dist = NegativeBinomial(total_count=sample_total_count, probs=sample_probs)
+        samples = dist.sample(sample_shape=(1,)).to(probs.device)[0]
+        samples = samples.view(B * H, num_samples)
+
+        # Compute quantiles
+        quantiles_device = self.quantiles.to(probs.device)
+        quants = torch.quantile(input=samples, q=quantiles_device, dim=1)
+        quants = quants.permute((1, 0))  # Q, B*H
+
+        # Final reshapes
+        samples = samples.view(B, H, num_samples)
+        quants = quants.view(B, H, Q)
+
+        return samples, quants
+
+    def neglog_likelihood(
+        self,
+        y: torch.Tensor,
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
+        mask: Union[torch.Tensor, None] = None,
+    ):
+
+        if mask is None:
+            mask = torch.ones_like(y)
+
+        total_count, probs = distr_args
+        B, H, K = total_count.size()
+
+        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+
+        y = y[:, :, None]
+        mask = mask[:, :, None]
+
+        log_unnormalized_prob = total_count * torch.log(1.0 - probs) + y * torch.log(
+            probs
+        )
+        log_normalization = (
+            -torch.lgamma(total_count + y)
+            + torch.lgamma(1.0 + y)
+            + torch.lgamma(total_count)
+        )
+        log_normalization[total_count + y == 0.0] = 0.0
+        log = log_unnormalized_prob - log_normalization
 
         # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
         # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
