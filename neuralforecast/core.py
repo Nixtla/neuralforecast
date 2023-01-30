@@ -6,6 +6,8 @@ __all__ = ['NeuralForecast']
 # %% ../nbs/core.ipynb 4
 import os
 import pickle
+import warnings
+
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -169,6 +171,12 @@ class NeuralForecast:
         else:
             if verbose:
                 print("Using stored dataset.")
+
+        if val_size is not None:
+            if self.dataset.min_size < val_size:
+                warnings.warn(
+                    "Validation set size is larger than the shorter time-series."
+                )
 
         # train + validation
         for model in self.models:
@@ -352,6 +360,12 @@ class NeuralForecast:
             raise Exception("you must define `n_windows` or `test_size`")
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
+
+        if val_size is not None:
+            if self.dataset.min_size < (val_size + test_size):
+                warnings.warn(
+                    "Validation and test sets are larger than the shorter time-series."
+                )
 
         fcsts_df = _cv_dates(
             last_dates=self.last_dates,
