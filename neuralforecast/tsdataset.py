@@ -74,7 +74,8 @@ class TimeSeriesDataset(Dataset):
         temporal,
         temporal_cols,
         indptr,
-        max_size,
+        max_size: int,
+        min_size: int,
         static=None,
         static_cols=None,
         sorted=False,
@@ -93,6 +94,7 @@ class TimeSeriesDataset(Dataset):
         self.indptr = indptr
         self.n_groups = self.indptr.size - 1
         self.max_size = max_size
+        self.min_size = min_size
 
         # Upadated flag. To protect consistency, dataset can only be updated once
         self.updated = False
@@ -189,6 +191,7 @@ class TimeSeriesDataset(Dataset):
             temporal_cols=temporal_cols,
             indptr=np.array(new_indptr).astype(np.int32),
             max_size=new_max_size,
+            min_size=dataset.min_size,
             static=dataset.static,
             static_cols=dataset.static_cols,
             sorted=dataset.sorted,
@@ -221,6 +224,7 @@ class TimeSeriesDataset(Dataset):
         indices = indices_sizes.index
         sizes = indices_sizes.values
         max_size = max(sizes)
+        min_size = min(sizes)
         cum_sizes = sizes.cumsum()
         dates = df.index.get_level_values("ds")[cum_sizes - 1]
         indptr = np.append(0, cum_sizes).astype(np.int32)
@@ -240,6 +244,7 @@ class TimeSeriesDataset(Dataset):
             static_cols=static_cols,
             indptr=indptr,
             max_size=max_size,
+            min_size=min_size,
             sorted=sort_df,
         )
         return dataset, indices, dates, df.index
