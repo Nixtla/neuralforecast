@@ -294,6 +294,7 @@ class NeuralForecast:
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
         sort_df: bool = True,
+        fit_models: bool = True,
         verbose: bool = False,
         **data_kwargs,
     ):
@@ -319,6 +320,8 @@ class NeuralForecast:
             Length of test size. If passed, set `n_windows=None`.
         sort_df : bool (default=True)
             Sort `df` before fitting.
+        fit_models: bool (default=True)
+            Fit models before cross-validation.
         verbose : bool (default=False)
             Print processing steps.
         data_kwargs : kwargs
@@ -382,7 +385,13 @@ class NeuralForecast:
             (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
         )
         for model in self.models:
-            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            # Fit
+            if fit_models:
+                model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            else:
+                model.set_test_size(test_size=test_size)
+
+            # Predict
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
             )
@@ -398,6 +407,60 @@ class NeuralForecast:
 
         # Add original input df's y to forecasts DataFrame
         fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
+        return fcsts_df
+
+    def predict_insample(
+        self,
+        df: Optional[pd.DataFrame] = None,
+        static_df: Optional[pd.DataFrame] = None,
+        n_windows: int = 1,
+        step_size: int = 1,
+        insample_size: Optional[int] = None,
+        sort_df: bool = True,
+        verbose: bool = False,
+        **data_kwargs,
+    ):
+        """Predict insample with core.NeuralForecast.
+
+        Use stored fitted `models` to predict historic values of a time series from DataFrame `df`.
+
+        Parameters
+        ----------
+        df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
+        static_df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+        n_windows : int (default=1)
+            Number of windows used for cross validation.
+        step_size : int (default=1)
+            Step size between each window.
+        insample_size : int, optional (default=None)
+            Length of insample size to produce forecasts. If passed, set `n_windows=None`.
+        sort_df : bool (default=True)
+            Sort `df` before fitting.
+        verbose : bool (default=False)
+            Print processing steps.
+        data_kwargs : kwargs
+            Extra arguments to be passed to the dataset within each model.
+
+        Returns
+        -------
+        fcsts_df : pandas.DataFrame
+            DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
+        """
+        fcsts_df = self.cross_validation(
+            df=df,
+            static_df=static_df,
+            n_windows=n_windows,
+            step_size=step_size,
+            val_size=0,
+            test_size=insample_size,
+            sort_df=sort_df,
+            fit_models=False,
+            verbose=verbose,
+        )
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
