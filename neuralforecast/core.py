@@ -409,7 +409,7 @@ class NeuralForecast:
         fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
         return fcsts_df
 
-    def predict_insample(
+    def predict_rolled(
         self,
         df: Optional[pd.DataFrame] = None,
         static_df: Optional[pd.DataFrame] = None,
