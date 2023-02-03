@@ -478,10 +478,8 @@ class BaseRecurrent(pl.LightningModule):
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
-                distr_args = torch.reshape(
-                    distr_args, (len(windows["temporal"]), self.h, -1)
-                )
-                y_hat = torch.concat((y_hat, distr_args), axis=2)
+                distr_args = torch.reshape(distr_args, (B, T, H, -1))
+                y_hat = torch.concat((y_hat, distr_args), axis=3)
         else:
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
