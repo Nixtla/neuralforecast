@@ -441,7 +441,12 @@ class BaseWindows(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+
+            if str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.sCRPS'>",
+                "<class 'neuralforecast.losses.pytorch.MQLoss'>",
+            ]:
+                _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:

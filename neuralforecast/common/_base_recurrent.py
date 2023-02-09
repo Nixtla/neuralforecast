@@ -406,7 +406,12 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+
+            if str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.sCRPS'>",
+                "<class 'neuralforecast.losses.pytorch.MQLoss'>",
+            ]:
+                _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
         else:
             y_hat = output[:, -val_windows:-1, :]
 
