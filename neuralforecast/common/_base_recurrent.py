@@ -407,13 +407,20 @@ class BaseRecurrent(pl.LightningModule):
                 output=output, loc=y_loc, scale=y_scale
             )
 
+            if str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.sCRPS'>",
+                "<class 'neuralforecast.losses.pytorch.MQLoss'>",
+            ]:
+                _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+        else:
+            y_hat = output[:, -val_windows:-1, :]
+
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
             valid_loss = self.valid_loss(
                 y=outsample_y, distr_args=distr_args, mask=outsample_mask
             )
         else:
-            y_hat = output[:, -val_windows:-1, :]
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=y_hat, mask=outsample_mask
             )
