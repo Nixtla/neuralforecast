@@ -406,7 +406,9 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+        else:
+            y_hat = output[:, -val_windows:-1, :]
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
@@ -414,7 +416,6 @@ class BaseRecurrent(pl.LightningModule):
                 y=outsample_y, distr_args=distr_args, mask=outsample_mask
             )
         else:
-            y_hat = output[:, -val_windows:-1, :]
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=y_hat, mask=outsample_mask
             )
