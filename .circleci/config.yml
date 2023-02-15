@@ -81,3 +81,4 @@ workflows:
     jobs:
       - nbdev-tests
       - test-model-performance
+      - test-gpu-pipeline
