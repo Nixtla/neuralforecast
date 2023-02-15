@@ -53,6 +53,28 @@ jobs:
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
+  test-gpu-pipeline:
+    resource_class: gpu.nvidia.small
+    machine:
+      - image: ubuntu-2004-cuda-11.4:202110-01
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            conda install mamba -n base -c conda-forge
+            mamba create -n neuralforecast python=3.7
+            conda init bash
+            source ~/.bashrc
+            conda activate neuralforecast
+            pip install ./
+      - run:
+          name: Run gpu tests
+          command: |
+            conda init bash
+            source ~/.bashrc
+            conda activate neuralforecast
+            pip install ./
+            python -m src.gpu_pipeline
 
 workflows:
   sample:
