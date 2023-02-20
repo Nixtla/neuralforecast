@@ -43,14 +43,29 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v2
 
-      - name: Set up environment
+      - name: Set up environment (>=3.8)
+        if: ${{ matrix.python-version != '3.7' }}
         uses: mamba-org/provision-with-micromamba@main
         with:
           extra-specs: python=${{ matrix.python-version }}
           cache-env: true
+      
+      - name: Set up environment (3.7)
+        if: ${{ matrix.python-version == '3.7' }}
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          extra-specs: python=${{ matrix.python-version }}
+          environment-file: false
+          environment-name: neuralforecast
+          channels: conda-forge
 
-      - name: Install pip requirements
+      - name: Install pip requirements (>=3.8)
+        if: ${{ matrix.python-version != '3.7' }}
         run: pip install ./ 
+      
+      - name: Install pip requirements (3.7)
+        if: ${{ matrix.python-version == '3.7' }}
+        run: pip install ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 1
