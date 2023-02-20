@@ -43,11 +43,19 @@ jobs:
       - name: Clone repo
         uses: actions/checkout@v2
 
-      - name: Set up environment
+      - name: Set up environment (>=3.8)
+        if: ${{ matrix.python-version != '3.7' }}
         uses: mamba-org/provision-with-micromamba@main
         with:
           extra-specs: python=${{ matrix.python-version }}
           cache-env: true
+      
+      - name: Set up environment (3.7)
+        if: ${{ matrix.python-version == '3.7' }}
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          extra-specs: python=${{ matrix.python-version }}
+          environment-name: false
 
       - name: Install pip requirements
         run: pip install ./ 
