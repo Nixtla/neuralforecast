@@ -57,6 +57,7 @@ jobs:
           extra-specs: python=${{ matrix.python-version }}
           environment-file: false
           environment-name: neuralforecast
+          channels: conda-forge
 
       - name: Install pip requirements
         run: pip install ./ 
