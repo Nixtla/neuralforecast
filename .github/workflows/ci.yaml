@@ -56,6 +56,7 @@ jobs:
         with:
           extra-specs: python=${{ matrix.python-version }}
           environment-file: false
+          environment-name: neuralforecast
 
       - name: Install pip requirements
         run: pip install ./ 
