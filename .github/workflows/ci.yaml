@@ -59,8 +59,13 @@ jobs:
           environment-name: neuralforecast
           channels: conda-forge
 
-      - name: Install pip requirements
+      - name: Install pip requirements (>=3.8)
+        if: ${{ matrix.python-version != '3.7' }}
         run: pip install ./ 
+      
+      - name: Install pip requirements (3.7)
+        if: ${{ matrix.python-version == '3.7' }}
+        run: pip install ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 1
