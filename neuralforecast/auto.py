@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT']
+           'AutoTFT', 'AutoStemGNN']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -25,6 +25,8 @@ from .models.nbeatsx import NBEATSx
 from .models.nhits import NHITS
 
 from .models.tft import TFT
+
+from .models.stemgnn import StemGNN
 
 from .losses.pytorch import MAE
 
@@ -577,6 +579,67 @@ class AutoTFT(BaseAuto):
 
         super(AutoTFT, self).__init__(
             cls_model=TFT,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+        )
+
+# %% ../nbs/models.ipynb 52
+class AutoStemGNN(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4],
+        "h": None,
+        "n_series": None,
+        "n_stacks": tune.choice([2, 3]),
+        "multi_layer": tune.choice([3, 5, 7]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
+        super(AutoStemGNN, self).__init__(
+            cls_model=StemGNN,
             h=h,
             loss=loss,
             valid_loss=valid_loss,

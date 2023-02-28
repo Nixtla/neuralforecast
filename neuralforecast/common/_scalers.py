@@ -279,13 +279,18 @@ def identity_scaler(x, mask, dim=-1, eps=1e-6):
     **Returns:**<br>
     `x`: original torch.Tensor `x`.
     """
-    x_shift = torch.zeros_like(x)[:, [0], :]
-    x_scale = torch.ones_like(x)[:, [0], :]
+    # Collapse dim dimension
+    shape = list(x.shape)
+    shape[dim] = 1
+
+    x_shift = torch.zeros(shape)
+    x_scale = torch.ones(shape)
+
     return x, x_shift, x_scale
 
 # %% ../../nbs/common.scalers.ipynb 27
 def inv_identity_scaler(z, x_shift, x_scale):
-    return z * x_scale + x_shift
+    return z
 
 # %% ../../nbs/common.scalers.ipynb 30
 class TemporalNorm(nn.Module):
