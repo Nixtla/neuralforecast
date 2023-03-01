@@ -44,6 +44,9 @@ website:
           - section: C. Transformer-Based
             contents:
             - models.tft.ipynb
+          - section: D. Graph-Based
+            contents:
+            - models.stemgnn.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb
