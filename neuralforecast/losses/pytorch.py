@@ -811,10 +811,7 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     """
     mean, std = output
     std = F.softplus(std)
-    print("mean.shape", mean.shape)
     if (loc is not None) and (scale is not None):
-        print("scale.shape", scale.shape)
-        print("loc.shape", loc.shape)
         mean = (mean * scale) + loc
         std = (std + eps) * scale
     return (mean, std)
