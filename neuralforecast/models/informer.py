@@ -3,14 +3,13 @@
 # %% auto 0
 __all__ = ['ConvLayer', 'ProbMask', 'ProbAttention', 'Informer']
 
-# %% ../../nbs/models.informer.ipynb 4
+# %% ../../nbs/models.informer.ipynb 5
 import math
 import numpy as np
 from typing import Optional
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from neuralforecast.common._modules import (
     TransEncoderLayer,
@@ -24,7 +23,7 @@ from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.informer.ipynb 7
+# %% ../../nbs/models.informer.ipynb 8
 class ConvLayer(nn.Module):
     def __init__(self, c_in):
         super(ConvLayer, self).__init__()
@@ -47,7 +46,7 @@ class ConvLayer(nn.Module):
         x = x.transpose(1, 2)
         return x
 
-# %% ../../nbs/models.informer.ipynb 8
+# %% ../../nbs/models.informer.ipynb 9
 class ProbMask:
     def __init__(self, B, H, L, index, scores, device="cpu"):
         _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
@@ -165,39 +164,72 @@ class ProbAttention(nn.Module):
 
         return context.contiguous(), attn
 
-# %% ../../nbs/models.informer.ipynb 10
-# TODO: homogeneize arguments with TFT
-# TODO: Define reasonable model dimensions
-# TODO: Deprecate freq
-# TODO: Correct instantiation of Linear within TemporalPositionalEmbed
-# TODO: Add hist_exog, stat_exog into model inputs
-# TODO: Tutorial para informer, mencionando diferencias:
-# (1) univariate, (2) exogenous vs calendar temporal position embedding,
-# (3) admite exógenas, (4) probabilistic outputs
+# %% ../../nbs/models.informer.ipynb 11
 class Informer(BaseWindows):
+    """Informer
+
+        The Informer model tackles the vanilla Transformer computational complexity challenges for long-horizon forecasting.
+        The architecture has three distinctive features:
+        1) A ProbSparse self-attention mechanism with an O time and memory complexity Llog(L).
+        2) A self-attention distilling process that prioritizes attention and efficiently handles long input sequences.
+        3) An MLP multi-step decoder that predicts long time-series sequences in a single forward operation rather than step-by-step.
+
+    The Informer model utilizes a three-component approach to define its embedding:
+        1) It employs encoded autoregressive features obtained from a convolution network.
+        2) It uses window-relative positional embeddings derived from harmonic functions.
+        3) Absolute positional embeddings obtained from calendar features are utilized.
+
+    *Parameters:*<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+        `decoder_input_size_multiplier`: float = 0.5, .<br>
+    `hidden_size`: int=128, units of embeddings and encoders.<br>
+    `n_head`: int=4, controls number of multi-head's attention.<br>
+    `dropout`: float (0, 1), dropout throughout Informer architecture.<br>
+        `factor`: int=3, Probsparse attention factor.<br>
+        `conv_hidden_size`: int=32, channels of the convolutional encoder.<br>
+        `activation`: str=`GELU`, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].<br>
+    `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
+    `decoder_layers`: int=1, number of layers for the MLP decoder.<br>
+    `distil`: bool = True, wether the Informer decoder uses bottlenecks.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of differentseries in each batch.<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+        *References*<br>
+        - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)<br>
+    """
+
     def __init__(
         self,
         h: int,
         input_size: int,
-        freq: str,
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
-        # Architecture ------------------------------------------------
-        # TODO: homogeneize with TFT
-        # TODO: Define reasonable model dimensions
-        label_len_multiplier: float = 0.5,
-        d_model: int = 512,
-        embed_type: str = "timeF",
+        decoder_input_size_multiplier: float = 0.5,
+        hidden_size: int = 128,
         dropout: float = 0.05,
-        factor: int = 5,
-        n_heads: int = 8,
-        d_ff: int = 2048,
+        factor: int = 3,
+        n_head: int = 4,
+        conv_hidden_size: int = 32,
         activation: str = "gelu",
-        e_layers: int = 2,
-        d_layers: int = 1,
+        encoder_layers: int = 2,
+        decoder_layers: int = 1,
         distil: bool = True,
-        # Optimization ------------------------------------------------
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5000,
@@ -244,22 +276,20 @@ class Informer(BaseWindows):
         self.hist_input_size = len(self.hist_exog_list)
         self.stat_input_size = len(self.stat_exog_list)
 
-        self.label_len = int(np.ceil(input_size * label_len_multiplier))
+        if self.stat_input_size > 0:
+            raise Exception("Informer does not support static variables yet")
+
+        if self.hist_input_size > 0:
+            raise Exception("Informer does not support historical variables yet")
+
+        self.label_len = int(np.ceil(input_size * decoder_input_size_multiplier))
         if (self.label_len >= input_size) or (self.label_len <= 0):
             raise Exception(
-                f"Check label_len_multiplier={label_len_multiplier}, range (0,1)"
+                f"Check decoder_input_size_multiplier={decoder_input_size_multiplier}, range (0,1)"
             )
-
-        if embed_type not in ["timeF", "fixed", "learned"]:
-            raise Exception(f"Check embed_type={embed_type}")
 
         if activation not in ["relu", "gelu"]:
             raise Exception(f"Check activation={activation}")
-
-        # TODO: Deprecate freq
-        # TODO: Correct instantiation of Linear within TemporalPositionalEmbed
-        if freq not in ["h", "t", "s", "m", "a", "w", "d", "b"]:
-            raise Exception(f"Check freq={freq}")
 
         self.c_out = self.loss.outputsize_multiplier
         self.output_attention = False
@@ -269,16 +299,16 @@ class Informer(BaseWindows):
         # Embedding
         self.enc_embedding = DataEmbedding(
             c_in=self.enc_in,
-            d_model=d_model,
-            embed_type=embed_type,
-            freq=freq,
+            exog_input_size=self.hist_input_size,
+            hidden_size=hidden_size,
+            pos_embedding=True,
             dropout=dropout,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
-            d_model=d_model,
-            embed_type=embed_type,
-            freq=freq,
+            exog_input_size=self.hist_input_size,
+            hidden_size=hidden_size,
+            pos_embedding=True,
             dropout=dropout,
         )
 
@@ -293,18 +323,20 @@ class Informer(BaseWindows):
                             attention_dropout=dropout,
                             output_attention=self.output_attention,
                         ),
-                        d_model,
-                        n_heads,
+                        hidden_size,
+                        n_head,
                     ),
-                    d_model,
-                    d_ff,
+                    hidden_size,
+                    conv_hidden_size,
                     dropout=dropout,
                     activation=activation,
                 )
-                for l in range(e_layers)
+                for l in range(encoder_layers)
             ],
-            [ConvLayer(d_model) for l in range(e_layers - 1)] if distil else None,
-            norm_layer=torch.nn.LayerNorm(d_model),
+            [ConvLayer(hidden_size) for l in range(encoder_layers - 1)]
+            if distil
+            else None,
+            norm_layer=torch.nn.LayerNorm(hidden_size),
         )
         # Decoder
         self.decoder = TransDecoder(
@@ -317,8 +349,8 @@ class Informer(BaseWindows):
                             attention_dropout=dropout,
                             output_attention=False,
                         ),
-                        d_model,
-                        n_heads,
+                        hidden_size,
+                        n_head,
                     ),
                     AttentionLayer(
                         ProbAttention(
@@ -327,33 +359,37 @@ class Informer(BaseWindows):
                             attention_dropout=dropout,
                             output_attention=False,
                         ),
-                        d_model,
-                        n_heads,
+                        hidden_size,
+                        n_head,
                     ),
-                    d_model,
-                    d_ff,
+                    hidden_size,
+                    conv_hidden_size,
                     dropout=dropout,
                     activation=activation,
                 )
-                for l in range(d_layers)
+                for l in range(decoder_layers)
             ],
-            norm_layer=torch.nn.LayerNorm(d_model),
-            projection=nn.Linear(d_model, self.c_out, bias=True),
+            norm_layer=torch.nn.LayerNorm(hidden_size),
+            projection=nn.Linear(hidden_size, self.c_out, bias=True),
         )
 
     def forward(self, windows_batch):
-        # TODO: Add hist_exog, stat_exog into model
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']
-        futr_exog = windows_batch["futr_exog"]
         # hist_exog     = windows_batch['hist_exog']
         # stat_exog     = windows_batch['stat_exog']
 
+        futr_exog = windows_batch["futr_exog"]
+
         insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
-        x_mark_enc = futr_exog[:, : self.input_size, :]
-        x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
+
+        if self.futr_input_size > 0:
+            x_mark_enc = futr_exog[:, : self.input_size, :]
+            x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
+        else:
+            x_mark_enc = None
+            x_mark_dec = None
 
         x_dec = torch.zeros(size=(len(insample_y), self.h, 1))
         x_dec = torch.cat([insample_y[:, -self.label_len :, :], x_dec], dim=1)

@@ -2,13 +2,11 @@
 
 # %% auto 0
 __all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolutionEncoder', 'TransEncoderLayer', 'TransEncoder',
-           'TransDecoderLayer', 'TransDecoder', 'TriangularCausalMask', 'FullAttention', 'AttentionLayer',
-           'PositionalEmbedding', 'TokenEmbedding', 'FixedEmbedding', 'TemporalEmbedding', 'TimeFeatureEmbedding',
-           'DataEmbedding', 'DataEmbedding_wo_pos']
+           'TransDecoderLayer', 'TransDecoder', 'AttentionLayer', 'PositionalEmbedding', 'TokenEmbedding',
+           'TimeFeatureEmbedding', 'DataEmbedding']
 
 # %% ../../nbs/common.modules.ipynb 3
 import math
-import numpy as np
 
 import torch
 import torch.nn as nn
@@ -193,19 +191,31 @@ class TemporalConvolutionEncoder(nn.Module):
 
 # %% ../../nbs/common.modules.ipynb 15
 class TransEncoderLayer(nn.Module):
-    def __init__(self, attention, d_model, d_ff=None, dropout=0.1, activation="relu"):
+    def __init__(
+        self,
+        attention,
+        hidden_size,
+        conv_hidden_size=None,
+        dropout=0.1,
+        activation="relu",
+    ):
         super(TransEncoderLayer, self).__init__()
-        d_ff = d_ff or 4 * d_model
+        conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.attention = attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
+        self.conv1 = nn.Conv1d(
+            in_channels=hidden_size, out_channels=conv_hidden_size, kernel_size=1
+        )
+        self.conv2 = nn.Conv1d(
+            in_channels=conv_hidden_size, out_channels=hidden_size, kernel_size=1
+        )
+        self.norm1 = nn.LayerNorm(hidden_size)
+        self.norm2 = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
         self.activation = F.relu if activation == "relu" else F.gelu
 
     def forward(self, x, attn_mask=None):
         new_x, attn = self.attention(x, x, x, attn_mask=attn_mask)
+
         x = x + self.dropout(new_x)
 
         y = x = self.norm1(x)
@@ -250,20 +260,24 @@ class TransDecoderLayer(nn.Module):
         self,
         self_attention,
         cross_attention,
-        d_model,
-        d_ff=None,
+        hidden_size,
+        conv_hidden_size=None,
         dropout=0.1,
         activation="relu",
     ):
         super(TransDecoderLayer, self).__init__()
-        d_ff = d_ff or 4 * d_model
+        conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.norm3 = nn.LayerNorm(d_model)
+        self.conv1 = nn.Conv1d(
+            in_channels=hidden_size, out_channels=conv_hidden_size, kernel_size=1
+        )
+        self.conv2 = nn.Conv1d(
+            in_channels=conv_hidden_size, out_channels=hidden_size, kernel_size=1
+        )
+        self.norm1 = nn.LayerNorm(hidden_size)
+        self.norm2 = nn.LayerNorm(hidden_size)
+        self.norm3 = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
         self.activation = F.relu if activation == "relu" else F.gelu
 
@@ -301,74 +315,24 @@ class TransDecoder(nn.Module):
         return x
 
 # %% ../../nbs/common.modules.ipynb 17
-class TriangularCausalMask:
-    def __init__(self, B, L, device="cpu"):
-        mask_shape = [B, 1, L, L]
-        with torch.no_grad():
-            self._mask = torch.triu(
-                torch.ones(mask_shape, dtype=torch.bool), diagonal=1
-            ).to(device)
-
-    @property
-    def mask(self):
-        return self._mask
-
-
-class FullAttention(nn.Module):
-    def __init__(
-        self,
-        mask_flag=True,
-        factor=5,
-        scale=None,
-        attention_dropout=0.1,
-        output_attention=False,
-    ):
-        super(FullAttention, self).__init__()
-        self.scale = scale
-        self.mask_flag = mask_flag
-        self.output_attention = output_attention
-        self.dropout = nn.Dropout(attention_dropout)
-
-    def forward(self, queries, keys, values, attn_mask):
-        B, L, H, E = queries.shape
-        _, S, _, D = values.shape
-        scale = self.scale or 1.0 / math.sqrt(E)
-
-        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
-
-        if self.mask_flag:
-            if attn_mask is None:
-                attn_mask = TriangularCausalMask(B, L, device=queries.device)
-
-            scores.masked_fill_(attn_mask.mask, -np.inf)
-
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        V = torch.einsum("bhls,bshd->blhd", A, values)
-
-        if self.output_attention:
-            return (V.contiguous(), A)
-        else:
-            return (V.contiguous(), None)
-
-
 class AttentionLayer(nn.Module):
-    def __init__(self, attention, d_model, n_heads, d_keys=None, d_values=None):
+    def __init__(self, attention, hidden_size, n_head, d_keys=None, d_values=None):
         super(AttentionLayer, self).__init__()
 
-        d_keys = d_keys or (d_model // n_heads)
-        d_values = d_values or (d_model // n_heads)
+        d_keys = d_keys or (hidden_size // n_head)
+        d_values = d_values or (hidden_size // n_head)
 
         self.inner_attention = attention
-        self.query_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.value_projection = nn.Linear(d_model, d_values * n_heads)
-        self.out_projection = nn.Linear(d_values * n_heads, d_model)
-        self.n_heads = n_heads
+        self.query_projection = nn.Linear(hidden_size, d_keys * n_head)
+        self.key_projection = nn.Linear(hidden_size, d_keys * n_head)
+        self.value_projection = nn.Linear(hidden_size, d_values * n_head)
+        self.out_projection = nn.Linear(d_values * n_head, hidden_size)
+        self.n_head = n_head
 
     def forward(self, queries, keys, values, attn_mask):
         B, L, _ = queries.shape
         _, S, _ = keys.shape
-        H = self.n_heads
+        H = self.n_head
 
         queries = self.query_projection(queries).view(B, L, H, -1)
         keys = self.key_projection(keys).view(B, S, H, -1)
@@ -381,15 +345,15 @@ class AttentionLayer(nn.Module):
 
 # %% ../../nbs/common.modules.ipynb 18
 class PositionalEmbedding(nn.Module):
-    def __init__(self, d_model, max_len=5000):
+    def __init__(self, hidden_size, max_len=5000):
         super(PositionalEmbedding, self).__init__()
         # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model).float()
+        pe = torch.zeros(max_len, hidden_size).float()
         pe.require_grad = False
 
         position = torch.arange(0, max_len).float().unsqueeze(1)
         div_term = (
-            torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
+            torch.arange(0, hidden_size, 2).float() * -(math.log(10000.0) / hidden_size)
         ).exp()
 
         pe[:, 0::2] = torch.sin(position * div_term)
@@ -403,12 +367,12 @@ class PositionalEmbedding(nn.Module):
 
 
 class TokenEmbedding(nn.Module):
-    def __init__(self, c_in, d_model):
+    def __init__(self, c_in, hidden_size):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= "1.5.0" else 2
         self.tokenConv = nn.Conv1d(
             in_channels=c_in,
-            out_channels=d_model,
+            out_channels=hidden_size,
             kernel_size=3,
             padding=padding,
             padding_mode="circular",
@@ -425,107 +389,48 @@ class TokenEmbedding(nn.Module):
         return x
 
 
-class FixedEmbedding(nn.Module):
-    def __init__(self, c_in, d_model):
-        super(FixedEmbedding, self).__init__()
-
-        w = torch.zeros(c_in, d_model).float()
-        w.require_grad = False
-
-        position = torch.arange(0, c_in).float().unsqueeze(1)
-        div_term = (
-            torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
-        ).exp()
-
-        w[:, 0::2] = torch.sin(position * div_term)
-        w[:, 1::2] = torch.cos(position * div_term)
-
-        self.emb = nn.Embedding(c_in, d_model)
-        self.emb.weight = nn.Parameter(w, requires_grad=False)
-
-    def forward(self, x):
-        return self.emb(x).detach()
-
-
-class TemporalEmbedding(nn.Module):
-    def __init__(self, d_model, embed_type="fixed", freq="h"):
-        super(TemporalEmbedding, self).__init__()
-
-        minute_size = 4
-        hour_size = 24
-        weekday_size = 7
-        day_size = 32
-        month_size = 13
-
-        Embed = FixedEmbedding if embed_type == "fixed" else nn.Embedding
-        if freq == "t":
-            self.minute_embed = Embed(minute_size, d_model)
-        self.hour_embed = Embed(hour_size, d_model)
-        self.weekday_embed = Embed(weekday_size, d_model)
-        self.day_embed = Embed(day_size, d_model)
-        self.month_embed = Embed(month_size, d_model)
-
-    def forward(self, x):
-        x = x.long()
-
-        minute_x = (
-            self.minute_embed(x[:, :, 4]) if hasattr(self, "minute_embed") else 0.0
-        )
-        hour_x = self.hour_embed(x[:, :, 3])
-        weekday_x = self.weekday_embed(x[:, :, 2])
-        day_x = self.day_embed(x[:, :, 1])
-        month_x = self.month_embed(x[:, :, 0])
-
-        return hour_x + weekday_x + day_x + month_x + minute_x
-
-
 class TimeFeatureEmbedding(nn.Module):
-    def __init__(self, d_model, embed_type="timeF", freq="h"):
+    def __init__(self, input_size, hidden_size):
         super(TimeFeatureEmbedding, self).__init__()
-
-        freq_map = {"h": 4, "t": 5, "s": 6, "m": 1, "a": 1, "w": 2, "d": 3, "b": 3}
-        d_inp = freq_map[freq]
-        self.embed = nn.Linear(d_inp, d_model, bias=False)
+        self.embed = nn.Linear(input_size, hidden_size, bias=False)
 
     def forward(self, x):
         return self.embed(x)
 
 
 class DataEmbedding(nn.Module):
-    def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0.1):
+    def __init__(
+        self, c_in, exog_input_size, hidden_size, pos_embedding=True, dropout=0.1
+    ):
         super(DataEmbedding, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
-        self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
-            if embed_type != "timeF"
-            else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
-        )
+        self.value_embedding = TokenEmbedding(c_in=c_in, hidden_size=hidden_size)
+
+        if pos_embedding:
+            self.position_embedding = PositionalEmbedding(hidden_size=hidden_size)
+        else:
+            self.position_embedding = None
+
+        if exog_input_size > 0:
+            self.temporal_embedding = TimeFeatureEmbedding(
+                input_size=exog_input_size, hidden_size=hidden_size
+            )
+        else:
+            self.temporal_embedding = None
+
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, x, x_mark):
-        x = (
-            self.value_embedding(x)
-            + self.temporal_embedding(x_mark)
-            + self.position_embedding(x)
-        )
-        return self.dropout(x)
+    def forward(self, x, x_mark=None):
 
+        # Convolution
+        x = self.value_embedding(x)
 
-class DataEmbedding_wo_pos(nn.Module):
-    def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0.1):
-        super(DataEmbedding_wo_pos, self).__init__()
+        # Add positional (relative withing window) embedding with sines and cosines
+        if self.position_embedding is not None:
+            x = x + self.position_embedding(x)
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
-        self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
-            if embed_type != "timeF"
-            else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
-        )
-        self.dropout = nn.Dropout(p=dropout)
+        # Add temporal (absolute in time series) embedding with linear layer
+        if self.temporal_embedding is not None:
+            x = x + self.temporal_embedding(x_mark)
 
-    def forward(self, x, x_mark):
-        x = self.value_embedding(x) + self.temporal_embedding(x_mark)
         return self.dropout(x)
