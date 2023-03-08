@@ -692,7 +692,7 @@ class sCRPS(torch.nn.Module):
         `scrps`: tensor (single value).
         """
         mql = self.mql(y=y, y_hat=y_hat, mask=mask)
-        norm = torch.sum(y)
+        norm = torch.sum(torch.abs(y))
         unmean = torch.sum(mask)
         scrps = 2 * mql * unmean / (norm + 1e-5)
         return scrps
