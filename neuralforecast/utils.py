@@ -375,52 +375,33 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
     """
 
-    features_by_offsets = {
-        offsets.YearEnd: [],
-        offsets.QuarterEnd: [MonthOfYear],
-        offsets.MonthEnd: [MonthOfYear],
-        offsets.Week: [DayOfMonth, WeekOfYear],
-        offsets.Day: [DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.BusinessDay: [DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.Hour: [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear],
-        offsets.Minute: [
-            MinuteOfHour,
-            HourOfDay,
-            DayOfWeek,
-            DayOfMonth,
-            DayOfYear,
-        ],
-        offsets.Second: [
-            SecondOfMinute,
-            MinuteOfHour,
-            HourOfDay,
-            DayOfWeek,
-            DayOfMonth,
-            DayOfYear,
-        ],
-    }
+    if freq_str not in ["Q", "M", "W", "D", "B", "H", "T", "S"]:
+        raise Exception("Frequency not supported")
 
-    offset = to_offset(freq_str)
-
-    for offset_type, feature_classes in features_by_offsets.items():
-        if isinstance(offset, offset_type):
-            return [cls() for cls in feature_classes]
-
-    supported_freq_msg = f"""
-    Unsupported frequency {freq_str}
-    The following frequencies are supported:
-        Y   - yearly
-            alias: A
-        M   - monthly
-        W   - weekly
-        D   - daily
-        B   - business days
-        H   - hourly
-        T   - minutely
-            alias: min
-        S   - secondly
-    """
-    raise RuntimeError(supported_freq_msg)
+    if freq_str in ["Q", "M"]:
+        return [cls() for cls in [MonthOfYear]]
+    elif freq_str == "W":
+        return [cls() for cls in [DayOfMonth, WeekOfYear]]
+    elif freq_str in ["D", "B"]:
+        return [cls() for cls in [DayOfWeek, DayOfMonth, DayOfYear]]
+    elif freq_str == "H":
+        return [cls() for cls in [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]]
+    elif freq_str == "T":
+        return [
+            cls() for cls in [MinuteOfHour, HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
+        ]
+    else:
+        return [
+            cls()
+            for cls in [
+                SecondOfMinute,
+                MinuteOfHour,
+                HourOfDay,
+                DayOfWeek,
+                DayOfMonth,
+                DayOfYear,
+            ]
+        ]
 
 
 def augment_calendar_df(df, freq="h"):
@@ -438,6 +419,7 @@ def augment_calendar_df(df, freq="h"):
     df = df.copy()
 
     freq_map = {
+        "Q": ["month"],
         "M": ["month"],
         "W": ["monthday", "yearweek"],
         "D": ["weekday", "monthday", "yearday"],
