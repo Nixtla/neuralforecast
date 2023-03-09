@@ -292,7 +292,7 @@ AirPassengersStatic = pd.DataFrame(
 
 AirPassengersPanel.groupby("unique_id").tail(4)
 
-# %% ../nbs/utils.ipynb 22
+# %% ../nbs/utils.ipynb 24
 from typing import List
 
 from pandas.tseries import offsets

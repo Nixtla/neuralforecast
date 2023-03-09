@@ -494,7 +494,7 @@ class BaseRecurrent(pl.LightningModule):
 
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0):
+    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -515,6 +515,11 @@ class BaseRecurrent(pl.LightningModule):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
@@ -547,7 +552,7 @@ class BaseRecurrent(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
-    def predict(self, dataset, step_size=1, **data_module_kwargs):
+    def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Predict.
 
         Neural network prediction with PL's `Trainer` execution of `predict_step`.
@@ -557,6 +562,11 @@ class BaseRecurrent(pl.LightningModule):
         `step_size`: int=1, Step size between each window.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")
 

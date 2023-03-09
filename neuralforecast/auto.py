@@ -635,8 +635,8 @@ class AutoInformer(BaseAuto):
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
 
-        super(Informer, self).__init__(
-            cls_model=TFT,
+        super(AutoInformer, self).__init__(
+            cls_model=Informer,
             h=h,
             loss=loss,
             valid_loss=valid_loss,
