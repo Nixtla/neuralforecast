@@ -515,7 +515,7 @@ class BaseWindows(pl.LightningModule):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0):
+    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -536,6 +536,11 @@ class BaseWindows(pl.LightningModule):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+
         self.val_size = val_size
         self.test_size = test_size
         datamodule = TimeSeriesDataModule(
@@ -568,7 +573,14 @@ class BaseWindows(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
 
-    def predict(self, dataset, test_size=None, step_size=1, **data_module_kwargs):
+    def predict(
+        self,
+        dataset,
+        test_size=None,
+        step_size=1,
+        random_seed=None,
+        **data_module_kwargs,
+    ):
         """Predict.
 
         Neural network prediction with PL's `Trainer` execution of `predict_step`.
@@ -579,6 +591,11 @@ class BaseWindows(pl.LightningModule):
         `step_size`: int=1, Step size between each window.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+
         self.predict_step_size = step_size
         self.decompose_forecast = False
         datamodule = TimeSeriesDataModule(
@@ -600,7 +617,7 @@ class BaseWindows(pl.LightningModule):
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
-    def decompose(self, dataset, step_size=1, **data_module_kwargs):
+    def decompose(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Decompose Predictions.
 
         Decompose the predictions through the network's layers.
@@ -611,6 +628,11 @@ class BaseWindows(pl.LightningModule):
         `step_size`: int=1, step size between each window of temporal data.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+
         self.predict_step_size = step_size
         self.decompose_forecast = True
         datamodule = TimeSeriesDataModule(

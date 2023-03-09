@@ -811,10 +811,7 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     """
     mean, std = output
     std = F.softplus(std)
-    print("mean.shape", mean.shape)
     if (loc is not None) and (scale is not None):
-        print("scale.shape", scale.shape)
-        print("loc.shape", loc.shape)
         mean = (mean * scale) + loc
         std = (std + eps) * scale
     return (mean, std)
@@ -1380,6 +1377,7 @@ class PMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 80
@@ -1537,6 +1535,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1576,6 +1575,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 87
@@ -1743,6 +1743,7 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1784,4 +1785,5 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)

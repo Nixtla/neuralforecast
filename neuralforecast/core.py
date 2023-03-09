@@ -27,6 +27,7 @@ from neuralforecast.models import (
     NBEATSx,
     TFT,
     StemGNN,
+    Informer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -81,6 +82,7 @@ MODEL_FILENAME_DICT = {
     "nhits": NHITS,
     "tft": TFT,
     "stemgnn": StemGNN,
+    "informer": Informer,
     "autogru": GRU,
     "autolstm": LSTM,
     "autornn": RNN,
@@ -89,6 +91,9 @@ MODEL_FILENAME_DICT = {
     "automlp": MLP,
     "autonbeats": NBEATS,
     "autonhits": NHITS,
+    "autotft": TFT,
+    "autostemgnn": StemGNN,
+    "autoinformer": Informer,
 }
 
 # %% ../nbs/core.ipynb 10

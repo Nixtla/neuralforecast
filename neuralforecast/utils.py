@@ -2,7 +2,9 @@
 
 # %% auto 0
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
-           'airline2_dummy', 'AirPassengersStatic', 'generate_series']
+           'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
+           'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
+           'time_features_from_frequency_str', 'augment_calendar_df']
 
 # %% ../nbs/utils.ipynb 3
 import random
@@ -289,3 +291,152 @@ AirPassengersStatic = pd.DataFrame(
 )
 
 AirPassengersPanel.groupby("unique_id").tail(4)
+
+# %% ../nbs/utils.ipynb 24
+from typing import List
+
+
+class TimeFeature:
+    def __init__(self):
+        pass
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        pass
+
+    def __repr__(self):
+        return self.__class__.__name__ + "()"
+
+
+class SecondOfMinute(TimeFeature):
+    """Minute of hour encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return index.second / 59.0 - 0.5
+
+
+class MinuteOfHour(TimeFeature):
+    """Minute of hour encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return index.minute / 59.0 - 0.5
+
+
+class HourOfDay(TimeFeature):
+    """Hour of day encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return index.hour / 23.0 - 0.5
+
+
+class DayOfWeek(TimeFeature):
+    """Hour of day encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return index.dayofweek / 6.0 - 0.5
+
+
+class DayOfMonth(TimeFeature):
+    """Day of month encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return (index.day - 1) / 30.0 - 0.5
+
+
+class DayOfYear(TimeFeature):
+    """Day of year encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return (index.dayofyear - 1) / 365.0 - 0.5
+
+
+class MonthOfYear(TimeFeature):
+    """Month of year encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return (index.month - 1) / 11.0 - 0.5
+
+
+class WeekOfYear(TimeFeature):
+    """Week of year encoded as value between [-0.5, 0.5]"""
+
+    def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
+        return (index.week - 1) / 52.0 - 0.5
+
+
+def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
+    """
+    Returns a list of time features that will be appropriate for the given frequency string.
+    Parameters
+    ----------
+    freq_str
+        Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
+    """
+
+    if freq_str not in ["Q", "M", "W", "D", "B", "H", "T", "S"]:
+        raise Exception("Frequency not supported")
+
+    if freq_str in ["Q", "M"]:
+        return [cls() for cls in [MonthOfYear]]
+    elif freq_str == "W":
+        return [cls() for cls in [DayOfMonth, WeekOfYear]]
+    elif freq_str in ["D", "B"]:
+        return [cls() for cls in [DayOfWeek, DayOfMonth, DayOfYear]]
+    elif freq_str == "H":
+        return [cls() for cls in [HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]]
+    elif freq_str == "T":
+        return [
+            cls() for cls in [MinuteOfHour, HourOfDay, DayOfWeek, DayOfMonth, DayOfYear]
+        ]
+    else:
+        return [
+            cls()
+            for cls in [
+                SecondOfMinute,
+                MinuteOfHour,
+                HourOfDay,
+                DayOfWeek,
+                DayOfMonth,
+                DayOfYear,
+            ]
+        ]
+
+
+def augment_calendar_df(df, freq="h"):
+    """
+    > * Q - [month]
+    > * M - [month]
+    > * W - [Day of month, week of year]
+    > * D - [Day of week, day of month, day of year]
+    > * B - [Day of week, day of month, day of year]
+    > * H - [Hour of day, day of week, day of month, day of year]
+    > * T - [Minute of hour*, hour of day, day of week, day of month, day of year]
+    > * S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year]
+    *minute returns a number from 0-3 corresponding to the 15 minute period it falls into.
+    """
+    df = df.copy()
+
+    freq_map = {
+        "Q": ["month"],
+        "M": ["month"],
+        "W": ["monthday", "yearweek"],
+        "D": ["weekday", "monthday", "yearday"],
+        "B": ["weekday", "monthday", "yearday"],
+        "H": ["dayhour", "weekday", "monthday", "yearday"],
+        "T": ["hourminute", "dayhour", "weekday", "monthday", "yearday"],
+        "S": [
+            "minutesecond",
+            "hourminute",
+            "dayhour",
+            "weekday",
+            "monthday",
+            "yearday",
+        ],
+    }
+
+    ds_col = pd.to_datetime(df.ds.values)
+    ds_data = np.vstack(
+        [feat(ds_col) for feat in time_features_from_frequency_str(freq)]
+    ).transpose(1, 0)
+    ds_data = pd.DataFrame(ds_data, columns=freq_map[freq])
+
+    return pd.concat([df, ds_data], axis=1), freq_map[freq]
