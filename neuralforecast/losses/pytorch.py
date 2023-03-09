@@ -692,7 +692,7 @@ class sCRPS(torch.nn.Module):
         `scrps`: tensor (single value).
         """
         mql = self.mql(y=y, y_hat=y_hat, mask=mask)
-        norm = torch.sum(y)
+        norm = torch.sum(torch.abs(y))
         unmean = torch.sum(mask)
         scrps = 2 * mql * unmean / (norm + 1e-5)
         return scrps
@@ -1380,7 +1380,6 @@ class PMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
-
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 80
@@ -1538,7 +1537,6 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
-
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1578,7 +1576,6 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
-
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 87
@@ -1746,7 +1743,6 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
-
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1788,5 +1784,4 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
-
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
