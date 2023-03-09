@@ -295,9 +295,6 @@ AirPassengersPanel.groupby("unique_id").tail(4)
 # %% ../nbs/utils.ipynb 24
 from typing import List
 
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
-
 
 class TimeFeature:
     def __init__(self):
