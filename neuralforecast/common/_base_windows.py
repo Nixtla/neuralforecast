@@ -226,7 +226,6 @@ class BaseWindows(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
-
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -447,6 +446,13 @@ class BaseWindows(pl.LightningModule):
                 "<class 'neuralforecast.losses.pytorch.MQLoss'>",
             ]:
                 _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+            elif str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.MSSE'>"
+            ]:
+                _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+                n_series, horizon, n_quantiles = output.shape
+                median_idx = (n_quantiles // 2) + 1
+                output = output[:, :, median_idx].reshape(n_series, horizon)
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:

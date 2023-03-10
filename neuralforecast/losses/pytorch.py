@@ -686,7 +686,7 @@ class sCRPS(torch.nn.Module):
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
         `y_hat`: tensor, Predicted values.<br>
-        `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
+        `mask`: tensor, Specifies date stamps per series to consider in loss.<br>
 
         **Returns:**<br>
         `scrps`: tensor (single value).
