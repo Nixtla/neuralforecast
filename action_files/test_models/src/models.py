@@ -18,7 +18,9 @@ from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
 from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.tft import TFT
+from neuralforecast.models.vanillatransformer import VanillaTransformer
 from neuralforecast.models.informer import Informer
+from neuralforecast.models.autoformer import Autoformer
 
 from neuralforecast.auto import (
     AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN, AutoTFT
@@ -65,7 +67,9 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=300)
+        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500)
     ]
     for model in models:
         model_name = type(model).__name__
