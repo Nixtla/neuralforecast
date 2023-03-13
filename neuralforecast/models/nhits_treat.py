@@ -66,16 +66,17 @@ class _IdentityBasis(nn.Module):
 
 # %% ../../nbs/models.nhits_treat.ipynb 9
 class _Concentrator(nn.Module):
-    def __init__(self,
-                 n_series: int,
-                 type: str, 
-                 treatment_var_name: str,
-                 input_size: int,
-                 freq: int, 
-                 ):
+    def __init__(
+        self,
+        n_series: int,
+        type: str,
+        treatment_var_name: str,
+        input_size: int,
+        freq: int,
+    ):
         super().__init__()
-        
-        assert type in ['subcutaneous_injection'], "treatment type not available."
+
+        assert type in ["subcutaneous_injection"], "treatment type not available."
 
         self.n_series = n_series
         self.type = type
@@ -87,46 +88,47 @@ class _Concentrator(nn.Module):
         # Initialize k_a
         init_k = torch.ones((self.n_series, 1)) * 0.5
         self.k_a.weight.data.copy_(init_k)
-        
+
         # Create [L,L] matrix
         lt = torch.tensor(range(input_size))
         self.ltr = lt.repeat((input_size, 1)) - lt.reshape(-1, 1)
-        self.ltr[self.ltr<0]=0
-        
+        self.ltr[self.ltr < 0] = 0
+
     def treatment_concentration(self, t, k_a, sigma=1):
-        t = torch.div(t, 60) #60 minutes --> hours # TODO: make more adaptable to different data freq
-            
-        conc = torch.exp(torch.negative(torch.pow((torch.log(t + 1e-5) - k_a), 2)) /\
-               (2 * sigma**2)) / \
-               (t * sigma * torch.sqrt(torch.tensor(2) * torch.pi) + 1e-5) 
-               # Add small increment (1e-5) or else k_a --> [nan]
+        t = torch.div(
+            t, 60
+        )  # 60 minutes --> hours # TODO: make more adaptable to different data freq
+
+        conc = torch.exp(
+            torch.negative(torch.pow((torch.log(t + 1e-5) - k_a), 2)) / (2 * sigma**2)
+        ) / (t * sigma * torch.sqrt(torch.tensor(2) * torch.pi) + 1e-5)
+        # Add small increment (1e-5) or else k_a --> [nan]
 
         return conc
 
-    def forward(self,
-                hist_exog: torch.Tensor,
-                stat_exog: torch.Tensor,
-                idx: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, hist_exog: torch.Tensor, stat_exog: torch.Tensor, idx: torch.Tensor
+    ) -> torch.Tensor:
 
-        treatment_var = hist_exog[:, :, -1] # [B,L,C] -> [B,L]
+        treatment_var = hist_exog[:, :, -1]  # [B,L,C] -> [B,L]
         b = treatment_var.shape[0]
         l = treatment_var.shape[1]
-        
+
         idx = idx.long()
         # Constrain k_a with sigmoid
-        k_a = torch.sigmoid(self.k_a(idx)) # [B, 1, 1] for static k_a      
-        
+        k_a = torch.sigmoid(self.k_a(idx))  # [B, 1, 1] for static k_a
+
         # Create [B,L,L] matrix
         ltr_batch = torch.zeros((b, l, l)).to(hist_exog.device)
         ltr_batch[:] = self.ltr
-        
+
         # Apply frequency
         ltrf_batch = ltr_batch * self.freq
-        
+
         # Multiple concentration by treatement_var (dose)
         conc = self.treatment_concentration(ltrf_batch, k_a)
-        scaled_conc = conc*(treatment_var.reshape(b, l, 1))
-        treatment = scaled_conc.nansum(dim=1) #[B, L]
+        scaled_conc = conc * (treatment_var.reshape(b, l, 1))
+        treatment = scaled_conc.nansum(dim=1)  # [B, L]
 
         # Replace treatment variable with concentration
         hist_exog_out = torch.zeros(hist_exog.shape).to(hist_exog.device)
@@ -337,7 +339,7 @@ class NHITS_TREAT(BaseWindows):
         concentrator_type: str = None,
         n_series: int = 1,
         treatment_var_name: str = "treatment",
-        freq: int=1,
+        freq: int = 1,
         **trainer_kwargs,
     ):
 
@@ -398,7 +400,7 @@ class NHITS_TREAT(BaseWindows):
             n_series=n_series,
             concentrator_type=concentrator_type,
             treatment_var_name=treatment_var_name,
-            freq=freq
+            freq=freq,
         )
 
         self.blocks = torch.nn.ModuleList(blocks)

@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT']
+           'AutoNHITS_TREAT', 'AutoTFT']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -23,6 +23,7 @@ from .models.mlp import MLP
 from .models.nbeats import NBEATS
 from .models.nbeatsx import NBEATSx
 from .models.nhits import NHITS
+from .models.nhits_treat import NHITS_TREAT
 
 from .models.tft import TFT
 
@@ -532,7 +533,79 @@ class AutoNHITS(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 47
+# %% ../nbs/models.ipynb 46
+class AutoNHITS_TREAT(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "n_pool_kernel_size": tune.choice(
+            [3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
+        ),
+        "n_freq_downsample": tune.choice(
+            [
+                [168, 24, 1],
+                [24, 12, 1],
+                [180, 60, 1],
+                [60, 8, 1],
+                [40, 20, 1],
+                [1, 1, 1],
+            ]
+        ),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
+        super(AutoNHITS_TREAT, self).__init__(
+            cls_model=NHITS_TREAT,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+        )
+
+# %% ../nbs/models.ipynb 51
 class AutoTFT(BaseAuto):
 
     default_config = {
