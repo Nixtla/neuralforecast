@@ -9,6 +9,7 @@ website:
         contents:
         - examples/Installation.ipynb
         - examples/Getting_Started.ipynb
+        - examples/Getting_Started_complete.ipynb
         - examples/Data_Format.ipynb
         - examples/Exogenous_Variables.ipynb
         - examples/Automatic_Hyperparameter_Tuning.ipynb
