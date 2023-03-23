@@ -21,6 +21,7 @@ from typing import Tuple, Optional
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+from ..common._modules import Concentrator
 
 # %% ../../nbs/models.tft.ipynb 10
 class MaybeLayerNorm(nn.Module):
@@ -450,7 +451,13 @@ class TFT(BaseWindows):
         num_workers_loader=0,
         drop_last_loader=False,
         random_seed: int = 1,
-        **trainer_kwargs
+        # New parameters
+        use_concentrator: bool = False,
+        concentrator_type: str = None,
+        n_series: int = 1,
+        treatment_var_name: str = "treatment",
+        freq: int = 1,
+        **trainer_kwargs,
     ):
 
         # Inherit BaseWindows class
@@ -472,8 +479,33 @@ class TFT(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
+
+        # ------------------ Concentrator ------------------
+        # Asserts
+        if use_concentrator:
+            assert (
+                treatment_var_name in hist_exog_list
+            ), f"Variable {treatment_var_name} not found in hist_exog_list!"
+            assert (
+                hist_exog_list[-1] == treatment_var_name
+            ), f"Variable {treatment_var_name} must be the last element of hist_exog_list!"
+
+        self.use_concentrator = use_concentrator
+
+        if self.use_concentrator:
+            self.concentrator = Concentrator(
+                n_series=n_series,
+                type=concentrator_type,
+                treatment_var_name=treatment_var_name,
+                input_size=input_size,
+                freq=freq,
+            )
+        else:
+            self.concentrator = None
+        # --------------------------------------------------
+
         self.example_length = input_size + h
 
         # Parse lists hyperparameters
@@ -526,12 +558,14 @@ class TFT(BaseWindows):
         # Extract static and temporal features
         y_idx = x["temporal_cols"].get_loc("y")
         y_insample = x["temporal"][:, :, y_idx, None]
+        batch_idx = x["batch_idx"]
 
         # Historic variables
         if len(self.hist_exog_list) > 0:
             hist_exog = x["temporal"][
                 :, :, x["temporal_cols"].get_indexer(self.hist_exog_list)
             ]
+            hist_exog = hist_exog[:, : self.input_size, :]
         else:
             hist_exog = None
 
@@ -550,6 +584,11 @@ class TFT(BaseWindows):
             stat_exog = x["static"][:, static_idx]
         else:
             stat_exog = None
+
+        if self.use_concentrator:
+            hist_exog = self.concentrator(
+                hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+            )
 
         s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(
             target_inp=y_insample,

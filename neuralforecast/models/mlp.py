@@ -11,6 +11,7 @@ import torch.nn as nn
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+from ..common._modules import Concentrator
 
 # %% ../../nbs/models.mlp.ipynb 6
 class MLP(BaseWindows):
@@ -72,7 +73,13 @@ class MLP(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
-        **trainer_kwargs
+        # New parameters
+        use_concentrator: bool = False,
+        concentrator_type: str = None,
+        n_series: int = 1,
+        treatment_var_name: str = "treatment",
+        freq: int = 1,
+        **trainer_kwargs,
     ):
 
         # Inherit BaseWindows class
@@ -97,8 +104,32 @@ class MLP(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
+
+        # ------------------ Concentrator ------------------
+        # Asserts
+        if use_concentrator:
+            assert (
+                treatment_var_name in hist_exog_list
+            ), f"Variable {treatment_var_name} not found in hist_exog_list!"
+            assert (
+                hist_exog_list[-1] == treatment_var_name
+            ), f"Variable {treatment_var_name} must be the last element of hist_exog_list!"
+
+        self.use_concentrator = use_concentrator
+
+        if self.use_concentrator:
+            self.concentrator = Concentrator(
+                n_series=n_series,
+                type=concentrator_type,
+                treatment_var_name=treatment_var_name,
+                input_size=input_size,
+                freq=freq,
+            )
+        else:
+            self.concentrator = None
+        # --------------------------------------------------
 
         # Architecture
         self.num_layers = num_layers
@@ -135,6 +166,12 @@ class MLP(BaseWindows):
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
+        batch_idx = windows_batch["batch_idx"]
+
+        if self.use_concentrator:
+            hist_exog = self.concentrator(
+                hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+            )
 
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]

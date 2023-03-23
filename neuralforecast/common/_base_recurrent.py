@@ -256,6 +256,7 @@ class BaseRecurrent(pl.LightningModule):
             temporal_cols=temporal_cols,
             static=batch.get("static", None),
             static_cols=batch.get("static_cols", None),
+            batch_idx=batch["idx"],
         )
 
         return windows_batch
@@ -290,6 +291,9 @@ class BaseRecurrent(pl.LightningModule):
         else:
             stat_exog = None
 
+        # Batch idx
+        batch_idx = windows["batch_idx"]
+
         return (
             insample_y,
             insample_mask,
@@ -298,6 +302,7 @@ class BaseRecurrent(pl.LightningModule):
             hist_exog,
             futr_exog,
             stat_exog,
+            batch_idx,
         )
 
     def training_step(self, batch, batch_idx):
@@ -316,6 +321,7 @@ class BaseRecurrent(pl.LightningModule):
             hist_exog,
             futr_exog,
             stat_exog,
+            batch_idx,
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
@@ -323,8 +329,9 @@ class BaseRecurrent(pl.LightningModule):
             insample_mask=insample_mask,  # [B, seq_len, 1]
             futr_exog=futr_exog,  # [B, F, seq_len, 1+H]
             hist_exog=hist_exog,  # [B, C, seq_len]
-            stat_exog=stat_exog,
-        )  # [B, S]
+            stat_exog=stat_exog,  # [B, S]
+            batch_idx=batch_idx,
+        )  # [B, 1])
 
         # Model predictions
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
@@ -372,6 +379,7 @@ class BaseRecurrent(pl.LightningModule):
             hist_exog,
             futr_exog,
             stat_exog,
+            batch_idx,
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
@@ -379,14 +387,17 @@ class BaseRecurrent(pl.LightningModule):
             insample_mask=insample_mask,  # [B, seq_len, 1]
             futr_exog=futr_exog,  # [B, F, seq_len, 1+H]
             hist_exog=hist_exog,  # [B, C, seq_len]
-            stat_exog=stat_exog,
-        )  # [B, S]
+            stat_exog=stat_exog,  # [B, S]
+            batch_idx=batch_idx,
+        )  # [B, 1])
 
         # Remove train y_hat (+1 and -1 for padded last window with zeros)
         # tuple([B, seq_len, H, output]) -> tuple([B, validation_size, H, output])
         val_windows = (self.val_size) + 1
         outsample_y = outsample_y[:, -val_windows:-1, :]
         outsample_mask = outsample_mask[:, -val_windows:-1, :]
+
+        print("windows_batch", windows_batch["batch_idx"])
 
         # Model predictions
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
@@ -455,6 +466,7 @@ class BaseRecurrent(pl.LightningModule):
             hist_exog,
             futr_exog,
             stat_exog,
+            batch_idx,
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
@@ -462,8 +474,9 @@ class BaseRecurrent(pl.LightningModule):
             insample_mask=insample_mask,  # [B, seq_len, 1]
             futr_exog=futr_exog,  # [B, F, seq_len, 1+H]
             hist_exog=hist_exog,  # [B, C, seq_len]
-            stat_exog=stat_exog,
-        )  # [B, S]
+            stat_exog=stat_exog,  # [B, S]
+            batch_idx=batch_idx,
+        )  # [B, 1])
 
         # Model Predictions
         output = self(windows_batch)  # tuple([B, seq_len, H], ...)

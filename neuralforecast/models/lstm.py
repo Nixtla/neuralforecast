@@ -12,6 +12,7 @@ import torch.nn as nn
 from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP
+from ..common._modules import Concentrator
 
 # %% ../../nbs/models.lstm.ipynb 7
 class LSTM(BaseRecurrent):
@@ -79,7 +80,13 @@ class LSTM(BaseRecurrent):
         random_seed=1,
         num_workers_loader=0,
         drop_last_loader=False,
-        **trainer_kwargs
+        # New parameters
+        use_concentrator: bool = False,
+        concentrator_type: str = None,
+        n_series: int = 1,
+        treatment_var_name: str = "treatment",
+        freq: int = 1,
+        **trainer_kwargs,
     ):
         super(LSTM, self).__init__(
             h=h,
@@ -100,8 +107,32 @@ class LSTM(BaseRecurrent):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
+
+        # ------------------ Concentrator ------------------
+        # Asserts
+        if use_concentrator:
+            assert (
+                treatment_var_name in hist_exog_list
+            ), f"Variable {treatment_var_name} not found in hist_exog_list!"
+            assert (
+                hist_exog_list[-1] == treatment_var_name
+            ), f"Variable {treatment_var_name} must be the last element of hist_exog_list!"
+
+        self.use_concentrator = use_concentrator
+
+        if self.use_concentrator:
+            self.concentrator = Concentrator(
+                n_series=n_series,
+                type=concentrator_type,
+                treatment_var_name=treatment_var_name,
+                input_size=input_size,
+                freq=freq,
+            )
+        else:
+            self.concentrator = None
+        # --------------------------------------------------
 
         # LSTM
         self.encoder_n_layers = encoder_n_layers
@@ -156,6 +187,7 @@ class LSTM(BaseRecurrent):
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
+        batch_idx = windows_batch["batch_idx"]
 
         # Concatenate y, historic and static inputs
         # [B, C, seq_len, 1] -> [B, seq_len, C]
@@ -165,6 +197,10 @@ class LSTM(BaseRecurrent):
             hist_exog = hist_exog.permute(0, 2, 1, 3).squeeze(
                 -1
             )  # [B, X, seq_len, 1] -> [B, seq_len, X]
+            if self.use_concentrator:
+                hist_exog = self.concentrator(
+                    hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+                )
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 
         if self.stat_exog_size > 0:
