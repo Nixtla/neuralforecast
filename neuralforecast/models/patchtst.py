@@ -649,7 +649,8 @@ class _MultiheadAttention(nn.Module):
         qkv_bias=True,
         lsa=False,
     ):
-        """Multi Head Attention Layer
+        """
+        Multi Head Attention Layer
         Input shape:
             Q:       [batch_size (bs) x max_q_len x hidden_size]
             K, V:    [batch_size (bs) x q_len x hidden_size]
@@ -736,9 +737,11 @@ class _MultiheadAttention(nn.Module):
 
 
 class _ScaledDotProductAttention(nn.Module):
-    r"""Scaled Dot-Product Attention module (Attention is all you need by Vaswani et al., 2017) with optional residual attention from previous layer
+    """
+    Scaled Dot-Product Attention module (Attention is all you need by Vaswani et al., 2017) with optional residual attention from previous layer
     (Realformer: Transformer likes residual attention by He et al, 2020) and locality self sttention (Vision Transformer for Small-Size Datasets
-    by Lee et al, 2021)"""
+    by Lee et al, 2021)
+    """
 
     def __init__(
         self, hidden_size, n_heads, attn_dropout=0.0, res_attention=False, lsa=False
@@ -823,7 +826,7 @@ class PatchTST(BaseWindows):
 
     It is based on two key components:
     - segmentation of time series into windows (patches) which are served as input tokens to Transformer
-    - channel-independence. where each channel contains a single univariate time series.
+    - channel-independence, where each channel contains a single univariate time series.
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
@@ -848,7 +851,6 @@ class PatchTST(BaseWindows):
     `res_attention`: bool=False, bool to use residual attention.<br>
     `batch_normalization`: bool=False, bool to use batch normalization.<br>
     `learn_pos_embedding`: bool=True, bool to learn positional embedding.<br>
-    -----------
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
