@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoStemGNN']
+           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoPatchTST', 'AutoStemGNN']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -28,6 +28,7 @@ from .models.tft import TFT
 from .models.vanillatransformer import VanillaTransformer
 from .models.informer import Informer
 from .models.autoformer import Autoformer
+from .models.patchtst import PatchTST
 
 from .models.stemgnn import StemGNN
 
@@ -765,7 +766,66 @@ class AutoAutoformer(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 64
+# %% ../nbs/models.ipynb 63
+class AutoPatchTST(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3],
+        "h": None,
+        "hidden_size": tune.choice([16, 128, 256]),
+        "n_head": tune.choice([4, 16]),
+        "patch_len": tune.choice([16, 24]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "revin": tune.choice([False, True]),
+        "max_steps": tune.choice([500, 1000, 5000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        super(AutoPatchTST, self).__init__(
+            cls_model=PatchTST,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+        )
+
+# %% ../nbs/models.ipynb 68
 class AutoStemGNN(BaseAuto):
 
     default_config = {

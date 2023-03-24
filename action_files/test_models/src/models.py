@@ -21,6 +21,7 @@ from neuralforecast.models.tft import TFT
 from neuralforecast.models.vanillatransformer import VanillaTransformer
 from neuralforecast.models.informer import Informer
 from neuralforecast.models.autoformer import Autoformer
+from neuralforecast.models.patchtst import PatchTST
 
 from neuralforecast.auto import (
     AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN, AutoTFT
@@ -69,7 +70,8 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
         Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
-        Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500)
+        Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        PatchTST(h=horizon, input_size=104, patch_len=24, stride=2, loss=SMAPE(), scaler_type='robust', max_epochs=500),
     ]
     for model in models:
         model_name = type(model).__name__

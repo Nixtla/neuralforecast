@@ -148,6 +148,7 @@ class BaseRecurrent(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _normalization(self, batch, val_size=0, test_size=0):
+
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
