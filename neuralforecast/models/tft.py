@@ -663,7 +663,7 @@ class TFT(BaseWindows):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+            _, output = self.loss.sample(distr_args=distr_args)
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
@@ -703,7 +703,7 @@ class TFT(BaseWindows):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+            _, y_hat = self.loss.sample(distr_args=distr_args)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
