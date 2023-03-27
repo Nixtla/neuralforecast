@@ -54,7 +54,6 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
                    'max_epochs': 50,
                    "val_check_steps": 100}
     models = [
-        PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_epochs=500),
         DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
         RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_epochs=50),
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_epochs=100),
@@ -68,10 +67,11 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_epochs=300),
-        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
-        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
-        Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
-        Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        #TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_epochs=100),
+        #VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        #Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        #Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_epochs=500),
+        #PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_epochs=500),
     ]
     for model in models:
         model_name = type(model).__name__
