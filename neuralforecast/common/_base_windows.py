@@ -226,6 +226,7 @@ class BaseWindows(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
+
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -445,11 +446,11 @@ class BaseWindows(pl.LightningModule):
                 "<class 'neuralforecast.losses.pytorch.sCRPS'>",
                 "<class 'neuralforecast.losses.pytorch.MQLoss'>",
             ]:
-                _, output = self.loss.sample(distr_args=distr_args, num_samples=500)
+                _, output = self.loss.sample(distr_args=distr_args)
             elif str(type(self.valid_loss)) in [
                 "<class 'neuralforecast.losses.pytorch.MSSE'>"
             ]:
-                samples, _ = self.loss.sample(distr_args=distr_args, num_samples=500)
+                samples, _ = self.loss.sample(distr_args=distr_args)
                 n_series, horizon, n_samples = samples.shape
                 output = samples.mean(dim=2).reshape(n_series, horizon)
 
@@ -506,7 +507,7 @@ class BaseWindows(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+            _, y_hat = self.loss.sample(distr_args=distr_args)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)

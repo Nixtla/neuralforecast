@@ -148,6 +148,7 @@ class BaseRecurrent(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _normalization(self, batch, val_size=0, test_size=0):
+
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
@@ -410,11 +411,11 @@ class BaseRecurrent(pl.LightningModule):
                 "<class 'neuralforecast.losses.pytorch.sCRPS'>",
                 "<class 'neuralforecast.losses.pytorch.MQLoss'>",
             ]:
-                _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+                _, y_hat = self.loss.sample(distr_args=distr_args)
             elif str(type(self.valid_loss)) in [
                 "<class 'neuralforecast.losses.pytorch.MSSE'>"
             ]:
-                samples, _ = self.loss.sample(distr_args=distr_args, num_samples=500)
+                samples, _ = self.loss.sample(distr_args=distr_args)
                 n_series, horizon, n_samples = samples.shape
                 y_hat = samples.mean(dim=2).reshape(n_series, horizon)
 
@@ -486,7 +487,7 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args, num_samples=500)
+            _, y_hat = self.loss.sample(distr_args=distr_args)
             y_hat = y_hat.view(B, T, H, -1)
 
             if self.loss.return_params:
