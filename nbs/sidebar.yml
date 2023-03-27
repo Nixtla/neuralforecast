@@ -45,6 +45,13 @@ website:
           - section: C. Transformer-Based
             contents:
             - models.tft.ipynb
+            - models.vanillatransformer.ipynb
+            - models.informer.ipynb
+            - models.autoformer.ipynb
+            - models.patchtst.ipynb
+          - section: D. Graph-Based
+            contents:
+            - models.stemgnn.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb

@@ -30,6 +30,7 @@ from neuralforecast.models import (
     Informer,
     Autoformer,
     StemGNN,
+    PatchTST,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -97,6 +98,7 @@ MODEL_FILENAME_DICT = {
     "autovanillatransformer": VanillaTransformer,
     "autoinformer": Informer,
     "autoautoformer": Autoformer,
+    "autopatchtst": PatchTST,
     "autostemgnn": StemGNN,
 }
 

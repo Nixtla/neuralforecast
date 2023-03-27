@@ -46,7 +46,7 @@ if __name__ == '__main__':
     models = ['GRU', 'RNN', 'TCN', 'LSTM', 'DilatedRNN',
               'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
               'TFT', 'VanillaTransformer', 'Informer', 'Autoformer',
-              'AutoNHITS', 'AutoNBEATS', 'AutoMLP', 'AutoDilatedRNN']
+              'AutoNHITS', 'AutoNBEATS', 'AutoMLP', 'AutoDilatedRNN', 'PatchTST']
     datasets = ['M3']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]
