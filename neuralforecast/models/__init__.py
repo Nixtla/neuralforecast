@@ -1,6 +1,6 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
-           'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST'
+           'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST',
            'StemGNN', 'HINT']
 
 from .rnn import RNN
