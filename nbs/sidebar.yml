@@ -23,6 +23,7 @@ website:
         - examples/LongHorizon_Probabilistic.ipynb
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
+        - examples/HierarchicalNetworks.ipynb
       - section: API Reference
         contents:
         - core.ipynb
@@ -49,8 +50,9 @@ website:
             - models.informer.ipynb
             - models.autoformer.ipynb
             - models.patchtst.ipynb
-          - section: D. Graph-Based
+          - section: D. Multivariate
             contents:
+            - models.hint.ipynb
             - models.stemgnn.ipynb
         - section: Train/Evaluation
           contents:
