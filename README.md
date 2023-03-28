@@ -53,7 +53,7 @@ pip install -e .
 </details>
 
 ## 🏃🏻‍♀️🏃 Getting Started
-To get started follow this [guide](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
+To get started follow this [guide](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started.ipynb), where we explore `NBEATS`, extend it towards probabilistic predictions and exogenous variables.
 
 Or follow this simple example where we train the `NBEATS` model and predict the classic Box-Jenkins air passengers dataset.
 ```python
@@ -71,13 +71,13 @@ Y_df = AirPassengersDF
 Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
 Y_test_df = Y_df[Y_df.ds>'1959-12-31'] # 12 test
 
-# Fit and predict with N-BEATS and N-HiTS models
+# Fit and predict with NBEATS and NHITS models
 horizon = len(Y_test_df)
 models = [NBEATS(input_size=2 * horizon, h=horizon, max_epochs=50),
           NHITS(input_size=2 * horizon, h=horizon, max_epochs=50)]
-nforecast = NeuralForecast(models=models, freq='M')
-nforecast.fit(df=Y_train_df)
-Y_hat_df = nforecast.predict().reset_index()
+nf = NeuralForecast(models=models, freq='M')
+nf.fit(df=Y_train_df)
+Y_hat_df = nf.predict().reset_index()
 
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
@@ -95,9 +95,10 @@ ax.grid()
 <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/nbeats_example.png">
 
 ## 🎉 New!
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_with_NBEATS_and_NHITS.ipynb) **Quick Start**: Minimal usage example of the NeuralForecast library on Box's AirPassengers Data.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started.ipynb) **Quick Start**: Minimal usage example of the NeuralForecast library on Box's AirPassengers Data.
 * [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/UncertaintyIntervals.ipynb) **Multi Quantile NBEATS Example**: Produce accurate and efficient probabilistic forecasts in long-horizon settings. Outperforming AutoARIMA's accuracy in a fraction of the time.
-* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/LongHorizon_with_NHITS.ipynb) **Long Horizon N-HiTS Example**:  Load, train, and tune hyperparameters, to achieve Long-Horizon SoTA. Outperform Award Winning Transformers by 25% in 50x less time.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/LongHorizon_with_NHITS.ipynb) **Long Horizon NHITS Example**:  Load, train, and tune hyperparameters, to achieve Long-Horizon SoTA. Outperform Award Winning Transformers by 25% in 50x less time.
+* [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/HierarchicalNetworks.ipynb) **Hierarchical Forecasting HINT Example**:  Obtain accurate probabilistic coherent predictions for hierarchical datasets.
 
 ## 🔥  Highlights
 
@@ -114,7 +115,7 @@ ax.grid()
 * **Train and Evaluation Losses** Scale-dependent, percentage and scale independent errors, and parametric likelihoods.
 * **Automatic Model Selection** Parallelized automatic hyperparameter tuning, that efficiently searches best validation configuration.
 * **Simple Interface** Unified SKLearn Interface for `StatsForecast` and `MLForecast` compatibility.
-* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `TCN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `AutoFormer`, `Informer`, `TFT`, `AutoFormer`, `Informer`, and vanilla `Transformer`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `TCN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `Informer`, `TFT`, `Informer`, `PatchTST` and `HINT`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 
 Missing something? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 
