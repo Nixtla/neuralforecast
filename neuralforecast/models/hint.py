@@ -3,13 +3,27 @@
 # %% auto 0
 __all__ = ['get_bottomup_P', 'get_mintrace_ols_P', 'get_mintrace_wls_P', 'HINT']
 
-# %% ../../nbs/models.hint.ipynb 2
+# %% ../../nbs/models.hint.ipynb 4
 import numpy as np
 import torch
-import torch.nn as nn
 
-# %% ../../nbs/models.hint.ipynb 4
+# %% ../../nbs/models.hint.ipynb 6
 def get_bottomup_P(S: np.ndarray):
+    """BottomUp Reconciliation Matrix.
+
+    Creates BottomUp hierarchical \"projection\" matrix is defined as:
+    $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
+
+    **Parameters:**<br>
+    `S`: Summing matrix of size (`base`, `bottom`).<br>
+
+    **Returns:**<br>
+    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+
+    **References:**<br>
+    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). \"Data aggregation and information loss\". The American
+    Economic Review, 58 , 773{787)](http://www.jstor.org/stable/1815532).
+    """
     n_series = len(S)
     n_agg = n_series - S.shape[1]
     P = np.zeros_like(S)
@@ -19,6 +33,23 @@ def get_bottomup_P(S: np.ndarray):
 
 
 def get_mintrace_ols_P(S: np.ndarray):
+    """MinTraceOLS Reconciliation Matrix.
+
+    Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
+
+    $$\mathbf{P}_{\\text{MinTraceOLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{S}\\right)^{-1}\mathbf{S}^{\intercal}$$
+
+    **Parameters:**<br>
+    `S`: Summing matrix of size (`base`, `bottom`).<br>
+
+    **Returns:**<br>
+    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+
+    **References:**<br>
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
+    forecast reconciliation". Stat Comput 30, 1167–1182,
+    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    """
     n_hiers, n_bottom = S.shape
     n_agg = n_hiers - n_bottom
 
@@ -34,6 +65,27 @@ def get_mintrace_ols_P(S: np.ndarray):
 
 
 def get_mintrace_wls_P(S: np.ndarray):
+    """MinTraceOLS Reconciliation Matrix.
+
+    Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
+    Depending on a weighted GLS estimator and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$.
+
+    $$ \mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})$$
+
+    $$\mathbf{P}_{\\text{MinTraceWLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\\right)^{-1}
+    \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+
+    **Parameters:**<br>
+    `S`: Summing matrix of size (`base`, `bottom`).<br>
+
+    **Returns:**<br>
+    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+
+    **References:**<br>
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
+    forecast reconciliation". Stat Comput 30, 1167–1182,
+    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    """
     n_hiers, n_bottom = S.shape
     n_agg = n_hiers - n_bottom
 
@@ -47,12 +99,31 @@ def get_mintrace_wls_P(S: np.ndarray):
     P = J - (J @ W @ U) @ np.linalg.pinv(U.T @ W @ U) @ U.T
     return P
 
-# %% ../../nbs/models.hint.ipynb 6
+# %% ../../nbs/models.hint.ipynb 11
 class HINT:
-    def __init__(self, h: int, model: nn.Module, S: np.ndarray, reconciliation: str):
+    """HINT
+
+    The Hierarchical Forecast Network (HINT) combines SoTA neural forecast methods with
+    flexible and efficient probability distributions and advanced hierarchical reconciliation strategies.
+    This powerful combination allows HINT to produce accurate and coherent probabilistic predictions.
+
+    **Parameters:**<br>
+    `h`: int, Forecast horizon. <br>
+    `model`: NeuralForecast model, instantiated train loss class from [models collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
+    `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
+    `reconciliation`: str, HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].<br>
+    """
+
+    def __init__(self, h: int, S: np.ndarray, model, reconciliation: str):
 
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
+
+        if not model.loss.is_distribution_output:
+            raise Exception(
+                f"The NeuralForecast model's loss {model.loss} is not a probabilistic objective"
+            )
+
         self.h = h
         self.model = model
         self.S = S
@@ -78,6 +149,10 @@ class HINT:
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """HINT.fit
 
+        HINT trains on the entire hierarchical dataset, by minimizing a composite log likelihood or likelihoood objective.
+        HINT's architecture integrates `TemporalNorm` for a scale-decoupled optimization that robustifies cross-learning
+        the hierachy's series scales.
+
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
         `val_size`: int, size of the validation set, (default 0).<br>
@@ -85,7 +160,7 @@ class HINT:
         `random_seed`: int, random seed for the prediction.<br>
 
         **Returns:**<br>
-        `y_hat`: numpy predictions of the `NeuralForecast` model.<br>
+        `self`: A fitted base `NeuralForecast` model.<br>
         """
         self.model.fit(
             dataset=dataset,
@@ -96,6 +171,9 @@ class HINT:
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """HINT.predict
+
+        After fitting a base model on the entire hierarchical dataset.
+        HINT enforces hierarchical constraints using bootstrapped sample filtering on the samples of its forecast distribution.
 
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
@@ -143,9 +221,9 @@ class HINT:
         self.model.test_size = test_size
 
     def save(self, path):
-        """BaseWindows.save
+        """HINT.save
 
-        Save the fitted model to disk.
+        Save the HINT fitted model to disk.
 
         **Parameters:**<br>
         `path`: str, path to save the model.<br>
