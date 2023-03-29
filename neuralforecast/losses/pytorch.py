@@ -1056,7 +1056,7 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
         log_mu += torch.log(loc)  # TODO : rho scaling
     return (log_mu,)
 
-# %% ../../nbs/losses.pytorch.ipynb 70
+# %% ../../nbs/losses.pytorch.ipynb 69
 class DistributionLoss(torch.nn.Module):
     """DistributionLoss
 
@@ -1253,7 +1253,7 @@ class DistributionLoss(torch.nn.Module):
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 76
+# %% ../../nbs/losses.pytorch.ipynb 75
 class PMM(torch.nn.Module):
     """Poisson Mixture Mesh
 
@@ -1269,7 +1269,9 @@ class PMM(torch.nn.Module):
     `n_components`: int=10, the number of mixture components.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
     `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
-    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br>
+    `batch_correlation`: bool=False, wether or not model batch correlations.<br>
+    `horizon_correlation`: bool=False, wether or not model horizon correlations.<br>
 
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
@@ -1284,6 +1286,8 @@ class PMM(torch.nn.Module):
         quantiles=None,
         num_samples=500,
         return_params=False,
+        batch_correlation=False,
+        horizon_correlation=False,
     ):
         super(PMM, self).__init__()
         # Transform level to MQLoss parameters
@@ -1296,6 +1300,8 @@ class PMM(torch.nn.Module):
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
+        self.batch_correlation = batch_correlation
+        self.horizon_correlation = horizon_correlation
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
@@ -1412,20 +1418,24 @@ class PMM(torch.nn.Module):
         y = y[:, :, None]
         mask = mask[:, :, None]
 
-        y = y * mask  # Protect target variable negative entries
+        y = y * mask  # Protect y negative entries
 
-        log = y.xlogy(lambdas + eps) - lambdas - (y + 1).lgamma()
+        # Single Poisson likelihood
+        log_pi = y.xlogy(lambdas + eps) - lambdas - (y + 1).lgamma()
 
-        # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
-        # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
+        if self.batch_correlation:
+            log_pi = torch.sum(log_pi, dim=0, keepdim=True)
 
-        # Numerical stability mixture and loglik
-        log_max = torch.amax(log, dim=2, keepdim=True)  # [1,1,K] (collapsed joints)
-        lik = weights * torch.exp(log - log_max)  # Take max
-        loglik = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max  # Return max
-        loglik = loglik * mask  # replace with mask
+        if self.horizon_correlation:
+            log_pi = torch.sum(log_pi, dim=1, keepdim=True)
 
-        loss = -torch.mean(loglik)
+        # Numerically Stable Mixture loglikelihood
+        loglik = torch.logsumexp((torch.log(weights) + log_pi), dim=2, keepdim=True)
+        loglik = loglik * mask
+
+        mean = torch.sum(weights * lambdas, axis=-1, keepdims=True)
+        reglrz = torch.mean(torch.square(y - mean) * mask)
+        loss = -torch.mean(loglik) + 0.001 * reglrz
         return loss
 
     def __call__(
@@ -1454,7 +1464,9 @@ class GMM(torch.nn.Module):
     `n_components`: int=10, the number of mixture components.<br>
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
     `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
-    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br>
+    `batch_correlation`: bool=False, wether or not model batch correlations.<br>
+    `horizon_correlation`: bool=False, wether or not model horizon correlations.<br><br>
 
     **References:**<br>
     [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
@@ -1469,6 +1481,8 @@ class GMM(torch.nn.Module):
         quantiles=None,
         num_samples=500,
         return_params=False,
+        batch_correlation=False,
+        horizon_correlation=False,
     ):
         super(GMM, self).__init__()
         # Transform level to MQLoss parameters
@@ -1481,6 +1495,8 @@ class GMM(torch.nn.Module):
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
+        self.batch_correlation = batch_correlation
+        self.horizon_correlation = horizon_correlation
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
@@ -1600,28 +1616,27 @@ class GMM(torch.nn.Module):
         B, H, K = means.size()
 
         weights = (1 / K) * torch.ones_like(means).to(means.device)
-        # eps  = 1e-10
 
         y = y[:, :, None]
         mask = mask[:, :, None]
 
         var = stds**2
         log_stds = torch.log(stds)
-        log = (
+        log_pi = (
             -((y - means) ** 2 / (2 * var))
             - log_stds
             - math.log(math.sqrt(2 * math.pi))
         )
 
-        # log  = torch.sum(log, dim=0, keepdim=True) # Joint within batch/group
-        # log  = torch.sum(log, dim=1, keepdim=True) # Joint within horizon
+        if self.batch_correlation:
+            log_pi = torch.sum(log_pi, dim=0, keepdim=True)
 
-        # Numerical stability mixture and loglik
-        log_max = torch.amax(log, dim=2, keepdim=True)  # [1,1,K] (collapsed joints)
-        lik = weights * torch.exp(log - log_max)  # Take max
-        loglik = torch.log(torch.sum(lik, dim=2, keepdim=True)) + log_max  # Return max
+        if self.horizon_correlation:
+            log_pi = torch.sum(log_pi, dim=1, keepdim=True)
 
-        loglik = loglik * mask  # replace with mask
+        # Numerically Stable Mixture loglikelihood
+        loglik = torch.logsumexp((torch.log(weights) + log_pi), dim=2, keepdim=True)
+        loglik = loglik * mask
 
         loss = -torch.mean(loglik)
         return loss
@@ -1635,7 +1650,7 @@ class GMM(torch.nn.Module):
 
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 90
+# %% ../../nbs/losses.pytorch.ipynb 91
 class NBMM(torch.nn.Module):
     """Negative Binomial Mixture Mesh
 
