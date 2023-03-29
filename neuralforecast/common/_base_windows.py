@@ -367,6 +367,7 @@ class BaseWindows(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="train")
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
         windows = self._normalization(windows=windows)
 
         # Parse windows
@@ -391,9 +392,10 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            outsample_y, y_loc, y_scale = self._inv_normalization(
+            _, y_loc, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
+            outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
@@ -411,6 +413,7 @@ class BaseWindows(pl.LightningModule):
 
         # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="val")
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
         windows = self._normalization(windows=windows)
 
         # Parse windows
@@ -435,9 +438,10 @@ class BaseWindows(pl.LightningModule):
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
-            outsample_y, y_loc, y_scale = self._inv_normalization(
+            _, y_loc, y_scale = self._inv_normalization(
                 y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
             )
+            outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
