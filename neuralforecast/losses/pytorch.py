@@ -891,10 +891,11 @@ def poisson_scale_decouple(output, loc=None, scale=None):
     variance and residual location based on anchoring `loc`, `scale`.
     Also adds Poisson domain protection to the distribution parameters.
     """
+    eps = 1e-10
     rate = output[0]
     if (loc is not None) and (scale is not None):
         rate = (rate * scale) + loc
-    rate = F.softplus(rate)  # .clone()
+    rate = F.softplus(rate) + eps
     return (rate,)
 
 
