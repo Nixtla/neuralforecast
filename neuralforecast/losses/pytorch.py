@@ -15,6 +15,8 @@ import torch.nn.functional as F
 from torch.distributions import Distribution
 from torch.distributions import Bernoulli, Normal, StudentT, Poisson, NegativeBinomial
 
+from torch.distributions import constraints
+
 # %% ../../nbs/losses.pytorch.ipynb 5
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
@@ -1172,6 +1174,9 @@ class DistributionLoss(torch.nn.Module):
         """
         # TransformedDistribution(distr, [AffineTransform(loc=loc, scale=scale)])
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
+
+        if self.distribution == "Poisson":
+            distr.support = constraints.nonnegative
         return distr
 
     def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
