@@ -152,11 +152,14 @@ class NHITSBlock(nn.Module):
         insample_y = insample_y.squeeze(1)
 
         # Concentrator
+        # Clone futr_exog to avoid modifying the original
+        futr_exog = futr_exog.clone()
         if self.concentrator is not None:
-            hist_exog = self.concentrator(
-                hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+            futr_exog = self.concentrator(
+                treatment_exog=futr_exog, stat_exog=stat_exog, idx=batch_idx
             )
-        # TODO: Add anti-treatment? (remove treatment vars altogether?)
+        else:
+            futr_exog[:, :, -1] = 0  # Remove treatment completely
 
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
@@ -299,11 +302,11 @@ class NHITS_TREAT(BaseWindows):
         # Asserts
         if "concentrator" in stack_types:
             assert (
-                treatment_var_name in hist_exog_list
-            ), f"Variable {treatment_var_name} not found in hist_exog_list!"
+                treatment_var_name in futr_exog_list
+            ), f"Variable {treatment_var_name} not found in futr_exog_list!"
             assert (
-                hist_exog_list[-1] == treatment_var_name
-            ), f"Variable {treatment_var_name} must be the last element of hist_exog_list!"
+                futr_exog_list[-1] == treatment_var_name
+            ), f"Variable {treatment_var_name} must be the last element of futr_exog_list!"
 
         # Architecture
         self.futr_input_size = len(self.futr_exog_list)
@@ -380,7 +383,9 @@ class NHITS_TREAT(BaseWindows):
                         type=concentrator_type,
                         treatment_var_name=treatment_var_name,
                         input_size=input_size,
+                        h=h,
                         freq=freq,
+                        mask_future=True,
                     )
                 else:
                     concentrator = None

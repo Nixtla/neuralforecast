@@ -128,7 +128,9 @@ class LSTM(BaseRecurrent):
                 type=concentrator_type,
                 treatment_var_name=treatment_var_name,
                 input_size=input_size,
+                h=h,
                 freq=freq,
+                mask_future=False,  # Only historic for now
             )
         else:
             self.concentrator = None
@@ -199,7 +201,7 @@ class LSTM(BaseRecurrent):
             )  # [B, X, seq_len, 1] -> [B, seq_len, X]
             if self.use_concentrator:
                 hist_exog = self.concentrator(
-                    hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+                    treatment_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
                 )
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 

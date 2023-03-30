@@ -125,6 +125,8 @@ class TCN(BaseRecurrent):
                 treatment_var_name=treatment_var_name,
                 input_size=input_size,
                 freq=freq,
+                h=h,
+                mask_future=False,
             )
         else:
             self.concentrator = None
@@ -196,7 +198,7 @@ class TCN(BaseRecurrent):
             )  # [B, X, seq_len, 1] -> [B, seq_len, X]
             if self.use_concentrator:
                 hist_exog = self.concentrator(
-                    hist_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
+                    treatment_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
                 )
             encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
 

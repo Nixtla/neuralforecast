@@ -18,7 +18,9 @@ class Concentrator(nn.Module):
         type: str,
         treatment_var_name: str,
         input_size: int,
+        h: int,
         freq: int,
+        mask_future: bool = True,
     ):
         super().__init__()
 
@@ -32,10 +34,12 @@ class Concentrator(nn.Module):
         # K parameter for each time-series
         self.k_a = nn.Embedding(self.n_series, 1)
         # Initialize k_a
-        init_k = torch.ones((self.n_series, 1)) * 0.5
+        init_k = torch.zeros((self.n_series, 1))
         self.k_a.weight.data.copy_(init_k)
 
         self.input_size = input_size
+        self.h = h
+        self.mask_future = mask_future
 
     def treatment_concentration(self, t, k_a, sigma=1):
         t = torch.div(
@@ -50,10 +54,15 @@ class Concentrator(nn.Module):
         return conc
 
     def forward(
-        self, hist_exog: torch.Tensor, stat_exog: torch.Tensor, idx: torch.Tensor
+        self, treatment_exog: torch.Tensor, stat_exog: torch.Tensor, idx: torch.Tensor
     ) -> torch.Tensor:
 
-        treatment_var = hist_exog[:, :, -1]  # [B,L,C] -> [B,L]
+        treatment_var = treatment_exog[:, :, -1]  # [B,L,C] -> [B,L]
+
+        # Set treatment in forecasting window to 0
+        if self.mask_future:
+            treatment_var[:, -self.h :] = 0
+
         b = treatment_var.shape[0]
         l = treatment_var.shape[1]
 
@@ -66,7 +75,7 @@ class Concentrator(nn.Module):
         ltr = lt.repeat((l, 1)) - lt.reshape(-1, 1)
         ltr[ltr < 0] = 0
 
-        ltr_batch = torch.zeros((b, l, l)).to(hist_exog.device)
+        ltr_batch = torch.zeros((b, l, l)).to(treatment_exog.device)
         ltr_batch[:] = ltr
 
         # Apply frequency
@@ -78,11 +87,11 @@ class Concentrator(nn.Module):
         treatment = scaled_conc.nansum(dim=1)  # [B, L]
 
         # Replace treatment variable with concentration
-        hist_exog_out = torch.zeros(hist_exog.shape).to(hist_exog.device)
-        hist_exog_out[:, :, :-1] += hist_exog[:, :, :-1]
-        hist_exog_out[:, :, -1] += treatment
+        treatment_exog_out = torch.zeros(treatment_exog.shape).to(treatment_exog.device)
+        treatment_exog_out[:, :, :-1] += treatment_exog[:, :, :-1]
+        treatment_exog_out[:, :, -1] += treatment
 
-        return hist_exog_out
+        return treatment_exog_out
 
 # %% ../../nbs/common.modules.ipynb 9
 class MLP(nn.Module):
