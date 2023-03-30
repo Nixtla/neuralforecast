@@ -105,7 +105,7 @@ ax.grid()
 * Unified `StatsForecast` interface `NeuralForecast().fit(Y_df).predict(h=7)`.
 * Industry/Competition proven `ESRNN`, `NBEATS`, and `TFT` implementations.
 * Improve accuracy and speed over classic `ARIMA`/`ETS` in two lines of code. Check the experiments [here](xXmissingXx).
-* Predict Series with little to no history, using Transfer learning. Check the experiments [here](xXmissingXx).
+* Predict Series with little to no history, using Transfer learning. Check the experiments [here](https://github.com/Nixtla/transfer-learning-time-series).
 
 ## 🎊 Features 
 
@@ -128,10 +128,10 @@ Unfortunately, available implementations and published research are yet to reali
 ## 🔬 Accuracy & ⏲ Speed 
 
 ### Industry/Competition Proven Methods
-An extensive empirical evaluation is critical to generate confidence and promote the adoption and development of novel methods. For this reason, we replicate and verify the results of our implementation of the following industry/competition-proven methods: `ESRNN`, `NBEATS`, `NHITS`, and `TFT`. If you are interested in reproducing the results, check the experiments [here](xXmissingXx).
+An extensive empirical evaluation is critical to generate confidence and promote the adoption and development of novel methods. For this reason, we replicate and verify the results of our implementation of the following industry/competition-proven methods: `ESRNN`, `NBEATS`, `NHITS`, and `TFT`. If you are interested in reproducing the results, check the experiments [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/experiments/).
 
 ### Simple and Efficient Method's Comparison
-Like `core.StatsForecast`, the `core.NeuralForecast` wrapper class allows us to easily compare any model in the collection to select or ensemble the best performing methods. Aditionally it offers a high-end interface that operates with (potentially large) sets of time series data stored in pandas DataFrames. The `core.NeuralForecast` efficiently parallelizes computation across CPU or GPU resources. Check the experiments [here](xXmissingXx).
+Like `core.StatsForecast`, the `core.NeuralForecast` wrapper class allows us to easily compare any model in the collection to select or ensemble the best performing methods. Aditionally it offers a high-end interface that operates with (potentially large) sets of time series data stored in pandas DataFrames. The `core.NeuralForecast` efficiently parallelizes computation across GPU resources. Check the experiments [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_complete.ipynb).
 
 ## 📖 Documentation (WIP)
 The [documentation page](https://nixtla.github.io/neuralforecast/) contains the models' code documentation, methods, utils, and other tutorials. Docstrings accompany most code.
