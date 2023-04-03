@@ -55,7 +55,7 @@ class BaseRecurrent(pl.LightningModule):
 
         # Loss
         self.loss = loss
-        if valid_loss == None:
+        if valid_loss is None:
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
@@ -64,7 +64,7 @@ class BaseRecurrent(pl.LightningModule):
 
         # Valid batch_size
         self.batch_size = batch_size
-        if valid_batch_size == None:
+        if valid_batch_size is None:
             self.valid_batch_size = batch_size
         else:
             self.valid_batch_size = valid_batch_size
@@ -130,6 +130,8 @@ class BaseRecurrent(pl.LightningModule):
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
+        # used by on_validation_epoch_end hook
+        self.validation_step_outputs = []
 
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)
@@ -148,7 +150,6 @@ class BaseRecurrent(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _normalization(self, batch, val_size=0, test_size=0):
-
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
@@ -439,12 +440,13 @@ class BaseRecurrent(pl.LightningModule):
             prog_bar=True,
             on_epoch=True,
         )
+        self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         if self.val_size == 0:
             return
-        avg_loss = torch.stack(outputs).mean()
+        avg_loss = torch.stack(self.validation_step_outputs).mean()
         self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
         self.valid_trajectories.append((self.global_step, float(avg_loss)))
 

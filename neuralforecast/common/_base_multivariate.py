@@ -57,7 +57,7 @@ class BaseMultivariate(pl.LightningModule):
 
         # Loss
         self.loss = loss
-        if valid_loss == None:
+        if valid_loss is None:
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
@@ -134,6 +134,8 @@ class BaseMultivariate(pl.LightningModule):
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
+        # used by on_validation_epoch_end hook
+        self.validation_step_outputs = []
 
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)
@@ -217,7 +219,6 @@ class BaseMultivariate(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
-
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -260,7 +261,6 @@ class BaseMultivariate(pl.LightningModule):
             raise ValueError(f"Unknown step {step}")
 
     def _normalization(self, windows):
-
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
         temporal = windows["temporal"]  # [Ws, C, L+H, n_series]
@@ -453,12 +453,13 @@ class BaseMultivariate(pl.LightningModule):
             )
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
-    def validation_epoch_end(self, outputs):
+    def on_validation_epoch_end(self):
         if self.val_size == 0:
             return
-        avg_loss = torch.stack(outputs).mean()
+        avg_loss = torch.stack(self.validation_step_outputs).mean()
         self.log("ptl/val_loss", avg_loss)
         self.valid_trajectories.append((self.global_step, float(avg_loss)))
 
