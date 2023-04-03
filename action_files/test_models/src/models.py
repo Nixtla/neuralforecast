@@ -84,6 +84,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         print(end - start)
 
         forecasts = forecasts.reset_index()
+        forecasts.columns = ['unique_id', 'ds', model_name]
         forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
         time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
         time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
