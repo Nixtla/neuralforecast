@@ -47,7 +47,8 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           extra-specs: python=${{ matrix.python-version }}
-          cache-env: false
+          cache-env: true
+          channel-priority: 'flexible'
       
       - name: Install pip requirements
         run: pip install ./ 
