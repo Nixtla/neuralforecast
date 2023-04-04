@@ -111,10 +111,10 @@ class MLP(BaseWindows):
         # Asserts
         if use_concentrator:
             assert (
-                treatment_var_name in futr_exog_list
+                treatment_var_name in hist_exog_list
             ), f"Variable {treatment_var_name} not found in hist_exog_list!"
             assert (
-                futr_exog_list[-1] == treatment_var_name
+                hist_exog_list[-1] == treatment_var_name
             ), f"Variable {treatment_var_name} must be the last element of hist_exog_list!"
 
         self.use_concentrator = use_concentrator
@@ -127,7 +127,7 @@ class MLP(BaseWindows):
                 input_size=input_size,
                 freq=freq,
                 h=h,
-                mask_future=True,
+                mask_future=False,
             )
         else:
             self.concentrator = None
@@ -171,8 +171,8 @@ class MLP(BaseWindows):
         batch_idx = windows_batch["batch_idx"]
 
         if self.use_concentrator:
-            futr_exog = self.concentrator(
-                treatment_exog=futr_exog, stat_exog=stat_exog, idx=batch_idx
+            hist_exog = self.concentrator(
+                treatment_exog=hist_exog, stat_exog=stat_exog, idx=batch_idx
             )
 
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]

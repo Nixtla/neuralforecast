@@ -20,7 +20,7 @@ class Concentrator(nn.Module):
         input_size: int,
         h: int,
         freq: int,
-        mask_future: bool = True,
+        mask_future: bool = False,
     ):
         super().__init__()
 
@@ -34,7 +34,7 @@ class Concentrator(nn.Module):
         # K parameter for each time-series
         self.k_a = nn.Embedding(self.n_series, 1)
         # Initialize k_a
-        init_k = torch.zeros((self.n_series, 1))
+        init_k = torch.ones((self.n_series, 1)) * 0.5
         self.k_a.weight.data.copy_(init_k)
 
         self.input_size = input_size
@@ -61,6 +61,7 @@ class Concentrator(nn.Module):
 
         # Set treatment in forecasting window to 0
         if self.mask_future:
+            raise Exception("MASK FUTURE NOT SUPPORTED")
             treatment_var[:, -self.h :] = 0
 
         b = treatment_var.shape[0]
