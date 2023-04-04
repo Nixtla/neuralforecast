@@ -207,7 +207,6 @@ class NBEATSBlock(nn.Module):
         hist_exog: torch.Tensor,
         stat_exog: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)
@@ -308,7 +307,6 @@ class NBEATSx(BaseWindows):
         drop_last_loader: bool = False,
         **trainer_kwargs,
     ):
-
         # Inherit BaseWindows class
         super(NBEATSx, self).__init__(
             h=h,
@@ -378,11 +376,9 @@ class NBEATSx(BaseWindows):
         hist_input_size,
         stat_input_size,
     ):
-
         block_list = []
         for i in range(len(stack_types)):
             for block_id in range(n_blocks[i]):
-
                 # Shared weights
                 if shared_weights and block_id > 0:
                     nbeats_block = block_list[-1]
@@ -440,7 +436,6 @@ class NBEATSx(BaseWindows):
         return block_list
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         insample_mask = windows_batch["insample_mask"]

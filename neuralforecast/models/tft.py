@@ -121,7 +121,6 @@ class TFTEmbedding(nn.Module):
         cont_emb: Tensor,
         cont_bias: Tensor,
     ):
-
         if cont is not None:
             # the line below is equivalent to following einsums
             # e_cont = torch.einsum('btf,fh->bthf', cont, cont_emb)
@@ -452,7 +451,6 @@ class TFT(BaseWindows):
         random_seed: int = 1,
         **trainer_kwargs
     ):
-
         # Inherit BaseWindows class
         super(TFT, self).__init__(
             h=h,
@@ -522,7 +520,6 @@ class TFT(BaseWindows):
         )
 
     def forward(self, x):
-
         # Extract static and temporal features
         y_idx = x["temporal_cols"].get_loc("y")
         y_insample = x["temporal"][:, :, y_idx, None]
@@ -680,14 +677,8 @@ class TFT(BaseWindows):
             )
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.validation_step_outputs.append(valid_loss)
         return valid_loss
-
-    def validation_epoch_end(self, outputs):
-        if self.val_size == 0:
-            return
-        avg_loss = torch.stack(outputs).mean()
-        self.log("ptl/val_loss", avg_loss)
-        self.valid_trajectories.append((self.global_step, float(avg_loss)))
 
     def predict_step(self, batch, batch_idx):
         # Deviates from orignal `BaseWindows.training_step` to
