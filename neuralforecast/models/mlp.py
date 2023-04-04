@@ -74,7 +74,6 @@ class MLP(BaseWindows):
         drop_last_loader: bool = False,
         **trainer_kwargs
     ):
-
         # Inherit BaseWindows class
         super(MLP, self).__init__(
             h=h,
@@ -129,7 +128,6 @@ class MLP(BaseWindows):
         )
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         futr_exog = windows_batch["futr_exog"]

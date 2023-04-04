@@ -45,7 +45,7 @@ if __name__ == '__main__':
     groups = ['Other']#, 'Quarterly', 'Monthly']
     models = ['GRU', 'RNN', 'TCN', 'LSTM', 'DilatedRNN',
               'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
-              #'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST',
+              'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST',
               'AutoNHITS', 'AutoNBEATS', 'AutoMLP', 'AutoDilatedRNN']
     datasets = ['M3']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
