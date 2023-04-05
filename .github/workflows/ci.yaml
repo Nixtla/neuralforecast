@@ -32,6 +32,7 @@ jobs:
           echo "Check that strip out was unnecessary"
           git status -s # display the status to see which nbs need cleaning up
           if [ -n "$(git status -uno -s)" ]; then echo -e "!!! Detected unstripped out notebooks\n!!!Remember to run nbdev_install_git_hooks"; false; fi
+
   run-tests:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -52,6 +53,32 @@ jobs:
       
       - name: Install pip requirements
         run: pip install ./ 
+      
+      - name: Tests
+        run: nbdev_test --do_print --timing --n_workers 1
+  # Particular test for python 3.7
+  # pytorch>=2.0.0 (conda) is not supported
+  # nueralforecast will be supported only for pip
+  # for this py version
+  run-tests-py37:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v2
+
+      - name: Set up environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          extra-specs: python=3.7
+          cache-env: true
+          environment-file: false
+      
+      - name: Install pip requirements
+        run: pip install ".[dev]" 
       
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 1
