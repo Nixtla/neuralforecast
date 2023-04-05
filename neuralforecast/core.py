@@ -72,7 +72,7 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
         dates = dates.reset_index(drop=True)
     return dates
 
-# %% ../nbs/core.ipynb 10
+# %% ../nbs/core.ipynb 9
 MODEL_FILENAME_DICT = {
     "gru": GRU,
     "lstm": LSTM,
@@ -102,7 +102,7 @@ MODEL_FILENAME_DICT = {
     "autostemgnn": StemGNN,
 }
 
-# %% ../nbs/core.ipynb 11
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
     def __init__(self, models: List[Any], freq: str):
         """
