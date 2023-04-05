@@ -7,13 +7,12 @@ __all__ = ['NeuralForecast']
 import os
 import pickle
 import warnings
-
+from copy import deepcopy
 from os.path import isfile, join
 from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
-
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
     GRU,
@@ -192,7 +191,8 @@ class NeuralForecast:
                 )
 
         # train + validation
-        for model in self.models:
+        self.models_ = [deepcopy(model) for model in self.models]
+        for model in self.models_:
             model.fit(self.dataset, val_size=val_size)
         # train with the full dataset
 
@@ -262,7 +262,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models:
+        for model in self.models_:
             model_name = type(model).__name__
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -284,7 +284,7 @@ class NeuralForecast:
 
         col_idx = 0
         fcsts = np.full((self.h * len(self.uids), len(cols)), fill_value=np.nan)
-        for model in self.models:
+        for model in self.models_:
             model.set_test_size(self.h)  # To predict h steps ahead
             model_fcsts = model.predict(dataset=dataset, **data_kwargs)
             # Append predictions in memory placeholder
@@ -397,9 +397,12 @@ class NeuralForecast:
         fcsts = np.full(
             (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
         )
-        for model in self.models:
+        already_fitted = hasattr(self, "models_")
+        if not already_fitted:
+            self.models_ = [deepcopy(model) for model in self.models]
+        for model in self.models_:
             # Fit
-            if fit_models:
+            if fit_models and not already_fitted:
                 model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             else:
                 model.set_test_size(test_size=test_size)
@@ -507,7 +510,7 @@ class NeuralForecast:
 
         # Model index list
         if model_index is None:
-            model_index = list(range(len(self.models)))
+            model_index = list(range(len(self.models_)))
 
         # Create directory if not exists
         os.makedirs(path, exist_ok=True)
@@ -523,7 +526,7 @@ class NeuralForecast:
 
         # Save models
         count_names = {"model": 0}
-        for i, model in enumerate(self.models):
+        for i, model in enumerate(self.models_):
             # Skip model if not in list
             if i not in model_index:
                 continue
@@ -616,6 +619,7 @@ class NeuralForecast:
 
         # Create NeuralForecast object
         neuralforecast = NeuralForecast(models=models, freq=config_dict["freq"])
+        neuralforecast.models_ = [deepcopy(model) for model in neuralforecast.models]
 
         # Dataset
         if dataset is not None:
