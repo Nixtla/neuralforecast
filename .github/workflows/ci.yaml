@@ -74,10 +74,10 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-name: 'neuralforecast'
-          extra-specs: |
-            python=3.7
+          extra-specs: python=3.7
           cache-env: true
           environment-file: false
+          channels: conda-forge
       
       - name: Install pip requirements
         run: pip install ".[dev]" 
