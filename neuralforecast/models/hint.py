@@ -129,17 +129,17 @@ class HINT:
         self.reconciliation = reconciliation
         self.loss = model.loss
 
-        available_reconcitliations = dict(
+        available_reconciliations = dict(
             BottomUp=get_bottomup_P,
             MinTraceOLS=get_mintrace_ols_P,
             MinTraceWLS=get_mintrace_wls_P,
         )
 
-        if reconciliation not in available_reconcitliations:
+        if reconciliation not in available_reconciliations:
             raise Exception(f"Reconciliation {reconciliation} not available")
 
         # Get SP matrix
-        P = available_reconcitliations[reconciliation](S=S)
+        P = available_reconciliations[reconciliation](S=S)
         self.SP = S @ P
 
         qs = torch.Tensor((np.arange(self.loss.num_samples) / self.loss.num_samples))

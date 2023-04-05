@@ -1094,7 +1094,7 @@ class DistributionLoss(torch.nn.Module):
         distribution,
         level=[80, 90],
         quantiles=None,
-        num_samples=500,
+        num_samples=1000,
         return_params=False,
         **distribution_kwargs,
     ):
@@ -1284,7 +1284,7 @@ class PMM(torch.nn.Module):
         n_components=10,
         level=[80, 90],
         quantiles=None,
-        num_samples=500,
+        num_samples=1000,
         return_params=False,
         batch_correlation=False,
         horizon_correlation=False,
@@ -1478,7 +1478,7 @@ class GMM(torch.nn.Module):
         n_components=1,
         level=[80, 90],
         quantiles=None,
-        num_samples=500,
+        num_samples=1000,
         return_params=False,
         batch_correlation=False,
         horizon_correlation=False,
@@ -1677,7 +1677,7 @@ class NBMM(torch.nn.Module):
         n_components=1,
         level=[80, 90],
         quantiles=None,
-        num_samples=500,
+        num_samples=1000,
         return_params=False,
     ):
         super(NBMM, self).__init__()
