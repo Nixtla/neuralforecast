@@ -4,6 +4,8 @@
 __all__ = ['get_bottomup_P', 'get_mintrace_ols_P', 'get_mintrace_wls_P', 'HINT']
 
 # %% ../../nbs/models.hint.ipynb 4
+from typing import Optional
+
 import numpy as np
 import torch
 
@@ -116,7 +118,12 @@ class HINT:
     """
 
     def __init__(
-        self, h: int, S: np.ndarray, model, reconciliation: str, alias: str = None
+        self,
+        h: int,
+        S: np.ndarray,
+        model,
+        reconciliation: str,
+        alias: Optional[str] = None,
     ):
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
