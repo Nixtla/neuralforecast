@@ -73,6 +73,7 @@ jobs:
       - name: Set up environment
         uses: mamba-org/provision-with-micromamba@main
         with:
+          environment-name: 'neuralforecast'
           extra-specs: python=3.7
           cache-env: true
           environment-file: false
