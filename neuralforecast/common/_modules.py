@@ -421,6 +421,7 @@ class DataEmbedding(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark=None):
+
         # Convolution
         x = self.value_embedding(x)
 

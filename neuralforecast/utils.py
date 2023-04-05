@@ -372,10 +372,10 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc.
     """
 
-    if freq_str not in ["Q", "M", "W", "D", "B", "H", "T", "S"]:
+    if freq_str not in ["Q", "M", "MS", "W", "D", "B", "H", "T", "S"]:
         raise Exception("Frequency not supported")
 
-    if freq_str in ["Q", "M"]:
+    if freq_str in ["Q", "M", "MS"]:
         return [cls() for cls in [MonthOfYear]]
     elif freq_str == "W":
         return [cls() for cls in [DayOfMonth, WeekOfYear]]
@@ -418,6 +418,7 @@ def augment_calendar_df(df, freq="h"):
     freq_map = {
         "Q": ["month"],
         "M": ["month"],
+        "MS": ["month"],
         "W": ["monthday", "yearweek"],
         "D": ["weekday", "monthday", "yearday"],
         "B": ["weekday", "monthday", "yearday"],
