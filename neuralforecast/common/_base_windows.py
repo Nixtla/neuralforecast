@@ -41,6 +41,7 @@ class BaseWindows(pl.LightningModule):
         num_workers_loader=0,
         drop_last_loader=False,
         random_seed=1,
+        alias=None,
         **trainer_kwargs,
     ):
         super(BaseWindows, self).__init__()
@@ -142,6 +143,10 @@ class BaseWindows(pl.LightningModule):
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
+        self.alias = alias
+
+    def __repr__(self):
+        return type(self).__name__ if self.alias is None else self.alias
 
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)

@@ -112,9 +112,12 @@ class HINT:
     `model`: NeuralForecast model, instantiated train loss class from [models collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
     `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
     `reconciliation`: str, HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].<br>
+    `alias`: str, optional,  Custom name of the model.<br>
     """
 
-    def __init__(self, h: int, S: np.ndarray, model, reconciliation: str):
+    def __init__(
+        self, h: int, S: np.ndarray, model, reconciliation: str, alias: str = None
+    ):
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
 
@@ -144,6 +147,10 @@ class HINT:
 
         qs = torch.Tensor((np.arange(self.loss.num_samples) / self.loss.num_samples))
         self.sample_quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.alias = alias
+
+    def __repr__(self):
+        return type(self).__name__ if self.alias is None else self.alias
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """HINT.fit

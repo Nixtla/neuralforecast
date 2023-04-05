@@ -98,6 +98,7 @@ class BaseAuto(pl.LightningModule):
     `gpus`: int, number of gpus to use during optimization, default all available.<br>
     `refit_wo_val`: bool, number of gpus to use during optimization, default all available.<br>
     `verbose`: bool, wether print partial outputs.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
     """
 
     def __init__(
@@ -113,6 +114,7 @@ class BaseAuto(pl.LightningModule):
         gpus=torch.cuda.device_count(),
         refit_with_val=False,
         verbose=False,
+        alias=None,
     ):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
@@ -148,6 +150,10 @@ class BaseAuto(pl.LightningModule):
         self.verbose = verbose
         self.loss = self.config.get("loss", MAE())
         self.valid_loss = self.config.get("valid_loss", self.loss)
+        self.alias = alias
+
+    def __repr__(self):
+        return type(self).__name__ if self.alias is None else self.alias
 
     def fit(self, dataset, val_size=0, test_size=0):
         """BaseAuto.fit

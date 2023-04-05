@@ -263,7 +263,7 @@ class NeuralForecast:
         cols = []
         count_names = {"model": 0}
         for model in self.models:
-            model_name = type(model).__name__
+            model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
@@ -359,7 +359,7 @@ class NeuralForecast:
         cols = []
         count_names = {"model": 0}
         for model in self.models:
-            model_name = type(model).__name__
+            model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
@@ -528,7 +528,7 @@ class NeuralForecast:
             if i not in model_index:
                 continue
 
-            model_name = type(model).__name__.lower().replace("_", "")
+            model_name = repr(model).lower().replace("_", "")
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
 
