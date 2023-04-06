@@ -173,6 +173,7 @@ class AutoGRU(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -195,6 +196,7 @@ class AutoGRU(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 21
@@ -225,6 +227,7 @@ class AutoTCN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -247,6 +250,7 @@ class AutoTCN(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 25
@@ -279,6 +283,7 @@ class AutoDilatedRNN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -301,6 +306,7 @@ class AutoDilatedRNN(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 30
@@ -332,6 +338,7 @@ class AutoMLP(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -358,6 +365,7 @@ class AutoMLP(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 34
@@ -387,6 +395,7 @@ class AutoNBEATS(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -413,6 +422,7 @@ class AutoNBEATS(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 38
@@ -442,6 +452,7 @@ class AutoNBEATSx(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -468,6 +479,7 @@ class AutoNBEATSx(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 42
@@ -510,6 +522,7 @@ class AutoNHITS(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -536,6 +549,7 @@ class AutoNHITS(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 47
@@ -567,6 +581,7 @@ class AutoTFT(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -593,6 +608,7 @@ class AutoTFT(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 51
@@ -624,6 +640,7 @@ class AutoVanillaTransformer(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -650,6 +667,7 @@ class AutoVanillaTransformer(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 55
@@ -681,6 +699,7 @@ class AutoInformer(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -707,6 +726,7 @@ class AutoInformer(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 59
@@ -738,6 +758,7 @@ class AutoAutoformer(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -764,6 +785,7 @@ class AutoAutoformer(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 63
@@ -797,6 +819,7 @@ class AutoPatchTST(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -823,6 +846,7 @@ class AutoPatchTST(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )
 
 # %% ../nbs/models.ipynb 68
@@ -855,6 +879,7 @@ class AutoStemGNN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
     ):
 
         # Define search space, input/output sizes
@@ -884,4 +909,5 @@ class AutoStemGNN(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
         )

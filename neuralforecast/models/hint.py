@@ -4,6 +4,8 @@
 __all__ = ['get_bottomup_P', 'get_mintrace_ols_P', 'get_mintrace_wls_P', 'HINT']
 
 # %% ../../nbs/models.hint.ipynb 4
+from typing import Optional
+
 import numpy as np
 import torch
 
@@ -112,10 +114,17 @@ class HINT:
     `model`: NeuralForecast model, instantiated train loss class from [models collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
     `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
     `reconciliation`: str, HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].<br>
+    `alias`: str, optional,  Custom name of the model.<br>
     """
 
-    def __init__(self, h: int, S: np.ndarray, model, reconciliation: str):
-
+    def __init__(
+        self,
+        h: int,
+        S: np.ndarray,
+        model,
+        reconciliation: str,
+        alias: Optional[str] = None,
+    ):
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
 
@@ -130,21 +139,25 @@ class HINT:
         self.reconciliation = reconciliation
         self.loss = model.loss
 
-        available_reconciliations = dict(
+        available_reconcitliations = dict(
             BottomUp=get_bottomup_P,
             MinTraceOLS=get_mintrace_ols_P,
             MinTraceWLS=get_mintrace_wls_P,
         )
 
-        if reconciliation not in available_reconciliations:
+        if reconciliation not in available_reconcitliations:
             raise Exception(f"Reconciliation {reconciliation} not available")
 
         # Get SP matrix
-        P = available_reconciliations[reconciliation](S=S)
+        P = available_reconcitliations[reconciliation](S=S)
         self.SP = S @ P
 
         qs = torch.Tensor((np.arange(self.loss.num_samples) / self.loss.num_samples))
         self.sample_quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.alias = alias
+
+    def __repr__(self):
+        return type(self).__name__ if self.alias is None else self.alias
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """HINT.fit
