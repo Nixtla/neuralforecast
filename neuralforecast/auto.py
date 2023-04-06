@@ -36,6 +36,7 @@ from .losses.pytorch import MAE
 
 # %% ../nbs/models.ipynb 8
 class AutoRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
@@ -92,6 +93,7 @@ class AutoRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 13
 class AutoLSTM(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
@@ -119,6 +121,7 @@ class AutoLSTM(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -143,6 +146,7 @@ class AutoLSTM(BaseAuto):
 
 # %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
@@ -170,6 +174,7 @@ class AutoGRU(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -194,6 +199,7 @@ class AutoGRU(BaseAuto):
 
 # %% ../nbs/models.ipynb 21
 class AutoTCN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
@@ -220,6 +226,7 @@ class AutoTCN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -244,6 +251,7 @@ class AutoTCN(BaseAuto):
 
 # %% ../nbs/models.ipynb 25
 class AutoDilatedRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "h": None,
@@ -272,6 +280,7 @@ class AutoDilatedRNN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -296,6 +305,7 @@ class AutoDilatedRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 30
 class AutoMLP(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -323,6 +333,7 @@ class AutoMLP(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -351,6 +362,7 @@ class AutoMLP(BaseAuto):
 
 # %% ../nbs/models.ipynb 34
 class AutoNBEATS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -376,6 +388,7 @@ class AutoNBEATS(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -404,6 +417,7 @@ class AutoNBEATS(BaseAuto):
 
 # %% ../nbs/models.ipynb 38
 class AutoNBEATSx(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -429,6 +443,7 @@ class AutoNBEATSx(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -457,6 +472,7 @@ class AutoNBEATSx(BaseAuto):
 
 # %% ../nbs/models.ipynb 42
 class AutoNHITS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -495,6 +511,7 @@ class AutoNHITS(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -523,6 +540,7 @@ class AutoNHITS(BaseAuto):
 
 # %% ../nbs/models.ipynb 47
 class AutoTFT(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -550,6 +568,7 @@ class AutoTFT(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -578,6 +597,7 @@ class AutoTFT(BaseAuto):
 
 # %% ../nbs/models.ipynb 51
 class AutoVanillaTransformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -605,6 +625,7 @@ class AutoVanillaTransformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -633,6 +654,7 @@ class AutoVanillaTransformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 55
 class AutoInformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -660,6 +682,7 @@ class AutoInformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -688,6 +711,7 @@ class AutoInformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 59
 class AutoAutoformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -715,6 +739,7 @@ class AutoAutoformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -743,6 +768,7 @@ class AutoAutoformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 63
 class AutoPatchTST(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3],
         "h": None,
@@ -772,6 +798,7 @@ class AutoPatchTST(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -800,6 +827,7 @@ class AutoPatchTST(BaseAuto):
 
 # %% ../nbs/models.ipynb 68
 class AutoStemGNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
@@ -828,6 +856,7 @@ class AutoStemGNN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
