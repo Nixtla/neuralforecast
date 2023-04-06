@@ -24,7 +24,7 @@ class Concentrator(nn.Module):
     ):
         super().__init__()
 
-        assert type in ["subcutaneous_injection"], "treatment type not available."
+        assert type in ["log_normal", "sum_total"], "treatment type not available."
 
         self.n_series = n_series
         self.type = type
@@ -52,18 +52,39 @@ class Concentrator(nn.Module):
         # Add small increment (1e-5) or else k_a --> [nan]
 
         return conc
-
-    def forward(
-        self, treatment_exog: torch.Tensor, stat_exog: torch.Tensor, idx: torch.Tensor
-    ) -> torch.Tensor:
-
+                        
+    def sum_total(self, treatment_exog, stat_exog, idx):
+        
         treatment_var = treatment_exog[:, :, -1]  # [B,L,C] -> [B,L]
-
+        
         # Set treatment in forecasting window to 0
         if self.mask_future:
             raise Exception("MASK FUTURE NOT SUPPORTED")
             treatment_var[:, -self.h :] = 0
+                        
+        b = treatment_var.shape[0]
+        l = treatment_var.shape[1]
 
+        # Create [B,L,L] matrix
+        ltr = torch.ones(l, l).triu()
+        ltr_batch = torch.zeros((b, l, l)).to(treatment_exog.device)
+        ltr_batch[:] = ltr
+
+        # Forward fill data
+        ltr_fill = torch.mul(ltr_batch, treatment_var.reshape(b, l, 1))
+        treatment = ltr_fill.nansum(dim=1)# [B, L]
+        
+        return treatment
+                        
+    def log_normal(self, treatment_exog, stat_exog, idx):
+                        
+        treatment_var = treatment_exog[:, :, -1]  # [B,L,C] -> [B,L]
+        
+        # Set treatment in forecasting window to 0
+        if self.mask_future:
+            raise Exception("MASK FUTURE NOT SUPPORTED")
+            treatment_var[:, -self.h :] = 0
+                        
         b = treatment_var.shape[0]
         l = treatment_var.shape[1]
 
@@ -86,6 +107,18 @@ class Concentrator(nn.Module):
         conc = self.treatment_concentration(ltrf_batch, k_a)
         scaled_conc = conc * (treatment_var.reshape(b, l, 1))
         treatment = scaled_conc.nansum(dim=1)  # [B, L]
+                        
+        return treatment
+
+    def forward(
+        self, treatment_exog: torch.Tensor, stat_exog: torch.Tensor, idx: torch.Tensor
+    ) -> torch.Tensor:
+
+        if self.type == "sum_total":
+            treatment = self.sum_total(treatment_exog, stat_exog, idx)
+            
+        elif self.type == "log_normal":
+            treatment = self.log_normal(treatment_exog, stat_exog, idx)
 
         # Replace treatment variable with concentration
         treatment_exog_out = torch.zeros(treatment_exog.shape).to(treatment_exog.device)
