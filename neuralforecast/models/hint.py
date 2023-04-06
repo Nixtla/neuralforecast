@@ -115,6 +115,7 @@ class HINT:
     """
 
     def __init__(self, h: int, S: np.ndarray, model, reconciliation: str):
+
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
 
