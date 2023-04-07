@@ -148,7 +148,6 @@ class TCN(BaseRecurrent):
         )
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
         futr_exog = windows_batch["futr_exog"]

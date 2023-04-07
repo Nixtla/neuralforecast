@@ -224,7 +224,6 @@ class BaseMultivariate(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
-
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -267,7 +266,6 @@ class BaseMultivariate(pl.LightningModule):
             raise ValueError(f"Unknown step {step}")
 
     def _normalization(self, windows):
-
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
         temporal = windows["temporal"]  # [Ws, C, L+H, n_series]
