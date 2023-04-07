@@ -13,4 +13,5 @@ dependencies:
   - pip
   - pip:
     - nbdev
+    - black
     - "ray[tune]>=2.2.0"
