@@ -157,6 +157,7 @@ class MLP(BaseWindows):
         for layer in self.mlp:
             y_pred = torch.relu(layer(y_pred))
         y_pred = self.out(y_pred)
+
         y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
         y_pred = self.loss.domain_map(y_pred)
         return y_pred

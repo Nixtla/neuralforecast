@@ -383,10 +383,7 @@ class NHITS(BaseWindows):
                 block_forecasts.append(block_forecast)
 
         # Adapting output's domain
-        print("1. forecast.shape", forecast.shape)
         forecast = self.loss.domain_map(forecast)
-        print("2. forecast[0].shape", forecast[0].shape)
-        assert 1 < 0
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, output_size)
