@@ -24,6 +24,7 @@ class TCN(BaseRecurrent):
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `kernel_size`: int, size of the convolving kernel.<br>
     `dilations`: int list, ontrols the temporal spacing between the kernel points; also known as the à trous algorithm.<br>
     `encoder_hidden_size`: int=200, units for the TCN's hidden state size.<br>
@@ -53,6 +54,7 @@ class TCN(BaseRecurrent):
         self,
         h: int,
         input_size: int = -1,
+        inference_input_size: int = -1,
         kernel_size: int = 2,
         dilations: List[int] = [1, 2, 4, 8, 16],
         encoder_hidden_size: int = 200,
@@ -81,6 +83,7 @@ class TCN(BaseRecurrent):
         super(TCN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
