@@ -249,7 +249,8 @@ class BaseRecurrent(pl.LightningModule):
 
         # Truncated backprogatation/inference (shorten sequence where RNNs unroll)
         n_windows = windows.shape[2]
-        if step == "train":
+        input_size = -1
+        if (step == "train") and (self.input_size > 0):
             input_size = self.input_size
         elif (step in ["val", "predict"]) and (self.inference_input_size > 0):
             input_size = self.inference_input_size
