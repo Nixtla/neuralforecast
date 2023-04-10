@@ -38,6 +38,7 @@ from .losses.pytorch import MAE
 class AutoRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -74,6 +75,9 @@ class AutoRNN(BaseAuto):
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
             )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
+            )
             del config["input_size_multiplier"]
 
         super(AutoRNN, self).__init__(
@@ -94,6 +98,7 @@ class AutoRNN(BaseAuto):
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -125,6 +130,9 @@ class AutoLSTM(BaseAuto):
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
             )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
+            )
             del config["input_size_multiplier"]
 
         super(AutoLSTM, self).__init__(
@@ -145,6 +153,7 @@ class AutoLSTM(BaseAuto):
 class AutoGRU(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -177,6 +186,9 @@ class AutoGRU(BaseAuto):
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
             )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
+            )
             del config["input_size_multiplier"]
 
         super(AutoGRU, self).__init__(
@@ -198,6 +210,7 @@ class AutoGRU(BaseAuto):
 class AutoTCN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "context_size": tune.choice([5, 10, 50]),
@@ -229,6 +242,9 @@ class AutoTCN(BaseAuto):
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
             )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
+            )
             del config["input_size_multiplier"]
 
         super(AutoTCN, self).__init__(
@@ -250,6 +266,7 @@ class AutoTCN(BaseAuto):
 class AutoDilatedRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "cell_type": tune.choice(["LSTM", "GRU"]),
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
@@ -282,6 +299,9 @@ class AutoDilatedRNN(BaseAuto):
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
