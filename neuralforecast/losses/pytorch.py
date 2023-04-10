@@ -1444,6 +1444,7 @@ class PMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 83
@@ -1607,6 +1608,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1645,6 +1647,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 91
@@ -1812,6 +1815,7 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1853,4 +1857,5 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
