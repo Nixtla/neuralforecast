@@ -23,6 +23,7 @@ class BaseRecurrent(pl.LightningModule):
         self,
         h,
         input_size,
+        inference_input_size,
         loss,
         valid_loss,
         learning_rate,
@@ -52,6 +53,7 @@ class BaseRecurrent(pl.LightningModule):
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
+        self.inference_input_size = inference_input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         # Loss
@@ -155,7 +157,6 @@ class BaseRecurrent(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _normalization(self, batch, val_size=0, test_size=0):
-
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
@@ -246,16 +247,18 @@ class BaseRecurrent(pl.LightningModule):
         window_size = 1 + self.h  # 1 for current t and h for future
         windows = temporal.unfold(dimension=-1, size=window_size, step=1)
 
-        # Truncated backprogatation during training (shorten sequence where RNNs unroll)
+        # Truncated backprogatation/inference (shorten sequence where RNNs unroll)
         n_windows = windows.shape[2]
-        if (
-            (step == "train")
-            and (self.input_size > 0)
-            and (n_windows > self.input_size)
-        ):
+        input_size = -1
+        if (step == "train") and (self.input_size > 0):
+            input_size = self.input_size
+        elif (step in ["val", "predict"]) and (self.inference_input_size > 0):
+            input_size = self.inference_input_size
+
+        if (input_size > 0) and (n_windows > input_size):
             max_sampleable_time = n_windows - self.input_size + 1
             start = np.random.choice(max_sampleable_time)
-            windows = windows[:, :, start : (start + self.input_size), :]
+            windows = windows[:, :, start : (start + input_size), :]
 
         # [B, C, input_size, 1+H]
         windows_batch = dict(

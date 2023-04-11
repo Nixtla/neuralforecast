@@ -75,7 +75,6 @@ class MLP(BaseWindows):
         drop_last_loader: bool = False,
         **trainer_kwargs
     ):
-
         # Inherit BaseWindows class
         super(MLP, self).__init__(
             h=h,
@@ -130,7 +129,6 @@ class MLP(BaseWindows):
         )
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         futr_exog = windows_batch["futr_exog"]
@@ -159,5 +157,7 @@ class MLP(BaseWindows):
         for layer in self.mlp:
             y_pred = torch.relu(layer(y_pred))
         y_pred = self.out(y_pred)
+
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
         y_pred = self.loss.domain_map(y_pred)
         return y_pred

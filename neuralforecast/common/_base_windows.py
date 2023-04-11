@@ -233,7 +233,6 @@ class BaseWindows(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
-
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size

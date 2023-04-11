@@ -33,7 +33,6 @@ class _IdentityBasis(nn.Module):
         self.out_features = out_features
 
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-
         backcast = theta[:, : self.backcast_size]
         knots = theta[:, self.backcast_size :]
 
@@ -140,7 +139,6 @@ class NHITSBlock(nn.Module):
         hist_exog: torch.Tensor,
         stat_exog: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         # Pooling
         # Pool1d needs 3D input, (B,C,L), adding C dimension
         insample_y = insample_y.unsqueeze(1)
@@ -255,7 +253,6 @@ class NHITS(BaseWindows):
         drop_last_loader=False,
         **trainer_kwargs,
     ):
-
         # Inherit BaseWindows class
         super(NHITS, self).__init__(
             h=h,
@@ -321,11 +318,9 @@ class NHITS(BaseWindows):
         hist_input_size,
         stat_input_size,
     ):
-
         block_list = []
         for i in range(len(stack_types)):
             for block_id in range(n_blocks[i]):
-
                 assert (
                     stack_types[i] == "identity"
                 ), f"Block type {stack_types[i]} not found!"
@@ -361,7 +356,6 @@ class NHITS(BaseWindows):
         return block_list
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         insample_mask = windows_batch["insample_mask"]

@@ -121,7 +121,6 @@ class TFTEmbedding(nn.Module):
         cont_emb: Tensor,
         cont_bias: Tensor,
     ):
-
         if cont is not None:
             # the line below is equivalent to following einsums
             # e_cont = torch.einsum('btf,fh->bthf', cont, cont_emb)
@@ -453,7 +452,6 @@ class TFT(BaseWindows):
         random_seed: int = 1,
         **trainer_kwargs
     ):
-
         # Inherit BaseWindows class
         super(TFT, self).__init__(
             h=h,
@@ -523,7 +521,6 @@ class TFT(BaseWindows):
         )
 
     def forward(self, x):
-
         # Extract static and temporal features
         y_idx = x["temporal_cols"].get_loc("y")
         y_insample = x["temporal"][:, :, y_idx, None]

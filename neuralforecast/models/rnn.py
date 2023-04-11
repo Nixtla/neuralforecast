@@ -25,6 +25,7 @@ class RNN(BaseRecurrent):
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `encoder_n_layers`: int=2, number of layers for the RNN.<br>
     `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
     `encoder_activation`: str=`tanh`, type of RNN activation from `tanh` or `relu`.<br>
@@ -57,6 +58,7 @@ class RNN(BaseRecurrent):
         self,
         h: int,
         input_size: int = -1,
+        inference_input_size: int = -1,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 200,
         encoder_activation: str = "tanh",
@@ -86,6 +88,7 @@ class RNN(BaseRecurrent):
         super(RNN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -154,7 +157,6 @@ class RNN(BaseRecurrent):
         )
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
         futr_exog = windows_batch["futr_exog"]
