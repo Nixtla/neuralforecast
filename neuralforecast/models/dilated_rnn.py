@@ -291,6 +291,7 @@ class DilatedRNN(BaseRecurrent):
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `cell_type`: str, type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'.<br>
     `dilations`: int list, dilations betweem layers.<br>
     `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
@@ -322,6 +323,7 @@ class DilatedRNN(BaseRecurrent):
         self,
         h: int,
         input_size: int = -1,
+        inference_input_size: int = -1,
         cell_type: str = "LSTM",
         dilations: List[List[int]] = [[1, 2], [4, 8]],
         encoder_hidden_size: int = 200,
@@ -350,6 +352,7 @@ class DilatedRNN(BaseRecurrent):
         super(DilatedRNN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -423,7 +426,6 @@ class DilatedRNN(BaseRecurrent):
         )
 
     def forward(self, windows_batch):
-
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
         futr_exog = windows_batch["futr_exog"]

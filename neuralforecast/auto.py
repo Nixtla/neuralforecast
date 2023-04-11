@@ -36,9 +36,9 @@ from .losses.pytorch import MAE
 
 # %% ../nbs/models.ipynb 8
 class AutoRNN(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -75,6 +75,9 @@ class AutoRNN(BaseAuto):
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
             )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
+            )
             del config["input_size_multiplier"]
 
         super(AutoRNN, self).__init__(
@@ -93,9 +96,9 @@ class AutoRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 13
 class AutoLSTM(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -121,12 +124,14 @@ class AutoLSTM(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -146,9 +151,9 @@ class AutoLSTM(BaseAuto):
 
 # %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -175,12 +180,14 @@ class AutoGRU(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -201,9 +208,9 @@ class AutoGRU(BaseAuto):
 
 # %% ../nbs/models.ipynb 21
 class AutoTCN(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "context_size": tune.choice([5, 10, 50]),
@@ -229,12 +236,14 @@ class AutoTCN(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -255,9 +264,9 @@ class AutoTCN(BaseAuto):
 
 # %% ../nbs/models.ipynb 25
 class AutoDilatedRNN(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "cell_type": tune.choice(["LSTM", "GRU"]),
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
@@ -285,12 +294,14 @@ class AutoDilatedRNN(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+            config["inference_input_size"] = tune.choice(
+                [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -311,7 +322,6 @@ class AutoDilatedRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 30
 class AutoMLP(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -340,7 +350,6 @@ class AutoMLP(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -370,7 +379,6 @@ class AutoMLP(BaseAuto):
 
 # %% ../nbs/models.ipynb 34
 class AutoNBEATS(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -397,7 +405,6 @@ class AutoNBEATS(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -427,7 +434,6 @@ class AutoNBEATS(BaseAuto):
 
 # %% ../nbs/models.ipynb 38
 class AutoNBEATSx(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -454,7 +460,6 @@ class AutoNBEATSx(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -484,7 +489,6 @@ class AutoNBEATSx(BaseAuto):
 
 # %% ../nbs/models.ipynb 42
 class AutoNHITS(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -524,7 +528,6 @@ class AutoNHITS(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -554,7 +557,6 @@ class AutoNHITS(BaseAuto):
 
 # %% ../nbs/models.ipynb 47
 class AutoTFT(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -583,7 +585,6 @@ class AutoTFT(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -613,7 +614,6 @@ class AutoTFT(BaseAuto):
 
 # %% ../nbs/models.ipynb 51
 class AutoVanillaTransformer(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -642,7 +642,6 @@ class AutoVanillaTransformer(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -672,7 +671,6 @@ class AutoVanillaTransformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 55
 class AutoInformer(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -701,7 +699,6 @@ class AutoInformer(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -731,7 +728,6 @@ class AutoInformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 59
 class AutoAutoformer(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -760,7 +756,6 @@ class AutoAutoformer(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -790,7 +785,6 @@ class AutoAutoformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 63
 class AutoPatchTST(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3],
         "h": None,
@@ -821,7 +815,6 @@ class AutoPatchTST(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -851,7 +844,6 @@ class AutoPatchTST(BaseAuto):
 
 # %% ../nbs/models.ipynb 68
 class AutoStemGNN(BaseAuto):
-
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
@@ -881,7 +873,6 @@ class AutoStemGNN(BaseAuto):
         verbose=False,
         alias=None,
     ):
-
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()

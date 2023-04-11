@@ -235,7 +235,6 @@ class PatchTST_backbone(nn.Module):
         affine=True,
         subtract_last=False,
     ):
-
         super().__init__()
 
         # RevIn
@@ -392,7 +391,6 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
         pe="zeros",
         learn_pe=True,
     ):
-
         super().__init__()
 
         self.patch_num = patch_num
@@ -430,7 +428,6 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
         )
 
     def forward(self, x) -> torch.Tensor:  # x: [bs x nvars x patch_len x patch_num]
-
         n_vars = x.shape[1]
         # Input encoding
         x = x.permute(0, 1, 3, 2)  # x: [bs x nvars x patch_num x patch_len]
@@ -591,7 +588,6 @@ class TSTEncoderLayer(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ):  # -> Tuple[torch.Tensor, Any]:
-
         # Multi-Head attention sublayer
         if self.pre_norm:
             src = self.norm_attn(src)
@@ -690,7 +686,6 @@ class _MultiheadAttention(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ):
-
         bs = Q.size(0)
         if K is None:
             K = Q
@@ -1003,7 +998,6 @@ class PatchTST(BaseWindows):
         )
 
     def forward(self, windows_batch):  # x: [batch, input_size]
-
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']
