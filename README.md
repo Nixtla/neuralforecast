@@ -115,7 +115,7 @@ ax.grid()
 * **Train and Evaluation Losses** Scale-dependent, percentage and scale independent errors, and parametric likelihoods.
 * **Automatic Model Selection** Parallelized automatic hyperparameter tuning, that efficiently searches best validation configuration.
 * **Simple Interface** Unified SKLearn Interface for `StatsForecast` and `MLForecast` compatibility.
-* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `TCN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `Informer`, `TFT`, `Informer`, `PatchTST` and `HINT`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* **Model Collection**: Out of the box implementation of `MLP`, `LSTM`, `RNN`, `TCN`, `DilatedRNN`, `NBEATS`, `NHITS`, `ESRNN`, `TFT`, `Informer`, `PatchTST` and `HINT`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 
 Missing something? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 
