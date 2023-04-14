@@ -234,9 +234,17 @@ class BaseWindows(pl.LightningModule):
 
         elif step in ["predict", "val"]:
             if step == "predict":
+                initial_input = temporal.shape[-1] - self.test_size
+                if (
+                    initial_input <= self.input_size
+                ):  # There is not enough data to predict first timestamp
+                    padder_left = nn.ConstantPad1d(
+                        padding=(self.input_size - initial_input, 0), value=0
+                    )
+                    temporal = padder_left(temporal)
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
-                temporal = batch["temporal"][:, :, cutoff:]
+                temporal = temporal[:, :, cutoff:]
 
             elif step == "val":
                 predict_step_size = self.step_size
@@ -668,6 +676,9 @@ class BaseWindows(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.test_size = test_size
+
+    def get_test_size(self):
+        return self.test_size
 
     def save(self, path):
         """BaseWindows.save

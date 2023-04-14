@@ -200,6 +200,53 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
+    def trim_dataset(dataset, left_trim: int = 0, right_trim: int = 0):
+        """Trim temporal information from a dataset."""
+
+        if dataset.min_size <= left_trim + right_trim:
+            raise Exception(
+                f"left_trim + right_trim ({left_trim} + {right_trim}) \
+                                must be lower than the shorter time series ({dataset.min_size})"
+            )
+
+        # Remove available mask from temporal_cols
+        temporal_cols = dataset.temporal_cols.copy()
+        temporal_cols = temporal_cols.delete(len(temporal_cols) - 1)
+
+        # Define and fill new temporal with trimmed information
+        len_temporal, col_temporal = dataset.temporal.shape
+        total_trim = (left_trim + right_trim) * dataset.n_groups
+        new_temporal = torch.zeros(size=(len_temporal - total_trim, col_temporal))
+        new_indptr = [0]
+
+        acum = 0
+        for i in range(dataset.n_groups):
+            series_length = dataset.indptr[i + 1] - dataset.indptr[i]
+            new_length = series_length - left_trim - right_trim
+            new_temporal[acum : (acum + new_length), :] = dataset.temporal[
+                dataset.indptr[i] + left_trim : dataset.indptr[i + 1] - right_trim, :
+            ]
+            acum += new_length
+            new_indptr.append(acum)
+
+        new_max_size = dataset.max_size - left_trim - right_trim
+        new_min_size = dataset.min_size - left_trim - right_trim
+
+        # Define new dataset
+        updated_dataset = TimeSeriesDataset(
+            temporal=new_temporal,
+            temporal_cols=temporal_cols,
+            indptr=np.array(new_indptr).astype(np.int32),
+            max_size=new_max_size,
+            min_size=new_min_size,
+            static=dataset.static,
+            static_cols=dataset.static_cols,
+            sorted=dataset.sorted,
+        )
+
+        return updated_dataset
+
+    @staticmethod
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
         # Define indexes if not given

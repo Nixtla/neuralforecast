@@ -622,6 +622,9 @@ class BaseRecurrent(pl.LightningModule):
     def set_test_size(self, test_size):
         self.test_size = test_size
 
+    def get_test_size(self):
+        return self.test_size
+
     def save(self, path):
         """BaseRecurrent.save
 
