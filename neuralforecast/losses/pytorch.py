@@ -1159,6 +1159,9 @@ class DistributionLoss(torch.nn.Module):
         if self.return_params:
             self.output_names = self.output_names + self.param_names
 
+        # Add first output entry for the sample_mean
+        self.output_names.insert(0, "")
+
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
 
@@ -1209,6 +1212,7 @@ class DistributionLoss(torch.nn.Module):
         samples = samples.permute(1, 2, 0)  # [samples,B,H] -> [B,H,samples]
         samples = samples.to(distr_args[0].device)
         samples = samples.view(B * H, num_samples)
+        sample_mean = torch.mean(samples, dim=-1)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(distr_args[0].device)
@@ -1217,8 +1221,10 @@ class DistributionLoss(torch.nn.Module):
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
+        sample_mean = sample_mean.view(B, H, 1)
         quants = quants.view(B, H, Q)
-        return samples, quants
+
+        return samples, sample_mean, quants
 
     def __call__(
         self,
@@ -1309,6 +1315,9 @@ class PMM(torch.nn.Module):
             self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
             self.output_names = self.output_names + self.param_names
 
+        # Add first output entry for the sample_mean
+        self.output_names.insert(0, "")
+
         self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
@@ -1386,6 +1395,7 @@ class PMM(torch.nn.Module):
         # Sample y ~ Poisson(lambda) independently
         samples = torch.poisson(sample_lambdas).to(lambdas.device)
         samples = samples.view(B * H, num_samples)
+        sample_mean = torch.mean(samples, dim=-1)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(lambdas.device)
@@ -1394,9 +1404,10 @@ class PMM(torch.nn.Module):
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
+        sample_mean = sample_mean.view(B, H, 1)
         quants = quants.view(B, H, Q)
 
-        return samples, quants
+        return samples, sample_mean, quants
 
     def neglog_likelihood(
         self,
@@ -1505,6 +1516,9 @@ class GMM(torch.nn.Module):
             mu_std_names = [i for j in zip(mu_names, std_names) for i in j]
             self.output_names = self.output_names + mu_std_names
 
+        # Add first output entry for the sample_mean
+        self.output_names.insert(0, "")
+
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
@@ -1589,6 +1603,7 @@ class GMM(torch.nn.Module):
         # Sample y ~ Normal(mu, std) independently
         samples = torch.normal(sample_means, sample_stds).to(means.device)
         samples = samples.view(B * H, num_samples)
+        sample_mean = torch.mean(samples, dim=-1)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(means.device)
@@ -1597,9 +1612,10 @@ class GMM(torch.nn.Module):
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
+        sample_mean = sample_mean.view(B, H, 1)
         quants = quants.view(B, H, Q)
 
-        return samples, quants
+        return samples, sample_mean, quants
 
     def neglog_likelihood(
         self,
@@ -1702,6 +1718,9 @@ class NBMM(torch.nn.Module):
             param_names = [i for j in zip(total_count_names, probs_names) for i in j]
             self.output_names = self.output_names + param_names
 
+        # Add first output entry for the sample_mean
+        self.output_names.insert(0, "")
+
         self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
@@ -1794,6 +1813,7 @@ class NBMM(torch.nn.Module):
         dist = NegativeBinomial(total_count=sample_total_count, probs=sample_probs)
         samples = dist.sample(sample_shape=(1,)).to(probs.device)[0]
         samples = samples.view(B * H, num_samples)
+        sample_mean = torch.mean(samples, dim=-1)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(probs.device)
@@ -1802,9 +1822,10 @@ class NBMM(torch.nn.Module):
 
         # Final reshapes
         samples = samples.view(B, H, num_samples)
+        sample_mean = sample_mean.view(B, H, 1)
         quants = quants.view(B, H, Q)
 
-        return samples, quants
+        return samples, sample_mean, quants
 
     def neglog_likelihood(
         self,
