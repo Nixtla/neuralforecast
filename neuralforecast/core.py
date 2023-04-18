@@ -7,7 +7,7 @@ __all__ = ['NeuralForecast']
 import os
 import pickle
 import warnings
-from copy import deepcopy
+
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -471,6 +471,17 @@ class NeuralForecast:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
+
+        for model in self.models:
+            if model.SAMPLING_TYPE == "recurrent":
+                warnings.warn(
+                    f"Predict insample might not provide accurate predictions for \
+                       recurrent model {repr(model)} yet due to scaling."
+                )
+                print(
+                    f"WARNING: Predict insample might not provide accurate predictions for \
+                      recurrent model {repr(model)} yet due to scaling."
+                )
 
         cols = []
         count_names = {"model": 0}
