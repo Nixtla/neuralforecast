@@ -673,7 +673,7 @@ class TFT(BaseWindows):
             ]:
                 output = quants
             elif str(type(self.valid_loss)) in [
-                "<class 'neuralforecast.losses.pytorch.MSSE'>"
+                "<class 'neuralforecast.losses.pytorch.relMSE'>"
             ]:
                 output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
 
