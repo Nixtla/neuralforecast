@@ -55,8 +55,8 @@ You can preview changes in your local browser before pushing by using the `nbdev
 ### Building the library
 The library is built using the notebooks contained in the `nbs` folder. If you want to make any changes to the library you have to find the relevant notebook, make your changes and then call:
 ```
- nbdev_export
- ```
+nbdev_export
+```
 
 ### Linters
 This project uses a couple of linters to validate different aspects of the code. Before opening a PR, please make sure that it passes all the linting tasks by following the next steps.

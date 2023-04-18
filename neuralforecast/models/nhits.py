@@ -71,7 +71,7 @@ POOLING = ["MaxPool1d", "AvgPool1d"]
 
 class NHITSBlock(nn.Module):
     """
-    N-HiTS block which takes a basis function as an argument.
+    NHITS block which takes a basis function as an argument.
     """
 
     def __init__(
@@ -216,7 +216,7 @@ class NHITS(BaseWindows):
 
     **References:**<br>
     -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza,
-    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "N-HiTS: Neural Hierarchical Interpolation for Time Series Forecasting".
+    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "NHITS: Neural Hierarchical Interpolation for Time Series Forecasting".
     Accepted at the Thirty-Seventh AAAI Conference on Artificial Intelligence.](https://arxiv.org/abs/2201.12886)
     """
 
