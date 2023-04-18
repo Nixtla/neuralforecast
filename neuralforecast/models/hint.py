@@ -186,7 +186,8 @@ class HINT:
         """HINT.predict
 
         After fitting a base model on the entire hierarchical dataset.
-        HINT enforces hierarchical constraints using bootstrapped sample filtering on the samples of its forecast distribution.
+        HINT ensures hierarchical constraints using bootstrapped sample reconciliation
+        First sampling from its base forecast distribution.
 
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
@@ -200,16 +201,18 @@ class HINT:
         num_samples = self.model.loss.num_samples
 
         # Hack to get samples by simulating quantiles (samples will be ordered)
+        # Mysterious parsing associated to default [mean,quantiles] output
         quantiles_old = self.model.loss.quantiles
         names_old = self.model.loss.output_names
         self.model.loss.quantiles = self.sample_quantiles
-        self.model.loss.output_names = ["1"] * num_samples
+        self.model.loss.output_names = ["1"] * (1 + num_samples)
         samples = self.model.predict(
             dataset=dataset,
             step_size=step_size,
             random_seed=random_seed,
             **data_module_kwargs,
         )
+        samples = samples[:, 1:]  # Eliminate mean from quantiles
         self.model.loss.quantiles = quantiles_old
         self.model.loss.output_names = names_old
 
@@ -217,17 +220,18 @@ class HINT:
         idxs = np.random.choice(num_samples, size=samples.shape, replace=True)
         aux_col_idx = np.arange(len(samples))[:, None] * num_samples
         idxs = idxs + aux_col_idx
-
         samples = samples.flatten()[idxs]
         samples = samples.reshape(dataset.n_groups, -1, self.h, num_samples)
 
+        # Bootstrap Sample Reconciliation
+        # Default output [mean, quantiles]
         samples = np.einsum("ij,jwhp->iwhp", self.SP, samples)
-
         forecasts = np.quantile(samples, self.model.loss.quantiles, axis=-1)
-
-        forecasts = forecasts.transpose(1, 2, 3, 0)
+        forecasts = forecasts.transpose(1, 2, 3, 0)  # [...,samples]
         forecasts = forecasts.reshape(-1, len(self.model.loss.quantiles))
 
+        sample_mean = np.mean(forecasts, axis=-1, keepdims=True)
+        forecasts = np.concatenate([sample_mean, forecasts], axis=-1)
         return forecasts
 
     def set_test_size(self, test_size):
