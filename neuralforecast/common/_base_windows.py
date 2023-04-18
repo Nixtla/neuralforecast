@@ -19,6 +19,17 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_windows.ipynb 5
 class BaseWindows(pl.LightningModule):
+    """Base Windows
+
+    Base class for all windows-based models. The forecasts are produced separately
+    for each window, which are randomly sampled during training.
+
+    This class implements the basic functionality for all windows-based models, including:
+    - PyTorch Lightning's methods training_step, validation_step, predict_step.
+    - fit and predict methods used by NeuralForecast.core class.
+    - sampling and wrangling methods to generate windows.
+    """
+
     def __init__(
         self,
         h,
