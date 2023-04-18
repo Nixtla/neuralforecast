@@ -665,7 +665,17 @@ class TFT(BaseWindows):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, output = self.loss.sample(distr_args=distr_args)
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+
+            if str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.sCRPS'>",
+                "<class 'neuralforecast.losses.pytorch.MQLoss'>",
+            ]:
+                output = quants
+            elif str(type(self.valid_loss)) in [
+                "<class 'neuralforecast.losses.pytorch.MSSE'>"
+            ]:
+                output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
@@ -699,7 +709,8 @@ class TFT(BaseWindows):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args)
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=2)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
