@@ -74,6 +74,10 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
 
 # %% ../nbs/core.ipynb 6
 def _insample_dates(uids, last_dates, freq, h, len_series, step_size=1):
+    """
+    Generate insample dates for `predict_insample` function. Uses `_cv_dates`
+    method with separate sizes and last dates for each series.
+    """
     if (len(np.unique(last_dates)) == 1) and (len(np.unique(len_series)) == 1):
         # Dates can be generated simulatenously if ld and ls are the same for all series
         dates = _cv_dates(last_dates, freq, h, len_series[0], step_size)
@@ -476,11 +480,11 @@ class NeuralForecast:
             if model.SAMPLING_TYPE == "recurrent":
                 warnings.warn(
                     f"Predict insample might not provide accurate predictions for \
-                       recurrent model {repr(model)} yet due to scaling."
+                       recurrent model {repr(model)} class yet due to scaling."
                 )
                 print(
                     f"WARNING: Predict insample might not provide accurate predictions for \
-                      recurrent model {repr(model)} yet due to scaling."
+                      recurrent model {repr(model)} class yet due to scaling."
                 )
 
         cols = []
@@ -495,17 +499,17 @@ class NeuralForecast:
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
         if test_size > 0:
-            dataset = TimeSeriesDataset.trim_dataset(
+            trimmed_dataset = TimeSeriesDataset.trim_dataset(
                 dataset=self.dataset, right_trim=test_size, left_trim=0
             )
             last_dates_train = self.last_dates.shift(-test_size, freq=self.freq)
         else:
-            dataset = self.dataset
+            trimmed_dataset = self.dataset
             last_dates_train = self.last_dates
 
         # Generate dates
         len_series = np.diff(
-            dataset.indptr
+            trimmed_dataset.indptr
         )  # Computes the length of each time series based on indptr
         fcsts_df = _insample_dates(
             uids=self.uids,
@@ -522,10 +526,10 @@ class NeuralForecast:
 
         for model in self.models:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
-            model.set_test_size(test_size=dataset.max_size)
+            model.set_test_size(test_size=trimmed_dataset.max_size)
 
             # Predict
-            model_fcsts = model.predict(dataset, step_size=step_size)
+            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts

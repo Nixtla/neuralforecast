@@ -25,9 +25,9 @@ class BaseRecurrent(pl.LightningModule):
     windows.
 
     This class implements the basic functionality for all windows-based models, including:
-    - PyTorch Lightning's methods training_step, validation_step, predict_step.
-    - fit and predict methods used by NeuralForecast.core class.
-    - sampling and wrangling methods to sequential windows.
+    - PyTorch Lightning's methods training_step, validation_step, predict_step. <br>
+    - fit and predict methods used by NeuralForecast.core class. <br>
+    - sampling and wrangling methods to sequential windows. <br>
     """
 
     def __init__(
@@ -254,9 +254,9 @@ class BaseRecurrent(pl.LightningModule):
             if (self.test_size == 0) and (len(self.futr_exog_list) == 0):
                 temporal = self.padder(temporal)
 
-            if (
-                temporal.shape[-1] == self.test_size
-            ):  # Test size covers all data, pad left with 1
+            # Test size covers all data, pad left one timestep with zeros
+            # TODO: use encoder based on static features for cold start problem
+            if temporal.shape[-1] == self.test_size:
                 padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
                 temporal = padder_left(temporal)
 

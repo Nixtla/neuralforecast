@@ -201,8 +201,10 @@ class TimeSeriesDataset(Dataset):
 
     @staticmethod
     def trim_dataset(dataset, left_trim: int = 0, right_trim: int = 0):
-        """Trim temporal information from a dataset."""
-
+        """
+        Trim temporal information from a dataset.
+        Returns temporal indexes [t+left:t-right] for all series.
+        """
         if dataset.min_size <= left_trim + right_trim:
             raise Exception(
                 f"left_trim + right_trim ({left_trim} + {right_trim}) \

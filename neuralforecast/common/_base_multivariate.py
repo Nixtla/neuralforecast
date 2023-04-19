@@ -25,8 +25,8 @@ class BaseMultivariate(pl.LightningModule):
     within each window, which are randomly sampled during training.
 
     This class implements the basic functionality for all windows-based models, including:
-    - PyTorch Lightning's methods training_step, validation_step, predict_step.
-    - fit and predict methods used by NeuralForecast.core class.
+    - PyTorch Lightning's methods training_step, validation_step, predict_step.<br>
+    - fit and predict methods used by NeuralForecast.core class.<br>
     - sampling and wrangling methods to generate multivariate windows.
     """
 
