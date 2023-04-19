@@ -433,21 +433,20 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
 
             if str(type(self.valid_loss)) in [
                 "<class 'neuralforecast.losses.pytorch.sCRPS'>",
                 "<class 'neuralforecast.losses.pytorch.MQLoss'>",
             ]:
-                _, y_hat = self.loss.sample(distr_args=distr_args)
+                output = quants
             elif str(type(self.valid_loss)) in [
-                "<class 'neuralforecast.losses.pytorch.MSSE'>"
+                "<class 'neuralforecast.losses.pytorch.relMSE'>"
             ]:
-                samples, _ = self.loss.sample(distr_args=distr_args)
-                n_series, horizon, n_samples = samples.shape
-                y_hat = samples.mean(dim=2).reshape(n_series, horizon)
+                output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
 
         else:
-            y_hat = output[:, -val_windows:-1, :]
+            output = output[:, -val_windows:-1, :]
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
@@ -456,7 +455,7 @@ class BaseRecurrent(pl.LightningModule):
             )
         else:
             valid_loss = self.valid_loss(
-                y=outsample_y, y_hat=y_hat, mask=outsample_mask
+                y=outsample_y, y_hat=output, mask=outsample_mask
             )
 
         self.log(
@@ -516,7 +515,8 @@ class BaseRecurrent(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args)
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=2)
             y_hat = y_hat.view(B, T, H, -1)
 
             if self.loss.return_params:

@@ -470,18 +470,17 @@ class BaseWindows(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
 
             if str(type(self.valid_loss)) in [
                 "<class 'neuralforecast.losses.pytorch.sCRPS'>",
                 "<class 'neuralforecast.losses.pytorch.MQLoss'>",
             ]:
-                _, output = self.loss.sample(distr_args=distr_args)
+                output = quants
             elif str(type(self.valid_loss)) in [
-                "<class 'neuralforecast.losses.pytorch.MSSE'>"
+                "<class 'neuralforecast.losses.pytorch.relMSE'>"
             ]:
-                samples, _ = self.loss.sample(distr_args=distr_args)
-                n_series, horizon, n_samples = samples.shape
-                output = samples.mean(dim=2).reshape(n_series, horizon)
+                output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
 
         # Validation Loss evaluation
         if self.valid_loss.is_distribution_output:
@@ -538,7 +537,8 @@ class BaseWindows(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
-            _, y_hat = self.loss.sample(distr_args=distr_args)
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=2)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
