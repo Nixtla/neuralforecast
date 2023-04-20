@@ -233,6 +233,9 @@ class NBEATS(BaseWindows):
     "N-BEATS: Neural basis expansion analysis for interpretable time series forecasting".](https://arxiv.org/abs/1905.10437)
     """
 
+    # Class attributes
+    SAMPLING_TYPE = "windows"
+
     def __init__(
         self,
         h,

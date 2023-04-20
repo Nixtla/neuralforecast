@@ -214,6 +214,9 @@ class Informer(BaseWindows):
         - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)<br>
     """
 
+    # Class attributes
+    SAMPLING_TYPE = "windows"
+
     def __init__(
         self,
         h: int,

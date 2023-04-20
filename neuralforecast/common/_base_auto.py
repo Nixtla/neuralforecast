@@ -152,6 +152,9 @@ class BaseAuto(pl.LightningModule):
         self.valid_loss = self.config.get("valid_loss", self.loss)
         self.alias = alias
 
+        # Base Class attributes
+        self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
+
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
@@ -214,6 +217,9 @@ class BaseAuto(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.model.set_test_size(test_size)
+
+    def get_test_size(self):
+        return self.model.test_size
 
     def save(self, path):
         """BaseAuto.save

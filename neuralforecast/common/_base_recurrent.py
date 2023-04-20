@@ -19,6 +19,17 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_recurrent.ipynb 6
 class BaseRecurrent(pl.LightningModule):
+    """Base Recurrent
+
+    Base class for all recurrent-based models. The forecasts are produced sequentially between
+    windows.
+
+    This class implements the basic functionality for all windows-based models, including:
+    - PyTorch Lightning's methods training_step, validation_step, predict_step. <br>
+    - fit and predict methods used by NeuralForecast.core class. <br>
+    - sampling and wrangling methods to sequential windows. <br>
+    """
+
     def __init__(
         self,
         h,
@@ -242,6 +253,12 @@ class BaseRecurrent(pl.LightningModule):
         if step == "predict":
             if (self.test_size == 0) and (len(self.futr_exog_list) == 0):
                 temporal = self.padder(temporal)
+
+            # Test size covers all data, pad left one timestep with zeros
+            # TODO: use encoder based on static features for cold start problem
+            if temporal.shape[-1] == self.test_size:
+                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
+                temporal = padder_left(temporal)
 
         # Parse batch
         window_size = 1 + self.h  # 1 for current t and h for future
@@ -510,7 +527,6 @@ class BaseRecurrent(pl.LightningModule):
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
             )
-
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
@@ -621,6 +637,9 @@ class BaseRecurrent(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.test_size = test_size
+
+    def get_test_size(self):
+        return self.test_size
 
     def save(self, path):
         """BaseRecurrent.save

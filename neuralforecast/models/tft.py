@@ -423,6 +423,9 @@ class TFT(BaseWindows):
     "Temporal Fusion Transformers for interpretable multi-horizon time series forecasting"](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
     """
 
+    # Class attributes
+    SAMPLING_TYPE = "windows"
+
     def __init__(
         self,
         h,
