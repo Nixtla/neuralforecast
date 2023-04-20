@@ -255,7 +255,6 @@ class BaseRecurrent(pl.LightningModule):
                 temporal = self.padder(temporal)
 
             # Test size covers all data, pad left one timestep with zeros
-            # TODO: use encoder based on static features for cold start problem
             if temporal.shape[-1] == self.test_size:
                 padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
                 temporal = padder_left(temporal)
@@ -269,13 +268,18 @@ class BaseRecurrent(pl.LightningModule):
         input_size = -1
         if (step == "train") and (self.input_size > 0):
             input_size = self.input_size
-        elif (step in ["val", "predict"]) and (self.inference_input_size > 0):
-            input_size = self.inference_input_size
+            if (input_size > 0) and (n_windows > input_size):
+                max_sampleable_time = n_windows - self.input_size + 1
+                start = np.random.choice(max_sampleable_time)
+                windows = windows[:, :, start : (start + input_size), :]
 
-        if (input_size > 0) and (n_windows > input_size):
-            max_sampleable_time = n_windows - self.input_size + 1
-            start = np.random.choice(max_sampleable_time)
-            windows = windows[:, :, start : (start + input_size), :]
+        if (step == "val") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.val_size
+            windows = windows[:, :, -cutoff:, :]
+
+        if (step == "predict") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.test_size
+            windows = windows[:, :, -cutoff:, :]
 
         # [B, C, input_size, 1+H]
         windows_batch = dict(
