@@ -94,7 +94,24 @@ def _insample_dates(uids, last_dates, freq, h, len_series, step_size=1):
     dates = dates[["unique_id", "ds", "cutoff"]]
     return dates
 
-# %% ../nbs/core.ipynb 10
+# %% ../nbs/core.ipynb 7
+def _future_dates(dataset, uids, last_dates, freq, h):
+    """
+    Generate future dates for `predict` function.
+    """
+    if issubclass(last_dates.dtype.type, np.integer):
+        last_date_f = lambda x: np.arange(x + 1, x + 1 + h, dtype=last_dates.dtype)
+    else:
+        last_date_f = lambda x: pd.date_range(x + freq, periods=h, freq=freq)
+    if len(np.unique(last_dates)) == 1:
+        dates = np.tile(last_date_f(last_dates[0]), len(dataset))
+    else:
+        dates = np.hstack([last_date_f(last_date) for last_date in last_dates])
+    idx = pd.Index(np.repeat(uids, h), name="unique_id")
+    df = pd.DataFrame({"ds": dates}, index=idx)
+    return df
+
+# %% ../nbs/core.ipynb 11
 MODEL_FILENAME_DICT = {
     "gru": GRU,
     "lstm": LSTM,
@@ -124,7 +141,7 @@ MODEL_FILENAME_DICT = {
     "autostemgnn": StemGNN,
 }
 
-# %% ../nbs/core.ipynb 11
+# %% ../nbs/core.ipynb 12
 class NeuralForecast:
     def __init__(self, models: List[Any], freq: str):
         """
@@ -223,23 +240,6 @@ class NeuralForecast:
 
         self._fitted = True
 
-    def _make_future_df(self, h: int):
-        if issubclass(self.last_dates.dtype.type, np.integer):
-            last_date_f = lambda x: np.arange(
-                x + 1, x + 1 + h, dtype=self.last_dates.dtype
-            )
-        else:
-            last_date_f = lambda x: pd.date_range(
-                x + self.freq, periods=h, freq=self.freq
-            )
-        if len(np.unique(self.last_dates)) == 1:
-            dates = np.tile(last_date_f(self.last_dates[0]), len(self.dataset))
-        else:
-            dates = np.hstack([last_date_f(last_date) for last_date in self.last_dates])
-        idx = pd.Index(np.repeat(self.uids, h), name="unique_id")
-        df = pd.DataFrame({"ds": dates}, index=idx)
-        return df
-
     def predict(
         self,
         df: Optional[pd.DataFrame] = None,
@@ -280,9 +280,13 @@ class NeuralForecast:
 
         # Process new dataset but does not store it.
         if df is not None:
-            dataset, *_ = self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
+            dataset, uids, last_dates, _ = self._prepare_fit(
+                df=df, static_df=static_df, sort_df=sort_df
+            )
         else:
             dataset = self.dataset
+            uids = self.uids
+            last_dates = self.last_dates
             if verbose:
                 print("Using stored dataset.")
 
@@ -296,7 +300,9 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Placeholder dataframe for predictions with unique_id and ds
-        fcsts_df = self._make_future_df(h=self.h)
+        fcsts_df = _future_dates(
+            dataset=dataset, uids=uids, last_dates=last_dates, freq=self.freq, h=self.h
+        )
 
         # Update and define new forecasting dataset
         if futr_df is not None:
@@ -309,7 +315,7 @@ class NeuralForecast:
             )
 
         col_idx = 0
-        fcsts = np.full((self.h * len(self.uids), len(cols)), fill_value=np.nan)
+        fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
         for model in self.models:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
