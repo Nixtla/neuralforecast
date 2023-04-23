@@ -43,21 +43,21 @@ Notes:
 # GLOBAL parameters
 horizon = 18
 loss = MAE()
-num_samples = 1  # how many configuration we try during tuning
+num_samples = 10  # how many configuration we try during tuning
 config = None
 
 nhits = [AutoNHITS(h=horizon,
-		   		   loss=loss, num_samples=num_samples,
-				   config={
-					"input_size": tune.choice([2*horizon, 3*horizon]),
+				loss=loss, num_samples=num_samples,
+				config={
+					"input_size": tune.choice([1*horizon, 2*horizon]),
 					"stack_types": tune.choice([3*['identity']]),
 					"mlp_units": tune.choice([3 * [[512, 512]]]),
 					"n_blocks": tune.choice([3*[5]]),
-					"n_pool_kernel_size": tune.choice([3*[1], 3*[2], 3*[4], 
-														[8, 4, 1], [16, 8, 1]]),
-					"n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1], 
-														[180, 60, 1], [60, 8, 1], 
-														[40, 20, 1], [1, 1, 1]]),
+					"n_pool_kernel_size": tune.choice([3*[1], 3*[2], 3*[4],
+													  [8, 4, 1], [16, 8, 1]]),
+					"n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1],
+													  [180, 60, 1], [60, 8, 1],
+													  [40, 20, 1], [1, 1, 1]]),
 					"learning_rate": tune.loguniform(1e-4, 1e-1),
 					"early_stop_patience_steps": tune.choice([5]),
 					"val_check_steps": tune.choice([100]),
@@ -66,10 +66,26 @@ nhits = [AutoNHITS(h=horizon,
 					"batch_size": tune.choice([128, 256]),
 					"windows_batch_size": tune.choice([128, 512, 1024]),
 					"random_seed": tune.randint(1, 20),
-				   })]
+				})]
+
 lstm = [AutoLSTM(h=horizon,loss=loss,config=config,num_samples=num_samples)]
-tft = [AutoTFT(h=horizon,loss=loss,config=config,num_samples=num_samples)]
-MODEL_DICT = {'autonhits': nhits, 'autolstm': lstm, 'autoft': tft}
+
+tft = [AutoTFT(hh=horizon,
+				loss=loss, num_samples=num_samples,
+				config={
+					"input_size": tune.choice([1*horizon, 2*horizon]),
+					"hidden_size": tune.choice([64, 128, 256]),
+					"learning_rate": tune.loguniform(1e-4, 1e-1),
+					"early_stop_patience_steps": tune.choice([5]),
+					"val_check_steps": tune.choice([100]),
+					"scaler_type": tune.choice(['robust']),
+					"max_steps": tune.choice([5000, 10000]),
+					"batch_size": tune.choice([128, 256]),
+					"windows_batch_size": tune.choice([128, 512, 1024]),
+					"random_seed": tune.randint(1, 20),
+				})]
+
+MODEL_DICT = {'autonhits': nhits, 'autolstm': lstm, 'autotft': tft}
 
 def main(args):
 
@@ -144,3 +160,6 @@ if __name__ == '__main__':
     if args is None:
         exit()
     main(args)
+
+# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autonhits" --experiment_id "20230422"
+# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autotft" --experiment_id "20230422"
