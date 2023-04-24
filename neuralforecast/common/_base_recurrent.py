@@ -271,7 +271,6 @@ class BaseRecurrent(pl.LightningModule):
                              batch_idx=batch["idx"],
                             )
 
-        print('windows shape:', windows.shape)
         return windows_batch
 
     def _parse_windows(self, batch, windows):
@@ -409,8 +408,6 @@ class BaseRecurrent(pl.LightningModule):
         val_windows = (self.val_size) + 1
         outsample_y = outsample_y[:, -val_windows:-1, :]
         outsample_mask = outsample_mask[:, -val_windows:-1, :]
-
-        print("windows_batch", windows_batch["batch_idx"])
 
         # Model predictions
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
@@ -606,7 +603,6 @@ class BaseRecurrent(pl.LightningModule):
         if self.test_size > 0:
             # Remove warmup windows (from train and validation)
             # [N,T,H,output], avoid indexing last dim for univariate output compatibility
-            print([i.shape for i in fcsts])
             fcsts = torch.vstack(
                 [fcst[:, -(1 + self.test_size - self.h) :, :] for fcst in fcsts]
             )
