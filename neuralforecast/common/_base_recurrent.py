@@ -23,6 +23,7 @@ class BaseRecurrent(pl.LightningModule):
         self,
         h,
         input_size,
+        inference_input_size,
         loss,
         valid_loss,
         learning_rate,
@@ -51,6 +52,7 @@ class BaseRecurrent(pl.LightningModule):
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
+        self.inference_input_size = inference_input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         # Loss
@@ -198,67 +200,78 @@ class BaseRecurrent(pl.LightningModule):
         return y_hat, y_loc, y_scale
 
     def _create_windows(self, batch, step):
-        temporal = batch["temporal"]
-        temporal_cols = batch["temporal_cols"]
+        temporal = batch['temporal']
+        temporal_cols = batch['temporal_cols']
 
-        if step == "train":
+        if step == 'train':
             if self.val_size + self.test_size > 0:
                 cutoff = -self.val_size - self.test_size
                 temporal = temporal[:, :, :cutoff]
             temporal = self.padder(temporal)
 
-            # Truncate batch to shorter time-series
+            # Truncate batch to shorter time-series 
             av_condition = torch.nonzero(
-                torch.min(
-                    temporal[:, temporal_cols.get_loc("available_mask")], axis=0
+                torch.min(temporal[:, temporal_cols.get_loc('available_mask')], axis=0
                 ).values
             )
             min_time_stamp = int(av_condition.min())
-
-            available_ts = (
-                temporal.shape[-1] - min_time_stamp + 1
-            )  # +1, inclusive counting
+            
+            available_ts = temporal.shape[-1] - min_time_stamp + 1 # +1, inclusive counting
             if available_ts < 1 + self.h:
                 raise Exception(
-                    "Time series too short for given input and output size. \n"
-                    f"Available timestamps: {available_ts}"
+                    'Time series too short for given input and output size. \n'
+                    f'Available timestamps: {available_ts}'
                 )
 
             temporal = temporal[:, :, min_time_stamp:]
 
-        if step == "val":
+        if step == 'val':
             if self.test_size > 0:
-                temporal = temporal[:, :, : -self.test_size]
+                temporal = temporal[:, :, :-self.test_size]
             temporal = self.padder(temporal)
 
-        if step == "predict":
-            if (self.test_size == 0) and (len(self.futr_exog_list) == 0):
+        if step == 'predict':
+            if (self.test_size == 0) and (len(self.futr_exog_list)==0):
                 temporal = self.padder(temporal)
+                
+            # Test size covers all data, pad left one timestep with zeros
+            if temporal.shape[-1] == self.test_size:
+                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
+                temporal = padder_left(temporal)
 
         # Parse batch
-        window_size = 1 + self.h  # 1 for current t and h for future
-        windows = temporal.unfold(dimension=-1, size=window_size, step=1)
+        window_size = 1 + self.h # 1 for current t and h for future
+        windows = temporal.unfold(dimension=-1,
+                                  size=window_size,
+                                  step=1)
 
-        # Truncated backprogatation during training (shorten sequence where RNNs unroll)
+        # Truncated backprogatation/inference (shorten sequence where RNNs unroll)
         n_windows = windows.shape[2]
-        if (
-            (step == "train")
-            and (self.input_size > 0)
-            and (n_windows > self.input_size)
-        ):
-            max_sampleable_time = n_windows - self.input_size + 1
-            start = np.random.choice(max_sampleable_time)
-            windows = windows[:, :, start : (start + self.input_size), :]
+        input_size = -1
+        if (step == "train") and (self.input_size > 0):
+            input_size = self.input_size
+            if (input_size > 0) and (n_windows > input_size):
+                max_sampleable_time = n_windows - self.input_size + 1
+                start = np.random.choice(max_sampleable_time)
+                windows = windows[:, :, start : (start + input_size), :]
+
+        if (step == "val") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.val_size
+            windows = windows[:, :, -cutoff:, :]
+
+        if (step == "predict") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.test_size
+            windows = windows[:, :, -cutoff:, :]
 
         # [B, C, input_size, 1+H]
-        windows_batch = dict(
-            temporal=windows,
-            temporal_cols=temporal_cols,
-            static=batch.get("static", None),
-            static_cols=batch.get("static_cols", None),
-            batch_idx=batch["idx"],
-        )
+        windows_batch = dict(temporal=windows,
+                             temporal_cols=temporal_cols,
+                             static=batch.get('static', None),
+                             static_cols=batch.get('static_cols', None),
+                             batch_idx=batch["idx"],
+                            )
 
+        print('windows shape:', windows.shape)
         return windows_batch
 
     def _parse_windows(self, batch, windows):
@@ -593,6 +606,7 @@ class BaseRecurrent(pl.LightningModule):
         if self.test_size > 0:
             # Remove warmup windows (from train and validation)
             # [N,T,H,output], avoid indexing last dim for univariate output compatibility
+            print([i.shape for i in fcsts])
             fcsts = torch.vstack(
                 [fcst[:, -(1 + self.test_size - self.h) :, :] for fcst in fcsts]
             )
