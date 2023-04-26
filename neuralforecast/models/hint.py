@@ -238,7 +238,7 @@ class HINT:
         self.model.test_size = test_size
 
     def get_test_size(self):
-        return self.test_size
+        return self.model.test_size
 
     def save(self, path):
         """HINT.save
