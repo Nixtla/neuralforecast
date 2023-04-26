@@ -72,7 +72,46 @@ def _cv_dates(last_dates, freq, h, test_size, step_size=1):
         dates = dates.reset_index(drop=True)
     return dates
 
-# %% ../nbs/core.ipynb 9
+# %% ../nbs/core.ipynb 6
+def _insample_dates(uids, last_dates, freq, h, len_series, step_size=1):
+    """
+    Generate insample dates for `predict_insample` function. Uses `_cv_dates`
+    method with separate sizes and last dates for each series.
+    """
+    if (len(np.unique(last_dates)) == 1) and (len(np.unique(len_series)) == 1):
+        # Dates can be generated simulatenously if ld and ls are the same for all series
+        dates = _cv_dates(last_dates, freq, h, len_series[0], step_size)
+        dates["unique_id"] = np.repeat(uids, len(dates) // len(uids))
+    else:
+        dates = []
+        for ui, ld, ls in zip(uids, last_dates, len_series):
+            # Dates have to be generated for each series separately, considering its own ld and ls
+            dates_series = _cv_dates(np.array([ld]), freq, h, ls, step_size)
+            dates_series["unique_id"] = ui
+            dates.append(dates_series)
+        dates = pd.concat(dates)
+    dates = dates.reset_index(drop=True)
+    dates = dates[["unique_id", "ds", "cutoff"]]
+    return dates
+
+# %% ../nbs/core.ipynb 7
+def _future_dates(dataset, uids, last_dates, freq, h):
+    """
+    Generate future dates for `predict` function.
+    """
+    if issubclass(last_dates.dtype.type, np.integer):
+        last_date_f = lambda x: np.arange(x + 1, x + 1 + h, dtype=last_dates.dtype)
+    else:
+        last_date_f = lambda x: pd.date_range(x + freq, periods=h, freq=freq)
+    if len(np.unique(last_dates)) == 1:
+        dates = np.tile(last_date_f(last_dates[0]), len(dataset))
+    else:
+        dates = np.hstack([last_date_f(last_date) for last_date in last_dates])
+    idx = pd.Index(np.repeat(uids, h), name="unique_id")
+    df = pd.DataFrame({"ds": dates}, index=idx)
+    return df
+
+# %% ../nbs/core.ipynb 11
 MODEL_FILENAME_DICT = {
     "gru": GRU,
     "lstm": LSTM,
@@ -102,7 +141,7 @@ MODEL_FILENAME_DICT = {
     "autostemgnn": StemGNN,
 }
 
-# %% ../nbs/core.ipynb 10
+# %% ../nbs/core.ipynb 12
 class NeuralForecast:
     def __init__(self, models: List[Any], freq: str):
         """
@@ -138,10 +177,10 @@ class NeuralForecast:
 
     def _prepare_fit(self, df, static_df, sort_df):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
-        self.dataset, self.uids, self.last_dates, self.ds = TimeSeriesDataset.from_df(
+        dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df, static_df=static_df, sort_df=sort_df
         )
-        self.sort_df = sort_df
+        return dataset, uids, last_dates, ds
 
     def fit(
         self,
@@ -180,7 +219,10 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
-            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
+            self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
+                df=df, static_df=static_df, sort_df=sort_df
+            )
+            self.sort_df = sort_df
         else:
             if verbose:
                 print("Using stored dataset.")
@@ -197,23 +239,6 @@ class NeuralForecast:
         # train with the full dataset
 
         self._fitted = True
-
-    def _make_future_df(self, h: int):
-        if issubclass(self.last_dates.dtype.type, np.integer):
-            last_date_f = lambda x: np.arange(
-                x + 1, x + 1 + h, dtype=self.last_dates.dtype
-            )
-        else:
-            last_date_f = lambda x: pd.date_range(
-                x + self.freq, periods=h, freq=self.freq
-            )
-        if len(np.unique(self.last_dates)) == 1:
-            dates = np.tile(last_date_f(self.last_dates[0]), len(self.dataset))
-        else:
-            dates = np.hstack([last_date_f(last_date) for last_date in self.last_dates])
-        idx = pd.Index(np.repeat(self.uids, h), name="unique_id")
-        df = pd.DataFrame({"ds": dates}, index=idx)
-        return df
 
     def predict(
         self,
@@ -253,10 +278,15 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
-        # Process and save new dataset (in self)
+        # Process new dataset but does not store it.
         if df is not None:
-            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
+            dataset, uids, last_dates, _ = self._prepare_fit(
+                df=df, static_df=static_df, sort_df=sort_df
+            )
         else:
+            dataset = self.dataset
+            uids = self.uids
+            last_dates = self.last_dates
             if verbose:
                 print("Using stored dataset.")
 
@@ -270,27 +300,31 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Placeholder dataframe for predictions with unique_id and ds
-        fcsts_df = self._make_future_df(h=self.h)
+        fcsts_df = _future_dates(
+            dataset=dataset, uids=uids, last_dates=last_dates, freq=self.freq, h=self.h
+        )
 
         # Update and define new forecasting dataset
         if futr_df is not None:
             dataset = TimeSeriesDataset.update_dataset(
-                dataset=self.dataset, future_df=futr_df
+                dataset=dataset, future_df=futr_df
             )
         else:
             dataset = TimeSeriesDataset.update_dataset(
-                dataset=self.dataset, future_df=fcsts_df.reset_index()
+                dataset=dataset, future_df=fcsts_df.reset_index()
             )
 
         col_idx = 0
-        fcsts = np.full((self.h * len(self.uids), len(cols)), fill_value=np.nan)
+        fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
         for model in self.models:
+            old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
             model_fcsts = model.predict(dataset=dataset, **data_kwargs)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : col_idx + output_length] = model_fcsts
             col_idx += output_length
+            model.set_test_size(old_test_size)  # Set back to original value
 
         # Declare predictions pd.DataFrame
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
@@ -349,9 +383,12 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
-        # Declare predictions pd.DataFrame
+        # Process and save new dataset (in self)
         if df is not None:
-            self._prepare_fit(df=df, static_df=static_df, sort_df=sort_df)
+            self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
+                df=df, static_df=static_df, sort_df=sort_df
+            )
+            self.sort_df = sort_df
         else:
             if verbose:
                 print("Using stored dataset.")
@@ -413,6 +450,8 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
+        if fit_models:
+            self._fitted = True
 
         # Add predictions to forecasts DataFrame
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
@@ -420,6 +459,99 @@ class NeuralForecast:
 
         # Add original input df's y to forecasts DataFrame
         fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
+        return fcsts_df
+
+    def predict_insample(self, step_size: int = 1):
+        """Predict insample with core.NeuralForecast.
+
+        `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
+        to predict historic values of a time series from the stored dataframe.
+
+        Parameters
+        ----------
+        step_size : int (default=1)
+            Step size between each window.
+
+        Returns
+        -------
+        fcsts_df : pandas.DataFrame
+            DataFrame with insample predictions for all fitted `models`.
+        """
+        if not self._fitted:
+            raise Exception(
+                "The models must be fitted first with `fit` or `cross_validation`."
+            )
+
+        for model in self.models:
+            if model.SAMPLING_TYPE == "recurrent":
+                warnings.warn(
+                    f"Predict insample might not provide accurate predictions for \
+                       recurrent model {repr(model)} class yet due to scaling."
+                )
+                print(
+                    f"WARNING: Predict insample might not provide accurate predictions for \
+                      recurrent model {repr(model)} class yet due to scaling."
+                )
+
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            cols += [model_name + n for n in model.loss.output_names]
+
+        # Remove test set from dataset and last dates
+        test_size = self.models[0].get_test_size()
+        if test_size > 0:
+            trimmed_dataset = TimeSeriesDataset.trim_dataset(
+                dataset=self.dataset, right_trim=test_size, left_trim=0
+            )
+            last_dates_train = self.last_dates.shift(-test_size, freq=self.freq)
+        else:
+            trimmed_dataset = self.dataset
+            last_dates_train = self.last_dates
+
+        # Generate dates
+        len_series = np.diff(
+            trimmed_dataset.indptr
+        )  # Computes the length of each time series based on indptr
+        fcsts_df = _insample_dates(
+            uids=self.uids,
+            last_dates=last_dates_train,
+            freq=self.freq,
+            h=self.h,
+            len_series=len_series,
+            step_size=step_size,
+        )
+        fcsts_df = fcsts_df.set_index("unique_id")
+
+        col_idx = 0
+        fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
+
+        for model in self.models:
+            # Test size is the number of periods to forecast (full size of trimmed dataset)
+            model.set_test_size(test_size=trimmed_dataset.max_size)
+
+            # Predict
+            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
+            # Append predictions in memory placeholder
+            output_length = len(model.loss.output_names)
+            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
+            col_idx += output_length
+            model.set_test_size(test_size=test_size)  # Set original test_size
+
+        # Add predictions to forecasts DataFrame
+        fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
+        fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)
+
+        # Add original input df's y to forecasts DataFrame
+        Y_df = pd.DataFrame.from_records(
+            self.dataset.temporal[:, [0]].numpy(), columns=["y"], index=self.ds
+        )
+        Y_df = Y_df.reset_index(drop=False)
+        fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
         return fcsts_df
 
     def predict_rolled(
@@ -463,6 +595,9 @@ class NeuralForecast:
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
+        print(
+            "WARNING: this method will be deprecated. Use `cross_validation` or `predict_insample` instead."
+        )
         fcsts_df = self.cross_validation(
             df=df,
             static_df=static_df,

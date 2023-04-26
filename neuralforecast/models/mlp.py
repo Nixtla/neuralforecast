@@ -49,6 +49,9 @@ class MLP(BaseWindows):
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
+    # Class attributes
+    SAMPLING_TYPE = "windows"
+
     def __init__(
         self,
         h,

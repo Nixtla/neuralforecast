@@ -19,6 +19,17 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_multivariate.ipynb 5
 class BaseMultivariate(pl.LightningModule):
+    """Base Multivariate
+
+    Base class for all multivariate models. The forecasts for all time-series are produced simultaneously
+    within each window, which are randomly sampled during training.
+
+    This class implements the basic functionality for all windows-based models, including:
+    - PyTorch Lightning's methods training_step, validation_step, predict_step.<br>
+    - fit and predict methods used by NeuralForecast.core class.<br>
+    - sampling and wrangling methods to generate multivariate windows.
+    """
+
     def __init__(
         self,
         h,
@@ -628,6 +639,9 @@ class BaseMultivariate(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.test_size = test_size
+
+    def get_test_size(self):
+        return self.test_size
 
     def save(self, path):
         """BaseWindows.save

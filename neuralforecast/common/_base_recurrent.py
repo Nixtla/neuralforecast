@@ -19,6 +19,17 @@ from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_recurrent.ipynb 6
 class BaseRecurrent(pl.LightningModule):
+    """Base Recurrent
+
+    Base class for all recurrent-based models. The forecasts are produced sequentially between
+    windows.
+
+    This class implements the basic functionality for all windows-based models, including:
+    - PyTorch Lightning's methods training_step, validation_step, predict_step. <br>
+    - fit and predict methods used by NeuralForecast.core class. <br>
+    - sampling and wrangling methods to sequential windows. <br>
+    """
+
     def __init__(
         self,
         h,
@@ -243,6 +254,11 @@ class BaseRecurrent(pl.LightningModule):
             if (self.test_size == 0) and (len(self.futr_exog_list) == 0):
                 temporal = self.padder(temporal)
 
+            # Test size covers all data, pad left one timestep with zeros
+            if temporal.shape[-1] == self.test_size:
+                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
+                temporal = padder_left(temporal)
+
         # Parse batch
         window_size = 1 + self.h  # 1 for current t and h for future
         windows = temporal.unfold(dimension=-1, size=window_size, step=1)
@@ -252,13 +268,18 @@ class BaseRecurrent(pl.LightningModule):
         input_size = -1
         if (step == "train") and (self.input_size > 0):
             input_size = self.input_size
-        elif (step in ["val", "predict"]) and (self.inference_input_size > 0):
-            input_size = self.inference_input_size
+            if (input_size > 0) and (n_windows > input_size):
+                max_sampleable_time = n_windows - self.input_size + 1
+                start = np.random.choice(max_sampleable_time)
+                windows = windows[:, :, start : (start + input_size), :]
 
-        if (input_size > 0) and (n_windows > input_size):
-            max_sampleable_time = n_windows - self.input_size + 1
-            start = np.random.choice(max_sampleable_time)
-            windows = windows[:, :, start : (start + input_size), :]
+        if (step == "val") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.val_size
+            windows = windows[:, :, -cutoff:, :]
+
+        if (step == "predict") and (self.inference_input_size > 0):
+            cutoff = self.inference_input_size + self.test_size
+            windows = windows[:, :, -cutoff:, :]
 
         # [B, C, input_size, 1+H]
         windows_batch = dict(
@@ -510,7 +531,6 @@ class BaseRecurrent(pl.LightningModule):
             y_hat, _, _ = self._inv_normalization(
                 y_hat=output, temporal_cols=batch["temporal_cols"]
             )
-
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
@@ -621,6 +641,9 @@ class BaseRecurrent(pl.LightningModule):
 
     def set_test_size(self, test_size):
         self.test_size = test_size
+
+    def get_test_size(self):
+        return self.test_size
 
     def save(self, path):
         """BaseRecurrent.save
