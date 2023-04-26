@@ -201,7 +201,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
         sort_df : bool, optional (default=False)
@@ -259,7 +259,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         futr_df : pandas.DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
         sort_df : bool (default=True)
@@ -356,7 +356,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         n_windows : int (default=1)
             Number of windows used for cross validation.
         step_size : int (default=1)
@@ -575,7 +575,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         n_windows : int (default=1)
             Number of windows used for cross validation.
         step_size : int (default=1)
