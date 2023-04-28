@@ -571,6 +571,7 @@ class BaseWindows(pl.LightningModule):
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `val_size`: int, validation size for temporal cross-validation.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
         # Restart random seed
@@ -626,6 +627,7 @@ class BaseWindows(pl.LightningModule):
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `test_size`: int=None, test size for temporal cross-validation.<br>
         `step_size`: int=1, Step size between each window.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         # Restart random seed
