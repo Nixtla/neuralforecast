@@ -79,23 +79,26 @@ class BaseAuto(pl.LightningModule):
         # Deepcopy to avoid modifying the original config
         config_base = deepcopy(config)
 
+        # Add losses to config and protect valid_loss default
         config_base["h"] = h
         config_base["loss"] = loss
         if valid_loss is None:
             valid_loss = loss
         config_base["valid_loss"] = valid_loss
-        self.cls_model = cls_model
+
         self.h = h
-        self.loss = loss
+        self.cls_model = cls_model
+
         self.config = config_base
+        self.loss = self.config["loss"]
+        self.valid_loss = self.config["valid_loss"]
+
         self.num_samples = num_samples
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
         self.refit_with_val = refit_with_val
         self.verbose = verbose
-        self.loss = self.config.get("loss", MAE())
-        self.valid_loss = self.config.get("valid_loss", self.loss)
         self.alias = alias
 
         # Base Class attributes
@@ -126,8 +129,19 @@ class BaseAuto(pl.LightningModule):
         if "callbacks" in config_step.keys():
             callbacks += config_step["callbacks"]
         config_step = {**config_step, **{"callbacks": callbacks}}
-        model = cls_model(**config_step)
-        model.fit(dataset, val_size=val_size, test_size=test_size)
+        # model = cls_model(**config_step)
+        # model.fit(
+        #    dataset,
+        #    val_size=val_size,
+        #    test_size=test_size
+        # )
+        model = self._fit_model(
+            cls_model=self.cls_model,
+            config=config_step,
+            dataset=dataset,
+            val_size=val_size,
+            test_size=test_size,
+        )
 
     def _tune_model(
         self,
@@ -176,6 +190,11 @@ class BaseAuto(pl.LightningModule):
         results = tuner.fit()
         return results
 
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+        model = cls_model(**config)
+        model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model
+
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """BaseAuto.fit
 
@@ -210,8 +229,15 @@ class BaseAuto(pl.LightningModule):
             config=self.config,
         )
         best_config = results.get_best_result().config
-        self.model = self.cls_model(**best_config)
-        self.model.fit(
+        # self.model = self.cls_model(**best_config)
+        # self.model.fit(
+        #    dataset=dataset,
+        #    val_size=val_size * (1 - self.refit_with_val),
+        #    test_size=test_size,
+        # )
+        self.model = self._fit_model(
+            cls_model=self.cls_model,
+            config=best_config,
             dataset=dataset,
             val_size=val_size * (1 - self.refit_with_val),
             test_size=test_size,
