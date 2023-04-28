@@ -15,12 +15,9 @@ from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
-from ..losses.pytorch import MAE
-
 # %% ../../nbs/common.base_auto.ipynb 6
 class BaseAuto(pl.LightningModule):
-    """BaseAuto
-
+    """
     Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to
     give access to a wide variety of hyperparameter optimization tools ranging
     from classic grid search, to Bayesian optimization and HyperBand algorithm.
@@ -135,8 +132,10 @@ class BaseAuto(pl.LightningModule):
         #    val_size=val_size,
         #    test_size=test_size
         # )
-        model = self._fit_model(
-            cls_model=self.cls_model,
+        # Tune session receives validation signal
+        # from the specialized PL TuneReportCallback
+        _ = self._fit_model(
+            cls_model=cls_model,
             config=config_step,
             dataset=dataset,
             val_size=val_size,
