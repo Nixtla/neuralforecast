@@ -907,46 +907,51 @@ class AutoStemGNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 72
 class AutoHINT(BaseAuto):
-    default_config = {
-        "input_size_multiplier": [1, 2, 3, 4],
-        "h": None,
-        "n_series": None,
-        "n_stacks": tune.choice([2, 3]),
-        "multi_layer": tune.choice([3, 5, 7]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
-        "loss": None,
-        "random_seed": tune.randint(1, 20),
-    }
-
     def __init__(
         self,
+        cls_model,
         h,
-        n_series,
-        loss=MAE(),
-        valid_loss=None,
-        config=None,
+        loss,
+        valid_loss,
+        S,
+        config,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
-        refit_with_val=False,
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
+        refit_with_val=False,
         verbose=False,
         alias=None,
     ):
-        # Define search space, input/output sizes
-        if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+        super(AutoHINT, self).__init__(
+            cls_model=cls_model,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+        # Validate presence of reconciliation strategy
+        # parameter in configuration space
+        if not ("reconciliation" in config.keys()):
+            raise Exception(
+                "config needs reconciliation, \
+                            try tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])"
             )
+        self.S = S
 
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+        # Overwrite _fit_model for HINT two-stage instantiation
+        reconciliation = config.pop("reconciliation")
+        base_model = cls_model(**config)
+        model = HINT(
+            h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
+        )
+        model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model
