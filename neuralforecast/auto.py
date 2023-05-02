@@ -7,7 +7,6 @@ __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoM
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
-import numpy as np
 import torch
 
 from ray import tune
