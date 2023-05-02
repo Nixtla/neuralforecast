@@ -88,7 +88,8 @@ MODEL_FILENAME_DICT = {
     "automlp": MLP,
     "autonbeats": NBEATS,
     "autonhits": NHITS,
-    "autonhits_treat": NHITS_TREAT,
+    "autotft": TFT,
+    "autonhitstreat": NHITS_TREAT,
 }
 
 # %% ../nbs/core.ipynb 10

@@ -34,6 +34,7 @@ class AutoRNN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -66,9 +67,12 @@ class AutoRNN(BaseAuto):
         """
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+            config = self.default_config.copy()        
+            config['input_size'] = tune.choice(
+                [h*x for x in self.default_config["input_size_multiplier"]]
+            )
+            config['inference_input_size'] = tune.choice(
+                [h*x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -91,6 +95,7 @@ class AutoLSTM(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -119,9 +124,12 @@ class AutoLSTM(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+            config = self.default_config.copy()        
+            config['input_size'] = tune.choice(
+                [h*x for x in self.default_config["input_size_multiplier"]]
+            )
+            config['inference_input_size'] = tune.choice(
+                [h*x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -144,6 +152,7 @@ class AutoGRU(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "encoder_n_layers": tune.randint(1, 4),
@@ -172,9 +181,12 @@ class AutoGRU(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+            config = self.default_config.copy()        
+            config['input_size'] = tune.choice(
+                [h*x for x in self.default_config["input_size_multiplier"]]
+            )
+            config['inference_input_size'] = tune.choice(
+                [h*x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -197,6 +209,7 @@ class AutoTCN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
         "context_size": tune.choice([5, 10, 50]),
@@ -224,9 +237,12 @@ class AutoTCN(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+            config = self.default_config.copy()        
+            config['input_size'] = tune.choice(
+                [h*x for x in self.default_config["input_size_multiplier"]]
+            )
+            config['inference_input_size'] = tune.choice(
+                [h*x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
@@ -249,6 +265,7 @@ class AutoDilatedRNN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
+        "inference_input_size_multiplier": [-1],
         "h": None,
         "cell_type": tune.choice(["LSTM", "GRU"]),
         "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
@@ -278,9 +295,12 @@ class AutoDilatedRNN(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
+            config = self.default_config.copy()        
+            config['input_size'] = tune.choice(
+                [h*x for x in self.default_config["input_size_multiplier"]]
+            )
+            config['inference_input_size'] = tune.choice(
+                [h*x for x in self.default_config["inference_input_size_multiplier"]]
             )
             del config["input_size_multiplier"]
 
