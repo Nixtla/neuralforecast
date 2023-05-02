@@ -518,7 +518,7 @@ class AutoNHITS(BaseAuto):
             lower=7, upper=10, base=2, q=1
         ),  # [128, 256, 512, 1024]
         "loss": None,
-        "random_seed": tune.randint(np.arange(20, dtype=int)),
+        "random_seed": tune.randint(lower=1, upper=20),
     }
 
     def __init__(
