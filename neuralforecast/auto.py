@@ -496,7 +496,7 @@ class AutoNHITS(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "n_pool_kernel_size": tune.choice(
-            [2, 2, 1], [3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
+            [[2, 2, 1], 3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
         ),
         "n_freq_downsample": tune.choice(
             [
