@@ -510,13 +510,15 @@ class AutoNHITS(BaseAuto):
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500),
-        "batch_size": tune.qloguniform(lower=5, upper=9, base=2),  # [32, 64, 128, 256]
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.qloguniform(
+            lower=5, upper=9, base=2, q=1
+        ),  # [32, 64, 128, 256]
         "windows_batch_size": tune.qloguniform(
-            lower=7, upper=10, base=2
+            lower=7, upper=10, base=2, q=1
         ),  # [128, 256, 512, 1024]
         "loss": None,
-        "random_seed": tune.randint(np.arange(20)),
+        "random_seed": tune.randint(np.arange(20, dtype=int)),
     }
 
     def __init__(
