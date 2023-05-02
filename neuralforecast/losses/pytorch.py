@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'QuantileLoss', 'Accuracy', 'MQLoss', 'wMQLoss', 'sCRPS', 'relMSE',
-           'DistributionLoss', 'PMM', 'GMM', 'NBMM']
+           'DistributionLoss', 'PMM', 'GMM', 'NBMM', 'SmoothL1Loss']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
 from typing import Optional, Union, Tuple
@@ -11,6 +11,7 @@ import math
 import numpy as np
 import torch
 
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Distribution
 from torch.distributions import Bernoulli, Normal, StudentT, Poisson, NegativeBinomial
@@ -1875,3 +1876,54 @@ class NBMM(torch.nn.Module):
         mask: Union[torch.Tensor, None] = None,
     ):
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
+
+class class SmoothL1Loss(torch.nn.Module):
+    """Smooth L1 loss
+
+    Creates a criterion that uses a squared term if the absolute element-wise error falls below beta and an L1 term otherwise. 
+    It is less sensitive to outliers than MSE and in some cases prevents exploding gradients
+
+    $$ 
+l_n = \begin{cases}
+0.5 (x_n - y_n)^2 / beta,   \text{        if } |x_n - y_n| < beta \\
+|x_n - y_n| - 0.5 * beta,   \text{     otherwise }
+\end{cases}
+$$
+    """
+
+    def __init__(self, beta=y.mean()):
+        super(SmoothL1Loss, self).__init__()
+        self.outputsize_multiplier = 1
+        self.output_names = [""]
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
+        """
+        **Parameters:**<br>
+        `y`: tensor, Actual values.<br>
+        `y_hat`: tensor, Predicted values.<br>
+        `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
+
+        **Returns:**<br>
+        `SL1L`: tensor (single value).
+        """
+        loss_fn=nn.SmoothL1Loss(beta=beta)
+        if mask is None:
+           SL1L=loss_fn(y_hat,y)
+        else:
+           y_SL1L = y * mask
+           y_hat_SL1L = y_hat * mask
+           SL1L=loss_fn(y_hat_SL1L,y_SL1L)
+        return SL1L
