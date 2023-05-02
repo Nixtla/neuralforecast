@@ -2,7 +2,8 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoPatchTST', 'AutoStemGNN']
+           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoPatchTST', 'AutoStemGNN',
+           'AutoHINT']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -31,6 +32,7 @@ from .models.autoformer import Autoformer
 from .models.patchtst import PatchTST
 
 from .models.stemgnn import StemGNN
+from .models.hint import HINT
 
 from .losses.pytorch import MAE
 
@@ -902,3 +904,54 @@ class AutoStemGNN(BaseAuto):
             verbose=verbose,
             alias=alias,
         )
+
+# %% ../nbs/models.ipynb 72
+class AutoHINT(BaseAuto):
+    def __init__(
+        self,
+        cls_model,
+        h,
+        loss,
+        valid_loss,
+        S,
+        config,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        refit_with_val=False,
+        verbose=False,
+        alias=None,
+    ):
+        super(AutoHINT, self).__init__(
+            cls_model=cls_model,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+        # Validate presence of reconciliation strategy
+        # parameter in configuration space
+        if not ("reconciliation" in config.keys()):
+            raise Exception(
+                "config needs reconciliation, \
+                            try tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])"
+            )
+        self.S = S
+
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+        # Overwrite _fit_model for HINT two-stage instantiation
+        reconciliation = config.pop("reconciliation")
+        base_model = cls_model(**config)
+        model = HINT(
+            h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
+        )
+        model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model
