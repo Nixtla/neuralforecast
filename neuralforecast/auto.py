@@ -7,6 +7,7 @@ __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoM
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
+import numpy as np
 import torch
 
 from ray import tune
@@ -495,7 +496,7 @@ class AutoNHITS(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "n_pool_kernel_size": tune.choice(
-            [3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
+            [2, 2, 1], [3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
         ),
         "n_freq_downsample": tune.choice(
             [
@@ -509,11 +510,13 @@ class AutoNHITS(BaseAuto):
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
-        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "max_steps": tune.quniform(lower=500, upper=1500),
+        "batch_size": tune.qloguniform(lower=5, upper=9, base=2),  # [32, 64, 128, 256]
+        "windows_batch_size": tune.qloguniform(
+            lower=7, upper=10, base=2
+        ),  # [128, 256, 512, 1024]
         "loss": None,
-        "random_seed": tune.randint(1, 20),
+        "random_seed": tune.randint(np.arange(20)),
     }
 
     def __init__(
