@@ -126,12 +126,13 @@ class BaseAuto(pl.LightningModule):
         if "callbacks" in config_step.keys():
             callbacks += config_step["callbacks"]
         config_step = {**config_step, **{"callbacks": callbacks}}
-        # model = cls_model(**config_step)
-        # model.fit(
-        #    dataset,
-        #    val_size=val_size,
-        #    test_size=test_size
-        # )
+
+        # Protect dtypes from tune samplers
+        if "batch_size" in config_step.keys():
+            config_step["batch_size"] = int(config_step["batch_size"])
+        if "windows_batch_size" in config_step.keys():
+            config_step["windows_batch_size"] = int(config_step["windows_batch_size"])
+
         # Tune session receives validation signal
         # from the specialized PL TuneReportCallback
         _ = self._fit_model(
