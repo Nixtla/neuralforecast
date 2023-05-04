@@ -201,9 +201,10 @@ def robust_scaler(x, mask, dim=-1, eps=1e-6):
     x_mad = masked_median(x=torch.abs(x - x_median), mask=mask, dim=dim)
 
     # Protect x_mad=0 values
+    # Assuming normality and relationship between mad and std
     x_means = masked_mean(x=x, mask=mask, dim=dim)
     x_stds = torch.sqrt(masked_mean(x=(x - x_means) ** 2, mask=mask, dim=dim))
-    x_mad_aux = x_stds / 0.6744897501960817
+    x_mad_aux = x_stds * 0.6744897501960817
     x_mad = x_mad * (x_mad > 0) + x_mad_aux * (x_mad == 0)
 
     # Protect against division by zero
@@ -246,9 +247,10 @@ def invariant_scaler(x, mask, dim=-1, eps=1e-6):
     x_mad = masked_median(x=torch.abs(x - x_median), mask=mask, dim=dim)
 
     # Protect x_mad=0 values
+    # Assuming normality and relationship between mad and std
     x_means = masked_mean(x=x, mask=mask, dim=dim)
     x_stds = torch.sqrt(masked_mean(x=(x - x_means) ** 2, mask=mask, dim=dim))
-    x_mad_aux = x_stds / 0.6744897501960817
+    x_mad_aux = x_stds * 0.6744897501960817
     x_mad = x_mad * (x_mad > 0) + x_mad_aux * (x_mad == 0)
 
     # Protect against division by zero
