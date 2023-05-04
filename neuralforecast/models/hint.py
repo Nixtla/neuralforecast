@@ -3,13 +3,13 @@
 # %% auto 0
 __all__ = ['get_bottomup_P', 'get_mintrace_ols_P', 'get_mintrace_wls_P', 'HINT']
 
-# %% ../../nbs/models.hint.ipynb 4
+# %% ../../nbs/models.hint.ipynb 5
 from typing import Optional
 
 import numpy as np
 import torch
 
-# %% ../../nbs/models.hint.ipynb 6
+# %% ../../nbs/models.hint.ipynb 7
 def get_bottomup_P(S: np.ndarray):
     """BottomUp Reconciliation Matrix.
 
@@ -101,7 +101,7 @@ def get_mintrace_wls_P(S: np.ndarray):
     P = J - (J @ W @ U) @ np.linalg.pinv(U.T @ W @ U) @ U.T
     return P
 
-# %% ../../nbs/models.hint.ipynb 11
+# %% ../../nbs/models.hint.ipynb 12
 class HINT:
     """HINT
 
