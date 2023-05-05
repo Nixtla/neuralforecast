@@ -3,13 +3,13 @@
 # %% auto 0
 __all__ = ['get_bottomup_P', 'get_mintrace_ols_P', 'get_mintrace_wls_P', 'HINT']
 
-# %% ../../nbs/models.hint.ipynb 4
+# %% ../../nbs/models.hint.ipynb 5
 from typing import Optional
 
 import numpy as np
 import torch
 
-# %% ../../nbs/models.hint.ipynb 6
+# %% ../../nbs/models.hint.ipynb 7
 def get_bottomup_P(S: np.ndarray):
     """BottomUp Reconciliation Matrix.
 
@@ -101,18 +101,25 @@ def get_mintrace_wls_P(S: np.ndarray):
     P = J - (J @ W @ U) @ np.linalg.pinv(U.T @ W @ U) @ U.T
     return P
 
-# %% ../../nbs/models.hint.ipynb 11
+# %% ../../nbs/models.hint.ipynb 12
 class HINT:
     """HINT
 
-    The Hierarchical Forecast Network (HINT) combines SoTA neural forecast methods with
-    flexible and efficient probability distributions and advanced hierarchical reconciliation strategies.
-    This powerful combination allows HINT to produce accurate and coherent probabilistic predictions.
+    The Hierarchical Mixture Networks (HINT) are a highly modular framework that
+    combines SoTA neural forecast architectures with a task-specialized mixture
+    probability and advanced hierarchical reconciliation strategies. This powerful
+    combination allows HINT to produce accurate and coherent probabilistic forecasts.
+
+    HINT's incorporates a `TemporalNorm` module into any neural forecast architecture,
+    the module normalizes inputs into the network's non-linearities operating range
+    and recomposes its output's scales through a global skip connection, improving
+    accuracy and training robustness. HINT ensures the forecast coherence via bootstrap
+    sample reconciliation that restores the aggregation constraints into its base samples.
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
-    `model`: NeuralForecast model, instantiated train loss class from [models collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
-    `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
+    `model`: NeuralForecast model, instantiated model class from [architecture collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
+    `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
     `reconciliation`: str, HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].<br>
     `alias`: str, optional,  Custom name of the model.<br>
     """
@@ -162,9 +169,9 @@ class HINT:
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """HINT.fit
 
-        HINT trains on the entire hierarchical dataset, by minimizing a composite log likelihood or likelihoood objective.
-        HINT's architecture integrates `TemporalNorm` for a scale-decoupled optimization that robustifies cross-learning
-        the hierachy's series scales.
+        HINT trains on the entire hierarchical dataset, by minimizing a composite log likelihood objective.
+        HINT framework integrates `TemporalNorm` into the neural forecast architecture for a scale-decoupled
+        optimization that robustifies cross-learning the hierachy's series scales.
 
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
@@ -186,8 +193,8 @@ class HINT:
         """HINT.predict
 
         After fitting a base model on the entire hierarchical dataset.
-        HINT ensures hierarchical constraints using bootstrapped sample reconciliation
-        First sampling from its base forecast distribution.
+        HINT restores the hierarchical aggregation constraints using
+        bootstrapped sample reconciliation.
 
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>

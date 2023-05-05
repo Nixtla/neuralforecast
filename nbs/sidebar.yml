@@ -1,7 +1,7 @@
 website:
   reader-mode: false
   sidebar:
-    collapse-level: 2
+    collapse-level: 1
     contents:
       - index.ipynb
       - text: "--"
@@ -24,6 +24,7 @@ website:
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
         - examples/HierarchicalNetworks.ipynb
+      - examples/models_intro.qmd
       - section: API Reference
         contents:
         - core.ipynb

@@ -190,7 +190,7 @@ class NHITS(BaseWindows):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
-    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `stack_types`: List[str], stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`.<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
     `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
@@ -216,7 +216,7 @@ class NHITS(BaseWindows):
 
     **References:**<br>
     -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza,
-    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "NHITS: Neural Hierarchical Interpolation for Time Series Forecasting".
+    Max Mergenthaler-Canseco, Artur Dubrawski (2023). "NHITS: Neural Hierarchical Interpolation for Time Series Forecasting".
     Accepted at the Thirty-Seventh AAAI Conference on Artificial Intelligence.](https://arxiv.org/abs/2201.12886)
     """
 
