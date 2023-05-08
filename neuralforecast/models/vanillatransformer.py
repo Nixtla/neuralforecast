@@ -291,7 +291,7 @@ class VanillaTransformer(BaseWindows):
             x_mark_enc = None
             x_mark_dec = None
 
-        x_dec = torch.zeros(size=(len(insample_y), self.h, 1))
+        x_dec = torch.zeros(size=(len(insample_y), self.h, 1)).to(insample_y.device)
         x_dec = torch.cat([insample_y[:, -self.label_len :, :], x_dec], dim=1)
 
         enc_out = self.enc_embedding(insample_y, x_mark_enc)
