@@ -969,7 +969,8 @@ class DistributionLoss(torch.nn.Module):
     - Normal<br>
     - StudentT<br>
     - NegativeBinomial<br>
-    - Tweedie
+    - Tweedie<br>
+    - Bernoulli (Temporal Classifiers)
 
     **Parameters:**<br>
     `distribution`: str, identifier of a torch.distributions.Distribution class.<br>
