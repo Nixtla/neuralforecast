@@ -76,6 +76,15 @@ class BaseRecurrent(pl.LightningModule):
         self.train_trajectories = []
         self.valid_trajectories = []
 
+        if (
+            str(type(self.loss))
+            == "<class 'neuralforecast.losses.pytorch.DistributionLoss'>"
+            and self.loss.distribution == "Bernoulli"
+        ):
+            raise Exception(
+                "Temporal Classification not yet available for Recurrent-based models"
+            )
+
         # Valid batch_size
         self.batch_size = batch_size
         if valid_batch_size is None:
