@@ -957,5 +957,6 @@ class AutoHINT(BaseAuto):
         model = HINT(
             h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
         )
+        model.test_size = test_size
         model.fit(dataset, val_size=val_size, test_size=test_size)
         return model
