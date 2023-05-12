@@ -46,6 +46,8 @@ def get_experiment_space(args):
             "scaler_type": tune.choice([None, "robust", "standard"]),
             "revin": tune.choice([False, True]),
             "max_steps": tune.choice([500, 1000, 5000]),
+            'early_stop_patience_steps': tune.choice([10]),
+            'val_check_steps': tune.choice([50]),
             "batch_size": tune.choice([32, 64, 128, 256]),
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 10)
@@ -190,10 +192,10 @@ if __name__ == '__main__':
     if args is None:
         exit()
 
-    occlusion_probs = [0.0] # [0.0, 0.2, 0.4, 0.6, 0.8]
-    horizons = [24] # [192, 336]
-    ILI_horizons = [24] # 36, 48, 60
-    datasets = ['ILI'] #[''ILI', 'Exchange', 'ETTm2', 'Weather']
+    occlusion_probs = [0.0, 0.4, 0.8] #[0.0, 0.2, 0.4, 0.6, 0.8]
+    horizons = [24]
+    ILI_horizons = [24]
+    datasets = ['ILI', 'Exchange', 'ETTm2', 'Weather']
 
     # Dataset loop
     for dataset in datasets:
@@ -217,4 +219,4 @@ if __name__ == '__main__':
 
 # source ~/anaconda3/etc/profile.d/conda.sh
 # conda activate neuralforecast
-# CUDA_VISIBLE_DEVICES=0 python run_transformers.py --model 'PatchTST' --hyperopt_max_evals 1 --occlusion_size 10 --experiment_id "test"
+# CUDA_VISIBLE_DEVICES=0 python run_transformers.py --model 'PatchTST' --hyperopt_max_evals 15 --occlusion_size 100 --experiment_id "2023_05_12"
