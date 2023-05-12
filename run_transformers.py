@@ -39,7 +39,7 @@ def get_experiment_space(args):
         config = {# Architecture parameters
             "input_size": tune.choice([104]),
             "hidden_size": tune.choice([16, 128, 256]),
-            "n_head": tune.choice([4]),
+            "n_heads": tune.choice([4]),
             "patch_len": tune.choice([24]),
             "stride": tune.choice([2]),
             "learning_rate": tune.loguniform(1e-4, 1e-1),
