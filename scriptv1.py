@@ -2,7 +2,6 @@ from neuralforecast.auto import AutoNHITS, AutoLSTM, AutoTFT
 from neuralforecast.core import NeuralForecast
 from datasetsforecast.m4 import M4
 from datasetsforecast.m3 import M3
-from datasetsforecast.m3 import M3
 from datasetsforecast.long_horizon import LongHorizon
 
 from neuralforecast.utils import AirPassengersDF
@@ -100,9 +99,18 @@ def main(args):
 		f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/{args.model}_0.ckpt')
 	
 	if (not file_exists):
+		if args.k_shot > 0:
+			raise Exception('Train model before k_shot learning')
 		# Read source data
 		if (args.source_dataset == 'M4'): # add more if conditions later, expects M4 only for now
 			Y_df, a, b = M4.load(directory='./', group='Monthly', cache=True)
+			frequency = 'M'
+		elif (args.source_dataset == 'M4-all'):
+			Y_df1, *_ = M4.load(directory='./', group='Monthly', cache=True)
+			Y_df2, *_ = M4.load(directory='./', group='Daily', cache=True)
+			Y_df3, *_ = M4.load(directory='./', group='Weekly', cache=True)
+			Y_df4, *_ = M4.load(directory='./', group='Hourly', cache=True)
+			Y_df = pd.concat([Y_df1, Y_df2, Y_df3, Y_df4], axis=0).reset_index(drop=True)
 			frequency = 'M'
 		else:
 			raise Exception("Dataset not defined")
@@ -113,8 +121,9 @@ def main(args):
 		if model is None: raise Exception("Model not defined")
 		
 		# frequency = sampling rate of data
+		print('Fitting model')
 		nf = NeuralForecast(models=model,freq=frequency)
-		nf.fit(df=Y_df)
+		nf.fit(df=Y_df, val_size=horizon)
 		
 		# Save model
 		nf.save(path=f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/',
@@ -124,23 +133,23 @@ def main(args):
 		# do i need to check if the file/path exists? shouldn't it already be checked
 		nf = NeuralForecast.load(path=
 			  f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/')
-		
+	
 	# Load target data
 	if (args.target_dataset == 'AirPassengers'):
 		Y_df_target = AirPassengersDF.copy()
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-		test_size = horizon
+		test_size = horizon*4
 		frequency = 'M'
 	elif (args.target_dataset == 'M3'):
 		Y_df_target, *_ = M3.load(directory='./', group='Monthly')
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 		frequency = 'M'
-		test_size = horizon
+		test_size = horizon*4
 	elif (args.target_dataset == 'M4'):
 		Y_df_target, *_ = M4.load(directory='./', group='Monthly', cache=True)
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 		frequency = 'M'
-		test_size = horizon
+		test_size = horizon*4
 	elif (args.target_dataset == 'ILI'):
 		Y_df_target, _, _ = LongHorizon.load(directory='./', group='ILI')
 		Y_df_target['ds'] = np.repeat(np.array(range(len(Y_df_target)//7)), 7)
@@ -153,13 +162,26 @@ def main(args):
 		frequency = 'W'
 	else:
 		raise Exception("Dataset not defined")
-	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 
 	# Predict on the test set of the target data
-	Y_hat_df = nf.cross_validation(df=Y_df_target,
-								   n_windows=None, test_size=test_size,
-								   fit_models=False).reset_index()
-	
+	print('Predicting on target data')
+	### TODO: <<<<<<< ADD TIME.TIME()
+
+	# Fit model if k_shot > 0:
+	if (args.k_shot > 0):
+		##### TODO: <<<<<<< UPDATE max_steps in model
+		nf.models[0].max_steps = args.k_shot
+		Y_hat_df = nf.cross_validation(df=Y_df_target,
+								n_windows=None, test_size=test_size,
+								fit_models=True).reset_index()
+	else:
+		Y_hat_df = nf.cross_validation(df=Y_df_target,
+									n_windows=None, test_size=test_size,
+									fit_models=False).reset_index()
+		
+	#### TODO: <<<<<<< ADD TIME.TIME()
+	#### AND COMPUTE TIME DIFFERENCE
+	#### PRINT TIME DIFFERENCE
 	results_dir = f'./results/forecasts/{args.target_dataset}/'
 	os.makedirs(results_dir, exist_ok=True)
 
@@ -169,6 +191,7 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="script arguments")
+    #### TODO: <<<<<<< ADD k_shot
     parser.add_argument('--source_dataset', type=str, help='dataset to train models on')
     parser.add_argument('--target_dataset', type=str, help='run model on this dataset')
     parser.add_argument('--model', type=str, help='auto model to use')
@@ -182,5 +205,5 @@ if __name__ == '__main__':
         exit()
     main(args)
 
-# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autonhits" --experiment_id "20230422"
+# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autonhits" --k_shot 100 --experiment_id "20230422"
 # CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autotft" --experiment_id "20230422"
