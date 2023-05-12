@@ -123,6 +123,8 @@ def main(args):
     else:
         if args.dataset=='Weather':
             dataset = 'weather'
+        elif args.dataset=='ILI':
+            dataset = 'ili'
         else:
             dataset = args.dataset
         mask_filename = f'./data/longhorizon/datasets/{dataset}/M/mask_{args.occlusion_size}_{args.occlusion_prob}.p'
