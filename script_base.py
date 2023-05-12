@@ -1,10 +1,8 @@
-from neuralforecast.auto import AutoNHITS, AutoLSTM, AutoTFT
+from neuralforecast.auto import NHITS, LSTM, TFT, TCN, DilatedRNN
 from neuralforecast.core import NeuralForecast
 from datasetsforecast.m4 import M4
 from datasetsforecast.m3 import M3
-from datasetsforecast.m3 import M3
 from datasetsforecast.long_horizon import LongHorizon
-
 from neuralforecast.utils import AirPassengersDF
 from ray import tune
 
@@ -47,49 +45,74 @@ Notes:
 # GLOBAL parameters
 horizon = 18
 loss = MAE()
-num_samples = 10  # how many configuration we try during tuning
-config = None
 
-nhits = [AutoNHITS(h=horizon,
-				loss=loss, num_samples=num_samples,
-				config={
-					"input_size": tune.choice([1*horizon, 2*horizon]),
-					"stack_types": tune.choice([3*['identity']]),
-					"mlp_units": tune.choice([3 * [[512, 512]]]),
-					"n_blocks": tune.choice([3*[5]]),
-					"n_pool_kernel_size": tune.choice([3*[1], 3*[2], 3*[4],
-													  [8, 4, 1], [16, 8, 1]]),
-					"n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1],
-													  [180, 60, 1], [60, 8, 1],
-													  [40, 20, 1], [1, 1, 1]]),
-					"learning_rate": tune.loguniform(1e-4, 1e-1),
-					"early_stop_patience_steps": tune.choice([5]),
-					"val_check_steps": tune.choice([100]),
-					"scaler_type": tune.choice(['robust']),
-					"max_steps": tune.choice([5000, 10000]),
-					"batch_size": tune.choice([128, 256]),
-					"windows_batch_size": tune.choice([128, 512, 1024]),
-					"random_seed": tune.randint(1, 20),
-				})]
+nhits = [NHITS(h=horizon,
+	       input_size=2*18,
+	       stack_types=3*['identity'],
+		   mlp_units=3*[[512, 512]],
+		   n_blocks=3*[5],
+		   n_pool_kernel_size=3*[1],
+		   n_freq_downsample=3*[1],
+		   early_stop_patience_steps=5,
+		   val_check_steps=500,
+		   scaler_type='robust',
+		   max_steps=10_000,
+		   windows_batch_size=512,
+		   random_seed=1
+		   )]
 
-lstm = [AutoLSTM(h=horizon,loss=loss,config=config,num_samples=num_samples)]
+tft = [TFT(h=horizon,
+	       input_size=2*18,
+	       hidden_size=320,
+		   early_stop_patience_steps=5,
+		   val_check_steps=500,
+		   scaler_type='robust',
+		   max_steps=5000,
+		   windows_batch_size=512,
+		   random_seed=1
+		   )]
 
-tft = [AutoTFT(h=horizon,
-				loss=loss, num_samples=num_samples,
-				config={
-					"input_size": tune.choice([1*horizon, 2*horizon]),
-					"hidden_size": tune.choice([64, 128, 256]),
-					"learning_rate": tune.loguniform(1e-4, 1e-1),
-					"early_stop_patience_steps": tune.choice([5]),
-					"val_check_steps": tune.choice([100]),
-					"scaler_type": tune.choice(['robust']),
-					"max_steps": tune.choice([5000, 10000]),
-					"batch_size": tune.choice([128, 256]),
-					"windows_batch_size": tune.choice([128, 512, 1024]),
-					"random_seed": tune.randint(1, 20),
-				})]
+lstm = [LSTM(h=horizon,
+	       input_size=18,
+	       inference_input_size=18,
+	       encoder_hidden_size=512,
+	       encoder_n_layers=2,
+	       context_size=50,
+	       decoder_hidden_size=512,
+		   early_stop_patience_steps=5,
+		   val_check_steps=500,
+		   scaler_type='robust',
+		   max_steps=5000,
+		   random_seed=1
+		   )]
 
-MODEL_DICT = {'autonhits': nhits, 'autolstm': lstm, 'autotft': tft}
+tcn = [TCN(h=horizon,
+	       input_size=18,
+	       inference_input_size=18,
+	       encoder_hidden_size=512,
+	       context_size=50,
+	       decoder_hidden_size=128,
+		   early_stop_patience_steps=5,
+		   val_check_steps=500,
+		   scaler_type='robust',
+		   max_steps=5000,
+		   random_seed=1
+		   )]
+
+dilatedrnn = [DilatedRNN(h=horizon,
+	       input_size=18,
+	       inference_input_size=18,
+	       encoder_hidden_size=512,
+	       context_size=50,
+	       decoder_hidden_size=128,
+		   early_stop_patience_steps=5,
+		   val_check_steps=500,
+		   scaler_type='robust',
+		   max_steps=5000,
+		   random_seed=1
+		   )]
+
+MODEL_DICT = {'nhits': nhits, 'tft':tft, 'lstm':lstm, 'tcn':tcn, 'dilatedrnn':dilatedrnn}
 
 def main(args):
 
@@ -104,6 +127,13 @@ def main(args):
 		if (args.source_dataset == 'M4'): # add more if conditions later, expects M4 only for now
 			Y_df, a, b = M4.load(directory='./', group='Monthly', cache=True)
 			frequency = 'M'
+		elif (args.source_dataset == 'M4-all'):
+			Y_df1, *_ = M4.load(directory='./', group='Monthly', cache=True)
+			Y_df2, *_ = M4.load(directory='./', group='Daily', cache=True)
+			Y_df3, *_ = M4.load(directory='./', group='Weekly', cache=True)
+			Y_df4, *_ = M4.load(directory='./', group='Hourly', cache=True)
+			Y_df = pd.concat([Y_df1, Y_df2, Y_df3, Y_df4], axis=0).reset_index(drop=True)
+			frequency = 'M'
 		else:
 			raise Exception("Dataset not defined")
 		Y_df['ds'] = pd.to_datetime(Y_df['ds'])
@@ -113,8 +143,9 @@ def main(args):
 		if model is None: raise Exception("Model not defined")
 		
 		# frequency = sampling rate of data
+		print('Fitting model')
 		nf = NeuralForecast(models=model,freq=frequency)
-		nf.fit(df=Y_df)
+		nf.fit(df=Y_df, val_size=18)
 		
 		# Save model
 		nf.save(path=f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/',
@@ -129,18 +160,18 @@ def main(args):
 	if (args.target_dataset == 'AirPassengers'):
 		Y_df_target = AirPassengersDF.copy()
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-		test_size = horizon
+		test_size = horizon*4
 		frequency = 'M'
 	elif (args.target_dataset == 'M3'):
 		Y_df_target, *_ = M3.load(directory='./', group='Monthly')
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 		frequency = 'M'
-		test_size = horizon
+		test_size = horizon*4
 	elif (args.target_dataset == 'M4'):
 		Y_df_target, *_ = M4.load(directory='./', group='Monthly', cache=True)
 		Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 		frequency = 'M'
-		test_size = horizon
+		test_size = horizon*4
 	elif (args.target_dataset == 'ILI'):
 		Y_df_target, _, _ = LongHorizon.load(directory='./', group='ILI')
 		Y_df_target['ds'] = np.repeat(np.array(range(len(Y_df_target)//7)), 7)
@@ -153,13 +184,12 @@ def main(args):
 		frequency = 'W'
 	else:
 		raise Exception("Dataset not defined")
-	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
 
 	# Predict on the test set of the target data
+	print('Predicting on target data')
 	Y_hat_df = nf.cross_validation(df=Y_df_target,
 								   n_windows=None, test_size=test_size,
 								   fit_models=False).reset_index()
-	
 	results_dir = f'./results/forecasts/{args.target_dataset}/'
 	os.makedirs(results_dir, exist_ok=True)
 
@@ -178,9 +208,15 @@ def parse_args():
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    if args is None:
-        exit()
-    main(args)
+    models = ['nhits', 'tft', 'lstm', 'tcn', 'dilatedrnn']
+    for model in models:
+        args.model = model
+        print('Running model: ', args.model)
+        main(args)
 
-# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autonhits" --experiment_id "20230422"
-# CUDA_VISIBLE_DEVICES=3 python scriptv1.py --source_dataset "M4" --target_dataset "M3" --model "autotft" --experiment_id "20230422"
+# CUDA_VISIBLE_DEVICES=3 python script_base.py --source_dataset "M4" --target_dataset "M3" --model "nhits" --experiment_id "20230422"
+# CUDA_VISIBLE_DEVICES=3 python script_base.py --source_dataset "M4" --target_dataset "M3" --model "tft" --experiment_id "20230422"
+# CUDA_VISIBLE_DEVICES=3 python script_base.py --source_dataset "M4" --target_dataset "M3" --model "lstm" --experiment_id "20230422"
+
+
+# CUDA_VISIBLE_DEVICES=3 python script_base.py --source_dataset "M4" --target_dataset "ILI" --model "all" --experiment_id "20230424"
