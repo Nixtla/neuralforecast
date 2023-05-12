@@ -45,11 +45,11 @@ def get_experiment_space(args):
             "learning_rate": tune.loguniform(1e-4, 1e-1),
             "scaler_type": tune.choice([None, "robust", "standard"]),
             "revin": tune.choice([False, True]),
-            "max_steps": tune.choice([500, 1000, 5000]),
+            "max_steps": tune.choice([500, 1000, 2500]),
             'early_stop_patience_steps': tune.choice([10]),
             'val_check_steps': tune.choice([50]),
-            "batch_size": tune.choice([32, 64, 128, 256]),
-            "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+            "batch_size": tune.choice([32]),
+            "windows_batch_size": tune.choice([128, 256]),
             "random_seed": tune.randint(1, 10)
         }
     return config
