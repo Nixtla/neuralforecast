@@ -82,8 +82,13 @@ class TimeSeriesDataset(Dataset):
     ):
         super().__init__()
 
+        assert (
+            temporal_cols[-1] == "available_mask"
+        ), "Last column must be available_mask"
+
         self.temporal = torch.tensor(temporal, dtype=torch.float)
-        self.temporal_cols = pd.Index(list(temporal_cols) + ["available_mask"])
+        self.temporal_cols = pd.Index(list(temporal_cols))
+
         if static is not None:
             self.static = torch.tensor(static, dtype=torch.float)
             self.static_cols = static_cols
@@ -107,10 +112,10 @@ class TimeSeriesDataset(Dataset):
                 size=(len(self.temporal_cols), self.max_size), dtype=torch.float32
             )
             ts = self.temporal[self.indptr[idx] : self.indptr[idx + 1], :]
-            temporal[: len(self.temporal_cols) - 1, -len(ts) :] = ts.permute(1, 0)
+            temporal[: len(self.temporal_cols), -len(ts) :] = ts.permute(1, 0)
 
-            # Add available_mask
-            temporal[len(self.temporal_cols) - 1, -len(ts) :] = 1
+            # # Add available_mask
+            # temporal[len(self.temporal_cols)-1, -len(ts):] = 1
 
             # Add static data if available
             static = None if self.static is None else self.static[idx, :]
@@ -251,6 +256,11 @@ class TimeSeriesDataset(Dataset):
     @staticmethod
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
+
+        # Available mask
+        if "available_mask" not in df.columns:
+            df["available_mask"] = 1
+
         # Define indexes if not given
         if df.index.name != "unique_id":
             df = df.set_index("unique_id")
@@ -298,7 +308,7 @@ class TimeSeriesDataset(Dataset):
         )
         return dataset, indices, dates, df.index
 
-# %% ../nbs/tsdataset.ipynb 10
+# %% ../nbs/tsdataset.ipynb 12
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
         self,
