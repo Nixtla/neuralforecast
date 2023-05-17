@@ -401,7 +401,7 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
         ]
 
 
-def augment_calendar_df(df, freq="h"):
+def augment_calendar_df(df, freq="H"):
     """
     > * Q - [month]
     > * M - [month]
