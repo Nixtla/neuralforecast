@@ -57,6 +57,7 @@ class RNN(BaseRecurrent):
         self,
         h: int,
         input_size: int = -1,
+        inference_input_size: int = -1,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 200,
         encoder_activation: str = "tanh",
@@ -92,6 +93,7 @@ class RNN(BaseRecurrent):
         super(RNN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,

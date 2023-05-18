@@ -53,6 +53,7 @@ class TCN(BaseRecurrent):
         self,
         h: int,
         input_size: int = -1,
+        inference_input_size: int = -1,
         kernel_size: int = 2,
         dilations: List[int] = [1, 2, 4, 8, 16],
         encoder_hidden_size: int = 200,
@@ -87,6 +88,7 @@ class TCN(BaseRecurrent):
         super(TCN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
