@@ -568,6 +568,7 @@ class NeuralForecast:
         """Predict insample with core.NeuralForecast.
 
         Use stored fitted `models` to predict historic values of a time series from DataFrame `df`.
+        This method will be deprecated in favor of `predict_insample`.
 
         Parameters
         ----------
