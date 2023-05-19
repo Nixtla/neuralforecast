@@ -1775,7 +1775,7 @@ class NBMM(torch.nn.Module):
     ):
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 91
+# %% ../../nbs/losses.pytorch.ipynb 92
 class HuberLoss(torch.nn.Module):
     """Huber Loss
 
@@ -1838,7 +1838,7 @@ class HuberLoss(torch.nn.Module):
         )
         return huber_loss
 
-# %% ../../nbs/losses.pytorch.ipynb 95
+# %% ../../nbs/losses.pytorch.ipynb 97
 class HuberQLoss(torch.nn.Module):
     """Huberized Quantile Loss
 
@@ -1907,7 +1907,7 @@ class HuberQLoss(torch.nn.Module):
         )
         return hqloss
 
-# %% ../../nbs/losses.pytorch.ipynb 99
+# %% ../../nbs/losses.pytorch.ipynb 102
 class HuberMQLoss(torch.nn.Module):
     """Huberized Multi-Quantile loss
 
@@ -1995,7 +1995,7 @@ class HuberMQLoss(torch.nn.Module):
         hmqloss = (1 / n_q) * hmqloss * mask
         return torch.sum(hmqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 105
+# %% ../../nbs/losses.pytorch.ipynb 108
 class Accuracy(torch.nn.Module):
     """Accuracy
 
@@ -2042,7 +2042,7 @@ class Accuracy(torch.nn.Module):
         accuracy = torch.mean(measure)
         return accuracy
 
-# %% ../../nbs/losses.pytorch.ipynb 109
+# %% ../../nbs/losses.pytorch.ipynb 112
 class sCRPS(torch.nn.Module):
     """Scaled Continues Ranked Probability Score
 
