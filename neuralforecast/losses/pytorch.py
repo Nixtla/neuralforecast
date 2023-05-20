@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relMSE', 'QuantileLoss', 'MQLoss', 'wMQLoss', 'DistributionLoss',
-           'PMM', 'GMM', 'NBMM', 'HuberLoss', 'HuberQLoss', 'HuberMQLoss', 'Accuracy', 'sCRPS']
+           'PMM', 'GMM', 'NBMM', 'HuberLoss', 'TukeyLoss', 'HuberQLoss', 'HuberMQLoss', 'Accuracy', 'sCRPS']
 
 # %% ../../nbs/losses.pytorch.ipynb 3
 from typing import Optional, Union, Tuple
@@ -1839,6 +1839,94 @@ class HuberLoss(torch.nn.Module):
         return huber_loss
 
 # %% ../../nbs/losses.pytorch.ipynb 97
+class TukeyLoss(torch.nn.Module):
+    """Tukey Loss
+
+    The Tukey loss function, also known as Tukey's biweight function, is a
+    robust statistical loss function used in robust statistics. Tukey's loss exhibits
+    quadratic behavior near the origin, like the Huber loss; however, it is even more
+    robust to outliers as the loss for large residuals remains constant instead of
+    scaling linearly.
+
+    The parameter $c$ in Tukey's loss determines the ''saturation'' point
+    of the function: Higher values of $c$ enhance sensitivity, while lower values
+    increase resistance to outliers.
+
+    $$ L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
+    =\\begin{cases}{
+    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
+    \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}$$
+
+    Please note that the Tukey loss function assumes the data to be stationary or
+    normalized beforehand. If the error values are excessively large, the algorithm
+    may need help to converge during optimization. It is advisable to employ small learning rates.
+
+    **Parameters:**<br>
+    `c`: float=4.685, Specifies the Tukey loss' threshold on which residuals are no longer considered.<br>
+    `normalize`: bool=True, Wether normalization is performed within Tukey loss' computation.<br>
+
+    **References:**<br>
+    [Beaton, A. E., and Tukey, J. W. (1974). "The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data."](https://www.jstor.org/stable/1267936)
+    """
+
+    def __init__(self, c: float = 4.685, normalize: bool = True):
+        super(TukeyLoss, self).__init__()
+        self.outputsize_multiplier = 1
+        self.c = c
+        self.normalize = normalize
+        self.output_names = [""]
+        self.is_distribution_output = False
+
+    def domain_map(self, y_hat: torch.Tensor):
+        """
+        Univariate loss operates in dimension [B,T,H]/[B,H]
+        This changes the network's output from [B,H,1]->[B,H]
+        """
+        return y_hat.squeeze(-1)
+
+    def masked_mean(self, x, mask, dim):
+        x_nan = x.masked_fill(mask < 1, float("nan"))
+        x_mean = x_nan.nanmean(dim=dim, keepdim=True)
+        x_mean = torch.nan_to_num(x_mean, nan=0.0)
+        return x_mean
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
+        """
+        **Parameters:**<br>
+        `y`: tensor, Actual values.<br>
+        `y_hat`: tensor, Predicted values.<br>
+        `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
+
+        **Returns:**<br>
+        `tukey_loss`: tensor (single value).
+        """
+        if mask is None:
+            mask = torch.ones_like(y_hat)
+
+        # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds
+        if self.normalize:
+            y_mean = self.masked_mean(x=y, mask=mask, dim=-1)
+            y_std = (
+                torch.sqrt(self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=-1))
+                + 1e-2
+            )
+        else:
+            y_std = 1.0
+        delta_y = torch.abs(y - y_hat) / y_std
+
+        tukey_mask = torch.greater_equal(self.c * torch.ones_like(delta_y), delta_y)
+        tukey_loss = tukey_mask * mask * (1 - (delta_y / (self.c)) ** 2) ** 3 + (
+            1 - (tukey_mask * 1)
+        )
+        tukey_loss = (self.c**2 / 6) * torch.mean(tukey_loss)
+        return tukey_loss
+
+# %% ../../nbs/losses.pytorch.ipynb 102
 class HuberQLoss(torch.nn.Module):
     """Huberized Quantile Loss
 
@@ -1907,7 +1995,7 @@ class HuberQLoss(torch.nn.Module):
         )
         return hqloss
 
-# %% ../../nbs/losses.pytorch.ipynb 102
+# %% ../../nbs/losses.pytorch.ipynb 107
 class HuberMQLoss(torch.nn.Module):
     """Huberized Multi-Quantile loss
 
@@ -1995,7 +2083,7 @@ class HuberMQLoss(torch.nn.Module):
         hmqloss = (1 / n_q) * hmqloss * mask
         return torch.sum(hmqloss)
 
-# %% ../../nbs/losses.pytorch.ipynb 108
+# %% ../../nbs/losses.pytorch.ipynb 113
 class Accuracy(torch.nn.Module):
     """Accuracy
 
@@ -2042,7 +2130,7 @@ class Accuracy(torch.nn.Module):
         accuracy = torch.mean(measure)
         return accuracy
 
-# %% ../../nbs/losses.pytorch.ipynb 112
+# %% ../../nbs/losses.pytorch.ipynb 117
 class sCRPS(torch.nn.Module):
     """Scaled Continues Ranked Probability Score
 
