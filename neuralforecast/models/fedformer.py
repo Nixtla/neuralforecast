@@ -15,7 +15,6 @@ import torch.nn.functional as F
 
 from ..common._modules import DataEmbedding
 from ..common._base_windows import BaseWindows
-from ..common._base_multivariate import BaseMultivariate
 
 from ..losses.pytorch import MAE
 
@@ -423,8 +422,8 @@ class FourierCrossAttention(nn.Module):
         return (out, None)
 
 # %% ../../nbs/models.fedformer.ipynb 7
-class FEDformer(BaseMultivariate):
-    """Autoformer"""
+class FEDformer(BaseWindows):
+    """FEDformer"""
 
     # Class attributes
     SAMPLING_TYPE = "windows"
@@ -433,7 +432,6 @@ class FEDformer(BaseMultivariate):
         self,
         h: int,
         input_size: int,
-        n_series: int,
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
@@ -457,6 +455,8 @@ class FEDformer(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=1024,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -467,7 +467,6 @@ class FEDformer(BaseMultivariate):
         super(FEDformer, self).__init__(
             h=h,
             input_size=input_size,
-            n_series=n_series,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
@@ -479,6 +478,8 @@ class FEDformer(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            windows_batch_size=windows_batch_size,
+            valid_batch_size=valid_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
@@ -507,8 +508,10 @@ class FEDformer(BaseMultivariate):
         if activation not in ["relu", "gelu"]:
             raise Exception(f"Check activation={activation}")
 
-        self.enc_in = self.n_series
-        self.dec_in = self.n_series
+        self.c_out = self.loss.outputsize_multiplier
+        self.output_attention = False
+        self.enc_in = 1
+        self.dec_in = 1
 
         self.decomp = SeriesDecomp(MovingAvg_window)
 
@@ -585,7 +588,7 @@ class FEDformer(BaseMultivariate):
                     AutoCorrelationLayer(decoder_self_att, hidden_size, n_head),
                     AutoCorrelationLayer(decoder_cross_att, hidden_size, n_head),
                     hidden_size=hidden_size,
-                    c_out=n_series,
+                    c_out=self.c_out,
                     conv_hidden_size=conv_hidden_size,
                     MovingAvg=MovingAvg_window,
                     dropout=dropout,
@@ -594,7 +597,7 @@ class FEDformer(BaseMultivariate):
                 for l in range(decoder_layers)
             ],
             norm_layer=LayerNorm(hidden_size),
-            projection=nn.Linear(hidden_size, n_series, bias=True),
+            projection=nn.Linear(hidden_size, self.c_out, bias=True),
         )
 
     def forward(self, windows_batch):
@@ -606,7 +609,7 @@ class FEDformer(BaseMultivariate):
         futr_exog = windows_batch["futr_exog"]
 
         # Parse inputs
-        # insample_y = insample_y.unsqueeze(-1) # [Ws,L,1]
+        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
         if self.futr_input_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
             x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]

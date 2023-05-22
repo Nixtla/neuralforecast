@@ -795,7 +795,6 @@ class AutoFEDformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "n_series": None,
         "hidden_size": tune.choice([64, 128, 256]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
@@ -809,7 +808,6 @@ class AutoFEDformer(BaseAuto):
     def __init__(
         self,
         h,
-        n_series,
         loss=MAE(),
         valid_loss=None,
         config=None,
@@ -832,9 +830,6 @@ class AutoFEDformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
-
-        # Always use n_series from parameters
-        config["n_series"] = n_series
 
         super(AutoFEDformer, self).__init__(
             cls_model=FEDformer,
