@@ -114,9 +114,6 @@ class TimeSeriesDataset(Dataset):
             ts = self.temporal[self.indptr[idx] : self.indptr[idx + 1], :]
             temporal[: len(self.temporal_cols), -len(ts) :] = ts.permute(1, 0)
 
-            # # Add available_mask
-            # temporal[len(self.temporal_cols)-1, -len(ts):] = 1
-
             # Add static data if available
             static = None if self.static is None else self.static[idx, :]
 
@@ -156,13 +153,11 @@ class TimeSeriesDataset(Dataset):
             if col not in future_df.columns:
                 future_df[col] = None
 
-        # Sort columns to match self.temporal_cols
+        # Sort columns to match self.temporal_cols (without available_mask)
         future_df = future_df[["unique_id", "ds"] + temporal_cols.tolist()]
 
         # Process future_df
-        futr_dataset, indices, futr_dates, futr_index = dataset.from_df(
-            df=future_df, sort_df=dataset.sorted
-        )
+        futr_dataset, *_ = dataset.from_df(df=future_df, sort_df=dataset.sorted)
 
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = dataset.temporal.shape
@@ -193,7 +188,7 @@ class TimeSeriesDataset(Dataset):
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
-            temporal_cols=temporal_cols,
+            temporal_cols=dataset.temporal_cols.copy(),
             indptr=np.array(new_indptr).astype(np.int32),
             max_size=new_max_size,
             min_size=dataset.min_size,
@@ -215,10 +210,6 @@ class TimeSeriesDataset(Dataset):
                 f"left_trim + right_trim ({left_trim} + {right_trim}) \
                                 must be lower than the shorter time series ({dataset.min_size})"
             )
-
-        # Remove available mask from temporal_cols
-        temporal_cols = dataset.temporal_cols.copy()
-        temporal_cols = temporal_cols.delete(len(temporal_cols) - 1)
 
         # Define and fill new temporal with trimmed information
         len_temporal, col_temporal = dataset.temporal.shape
@@ -242,7 +233,7 @@ class TimeSeriesDataset(Dataset):
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
-            temporal_cols=temporal_cols,
+            temporal_cols=dataset.temporal_cols.copy(),
             indptr=np.array(new_indptr).astype(np.int32),
             max_size=new_max_size,
             min_size=new_min_size,
@@ -308,7 +299,7 @@ class TimeSeriesDataset(Dataset):
         )
         return dataset, indices, dates, df.index
 
-# %% ../nbs/tsdataset.ipynb 12
+# %% ../nbs/tsdataset.ipynb 10
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
         self,
