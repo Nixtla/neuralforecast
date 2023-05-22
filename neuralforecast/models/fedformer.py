@@ -443,7 +443,7 @@ class FEDformer(BaseMultivariate):
         mode_select: str = "random",
         hidden_size: int = 128,
         dropout: float = 0.05,
-        n_head: int = 4,
+        n_head: int = 8,
         conv_hidden_size: int = 32,
         activation: str = "gelu",
         encoder_layers: int = 2,
