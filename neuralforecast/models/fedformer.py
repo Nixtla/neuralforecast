@@ -4,8 +4,7 @@
 __all__ = ['MovingAvg', 'SeriesDecomp', 'LayerNorm', 'AutoCorrelationLayer', 'EncoderLayer', 'Encoder', 'DecoderLayer', 'Decoder',
            'get_frequency_modes', 'FourierBlock', 'FourierCrossAttention', 'FEDformer']
 
-# %% ../../nbs/models.fedformer.ipynb 2
-import math
+# %% ../../nbs/models.fedformer.ipynb 5
 import numpy as np
 from typing import Optional
 
@@ -18,7 +17,7 @@ from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.fedformer.ipynb 4
+# %% ../../nbs/models.fedformer.ipynb 7
 class MovingAvg(nn.Module):
     """
     Moving average block to highlight the trend of time series
@@ -97,10 +96,10 @@ class AutoCorrelationLayer(nn.Module):
 
         return self.out_projection(out), attn
 
-
+# %% ../../nbs/models.fedformer.ipynb 8
 class EncoderLayer(nn.Module):
     """
-    Autoformer encoder layer with the progressive decomposition architecture
+    FEDformer encoder layer with the progressive decomposition architecture
     """
 
     def __init__(
@@ -145,7 +144,7 @@ class EncoderLayer(nn.Module):
 
 class Encoder(nn.Module):
     """
-    Autoformer encoder
+    FEDformer encoder
     """
 
     def __init__(self, attn_layers, conv_layers=None, norm_layer=None):
@@ -178,7 +177,7 @@ class Encoder(nn.Module):
 
 class DecoderLayer(nn.Module):
     """
-    Autoformer decoder layer with the progressive decomposition architecture
+    FEDformer decoder layer with the progressive decomposition architecture
     """
 
     def __init__(
@@ -244,7 +243,7 @@ class DecoderLayer(nn.Module):
 
 class Decoder(nn.Module):
     """
-    Autoformer decoder
+    FEDformer decoder
     """
 
     def __init__(self, layers, norm_layer=None, projection=None):
@@ -265,12 +264,12 @@ class Decoder(nn.Module):
             x = self.projection(x)
         return x, trend
 
-# %% ../../nbs/models.fedformer.ipynb 5
+# %% ../../nbs/models.fedformer.ipynb 9
 def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
     """
-    get modes on frequency domain:
-    'random' means sampling randomly;
-    'else' means sampling the lowest modes;
+    Get modes on frequency domain:
+        'random' for sampling randomly
+        'else' for sampling the lowest modes;
     """
     modes = min(modes, seq_len // 2)
     if mode_select_method == "random":
@@ -283,15 +282,13 @@ def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
     return index
 
 
-# ########## fourier layer #############
 class FourierBlock(nn.Module):
     def __init__(
         self, in_channels, out_channels, seq_len, modes=0, mode_select_method="random"
     ):
         super(FourierBlock, self).__init__()
         """
-        1D Fourier block. It performs representation learning on frequency domain, 
-        it does FFT, linear transform, and Inverse FFT.    
+        Fourier block
         """
         # get modes on frequency domain
         self.index = get_frequency_modes(
@@ -333,7 +330,6 @@ class FourierBlock(nn.Module):
         return (x, None)
 
 
-# ########## Fourier Cross Former ####################
 class FourierCrossAttention(nn.Module):
     def __init__(
         self,
@@ -348,7 +344,7 @@ class FourierCrossAttention(nn.Module):
     ):
         super(FourierCrossAttention, self).__init__()
         """
-        1D Fourier Cross Attention layer. It does FFT, linear transform, attention mechanism and Inverse FFT.    
+        Fourier Cross Attention layer
         """
         self.activation = activation
         self.in_channels = in_channels
@@ -383,7 +379,7 @@ class FourierCrossAttention(nn.Module):
         B, L, H, E = q.shape
         xq = q.permute(0, 2, 3, 1)  # size = [B, H, E, L]
         xk = k.permute(0, 2, 3, 1)
-        xv = v.permute(0, 2, 3, 1)
+        # xv = v.permute(0, 2, 3, 1)
 
         # Compute Fourier coefficients
         xq_ft_ = torch.zeros(
@@ -399,7 +395,7 @@ class FourierCrossAttention(nn.Module):
         for i, j in enumerate(self.index_kv):
             xk_ft_[:, :, :, i] = xk_ft[:, :, :, j]
 
-        # perform attention mechanism on frequency domain
+        # Attention mechanism on frequency domain
         xqk_ft = torch.einsum("bhex,bhey->bhxy", xq_ft_, xk_ft_)
         if self.activation == "tanh":
             xqk_ft = xqk_ft.tanh()
@@ -415,15 +411,65 @@ class FourierCrossAttention(nn.Module):
         out_ft = torch.zeros(B, H, E, L // 2 + 1, device=xq.device, dtype=torch.cfloat)
         for i, j in enumerate(self.index_q):
             out_ft[:, :, :, j] = xqkvw[:, :, :, i]
+
         # Return to time domain
         out = torch.fft.irfft(
             out_ft / self.in_channels / self.out_channels, n=xq.size(-1)
         )
         return (out, None)
 
-# %% ../../nbs/models.fedformer.ipynb 7
+# %% ../../nbs/models.fedformer.ipynb 11
 class FEDformer(BaseWindows):
-    """FEDformer"""
+    """FEDformer
+
+    The FEDformer model tackles the challenge of finding reliable dependencies on intricate temporal patterns of long-horizon forecasting.
+
+    The architecture has the following distinctive features:
+    - In-built progressive decomposition in trend and seasonal components based on a moving average filter.
+    - Frequency Enhanced Block and Frequency Enhanced Attention to perform attention in the sparse representation on basis such as Fourier transform.
+    - Classic encoder-decoder proposed by Vaswani et al. (2017) with a multi-head attention mechanism.
+
+    The FEDformer model utilizes a three-component approach to define its embedding:
+    - It employs encoded autoregressive features obtained from a convolution network.
+    - Absolute positional embeddings obtained from calendar features are utilized.
+
+    *Parameters:*<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+        `decoder_input_size_multiplier`: float = 0.5, .<br>
+    `version`: str = 'Fourier', version of the model.<br>
+    `modes`: int = 64, number of modes for the Fourier block.<br>
+    `mode_select`: str = 'random', method to select the modes for the Fourier block.<br>
+    `hidden_size`: int=128, units of embeddings and encoders.<br>
+    `dropout`: float (0, 1), dropout throughout Autoformer architecture.<br>
+    `n_head`: int=8, controls number of multi-head's attention.<br>
+        `conv_hidden_size`: int=32, channels of the convolutional encoder.<br>
+        `activation`: str=`GELU`, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].<br>
+    `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
+    `decoder_layers`: int=1, number of layers for the MLP decoder.<br>
+    `MovingAvg_window`: int=25, window size for the moving average filter.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module, instantiated validation loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each batch during validation and testing.<br>
+    `windows_batch_size`: int=1024, number of windows in each batch.<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    """
 
     # Class attributes
     SAMPLING_TYPE = "windows"
@@ -487,7 +533,6 @@ class FEDformer(BaseWindows):
             random_seed=random_seed,
             **trainer_kwargs,
         )
-
         # Architecture
         self.futr_input_size = len(self.futr_exog_list)
         self.hist_input_size = len(self.hist_exog_list)
@@ -507,6 +552,12 @@ class FEDformer(BaseWindows):
 
         if activation not in ["relu", "gelu"]:
             raise Exception(f"Check activation={activation}")
+
+        if n_head != 8:
+            raise Exception("n_head must be 8")
+
+        if version not in ["Fourier"]:
+            raise Exception("Only Fourier version is supported currently.")
 
         self.c_out = self.loss.outputsize_multiplier
         self.output_attention = False
@@ -531,41 +582,28 @@ class FEDformer(BaseWindows):
             dropout=dropout,
         )
 
-        if version == "Wavelets":
-            pass
-            # encoder_self_att = MultiWaveletTransform(ich=hidden_size, L=configs.L, base=configs.base)
-            # decoder_self_att = MultiWaveletTransform(ich=hidden_size, L=configs.L, base=configs.base)
-            # decoder_cross_att = MultiWaveletCross(in_channels=hidden_size,
-            #                                       out_channels=hidden_size,
-            #                                       seq_len_q=self.seq_len // 2 + self.pred_len,
-            #                                       seq_len_kv=self.seq_len,
-            #                                       modes=configs.modes,
-            #                                       ich=hidden_size,
-            #                                       base=configs.base,
-            #                                       activation=configs.cross_activation)
-        elif version == "Fourier":
-            encoder_self_att = FourierBlock(
-                in_channels=hidden_size,
-                out_channels=hidden_size,
-                seq_len=input_size,
-                modes=modes,
-                mode_select_method=mode_select,
-            )
-            decoder_self_att = FourierBlock(
-                in_channels=hidden_size,
-                out_channels=hidden_size,
-                seq_len=input_size // 2 + self.h,
-                modes=modes,
-                mode_select_method=mode_select,
-            )
-            decoder_cross_att = FourierCrossAttention(
-                in_channels=hidden_size,
-                out_channels=hidden_size,
-                seq_len_q=input_size // 2 + self.h,
-                seq_len_kv=input_size,
-                modes=modes,
-                mode_select_method=mode_select,
-            )
+        encoder_self_att = FourierBlock(
+            in_channels=hidden_size,
+            out_channels=hidden_size,
+            seq_len=input_size,
+            modes=modes,
+            mode_select_method=mode_select,
+        )
+        decoder_self_att = FourierBlock(
+            in_channels=hidden_size,
+            out_channels=hidden_size,
+            seq_len=input_size // 2 + self.h,
+            modes=modes,
+            mode_select_method=mode_select,
+        )
+        decoder_cross_att = FourierCrossAttention(
+            in_channels=hidden_size,
+            out_channels=hidden_size,
+            seq_len_q=input_size // 2 + self.h,
+            seq_len_kv=input_size,
+            modes=modes,
+            mode_select_method=mode_select,
+        )
 
         self.encoder = Encoder(
             [

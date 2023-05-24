@@ -248,10 +248,6 @@ class TimeSeriesDataset(Dataset):
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
 
-        # Available mask
-        if "available_mask" not in df.columns:
-            df["available_mask"] = 1
-
         # Define indexes if not given
         if df.index.name != "unique_id":
             df = df.set_index("unique_id")
@@ -278,6 +274,12 @@ class TimeSeriesDataset(Dataset):
         cum_sizes = sizes.cumsum()
         dates = df.index.get_level_values("ds")[cum_sizes - 1]
         indptr = np.append(0, cum_sizes).astype(np.int32)
+
+        # Add Available mask efficiently (without adding column to df)
+        if "available_mask" not in df.columns:
+            available_mask = np.ones((len(temporal), 1), dtype=np.float32)
+            temporal = np.append(temporal, available_mask, axis=1)
+            temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
 
         # Static features
         if static_df is not None:
