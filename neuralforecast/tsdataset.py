@@ -82,10 +82,6 @@ class TimeSeriesDataset(Dataset):
     ):
         super().__init__()
 
-        assert (
-            temporal_cols[-1] == "available_mask"
-        ), "Last column must be available_mask"
-
         self.temporal = torch.tensor(temporal, dtype=torch.float)
         self.temporal_cols = pd.Index(list(temporal_cols))
 
@@ -146,12 +142,16 @@ class TimeSeriesDataset(Dataset):
     def update_dataset(dataset, future_df):
         """Add future observations to the dataset."""
 
+        # Protect consistency
+        future_df = future_df.copy()
+
         # Add Nones to missing columns (without available_mask)
         temporal_cols = dataset.temporal_cols.copy()
-        temporal_cols = temporal_cols.delete(len(temporal_cols) - 1)
         for col in temporal_cols:
             if col not in future_df.columns:
                 future_df[col] = None
+            if col == "available_mask":
+                future_df[col] = 1
 
         # Sort columns to match self.temporal_cols (without available_mask)
         future_df = future_df[["unique_id", "ds"] + temporal_cols.tolist()]
