@@ -24,6 +24,8 @@ website:
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
         - examples/HierarchicalNetworks.ipynb
+        - examples/Temporal_Classifiers.ipynb
+        - examples/Robust_Regression.ipynb
       - examples/models_intro.qmd
       - section: API Reference
         contents:

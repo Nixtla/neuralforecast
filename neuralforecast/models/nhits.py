@@ -124,8 +124,8 @@ class NHITSBlock(nn.Module):
             hidden_layers.append(activ)
 
             if self.dropout_prob > 0:
-                raise NotImplementedError("dropout")
-                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
+                # raise NotImplementedError('dropout')
+                hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
         output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
         layers = hidden_layers + output_layer
@@ -190,12 +190,14 @@ class NHITS(BaseWindows):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
-    `stack_types`: List[str], stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`.<br>
+    `stack_types`: List[str], stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
-    `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-    `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-    `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
+    `n_freq_downsample`: List[int], list with the stack's coefficients (inverse expressivity ratios). Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
+    `interpolation_mode`: str='linear', interpolation basis from ['linear', 'nearest', 'cubic'].<br>
+    `n_pool_kernel_size`: List[int], list with the size of the windows to take a max/avg over. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
+    `pooling_mode`: str, input pooling module from ['MaxPool1d', 'AvgPool1d'].<br>
+    `dropout_prob_theta`: float, Float between (0, 1). Dropout for NHITS basis.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>

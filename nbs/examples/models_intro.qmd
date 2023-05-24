@@ -1,9 +1,9 @@
 ---
-title: "NeuralForecast's Models"
+title: "NeuralForecast's Contents"
 ---
 
 
-## Automatic Forecasting
+## Automatic Forecasting Models
 Automatic forecasting tools optimize the hyperparameters of a given model class and select the best-performing model for a validation set. The optimization methods include grid search, random search, and Bayesian optimization.
 
 | MLP-Based                                 |RNN-Based                             | Transformers                                 | Multivariate                               |
@@ -17,15 +17,15 @@ Automatic forecasting tools optimize the hyperparameters of a given model class 
 ## Optimization Objectives
 NeuralForecast is a highly modular framework capable of augmenting a wide variety of robust neural network architectures with different point or probability outputs as defined by their optimization objectives.
 
-|Probabilistic                                                 | Scale-Dependent                                              | Percentage-Errors                                                     | Scale-Independent                                                         |
-|:-------------------------------------------------------------|:-------------------------------------------------------------|:----------------------------------------------------------------------|:--------------------------------------------------------------------------|
-|[`QuantileLoss`](../losses.pytorch.html#quantile-loss)        |[`MAE`](../losses.pytorch.html#mean-absolute-error-mae)       |[`MAPE`](../losses.pytorch.html#mean-absolute-percentage-error-mape)   |[`MASE`](../losses.pytorch.html#mean-absolute-scaled-error-mase)           |
-|[`MQLoss`](../losses.pytorch.html#multi-quantile-loss-mqloss) |[`MSE`](../losses.pytorch.html#mean-squared-error-mse)        |[`sMAPE`](../losses.pytorch.html#symmetric-mape-smape)                 |                                                                           |
-|[`DistributionLoss`](../losses.pytorch.html#distributionloss) |[`RMSE`](../losses.pytorch.html#root-mean-squared-error-rmse) |                                                                       |                                                                           |
-|[`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm)  |       |                                                                       |                                                                           |
+|Probabilistic                                                 | Scale-Dependent                                              | Percentage-Errors                                                     | Scale-Ind.                                                     | Robust                                                 |
+|:-------------------------------------------------------------|:-------------------------------------------------------------|:----------------------------------------------------------------------|:---------------------------------------------------------------|:-------------------------------------------------------|
+|[`QuantileLoss`](../losses.pytorch.html#quantile-loss)        |[`MAE`](../losses.pytorch.html#mean-absolute-error-mae)       |[`MAPE`](../losses.pytorch.html#mean-absolute-percentage-error-mape)   |[`MASE`](../losses.pytorch.html#mean-absolute-scaled-error-mase)|[`Huber`](../losses.pytorch.html#huber-loss)            |
+|[`MQLoss`](../losses.pytorch.html#multi-quantile-loss-mqloss) |[`MSE`](../losses.pytorch.html#mean-squared-error-mse)        |[`sMAPE`](../losses.pytorch.html#symmetric-mape-smape)                 |                                                                |[`Tukey`](../losses.pytorch.html#tukey-loss)            |
+|[`DistributionLoss`](../losses.pytorch.html#distributionloss) |[`RMSE`](../losses.pytorch.html#root-mean-squared-error-rmse) |                                                                       |                                                                |[`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss)|
+|[`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm)  |       |                                                                       |                                                                |                                                        |
 : {tbl-colwidths="[25,25]"}
 
-## MLP-Based Family
+## MLP-Based Model Family
 The MLP-based family operates like a classic autoencoder. Its initial layers encode raw autoregressive window into a representation, and the decoder produces the desired output based on the horizon, probability output, or point objective. Recent architectures include modifications like residual learning techniques and task-specific changes.
 
 |Model                                     | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
@@ -36,7 +36,7 @@ The MLP-based family operates like a classic autoencoder. Its initial layers enc
 |[`NHITS`](../models.nhits.html)           |✅              |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
 
-## RNN-Based Family
+## RNN-Based Model Family
 The RNN-based family attempts to leverage the data's temporal structure while reducing MLPs over parametrization. Recurrent networks are dynamic and can handle sequences of varying lengths through a mechanism for updating internal states that considers the entire sequence history. Modern state modifications help diminish vanishing and exploding gradients.
 
 |Model                                       | Point Forecast   | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
@@ -48,7 +48,7 @@ The RNN-based family attempts to leverage the data's temporal structure while re
 |[`DilatedRNN`](../models.dilated_rnn.html)  |✅                |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
 
-## Transformers Family
+## Transformers Model Family
 Transformer architectures are an alternative to recurrent networks. These networks build on the self-attention mechanism that directly allows modeling the relationship between different sequence parts without sequential processing. Attention makes Transformers more parallelizable than RNNs.
 
 |Model                                                      | Point Forecast   | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |

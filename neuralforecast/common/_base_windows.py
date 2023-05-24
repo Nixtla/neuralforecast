@@ -338,8 +338,12 @@ class BaseWindows(pl.LightningModule):
         y_scale = self.scaler.x_scale[:, :, temporal_data_cols.get_indexer(["y"])]
         y_loc = self.scaler.x_shift[:, :, temporal_data_cols.get_indexer(["y"])]
 
-        y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1)
-        y_loc = torch.repeat_interleave(y_loc, repeats=y_hat.shape[-1], dim=-1)
+        y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1).to(
+            y_hat.device
+        )
+        y_loc = torch.repeat_interleave(y_loc, repeats=y_hat.shape[-1], dim=-1).to(
+            y_hat.device
+        )
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
