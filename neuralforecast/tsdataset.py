@@ -83,7 +83,8 @@ class TimeSeriesDataset(Dataset):
         super().__init__()
 
         self.temporal = torch.tensor(temporal, dtype=torch.float)
-        self.temporal_cols = pd.Index(list(temporal_cols) + ["available_mask"])
+        self.temporal_cols = pd.Index(list(temporal_cols))
+
         if static is not None:
             self.static = torch.tensor(static, dtype=torch.float)
             self.static_cols = static_cols
@@ -107,10 +108,7 @@ class TimeSeriesDataset(Dataset):
                 size=(len(self.temporal_cols), self.max_size), dtype=torch.float32
             )
             ts = self.temporal[self.indptr[idx] : self.indptr[idx + 1], :]
-            temporal[: len(self.temporal_cols) - 1, -len(ts) :] = ts.permute(1, 0)
-
-            # Add available_mask
-            temporal[len(self.temporal_cols) - 1, -len(ts) :] = 1
+            temporal[: len(self.temporal_cols), -len(ts) :] = ts.permute(1, 0)
 
             # Add static data if available
             static = None if self.static is None else self.static[idx, :]
@@ -144,20 +142,22 @@ class TimeSeriesDataset(Dataset):
     def update_dataset(dataset, future_df):
         """Add future observations to the dataset."""
 
+        # Protect consistency
+        future_df = future_df.copy()
+
         # Add Nones to missing columns (without available_mask)
         temporal_cols = dataset.temporal_cols.copy()
-        temporal_cols = temporal_cols.delete(len(temporal_cols) - 1)
         for col in temporal_cols:
             if col not in future_df.columns:
                 future_df[col] = None
+            if col == "available_mask":
+                future_df[col] = 1
 
-        # Sort columns to match self.temporal_cols
+        # Sort columns to match self.temporal_cols (without available_mask)
         future_df = future_df[["unique_id", "ds"] + temporal_cols.tolist()]
 
         # Process future_df
-        futr_dataset, indices, futr_dates, futr_index = dataset.from_df(
-            df=future_df, sort_df=dataset.sorted
-        )
+        futr_dataset, *_ = dataset.from_df(df=future_df, sort_df=dataset.sorted)
 
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = dataset.temporal.shape
@@ -188,7 +188,7 @@ class TimeSeriesDataset(Dataset):
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
-            temporal_cols=temporal_cols,
+            temporal_cols=dataset.temporal_cols.copy(),
             indptr=np.array(new_indptr).astype(np.int32),
             max_size=new_max_size,
             min_size=dataset.min_size,
@@ -210,10 +210,6 @@ class TimeSeriesDataset(Dataset):
                 f"left_trim + right_trim ({left_trim} + {right_trim}) \
                                 must be lower than the shorter time series ({dataset.min_size})"
             )
-
-        # Remove available mask from temporal_cols
-        temporal_cols = dataset.temporal_cols.copy()
-        temporal_cols = temporal_cols.delete(len(temporal_cols) - 1)
 
         # Define and fill new temporal with trimmed information
         len_temporal, col_temporal = dataset.temporal.shape
@@ -237,7 +233,7 @@ class TimeSeriesDataset(Dataset):
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
-            temporal_cols=temporal_cols,
+            temporal_cols=dataset.temporal_cols.copy(),
             indptr=np.array(new_indptr).astype(np.int32),
             max_size=new_max_size,
             min_size=new_min_size,
@@ -251,6 +247,7 @@ class TimeSeriesDataset(Dataset):
     @staticmethod
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
+
         # Define indexes if not given
         if df.index.name != "unique_id":
             df = df.set_index("unique_id")
@@ -277,6 +274,12 @@ class TimeSeriesDataset(Dataset):
         cum_sizes = sizes.cumsum()
         dates = df.index.get_level_values("ds")[cum_sizes - 1]
         indptr = np.append(0, cum_sizes).astype(np.int32)
+
+        # Add Available mask efficiently (without adding column to df)
+        if "available_mask" not in df.columns:
+            available_mask = np.ones((len(temporal), 1), dtype=np.float32)
+            temporal = np.append(temporal, available_mask, axis=1)
+            temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
 
         # Static features
         if static_df is not None:

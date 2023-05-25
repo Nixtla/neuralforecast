@@ -29,6 +29,7 @@ from neuralforecast.models import (
     VanillaTransformer,
     Informer,
     Autoformer,
+    FEDformer,
     StemGNN,
     PatchTST,
 )
@@ -141,6 +142,7 @@ MODEL_FILENAME_DICT = {
     "autoinformer": Informer,
     "autoautoformer": Autoformer,
     "autopatchtst": PatchTST,
+    "autofedformer": FEDformer,
     "autostemgnn": StemGNN,
 }
 
