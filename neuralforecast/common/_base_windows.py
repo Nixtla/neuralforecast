@@ -40,8 +40,9 @@ class BaseWindows(pl.LightningModule):
         max_steps,
         val_check_steps,
         batch_size,
-        windows_batch_size,
         valid_batch_size,
+        windows_batch_size,
+        inference_windows_batch_size,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -76,12 +77,16 @@ class BaseWindows(pl.LightningModule):
         self.train_trajectories = []
         self.valid_trajectories = []
 
-        # Valid batch_size
+        # Batch sizes
         self.batch_size = batch_size
         if valid_batch_size is None:
             self.valid_batch_size = batch_size
         else:
             self.valid_batch_size = valid_batch_size
+        if inference_windows_batch_size is None:
+            self.inference_windows_batch_size = windows_batch_size
+        else:
+            self.inference_windows_batch_size = inference_windows_batch_size
 
         # Optimization
         self.learning_rate = learning_rate
@@ -436,41 +441,11 @@ class BaseWindows(pl.LightningModule):
         self.train_trajectories.append((self.global_step, float(loss)))
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        if self.val_size == 0:
-            return np.nan
-
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="val")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-        windows = self._normalization(windows=windows)
-
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            outsample_y,
-            outsample_mask,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
-
-        windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
-            stat_exog=stat_exog,
-        )  # [Ws, 1]
-
-        # Model Predictions
-        output = self(windows_batch)
+    def _compute_valid_loss(self, outsample_y, output, outsample_mask, temporal_cols):
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=temporal_cols
             )
-            outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
@@ -495,6 +470,67 @@ class BaseWindows(pl.LightningModule):
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
+        return valid_loss
+
+    def validation_step(self, batch, batch_idx):
+        if self.val_size == 0:
+            return np.nan
+
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step="val")
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+        windows = self._normalization(windows=windows)
+
+        # Parse windows
+        (
+            insample_y,
+            insample_mask,
+            _,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
+
+        valid_losses = []
+        batch_sizes = []
+        if self.inference_windows_batch_size > 0:
+            w_bs = self.inference_windows_batch_size
+        else:
+            w_bs = len(insample_y)
+        n_batches = int(np.ceil(len(insample_y) / w_bs))
+        for i in range(n_batches):
+            outsample_y_batch = original_outsample_y[i * w_bs : (i + 1) * w_bs]
+            outsample_mask_batch = outsample_mask[i * w_bs : (i + 1) * w_bs]
+            windows_batch = dict(
+                insample_y=insample_y[i * w_bs : (i + 1) * w_bs],
+                insample_mask=insample_mask[i * w_bs : (i + 1) * w_bs],
+                futr_exog=None,
+                hist_exog=None,
+                stat_exog=None,
+            )
+            if futr_exog is not None:
+                windows_batch.update(futr_exog=futr_exog[i * w_bs : (i + 1) * w_bs])
+            if hist_exog is not None:
+                windows_batch.update(hist_exog=hist_exog[i * w_bs : (i + 1) * w_bs])
+            if stat_exog is not None:
+                windows_batch.update(stat_exog=stat_exog[i * w_bs : (i + 1) * w_bs])
+
+            # Model Predictions
+            output_batch = self(windows_batch)
+            valid_loss_batch = self._compute_valid_loss(
+                outsample_y=outsample_y_batch,
+                output=output_batch,
+                outsample_mask=outsample_mask_batch,
+                temporal_cols=batch["temporal_cols"],
+            )
+            valid_losses.append(valid_loss_batch)
+            batch_sizes.append(len(output_batch))
+
+        valid_loss = torch.stack(valid_losses)
+        valid_loss = torch.sum(valid_loss * torch.tensor(batch_sizes)) / torch.sum(
+            torch.tensor(batch_sizes)
+        )
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
         self.validation_step_outputs.append(valid_loss)
@@ -524,36 +560,52 @@ class BaseWindows(pl.LightningModule):
             stat_exog,
         ) = self._parse_windows(batch, windows)
 
-        windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
-            stat_exog=stat_exog,
-        )  # [Ws, 1]
-
-        # Model Predictions
-        output = self(windows_batch)
-        if self.loss.is_distribution_output:
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"]
-            )
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-            y_hat = torch.concat((sample_mean, quants), axis=2)
-
-            if self.loss.return_params:
-                distr_args = torch.stack(distr_args, dim=-1)
-                distr_args = torch.reshape(
-                    distr_args, (len(windows["temporal"]), self.h, -1)
-                )
-                y_hat = torch.concat((y_hat, distr_args), axis=2)
+        y_hats = []
+        if self.inference_windows_batch_size > 0:
+            w_bs = self.inference_windows_batch_size
         else:
-            y_hat, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
+            w_bs = len(insample_y)
+        n_batches = int(np.ceil(len(insample_y) / w_bs))
+        for i in range(n_batches):
+            windows_batch = dict(
+                insample_y=insample_y[i * w_bs : (i + 1) * w_bs],
+                insample_mask=insample_mask[i * w_bs : (i + 1) * w_bs],
+                futr_exog=None,
+                hist_exog=None,
+                stat_exog=None,
             )
+            if futr_exog is not None:
+                windows_batch.update(futr_exog=futr_exog[i * w_bs : (i + 1) * w_bs])
+            if hist_exog is not None:
+                windows_batch.update(hist_exog=hist_exog[i * w_bs : (i + 1) * w_bs])
+            if stat_exog is not None:
+                windows_batch.update(stat_exog=stat_exog[i * w_bs : (i + 1) * w_bs])
+
+            # Model Predictions
+            output_batch = self(windows_batch)
+            # Inverse normalization and sampling
+            if self.loss.is_distribution_output:
+                _, y_loc, y_scale = self._inv_normalization(
+                    y_hat=output_batch[0], temporal_cols=batch["temporal_cols"]
+                )
+                distr_args = self.loss.scale_decouple(
+                    output=output_batch, loc=y_loc, scale=y_scale
+                )
+                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+                y_hat = torch.concat((sample_mean, quants), axis=2)
+
+                if self.loss.return_params:
+                    distr_args = torch.stack(distr_args, dim=-1)
+                    distr_args = torch.reshape(
+                        distr_args, (len(windows["temporal"]), self.h, -1)
+                    )
+                    y_hat = torch.concat((y_hat, distr_args), axis=2)
+            else:
+                y_hat, _, _ = self._inv_normalization(
+                    y_hat=output_batch, temporal_cols=batch["temporal_cols"]
+                )
+            y_hats.append(y_hat)
+        y_hat = torch.cat(y_hats, dim=0)
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
