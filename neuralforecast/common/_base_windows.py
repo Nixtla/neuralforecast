@@ -500,6 +500,7 @@ class BaseWindows(pl.LightningModule):
             w_bs = len(insample_y)
         n_batches = int(np.ceil(len(insample_y) / w_bs))
         for i in range(n_batches):
+            print(i + 1, "/", n_batches, end="\r")
             outsample_y_batch = original_outsample_y[i * w_bs : (i + 1) * w_bs]
             outsample_mask_batch = outsample_mask[i * w_bs : (i + 1) * w_bs]
             windows_batch = dict(
@@ -566,6 +567,7 @@ class BaseWindows(pl.LightningModule):
             w_bs = len(insample_y)
         n_batches = int(np.ceil(len(insample_y) / w_bs))
         for i in range(n_batches):
+            print(i + 1, "/", n_batches, end="\r")
             windows_batch = dict(
                 insample_y=insample_y[i * w_bs : (i + 1) * w_bs],
                 insample_mask=insample_mask[i * w_bs : (i + 1) * w_bs],
