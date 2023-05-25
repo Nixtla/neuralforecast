@@ -192,8 +192,8 @@ class NBEATSBlock(nn.Module):
             hidden_layers.append(activ)
 
             if self.dropout_prob > 0:
-                raise NotImplementedError("dropout")
-                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
+                # raise NotImplementedError('dropout')
+                hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
         output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
         layers = hidden_layers + output_layer
