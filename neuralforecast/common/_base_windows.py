@@ -528,9 +528,8 @@ class BaseWindows(pl.LightningModule):
             batch_sizes.append(len(output_batch))
 
         valid_loss = torch.stack(valid_losses)
-        valid_loss = torch.sum(valid_loss * torch.tensor(batch_sizes)) / torch.sum(
-            torch.tensor(batch_sizes)
-        )
+        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
         self.validation_step_outputs.append(valid_loss)
