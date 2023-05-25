@@ -180,7 +180,7 @@ class BaseWindows(pl.LightningModule):
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
-    def _create_windows(self, batch, step):
+    def _create_windows(self, batch, step, w_idxs=None):
         # Parse common data
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
@@ -293,6 +293,12 @@ class BaseWindows(pl.LightningModule):
                 static = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
+
+            # Sample windows for batched prediction
+            if w_idxs is not None:
+                windows = windows[w_idxs]
+                if static is not None:
+                    static = static[w_idxs]
 
             windows_batch = dict(
                 temporal=windows,
@@ -476,53 +482,50 @@ class BaseWindows(pl.LightningModule):
         if self.val_size == 0:
             return np.nan
 
-        # Create and normalize windows [Ws, L+H, C]
+        # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="val")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-        windows = self._normalization(windows=windows)
+        n_windows = len(windows["temporal"])
 
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            outsample_mask,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        # Number of windows in batch
+        w_bs = self.inference_windows_batch_size
+        if w_bs < 0:
+            w_bs = n_windows
+        n_batches = int(np.ceil(n_windows / w_bs))
+        idxs_list = np.arange(n_windows)
 
         valid_losses = []
         batch_sizes = []
-        if self.inference_windows_batch_size > 0:
-            w_bs = self.inference_windows_batch_size
-        else:
-            w_bs = len(insample_y)
-        n_batches = int(np.ceil(len(insample_y) / w_bs))
         for i in range(n_batches):
-            print(i + 1, "/", n_batches, end="\r")
-            outsample_y_batch = original_outsample_y[i * w_bs : (i + 1) * w_bs]
-            outsample_mask_batch = outsample_mask[i * w_bs : (i + 1) * w_bs]
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = idxs_list[i * w_bs : (i + 1) * w_bs]
+            windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
+            original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+            windows = self._normalization(windows=windows)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                outsample_mask,
+                hist_exog,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
             windows_batch = dict(
-                insample_y=insample_y[i * w_bs : (i + 1) * w_bs],
-                insample_mask=insample_mask[i * w_bs : (i + 1) * w_bs],
-                futr_exog=None,
-                hist_exog=None,
-                stat_exog=None,
-            )
-            if futr_exog is not None:
-                windows_batch.update(futr_exog=futr_exog[i * w_bs : (i + 1) * w_bs])
-            if hist_exog is not None:
-                windows_batch.update(hist_exog=hist_exog[i * w_bs : (i + 1) * w_bs])
-            if stat_exog is not None:
-                windows_batch.update(stat_exog=stat_exog[i * w_bs : (i + 1) * w_bs])
+                insample_y=insample_y,  # [Ws, L]
+                insample_mask=insample_mask,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L+H]
+                hist_exog=hist_exog,  # [Ws, L]
+                stat_exog=stat_exog,
+            )  # [Ws, 1]
 
             # Model Predictions
             output_batch = self(windows_batch)
             valid_loss_batch = self._compute_valid_loss(
-                outsample_y=outsample_y_batch,
+                outsample_y=original_outsample_y,
                 output=output_batch,
-                outsample_mask=outsample_mask_batch,
+                outsample_mask=outsample_mask,
                 temporal_cols=batch["temporal_cols"],
             )
             valid_losses.append(valid_loss_batch)
@@ -545,42 +548,41 @@ class BaseWindows(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def predict_step(self, batch, batch_idx):
-        # Create and normalize windows [Ws, L+H, C]
+        # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
-        windows = self._normalization(windows=windows)
+        n_windows = len(windows["temporal"])
 
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            _,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        # Number of windows in batch
+        w_bs = self.inference_windows_batch_size
+        if w_bs < 0:
+            w_bs = n_windows
+        n_batches = int(np.ceil(n_windows / w_bs))
+        idxs_list = np.arange(n_windows)
 
         y_hats = []
-        if self.inference_windows_batch_size > 0:
-            w_bs = self.inference_windows_batch_size
-        else:
-            w_bs = len(insample_y)
-        n_batches = int(np.ceil(len(insample_y) / w_bs))
         for i in range(n_batches):
-            print(i + 1, "/", n_batches, end="\r")
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = idxs_list[i * w_bs : (i + 1) * w_bs]
+            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
+            windows = self._normalization(windows=windows)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                _,
+                hist_exog,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
             windows_batch = dict(
-                insample_y=insample_y[i * w_bs : (i + 1) * w_bs],
-                insample_mask=insample_mask[i * w_bs : (i + 1) * w_bs],
-                futr_exog=None,
-                hist_exog=None,
-                stat_exog=None,
-            )
-            if futr_exog is not None:
-                windows_batch.update(futr_exog=futr_exog[i * w_bs : (i + 1) * w_bs])
-            if hist_exog is not None:
-                windows_batch.update(hist_exog=hist_exog[i * w_bs : (i + 1) * w_bs])
-            if stat_exog is not None:
-                windows_batch.update(stat_exog=stat_exog[i * w_bs : (i + 1) * w_bs])
+                insample_y=insample_y,  # [Ws, L]
+                insample_mask=insample_mask,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L+H]
+                hist_exog=hist_exog,  # [Ws, L]
+                stat_exog=stat_exog,
+            )  # [Ws, 1]
 
             # Model Predictions
             output_batch = self(windows_batch)
