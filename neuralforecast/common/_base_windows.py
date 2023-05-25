@@ -487,17 +487,18 @@ class BaseWindows(pl.LightningModule):
         n_windows = len(windows["temporal"])
 
         # Number of windows in batch
-        w_bs = self.inference_windows_batch_size
-        if w_bs < 0:
-            w_bs = n_windows
-        n_batches = int(np.ceil(n_windows / w_bs))
-        idxs_list = np.arange(n_windows)
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
 
         valid_losses = []
         batch_sizes = []
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
-            w_idxs = idxs_list[i * w_bs : (i + 1) * w_bs]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
             windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
             original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
             windows = self._normalization(windows=windows)
@@ -553,16 +554,17 @@ class BaseWindows(pl.LightningModule):
         n_windows = len(windows["temporal"])
 
         # Number of windows in batch
-        w_bs = self.inference_windows_batch_size
-        if w_bs < 0:
-            w_bs = n_windows
-        n_batches = int(np.ceil(n_windows / w_bs))
-        idxs_list = np.arange(n_windows)
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
 
         y_hats = []
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
-            w_idxs = idxs_list[i * w_bs : (i + 1) * w_bs]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
             windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
             windows = self._normalization(windows=windows)
 
