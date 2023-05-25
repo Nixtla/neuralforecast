@@ -2,8 +2,8 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoPatchTST', 'AutoStemGNN',
-           'AutoHINT']
+           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST',
+           'AutoStemGNN', 'AutoHINT']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -29,6 +29,7 @@ from .models.tft import TFT
 from .models.vanillatransformer import VanillaTransformer
 from .models.informer import Informer
 from .models.autoformer import Autoformer
+from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
 
 from .models.stemgnn import StemGNN
@@ -99,7 +100,7 @@ class AutoRNN(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 13
+# %% ../nbs/models.ipynb 12
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -157,7 +158,7 @@ class AutoLSTM(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 18
+# %% ../nbs/models.ipynb 16
 class AutoGRU(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -217,7 +218,7 @@ class AutoGRU(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 22
+# %% ../nbs/models.ipynb 19
 class AutoTCN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -276,7 +277,7 @@ class AutoTCN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 26
+# %% ../nbs/models.ipynb 22
 class AutoDilatedRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -337,7 +338,7 @@ class AutoDilatedRNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 31
+# %% ../nbs/models.ipynb 26
 class AutoMLP(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -394,7 +395,7 @@ class AutoMLP(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 35
+# %% ../nbs/models.ipynb 29
 class AutoNBEATS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -449,7 +450,7 @@ class AutoNBEATS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 39
+# %% ../nbs/models.ipynb 32
 class AutoNBEATSx(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -504,7 +505,7 @@ class AutoNBEATSx(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 43
+# %% ../nbs/models.ipynb 35
 class AutoNHITS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -576,7 +577,7 @@ class AutoNHITS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 48
+# %% ../nbs/models.ipynb 39
 class AutoTFT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -633,7 +634,7 @@ class AutoTFT(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 52
+# %% ../nbs/models.ipynb 42
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -690,7 +691,7 @@ class AutoVanillaTransformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 56
+# %% ../nbs/models.ipynb 45
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -747,7 +748,7 @@ class AutoInformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 60
+# %% ../nbs/models.ipynb 48
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -804,7 +805,63 @@ class AutoAutoformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 64
+# %% ../nbs/models.ipynb 51
+class AutoFEDformer(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([64, 128, 256]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        super(AutoFEDformer, self).__init__(
+            cls_model=FEDformer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+
+# %% ../nbs/models.ipynb 54
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -863,7 +920,7 @@ class AutoPatchTST(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 69
+# %% ../nbs/models.ipynb 59
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -924,7 +981,7 @@ class AutoStemGNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 73
+# %% ../nbs/models.ipynb 63
 class AutoHINT(BaseAuto):
     def __init__(
         self,
