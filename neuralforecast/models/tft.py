@@ -533,7 +533,7 @@ class TFT(BaseWindows):
 
         if futr_exog is None:
             futr_exog = y_insample[:, [-1]]
-            futr_exog = futr_exog[:, :, None].repeat(1, self.example_length, 1)
+            futr_exog = futr_exog.repeat(1, self.example_length, 1)
 
         s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(
             target_inp=y_insample,
