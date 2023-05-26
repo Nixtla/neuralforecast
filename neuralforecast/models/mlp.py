@@ -37,9 +37,10 @@ class MLP(BaseWindows):
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of differentseries in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
-    `windows_batch_size`: int=None, windows sampled from rolled data, if None uses all.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -71,6 +72,7 @@ class MLP(BaseWindows):
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
+        inference_windows_batch_size=-1,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -95,6 +97,7 @@ class MLP(BaseWindows):
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
             windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,

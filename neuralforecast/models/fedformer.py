@@ -455,13 +455,13 @@ class FEDformer(BaseWindows):
     `valid_loss`: PyTorch module, instantiated validation loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each batch during validation and testing.<br>
-    `windows_batch_size`: int=1024, number of windows in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
@@ -503,6 +503,7 @@ class FEDformer(BaseWindows):
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
+        inference_windows_batch_size=1024,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -526,6 +527,7 @@ class FEDformer(BaseWindows):
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,

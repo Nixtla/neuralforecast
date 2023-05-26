@@ -4,7 +4,6 @@
 __all__ = ['TFT']
 
 # %% ../../nbs/models.tft.ipynb 4
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -446,8 +445,9 @@ class TFT(BaseWindows):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
-        windows_batch_size: int = 1024,
         valid_batch_size: Optional[int] = None,
+        windows_batch_size: int = 1024,
+        inference_windows_batch_size: int = 1024,
         step_size: int = 1,
         scaler_type: str = "robust",
         num_workers_loader=0,
@@ -467,8 +467,9 @@ class TFT(BaseWindows):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
-            windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
@@ -523,34 +524,16 @@ class TFT(BaseWindows):
             in_features=hidden_size, out_features=self.loss.outputsize_multiplier
         )
 
-    def forward(self, x):
-        # Extract static and temporal features
-        y_idx = x["temporal_cols"].get_loc("y")
-        y_insample = x["temporal"][:, :, y_idx, None]
+    def forward(self, windows_batch):
+        # Parsiw windows_batch
+        y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
+        futr_exog = windows_batch["futr_exog"]
+        hist_exog = windows_batch["hist_exog"]
+        stat_exog = windows_batch["stat_exog"]
 
-        # Historic variables
-        if len(self.hist_exog_list) > 0:
-            hist_exog = x["temporal"][
-                :, :, x["temporal_cols"].get_indexer(self.hist_exog_list)
-            ]
-        else:
-            hist_exog = None
-
-        # Future variables
-        if len(self.futr_exog_list) > 0:
-            futr_exog = x["temporal"][
-                :, :, x["temporal_cols"].get_indexer(self.futr_exog_list)
-            ]
-        else:
-            futr_exog = x["temporal"][:, [-self.h - 1], y_idx]
-            futr_exog = futr_exog[:, :, None].repeat(1, self.example_length, 1)
-
-        # Static variables
-        if len(self.stat_exog_list) > 0:
-            static_idx = x["static_cols"].get_indexer(self.stat_exog_list)
-            stat_exog = x["static"][:, static_idx]
-        else:
-            stat_exog = None
+        if futr_exog is None:
+            futr_exog = y_insample[:, [-1]]
+            futr_exog = futr_exog.repeat(1, self.example_length, 1)
 
         s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(
             target_inp=y_insample,
@@ -602,128 +585,5 @@ class TFT(BaseWindows):
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
         y_hat = self.loss.domain_map(y_hat)
-
-        return y_hat
-
-    def training_step(self, batch, batch_idx):
-        # Deviates from orignal `BaseWindows.training_step` to
-        # allow the model to receive future exogenous available
-        # at the time of the prediction.
-
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="train")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-        windows = self._normalization(windows=windows)
-
-        # Parse outsample data
-        y_idx = batch["temporal_cols"].get_loc("y")
-        mask_idx = batch["temporal_cols"].get_loc("available_mask")
-        outsample_y = windows["temporal"][:, -self.h :, y_idx]
-        outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
-
-        # Model predictions
-        output = self(x=windows)
-        if self.loss.is_distribution_output:
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
-            )
-            outsample_y = original_outsample_y
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
-        else:
-            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
-
-        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
-        self.train_trajectories.append((self.global_step, float(loss)))
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        # Deviates from orignal `BaseWindows.training_step` to
-        # allow the model to receive future exogenous available
-        # at the time of the prediction.
-
-        if self.val_size == 0:
-            return np.nan
-
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="val")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-        windows = self._normalization(windows=windows)
-
-        # Parse outsample data
-        y_idx = batch["temporal_cols"].get_loc("y")
-        mask_idx = batch["temporal_cols"].get_loc("available_mask")
-        outsample_y = windows["temporal"][:, -self.h :, y_idx]
-        outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
-
-        # Model Predictions
-        output = self(windows)
-        if self.loss.is_distribution_output:
-            outsample_y, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
-            )
-            outsample_y = original_outsample_y
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-
-            if str(type(self.valid_loss)) in [
-                "<class 'neuralforecast.losses.pytorch.sCRPS'>",
-                "<class 'neuralforecast.losses.pytorch.MQLoss'>",
-            ]:
-                output = quants
-            elif str(type(self.valid_loss)) in [
-                "<class 'neuralforecast.losses.pytorch.relMSE'>"
-            ]:
-                output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
-
-        # Validation Loss evaluation
-        if self.valid_loss.is_distribution_output:
-            valid_loss = self.valid_loss(
-                y=outsample_y, distr_args=distr_args, mask=outsample_mask
-            )
-        else:
-            valid_loss = self.valid_loss(
-                y=outsample_y, y_hat=output, mask=outsample_mask
-            )
-
-        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
-        self.validation_step_outputs.append(valid_loss)
-        return valid_loss
-
-    def predict_step(self, batch, batch_idx):
-        # Deviates from orignal `BaseWindows.training_step` to
-        # allow the model to receive future exogenous available
-        # at the time of the prediction.
-
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="predict")
-        windows = self._normalization(windows=windows)
-
-        # Model predictions
-        output = self(x=windows)
-        if self.loss.is_distribution_output:
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"]
-            )
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-            y_hat = torch.concat((sample_mean, quants), axis=2)
-
-            if self.loss.return_params:
-                distr_args = torch.stack(distr_args, dim=-1)
-                distr_args = torch.reshape(
-                    distr_args, (len(windows["temporal"]), self.h, -1)
-                )
-                y_hat = torch.concat((y_hat, distr_args), axis=2)
-        else:
-            y_hat, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
-            )
 
         return y_hat
