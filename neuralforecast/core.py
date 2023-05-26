@@ -222,6 +222,12 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
+        # Model and datasets interactions protections
+        if (any(model.early_stop_patience_steps > 0 for model in self.models)) and (
+            val_size == 0
+        ):
+            raise Exception("Set val_size>0 if early stopping is enabled.")
+
         # Process and save new dataset (in self)
         if df is not None:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
