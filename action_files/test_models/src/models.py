@@ -67,7 +67,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         AutoNBEATS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoNHITS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
-        NHITS(h=horizon, input_size=2 * horizon, dropout=0.5, loss=SMAPE(), max_steps=1000),
+        NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=SMAPE(), max_steps=1000),
         NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
         MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_steps=2000),
