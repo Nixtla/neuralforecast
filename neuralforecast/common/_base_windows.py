@@ -40,8 +40,9 @@ class BaseWindows(pl.LightningModule):
         max_steps,
         val_check_steps,
         batch_size,
-        windows_batch_size,
         valid_batch_size,
+        windows_batch_size,
+        inference_windows_batch_size,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -76,12 +77,16 @@ class BaseWindows(pl.LightningModule):
         self.train_trajectories = []
         self.valid_trajectories = []
 
-        # Valid batch_size
+        # Batch sizes
         self.batch_size = batch_size
         if valid_batch_size is None:
             self.valid_batch_size = batch_size
         else:
             self.valid_batch_size = valid_batch_size
+        if inference_windows_batch_size is None:
+            self.inference_windows_batch_size = windows_batch_size
+        else:
+            self.inference_windows_batch_size = inference_windows_batch_size
 
         # Optimization
         self.learning_rate = learning_rate
@@ -114,13 +119,10 @@ class BaseWindows(pl.LightningModule):
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
-        if "max_epochs" in trainer_kwargs.keys():
-            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
-        else:
-            trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
+        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
 
         if "max_epochs" in trainer_kwargs.keys():
-            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
+            raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
         if trainer_kwargs.get("callbacks", None) is None:
@@ -175,7 +177,7 @@ class BaseWindows(pl.LightningModule):
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
-    def _create_windows(self, batch, step):
+    def _create_windows(self, batch, step, w_idxs=None):
         # Parse common data
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
@@ -288,6 +290,12 @@ class BaseWindows(pl.LightningModule):
                 static = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
+
+            # Sample windows for batched prediction
+            if w_idxs is not None:
+                windows = windows[w_idxs]
+                if static is not None:
+                    static = static[w_idxs]
 
             windows_batch = dict(
                 temporal=windows,
@@ -436,41 +444,11 @@ class BaseWindows(pl.LightningModule):
         self.train_trajectories.append((self.global_step, float(loss)))
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        if self.val_size == 0:
-            return np.nan
-
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="val")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-        windows = self._normalization(windows=windows)
-
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            outsample_y,
-            outsample_mask,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
-
-        windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
-            stat_exog=stat_exog,
-        )  # [Ws, 1]
-
-        # Model Predictions
-        output = self(windows_batch)
+    def _compute_valid_loss(self, outsample_y, output, outsample_mask, temporal_cols):
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=temporal_cols
             )
-            outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
@@ -495,6 +473,65 @@ class BaseWindows(pl.LightningModule):
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
+        return valid_loss
+
+    def validation_step(self, batch, batch_idx):
+        if self.val_size == 0:
+            return np.nan
+
+        # TODO: Hack to compute number of windows
+        windows = self._create_windows(batch, step="val")
+        n_windows = len(windows["temporal"])
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+
+        valid_losses = []
+        batch_sizes = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
+            original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+            windows = self._normalization(windows=windows)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                outsample_mask,
+                hist_exog,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
+            windows_batch = dict(
+                insample_y=insample_y,  # [Ws, L]
+                insample_mask=insample_mask,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L+H]
+                hist_exog=hist_exog,  # [Ws, L]
+                stat_exog=stat_exog,
+            )  # [Ws, 1]
+
+            # Model Predictions
+            output_batch = self(windows_batch)
+            valid_loss_batch = self._compute_valid_loss(
+                outsample_y=original_outsample_y,
+                output=output_batch,
+                outsample_mask=outsample_mask,
+                temporal_cols=batch["temporal_cols"],
+            )
+            valid_losses.append(valid_loss_batch)
+            batch_sizes.append(len(output_batch))
+
+        valid_loss = torch.stack(valid_losses)
+        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
         self.validation_step_outputs.append(valid_loss)
@@ -509,51 +546,68 @@ class BaseWindows(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def predict_step(self, batch, batch_idx):
-        # Create and normalize windows [Ws, L+H, C]
+        # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
-        windows = self._normalization(windows=windows)
+        n_windows = len(windows["temporal"])
 
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            _,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
 
-        windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
-            stat_exog=stat_exog,
-        )  # [Ws, 1]
-
-        # Model Predictions
-        output = self(windows_batch)
-        if self.loss.is_distribution_output:
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"]
+        y_hats = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-            y_hat = torch.concat((sample_mean, quants), axis=2)
+            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
+            windows = self._normalization(windows=windows)
 
-            if self.loss.return_params:
-                distr_args = torch.stack(distr_args, dim=-1)
-                distr_args = torch.reshape(
-                    distr_args, (len(windows["temporal"]), self.h, -1)
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                _,
+                hist_exog,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
+            windows_batch = dict(
+                insample_y=insample_y,  # [Ws, L]
+                insample_mask=insample_mask,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L+H]
+                hist_exog=hist_exog,  # [Ws, L]
+                stat_exog=stat_exog,
+            )  # [Ws, 1]
+
+            # Model Predictions
+            output_batch = self(windows_batch)
+            # Inverse normalization and sampling
+            if self.loss.is_distribution_output:
+                _, y_loc, y_scale = self._inv_normalization(
+                    y_hat=output_batch[0], temporal_cols=batch["temporal_cols"]
                 )
-                y_hat = torch.concat((y_hat, distr_args), axis=2)
-        else:
-            y_hat, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
-            )
+                distr_args = self.loss.scale_decouple(
+                    output=output_batch, loc=y_loc, scale=y_scale
+                )
+                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+                y_hat = torch.concat((sample_mean, quants), axis=2)
+
+                if self.loss.return_params:
+                    distr_args = torch.stack(distr_args, dim=-1)
+                    distr_args = torch.reshape(
+                        distr_args, (len(windows["temporal"]), self.h, -1)
+                    )
+                    y_hat = torch.concat((y_hat, distr_args), axis=2)
+            else:
+                y_hat, _, _ = self._inv_normalization(
+                    y_hat=output_batch, temporal_cols=batch["temporal_cols"]
+                )
+            y_hats.append(y_hat)
+        y_hat = torch.cat(y_hats, dim=0)
         return y_hat
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
@@ -593,24 +647,14 @@ class BaseWindows(pl.LightningModule):
             drop_last=self.drop_last_loader,
         )
 
-        ### Check validation every steps ###
-        steps_in_epoch = np.ceil(dataset.n_groups / self.batch_size)
-
-        # In v1.6.5 of PL, val_check_interval can be used for multiple validation steps
-        # within one epoch (steps_in_epoch > self.val_check_steps)
-        if steps_in_epoch > self.val_check_steps:
-            val_check_interval = self.val_check_steps / steps_in_epoch
-            check_val_every_n_epoch = 1
-        # Use check_val_every_n_epoch to check validation at end of some epochs,
-        # closest to self.val_check_steps.
-        else:
-            val_check_interval = None
-            check_val_every_n_epoch = int(
-                np.round(self.val_check_steps / steps_in_epoch)
+        if self.val_check_steps > self.max_steps:
+            warnings.warn(
+                "val_check_steps is greater than max_steps, \
+                    setting val_check_steps to max_steps"
             )
-
-        self.trainer_kwargs["val_check_interval"] = val_check_interval
-        self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
+        val_check_interval = min(self.val_check_steps, self.max_steps)
+        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
+        self.trainer_kwargs["check_val_every_n_epoch"] = None
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
