@@ -90,6 +90,13 @@ class BaseAuto(pl.LightningModule):
         self.loss = self.config["loss"]
         self.valid_loss = self.config["valid_loss"]
 
+        # This attribute helps to protect
+        # model and datasets interactions protections
+        if "early_stop_patience_steps" in config.keys():
+            self.early_stop_patience_steps = 1
+        else:
+            self.early_stop_patience_steps = -1
+
         self.num_samples = num_samples
         self.search_alg = search_alg
         self.cpus = cpus
