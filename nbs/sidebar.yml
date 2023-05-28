@@ -17,9 +17,9 @@ website:
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
-        - examples/LongHorizon_with_NHITS.ipynb
         - examples/UncertaintyIntervals.ipynb
         - examples/IntermittentData.ipynb
+        - examples/LongHorizon_with_NHITS.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
