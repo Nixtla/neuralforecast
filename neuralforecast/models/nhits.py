@@ -45,6 +45,10 @@ class _IdentityBasis(nn.Module):
             )
             # forecast = forecast[:,0,:]
         elif "cubic" in self.interpolation_mode:
+            if self.out_features > 1:
+                raise Exception(
+                    "Cubic interpolation not available with multiple outputs."
+                )
             batch_size = len(backcast)
             knots = knots[:, None, :, :]
             forecast = torch.zeros((len(knots), self.forecast_size)).to(knots.device)
@@ -56,8 +60,9 @@ class _IdentityBasis(nn.Module):
                     mode="bicubic",
                 )
                 forecast[i * batch_size : (i + 1) * batch_size] += forecast_i[
-                    :, 0, :, :
-                ]
+                    :, 0, 0, :
+                ]  # [B,None,H,H] -> [B,H]
+            forecast = forecast[:, None, :]  # [B,H] -> [B,None,H]
 
         # [B,Q,H] -> [B,H,Q]
         forecast = forecast.permute(0, 2, 1)

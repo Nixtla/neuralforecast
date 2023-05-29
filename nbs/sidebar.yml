@@ -26,6 +26,7 @@ website:
         - examples/HierarchicalNetworks.ipynb
         - examples/Temporal_Classifiers.ipynb
         - examples/Robust_Regression.ipynb
+        - examples/Signal_Decomposition.ipynb
       - examples/models_intro.qmd
       - section: API Reference
         contents:
