@@ -50,6 +50,7 @@ class BaseWindows(pl.LightningModule):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         num_workers_loader=0,
         drop_last_loader=False,
         random_seed=1,
@@ -109,6 +110,7 @@ class BaseWindows(pl.LightningModule):
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
         self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
         self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+        self.exclude_insample_y = exclude_insample_y
 
         # Fit arguments
         self.val_size = 0
@@ -390,6 +392,9 @@ class BaseWindows(pl.LightningModule):
             stat_exog = windows["static"][:, static_idx]
         else:
             stat_exog = None
+
+        if self.exclude_insample_y:
+            insample_y = insample_y * 0
 
         return (
             insample_y,

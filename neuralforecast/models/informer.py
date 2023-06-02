@@ -185,6 +185,7 @@ class Informer(BaseWindows):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
         `decoder_input_size_multiplier`: float = 0.5, .<br>
     `hidden_size`: int=128, units of embeddings and encoders.<br>
     `n_head`: int=4, controls number of multi-head's attention.<br>
@@ -226,6 +227,7 @@ class Informer(BaseWindows):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        exclude_insample_y=False,
         decoder_input_size_multiplier: float = 0.5,
         hidden_size: int = 128,
         dropout: float = 0.05,
@@ -260,6 +262,7 @@ class Informer(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,

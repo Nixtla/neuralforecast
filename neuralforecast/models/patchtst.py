@@ -829,6 +829,7 @@ class PatchTST(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `encoder_layers`: int, number of layers for encoder.<br>
     `n_heads`: int=16, number of multi-head's attention.<br>
     `hidden_size`: int=128, units of embeddings and encoders.<br>
@@ -879,6 +880,7 @@ class PatchTST(BaseWindows):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        exclude_insample_y=False,
         encoder_layers: int = 3,
         n_heads: int = 16,
         hidden_size: int = 128,
@@ -920,6 +922,7 @@ class PatchTST(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
