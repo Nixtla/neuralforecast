@@ -53,7 +53,7 @@ def load_model(args):
 	nhits = [AutoNHITS(h=horizon,
 					loss=loss, num_samples=num_samples,
 					config={
-						"input_size": tune.choice([1*horizon, 2*horizon]),
+						"input_size": tune.choice([horizon]),
 						"stack_types": tune.choice([3*['identity']]),
 						"mlp_units": tune.choice([3 * [[512, 512, 512, 512]]]),
 						"n_blocks": tune.choice([3*[10]]),
@@ -73,8 +73,6 @@ def load_model(args):
 						"windows_batch_size": tune.choice([128, 512, 1024]),
 						"random_seed": tune.randint(1, 20),
 					})]
-
-	lstm = [AutoLSTM(h=horizon,loss=loss,config=config,num_samples=num_samples)]
 
 	tft = [AutoTFT(h=horizon,
 					loss=loss, num_samples=num_samples,
