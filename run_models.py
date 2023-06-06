@@ -44,9 +44,9 @@ Notes:
 """
 
 # GLOBAL parameters
-horizon = 18
+horizon = 12
 loss = MAE()
-num_samples = 30  # how many configuration we try during tuning
+num_samples = 10  # how many configuration we try during tuning
 config = None
 
 def load_model(args):
@@ -89,7 +89,7 @@ def load_model(args):
 						"random_seed": tune.randint(1, 20),
 					})]
 	
-	MODEL_DICT = {'autonhits': nhits, 'autolstm': lstm, 'autotft': tft}
+	MODEL_DICT = {'autonhits': nhits, 'autotft': tft}
 	model = MODEL_DICT[args.model]
 
 	return model
@@ -132,7 +132,13 @@ def main(args):
 		print('Fitting model')
 		model = load_model(args)
 		nf = NeuralForecast(models=model, freq=frequency)
-		nf.fit(df=Y_df, val_size=horizon)
+		Y_hat_source_df = nf.cross_validation(df=Y_df, val_size=horizon, test_size=horizon, n_windows=None)
+		
+		# Store source forecasts
+		results_dir = f'./results/forecasts/{args.source_dataset}/'
+		os.makedirs(results_dir, exist_ok=True)
+		Y_hat_source_df.to_csv(f'{results_dir}/{args.model}_{args.source_dataset}_{args.experiment_id}.csv',
+		 					   index=False)
 		
 		# Save model
 		nf.save(path=f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/',
