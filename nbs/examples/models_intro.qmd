@@ -17,12 +17,21 @@ Automatic forecasting tools optimize the hyperparameters of a given model class 
 ## Optimization Objectives
 NeuralForecast is a highly modular framework capable of augmenting a wide variety of robust neural network architectures with different point or probability outputs as defined by their optimization objectives.
 
-|Probabilistic                                                 | Scale-Dependent                                              | Percentage-Errors                                                     | Scale-Ind.                                                     | Robust                                                 |
-|:-------------------------------------------------------------|:-------------------------------------------------------------|:----------------------------------------------------------------------|:---------------------------------------------------------------|:-------------------------------------------------------|
-|[`QuantileLoss`](../losses.pytorch.html#quantile-loss)        |[`MAE`](../losses.pytorch.html#mean-absolute-error-mae)       |[`MAPE`](../losses.pytorch.html#mean-absolute-percentage-error-mape)   |[`MASE`](../losses.pytorch.html#mean-absolute-scaled-error-mase)|[`Huber`](../losses.pytorch.html#huber-loss)            |
-|[`MQLoss`](../losses.pytorch.html#multi-quantile-loss-mqloss) |[`MSE`](../losses.pytorch.html#mean-squared-error-mse)        |[`sMAPE`](../losses.pytorch.html#symmetric-mape-smape)                 |                                                                |[`Tukey`](../losses.pytorch.html#tukey-loss)            |
-|[`DistributionLoss`](../losses.pytorch.html#distributionloss) |[`RMSE`](../losses.pytorch.html#root-mean-squared-error-rmse) |                                                                       |                                                                |[`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss)|
-|[`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm)  |       |                                                                       |                                                                |                                                        |
+| Scale-Dependent                                              | Percentage-Errors                                                     | Scale-Independent                                              | Robust                                                 |
+|:-------------------------------------------------------------|:----------------------------------------------------------------------|:---------------------------------------------------------------|:-------------------------------------------------------|
+|[`MAE`](../losses.pytorch.html#mean-absolute-error-mae)       |[`MAPE`](../losses.pytorch.html#mean-absolute-percentage-error-mape)   |[`MASE`](../losses.pytorch.html#mean-absolute-scaled-error-mase)|[`Huber`](../losses.pytorch.html#huber-loss)            |
+|[`MSE`](../losses.pytorch.html#mean-squared-error-mse)        |[`sMAPE`](../losses.pytorch.html#symmetric-mape-smape)                 |                                                                |[`Tukey`](../losses.pytorch.html#tukey-loss)            |
+|[`RMSE`](../losses.pytorch.html#root-mean-squared-error-rmse) |                                                                       |                                                                |[`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss)|
+: {tbl-colwidths="[25,25]"}
+
+|Parametric Probabilities                                      | Non-Parametric Probabilities                                 |
+|:-------------------------------------------------------------|:-------------------------------------------------------------|
+|[`Normal`](../losses.pytorch.html#distributionloss)           |[`QuantileLoss`](../losses.pytorch.html#quantile-loss)        |
+|[`StudenT`](../losses.pytorch.html#distributionloss)          |[`MQLoss`](../losses.pytorch.html#multi-quantile-loss-mqloss) |
+|[`Poisson`](../losses.pytorch.html#distributionloss)          |[`HuberQLoss`](../losses.pytorch.html#huberized-quantile-loss)|
+|[`Negative Binomial`](../losses.pytorch.html#distributionloss)|[`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss)      |
+|[`Tweedie`](../losses.pytorch.html#distributionloss)          |                                                              |
+|[`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm)  |       |
 : {tbl-colwidths="[25,25]"}
 
 ## MLP-Based Model Family

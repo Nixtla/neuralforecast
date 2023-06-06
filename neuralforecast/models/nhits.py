@@ -194,6 +194,7 @@ class NHITS(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `stack_types`: List[str], stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
@@ -238,6 +239,7 @@ class NHITS(BaseWindows):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         stack_types: list = ["identity", "identity", "identity"],
         n_blocks: list = [1, 1, 1],
         mlp_units: list = 3 * [[512, 512]],
@@ -272,6 +274,7 @@ class NHITS(BaseWindows):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
