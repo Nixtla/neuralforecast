@@ -77,7 +77,7 @@ def load_model(args):
 	tft = [AutoTFT(h=horizon,
 					loss=loss, num_samples=num_samples,
 					config={
-						"input_size": tune.choice([1*horizon, 2*horizon]),
+						"input_size": tune.choice([horizon]),
 						"hidden_size": tune.choice([64, 128, 256]),
 						"learning_rate": tune.loguniform(1e-4, 1e-1),
 						"early_stop_patience_steps": tune.choice([5]),
