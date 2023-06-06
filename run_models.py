@@ -204,6 +204,7 @@ def parse_args():
     parser.add_argument('--source_dataset', type=str, help='dataset to train models on')
     parser.add_argument('--target_dataset', type=str, help='run model on this dataset')
     parser.add_argument('--model', type=str, help='auto model to use')
+    parser.add_argument('--k_shot', type=int, help='number of steps to fin tune model')
     parser.add_argument('--experiment_id', type=str, help='identify experiment')
     return parser.parse_args()
 
