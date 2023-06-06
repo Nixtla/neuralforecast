@@ -192,8 +192,7 @@ class NBEATSBlock(nn.Module):
             hidden_layers.append(activ)
 
             if self.dropout_prob > 0:
-                raise NotImplementedError("dropout")
-                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
+                hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
         output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
         layers = hidden_layers + output_layer
@@ -246,8 +245,9 @@ class NBEATSx(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
-    `n_harmonics`: int, Number of harmonic terms for trend stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-    `n_polynomials`: int, Number of polynomial terms for seasonality stack type. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
+    `n_harmonics`: int, Number of harmonic oscillations in the SeasonalityBasis [cos(i * t/n_harmonics), sin(i * t/n_harmonics)]. Note that it will only be used if 'seasonality' is in `stack_types`.<br>
+    `n_polynomials`: int, Number of polynomial terms for TrendBasis [1,t,...,t^n_poly]. Note that it will only be used if 'trend' is in `stack_types`.<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
@@ -260,9 +260,10 @@ class NBEATSx(BaseWindows):
     `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int, number of different series in each batch.<br>
-    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -286,6 +287,7 @@ class NBEATSx(BaseWindows):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         n_harmonics=2,
         n_polynomials=2,
         stack_types: list = ["identity", "trend", "seasonality"],
@@ -302,8 +304,9 @@ class NBEATSx(BaseWindows):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size=32,
-        windows_batch_size: int = 1024,
         valid_batch_size: Optional[int] = None,
+        windows_batch_size: int = 1024,
+        inference_windows_batch_size: int = -1,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -318,6 +321,7 @@ class NBEATSx(BaseWindows):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -326,8 +330,9 @@ class NBEATSx(BaseWindows):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
-            windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,

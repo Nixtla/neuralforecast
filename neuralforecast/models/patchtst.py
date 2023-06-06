@@ -829,6 +829,7 @@ class PatchTST(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `encoder_layers`: int, number of layers for encoder.<br>
     `n_heads`: int=16, number of multi-head's attention.<br>
     `hidden_size`: int=128, units of embeddings and encoders.<br>
@@ -853,9 +854,10 @@ class PatchTST(BaseWindows):
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int, number of different series in each batch.<br>
-    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
@@ -878,6 +880,7 @@ class PatchTST(BaseWindows):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        exclude_insample_y=False,
         encoder_layers: int = 3,
         n_heads: int = 16,
         hidden_size: int = 128,
@@ -905,6 +908,7 @@ class PatchTST(BaseWindows):
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
+        inference_windows_batch_size: int = 1024,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -918,6 +922,7 @@ class PatchTST(BaseWindows):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -926,8 +931,9 @@ class PatchTST(BaseWindows):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
-            windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,

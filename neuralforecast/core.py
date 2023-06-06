@@ -29,6 +29,7 @@ from neuralforecast.models import (
     VanillaTransformer,
     Informer,
     Autoformer,
+    FEDformer,
     StemGNN,
     PatchTST,
 )
@@ -123,8 +124,11 @@ MODEL_FILENAME_DICT = {
     "nbeatsx": NBEATSx,
     "nhits": NHITS,
     "tft": TFT,
-    "stemgnn": StemGNN,
+    "vanillatransformer": VanillaTransformer,
     "informer": Informer,
+    "autoformer": Autoformer,
+    "patchtst": PatchTST,
+    "stemgnn": StemGNN,
     "autogru": GRU,
     "autolstm": LSTM,
     "autornn": RNN,
@@ -138,6 +142,7 @@ MODEL_FILENAME_DICT = {
     "autoinformer": Informer,
     "autoautoformer": Autoformer,
     "autopatchtst": PatchTST,
+    "autofedformer": FEDformer,
     "autostemgnn": StemGNN,
 }
 
@@ -201,7 +206,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
         sort_df : bool, optional (default=False)
@@ -216,6 +221,12 @@ class NeuralForecast:
         """
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
+
+        # Model and datasets interactions protections
+        if (any(model.early_stop_patience_steps > 0 for model in self.models)) and (
+            val_size == 0
+        ):
+            raise Exception("Set val_size>0 if early stopping is enabled.")
 
         # Process and save new dataset (in self)
         if df is not None:
@@ -259,7 +270,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         futr_df : pandas.DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
         sort_df : bool (default=True)
@@ -356,7 +367,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         n_windows : int (default=1)
             Number of windows used for cross validation.
         step_size : int (default=1)
@@ -568,6 +579,7 @@ class NeuralForecast:
         """Predict insample with core.NeuralForecast.
 
         Use stored fitted `models` to predict historic values of a time series from DataFrame `df`.
+        This method will be deprecated in favor of `predict_insample`.
 
         Parameters
         ----------
@@ -575,7 +587,7 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`] and static exogenous.
+            DataFrame with columns [`unique_id`] and static exogenous.
         n_windows : int (default=1)
             Number of windows used for cross validation.
         step_size : int (default=1)

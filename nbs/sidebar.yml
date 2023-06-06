@@ -1,7 +1,7 @@
 website:
   reader-mode: false
   sidebar:
-    collapse-level: 2
+    collapse-level: 1
     contents:
       - index.ipynb
       - text: "--"
@@ -17,13 +17,19 @@ website:
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
-        - examples/LongHorizon_with_NHITS.ipynb
         - examples/UncertaintyIntervals.ipynb
         - examples/IntermittentData.ipynb
+        - examples/LongHorizon_with_NHITS.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
         - examples/HierarchicalNetworks.ipynb
+        - examples/Temporal_Classifiers.ipynb
+        - examples/Robust_Regression.ipynb
+        - examples/Signal_Decomposition.ipynb
+        - examples/Predictive_Maintenance.ipynb
+        - examples/StatsMlNeuralMethods.ipynb
+      - examples/models_intro.qmd
       - section: API Reference
         contents:
         - core.ipynb

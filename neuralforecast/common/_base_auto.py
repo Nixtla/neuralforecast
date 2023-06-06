@@ -15,66 +15,9 @@ from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
-from ..losses.pytorch import MAE
-
 # %% ../../nbs/common.base_auto.ipynb 6
-def train_tune(config_step, cls_model, dataset, val_size, test_size):
-    metrics = {"loss": "ptl/val_loss"}
-    callbacks = [TQDMProgressBar(), TuneReportCallback(metrics, on="validation_end")]
-    if "callbacks" in config_step.keys():
-        callbacks += config_step["callbacks"]
-    config_step = {**config_step, **{"callbacks": callbacks}}
-    model = cls_model(**config_step)
-    model.fit(dataset, val_size=val_size, test_size=test_size)
-
-# %% ../../nbs/common.base_auto.ipynb 7
-def tune_model(
-    cls_model,
-    dataset,
-    val_size,
-    test_size,
-    cpus,
-    gpus,
-    verbose,
-    num_samples,
-    search_alg,
-    config,
-):
-    train_fn_with_parameters = tune.with_parameters(
-        train_tune,
-        cls_model=cls_model,
-        dataset=dataset,
-        val_size=val_size,
-        test_size=test_size,
-    )
-
-    # Device
-    if gpus > 0:
-        device_dict = {"gpu": gpus}
-    else:
-        device_dict = {"cpu": cpus}
-
-    tuner = tune.Tuner(
-        tune.with_resources(train_fn_with_parameters, device_dict),
-        run_config=air.RunConfig(
-            verbose=verbose,
-            # checkpoint_config=air.CheckpointConfig(
-            # num_to_keep=0,
-            # keep_checkpoints_num=None
-            # )
-        ),
-        tune_config=tune.TuneConfig(
-            metric="loss", mode="min", num_samples=num_samples, search_alg=search_alg
-        ),
-        param_space=config,
-    )
-    results = tuner.fit()
-    return results
-
-# %% ../../nbs/common.base_auto.ipynb 8
 class BaseAuto(pl.LightningModule):
-    """BaseAuto
-
+    """
     Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to
     give access to a wide variety of hyperparameter optimization tools ranging
     from classic grid search, to Bayesian optimization and HyperBand algorithm.
@@ -133,23 +76,33 @@ class BaseAuto(pl.LightningModule):
         # Deepcopy to avoid modifying the original config
         config_base = deepcopy(config)
 
+        # Add losses to config and protect valid_loss default
         config_base["h"] = h
         config_base["loss"] = loss
         if valid_loss is None:
             valid_loss = loss
         config_base["valid_loss"] = valid_loss
-        self.cls_model = cls_model
+
         self.h = h
-        self.loss = loss
+        self.cls_model = cls_model
+
         self.config = config_base
+        self.loss = self.config["loss"]
+        self.valid_loss = self.config["valid_loss"]
+
+        # This attribute helps to protect
+        # model and datasets interactions protections
+        if "early_stop_patience_steps" in config.keys():
+            self.early_stop_patience_steps = 1
+        else:
+            self.early_stop_patience_steps = -1
+
         self.num_samples = num_samples
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
         self.refit_with_val = refit_with_val
         self.verbose = verbose
-        self.loss = self.config.get("loss", MAE())
-        self.valid_loss = self.config.get("valid_loss", self.loss)
         self.alias = alias
 
         # Base Class attributes
@@ -158,7 +111,98 @@ class BaseAuto(pl.LightningModule):
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
-    def fit(self, dataset, val_size=0, test_size=0):
+    def _train_tune(self, config_step, cls_model, dataset, val_size, test_size):
+        """BaseAuto._train_tune
+
+        Internal function that instantiates a NF class model, then automatically
+        explores the validation loss (ptl/val_loss) on which the hyperparameter
+        exploration is based.
+
+        **Parameters:**<br>
+        `config_step`: Dict, initialization parameters of a NF model.<br>
+        `cls_model`: NeuralForecast model class, yet to be instantiated.<br>
+        `dataset`: NeuralForecast dataset, to fit the model.<br>
+        `val_size`: int, validation size for temporal cross-validation.<br>
+        `test_size`: int, test size for temporal cross-validation.<br>
+        """
+        metrics = {"loss": "ptl/val_loss"}
+        callbacks = [
+            TQDMProgressBar(),
+            TuneReportCallback(metrics, on="validation_end"),
+        ]
+        if "callbacks" in config_step.keys():
+            callbacks += config_step["callbacks"]
+        config_step = {**config_step, **{"callbacks": callbacks}}
+
+        # Protect dtypes from tune samplers
+        if "batch_size" in config_step.keys():
+            config_step["batch_size"] = int(config_step["batch_size"])
+        if "windows_batch_size" in config_step.keys():
+            config_step["windows_batch_size"] = int(config_step["windows_batch_size"])
+
+        # Tune session receives validation signal
+        # from the specialized PL TuneReportCallback
+        _ = self._fit_model(
+            cls_model=cls_model,
+            config=config_step,
+            dataset=dataset,
+            val_size=val_size,
+            test_size=test_size,
+        )
+
+    def _tune_model(
+        self,
+        cls_model,
+        dataset,
+        val_size,
+        test_size,
+        cpus,
+        gpus,
+        verbose,
+        num_samples,
+        search_alg,
+        config,
+    ):
+        train_fn_with_parameters = tune.with_parameters(
+            self._train_tune,
+            cls_model=cls_model,
+            dataset=dataset,
+            val_size=val_size,
+            test_size=test_size,
+        )
+
+        # Device
+        if gpus > 0:
+            device_dict = {"gpu": gpus}
+        else:
+            device_dict = {"cpu": cpus}
+
+        tuner = tune.Tuner(
+            tune.with_resources(train_fn_with_parameters, device_dict),
+            run_config=air.RunConfig(
+                verbose=verbose,
+                # checkpoint_config=air.CheckpointConfig(
+                # num_to_keep=0,
+                # keep_checkpoints_num=None
+                # )
+            ),
+            tune_config=tune.TuneConfig(
+                metric="loss",
+                mode="min",
+                num_samples=num_samples,
+                search_alg=search_alg,
+            ),
+            param_space=config,
+        )
+        results = tuner.fit()
+        return results
+
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+        model = cls_model(**config)
+        model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model
+
+    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """BaseAuto.fit
 
         Perform the hyperparameter optimization as specified by the BaseAuto configuration
@@ -171,7 +215,7 @@ class BaseAuto(pl.LightningModule):
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
         `val_size`: int, size of temporal validation set (needs to be bigger than 0).<br>
         `test_size`: int, size of temporal test set (default 0).<br>
-
+        `random_seed`: int=None, random_seed for hyperparameter exploration algorithms, not yet implemented.<br>
         **Returns:**<br>
         `self`: fitted instance of `BaseAuto` with best hyperparameters and results<br>.
         """
@@ -179,7 +223,7 @@ class BaseAuto(pl.LightningModule):
         # hyperparameter selection.
         search_alg = deepcopy(self.search_alg)
         val_size = val_size if val_size > 0 else self.h
-        results = tune_model(
+        results = self._tune_model(
             cls_model=self.cls_model,
             dataset=dataset,
             val_size=val_size,
@@ -192,8 +236,15 @@ class BaseAuto(pl.LightningModule):
             config=self.config,
         )
         best_config = results.get_best_result().config
-        self.model = self.cls_model(**best_config)
-        self.model.fit(
+        # self.model = self.cls_model(**best_config)
+        # self.model.fit(
+        #    dataset=dataset,
+        #    val_size=val_size * (1 - self.refit_with_val),
+        #    test_size=test_size,
+        # )
+        self.model = self._fit_model(
+            cls_model=self.cls_model,
+            config=best_config,
             dataset=dataset,
             val_size=val_size * (1 - self.refit_with_val),
             test_size=test_size,
@@ -209,7 +260,7 @@ class BaseAuto(pl.LightningModule):
         `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
         `step_size`: int, steps between sequential predictions, (default 1).<br>
         `**data_kwarg`: additional parameters for the dataset module.<br>
-
+        `random_seed`: int=None, random_seed for hyperparameter exploration algorithms (not implemented).<br>
         **Returns:**<br>
         `y_hat`: numpy predictions of the `NeuralForecast` model.<br>
         """

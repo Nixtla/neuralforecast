@@ -76,6 +76,15 @@ class BaseRecurrent(pl.LightningModule):
         self.train_trajectories = []
         self.valid_trajectories = []
 
+        if (
+            str(type(self.loss))
+            == "<class 'neuralforecast.losses.pytorch.DistributionLoss'>"
+            and self.loss.distribution == "Bernoulli"
+        ):
+            raise Exception(
+                "Temporal Classification not yet available for Recurrent-based models"
+            )
+
         # Valid batch_size
         self.batch_size = batch_size
         if valid_batch_size is None:
@@ -109,10 +118,10 @@ class BaseRecurrent(pl.LightningModule):
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
+        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
+
         if "max_epochs" in trainer_kwargs.keys():
-            warnings.warn("max_epochs will be deprecated, use max_steps instead.")
-        else:
-            trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
+            raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
         if trainer_kwargs.get("callbacks", None) is None:
@@ -553,6 +562,7 @@ class BaseRecurrent(pl.LightningModule):
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         """
         # Restart random seed
         if random_seed is None:
@@ -569,24 +579,14 @@ class BaseRecurrent(pl.LightningModule):
             drop_last=self.drop_last_loader,
         )
 
-        ### Check validation every steps ###
-        steps_in_epoch = np.ceil(dataset.n_groups / self.batch_size)
-
-        # In v1.6.5 of PL, val_check_interval can be used for multiple validation steps
-        # within one epoch (steps_in_epoch > self.val_check_steps)
-        if steps_in_epoch > self.val_check_steps:
-            val_check_interval = self.val_check_steps / steps_in_epoch
-            check_val_every_n_epoch = 1
-        # Use check_val_every_n_epoch to check validation at end of some epochs,
-        # closest to self.val_check_steps.
-        else:
-            val_check_interval = None
-            check_val_every_n_epoch = int(
-                np.round(self.val_check_steps / steps_in_epoch)
+        if self.val_check_steps > self.max_steps:
+            warnings.warn(
+                "val_check_steps is greater than max_steps, \
+                    setting val_check_steps to max_steps"
             )
-
-        self.trainer_kwargs["val_check_interval"] = val_check_interval
-        self.trainer_kwargs["check_val_every_n_epoch"] = check_val_every_n_epoch
+        val_check_interval = min(self.val_check_steps, self.max_steps)
+        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
+        self.trainer_kwargs["check_val_every_n_epoch"] = None
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
@@ -599,6 +599,7 @@ class BaseRecurrent(pl.LightningModule):
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `step_size`: int=1, Step size between each window.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         # Restart random seed

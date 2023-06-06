@@ -2,7 +2,8 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS',
-           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoPatchTST', 'AutoStemGNN']
+           'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST',
+           'AutoStemGNN', 'AutoHINT']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -28,9 +29,11 @@ from .models.tft import TFT
 from .models.vanillatransformer import VanillaTransformer
 from .models.informer import Informer
 from .models.autoformer import Autoformer
+from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
 
 from .models.stemgnn import StemGNN
+from .models.hint import HINT
 
 from .losses.pytorch import MAE
 
@@ -78,7 +81,10 @@ class AutoRNN(BaseAuto):
             config["inference_input_size"] = tune.choice(
                 [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
-            del config["input_size_multiplier"]
+            del (
+                config["input_size_multiplier"],
+                config["inference_input_size_multiplier"],
+            )
 
         super(AutoRNN, self).__init__(
             cls_model=RNN,
@@ -94,7 +100,7 @@ class AutoRNN(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 13
+# %% ../nbs/models.ipynb 12
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -133,7 +139,10 @@ class AutoLSTM(BaseAuto):
             config["inference_input_size"] = tune.choice(
                 [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
-            del config["input_size_multiplier"]
+            del (
+                config["input_size_multiplier"],
+                config["inference_input_size_multiplier"],
+            )
 
         super(AutoLSTM, self).__init__(
             cls_model=LSTM,
@@ -149,7 +158,7 @@ class AutoLSTM(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 17
+# %% ../nbs/models.ipynb 16
 class AutoGRU(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -189,7 +198,10 @@ class AutoGRU(BaseAuto):
             config["inference_input_size"] = tune.choice(
                 [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
-            del config["input_size_multiplier"]
+            del (
+                config["input_size_multiplier"],
+                config["inference_input_size_multiplier"],
+            )
 
         super(AutoGRU, self).__init__(
             cls_model=GRU,
@@ -206,7 +218,7 @@ class AutoGRU(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 21
+# %% ../nbs/models.ipynb 19
 class AutoTCN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -245,7 +257,10 @@ class AutoTCN(BaseAuto):
             config["inference_input_size"] = tune.choice(
                 [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
-            del config["input_size_multiplier"]
+            del (
+                config["input_size_multiplier"],
+                config["inference_input_size_multiplier"],
+            )
 
         super(AutoTCN, self).__init__(
             cls_model=TCN,
@@ -262,7 +277,7 @@ class AutoTCN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 25
+# %% ../nbs/models.ipynb 22
 class AutoDilatedRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -303,7 +318,10 @@ class AutoDilatedRNN(BaseAuto):
             config["inference_input_size"] = tune.choice(
                 [h * x for x in self.default_config["inference_input_size_multiplier"]]
             )
-            del config["input_size_multiplier"]
+            del (
+                config["input_size_multiplier"],
+                config["inference_input_size_multiplier"],
+            )
 
         super(AutoDilatedRNN, self).__init__(
             cls_model=DilatedRNN,
@@ -320,7 +338,7 @@ class AutoDilatedRNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 30
+# %% ../nbs/models.ipynb 26
 class AutoMLP(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -377,7 +395,7 @@ class AutoMLP(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 34
+# %% ../nbs/models.ipynb 29
 class AutoNBEATS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -432,7 +450,7 @@ class AutoNBEATS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 38
+# %% ../nbs/models.ipynb 32
 class AutoNBEATSx(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -487,13 +505,13 @@ class AutoNBEATSx(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 42
+# %% ../nbs/models.ipynb 35
 class AutoNHITS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "n_pool_kernel_size": tune.choice(
-            [3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
+            [[2, 2, 1], 3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
         ),
         "n_freq_downsample": tune.choice(
             [
@@ -507,11 +525,15 @@ class AutoNHITS(BaseAuto):
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
-        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.qloguniform(
+            lower=5, upper=9, base=2, q=1
+        ),  # [32, 64, 128, 256]
+        "windows_batch_size": tune.qloguniform(
+            lower=7, upper=10, base=2, q=1
+        ),  # [128, 256, 512, 1024]
         "loss": None,
-        "random_seed": tune.randint(1, 20),
+        "random_seed": tune.randint(lower=1, upper=20),
     }
 
     def __init__(
@@ -555,7 +577,7 @@ class AutoNHITS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 47
+# %% ../nbs/models.ipynb 39
 class AutoTFT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -612,7 +634,7 @@ class AutoTFT(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 51
+# %% ../nbs/models.ipynb 42
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -669,7 +691,7 @@ class AutoVanillaTransformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 55
+# %% ../nbs/models.ipynb 45
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -726,7 +748,7 @@ class AutoInformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 59
+# %% ../nbs/models.ipynb 48
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -783,7 +805,63 @@ class AutoAutoformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 63
+# %% ../nbs/models.ipynb 51
+class AutoFEDformer(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([64, 128, 256]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        super(AutoFEDformer, self).__init__(
+            cls_model=FEDformer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+
+# %% ../nbs/models.ipynb 54
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -842,7 +920,7 @@ class AutoPatchTST(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 68
+# %% ../nbs/models.ipynb 59
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -902,3 +980,55 @@ class AutoStemGNN(BaseAuto):
             verbose=verbose,
             alias=alias,
         )
+
+# %% ../nbs/models.ipynb 63
+class AutoHINT(BaseAuto):
+    def __init__(
+        self,
+        cls_model,
+        h,
+        loss,
+        valid_loss,
+        S,
+        config,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        refit_with_val=False,
+        verbose=False,
+        alias=None,
+    ):
+        super(AutoHINT, self).__init__(
+            cls_model=cls_model,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+        # Validate presence of reconciliation strategy
+        # parameter in configuration space
+        if not ("reconciliation" in config.keys()):
+            raise Exception(
+                "config needs reconciliation, \
+                            try tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])"
+            )
+        self.S = S
+
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+        # Overwrite _fit_model for HINT two-stage instantiation
+        reconciliation = config.pop("reconciliation")
+        base_model = cls_model(**config)
+        model = HINT(
+            h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
+        )
+        model.test_size = test_size
+        model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model

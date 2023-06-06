@@ -45,6 +45,10 @@ class _IdentityBasis(nn.Module):
             )
             # forecast = forecast[:,0,:]
         elif "cubic" in self.interpolation_mode:
+            if self.out_features > 1:
+                raise Exception(
+                    "Cubic interpolation not available with multiple outputs."
+                )
             batch_size = len(backcast)
             knots = knots[:, None, :, :]
             forecast = torch.zeros((len(knots), self.forecast_size)).to(knots.device)
@@ -56,8 +60,9 @@ class _IdentityBasis(nn.Module):
                     mode="bicubic",
                 )
                 forecast[i * batch_size : (i + 1) * batch_size] += forecast_i[
-                    :, 0, :, :
-                ]
+                    :, 0, 0, :
+                ]  # [B,None,H,H] -> [B,H]
+            forecast = forecast[:, None, :]  # [B,H] -> [B,None,H]
 
         # [B,Q,H] -> [B,H,Q]
         forecast = forecast.permute(0, 2, 1)
@@ -124,8 +129,8 @@ class NHITSBlock(nn.Module):
             hidden_layers.append(activ)
 
             if self.dropout_prob > 0:
-                raise NotImplementedError("dropout")
-                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
+                # raise NotImplementedError('dropout')
+                hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
         output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
         layers = hidden_layers + output_layer
@@ -189,13 +194,16 @@ class NHITS(BaseWindows):
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
-    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `stack_types`: List[str], stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
-    `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-    `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
-    `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
+    `n_freq_downsample`: List[int], list with the stack's coefficients (inverse expressivity ratios). Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
+    `interpolation_mode`: str='linear', interpolation basis from ['linear', 'nearest', 'cubic'].<br>
+    `n_pool_kernel_size`: List[int], list with the size of the windows to take a max/avg over. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).<br>
+    `pooling_mode`: str, input pooling module from ['MaxPool1d', 'AvgPool1d'].<br>
+    `dropout_prob_theta`: float, Float between (0, 1). Dropout for NHITS basis.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -203,9 +211,10 @@ class NHITS(BaseWindows):
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int, number of different series in each batch.<br>
-    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
@@ -216,7 +225,7 @@ class NHITS(BaseWindows):
 
     **References:**<br>
     -[Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico Garza,
-    Max Mergenthaler-Canseco, Artur Dubrawski (2022). "NHITS: Neural Hierarchical Interpolation for Time Series Forecasting".
+    Max Mergenthaler-Canseco, Artur Dubrawski (2023). "NHITS: Neural Hierarchical Interpolation for Time Series Forecasting".
     Accepted at the Thirty-Seventh AAAI Conference on Artificial Intelligence.](https://arxiv.org/abs/2201.12886)
     """
 
@@ -230,6 +239,7 @@ class NHITS(BaseWindows):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         stack_types: list = ["identity", "identity", "identity"],
         n_blocks: list = [1, 1, 1],
         mlp_units: list = 3 * [[512, 512]],
@@ -247,8 +257,9 @@ class NHITS(BaseWindows):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
-        windows_batch_size: int = 1024,
         valid_batch_size: Optional[int] = None,
+        windows_batch_size: int = 1024,
+        inference_windows_batch_size: int = -1,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -263,6 +274,7 @@ class NHITS(BaseWindows):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -273,6 +285,7 @@ class NHITS(BaseWindows):
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
