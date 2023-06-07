@@ -76,7 +76,7 @@ POOLING = ["MaxPool1d", "AvgPool1d"]
 
 class NHITSBlock(nn.Module):
     """
-    NHITS block which takes a basis function as an argument.
+    NHITS block.
     """
 
     def __init__(
