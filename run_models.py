@@ -79,7 +79,7 @@ def load_model(args):
 					config={
 						"input_size": tune.choice([horizon]),
 						"hidden_size": tune.choice([64, 128, 256]),
-						"learning_rate": tune.loguniform(1e-4, 1e-1),
+						"learning_rate": tune.loguniform(1e-4, 1e-2),
 						"early_stop_patience_steps": tune.choice([5]),
 						"val_check_steps": tune.choice([500]),
 						"scaler_type": tune.choice(['robust']),
