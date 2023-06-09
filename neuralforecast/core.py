@@ -179,7 +179,6 @@ class NeuralForecast:
 
         # Flags and attributes
         self._fitted = False
-        self.models_fitted = []
 
     def _prepare_fit(self, df, static_df, sort_df):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
