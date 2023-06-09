@@ -80,7 +80,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
     for model in models:
         model_name = type(model).__name__
         start = time.time()
-        fcst = NeuralForecast(models=[torch.compile(model)], freq=freq)
+        fcst = NeuralForecast(models=[model], freq=freq)
         fcst.fit(train)
         forecasts = fcst.predict()
         end = time.time()
