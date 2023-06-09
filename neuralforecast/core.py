@@ -212,7 +212,7 @@ class NeuralForecast:
             Size of validation set.
         sort_df : bool, optional (default=False)
             Sort `df` before fitting.
-        use_init_models : bool, option (default=True)
+        use_init_models : bool, optional (default=True)
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
