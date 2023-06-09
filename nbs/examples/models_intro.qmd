@@ -34,7 +34,9 @@ NeuralForecast is a highly modular framework capable of augmenting a wide variet
 |[`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm)  |       |
 : {tbl-colwidths="[25,25]"}
 
-## MLP-Based Model Family
+## Available Models
+
+### MLP-Based
 The MLP-based family operates like a classic autoencoder. Its initial layers encode raw autoregressive window into a representation, and the decoder produces the desired output based on the horizon, probability output, or point objective. Recent architectures include modifications like residual learning techniques and task-specific changes.
 
 |Model                                     | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
@@ -45,7 +47,7 @@ The MLP-based family operates like a classic autoencoder. Its initial layers enc
 |[`NHITS`](../models.nhits.html)           |✅              |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
 
-## RNN-Based Model Family
+### RNN-Based Model Family
 The RNN-based family attempts to leverage the data's temporal structure while reducing MLPs over parametrization. Recurrent networks are dynamic and can handle sequences of varying lengths through a mechanism for updating internal states that considers the entire sequence history. Modern state modifications help diminish vanishing and exploding gradients.
 
 |Model                                       | Point Forecast   | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
@@ -57,7 +59,7 @@ The RNN-based family attempts to leverage the data's temporal structure while re
 |[`DilatedRNN`](../models.dilated_rnn.html)  |✅                |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
 
-## Transformers Model Family
+### Transformers Model Family
 Transformer architectures are an alternative to recurrent networks. These networks build on the self-attention mechanism that directly allows modeling the relationship between different sequence parts without sequential processing. Attention makes Transformers more parallelizable than RNNs.
 
 |Model                                                      | Point Forecast   | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
