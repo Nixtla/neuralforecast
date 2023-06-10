@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoNHITS, AutoLSTM, AutoTFT
+from neuralforecast.auto import AutoNHITS, AutoLSTM, AutoTFT, AutoPatchTST
 from neuralforecast.core import NeuralForecast
 from datasetsforecast.m4 import M4
 from datasetsforecast.m3 import M3
@@ -64,14 +64,33 @@ def load_model(args):
 														  [6, 2, 1],
 														  [6, 3, 1],
 														  [12, 6, 1]]),
-						"learning_rate": tune.loguniform(1e-4, 1e-1),
+						"learning_rate": tune.loguniform(1e-4, 1e-2),
 						"early_stop_patience_steps": tune.choice([5]),
 						"val_check_steps": tune.choice([500]),
-						"scaler_type": tune.choice(['robust']),
+						"scaler_type": tune.choice(['minmax1','robust']),
 						"max_steps": tune.choice([10000, 15000]),
 						"batch_size": tune.choice([128, 256]),
 						"windows_batch_size": tune.choice([128, 512, 1024]),
 						"random_seed": tune.randint(1, 20),
+					})]
+
+	patchtst = [AutoPatchTST(h=horizon,
+						loss=loss, num_samples=num_samples,
+						config={
+							"input_size": tune.choice([horizon]),
+							"hidden_size": tune.choice([64, 128, 256]),
+							"linear_hidden_size": tune.choice([128, 256, 512]),
+							"patch_len": tune.choice([3,4,6]),
+							"stride": tune.choice([3,4,6]),
+							"revin": tune.choice([True, False]),
+							"learning_rate": tune.loguniform(1e-4, 1e-2),
+							"early_stop_patience_steps": tune.choice([5]),
+							"val_check_steps": tune.choice([500]),
+							"scaler_type": tune.choice(['minmax1','robust']),
+							"max_steps": tune.choice([10000, 15000]),
+							"batch_size": tune.choice([128, 256]),
+							"windows_batch_size": tune.choice([128, 512, 1024]),
+							"random_seed": tune.randint(1, 20),
 					})]
 
 	tft = [AutoTFT(h=horizon,
@@ -82,14 +101,14 @@ def load_model(args):
 						"learning_rate": tune.loguniform(1e-4, 1e-2),
 						"early_stop_patience_steps": tune.choice([5]),
 						"val_check_steps": tune.choice([500]),
-						"scaler_type": tune.choice(['robust']),
+						"scaler_type": tune.choice(['minmax1','robust']),
 						"max_steps": tune.choice([10000, 15000]),
 						"batch_size": tune.choice([128, 256]),
 						"windows_batch_size": tune.choice([128, 512, 1024]),
 						"random_seed": tune.randint(1, 20),
 					})]
 	
-	MODEL_DICT = {'autonhits': nhits, 'autotft': tft}
+	MODEL_DICT = {'autonhits': nhits, 'autotft': tft, 'autopatchtst': patchtst}
 	model = MODEL_DICT[args.model]
 
 	return model
