@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NBEATSx']
 
-# %% ../../nbs/models.nbeatsx.ipynb 5
+# %% ../../nbs/models.nbeatsx.ipynb 6
 from typing import Tuple, Optional
 
 import numpy as np
@@ -314,6 +314,12 @@ class NBEATSx(BaseWindows):
         drop_last_loader: bool = False,
         **trainer_kwargs,
     ):
+        # Protect horizon collapsed seasonality and trend NBEATSx-i basis
+        if h == 1 and (("seasonality" in stack_types) or ("trend" in stack_types)):
+            raise Exception(
+                "Horizon `h=1` incompatible with `seasonality` or `trend` in stacks"
+            )
+
         # Inherit BaseWindows class
         super(NBEATSx, self).__init__(
             h=h,

@@ -136,6 +136,7 @@ MODEL_FILENAME_DICT = {
     "autodilatedrnn": DilatedRNN,
     "automlp": MLP,
     "autonbeats": NBEATS,
+    "autonbeatsx": NBEATSx,
     "autonhits": NHITS,
     "autotft": TFT,
     "autovanillatransformer": VanillaTransformer,
