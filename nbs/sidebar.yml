@@ -15,6 +15,7 @@ website:
         - examples/Automatic_Hyperparameter_Tuning.ipynb
         - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
+        - examples/Neuralforecast_Map.ipynb
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
