@@ -16,6 +16,7 @@ website:
         - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
         - examples/Neuralforecast_Map.ipynb
+        - examples/How_to_add_models.ipynb
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
