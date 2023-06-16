@@ -357,10 +357,6 @@ class BaseWindows(pl.LightningModule):
 
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
-        # TODO: investigate why scaler.inverse_transform overwrites
-        # y_scale and y_loc's device
-        y_loc = y_loc.to(y_hat.device)
-        y_scale = y_scale.to(y_hat.device)
         if remove_dimension:
             y_hat = y_hat.squeeze(-1)
             y_loc = y_loc.squeeze(-1)
