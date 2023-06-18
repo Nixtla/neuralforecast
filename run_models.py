@@ -1,117 +1,16 @@
-from neuralforecast.auto import AutoNHITS, AutoLSTM, AutoTFT, AutoPatchTST
+import os
+import argparse
+import pandas as pd
+import numpy as np
+
 from neuralforecast.core import NeuralForecast
 from datasetsforecast.m4 import M4
 from datasetsforecast.m3 import M3
 from datasetsforecast.long_horizon import LongHorizon
 
 from neuralforecast.utils import AirPassengersDF
-from ray import tune
 
-import argparse
-from neuralforecast.losses.pytorch import MAE
-import pandas as pd
-import os
-import numpy as np
-
-"""
-Pipeline:
- 	1. Read source dataset using datasetsforecast (https://github.com/Nixtla/datasetsforecast).
-        Specified with `source_dataset` paramater in script.
- 	2. Fit Auto model on source dataset. Model specified with `model` argument.
- 	3. Save model, using folder './results/stored_models/{dataset}/{model}/{experiment_id}/'.
- 	4. Read target dataset using datasetsforecast. Specified with `target_dataset` argument in script.
- 	5. Load model, predict on target dataset, store forecasts in './results/forecasts/{target_dataset}/{model_source_dataset_experiment_id}.csv'.
-Script arguments:
-	1. source_dataset
-	2. target_dataset
-	3. model
-	4. experiment_id
-------------------------------------------
-Notes:
-1. Use Transfer Learning tutorial notebook as starting point.
-2. Use argparse (https://github.com/cchallu/n-hits/blob/main/nhits_multivariate.py)
-3. Use dictionaries to select between models. First list: AutoNHITS, AutoLSTM, AutoTFT
-	MODEL_DICT={'name_1': AutoNHITS, ..., 'name_n':model_n}.
-	model = MODEL_DICT[args.model_name]
-4. For first example define source datasets as: M3 or M4.
-5. For target dataset use AirPassengers.
-6. For using Auto models: https://nixtla.github.io/neuralforecast/examples/forecasting_tft.html
- ------------------------------------------
- Next steps:
- 	1. k-shot learning
- 	2. evaluation scripts
- 	3. more datasets
-"""
-
-# GLOBAL parameters
-horizon = 12
-loss = MAE()
-num_samples = 10  # how many configuration we try during tuning
-config = None
-
-def load_model(args):
-	nhits = [AutoNHITS(h=horizon,
-					loss=loss, num_samples=num_samples,
-					config={
-						"input_size": tune.choice([horizon]),
-						"stack_types": tune.choice([3*['identity']]),
-						"mlp_units": tune.choice([3 * [[512, 512, 512, 512]]]),
-						"n_blocks": tune.choice([3*[10]]),
-						"n_pool_kernel_size": tune.choice([3*[1],
-					 									   3*[2],
-														   3*[4]]),
-						"n_freq_downsample": tune.choice([[1, 1, 1],
-														  [6, 2, 1],
-														  [6, 3, 1],
-														  [12, 6, 1]]),
-						"learning_rate": tune.loguniform(1e-4, 1e-2),
-						"early_stop_patience_steps": tune.choice([5]),
-						"val_check_steps": tune.choice([500]),
-						"scaler_type": tune.choice(['minmax1','robust']),
-						"max_steps": tune.choice([10000, 15000]),
-						"batch_size": tune.choice([128, 256]),
-						"windows_batch_size": tune.choice([128, 512, 1024]),
-						"random_seed": tune.randint(1, 20),
-					})]
-
-	patchtst = [AutoPatchTST(h=horizon,
-						loss=loss, num_samples=num_samples,
-						config={
-							"input_size": tune.choice([horizon]),
-							"hidden_size": tune.choice([64, 128, 256]),
-							"linear_hidden_size": tune.choice([128, 256, 512]),
-							"patch_len": tune.choice([3,4,6]),
-							"stride": tune.choice([3,4,6]),
-							"revin": tune.choice([True, False]),
-							"learning_rate": tune.loguniform(1e-4, 1e-2),
-							"early_stop_patience_steps": tune.choice([5]),
-							"val_check_steps": tune.choice([500]),
-							"scaler_type": tune.choice(['minmax1','robust']),
-							"max_steps": tune.choice([10000, 15000]),
-							"batch_size": tune.choice([128, 256]),
-							"windows_batch_size": tune.choice([128, 512, 1024]),
-							"random_seed": tune.randint(1, 20),
-					})]
-
-	tft = [AutoTFT(h=horizon,
-					loss=loss, num_samples=num_samples,
-					config={
-						"input_size": tune.choice([horizon]),
-						"hidden_size": tune.choice([64, 128, 256]),
-						"learning_rate": tune.loguniform(1e-4, 1e-2),
-						"early_stop_patience_steps": tune.choice([5]),
-						"val_check_steps": tune.choice([500]),
-						"scaler_type": tune.choice(['minmax1','robust']),
-						"max_steps": tune.choice([10000, 15000]),
-						"batch_size": tune.choice([128, 256]),
-						"windows_batch_size": tune.choice([128, 512, 1024]),
-						"random_seed": tune.randint(1, 20),
-					})]
-	
-	MODEL_DICT = {'autonhits': nhits, 'autotft': tft, 'autopatchtst': patchtst}
-	model = MODEL_DICT[args.model]
-
-	return model
+from config_models import MODEL_LIST, load_model
 
 def load_data(args):
 
@@ -133,12 +32,12 @@ def load_data(args):
 	return Y_df, frequency
 
 def main(args):
-
+	model_type = args.model.split('_')[0]
 	# make sure folder exists, then check if the file exists in the folder
 	model_dir = f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/'
 	os.makedirs(model_dir, exist_ok=True)
 	file_exists = os.path.isfile(
-		f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/{args.model}_0.ckpt')
+		f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/{model_type}_0.ckpt')
 	
 	if (not file_exists):
 		if args.k_shot > 0:
@@ -149,9 +48,9 @@ def main(args):
 
 		# Train model
 		print('Fitting model')
-		model = load_model(args)
-		nf = NeuralForecast(models=model, freq=frequency)
-		Y_hat_source_df = nf.cross_validation(df=Y_df, val_size=horizon, test_size=horizon, n_windows=None)
+		model = load_model(args.model)
+		nf = NeuralForecast(models=[model], freq=frequency)
+		Y_hat_source_df = nf.cross_validation(df=Y_df, val_size=model.h, test_size=model.h, n_windows=None)
 		
 		# Store source forecasts
 		results_dir = f'./results/forecasts/{args.source_dataset}/'
@@ -167,6 +66,8 @@ def main(args):
 		# do i need to check if the file/path exists? shouldn't it already be checked
 		nf = NeuralForecast.load(path=
 			  f'./results/stored_models/{args.source_dataset}/{args.model}/{args.experiment_id}/')
+
+	horizon = nf.models[0].h
 	
 	# Load target data
 	if (args.target_dataset == 'AirPassengers'):
@@ -199,7 +100,6 @@ def main(args):
 
 	# Predict on the test set of the target data
 	print('Predicting on target data')
-	### TODO: <<<<<<< ADD TIME.TIME()
 
 	# Fit model if k_shot > 0:
 	if (args.k_shot > 0):
@@ -213,8 +113,7 @@ def main(args):
 									n_windows=None, test_size=test_size,
 									fit_models=False).reset_index()
 		
-	#### TODO: <<<<<<< ADD TIME.TIME()
-	#### AND COMPUTE TIME DIFFERENCE
+    #### AND COMPUTE TIME DIFFERENCE
 	#### PRINT TIME DIFFERENCE
 	results_dir = f'./results/forecasts/{args.target_dataset}/'
 	os.makedirs(results_dir, exist_ok=True)
@@ -225,7 +124,6 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="script arguments")
-    #### TODO: <<<<<<< ADD k_shot
     parser.add_argument('--source_dataset', type=str, help='dataset to train models on')
     parser.add_argument('--target_dataset', type=str, help='run model on this dataset')
     parser.add_argument('--model', type=str, help='auto model to use')
@@ -236,8 +134,11 @@ def parse_args():
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    if args is None:
-        exit()
-    main(args)
 
-# CUDA_VISIBLE_DEVICES=0 python run_models.py --source_dataset "M4" --target_dataset "M3" --model "autonhits" --k_shot 0 --experiment_id "20230606"
+    for model in MODEL_LIST:
+        print(f'Running {model}!!')
+        args.model = model
+        main(args)
+
+
+# CUDA_VISIBLE_DEVICES=0 python run_models.py --source_dataset "M4" --target_dataset "M3" --k_shot 0 --experiment_id "20230617"
