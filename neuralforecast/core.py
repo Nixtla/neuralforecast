@@ -533,7 +533,7 @@ class NeuralForecast:
             if verbose: 
                 print('Using stored dataset.')
 
-        for model in self.models_fitted:
+        for model in self.models:
             if model.SAMPLING_TYPE == "recurrent":
                 warnings.warn(
                     f"Predict insample might not provide accurate predictions for \
