@@ -518,8 +518,9 @@ class NeuralForecast:
             raise Exception('You must pass a DataFrame or have one stored.')
 
         if not self._fitted:
-            raise Exception("You must fit the model before predicting.")
-
+            raise Exception(
+                "The models must be fitted first with `fit` or `cross_validation`."
+            )
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, ds = self._prepare_fit(df=df,
@@ -532,7 +533,7 @@ class NeuralForecast:
             if verbose: 
                 print('Using stored dataset.')
 
-        for model in self.models:
+        for model in self.models_fitted:
             if model.SAMPLING_TYPE == "recurrent":
                 warnings.warn(
                     f"Predict insample might not provide accurate predictions for \
@@ -545,7 +546,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models:
+        for model in self.models_fitted:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -553,7 +554,7 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Remove test set from dataset and last dates
-        test_size = self.models[0].get_test_size()
+        test_size = self.models_fitted[0].get_test_size()
         if test_size > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
                 dataset=dataset, right_trim=test_size, left_trim=0
@@ -580,7 +581,7 @@ class NeuralForecast:
         col_idx = 0
         fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
 
-        for model in self.models:
+        for model in self.models_fitted:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
             model.set_test_size(test_size=trimmed_dataset.max_size)
 
