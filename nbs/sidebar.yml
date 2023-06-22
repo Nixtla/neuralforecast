@@ -13,7 +13,10 @@ website:
         - examples/Data_Format.ipynb
         - examples/Exogenous_Variables.ipynb
         - examples/Automatic_Hyperparameter_Tuning.ipynb
+        - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
+        - examples/Neuralforecast_Map.ipynb
+        - examples/How_to_add_models.ipynb
       - section: "Tutorials"
         contents:
         - examples/Forecasting_TFT.ipynb
@@ -21,6 +24,7 @@ website:
         - examples/IntermittentData.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
+        - examples/LongHorizon_with_Transformers.ipynb
         - examples/ElectricityPeakForecasting.ipynb
         - examples/Transfer_Learning.ipynb
         - examples/HierarchicalNetworks.ipynb

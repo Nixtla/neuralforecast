@@ -387,6 +387,13 @@ class BaseRecurrent(pl.LightningModule):
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
+        if torch.isnan(loss):
+            print("Model Parameters", self.hparams)
+            print("insample_y", torch.isnan(insample_y).sum())
+            print("outsample_y", torch.isnan(outsample_y).sum())
+            print("output", torch.isnan(output).sum())
+            raise Exception("Loss is NaN, training stopped.")
+
         self.log(
             "train_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
         )
@@ -470,6 +477,9 @@ class BaseRecurrent(pl.LightningModule):
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
+
+        if torch.isnan(valid_loss):
+            raise Exception("Loss is NaN, training stopped.")
 
         self.log(
             "valid_loss",

@@ -408,6 +408,13 @@ class BaseMultivariate(pl.LightningModule):
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
+        if torch.isnan(loss):
+            print("Model Parameters", self.hparams)
+            print("insample_y", torch.isnan(insample_y).sum())
+            print("outsample_y", torch.isnan(outsample_y).sum())
+            print("output", torch.isnan(output).sum())
+            raise Exception("Loss is NaN, training stopped.")
+
         self.log("train_loss", loss, prog_bar=True, on_epoch=True)
         self.train_trajectories.append((self.global_step, float(loss)))
         return loss
@@ -464,6 +471,9 @@ class BaseMultivariate(pl.LightningModule):
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
+
+        if torch.isnan(valid_loss):
+            raise Exception("Loss is NaN, training stopped.")
 
         self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
         self.validation_step_outputs.append(valid_loss)
