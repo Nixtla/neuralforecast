@@ -76,10 +76,17 @@ def minmax_scaler(x, mask, eps=1e-6, dim=-1):
     **Returns:**<br>
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
-    max_mask = (mask == 0) * (-1e12)
-    min_mask = (mask == 0) * (1e12)
-    x_max = torch.max(x + max_mask, dim=dim, keepdim=True)[0]
-    x_min = torch.min(x + min_mask, dim=dim, keepdim=True)[0]
+    mask = mask.clone()
+    mask[mask == 0] = torch.inf
+    mask[mask == 1] = 0
+    x_max = torch.max(
+        torch.nan_to_num(x - mask, nan=-torch.inf), dim=dim, keepdim=True
+    )[0]
+    x_min = torch.min(torch.nan_to_num(x + mask, nan=torch.inf), dim=dim, keepdim=True)[
+        0
+    ]
+    x_max = x_max.type(x.dtype)
+    x_min = x_min.type(x.dtype)
 
     # x_range and prevent division by zero
     x_range = x_max - x_min
@@ -115,10 +122,18 @@ def minmax1_scaler(x, mask, eps=1e-6, dim=-1):
     **Returns:**<br>
     `z`: torch.Tensor same shape as `x`, except scaled.
     """
-    max_mask = (mask == 0) * (-1e12)
-    min_mask = (mask == 0) * (1e12)
-    x_max = torch.max(x + max_mask, dim=dim, keepdim=True)[0]
-    x_min = torch.min(x + min_mask, dim=dim, keepdim=True)[0]
+    # Mask values (set masked to -inf or +inf)
+    mask = mask.clone()
+    mask[mask == 0] = torch.inf
+    mask[mask == 1] = 0
+    x_max = torch.max(
+        torch.nan_to_num(x - mask, nan=-torch.inf), dim=dim, keepdim=True
+    )[0]
+    x_min = torch.min(torch.nan_to_num(x + mask, nan=torch.inf), dim=dim, keepdim=True)[
+        0
+    ]
+    x_max = x_max.type(x.dtype)
+    x_min = x_min.type(x.dtype)
 
     # x_range and prevent division by zero
     x_range = x_max - x_min
