@@ -7,7 +7,7 @@ __all__ = ['NeuralForecast']
 import os
 import pickle
 import warnings
-
+from copy import deepcopy
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -136,6 +136,7 @@ MODEL_FILENAME_DICT = {
     "autodilatedrnn": DilatedRNN,
     "automlp": MLP,
     "autonbeats": NBEATS,
+    "autonbeatsx": NBEATSx,
     "autonhits": NHITS,
     "autotft": TFT,
     "autovanillatransformer": VanillaTransformer,
@@ -193,6 +194,7 @@ class NeuralForecast:
         static_df: Optional[pd.DataFrame] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
+        use_init_models: bool = True,
         verbose: bool = False,
     ):
         """Fit the core.NeuralForecast.
@@ -211,6 +213,8 @@ class NeuralForecast:
             Size of validation set.
         sort_df : bool, optional (default=False)
             Sort `df` before fitting.
+        use_init_models : bool, optional (default=True)
+            Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
 
@@ -244,10 +248,12 @@ class NeuralForecast:
                     "Validation set size is larger than the shorter time-series."
                 )
 
-        # train + validation
-        for model in self.models:
+        # Recover initial model if use_init_models or is the first time fitting
+        if (use_init_models) or (not self._fitted):
+            self.models_fitted = [deepcopy(model) for model in self.models]
+
+        for model in self.models_fitted:
             model.fit(self.dataset, val_size=val_size)
-        # train with the full dataset
 
         self._fitted = True
 
@@ -289,6 +295,9 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
+        if not self._fitted:
+            raise Exception("You must fit the model before predicting.")
+
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, _ = self._prepare_fit(
@@ -303,7 +312,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models:
+        for model in self.models_fitted:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -327,7 +336,7 @@ class NeuralForecast:
 
         col_idx = 0
         fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
-        for model in self.models:
+        for model in self.models_fitted:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
             model_fcsts = model.predict(dataset=dataset, **data_kwargs)
@@ -352,7 +361,7 @@ class NeuralForecast:
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
         sort_df: bool = True,
-        fit_models: bool = True,
+        use_init_models: bool = True,
         verbose: bool = False,
         **data_kwargs,
     ):
@@ -378,8 +387,8 @@ class NeuralForecast:
             Length of test size. If passed, set `n_windows=None`.
         sort_df : bool (default=True)
             Sort `df` before fitting.
-        fit_models: bool (default=True)
-            Fit models before cross-validation.
+        use_init_models : bool, option (default=True)
+            Use initial model passed when object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
         data_kwargs : kwargs
@@ -404,16 +413,20 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
+        # Recover initial model if use_init_models and not fitted. If already fitted, will use models_fitted
+        if (use_init_models) or (not self._fitted):
+            self.models_fitted = [deepcopy(model) for model in self.models]
+
         cols = []
         count_names = {"model": 0}
-        for model in self.models:
+        for model in self.models_fitted:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
             cols += [model_name + n for n in model.loss.output_names]
 
-        h = self.models[0].h
+        h = self.models_fitted[0].h
         if test_size is None:
             test_size = h + step_size * (n_windows - 1)
         elif n_windows is None:
@@ -445,14 +458,9 @@ class NeuralForecast:
         fcsts = np.full(
             (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
         )
-        for model in self.models:
-            # Fit
-            if fit_models:
-                model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
-            else:
-                model.set_test_size(test_size=test_size)
 
-            # Predict
+        for model in self.models_fitted:
+            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
             )
@@ -461,8 +469,8 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
-        if fit_models:
-            self._fitted = True
+
+        self._fitted = True
 
         # Add predictions to forecasts DataFrame
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
@@ -506,7 +514,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models:
+        for model in self.models_fitted:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -514,7 +522,7 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Remove test set from dataset and last dates
-        test_size = self.models[0].get_test_size()
+        test_size = self.models_fitted[0].get_test_size()
         if test_size > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
                 dataset=self.dataset, right_trim=test_size, left_trim=0
@@ -541,7 +549,7 @@ class NeuralForecast:
         col_idx = 0
         fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
 
-        for model in self.models:
+        for model in self.models_fitted:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
             model.set_test_size(test_size=trimmed_dataset.max_size)
 
@@ -563,64 +571,6 @@ class NeuralForecast:
         )
         Y_df = Y_df.reset_index(drop=False)
         fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
-        return fcsts_df
-
-    def predict_rolled(
-        self,
-        df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
-        n_windows: int = 1,
-        step_size: int = 1,
-        insample_size: Optional[int] = None,
-        sort_df: bool = True,
-        verbose: bool = False,
-        **data_kwargs,
-    ):
-        """Predict insample with core.NeuralForecast.
-
-        Use stored fitted `models` to predict historic values of a time series from DataFrame `df`.
-        This method will be deprecated in favor of `predict_insample`.
-
-        Parameters
-        ----------
-        df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
-            If None, a previously stored dataset is required.
-        static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`] and static exogenous.
-        n_windows : int (default=1)
-            Number of windows used for cross validation.
-        step_size : int (default=1)
-            Step size between each window.
-        insample_size : int, optional (default=None)
-            Length of insample size to produce forecasts. If passed, set `n_windows=None`.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
-        verbose : bool (default=False)
-            Print processing steps.
-        data_kwargs : kwargs
-            Extra arguments to be passed to the dataset within each model.
-
-        Returns
-        -------
-        fcsts_df : pandas.DataFrame
-            DataFrame with insample `models` columns for point predictions and probabilistic
-            predictions for all fitted `models`.
-        """
-        print(
-            "WARNING: this method will be deprecated. Use `cross_validation` or `predict_insample` instead."
-        )
-        fcsts_df = self.cross_validation(
-            df=df,
-            static_df=static_df,
-            n_windows=n_windows,
-            step_size=step_size,
-            val_size=0,
-            test_size=insample_size,
-            sort_df=sort_df,
-            fit_models=False,
-            verbose=verbose,
-        )
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -654,7 +604,7 @@ class NeuralForecast:
 
         # Model index list
         if model_index is None:
-            model_index = list(range(len(self.models)))
+            model_index = list(range(len(self.models_fitted)))
 
         # Create directory if not exists
         os.makedirs(path, exist_ok=True)
@@ -670,7 +620,7 @@ class NeuralForecast:
 
         # Save models
         count_names = {"model": 0}
-        for i, model in enumerate(self.models):
+        for i, model in enumerate(self.models_fitted):
             # Skip model if not in list
             if i not in model_index:
                 continue
@@ -772,7 +722,11 @@ class NeuralForecast:
             neuralforecast.ds = config_dict["ds"]
             neuralforecast.sort_df = config_dict["sort_df"]
 
-        # Fitted flag
+        # Fitted flag and models_fitted
         neuralforecast._fitted = config_dict["_fitted"]
+        if config_dict["_fitted"]:
+            neuralforecast.models_fitted = [
+                deepcopy(model) for model in neuralforecast.models
+            ]
 
         return neuralforecast

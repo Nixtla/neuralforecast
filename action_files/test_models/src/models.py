@@ -68,19 +68,19 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         AutoNHITS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
         NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=SMAPE(), max_steps=1000),
-        NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
+        #NBEATS(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
-        MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_steps=2000),
+        #MLP(h=horizon, input_size=2 * horizon, num_layers=2, loss=SMAPE(), max_steps=2000),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
-        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
-        Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
-        Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
+        #VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
+        #Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
+        #Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
         PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_steps=5000),
     ]
     for model in models:
         model_name = type(model).__name__
         start = time.time()
-        fcst = NeuralForecast(models=[torch.compile(model)], freq=freq)
+        fcst = NeuralForecast(models=[model], freq=freq)
         fcst.fit(train)
         forecasts = fcst.predict()
         end = time.time()
