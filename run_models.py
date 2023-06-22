@@ -141,4 +141,4 @@ if __name__ == '__main__':
         main(args)
 
 
-# CUDA_VISIBLE_DEVICES=0 python run_models.py --source_dataset "M4" --target_dataset "M3" --k_shot 0 --experiment_id "20230617"
+# CUDA_VISIBLE_DEVICES=0 python run_models.py --source_dataset "M4" --target_dataset "M3" --k_shot 0 --experiment_id "20230621_2"
