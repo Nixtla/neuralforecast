@@ -1,4 +1,4 @@
-__all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DilatedRNN',
+__all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
            'StemGNN', 'HINT']
@@ -7,6 +7,7 @@ from .rnn import RNN
 from .gru import GRU
 from .lstm import LSTM
 from .tcn import TCN
+from .deepar import DeepAR
 from .dilated_rnn import DilatedRNN
 from .mlp import MLP
 from .nhits import NHITS
