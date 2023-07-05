@@ -9,7 +9,7 @@ from ray import tune
 from neuralforecast.auto import AutoNHITS
 from neuralforecast.core import NeuralForecast
 
-from neuralforecast.losses.pytorch import MAE
+from neuralforecast.losses.pytorch import MAE, HuberLoss
 from neuralforecast.losses.numpy import mae, mse
 from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
 
@@ -24,29 +24,40 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-horizon", "--horizon", type=int)
     parser.add_argument("-dataset", "--dataset", type=str)
+    parser.add_argument("-num_samples", "--num_samples", default=5, type=int)
 
     args = parser.parse_args()
     horizon = args.horizon
     dataset = args.dataset
+    num_samples = args.num_samples
 
     assert horizon in [96, 192, 336, 720]
 
     # Load dataset
-    Y_df, _, _ = LongHorizon.load(directory='./', group=dataset)
+    Y_df, _, _ = LongHorizon.load(directory='./data/', group=dataset)
     Y_df['ds'] = pd.to_datetime(Y_df['ds'])
     freq = LongHorizonInfo[dataset].freq
     n_time = len(Y_df.ds.unique())
     val_size = int(.2 * n_time)
     test_size = int(.2 * n_time)
 
+    # Adapt input_size to available data
+    input_size = tune.choice([7 * horizon])
+    if dataset=='ETTm1' and horizon==720:
+        input_size = tune.choice([2 * horizon])
+
     nhits_config = {
-        "learning_rate": tune.choice([1e-3]),                                     # Initial Learning rate
-        "max_steps": tune.choice([1000]),                                         # Number of SGD steps
-        "input_size": tune.choice([5 * horizon]),                                 # input_size = multiplier * horizon
+        #"learning_rate": tune.choice([1e-3]),                                     # Initial Learning rate
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "max_steps": tune.choice([200, 1000]),                                    # Number of SGD steps
+        "input_size": input_size,                                                 # input_size = multiplier * horizon
         "batch_size": tune.choice([7]),                                           # Number of series in windows
         "windows_batch_size": tune.choice([256]),                                 # Number of windows in batch
         "n_pool_kernel_size": tune.choice([[2, 2, 2], [16, 8, 1]]),               # MaxPool's Kernelsize
-        "n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1], [1, 1, 1]]), # Interpolation expressivity ratios
+        "n_freq_downsample": tune.choice([[(96*7)//2, 96//2, 1],
+                                          [(24*7)//2, 24//2, 1],
+                                          [1, 1, 1]]),                            # Interpolation expressivity ratios
+        "dropout_prob_theta": tune.choice([0.5]),                                 # Dropout regularization
         "activation": tune.choice(['ReLU']),                                      # Type of non-linear activation
         "n_blocks":  tune.choice([[1, 1, 1]]),                                    # Blocks per each 3 stacks
         "mlp_units":  tune.choice([[[512, 512], [512, 512], [512, 512]]]),        # 2 512-Layers per block for each stack
@@ -56,10 +67,12 @@ if __name__ == '__main__':
         }
 
     models = [AutoNHITS(h=horizon,
+                        loss=HuberLoss(delta=0.5),
+                        valid_loss=MAE(),
                         config=nhits_config, 
-                        num_samples=1)]
+                        num_samples=num_samples)]
 
-    nf = NeuralForecast(models=models, freq='15min')
+    nf = NeuralForecast(models=models, freq=freq)
 
     Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
                                    test_size=test_size, n_windows=None)
@@ -73,9 +86,17 @@ if __name__ == '__main__':
     y_true = y_true.reshape(n_series, -1, horizon)
     y_hat = y_hat.reshape(n_series, -1, horizon)
 
+    print('\n'*4)
     print('Parsed results')
-    print('2. y_true.shape (n_series, n_windows, n_time_out):\t', y_true.shape)
-    print('2. y_hat.shape  (n_series, n_windows, n_time_out):\t', y_hat.shape)
+    print('y_true.shape (n_series, n_windows, n_time_out):\t', y_true.shape)
+    print('y_hat.shape  (n_series, n_windows, n_time_out):\t', y_hat.shape)
 
-    print('MAE: ', mae(y_hat, y_true))
+    print(f'NHITS {dataset} h={horizon}')
     print('MSE: ', mse(y_hat, y_true))
+    print('MAE: ', mae(y_hat, y_true))
+
+    # Save Outputs
+    if not os.path.exists(f'./data/{dataset}'):
+        os.makedirs(f'./data/{dataset}')
+    yhat_file = f'./data/{dataset}/{horizon}_forecasts.csv'
+    Y_hat_df.to_csv(yhat_file, index=False)

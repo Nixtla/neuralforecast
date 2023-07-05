@@ -4,20 +4,20 @@ In these experiments we use `NHITS` on the [ETTh1, ETTh2, ETTm1, ETTm2](https://
 
 | Dataset  | Horizon  | NHITS-MSE  | NHITS-MAE  | TIDE-MSE   | TIDE-MAE   |
 |----------|----------|------------|------------|------------|------------|
-| ETTh1    | 96       |            |            | 0.375      | 0.398      |
-| ETTh1    | 192      |            |            | 0.412      | 0.422      |
-| ETTh1    | 336      |            |            | 0.435      | 0.433      |
-| ETTh1    | 720      |            |            | 0.454      | 0.465      |
+| ETTh1    | 96       | 0.073      | 0.203      | 0.375      | 0.398      |
+| ETTh1    | 192      | 0.102      | 0.259      | 0.412      | 0.422      |
+| ETTh1    | 336      | 0.112      | 0.268      | 0.435      | 0.433      |
+| ETTh1    | 720      | 0.440      | 0.565      | 0.454      | 0.465      |
 |----------|----------|------------|------------|------------|------------|
-| ETTh2    | 96       |            |            | 0.270      | 0.336      |
-| ETTh2    | 192      |            |            | 0.332      | 0.380      |
-| ETTh2    | 336      |            |            | 0.360      | 0.407      |
-| ETTh2    | 720      |            |            | 0.419      | 0.451      |
+| ETTh2    | 96       | 0.153      | 0.303      | 0.270      | 0.336      |
+| ETTh2    | 192      | 0.228      | 0.385      | 0.332      | 0.380      |
+| ETTh2    | 336      | 0.188      | 0.353      | 0.360      | 0.407      |
+| ETTh2    | 720      | 0.424      | 0.527      | 0.419      | 0.451      |
 |----------|----------|------------|------------|------------|------------|
-| ETTm1    | 96       |            |            | 0.306      | 0.349      |
-| ETTm1    | 192      |            |            | 0.335      | 0.366      |
-| ETTm1    | 336      |            |            | 0.364      | 0.384      |
-| ETTm1    | 720      |            |            | 0.413      | 0.413      |
+| ETTm1    | 96       | 0.302      | 0.35       | 0.306      | 0.349      |
+| ETTm1    | 192      | 0.347      | 0.383      | 0.335      | 0.366      |
+| ETTm1    | 336      | 0.369      | 0.402      | 0.364      | 0.384      |
+| ETTm1    | 720      | 0.431      | 0.441      | 0.413      | 0.413      |
 |----------|----------|------------|------------|------------|------------|
 | ETTm2    | 96       | 0.176      | 0.255      | 0.161      | 0.251      |
 | ETTm2    | 192      | 0.245      | 0.305      | 0.215      | 0.289      |
@@ -37,6 +37,12 @@ In these experiments we use `NHITS` on the [ETTh1, ETTh2, ETTm1, ETTm2](https://
   ```shell
   conda activate long_horizon
   ```
+
+Alternatively simply installing neuralforecast and datasetsforecast with pip may suffice:
+```
+pip install datasetsforecast
+pip install git+https://github.com/Nixtla/neuralforecast.git
+```
 
 4. Run the experiments for each dataset and each model using with 
 - `--horizon` parameter in `[96, 192, 336, 720]`
