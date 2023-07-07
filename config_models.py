@@ -12,7 +12,7 @@ MODEL_LIST = ['nhits_15_512',
               'nhits_30_2048',
               'patchtst_128_3',
               'patchtst_512_6',
-              'patchtst_1024_6',
+              #'patchtst_1024_6',
               'tft_128',
               'tft_512',
               'tft_1024',
@@ -44,7 +44,7 @@ def load_model(model_name):
                         max_steps=15000,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=2)
+                        random_seed=1)
 
     elif model_name == 'nhits_30_1024':
         model = NHITS(h=HORIZON,
@@ -62,7 +62,7 @@ def load_model(model_name):
                         max_steps=15000,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=2)
+                        random_seed=1)
         
     elif model_name == 'nhits_30_2048':
         model = NHITS(h=HORIZON,
@@ -80,7 +80,7 @@ def load_model(model_name):
                         max_steps=15000,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=2)
+                        random_seed=1)
 
     # PatchTST
     elif model_name == 'patchtst_128_3': 
@@ -100,7 +100,7 @@ def load_model(model_name):
                             max_steps=15000,
                             batch_size=256,
                             windows_batch_size=1024,
-                            random_seed=2)
+                            random_seed=1)
 
     elif model_name == 'patchtst_512_6':
         model = PatchTST(h=HORIZON,
@@ -119,26 +119,26 @@ def load_model(model_name):
                             max_steps=15000,
                             batch_size=256,
                             windows_batch_size=1024,
-                            random_seed=2)
+                            random_seed=1)
         
-    elif model_name == 'patchtst_1024_6':
-        model = PatchTST(h=HORIZON,
-                            input_size=HORIZON,
-                            encoder_layers=6,
-                            hidden_size=1024,
-                            linear_hidden_size=1024,
-                            patch_len=3,
-                            stride=3,
-                            revin=False,
-                            loss=LOSS,
-                            learning_rate=1e-4,
-                            early_stop_patience_steps=10,
-                            val_check_steps=500,
-                            scaler_type='minmax1',
-                            max_steps=15000,
-                            batch_size=256,
-                            windows_batch_size=1024,
-                            random_seed=2)
+    # elif model_name == 'patchtst_1024_6':
+    #     model = PatchTST(h=HORIZON,
+    #                         input_size=HORIZON,
+    #                         encoder_layers=6,
+    #                         hidden_size=1024,
+    #                         linear_hidden_size=1024,
+    #                         patch_len=3,
+    #                         stride=3,
+    #                         revin=False,
+    #                         loss=LOSS,
+    #                         learning_rate=1e-4,
+    #                         early_stop_patience_steps=10,
+    #                         val_check_steps=500,
+    #                         scaler_type='minmax1',
+    #                         max_steps=15000,
+    #                         batch_size=256,
+    #                         windows_batch_size=1024,
+    #                         random_seed=1)
 
     # TFT
     elif model_name == 'tft_128':
@@ -153,7 +153,7 @@ def load_model(model_name):
                         max_steps=15000,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=2)
+                        random_seed=1)
 
     elif model_name == 'tft_512':
         model = TFT(h=HORIZON,
@@ -167,7 +167,7 @@ def load_model(model_name):
                     max_steps=15000,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=2)
+                    random_seed=1)
         
     elif model_name == 'tft_1024':
         model = TFT(h=HORIZON,
@@ -181,7 +181,7 @@ def load_model(model_name):
                     max_steps=15000,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=2)
+                    random_seed=1)
 
     # MLP
     elif model_name == 'mlp_512_8':
@@ -197,7 +197,7 @@ def load_model(model_name):
                     max_steps=15000,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=2)
+                    random_seed=1)
 
     elif model_name == 'mlp_2048_32':
         model = MLP(h=HORIZON,
@@ -212,7 +212,7 @@ def load_model(model_name):
                     max_steps=15000,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=2)
+                    random_seed=1)
         
     # TCN
     elif model_name == 'tcn_128_3':
@@ -231,7 +231,7 @@ def load_model(model_name):
                     scaler_type='minmax1',
                     max_steps=15000,
                     batch_size=256,
-                    random_seed=2)
+                    random_seed=1)
         
     elif model_name == 'tcn_512_5':
         model = TCN(h=HORIZON,
@@ -249,7 +249,7 @@ def load_model(model_name):
                     scaler_type='minmax1',
                     max_steps=15000,
                     batch_size=256,
-                    random_seed=2)
+                    random_seed=1)
 
     # LSTM
     elif model_name == 'lstm_128_3':
@@ -268,7 +268,7 @@ def load_model(model_name):
                     scaler_type='minmax1',
                     max_steps=15000,
                     batch_size=256,
-                    random_seed=2)
+                    random_seed=1)
         
     elif model_name == 'lstm_512_5':
         model = LSTM(h=HORIZON,
@@ -286,6 +286,6 @@ def load_model(model_name):
                     scaler_type='minmax1',
                     max_steps=15000,
                     batch_size=256,
-                    random_seed=2) 
+                    random_seed=1) 
 
     return model

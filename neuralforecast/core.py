@@ -363,6 +363,7 @@ class NeuralForecast:
         sort_df: bool = True,
         use_init_models: bool = True,
         verbose: bool = False,
+        fit_models: bool = True,
         **data_kwargs,
     ):
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -460,7 +461,12 @@ class NeuralForecast:
         )
 
         for model in self.models_fitted:
-            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            # Fit
+            if fit_models:
+                model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            else:
+                model.set_test_size(test_size=test_size)
+
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
             )
