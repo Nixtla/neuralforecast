@@ -1,0 +1,435 @@
+---
+title: Vanilla Transformer
+---
+
+Vanilla Transformer, following implementation of the Informer paper,
+used as baseline.
+
+The architecture has three distinctive features: - Full-attention
+mechanism with O(L^2) time and memory complexity. - Classic
+encoder-decoder proposed by Vaswani et al. (2017) with a multi-head
+attention mechanism. - An MLP multi-step decoder that predicts long
+time-series sequences in a single forward operation rather than
+step-by-step.
+
+The Vanilla Transformer model utilizes a three-component approach to
+define its embedding: - It employs encoded autoregressive features
+obtained from a convolution network. - It uses window-relative
+positional embeddings derived from harmonic functions. - Absolute
+positional embeddings obtained from calendar features are utilized.
+
+**References**<br> - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)<br>
+
+![Figure 1. Transformer
+Architecture.](imgs_models/vanilla_transformer.png)
+
+::: {.cell 0=‘e’ 1=‘x’ 2=‘p’ 3=‘o’ 4=‘r’ 5=‘t’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+import math
+import numpy as np
+from typing import Optional
+
+import torch
+import torch.nn as nn
+
+from neuralforecast.common._modules import (
+    TransEncoderLayer, TransEncoder,
+    TransDecoderLayer, TransDecoder,
+    DataEmbedding, AttentionLayer,
+)
+from neuralforecast.common._base_windows import BaseWindows
+
+from neuralforecast.losses.pytorch import MAE
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+from fastcore.test import test_eq
+from nbdev.showdoc import show_doc
+```
+
+</details>
+
+:::
+
+## 1. Auxiliary Functions {#auxiliary-functions}
+
+::: {.cell 0=‘e’ 1=‘x’ 2=‘p’ 3=‘o’ 4=‘r’ 5=‘t’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+class TriangularCausalMask():
+    def __init__(self, B, L, device="cpu"):
+        mask_shape = [B, 1, L, L]
+        with torch.no_grad():
+            self._mask = torch.triu(torch.ones(mask_shape, dtype=torch.bool), diagonal=1).to(device)
+
+    @property
+    def mask(self):
+        return self._mask
+
+class FullAttention(nn.Module):
+    def __init__(self, mask_flag=True, scale=None, attention_dropout=0.1, output_attention=False):
+        super(FullAttention, self).__init__()
+        self.scale = scale
+        self.mask_flag = mask_flag
+        self.output_attention = output_attention
+        self.dropout = nn.Dropout(attention_dropout)
+
+    def forward(self, queries, keys, values, attn_mask):
+        B, L, H, E = queries.shape
+        _, S, _, D = values.shape
+        scale = self.scale or 1. / math.sqrt(E)
+
+        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+        
+        if self.mask_flag:
+            if attn_mask is None:
+                attn_mask = TriangularCausalMask(B, L, device=queries.device)
+
+            scores.masked_fill_(attn_mask.mask, -np.inf)
+
+        A = self.dropout(torch.softmax(scale * scores, dim=-1))
+        V = torch.einsum("bhls,bshd->blhd", A, values)
+
+        if self.output_attention:
+            return (V.contiguous(), A)
+        else:
+            return (V.contiguous(), None)
+```
+
+</details>
+
+:::
+
+## 2. VanillaTransformer {#vanillatransformer}
+
+::: {.cell 0=‘e’ 1=‘x’ 2=‘p’ 3=‘o’ 4=‘r’ 5=‘t’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+class VanillaTransformer(BaseWindows):
+    """ VanillaTransformer
+
+    Vanilla Transformer, following implementation of the Informer paper, used as baseline.
+
+    The architecture has three distinctive features:
+    - Full-attention mechanism with O(L^2) time and memory complexity.
+    - An MLP multi-step decoder that predicts long time-series sequences in a single forward operation rather than step-by-step.
+
+    The Vanilla Transformer model utilizes a three-component approach to define its embedding:
+    - It employs encoded autoregressive features obtained from a convolution network.
+    - It uses window-relative positional embeddings derived from harmonic functions.
+    - Absolute positional embeddings obtained from calendar features are utilized.
+
+    *Parameters:*<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `decoder_input_size_multiplier`: float = 0.5, .<br>
+    `hidden_size`: int=128, units of embeddings and encoders.<br>
+    `n_head`: int=4, controls number of multi-head's attention.<br>
+    `dropout`: float (0, 1), dropout throughout Informer architecture.<br>
+    `conv_hidden_size`: int=32, channels of the convolutional encoder.<br>
+    `activation`: str=`GELU`, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].<br>
+    `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
+    `decoder_layers`: int=1, number of layers for the MLP decoder.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
+    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    *References*<br>
+    - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)<br>
+    """
+    # Class attributes
+    SAMPLING_TYPE = 'windows'
+
+    def __init__(self,
+                 h: int, 
+                 input_size: int,
+                 stat_exog_list = None,
+                 hist_exog_list = None,
+                 futr_exog_list = None,
+                 decoder_input_size_multiplier: float = 0.5,
+                 hidden_size: int = 128, 
+                 dropout: float = 0.05,
+                 n_head: int = 4,
+                 conv_hidden_size: int = 32,
+                 activation: str = 'gelu',
+                 encoder_layers: int = 2, 
+                 decoder_layers: int = 1, 
+                 loss = MAE(),
+                 valid_loss = None,
+                 max_steps: int = 5000,
+                 learning_rate: float = 1e-4,
+                 num_lr_decays: int = -1,
+                 early_stop_patience_steps: int =-1,
+                 val_check_steps: int = 100,
+                 batch_size: int = 32,
+                 valid_batch_size: Optional[int] = None,
+                 windows_batch_size = 1024,
+                 inference_windows_batch_size: int = 1024,
+                 step_size: int = 1,
+                 scaler_type: str = 'identity',
+                 random_seed: int = 1,
+                 num_workers_loader: int = 0,
+                 drop_last_loader: bool = False,
+                 **trainer_kwargs):
+        super(VanillaTransformer, self).__init__(h=h,
+                                       input_size=input_size,
+                                       hist_exog_list=hist_exog_list,
+                                       stat_exog_list=stat_exog_list,
+                                       futr_exog_list = futr_exog_list,
+                                       loss=loss,
+                                       valid_loss=valid_loss,
+                                       max_steps=max_steps,
+                                       learning_rate=learning_rate,
+                                       num_lr_decays=num_lr_decays,
+                                       early_stop_patience_steps=early_stop_patience_steps,
+                                       val_check_steps=val_check_steps,
+                                       batch_size=batch_size,
+                                       valid_batch_size=valid_batch_size,
+                                       windows_batch_size=windows_batch_size,
+                                       inference_windows_batch_size=inference_windows_batch_size,
+                                       step_size=step_size,
+                                       scaler_type=scaler_type,
+                                       num_workers_loader=num_workers_loader,
+                                       drop_last_loader=drop_last_loader,
+                                       random_seed=random_seed,
+                                       **trainer_kwargs)
+
+        # Architecture
+        self.futr_input_size = len(self.futr_exog_list)
+        self.hist_input_size = len(self.hist_exog_list)
+        self.stat_input_size = len(self.stat_exog_list)
+
+        if self.stat_input_size > 0:
+            raise Exception('VanillaTransformer does not support static variables yet')
+        
+        if self.hist_input_size > 0:
+            raise Exception('VanillaTransformer does not support historical variables yet')
+
+        self.label_len = int(np.ceil(input_size * decoder_input_size_multiplier))
+        if (self.label_len >= input_size) or (self.label_len <= 0):
+            raise Exception(f'Check decoder_input_size_multiplier={decoder_input_size_multiplier}, range (0,1)')
+
+        if activation not in ['relu', 'gelu']:
+            raise Exception(f'Check activation={activation}')
+        
+        self.c_out = self.loss.outputsize_multiplier
+        self.output_attention = False
+        self.enc_in = 1 
+        self.dec_in = 1
+
+        # Embedding
+        self.enc_embedding = DataEmbedding(c_in=self.enc_in,
+                                           exog_input_size=self.hist_input_size,
+                                           hidden_size=hidden_size, 
+                                           pos_embedding=True,
+                                           dropout=dropout)
+        self.dec_embedding = DataEmbedding(self.dec_in,
+                                           exog_input_size=self.hist_input_size,
+                                           hidden_size=hidden_size, 
+                                           pos_embedding=True,
+                                           dropout=dropout)
+
+        # Encoder
+        self.encoder = TransEncoder(
+            [
+                TransEncoderLayer(
+                    AttentionLayer(
+                        FullAttention(mask_flag=False,
+                                      attention_dropout=dropout,
+                                      output_attention=self.output_attention),
+                        hidden_size, n_head),
+                    hidden_size,
+                    conv_hidden_size,
+                    dropout=dropout,
+                    activation=activation
+                ) for l in range(encoder_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(hidden_size)
+        )
+        # Decoder
+        self.decoder = TransDecoder(
+            [
+                TransDecoderLayer(
+                    AttentionLayer(
+                        FullAttention(mask_flag=True, attention_dropout=dropout, output_attention=False),
+                        hidden_size, n_head),
+                    AttentionLayer(
+                        FullAttention(mask_flag=False, attention_dropout=dropout, output_attention=False),
+                        hidden_size, n_head),
+                    hidden_size,
+                    conv_hidden_size,
+                    dropout=dropout,
+                    activation=activation,
+                )
+                for l in range(decoder_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(hidden_size),
+            projection=nn.Linear(hidden_size, self.c_out, bias=True)
+        )
+
+    def forward(self, windows_batch):
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        #insample_mask = windows_batch['insample_mask']
+        #hist_exog     = windows_batch['hist_exog']
+        #stat_exog     = windows_batch['stat_exog']
+
+        futr_exog     = windows_batch['futr_exog']
+
+        insample_y = insample_y.unsqueeze(-1) # [Ws,L,1]
+
+        if self.futr_input_size > 0:
+            x_mark_enc = futr_exog[:,:self.input_size,:]
+            x_mark_dec = futr_exog[:,-(self.label_len+self.h):,:]
+        else:
+            x_mark_enc = None
+            x_mark_dec = None
+
+        x_dec = torch.zeros(size=(len(insample_y),self.h,1)).to(insample_y.device)
+        x_dec = torch.cat([insample_y[:,-self.label_len:,:], x_dec], dim=1)
+
+        enc_out = self.enc_embedding(insample_y, x_mark_enc)
+        enc_out, _ = self.encoder(enc_out, attn_mask=None) # attns visualization
+
+        dec_out = self.dec_embedding(x_dec, x_mark_dec)
+        dec_out = self.decoder(dec_out, enc_out, x_mask=None, 
+                               cross_mask=None)
+
+        forecast = self.loss.domain_map(dec_out[:, -self.h:])
+        return forecast
+```
+
+</details>
+
+:::
+
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(VanillaTransformer)
+```
+
+</details>
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(VanillaTransformer.fit, name='VanillaTransformer.fit')
+```
+
+</details>
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(VanillaTransformer.predict, name='VanillaTransformer.predict')
+```
+
+</details>
+
+## Usage Example {#usage-example}
+
+<details>
+<summary>Code</summary>
+
+``` python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = VanillaTransformer(h=12,
+                 input_size=24,
+                 hidden_size=16,
+                 conv_hidden_size=32,
+                 n_head=2,
+                 loss=MAE(),
+                 futr_exog_list=calendar_cols,
+                 scaler_type='robust',
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['VanillaTransformer-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['VanillaTransformer-lo-90'][-12:].values, 
+                    y2=plot_df['VanillaTransformer-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['VanillaTransformer'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+
+</details>
+

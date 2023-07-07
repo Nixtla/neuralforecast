@@ -1,0 +1,424 @@
+---
+title: MLP
+---
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+%load_ext autoreload
+%autoreload 2
+```
+
+</details>
+
+:::
+
+> One of the simplest neural architectures are Multi Layer Perceptrons
+> (`MLP`) composed of stacked Fully Connected Neural Networks trained
+> with backpropagation. Each node in the architecture is capable of
+> modeling non-linear relationships granted by their activation
+> functions. Novel activations like Rectified Linear Units (`ReLU`) have
+> greatly improved the ability to fit deeper networks overcoming
+> gradient vanishing problems that were associated with `Sigmoid` and
+> `TanH` activations. For the forecasting task the last layer is changed
+> to follow a auto-regression
+> problem.<br><br>**References**<br>-[Rosenblatt, F. (1958). “The
+> perceptron: A probabilistic model for information storage and
+> organization in the
+> brain.”](https://psycnet.apa.org/record/1959-09865-001)<br>-[Fukushima,
+> K. (1975). “Cognitron: A self-organizing multilayered neural
+> network.”](https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=PASCAL7750396723)<br>-[Vinod
+> Nair, Geoffrey E. Hinton (2010). “Rectified Linear Units Improve
+> Restricted Boltzmann
+> Machines”](https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf)<br>
+
+![Figure 1. Three layer MLP with autorregresive
+inputs.](imgs_models/mlp.png)
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+from fastcore.test import test_eq
+from nbdev.showdoc import show_doc
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘e’ 1=‘x’ 2=‘p’ 3=‘o’ 4=‘r’ 5=‘t’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+from typing import Optional
+
+import torch
+import torch.nn as nn
+
+from neuralforecast.losses.pytorch import MAE
+from neuralforecast.common._base_windows import BaseWindows
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘e’ 1=‘x’ 2=‘p’ 3=‘o’ 4=‘r’ 5=‘t’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+class MLP(BaseWindows):
+    """ MLP
+
+    Simple Multi Layer Perceptron architecture (MLP). 
+    This deep neural network has constant units through its layers, each with
+    ReLU non-linearities, it is trained using ADAM stochastic gradient descent.
+    The network accepts static, historic and future exogenous data, flattens 
+    the inputs and learns fully connected relationships against the target variable.
+
+    **Parameters:**<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
+    `n_layers`: int, number of layers for the MLP.<br>
+    `hidden_size`: int, number of units for each layer of the MLP.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
+    """
+    # Class attributes
+    SAMPLING_TYPE = 'windows'
+    
+    def __init__(self,
+                 h,
+                 input_size,
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,
+                 exclude_insample_y = False,
+                 num_layers = 2,
+                 hidden_size = 1024,
+                 loss = MAE(),
+                 valid_loss = None,
+                 max_steps: int = 1000,
+                 learning_rate: float = 1e-3,
+                 num_lr_decays: int = -1,
+                 early_stop_patience_steps: int =-1,
+                 val_check_steps: int = 100,
+                 batch_size: int = 32,
+                 valid_batch_size: Optional[int] = None,
+                 windows_batch_size = 1024,
+                 inference_windows_batch_size = -1,
+                 step_size: int = 1,
+                 scaler_type: str = 'identity',
+                 random_seed: int = 1,
+                 num_workers_loader: int = 0,
+                 drop_last_loader: bool = False,
+                 **trainer_kwargs):
+
+        # Inherit BaseWindows class
+        super(MLP, self).__init__(h=h,
+                                  input_size=input_size,
+                                  futr_exog_list=futr_exog_list,
+                                  hist_exog_list=hist_exog_list,
+                                  stat_exog_list=stat_exog_list,
+                                  exclude_insample_y = exclude_insample_y,
+                                  loss=loss,
+                                  valid_loss=valid_loss,
+                                  max_steps=max_steps,
+                                  learning_rate=learning_rate,
+                                  num_lr_decays=num_lr_decays,
+                                  early_stop_patience_steps=early_stop_patience_steps,
+                                  val_check_steps=val_check_steps,
+                                  batch_size=batch_size,
+                                  valid_batch_size=valid_batch_size,
+                                  windows_batch_size=windows_batch_size,
+                                  inference_windows_batch_size=inference_windows_batch_size,
+                                  step_size=step_size,
+                                  scaler_type=scaler_type,
+                                  num_workers_loader=num_workers_loader,
+                                  drop_last_loader=drop_last_loader,
+                                  random_seed=random_seed,
+                                  **trainer_kwargs)
+
+        # Architecture
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+
+        self.futr_input_size = len(self.futr_exog_list)
+        self.hist_input_size = len(self.hist_exog_list)
+        self.stat_input_size = len(self.stat_exog_list)
+
+        input_size_first_layer = input_size + self.hist_input_size * input_size + \
+                                 self.futr_input_size*(input_size + h) + self.stat_input_size
+
+        # MultiLayer Perceptron
+        layers = [nn.Linear(in_features=input_size_first_layer, out_features=hidden_size)]
+        for i in range(num_layers - 1):
+            layers += [nn.Linear(in_features=hidden_size, out_features=hidden_size)]
+        self.mlp = nn.ModuleList(layers)
+
+        # Adapter with Loss dependent dimensions
+        self.out = nn.Linear(in_features=hidden_size, 
+                             out_features=h * self.loss.outputsize_multiplier)
+
+    def forward(self, windows_batch):
+
+        # Parse windows_batch
+        insample_y    = windows_batch['insample_y']
+        futr_exog     = windows_batch['futr_exog']
+        hist_exog     = windows_batch['hist_exog']
+        stat_exog     = windows_batch['stat_exog']
+
+        # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size = len(insample_y)
+        if self.hist_input_size > 0:
+            insample_y = torch.cat(( insample_y, hist_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.futr_input_size > 0:
+            insample_y = torch.cat(( insample_y, futr_exog.reshape(batch_size,-1) ), dim=1)
+
+        if self.stat_input_size > 0:
+            insample_y = torch.cat(( insample_y, stat_exog.reshape(batch_size,-1) ), dim=1)
+
+        y_pred = insample_y.clone()
+        for layer in self.mlp:
+             y_pred = torch.relu(layer(y_pred))
+        y_pred = self.out(y_pred)
+
+        y_pred = y_pred.reshape(batch_size, self.h, 
+                                self.loss.outputsize_multiplier)
+        y_pred = self.loss.domain_map(y_pred)
+        return y_pred
+```
+
+</details>
+
+:::
+
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(MLP)
+```
+
+</details>
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(MLP.fit, name='MLP.fit')
+```
+
+</details>
+<details>
+<summary>Code</summary>
+
+``` python
+show_doc(MLP.predict, name='MLP.predict')
+```
+
+</details>
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+import logging
+import warnings
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+warnings.filterwarnings("ignore")
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+# test performance fit/predict method
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast.utils import AirPassengersDF as Y_df
+from neuralforecast.tsdataset import TimeSeriesDataset
+
+
+Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
+Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
+
+dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
+model = MLP(h=12, input_size=24, max_steps=1)
+model.fit(dataset=dataset)
+y_hat = model.predict(dataset=dataset)
+Y_test_df['MLP'] = y_hat
+
+#test we recover the same forecast
+y_hat2 = model.predict(dataset=dataset)
+test_eq(y_hat, y_hat2)
+
+pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plot()
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+# test no leakage with test_size
+dataset, *_ = TimeSeriesDataset.from_df(Y_df)
+model = MLP(h=12, input_size=24, max_steps=1)
+model.fit(dataset=dataset, test_size=12)
+y_hat_test = model.predict(dataset=dataset, step_size=1)
+np.testing.assert_almost_equal(
+    y_hat, 
+    y_hat_test,
+    decimal=4
+)
+# test we recover the same forecast
+y_hat_test2 = model.predict(dataset=dataset, step_size=1)
+test_eq(y_hat_test, y_hat_test2)
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+# test validation step
+dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
+model = MLP(h=12, input_size=24, step_size=1, 
+            hidden_size=1024, num_layers=2,
+            max_steps=1)
+model.fit(dataset=dataset, val_size=12)
+y_hat_w_val = model.predict(dataset=dataset)
+Y_test_df['MLP'] = y_hat_w_val
+
+pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plot()
+```
+
+</details>
+
+:::
+
+::: {.cell 0=‘h’ 1=‘i’ 2=‘d’ 3=‘e’}
+
+<details>
+<summary>Code</summary>
+
+``` python
+# test no leakage with test_size and val_size
+dataset, *_ = TimeSeriesDataset.from_df(Y_df)
+model = MLP(h=12, input_size=24, step_size=1, 
+            hidden_size=1024, num_layers=2,
+            max_steps=1)
+model.fit(dataset=dataset, val_size=12, test_size=12)
+y_hat_test_w_val = model.predict(dataset=dataset, step_size=1)
+np.testing.assert_almost_equal(y_hat_test_w_val,
+                               y_hat_w_val, decimal=4)
+```
+
+</details>
+
+:::
+
+## Usage Example {#usage-example}
+
+<details>
+<summary>Code</summary>
+
+``` python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = MLP(h=12, input_size=24,
+            loss=DistributionLoss(distribution='Normal', level=[80, 90]),
+            scaler_type='robust',
+            learning_rate=1e-3,
+            max_steps=200,
+            val_check_steps=10,
+            early_stop_patience_steps=2)
+
+fcst = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['MLP-median'], c='blue', label='median')
+plt.fill_between(x=plot_df['ds'][-12:], 
+                 y1=plot_df['MLP-lo-90'][-12:].values, 
+                 y2=plot_df['MLP-hi-90'][-12:].values,
+                 alpha=0.4, label='level 90')
+plt.grid()
+plt.legend()
+plt.plot()
+```
+
+</details>
+
