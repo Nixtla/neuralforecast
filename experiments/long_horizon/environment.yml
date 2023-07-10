@@ -5,5 +5,5 @@ dependencies:
   - numpy<1.24
   - pip
   - pip:
-    - "git+https://github.com/Nixtla/datasetsforecast.git@feat/long_horizon2"
+    - "git+https://github.com/Nixtla/datasetsforecast.git"
     - "git+https://github.com/Nixtla/neuralforecast.git"

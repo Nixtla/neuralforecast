@@ -4,15 +4,15 @@ In these experiments we use `NHITS` on the [ETTh1, ETTh2, ETTm1, ETTm2](https://
 
 | Dataset  | Horizon  | NHITS-MSE  | NHITS-MAE  | TIDE-MSE   | TIDE-MAE   |
 |----------|----------|------------|------------|------------|------------|
-| ETTh1    | 96       |            |            | 0.375      | 0.398      |
-| ETTh1    | 192      |            |            | 0.412      | 0.422      |
-| ETTh1    | 336      |            |            | 0.435      | 0.433      |
-| ETTh1    | 720      |            |            | 0.454      | 0.465      |
+| ETTh1    | 96       | 0.378      | 0.393      | 0.375      | 0.398      |
+| ETTh1    | 192      | 0.427      | 0.436      | 0.412      | 0.422      |
+| ETTh1    | 336      | 0.458      | 0.484      | 0.435      | 0.433      |
+| ETTh1    | 720      | 0.561      | 0.501      | 0.454      | 0.465      |
 |----------|----------|------------|------------|------------|------------|
-| ETTh2    | 96       |            |            | 0.270      | 0.336      |
-| ETTh2    | 192      |            |            | 0.332      | 0.380      |
-| ETTh2    | 336      |            |            | 0.360      | 0.407      |
-| ETTh2    | 720      |            |            | 0.419      | 0.451      |
+| ETTh2    | 96       | 0.274      | 0.345      | 0.270      | 0.336      |
+| ETTh2    | 192      | 0.353      | 0.401      | 0.332      | 0.380      |
+| ETTh2    | 336      | 0.382      | 0.425      | 0.360      | 0.407      |
+| ETTh2    | 720      | 0.625      | 0.557      | 0.419      | 0.451      |
 |----------|----------|------------|------------|------------|------------|
 | ETTm1    | 96       | 0.302      | 0.35       | 0.306      | 0.349      |
 | ETTm1    | 192      | 0.347      | 0.383      | 0.335      | 0.366      |
@@ -40,7 +40,7 @@ In these experiments we use `NHITS` on the [ETTh1, ETTh2, ETTm1, ETTm2](https://
 
 Alternatively simply installing neuralforecast and datasetsforecast with pip may suffice:
 ```
-pip install git+https://github.com/Nixtla/datasetsforecast.git@feat/long_horizon2
+pip install git+https://github.com/Nixtla/datasetsforecast.git
 pip install git+https://github.com/Nixtla/neuralforecast.git
 ```
 

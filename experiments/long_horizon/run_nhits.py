@@ -41,8 +41,10 @@ if __name__ == '__main__':
     Y_df = LongHorizon2.load(directory='./data/', group=dataset)
     freq = LongHorizon2Info[dataset].freq
     n_time = len(Y_df.ds.unique())
-    val_size = int(.2 * n_time)
-    test_size = int(.2 * n_time)
+    #val_size = int(.2 * n_time)
+    #test_size = int(.2 * n_time)
+    val_size = LongHorizon2Info[dataset].val_size
+    test_size = LongHorizon2Info[dataset].test_size
 
     # Adapt input_size to available data
     input_size = tune.choice([7 * horizon])
@@ -51,7 +53,7 @@ if __name__ == '__main__':
 
     nhits_config = {
         #"learning_rate": tune.choice([1e-3]),                                     # Initial Learning rate
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "learning_rate": tune.loguniform(1e-5, 5e-3),
         "max_steps": tune.choice([200, 1000]),                                    # Number of SGD steps
         "input_size": input_size,                                                 # input_size = multiplier * horizon
         "batch_size": tune.choice([7]),                                           # Number of series in windows
@@ -92,10 +94,11 @@ if __name__ == '__main__':
 
     print('\n'*4)
     print('Parsed results')
+    print(f'NHITS {dataset} h={horizon}')
+    print('test_size', test_size)
     print('y_true.shape (n_series, n_windows, n_time_out):\t', y_true.shape)
     print('y_hat.shape  (n_series, n_windows, n_time_out):\t', y_hat.shape)
 
-    print(f'NHITS {dataset} h={horizon}')
     print('MSE: ', mse(y_hat, y_true))
     print('MAE: ', mae(y_hat, y_true))
 
