@@ -11,7 +11,8 @@ from neuralforecast.core import NeuralForecast
 
 from neuralforecast.losses.pytorch import MAE, HuberLoss
 from neuralforecast.losses.numpy import mae, mse
-from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
+#from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
+from datasetsforecast.long_horizon2 import LongHorizon2, LongHorizon2Info
 
 import logging
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
@@ -34,9 +35,11 @@ if __name__ == '__main__':
     assert horizon in [96, 192, 336, 720]
 
     # Load dataset
-    Y_df, _, _ = LongHorizon.load(directory='./data/', group=dataset)
-    Y_df['ds'] = pd.to_datetime(Y_df['ds'])
-    freq = LongHorizonInfo[dataset].freq
+    #Y_df, _, _ = LongHorizon.load(directory='./data/', group=dataset)
+    #Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+
+    Y_df = LongHorizon2.load(directory='./data/', group=dataset)
+    freq = LongHorizon2Info[dataset].freq
     n_time = len(Y_df.ds.unique())
     val_size = int(.2 * n_time)
     test_size = int(.2 * n_time)
@@ -70,7 +73,8 @@ if __name__ == '__main__':
                         loss=HuberLoss(delta=0.5),
                         valid_loss=MAE(),
                         config=nhits_config, 
-                        num_samples=num_samples)]
+                        num_samples=num_samples,
+                        refit_with_val=True)]
 
     nf = NeuralForecast(models=models, freq=freq)
 
