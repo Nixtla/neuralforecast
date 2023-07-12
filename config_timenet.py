@@ -15,7 +15,10 @@ MODEL_LIST = [
               'nhits_30_1024_monthly',
               'nhits_30_1024_quarterly',
               'nhits_30_1024_yearly',
-              'nhits_30_1024_minutely'
+              'nhits_30_1024_minutely',
+              'tft_1024_daily',
+              'tft_1024_weekly',
+              'tft_1024_monthly',
               ]
 
 def load_model(model_name):
@@ -99,7 +102,7 @@ def load_model(model_name):
                         windows_batch_size=128,
                         random_seed=1)
     if model_name == 'nhits_30_1024_hourly':
-        horizon = 7
+        horizon = 24
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -126,10 +129,10 @@ def load_model(model_name):
                         mlp_units=3 * [[1024, 1024, 1024, 1024]],
                         n_blocks=3*[10],
                         n_pool_kernel_size=3*[1],
-                        n_freq_downsample=[3, 2, 1],
+                        n_freq_downsample=[4, 2, 1],
                         loss=LOSS,
                         learning_rate=1e-4,
-                        early_stop_patience_steps=10,
+                        early_stop_patience_steps=-1,
                         val_check_steps=1000,
                         scaler_type='minmax1',
                         max_steps=200,
@@ -148,11 +151,11 @@ def load_model(model_name):
                         n_freq_downsample=[1, 1, 1],
                         loss=LOSS,
                         learning_rate=1e-4,
-                        early_stop_patience_steps=10,
+                        early_stop_patience_steps=-1,
                         val_check_steps=1000,
                         scaler_type='minmax1',
-                        max_steps=2000,
-                        batch_size=256,
+                        max_steps=200,
+                        batch_size=128,
                         windows_batch_size=1024,
                         random_seed=1)
 
@@ -168,11 +171,11 @@ def load_model(model_name):
                         n_freq_downsample=[6, 2, 1],
                         loss=LOSS,
                         learning_rate=1e-4,
-                        early_stop_patience_steps=10,
+                        early_stop_patience_steps=-1,
                         val_check_steps=1000,
                         scaler_type='minmax1',
-                        max_steps=1000,
-                        batch_size=256,
+                        max_steps=200,
+                        batch_size=128,
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_quarterly':
@@ -213,4 +216,49 @@ def load_model(model_name):
                         batch_size=128,
                         windows_batch_size=1024,
                         random_seed=1)
+
+    if model_name == 'tft_1024_daily':
+        horizon = 7
+        model = TFT(h=horizon,
+                    input_size=3*horizon,
+                    hidden_size=1024,
+                    loss=LOSS,
+                    learning_rate=1e-4,
+                    early_stop_patience_steps=-1,
+                    val_check_steps=1000,
+                    scaler_type='minmax1',
+                    max_steps=200,
+                    batch_size=128,
+                    windows_batch_size=1024,
+                    random_seed=1)
+
+    if model_name == 'tft_1024_weekly':
+        horizon = 1
+        model = TFT(h=horizon,
+                    input_size=3*horizon,
+                    hidden_size=1024,
+                    loss=LOSS,
+                    learning_rate=1e-4,
+                    early_stop_patience_steps=-1,
+                    val_check_steps=1000,
+                    scaler_type='minmax1',
+                    max_steps=200,
+                    batch_size=128,
+                    windows_batch_size=1024,
+                    random_seed=1)
+        
+    if model_name == 'tft_1024_monthly':
+        horizon = 12
+        model = TFT(h=horizon,
+                    input_size=3*horizon,
+                    hidden_size=1024,
+                    loss=LOSS,
+                    learning_rate=1e-4,
+                    early_stop_patience_steps=-1,
+                    val_check_steps=1000,
+                    scaler_type='minmax1',
+                    max_steps=200,
+                    batch_size=128,
+                    windows_batch_size=1024,
+                    random_seed=1)
     return model
