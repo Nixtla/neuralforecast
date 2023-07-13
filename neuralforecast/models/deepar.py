@@ -4,6 +4,8 @@
 __all__ = ['Decoder', 'DeepAR']
 
 # %% ../../nbs/models.deepar.ipynb 4
+import numpy as np
+
 import torch
 import torch.nn as nn
 
@@ -82,6 +84,7 @@ class DeepAR(BaseWindows):
         lstm_dropout: float = 0.1,
         decoder_hidden_layers: int = 0,
         decoder_hidden_size: int = 0,
+        trayectory_samples: int = 100,
         futr_exog_list=None,
         stat_exog_list=None,
         exclude_insample_y=False,
@@ -134,6 +137,7 @@ class DeepAR(BaseWindows):
         )
 
         self.horizon_backup = self.h  # Used because h=0 during training
+        self.trayectory_samples = trayectory_samples
 
         # LSTM
         self.encoder_n_layers = lstm_n_layers
@@ -174,11 +178,9 @@ class DeepAR(BaseWindows):
         original_insample_y = windows["temporal"][
             :, :, 0
         ].clone()  # windows: [B, L, Feature] -> [B, L]
-        print("original_insample_y", original_insample_y.shape)
         original_insample_y = original_insample_y[
-            :, 1:-1
-        ]  # Remove first and last (shift in DeepAr, cell at t outputs t+1)
-        print("original_insample_y", original_insample_y.shape)
+            :, 1:
+        ]  # Remove first (shift in DeepAr, cell at t outputs t+1)
         windows = self._normalization(windows=windows)
 
         # Parse windows
@@ -197,25 +199,17 @@ class DeepAR(BaseWindows):
         # Model Predictions
         output = self.train_forward(windows_batch)
 
-        print("output", output.shape)
-
-        output = output[
-            :, :-1
-        ]  # Remove last (shift in DeepAr, last output is outside insample_y)
-
-        assert 1 < 0, "Stop"
-
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=original_insample_y, temporal_cols=batch["temporal_cols"]
             )
             outsample_y = original_insample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
             )
             mask = insample_mask[
-                :, 1:-1
-            ].clone()  # Remove first and last (shift in DeepAr, cell at t outputs t+1)
+                :, 1:
+            ].clone()  # Remove first (shift in DeepAr, cell at t outputs t+1)
             loss = self.loss(y=outsample_y, distr_args=distr_args, mask=mask)
         else:
             raise Exception("DeepAR only supports distributional outputs.")
@@ -233,29 +227,80 @@ class DeepAR(BaseWindows):
         self.h = self.horizon_backup  # Restore horizon
         return loss
 
+    def predict_step(self, batch, batch_idx):
+        # TODO: Hack to compute number of windows
+        windows = self._create_windows(batch, step="predict")
+        n_windows = len(windows["temporal"])
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+
+        y_hats = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
+            windows = self._normalization(windows=windows)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                _,
+                _,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
+            windows_batch = dict(
+                insample_y=insample_y,  # [Ws, L]
+                insample_mask=insample_mask,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L+H]
+                stat_exog=stat_exog,
+                temporal_cols=batch["temporal_cols"],
+            )
+
+            # Model Predictions
+            y_hat = self(windows_batch)
+            # # Inverse normalization and sampling
+            # if self.loss.is_distribution_output:
+            #     _, y_loc, y_scale = self._inv_normalization(y_hat=output_batch[0],
+            #                                     temporal_cols=batch['temporal_cols'])
+            #     distr_args = self.loss.scale_decouple(output=output_batch, loc=y_loc, scale=y_scale)
+            #     _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            #     y_hat = torch.concat((sample_mean, quants), axis=2)
+
+            #     if self.loss.return_params:
+            #         distr_args = torch.stack(distr_args, dim=-1)
+            #         distr_args = torch.reshape(distr_args, (len(windows["temporal"]), self.h, -1))
+            #         y_hat = torch.concat((y_hat, distr_args), axis=2)
+            # else:
+            #     y_hat, _, _ = self._inv_normalization(y_hat=output_batch,
+            #                                     temporal_cols=batch['temporal_cols'])
+            y_hats.append(y_hat)
+        y_hat = torch.cat(y_hats, dim=0)
+        return y_hat
+
     def train_forward(self, windows_batch):
-        # Parsiw windows_batch
+        # Parse windows_batch
         encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
         stat_exog = windows_batch["stat_exog"]
 
         # [B, seq_len, X]
         batch_size, seq_len = encoder_input.shape[:2]
-
-        print("encoder_input", encoder_input.shape)
         if self.futr_exog_size > 0:
-            print("futr_exog", futr_exog.shape)
             encoder_input = torch.cat((encoder_input, futr_exog), dim=2)
-        print("encoder_input", encoder_input.shape)
-
         if self.stat_exog_size > 0:
-            print("stat_exog", stat_exog.shape)
             stat_exog = stat_exog.unsqueeze(1).repeat(
                 1, seq_len, 1
             )  # [B, S] -> [B, seq_len, S]
-            print("stat_exog", stat_exog.shape)
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
-        print("encoder_input", encoder_input.shape)
 
         # RNN forward
         hidden_state, _ = self.hist_encoder(
@@ -264,13 +309,91 @@ class DeepAR(BaseWindows):
 
         # Decoder forward
         output = self.decoder(hidden_state)  # [B, seq_len, output_size]
-
+        output = output[
+            :, :-1
+        ]  # Remove last (shift in DeepAr, last output is outside insample_y)
         output = self.loss.domain_map(output)
-
-        print("len", len(output))
-        print(output)
-
         return output
 
     def forward(self, windows_batch):
-        pass
+        # Parse windows_batch
+        encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,L,1]
+        futr_exog = windows_batch["futr_exog"]  # <- [B,L+H, n_f]
+        stat_exog = windows_batch["stat_exog"]
+        temporal_cols = windows_batch["temporal_cols"]
+
+        # [B, seq_len, X]
+        batch_size, seq_len = encoder_input.shape[:2]
+        if self.futr_exog_size > 0:
+            futr_exog_input_window = futr_exog[:, :seq_len, :]
+            encoder_input = torch.cat((encoder_input, futr_exog_input_window), dim=2)
+        if self.stat_exog_size > 0:
+            stat_exog = stat_exog.unsqueeze(1).repeat(
+                1, seq_len, 1
+            )  # [B, S] -> [B, seq_len, S]
+            encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
+
+        # Use input_size history to predict first h of the forecasting window
+        _, h_c_tuple = self.hist_encoder(encoder_input)
+        h_n = h_c_tuple[0]  # [n_layers, B, rnn_hidden_state]
+        c_n = h_c_tuple[1]  # [n_layers, B, rnn_hidden_state]
+
+        # Vectorizes trayectory samples in batch dimension [1]
+        h_n = torch.repeat_interleave(
+            h_n, self.trayectory_samples, 1
+        )  # [n_layers, B*n_samples, rnn_hidden_state]
+        c_n = torch.repeat_interleave(
+            c_n, self.trayectory_samples, 1
+        )  # [n_layers, B*n_samples, rnn_hidden_state]
+        last_layer_h = h_n[-1]  # [B, rnn_hidden_state]
+        print("h_c_tuple", h_n.shape, c_n.shape)
+        print("last_h", last_layer_h.shape)
+
+        # Scales for inverse normalization
+        y_scale = self.scaler.x_scale[:, 0, temporal_cols.get_indexer(["y"])].squeeze(
+            -1
+        )
+        y_loc = self.scaler.x_shift[:, 0, temporal_cols.get_indexer(["y"])].squeeze(-1)
+        y_scale = torch.repeat_interleave(y_scale, self.trayectory_samples, 0)
+        y_loc = torch.repeat_interleave(y_loc, self.trayectory_samples, 0)
+        print("y_scale", y_scale.shape)
+        print("y_loc", y_loc.shape)
+        print("y_scale", y_scale)
+        print("y_loc", y_loc)
+
+        # Recursive strategy prediction
+        samples = torch.zeros(batch_size, self.h, self.trayectory_samples)
+        for tau in range(self.h):
+            # Decoder forward
+            output = self.decoder(last_layer_h)
+            output = self.loss.domain_map(output)
+            print("output[0]", output[0].shape)
+            print("output[1]", output[1].shape)
+
+            # Inverse normalization
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            # Add horizon (1) dimension
+            distr_args = list(distr_args)
+            for i in range(len(distr_args)):
+                distr_args[i] = distr_args[i].unsqueeze(-1)
+            distr_args = tuple(distr_args)
+            print("distr_args[0].shape", distr_args[0].shape)
+            print("distr_args[1].shape", distr_args[1].shape)
+            # Assuming normal for now
+            samples_tau, _, _ = self.loss.sample(distr_args=distr_args, num_samples=1)
+            samples[:, tau, :] = samples_tau.reshape(
+                batch_size, self.trayectory_samples
+            )
+            print("samples_tau.flatten()", samples_tau.flatten())
+            print(samples.mean(dim=-1))
+            assert 1 < 0, "STOP"
+            # y_hat = torch.concat((sample_mean, quants), axis=2)
+
+            # if self.loss.return_params:
+            #     distr_args = torch.stack(distr_args, dim=-1)
+            #     distr_args = torch.reshape(distr_args, (len(windows["temporal"]), self.h, -1))
+            #     y_hat = torch.concat((y_hat, distr_args), axis=2)
+
+        return output
