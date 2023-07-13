@@ -203,12 +203,18 @@ class BaseWindows(pl.LightningModule):
 
             # Sample and Available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            sample_condition = windows[:, -self.h :, available_idx]
-            sample_condition = torch.sum(sample_condition, axis=1)
-            available_condition = windows[:, : -self.h, available_idx]
-            available_condition = torch.sum(available_condition, axis=1)
-            final_condition = (sample_condition > 0) & (available_condition > 0)
-            windows = windows[final_condition]
+            if self.h == 0:
+                available_condition = windows[:, :, available_idx]
+                available_condition = torch.sum(available_condition, axis=1)
+                final_condition = available_condition > 0
+                windows = windows[final_condition]
+            else:
+                available_condition = windows[:, : -self.h, available_idx]
+                available_condition = torch.sum(available_condition, axis=1)
+                sample_condition = windows[:, -self.h :, available_idx]
+                sample_condition = torch.sum(sample_condition, axis=1)
+                final_condition = (sample_condition > 0) & (available_condition > 0)
+                windows = windows[final_condition]
 
             # Parse Static data to match windows
             # [B, S_in] -> [B, Ws, S_in] -> [B*Ws, S_in]
@@ -319,7 +325,8 @@ class BaseWindows(pl.LightningModule):
         temporal_data_cols = temporal_cols.drop("available_mask").tolist()
         temporal_data = temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)]
         temporal_mask = temporal[:, :, temporal_cols.get_loc("available_mask")].clone()
-        temporal_mask[:, -self.h :] = 0.0
+        if self.h > 0:
+            temporal_mask[:, -self.h :] = 0.0
 
         # Normalize. self.scaler stores the shift and scale for inverse transform
         temporal_mask = temporal_mask.unsqueeze(
@@ -370,15 +377,24 @@ class BaseWindows(pl.LightningModule):
         # Filter insample lags from outsample horizon
         y_idx = batch["temporal_cols"].get_loc("y")
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
-        insample_y = windows["temporal"][:, : -self.h, y_idx]
-        insample_mask = windows["temporal"][:, : -self.h, mask_idx]
-        outsample_y = windows["temporal"][:, -self.h :, y_idx]
-        outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
+        if self.h > 0:
+            insample_y = windows["temporal"][:, : -self.h, y_idx]
+            insample_mask = windows["temporal"][:, : -self.h, mask_idx]
+            outsample_y = windows["temporal"][:, -self.h :, y_idx]
+            outsample_mask = windows["temporal"][:, -self.h :, mask_idx]
+        else:
+            insample_y = windows["temporal"][:, :, y_idx]
+            insample_mask = windows["temporal"][:, :, mask_idx]
+            outsample_y = None
+            outsample_mask = None
 
         # Filter historic exogenous variables
         if len(self.hist_exog_list):
             hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
-            hist_exog = windows["temporal"][:, : -self.h, hist_exog_idx]
+            if self.h > 0:
+                hist_exog = windows["temporal"][:, : -self.h, hist_exog_idx]
+            else:
+                hist_exog = windows["temporal"][:, :, hist_exog_idx]
         else:
             hist_exog = None
 
