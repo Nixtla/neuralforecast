@@ -408,16 +408,17 @@ class DeepAR(BaseWindows):
         futr_exog = windows_batch["futr_exog"]
         stat_exog = windows_batch["stat_exog"]
 
-        # [B, seq_len, X]
+        # [B, input_size-1, X]
+        encoder_input = encoder_input[
+            :, :-1, :
+        ]  # Remove last (shift in DeepAr, cell at t outputs t+1)
         _, input_size = encoder_input.shape[:2]
         if self.futr_exog_size > 0:
-            # Remove last and shift futr_exog (t predicts t+1, last output is outside insample_y)
-            encoder_input = torch.cat(
-                (encoder_input[:, :-1, :], futr_exog[:, 1:, :]), dim=2
-            )
+            # Shift futr_exog (t predicts t+1, last output is outside insample_y)
+            encoder_input = torch.cat((encoder_input, futr_exog[:, 1:, :]), dim=2)
         if self.stat_exog_size > 0:
             stat_exog = stat_exog.unsqueeze(1).repeat(
-                1, input_size - 1, 1
+                1, input_size, 1
             )  # [B, S] -> [B, input_size-1, S]
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
