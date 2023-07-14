@@ -14,6 +14,7 @@ from neuralforecast.models.rnn import RNN
 from neuralforecast.models.tcn import TCN
 from neuralforecast.models.lstm import LSTM
 from neuralforecast.models.dilated_rnn import DilatedRNN
+from neuralforecast.models.deepar import DeepAR
 from neuralforecast.models.mlp import MLP
 from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
@@ -76,6 +77,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         #Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
         #Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
         PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_steps=5000),
+        DeepAR(h=horizon, input_size=2 * horizon, max_steps=1000),
     ]
     for model in models:
         model_name = type(model).__name__
