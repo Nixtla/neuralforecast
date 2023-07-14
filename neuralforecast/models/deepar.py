@@ -69,21 +69,20 @@ class DeepAR(BaseWindows):
     The predictions are obtained by transforming the hidden states $\mathbf{h}_{t}$ into predictive distribution parameters $\theta_{t}$, and then generating samples $\mathbf{\hat{y}}_{[t+1:t+H]}$ through Monte Carlo sampling trajectories.
 
     \begin{align}
-    \mathbf{h}_{t} &= \textrm{RNN}([\mathbf{y}_{t},\mathbf{x}^{(f)}_{t},\mathbf{x}^{(s)}], \mathbf{h}_{t-1})\\
+    \mathbf{h}_{t} &= \textrm{RNN}([\mathbf{y}_{t},\mathbf{x}^{(f)}_{t+1},\mathbf{x}^{(s)}], \mathbf{h}_{t-1})\\
     \mathbf{\theta}_{t}&=\textrm{Linear}(\mathbf{h}_{t}) \\
     \hat{y}_{t+1}&=\textrm{sample}(\;\mathrm{P}(y_{t+1}\;|\;\mathbf{\theta}_{t})\;)
     \end{align}
 
-    
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    lstm_n_layers: int=2, number of LSTM layers.<br>
-    lstm_hidden_size: int=128, LSTM hidden size.<br>
-    lstm_dropout: float=0.1, LSTM dropout.<br>
-    decoder_hidden_layers: int=0, number of decoder MLP hidden layers. Default: 0 for linear layer. <br>
-    decoder_hidden_size: int=0, decoder MLP hidden size. Default: 0 for linear layer.<br>
-    trajectory_samples: int=100, number of Monte Carlo trajectories during inference.<br>
+    `lstm_n_layers`: int=2, number of LSTM layers.<br>
+    `lstm_hidden_size`: int=128, LSTM hidden size.<br>
+    `lstm_dropout`: float=0.1, LSTM dropout.<br>
+    `decoder_hidden_layers`: int=0, number of decoder MLP hidden layers. Default: 0 for linear layer. <br>
+    `decoder_hidden_size`: int=0, decoder MLP hidden size. Default: 0 for linear layer.<br>
+    `trajectory_samples`: int=100, number of Monte Carlo trajectories during inference.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
