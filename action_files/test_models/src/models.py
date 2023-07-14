@@ -97,6 +97,7 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
 
     # DeepAR
+    model_name = type(models[-1]).__name__
     start = time.time()
     fcst = NeuralForecast(models=[models[-1]], freq=freq)
     fcst.fit(train)
