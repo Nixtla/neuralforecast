@@ -197,7 +197,7 @@ class NeuralForecast:
         static_df: Optional[pd.DataFrame] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
-        use_init_models: bool = True,
+        use_init_models: bool = False,
         verbose: bool = False,
     ):
         """Fit the core.NeuralForecast.
@@ -216,7 +216,7 @@ class NeuralForecast:
             Size of validation set.
         sort_df : bool, optional (default=False)
             Sort `df` before fitting.
-        use_init_models : bool, optional (default=True)
+        use_init_models : bool, optional (default=False)
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
@@ -254,6 +254,8 @@ class NeuralForecast:
         # Recover initial model if use_init_models or is the first time fitting
         if (use_init_models) or (not self._fitted):
             self.models_fitted = [deepcopy(model) for model in self.models]
+            if self._fitted:
+                print("WARNING: Deleting previously fitted models.")
 
         for model in self.models_fitted:
             model.fit(self.dataset, val_size=val_size)
@@ -364,7 +366,7 @@ class NeuralForecast:
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
         sort_df: bool = True,
-        use_init_models: bool = True,
+        use_init_models: bool = False,
         verbose: bool = False,
         **data_kwargs,
     ):
@@ -390,7 +392,7 @@ class NeuralForecast:
             Length of test size. If passed, set `n_windows=None`.
         sort_df : bool (default=True)
             Sort `df` before fitting.
-        use_init_models : bool, option (default=True)
+        use_init_models : bool, option (default=False)
             Use initial model passed when object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
@@ -419,6 +421,8 @@ class NeuralForecast:
         # Recover initial model if use_init_models and not fitted. If already fitted, will use models_fitted
         if (use_init_models) or (not self._fitted):
             self.models_fitted = [deepcopy(model) for model in self.models]
+            if self._fitted:
+                print("WARNING: Deleting previously fitted models.")
 
         cols = []
         count_names = {"model": 0}

@@ -1,0 +1,9 @@
+name: long_horizon
+channels:
+  - conda-forge
+dependencies:
+  - numpy<1.24
+  - pip
+  - pip:
+    - "git+https://github.com/Nixtla/datasetsforecast.git"
+    - "git+https://github.com/Nixtla/neuralforecast.git"
