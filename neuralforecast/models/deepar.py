@@ -17,8 +17,8 @@ warnings.filterwarnings("ignore")
 
 from typing import Optional
 
-from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+from ..losses.pytorch import DistributionLoss, MQLoss
 
 # %% ../../nbs/models.deepar.ipynb 7
 class Decoder(nn.Module):
@@ -60,16 +60,24 @@ class Decoder(nn.Module):
 
 # %% ../../nbs/models.deepar.ipynb 8
 class DeepAR(BaseWindows):
-    """DeepAR
+    """ DeepAR
 
-    DeepAR is a method for producing probabilistic forecasts. It uses two recurrent neural networks (RNN)
-    to encode temporal and static variables and generate forecast distribution parameters.
+    The DeepAR model produces probabilistic forecasts based on an autoregressive recurrent neural network optimized on panel data using cross-learning. DeepAR obtains its forecast distribution uses a Markov Chain Monte Carlo sampler with the following conditional probability:
+    $$\mathbb{P}(\mathbf{y}_{[t+1:t+H]}|\;\mathbf{y}_{[:t]},\; \mathbf{x}^{(f)}_{[:t+H]},\; \mathbf{x}^{(s)})$$
 
-    **Parameters:**<br>
+    where $\mathbf{x}^{(s)}$ are static exogenous inputs, $\mathbf{x}^{(f)}_{[:t+H]}$ are future exogenous available at the time of the prediction.
+    The predictions are obtained by transforming the hidden states $\mathbf{h}_{t}$ into predictive distribution parameters $\theta_{t}$, and then generating samples $\mathbf{\hat{y}}_{[t+1:t+H]}$ through Monte Carlo sampling trajectories.
+
+    \begin{align}
+    \mathbf{h}_{t} &= \textrm{RNN}([\mathbf{y}_{t},\mathbf{x}^{(f)}_{t},\mathbf{x}^{(s)}], \mathbf{h}_{t-1})\\
+    \mathbf{\theta}_{t}&=\textrm{Linear}(\mathbf{h}_{t}) \\
+    \hat{y}_{t+1}&=\textrm{sample}(\;\mathrm{P}(y_{t+1}\;|\;\mathbf{\theta}_{t})\;)
+    \end{align}
 
     **References**<br>
     - [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020). "DeepAR: Probabilistic forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br>
     - [Alexander Alexandrov et. al (2020). "GluonTS: Probabilistic and Neural Time Series Modeling in Python". Journal of Machine Learning Research.](https://www.jmlr.org/papers/v21/19-820.html)<br>
+
     """
 
     # Class attributes
@@ -84,12 +92,15 @@ class DeepAR(BaseWindows):
         lstm_dropout: float = 0.1,
         decoder_hidden_layers: int = 0,
         decoder_hidden_size: int = 0,
-        trayectory_samples: int = 100,
+        trajectory_samples: int = 100,
         futr_exog_list=None,
+        hist_exog_list=None,
         stat_exog_list=None,
         exclude_insample_y=False,
-        loss=MAE(),
-        valid_loss=None,
+        loss=DistributionLoss(
+            distribution="StudentT", level=[80, 90], return_params=False
+        ),
+        valid_loss=MQLoss(level=[80, 90]),
         max_steps: int = 1000,
         learning_rate: float = 1e-3,
         num_lr_decays: int = 3,
@@ -106,8 +117,25 @@ class DeepAR(BaseWindows):
         drop_last_loader=False,
         **trainer_kwargs
     ):
-        # DeepAR doues not support historic exogenous variables
-        hist_exog_list = (None,)
+        # DeepAR does not support historic exogenous variables
+        if hist_exog_list is not None:
+            raise Exception("DeepAR does not support historic exogenous variables.")
+
+        if exclude_insample_y:
+            raise Exception("DeepAR has no possibility for excluding y.")
+
+        if not loss.is_distribution_output:
+            raise Exception("DeepAR only supports distributional outputs.")
+
+        if str(type(valid_loss)) not in [
+            "<class 'neuralforecast.losses.pytorch.MQLoss'>"
+        ]:
+            raise Exception("DeepAR only supports MQLoss as validation loss.")
+
+        if loss.return_params:
+            raise Exception(
+                "DeepAR does not return distribution parameters due to Monte Carlo sampling."
+            )
 
         # Inherit BaseWindows class
         super(DeepAR, self).__init__(
@@ -137,7 +165,7 @@ class DeepAR(BaseWindows):
         )
 
         self.horizon_backup = self.h  # Used because h=0 during training
-        self.trayectory_samples = trayectory_samples
+        self.trajectory_samples = trajectory_samples
 
         # LSTM
         self.encoder_n_layers = lstm_n_layers
@@ -173,7 +201,7 @@ class DeepAR(BaseWindows):
         # During training h=0
         self.h = 0
 
-        # Create and normalize windows [Ws, L+H, C]
+        # Create and normalize windows [Ws, L, C]
         windows = self._create_windows(batch, step="train")
         original_insample_y = windows["temporal"][
             :, :, 0
@@ -227,7 +255,76 @@ class DeepAR(BaseWindows):
         self.h = self.horizon_backup  # Restore horizon
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        self.h == self.horizon_backup
+
+        if self.val_size == 0:
+            return np.nan
+
+        # TODO: Hack to compute number of windows
+        windows = self._create_windows(batch, step="val")
+        n_windows = len(windows["temporal"])
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+
+        valid_losses = []
+        batch_sizes = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
+            original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+            windows = self._normalization(windows=windows)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                outsample_mask,
+                _,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
+            windows_batch = dict(
+                insample_y=insample_y,
+                insample_mask=insample_mask,
+                futr_exog=futr_exog,
+                hist_exog=None,
+                stat_exog=stat_exog,
+                temporal_cols=batch["temporal_cols"],
+            )
+
+            # Model Predictions
+            output_batch = self(windows_batch)
+            # Monte Carlo already returns y_hat with mean and quantiles
+            output_batch = output_batch[:, :, 1:]  # Remove mean
+            valid_loss_batch = self.valid_loss(
+                y=original_outsample_y, y_hat=output_batch, mask=outsample_mask
+            )
+            valid_losses.append(valid_loss_batch)
+            batch_sizes.append(len(output_batch))
+
+        valid_loss = torch.stack(valid_losses)
+        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
+
+        if torch.isnan(valid_loss):
+            raise Exception("Loss is NaN, training stopped.")
+
+        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.validation_step_outputs.append(valid_loss)
+        return valid_loss
+
     def predict_step(self, batch, batch_idx):
+        self.h == self.horizon_backup
+
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
         n_windows = len(windows["temporal"])
@@ -267,21 +364,7 @@ class DeepAR(BaseWindows):
 
             # Model Predictions
             y_hat = self(windows_batch)
-            # # Inverse normalization and sampling
-            # if self.loss.is_distribution_output:
-            #     _, y_loc, y_scale = self._inv_normalization(y_hat=output_batch[0],
-            #                                     temporal_cols=batch['temporal_cols'])
-            #     distr_args = self.loss.scale_decouple(output=output_batch, loc=y_loc, scale=y_scale)
-            #     _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-            #     y_hat = torch.concat((sample_mean, quants), axis=2)
-
-            #     if self.loss.return_params:
-            #         distr_args = torch.stack(distr_args, dim=-1)
-            #         distr_args = torch.reshape(distr_args, (len(windows["temporal"]), self.h, -1))
-            #         y_hat = torch.concat((y_hat, distr_args), axis=2)
-            # else:
-            #     y_hat, _, _ = self._inv_normalization(y_hat=output_batch,
-            #                                     temporal_cols=batch['temporal_cols'])
+            # Monte Carlo already returns y_hat with mean and quantiles
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)
         return y_hat
@@ -293,25 +376,25 @@ class DeepAR(BaseWindows):
         stat_exog = windows_batch["stat_exog"]
 
         # [B, seq_len, X]
-        batch_size, seq_len = encoder_input.shape[:2]
+        _, input_size = encoder_input.shape[:2]
         if self.futr_exog_size > 0:
-            encoder_input = torch.cat((encoder_input, futr_exog), dim=2)
+            # Remove last and shift futr_exog (t predicts t+1, last output is outside insample_y)
+            encoder_input = torch.cat(
+                (encoder_input[:, :-1, :], futr_exog[:, 1:, :]), dim=2
+            )
         if self.stat_exog_size > 0:
             stat_exog = stat_exog.unsqueeze(1).repeat(
-                1, seq_len, 1
-            )  # [B, S] -> [B, seq_len, S]
+                1, input_size - 1, 1
+            )  # [B, S] -> [B, input_size-1, S]
             encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
 
         # RNN forward
         hidden_state, _ = self.hist_encoder(
             encoder_input
-        )  # [B, seq_len, rnn_hidden_state]
+        )  # [B, input_size-1, rnn_hidden_state]
 
         # Decoder forward
-        output = self.decoder(hidden_state)  # [B, seq_len, output_size]
-        output = output[
-            :, :-1
-        ]  # Remove last (shift in DeepAr, last output is outside insample_y)
+        output = self.decoder(hidden_state)  # [B, input_size-1, output_size]
         output = self.loss.domain_map(output)
         return output
 
@@ -323,52 +406,47 @@ class DeepAR(BaseWindows):
         temporal_cols = windows_batch["temporal_cols"]
 
         # [B, seq_len, X]
-        batch_size, seq_len = encoder_input.shape[:2]
+        batch_size, input_size = encoder_input.shape[:2]
         if self.futr_exog_size > 0:
-            futr_exog_input_window = futr_exog[:, :seq_len, :]
+            futr_exog_input_window = futr_exog[
+                :, 1 : input_size + 1, :
+            ]  # Align y_t with futr_exog_t+1
             encoder_input = torch.cat((encoder_input, futr_exog_input_window), dim=2)
         if self.stat_exog_size > 0:
-            stat_exog = stat_exog.unsqueeze(1).repeat(
-                1, seq_len, 1
-            )  # [B, S] -> [B, seq_len, S]
-            encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
+            stat_exog_input_window = stat_exog.unsqueeze(1).repeat(
+                1, input_size, 1
+            )  # [B, S] -> [B, input_size, S]
+            encoder_input = torch.cat((encoder_input, stat_exog_input_window), dim=2)
 
         # Use input_size history to predict first h of the forecasting window
         _, h_c_tuple = self.hist_encoder(encoder_input)
-        h_n = h_c_tuple[0]  # [n_layers, B, rnn_hidden_state]
-        c_n = h_c_tuple[1]  # [n_layers, B, rnn_hidden_state]
+        h_n = h_c_tuple[0]  # [n_layers, B, lstm_hidden_state]
+        c_n = h_c_tuple[1]  # [n_layers, B, lstm_hidden_state]
 
-        # Vectorizes trayectory samples in batch dimension [1]
+        # Vectorizes trajectory samples in batch dimension [1]
         h_n = torch.repeat_interleave(
-            h_n, self.trayectory_samples, 1
-        )  # [n_layers, B*n_samples, rnn_hidden_state]
+            h_n, self.trajectory_samples, 1
+        )  # [n_layers, B*trajectory_samples, rnn_hidden_state]
         c_n = torch.repeat_interleave(
-            c_n, self.trayectory_samples, 1
-        )  # [n_layers, B*n_samples, rnn_hidden_state]
-        last_layer_h = h_n[-1]  # [B, rnn_hidden_state]
-        print("h_c_tuple", h_n.shape, c_n.shape)
-        print("last_h", last_layer_h.shape)
+            c_n, self.trajectory_samples, 1
+        )  # [n_layers, B*trajectory_samples, rnn_hidden_state]
 
         # Scales for inverse normalization
         y_scale = self.scaler.x_scale[:, 0, temporal_cols.get_indexer(["y"])].squeeze(
             -1
         )
         y_loc = self.scaler.x_shift[:, 0, temporal_cols.get_indexer(["y"])].squeeze(-1)
-        y_scale = torch.repeat_interleave(y_scale, self.trayectory_samples, 0)
-        y_loc = torch.repeat_interleave(y_loc, self.trayectory_samples, 0)
-        print("y_scale", y_scale.shape)
-        print("y_loc", y_loc.shape)
-        print("y_scale", y_scale)
-        print("y_loc", y_loc)
+        y_scale = torch.repeat_interleave(y_scale, self.trajectory_samples, 0)
+        y_loc = torch.repeat_interleave(y_loc, self.trajectory_samples, 0)
 
         # Recursive strategy prediction
-        samples = torch.zeros(batch_size, self.h, self.trayectory_samples)
+        quantiles = self.loss.quantiles.to(encoder_input.device)
+        y_hat = torch.zeros(batch_size, self.h, len(quantiles) + 1)
         for tau in range(self.h):
             # Decoder forward
+            last_layer_h = h_n[-1]  # [B*trajectory_samples, lstm_hidden_state]
             output = self.decoder(last_layer_h)
             output = self.loss.domain_map(output)
-            print("output[0]", output[0].shape)
-            print("output[1]", output[1].shape)
 
             # Inverse normalization
             distr_args = self.loss.scale_decouple(
@@ -379,21 +457,41 @@ class DeepAR(BaseWindows):
             for i in range(len(distr_args)):
                 distr_args[i] = distr_args[i].unsqueeze(-1)
             distr_args = tuple(distr_args)
-            print("distr_args[0].shape", distr_args[0].shape)
-            print("distr_args[1].shape", distr_args[1].shape)
-            # Assuming normal for now
             samples_tau, _, _ = self.loss.sample(distr_args=distr_args, num_samples=1)
-            samples[:, tau, :] = samples_tau.reshape(
-                batch_size, self.trayectory_samples
-            )
-            print("samples_tau.flatten()", samples_tau.flatten())
-            print(samples.mean(dim=-1))
-            assert 1 < 0, "STOP"
-            # y_hat = torch.concat((sample_mean, quants), axis=2)
+            samples_tau = samples_tau.reshape(batch_size, self.trajectory_samples)
+            sample_mean = torch.mean(samples_tau, dim=-1)
+            quants = torch.quantile(input=samples_tau, q=quantiles, dim=-1)
+            y_hat[:, tau, 0] = sample_mean
+            y_hat[:, tau, 1:] = quants.permute((1, 0))  # [Q, B] -> [B, Q]
 
-            # if self.loss.return_params:
-            #     distr_args = torch.stack(distr_args, dim=-1)
-            #     distr_args = torch.reshape(distr_args, (len(windows["temporal"]), self.h, -1))
-            #     y_hat = torch.concat((y_hat, distr_args), axis=2)
+            # Stop if already in the last step (no need to predict next step)
+            if tau + 1 == self.h:
+                continue
+            # Normalize to use as input
+            encoder_input = self.scaler.scaler(
+                samples_tau.flatten(), y_loc, y_scale
+            )  # [B*n_samples]
+            encoder_input = encoder_input[:, None, None]  # [B*n_samples, 1, 1]
 
-        return output
+            # Update input
+            if self.futr_exog_size > 0:
+                futr_exog_tau = futr_exog[:, [input_size + tau + 1], :]  # [B, 1, n_f]
+                futr_exog_tau = torch.repeat_interleave(
+                    futr_exog_tau, self.trajectory_samples, 0
+                )  # [B*n_samples, 1, n_f]
+                encoder_input = torch.cat(
+                    (encoder_input, futr_exog_tau), dim=2
+                )  # [B*n_samples, 1, 1+n_f]
+            if self.stat_exog_size > 0:
+                stat_exog_tau = torch.repeat_interleave(
+                    stat_exog, self.trajectory_samples, 0
+                )  # [B*n_samples, n_s]
+                encoder_input = torch.cat(
+                    (encoder_input, stat_exog_tau[:, None, :]), dim=2
+                )  # [B*n_samples, 1, 1+n_f+n_s]
+
+            _, h_c_tuple = self.hist_encoder(encoder_input, (h_n, c_n))
+            h_n = h_c_tuple[0]  # [n_layers, B, rnn_hidden_state]
+            c_n = h_c_tuple[1]  # [n_layers, B, rnn_hidden_state]
+
+        return y_hat

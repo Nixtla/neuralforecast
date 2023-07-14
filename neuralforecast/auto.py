@@ -36,7 +36,7 @@ from .models.patchtst import PatchTST
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
 
-from .losses.pytorch import MAE
+from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
 # %% ../nbs/models.ipynb 9
 class AutoRNN(BaseAuto):
@@ -283,9 +283,11 @@ class AutoDeepAR(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "hidden_size": tune.choice([64, 128, 256]),
+        "lstm_hidden_size": tune.choice([32, 64, 128, 256]),
+        "lstm_n_layers": tune.randint(1, 4),
+        "lstm_dropout": tune.uniform(0.0, 0.5),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "scaler_type": tune.choice(["robust", "minmax1"]),
         "max_steps": tune.choice([500, 1000, 2000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
@@ -296,8 +298,10 @@ class AutoDeepAR(BaseAuto):
     def __init__(
         self,
         h,
-        loss=MAE(),
-        valid_loss=None,
+        loss=DistributionLoss(
+            distribution="StudentT", level=[80, 90], return_params=False
+        ),
+        valid_loss=MQLoss(level=[80, 90]),
         config=None,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
