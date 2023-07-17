@@ -244,3 +244,4 @@ if __name__ == '__main__':
 
 # CUDA_VISIBLE_DEVICES=0 python run_timenet.py --model "nhits_30_1024" --experiment_id "20230710"
 # CUDA_VISIBLE_DEVICES=0 python run_timenet.py --model "tft_1024" --experiment_id "20230710"
+# CUDA_VISIBLE_DEVICES=0 python run_timenet.py --model "lstm_512_4" --experiment_id "20230710"

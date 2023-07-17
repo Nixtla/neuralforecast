@@ -160,8 +160,6 @@ def main(args):
                 freq = 'AS'
                 nf.freq = pd.tseries.frequencies.to_offset(freq)
             elif frequency == 'Quarterly':
-                if subdataset == 'M3':
-                    Y_df['ds'] = Y_df['ds'] + pd.DateOffset(months=1)
                 freq = 'QS'
                 nf.freq = pd.tseries.frequencies.to_offset(freq)
             elif frequency == 'Monthly':
