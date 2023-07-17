@@ -14,6 +14,7 @@ from neuralforecast.models.rnn import RNN
 from neuralforecast.models.tcn import TCN
 from neuralforecast.models.lstm import LSTM
 from neuralforecast.models.dilated_rnn import DilatedRNN
+from neuralforecast.models.deepar import DeepAR
 from neuralforecast.models.mlp import MLP
 from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
@@ -75,9 +76,12 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         #VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
         #Informer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
         #Autoformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=5000),
-        PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_steps=5000),
+        PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_steps=1000),
+        DeepAR(h=horizon, input_size=2 * horizon, max_steps=1000),
     ]
-    for model in models:
+
+    # Models
+    for model in models[:-1]:
         model_name = type(model).__name__
         start = time.time()
         fcst = NeuralForecast(models=[model], freq=freq)
@@ -91,6 +95,22 @@ def main(dataset: str = 'M3', group: str = 'Other') -> None:
         forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
         time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
         time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
+
+    # DeepAR
+    model_name = type(models[-1]).__name__
+    start = time.time()
+    fcst = NeuralForecast(models=[models[-1]], freq=freq)
+    fcst.fit(train)
+    forecasts = fcst.predict()
+    end = time.time()
+    print(end - start)
+
+    forecasts = forecasts.reset_index()
+    forecasts = forecasts[['unique_id', 'ds', 'DeepAR-median']]
+    forecasts.columns = ['unique_id', 'ds', 'DeepAR']
+    forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
+    time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
+    time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
 
 
 if __name__ == '__main__':

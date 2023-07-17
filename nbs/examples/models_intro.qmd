@@ -54,6 +54,7 @@ The RNN-based family attempts to leverage the data's temporal structure while re
 |[`GRU`](../models.gru.html)                 |✅                |✅                      |✅                      |✅                            |
 |[`LSTM`](../models.lstm.html)               |✅                |✅                      |✅                      |✅                            |
 |[`TCN`](../models.tcn.html)                 |✅                |✅                      |✅                      |✅                            |
+|[`DeepAR`](../models.deepar.html)           |✅                |✅                      |✅                      |✅                            |
 |[`DilatedRNN`](../models.dilated_rnn.html)  |✅                |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
 

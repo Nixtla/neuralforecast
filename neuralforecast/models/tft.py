@@ -396,6 +396,7 @@ class TFT(BaseWindows):
     `futr_exog_list`: str list, future continuous columns.<br>
     `hidden_size`: int, units of embeddings and encoders.<br>
     `dropout`: float (0, 1), dropout of inputs VSNs.<br>
+    `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
