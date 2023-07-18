@@ -178,7 +178,8 @@ class NeuralForecast:
         ), "All models should have the same horizon"
 
         self.h = models[0].h
-        self.models = models
+        self.models_init = models
+        self.models = [deepcopy(model) for model in self.models_init]
         self.freq = pd.tseries.frequencies.to_offset(freq)
 
         # Flags and attributes
@@ -251,13 +252,13 @@ class NeuralForecast:
                     "Validation set size is larger than the shorter time-series."
                 )
 
-        # Recover initial model if use_init_models or is the first time fitting
-        if (use_init_models) or (not self._fitted):
-            self.models_fitted = [deepcopy(model) for model in self.models]
+        # Recover initial model if use_init_models
+        if use_init_models:
+            self.models = [deepcopy(model) for model in self.models_init]
             if self._fitted:
                 print("WARNING: Deleting previously fitted models.")
 
-        for model in self.models_fitted:
+        for model in self.models:
             model.fit(self.dataset, val_size=val_size)
 
         self._fitted = True
@@ -317,7 +318,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models_fitted:
+        for model in self.models:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -341,7 +342,7 @@ class NeuralForecast:
 
         col_idx = 0
         fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
-        for model in self.models_fitted:
+        for model in self.models:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
             model_fcsts = model.predict(dataset=dataset, **data_kwargs)
@@ -418,22 +419,22 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
-        # Recover initial model if use_init_models and not fitted. If already fitted, will use models_fitted
-        if (use_init_models) or (not self._fitted):
-            self.models_fitted = [deepcopy(model) for model in self.models]
+        # Recover initial model if use_init_models.
+        if use_init_models:
+            self.models = [deepcopy(model) for model in self.models_init]
             if self._fitted:
                 print("WARNING: Deleting previously fitted models.")
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models_fitted:
+        for model in self.models:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
             cols += [model_name + n for n in model.loss.output_names]
 
-        h = self.models_fitted[0].h
+        h = self.models[0].h
         if test_size is None:
             test_size = h + step_size * (n_windows - 1)
         elif n_windows is None:
@@ -466,7 +467,7 @@ class NeuralForecast:
             (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
         )
 
-        for model in self.models_fitted:
+        for model in self.models:
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
@@ -521,7 +522,7 @@ class NeuralForecast:
 
         cols = []
         count_names = {"model": 0}
-        for model in self.models_fitted:
+        for model in self.models:
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -529,7 +530,7 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Remove test set from dataset and last dates
-        test_size = self.models_fitted[0].get_test_size()
+        test_size = self.models[0].get_test_size()
         if test_size > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
                 dataset=self.dataset, right_trim=test_size, left_trim=0
@@ -556,7 +557,7 @@ class NeuralForecast:
         col_idx = 0
         fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
 
-        for model in self.models_fitted:
+        for model in self.models:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
             model.set_test_size(test_size=trimmed_dataset.max_size)
 
@@ -611,7 +612,7 @@ class NeuralForecast:
 
         # Model index list
         if model_index is None:
-            model_index = list(range(len(self.models_fitted)))
+            model_index = list(range(len(self.models)))
 
         # Create directory if not exists
         os.makedirs(path, exist_ok=True)
@@ -627,7 +628,7 @@ class NeuralForecast:
 
         # Save models
         count_names = {"model": 0}
-        for i, model in enumerate(self.models_fitted):
+        for i, model in enumerate(self.models):
             # Skip model if not in list
             if i not in model_index:
                 continue
@@ -729,11 +730,7 @@ class NeuralForecast:
             neuralforecast.ds = config_dict["ds"]
             neuralforecast.sort_df = config_dict["sort_df"]
 
-        # Fitted flag and models_fitted
+        # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
-        if config_dict["_fitted"]:
-            neuralforecast.models_fitted = [
-                deepcopy(model) for model in neuralforecast.models
-            ]
 
         return neuralforecast

@@ -474,7 +474,9 @@ class DeepAR(BaseWindows):
 
         # Recursive strategy prediction
         quantiles = self.loss.quantiles.to(encoder_input.device)
-        y_hat = torch.zeros(batch_size, self.h, len(quantiles) + 1)
+        y_hat = torch.zeros(batch_size, self.h, len(quantiles) + 1).to(
+            encoder_input.device
+        )
         for tau in range(self.h):
             # Decoder forward
             last_layer_h = h_n[-1]  # [B*trajectory_samples, lstm_hidden_state]
@@ -492,8 +494,10 @@ class DeepAR(BaseWindows):
             distr_args = tuple(distr_args)
             samples_tau, _, _ = self.loss.sample(distr_args=distr_args, num_samples=1)
             samples_tau = samples_tau.reshape(batch_size, self.trajectory_samples)
-            sample_mean = torch.mean(samples_tau, dim=-1)
-            quants = torch.quantile(input=samples_tau, q=quantiles, dim=-1)
+            sample_mean = torch.mean(samples_tau, dim=-1).to(encoder_input.device)
+            quants = torch.quantile(input=samples_tau, q=quantiles, dim=-1).to(
+                encoder_input.device
+            )
             y_hat[:, tau, 0] = sample_mean
             y_hat[:, tau, 1:] = quants.permute((1, 0))  # [Q, B] -> [B, Q]
 
