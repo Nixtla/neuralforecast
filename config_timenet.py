@@ -1,49 +1,45 @@
 from neuralforecast.models import *
-from neuralforecast.losses.pytorch import MAE, MQLoss, HuberMQLoss
+from neuralforecast.losses.pytorch import MAE, MQLoss, HuberMQLoss, DistributionLoss
 
 # GLOBAL parameters
 
 LOSS = HuberMQLoss(quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+LOSS_PROBA = DistributionLoss(distribution="StudentT", level=[80, 90], return_params=False)
 
-MODEL_LIST = [
-              'nhits_30_1024_minutely',
-              'nhits_30_1024_10minutely',
-              'nhits_30_1024_15minutely',
-              'nhits_30_1024_30minutely',
-              'nhits_30_1024_hourly',
-              'nhits_30_1024_daily',
-              'nhits_30_1024_weekly',
-              'nhits_30_1024_monthly',
-              'nhits_30_1024_quarterly',
-              'nhits_30_1024_yearly',
-              'tft_1024_minutely',
-              'tft_1024_10minutely',
-              'tft_1024_15minutely',
-              'tft_1024_30minutely',
-              'tft_1024_hourly',
-              'tft_1024_daily',
-              'tft_1024_weekly',
-              'tft_1024_monthly',
-              'tft_1024_quarterly',
-              'tft_1024_yearly',
-              'lstm_512_4_minutely',
-              'lstm_512_4_10minutely',
-              'lstm_512_4_15minutely',
-              'lstm_512_4_30minutely',
-              'lstm_512_4_hourly',
-              'lstm_512_4_daily',
-              'lstm_512_4_weekly',
-              'lstm_512_4_monthly',
-              'lstm_512_4_quarterly',
-              'lstm_512_4_yearly'
-              ]
+MODELS = ['nhits_30_1024',
+          'tft_1024',
+          'lstm_512_4'
+          'deepar_128_4']
+
+FREQUENCY = ['minutely',
+             '10minutely',
+             '15minutely',
+             '30minutely',
+             'hourly',
+             'daily',
+             'weekly',
+             'monthly',
+             'quarterly',
+             'yearly']
+
+HORIZON_DICT = {'yearly': 1,
+                'quarterly': 4,
+                'monthly': 12,
+                'weekly': 1,
+                'daily': 7,
+                'hourly': 24,
+                '30minutely': 48,
+                '15minutely': 96,
+                '10minutely': 144,
+                'minutely': 60}
 
 def load_model(model_name):
-    assert model_name in MODEL_LIST, f"Model {model_name} not in list of models"
+    model = None
+    frequency = model_name.split('_')[-1]
+    horizon = HORIZON_DICT[frequency]
 
     ########################################################## NHITS ##########################################################
     if model_name == 'nhits_30_1024_minutely':
-        horizon = 60
         model = NHITS(h=horizon,
                         input_size=5*horizon,
                         dropout_prob_theta=0.2,
@@ -62,7 +58,6 @@ def load_model(model_name):
                         windows_batch_size=128,
                         random_seed=1)
     if model_name == 'nhits_30_1024_10minutely':
-        horizon = 144
         model = NHITS(h=horizon,
                         input_size=5*horizon,
                         dropout_prob_theta=0.2,
@@ -81,7 +76,6 @@ def load_model(model_name):
                         windows_batch_size=128,
                         random_seed=1)
     if model_name == 'nhits_30_1024_15minutely':
-        horizon = 96
         model = NHITS(h=horizon,
                         input_size=5*horizon,
                         dropout_prob_theta=0.2,
@@ -100,7 +94,6 @@ def load_model(model_name):
                         windows_batch_size=128,
                         random_seed=1)
     if model_name == 'nhits_30_1024_30minutely':
-        horizon = 48
         model = NHITS(h=horizon,
                         input_size=5*horizon,
                         dropout_prob_theta=0.2,
@@ -119,7 +112,6 @@ def load_model(model_name):
                         windows_batch_size=128,
                         random_seed=1)
     if model_name == 'nhits_30_1024_hourly':
-        horizon = 24
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -138,7 +130,6 @@ def load_model(model_name):
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_daily':
-        horizon = 7
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -157,7 +148,6 @@ def load_model(model_name):
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_weekly':
-        horizon = 1
         model = NHITS(h=horizon,
                         input_size=52*horizon,
                         dropout_prob_theta=0.2,
@@ -176,7 +166,6 @@ def load_model(model_name):
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_monthly':
-        horizon = 12
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -195,7 +184,6 @@ def load_model(model_name):
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_quarterly':
-        horizon = 4
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -214,7 +202,6 @@ def load_model(model_name):
                         windows_batch_size=1024,
                         random_seed=1)
     if model_name == 'nhits_30_1024_yearly':
-        horizon = 1
         model = NHITS(h=horizon,
                         input_size=3*horizon,
                         dropout_prob_theta=0.2,
@@ -236,7 +223,6 @@ def load_model(model_name):
         
     ########################################################## TFT ##########################################################
     if model_name == 'tft_1024_minutely':
-        horizon = 60
         model = TFT(h=horizon,
                     input_size=5*horizon,
                     hidden_size=1024,
@@ -250,7 +236,6 @@ def load_model(model_name):
                     windows_batch_size=128,
                     random_seed=1)
     if model_name == 'tft_1024_10minutely':
-        horizon = 144
         model = TFT(h=horizon,
                     input_size=3*horizon,
                     hidden_size=1024,
@@ -264,7 +249,6 @@ def load_model(model_name):
                     windows_batch_size=128,
                     random_seed=1)
     if model_name == 'tft_1024_15minutely':
-        horizon = 96
         model = TFT(h=horizon,
                     input_size=5*horizon,
                     hidden_size=1024,
@@ -278,7 +262,6 @@ def load_model(model_name):
                     windows_batch_size=128,
                     random_seed=1)
     if model_name == 'tft_1024_30minutely':
-        horizon = 48
         model = TFT(h=horizon,
                     input_size=5*horizon,
                     hidden_size=1024,
@@ -306,7 +289,6 @@ def load_model(model_name):
                     windows_batch_size=1024,
                     random_seed=1)
     if model_name == 'tft_1024_daily':
-        horizon = 7
         model = TFT(h=horizon,
                     input_size=3*horizon,
                     hidden_size=1024,
@@ -320,7 +302,6 @@ def load_model(model_name):
                     windows_batch_size=1024,
                     random_seed=1)
     if model_name == 'tft_1024_weekly':
-        horizon = 1
         model = TFT(h=horizon,
                     input_size=52*horizon,
                     hidden_size=1024,
@@ -334,7 +315,6 @@ def load_model(model_name):
                     windows_batch_size=1024,
                     random_seed=1)
     if model_name == 'tft_1024_monthly':
-        horizon = 12
         model = TFT(h=horizon,
                     input_size=3*horizon,
                     hidden_size=1024,
@@ -348,7 +328,6 @@ def load_model(model_name):
                     windows_batch_size=1024,
                     random_seed=1)
     if model_name == 'tft_1024_quarterly':
-        horizon = 4
         model = TFT(h=horizon,
                     input_size=3*horizon,
                     hidden_size=1024,
@@ -362,7 +341,6 @@ def load_model(model_name):
                     windows_batch_size=1024,
                     random_seed=1)
     if model_name == 'tft_1024_yearly':
-        horizon = 1
         model = TFT(h=horizon,
                     input_size=3*horizon,
                     hidden_size=1024,
@@ -375,11 +353,9 @@ def load_model(model_name):
                     batch_size=128,
                     windows_batch_size=1024,
                     random_seed=1)
-        
 
     ########################################################## LSTM ##########################################################
     if model_name == 'lstm_512_4_minutely':
-        horizon = 60
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -397,7 +373,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_10minutely':
-        horizon = 144
         model = LSTM(h=horizon,
                     input_size=3*horizon,
                     inference_input_size=3*horizon,
@@ -415,7 +390,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_15minutely':
-        horizon = 96
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -433,7 +407,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_30minutely':
-        horizon = 48
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -451,7 +424,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_hourly':
-        horizon = 24
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -469,7 +441,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_daily':
-        horizon = 7
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -487,7 +458,6 @@ def load_model(model_name):
                     batch_size=256,
                     random_seed=1)
     if model_name == 'lstm_512_4_weekly':
-        horizon = 1
         model = LSTM(h=horizon,
                     input_size=52*horizon,
                     inference_input_size=52*horizon,
@@ -505,7 +475,6 @@ def load_model(model_name):
                     batch_size=256,
                     random_seed=1)
     if model_name == 'lstm_512_4_monthly':
-        horizon = 12
         model = LSTM(h=horizon,
                     input_size=3*horizon,
                     inference_input_size=3*horizon,
@@ -523,7 +492,6 @@ def load_model(model_name):
                     batch_size=256,
                     random_seed=1)
     if model_name == 'lstm_512_4_quarterly':
-        horizon = 4
         model = LSTM(h=horizon,
                     input_size=3*horizon,
                     inference_input_size=3*horizon,
@@ -541,7 +509,6 @@ def load_model(model_name):
                     batch_size=128,
                     random_seed=1)
     if model_name == 'lstm_512_4_yearly':
-        horizon = 1
         model = LSTM(h=horizon,
                     input_size=5*horizon,
                     inference_input_size=5*horizon,
@@ -558,4 +525,158 @@ def load_model(model_name):
                     max_steps=5000,
                     batch_size=128,
                     random_seed=1)
+
+    ########################################################## DeepAR ##########################################################
+    if model_name == 'deepar_128_4_minutely':
+        model = DeepAR(h=horizon,
+                       input_size=5*horizon,
+                       lstm_n_layers=4,
+                       lstm_hidden_size=128,
+                       lstm_dropout=0.1,
+                       loss=LOSS_PROBA,
+                       learning_rate=1e-4,
+                       early_stop_patience_steps=5,
+                       val_check_steps=200,
+                       scaler_type='minmax1',
+                       max_steps=3000,
+                       batch_size=32,
+                       windows_batch_size=128,
+                       random_seed=1)
+    if model_name == 'deepar_128_4_10minutely':
+        model = DeepAR(h=horizon,
+                        input_size=3*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=3000,
+                        batch_size=32,
+                        windows_batch_size=128,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_15minutely':
+        model = DeepAR(h=horizon,
+                        input_size=5*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=3000,
+                        batch_size=32,
+                        windows_batch_size=128,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_30minutely':
+        model = DeepAR(h=horizon,
+                        input_size=5*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=3000,
+                        batch_size=32,
+                        windows_batch_size=128,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_hourly':
+        model = DeepAR(h=horizon,
+                        input_size=5*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=5000,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_daily':
+        model = DeepAR(h=horizon,
+                        input_size=5*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=-1,
+                        val_check_steps=1000,
+                        scaler_type='minmax1',
+                        max_steps=200,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_weekly':
+        model = DeepAR(h=horizon,
+                        input_size=52*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=-1,
+                        val_check_steps=1000,
+                        scaler_type='minmax1',
+                        max_steps=200,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_monthly':
+        model = DeepAR(h=horizon,
+                        input_size=3*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=-1,
+                        val_check_steps=1000,
+                        scaler_type='minmax1',
+                        max_steps=200,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_quarterly':
+        model = DeepAR(h=horizon,
+                        input_size=3*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=5000,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model_name == 'deepar_128_4_yearly':
+        model = DeepAR(h=horizon,
+                        input_size=3*horizon,
+                        lstm_n_layers=4,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0.1,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=5,
+                        val_check_steps=200,
+                        scaler_type='minmax1',
+                        max_steps=5000,
+                        batch_size=128,
+                        windows_batch_size=1024,
+                        random_seed=1)
+    if model is None:
+        raise ValueError("Model name not found.")
     return model

@@ -7,7 +7,7 @@ import gc
 
 from neuralforecast.losses.numpy import mae, mape, rmse, smape
 from neuralforecast.core import NeuralForecast
-from config_timenet import MODEL_LIST, load_model
+from config_timenet import load_model
 
 HORIZON_DICT = {'Yearly': 1,
                 'Quarterly': 4,
@@ -201,7 +201,10 @@ def main(args):
                 raise Exception('Nulls in Y_hat_df')
 
             # Compute metrics
-            model_type = model_type.upper()
+            if (model_type == 'deepar') or (model_type == 'DeepAR'):
+                model_type = 'DeepAR'
+            else: 
+                model_type = model_type.upper()
             df_metric_by_id = compute_losses_by_ts(Y_hat_df=Y_hat_df, y_hat_col=f'{model_type}-median', model_name=model_type,
                                                 dataset=dataset, subdataset=subdataset, frequency=frequency)
 
@@ -226,3 +229,4 @@ if __name__ == '__main__':
 
 
 # CUDA_VISIBLE_DEVICES=0 python run_timenet_small.py --model "nhits_30_1024"  --experiment_id "20230710"
+# CUDA_VISIBLE_DEVICES=0 python run_timenet_small.py --model "deepar_128_4" --experiment_id "20230710"
