@@ -62,14 +62,6 @@ class BasePointLoss(torch.nn.Module):
         """
         return y_hat.squeeze(-1)
 
-    def __call__(
-        self,
-        y: torch.Tensor,
-        y_hat: torch.Tensor,
-        mask: Union[torch.Tensor, None] = None,
-    ):
-        raise NotImplementedError("__call__")
-
     def _compute_weights(self, y, mask):
         """
         Compute final weights for each datapoint (based on all weights and all masks)
