@@ -547,7 +547,7 @@ class MQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y)
+            mask = torch.ones_like(y).to(y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 
@@ -558,7 +558,8 @@ class MQLoss(BasePointLoss):
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
-        weights = torch.ones_like(mask, device=mask.device) * self.horizon_weight
+        weights = self.horizon_weight.clone()
+        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
         return weights * mask
 
     def __call__(
@@ -1978,7 +1979,7 @@ class HuberMQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y)
+            mask = torch.ones_like(y).to(y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 
@@ -1989,7 +1990,8 @@ class HuberMQLoss(BasePointLoss):
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
-        weights = torch.ones_like(mask, device=mask.device) * self.horizon_weight
+        weights = self.horizon_weight.clone()
+        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
         return weights * mask
 
     def __call__(
