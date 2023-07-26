@@ -68,7 +68,7 @@ class BasePointLoss(torch.nn.Module):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y)
+            mask = torch.ones_like(y).to(y.device)
 
         if self.horizon_weight is None:
             self.horizon_weight = torch.ones(mask.shape[-1])
@@ -77,7 +77,8 @@ class BasePointLoss(torch.nn.Module):
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
-        weights = torch.ones_like(mask, device=mask.device) * self.horizon_weight
+        weights = self.horizon_weight.clone()
+        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
         return weights * mask
 
 # %% ../../nbs/losses.pytorch.ipynb 10
