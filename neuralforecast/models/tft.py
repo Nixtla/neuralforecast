@@ -409,6 +409,8 @@ class TFT(BaseWindows):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -449,6 +451,7 @@ class TFT(BaseWindows):
         valid_batch_size: Optional[int] = None,
         windows_batch_size: int = 1024,
         inference_windows_batch_size: int = 1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
         num_workers_loader=0,
@@ -471,6 +474,7 @@ class TFT(BaseWindows):
             valid_batch_size=valid_batch_size,
             windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
