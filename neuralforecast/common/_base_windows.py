@@ -43,6 +43,7 @@ class BaseWindows(pl.LightningModule):
         valid_batch_size,
         windows_batch_size,
         inference_windows_batch_size,
+        start_padding_enabled,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -67,7 +68,13 @@ class BaseWindows(pl.LightningModule):
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.start_padding_enabled = start_padding_enabled
+        if start_padding_enabled:
+            self.padder_train = nn.ConstantPad1d(
+                padding=(self.input_size - 1, self.h), value=0
+            )
+        else:
+            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
         # Loss
         self.loss = loss
@@ -190,7 +197,11 @@ class BaseWindows(pl.LightningModule):
                 cutoff = -self.val_size - self.test_size
                 temporal = temporal[:, :, :cutoff]
 
-            temporal = self.padder(temporal)
+            temporal = self.padder_train(temporal)
+            if temporal.shape[-1] < window_size:
+                raise Exception(
+                    "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
+                )
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
@@ -270,13 +281,20 @@ class BaseWindows(pl.LightningModule):
                     temporal = batch["temporal"][:, :, cutoff : -self.test_size]
                 else:
                     temporal = batch["temporal"][:, :, cutoff:]
+                if temporal.shape[-1] < window_size:
+                    initial_input = temporal.shape[-1] - self.val_size
+                    padder_left = nn.ConstantPad1d(
+                        padding=(self.input_size - initial_input, 0), value=0
+                    )
+                    temporal = padder_left(temporal)
 
             if (
                 (step == "predict")
                 and (self.test_size == 0)
                 and (len(self.futr_exog_list) == 0)
             ):
-                temporal = self.padder(temporal)
+                padder_right = nn.ConstantPad1d(padding=(0, self.h), value=0)
+                temporal = padder_right(temporal)
 
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=predict_step_size

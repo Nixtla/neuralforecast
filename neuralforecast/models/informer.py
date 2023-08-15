@@ -206,6 +206,7 @@ class Informer(BaseWindows):
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
@@ -249,6 +250,7 @@ class Informer(BaseWindows):
         valid_batch_size: Optional[int] = None,
         windows_batch_size=1024,
         inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -274,6 +276,7 @@ class Informer(BaseWindows):
             valid_batch_size=valid_batch_size,
             windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
