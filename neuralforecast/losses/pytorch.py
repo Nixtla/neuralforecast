@@ -585,9 +585,16 @@ class MQLoss(BasePointLoss):
             self.quantiles * sq + (1 - self.quantiles) * s1_q
         )
 
-        losses = losses.swapaxes(
-            -2, -1
-        )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
+        if y_hat.ndim == 3:  # BaseWindows
+            losses = losses.swapaxes(
+                -2, -1
+            )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
+        elif y_hat.ndim == 4:  # BaseRecurrent
+            losses = losses.swapaxes(-2, -1)
+            losses = losses.swapaxes(
+                -2, -3
+            )  # [B,seq_len,H,Q] -> [B,Q,seq_len,H] (needed for horizon weighting, H at the end)
+
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
         # NOTE: Weights do not have Q dimension.
 
@@ -2021,9 +2028,16 @@ class HuberMQLoss(BasePointLoss):
         )
         losses = (1 / len(self.quantiles)) * losses
 
-        losses = losses.swapaxes(
-            -2, -1
-        )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
+        if y_hat.ndim == 3:  # BaseWindows
+            losses = losses.swapaxes(
+                -2, -1
+            )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
+        elif y_hat.ndim == 4:  # BaseRecurrent
+            losses = losses.swapaxes(-2, -1)
+            losses = losses.swapaxes(
+                -2, -3
+            )  # [B,seq_len,H,Q] -> [B,Q,seq_len,H] (needed for horizon weighting, H at the end)
+
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
         # NOTE: Weights do not have Q dimension.
 
