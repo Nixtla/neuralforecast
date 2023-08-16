@@ -474,6 +474,12 @@ class BaseRecurrent(pl.LightningModule):
                 y=outsample_y, distr_args=distr_args, mask=outsample_mask
             )
         else:
+            outsample_y, _, _ = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+            )
+            output, _, _ = self._inv_normalization(
+                y_hat=output, temporal_cols=batch["temporal_cols"]
+            )
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
