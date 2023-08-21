@@ -435,7 +435,8 @@ class BaseWindows(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="train")
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+        y_idx = batch["temporal_cols"].get_loc("y")
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
         windows = self._normalization(windows=windows)
 
         # Parse windows
@@ -538,7 +539,8 @@ class BaseWindows(pl.LightningModule):
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
             windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
-            original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
+            y_idx = batch["temporal_cols"].get_loc("y")
+            original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
             windows = self._normalization(windows=windows)
 
             # Parse windows
