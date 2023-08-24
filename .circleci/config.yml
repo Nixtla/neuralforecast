@@ -41,6 +41,7 @@ jobs:
             pip install -r requirements.txt
             cd ../../
             mamba env update -f environment.yml
+            conda install -c conda-forge libstdcxx-ng==11.2.0 -y 
             pip install ./
       - run:
           name: Run model performance tests
