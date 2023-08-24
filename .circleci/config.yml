@@ -10,10 +10,11 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.10
+            mamba create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            mamba install -c conda-forge libstdcxx-ng
             mamba env update -f environment.yml
       - run:
           name: Run nbdev tests
@@ -33,10 +34,11 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.10
+            mamba create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            mamba install -c conda-forge libstdcxx-ng
             mamba env update -f environment.yml
       - run:
           name: Run model performance tests
