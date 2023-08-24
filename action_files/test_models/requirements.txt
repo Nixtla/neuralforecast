@@ -1,2 +1,2 @@
 fire
-datasetsforecast
+"git+https://github.com/nixtla/datasetsforecast.git"
