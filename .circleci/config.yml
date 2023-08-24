@@ -22,6 +22,7 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             pip install ./
+            python -c "import pandas as pd;"
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
     resource_class: xlarge
