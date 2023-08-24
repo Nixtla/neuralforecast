@@ -32,7 +32,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            #conda install mamba -n base -c conda-forge
+            conda install mamba -n base -c conda-forge
             conda create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
@@ -49,8 +49,8 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             cd ./action_files/test_models/
-            python -m src.models
-            python -m src.evaluation
+            python3 -m src.models
+            python3 -m src.evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
