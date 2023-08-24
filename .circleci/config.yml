@@ -38,7 +38,7 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             mamba env update -f environment.yml
-            mamba install -c conda-forge gcc
+            mamba install -c conda-forge gcc -y
       - run:
           name: Run model performance tests
           command: |
