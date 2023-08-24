@@ -15,3 +15,5 @@ dependencies:
     - black
     - hyperopt
     - "ray[tune]>=2.2.0"
+    - tensorboardx<2.6.2
+    - click<8.1.7
