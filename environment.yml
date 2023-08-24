@@ -10,7 +10,7 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
-  - libgcc==5.2.0
+  - libstdcxx-ng==11.2.0
   - pip:
     - nbdev
     - black
