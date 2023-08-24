@@ -1,2 +1,2 @@
 fire
-"git+https://github.com/nixtla/datasetsforecast.git"
+git+https://github.com/nixtla/datasetsforecast.git
