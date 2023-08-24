@@ -32,12 +32,12 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            sudo apt-get install libstdc++6
             conda install mamba -n base -c conda-forge
             mamba create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            mamba install -c conda-forge gxx_linux-64==11.1.0
             mamba env update -f environment.yml
       - run:
           name: Run model performance tests
