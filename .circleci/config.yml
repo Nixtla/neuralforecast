@@ -37,18 +37,18 @@ jobs:
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            cd ./action_files/test_models/
+            pip install -r requirements.txt
+            cd ../../
             mamba env update -f environment.yml
+            pip install ./
       - run:
           name: Run model performance tests
           command: |
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            pip install ./
             cd ./action_files/test_models/
-            pip install -r requirements.txt
-            pip uninstall pandas -y
-            mamba install pandas
             python -m src.models
             python -m src.evaluation
             cd ../../
