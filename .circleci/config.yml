@@ -10,8 +10,8 @@ jobs:
           name: Install dependencies
           command: |
             apt update -y && apt upgrade -y
-            conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.8
+            conda install mamba -n base -c conda-forge -y
+            mamba create -n neuralforecast python=3.8 -y
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
