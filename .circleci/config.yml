@@ -10,7 +10,7 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.8
+            mamba create -n neuralforecast python=3.10
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
@@ -33,7 +33,7 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.8
+            mamba create -n neuralforecast python=3.10
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
