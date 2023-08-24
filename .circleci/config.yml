@@ -14,7 +14,6 @@ jobs:
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            mamba install -c conda-forge libstdcxx-ng
             mamba env update -f environment.yml
       - run:
           name: Run nbdev tests
@@ -38,7 +37,7 @@ jobs:
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            mamba install -c conda-forge libstdcxx-ng
+            mamba install -c conda-forge gxx_linux-64==11.1.0
             mamba env update -f environment.yml
       - run:
           name: Run model performance tests
