@@ -10,8 +10,11 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
+  - libstdcxx-ng==11.2.0
+  - libgomp==11.2.0
+  - libgcc-ng==11.2.0
   - pip:
     - nbdev
     - black
     - hyperopt
-    - "ray[tune]>=2.2.0,<2.6.3"
+    - "ray[tune]>=2.2.0"
