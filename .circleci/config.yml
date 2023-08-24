@@ -48,7 +48,7 @@ jobs:
             cd ./action_files/test_models/
             pip install -r requirements.txt
             pip uninstall pandas -y
-            pip install pandas
+            mamba install pandas
             python -m src.models
             python -m src.evaluation
             cd ../../
