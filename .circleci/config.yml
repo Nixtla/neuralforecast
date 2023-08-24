@@ -33,14 +33,17 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
+            strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX
             mamba create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX
             cd ./action_files/test_models/
             pip install -r requirements.txt
             cd ../../
             mamba env update -f environment.yml
+            strings /usr/lib/x86_64-linux-gnu/libstdc++.so.6 | grep GLIBCXX
             conda install -c conda-forge libstdcxx-ng==11.2.0 -y 
             pip install ./
       - run:
