@@ -45,6 +45,7 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             pip install ./
+            pip install fire
             cd ./action_files/test_models/
             #pip install -r requirements.txt
             #conda update libstdcxx-ng
