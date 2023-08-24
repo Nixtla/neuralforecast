@@ -9,6 +9,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            apt update -y && apt upgrade -y
             conda install mamba -n base -c conda-forge
             mamba create -n neuralforecast python=3.8
             conda init bash
@@ -18,7 +19,6 @@ jobs:
       - run:
           name: Run nbdev tests
           command: |
-            apt update -y && apt upgrade -y
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
