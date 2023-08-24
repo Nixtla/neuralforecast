@@ -33,22 +33,28 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.8
+            conda create -n neuralforecast python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
             mamba env update -f environment.yml
+            python -c "import pandas as pd;"
+            pip install ./
+            python -c "import pandas as pd;"
+            cd ./action_files/test_models/
+            python -c "import pandas as pd;"
+            pip install -r requirements.txt
+            cd ../../
       - run:
           name: Run model performance tests
           command: |
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            pip install -e ".[dev]"
+            python -c "import pandas as pd;"
             cd ./action_files/test_models/
-            pip install -r requirements.txt
-            python -m src.models
-            python -m src.evaluation
+            python3 -m src.models
+            python3 -m src.evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
