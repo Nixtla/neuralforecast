@@ -38,14 +38,12 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             mamba env update -f environment.yml
-            mamba install -c conda-forge libstdcxx-ng=12 -y
       - run:
           name: Run model performance tests
           command: |
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
-            pip install -e ".[dev]"
             cd ./action_files/test_models/
             pip install -r requirements.txt
             python -m src.models

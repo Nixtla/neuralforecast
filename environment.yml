@@ -13,4 +13,5 @@ dependencies:
   - pip:
     - nbdev
     - black
+    - hyperopt
     - "ray[tune]>=2.2.0"
