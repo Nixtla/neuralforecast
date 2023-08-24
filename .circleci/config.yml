@@ -18,7 +18,7 @@ jobs:
       - run:
           name: Run nbdev tests
           command: |
-            apt update && apt upgrade
+            apt update -y && apt upgrade -y
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
