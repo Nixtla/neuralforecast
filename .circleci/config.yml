@@ -38,8 +38,11 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             mamba env update -f environment.yml
+            python -c "import pandas as pd;"
             pip install ./
+            python -c "import pandas as pd;"
             cd ./action_files/test_models/
+            python -c "import pandas as pd;"
             pip install -r requirements.txt
             cd ../../
       - run:
@@ -48,6 +51,7 @@ jobs:
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            python -c "import pandas as pd;"
             cd ./action_files/test_models/
             python3 -m src.models
             python3 -m src.evaluation
