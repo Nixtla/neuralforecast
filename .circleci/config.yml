@@ -3,13 +3,12 @@ jobs:
   nbdev-tests:
     resource_class: xlarge
     docker:
-      - image: continuumio/miniconda3
+      - image: continuumio/miniconda3:22.11.1
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            apt update -y && apt upgrade -y
             conda install mamba -n base -c conda-forge -y
             mamba create -n neuralforecast python=3.8 -y
             conda init bash
