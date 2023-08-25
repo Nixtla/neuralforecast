@@ -3,7 +3,7 @@ jobs:
   nbdev-tests:
     resource_class: xlarge
     docker:
-      - image: continuumio/miniconda3:23.3.1-0
+      - image: continuumio/miniconda3
     steps:
       - checkout
       - run:
