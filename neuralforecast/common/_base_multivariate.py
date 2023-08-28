@@ -555,6 +555,25 @@ class BaseMultivariate(pl.LightningModule):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
+
+        # Check exogenous variables are contained in dataset
+        temporal_cols = set(dataset.temporal_cols.tolist())
+        static_cols = set(
+            dataset.static_cols.tolist() if dataset.static_cols is not None else []
+        )
+        if len(set(self.hist_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
+            )
+        if len(set(self.futr_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
+            )
+        if len(set(self.stat_exog_list) - static_cols) > 0:
+            raise Exception(
+                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
+            )
+
         # Restart random seed
         if random_seed is None:
             random_seed = self.random_seed
@@ -599,6 +618,25 @@ class BaseMultivariate(pl.LightningModule):
         `step_size`: int=1, Step size between each window.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+
+        # Check exogenous variables are contained in dataset
+        temporal_cols = set(dataset.temporal_cols.tolist())
+        static_cols = set(
+            dataset.static_cols.tolist() if dataset.static_cols is not None else []
+        )
+        if len(set(self.hist_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
+            )
+        if len(set(self.futr_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
+            )
+        if len(set(self.stat_exog_list) - static_cols) > 0:
+            raise Exception(
+                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
+            )
+
         # Restart random seed
         if random_seed is None:
             random_seed = self.random_seed
