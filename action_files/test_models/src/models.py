@@ -29,7 +29,7 @@ from neuralforecast.auto import (
     AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN, AutoTFT
 )
 
-from neuralforecast.losses.pytorch import SMAPE
+from neuralforecast.losses.pytorch import SMAPE, MAE
 from ray import tune
 
 from src.data import get_data
@@ -44,7 +44,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         "max_steps": 1000,
         "val_check_steps": 300,
         "scaler_type": "minmax1",
-        "dropout_prob_theta": 0.2,
         "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
     }
     config = {
@@ -62,19 +61,20 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
                    "val_check_steps": 100,
                    "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),}
     models = [
-        AutoDilatedRNN(h=horizon, loss=SMAPE(), config=config_drnn, num_samples=2, cpus=1),
+        AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
         RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=300),
-        NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=SMAPE(), max_steps=1000),
-        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
-        AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
-        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=1000),
+        NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=MAE(), max_steps=1000, val_check_steps=500),
+        AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, cpus=1),
+        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), hidden_size=64, scaler_type='minmax1', windows_batch_size=512, max_steps=1000, val_check_steps=500),
+        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=MAE(), hidden_size=64, scaler_type='minmax1', windows_batch_size=512, max_steps=1000, val_check_steps=500),
         DeepAR(h=horizon, input_size=2 * horizon, max_steps=1000),
     ]
 
     # Models
     for model in models[:-1]:
         model_name = type(model).__name__
+        print(50*'-', model_name, 50*'-')
         start = time.time()
         fcst = NeuralForecast(models=[model], freq=freq)
         fcst.fit(train)

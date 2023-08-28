@@ -5,12 +5,10 @@ import pandas as pd
 
 from src.data import get_data
 
-def mape(y, y_hat, axis):
+def mae(y, y_hat, axis):
     delta_y = np.abs(y - y_hat)
-    scale = np.abs(y)
-    mape = delta_y / scale
-    mape = np.average(mape, axis=axis)
-    return 100 * mape
+    mae = np.average(delta_y, axis=axis)
+    return mae
 
 def smape(y, y_hat, axis):
     delta_y = np.abs(y - y_hat)
@@ -29,7 +27,7 @@ def evaluate(model: str, dataset: str, group: str):
     y_test = y_test['y'].values.reshape(-1, horizon)
 
     evals = {}
-    for metric in (mape, smape):
+    for metric in (mae, smape):
         metric_name = metric.__name__
         loss = metric(y_test, y_hat, axis=1).mean()
         evals[metric_name] = loss 
@@ -43,18 +41,18 @@ def evaluate(model: str, dataset: str, group: str):
 
 if __name__ == '__main__':
     groups = ['Monthly']
-    models = ['AutoDilatedRNN', 'RNN', 'TCN', 'DeepAR'
+    models = ['AutoDilatedRNN', 'RNN', 'TCN', 'DeepAR',
               'NHITS', 'TFT', 'AutoMLP', 'VanillaTransformer']
     datasets = ['M3']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]
     evaluation = pd.concat(evaluation)
-    evaluation = evaluation[['dataset', 'model', 'time', 'mape', 'smape']]
+    evaluation = evaluation[['dataset', 'model', 'time', 'mae', 'smape']]
     evaluation['time'] /= 60 #minutes
     evaluation = evaluation.set_index(['dataset', 'model']).stack().reset_index()
     evaluation.columns = ['dataset', 'model', 'metric', 'val']
     evaluation = evaluation.set_index(['dataset', 'metric', 'model']).unstack().round(3)
     evaluation = evaluation.droplevel(0, 1).reset_index()
-    evaluation['ETS'] = [4.769, 4.345, 0.011]
+    evaluation['AutoARIMA'] = [666.82, 15.35, 3.000]
     evaluation.to_csv('data/evaluation.csv')
     print(evaluation.T)
