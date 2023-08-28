@@ -44,6 +44,7 @@ jobs:
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
+            pip install -e .
             cd ./action_files/test_models/
             pip install -r requirements.txt
             python -m src.models
