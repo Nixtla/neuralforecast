@@ -24,7 +24,7 @@ jobs:
             pip install ./
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
-    resource_class: large
+    resource_class: xlarge
     docker:
       - image: continuumio/miniconda3:23.3.1-0
     steps:
@@ -33,7 +33,7 @@ jobs:
           name: Install dependencies
           command: |
             conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast -c conda-forge python=3.8 cxx-compiler
+            mamba create -n neuralforecast -c conda-forge python=3.8
             conda init bash
             source ~/.bashrc
             conda activate neuralforecast
@@ -45,9 +45,8 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             pip install ./
-            cd ./action_files/test_models/
-            python -m src.test
-            cd ../../
+            python -m ./action_files/test_models/src.test
+
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
