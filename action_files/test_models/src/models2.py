@@ -87,13 +87,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
         time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
 
-    forecasts = forecasts.reset_index()
-    forecasts = forecasts[['unique_id', 'ds', 'DeepAR-median']]
-    forecasts.columns = ['unique_id', 'ds', 'DeepAR']
-    forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
-    time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
-    time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
-
 
 if __name__ == '__main__':
     fire.Fire(main)
