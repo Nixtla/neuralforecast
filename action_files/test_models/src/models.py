@@ -35,7 +35,7 @@ from ray import tune
 from src.data import get_data
 
 
-def main(dataset: str = 'M3', group: str = 'Other') -> None:
+def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
     train, horizon, freq = get_data('data/', dataset, group)
     train['ds'] = pd.to_datetime(train['ds'])
     #n_steps_epoch = len(train['unique_id']) // 1024 # WindowsBased

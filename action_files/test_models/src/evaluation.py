@@ -42,7 +42,7 @@ def evaluate(model: str, dataset: str, group: str):
 
 
 if __name__ == '__main__':
-    groups = ['Other']#, 'Quarterly', 'Monthly']
+    groups = ['Monthly']#, 'Quarterly', 'Monthly']
     models = ['GRU', 'RNN', 'TCN', 'LSTM', 'DilatedRNN', 'DeepAR',
               'NHITS', 'NBEATSx',
               'TFT', 'PatchTST',
