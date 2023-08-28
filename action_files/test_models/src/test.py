@@ -1,4 +1,3 @@
-import fire
 import pandas as pd
 
 
@@ -7,4 +6,4 @@ def main() -> None:
     Y_df.to_csv('data/evaluation.csv')
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    main()
