@@ -45,8 +45,10 @@ jobs:
             source ~/.bashrc
             conda activate neuralforecast
             pip install ./
-            python -m ./action_files/test_models/src.test
-
+            cd ./action_files/test_models/
+            conda install -c conda-forge libgcc=5.2.0
+            python -m action_files/test_models/src.test
+            cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
