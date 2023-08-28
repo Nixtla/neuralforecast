@@ -46,8 +46,9 @@ jobs:
             conda activate neuralforecast
             pip install ./
             cd ./action_files/test_models/
-            conda install -c conda-forge libgcc=5.2.0
-            python -m action_files/test_models/src.test
+            mamba install -c conda-forge libgcc=5.2.0
+            which python
+            python -m src.test
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
