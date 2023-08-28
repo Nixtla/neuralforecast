@@ -36,7 +36,7 @@ from src.data import get_data
 
 
 def main(dataset: str = 'M3', group: str = 'Other') -> None:
-    train, horizon, freq, seasonality = get_data('data/', dataset, group)
+    train, horizon, freq = get_data('data/', dataset, group)
     train['ds'] = pd.to_datetime(train['ds'])
     #n_steps_epoch = len(train['unique_id']) // 1024 # WindowsBased
     #n_steps_epoch = len(train['unique_id'].unique()) // 32 # RNNBased
