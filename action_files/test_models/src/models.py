@@ -36,25 +36,25 @@ from src.data import get_data
 
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
-    train, horizon, freq = get_data('data/', dataset, group)
+    train, horizon, freq, seasonality = get_data('data/', dataset, group)
     train['ds'] = pd.to_datetime(train['ds'])
     #n_steps_epoch = len(train['unique_id']) // 1024 # WindowsBased
     #n_steps_epoch = len(train['unique_id'].unique()) // 32 # RNNBased
 
     config_nbeats = {
         "mlp_units": tune.choice([3 * [[512, 512]]]),
-        "input_size": tune.choice([2 * horizon, 3 * horizon, horizon, 4 * horizon]),
+        "input_size": tune.choice([2 * horizon]),
         "max_steps": 1000,
         "val_check_steps": 100
     }
     config = {
         "hidden_size": tune.choice([256, 512, 1024]),
         "num_layers": tune.choice([2, 4, 6]),
-        "input_size": tune.choice([2 * horizon, 3 * horizon, horizon]),
+        "input_size": tune.choice([2 * horizon]),
         "max_steps": 1000,
         "val_check_steps": 100
     }
-    config_drnn = {'input_size': tune.choice([2 * horizon, 3 * horizon]),
+    config_drnn = {'input_size': tune.choice([2 * horizon]),
                    'encoder_hidden_size': tune.choice([50]),
                    "max_steps": 300,
                    "val_check_steps": 100}

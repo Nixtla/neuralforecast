@@ -24,7 +24,7 @@ def evaluate(model: str, dataset: str, group: str):
         forecast = pd.read_csv(f'data/{model}-forecasts-{dataset}-{group}.csv')
     except:
         return None
-    y_test, horizon, freq = get_data('data/', dataset, group, False)
+    y_test, horizon, freq, seasonality = get_data('data/', dataset, group, False)
     y_hat = forecast[model].values.reshape(-1, horizon)
     y_test = y_test['y'].values.reshape(-1, horizon)
 
