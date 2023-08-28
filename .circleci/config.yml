@@ -49,9 +49,36 @@ jobs:
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
+  test-model-performance2:
+    resource_class: xlarge
+    docker:
+      - image: mambaorg/micromamba:1.5-focal
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            micromamba install -n base -c conda-forge -y python=3.8
+            micromamba update -n base -f environment.yml
+      - run:
+          name: Run model performance tests
+          command: |
+            eval "$(micromamba shell hook --shell bash)"
+            micromamba activate base
+            pip install -e ".[dev]"
+            export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+            cd ./action_files/test_models/
+            pip install -r requirements.txt
+            python -m src.models2
+            python -m src.evaluation2
+            cd ../../
+      - store_artifacts:
+          path: ./action_files/test_models/data/evaluation.csv
+          destination: evaluation.csv
 
 workflows:
   sample:
     jobs:
       - nbdev-tests
       - test-model-performance
+      - test-model-performance2

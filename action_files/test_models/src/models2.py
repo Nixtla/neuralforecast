@@ -62,14 +62,13 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
                    "val_check_steps": 100,
                    "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),}
     models = [
-        AutoDilatedRNN(h=horizon, loss=SMAPE(), config=config_drnn, num_samples=2, cpus=1),
-        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
-        TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=300),
-        NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=SMAPE(), max_steps=1000),
-        TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
-        AutoMLP(h=horizon, loss=SMAPE(), config=config, num_samples=2, cpus=1),
-        VanillaTransformer(h=horizon, input_size=2 * horizon, loss=SMAPE(), scaler_type='robust', max_steps=1000),
-        DeepAR(h=horizon, input_size=2 * horizon, max_steps=1000),
+        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
+        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
+        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
+        AutoNBEATS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
+        AutoNHITS(h=horizon, loss=SMAPE(), config=config_nbeats, num_samples=2, cpus=1),
+        NBEATSx(h=horizon, input_size=2 * horizon, loss=SMAPE(), max_steps=1000),
+        PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=SMAPE(), scaler_type='robust', max_steps=1000),
     ]
 
     # Models
@@ -87,15 +86,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
         time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
         time_df.to_csv(f'data/{model_name}-time-{dataset}-{group}.csv', index=False)
-
-    # DeepAR
-    model_name = type(models[-1]).__name__
-    start = time.time()
-    fcst = NeuralForecast(models=[models[-1]], freq=freq)
-    fcst.fit(train)
-    forecasts = fcst.predict()
-    end = time.time()
-    print(end - start)
 
     forecasts = forecasts.reset_index()
     forecasts = forecasts[['unique_id', 'ds', 'DeepAR-median']]
