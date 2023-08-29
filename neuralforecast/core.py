@@ -671,10 +671,10 @@ class NeuralForecast:
         -----------
         path : str
             Directory to save current status.
-        **kwargs :
+        **kwargs
             Additional keyword arguments to be passed to the function
             `load_from_checkpoint`.
-        
+
         Returns
         -------
         result : NeuralForecast
@@ -693,7 +693,9 @@ class NeuralForecast:
         for model in models_ckpt:
             model_name = model.split("_")[0]
             models.append(
-                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(f"{path}/{model}", **kwargs)
+                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(
+                    f"{path}/{model}", **kwargs
+                )
             )
             if verbose:
                 print(f"Model {model_name} loaded.")
