@@ -332,6 +332,17 @@ class NeuralForecast:
 
         # Update and define new forecasting dataset
         if futr_df is not None:
+            futr_orig_rows = futr_df.shape[0]
+            futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
+            base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
+            if futr_df.shape[0] < fcsts_df.shape[0]:
+                raise ValueError(base_err_msg)
+            if futr_orig_rows > futr_df.shape[0]:
+                dropped_rows = futr_orig_rows - futr_df.shape[0]
+                warnings.warn(
+                    f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
+                    + base_err_msg
+                )
             dataset = TimeSeriesDataset.update_dataset(
                 dataset=dataset, future_df=futr_df
             )

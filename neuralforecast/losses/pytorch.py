@@ -249,9 +249,11 @@ class MAPE(BasePointLoss):
         **Returns:**<br>
         `mape`: tensor (single value).
         """
-        losses = _divide_no_nan(torch.abs(y - y_hat), torch.abs(y))
+        scale = _divide_no_nan(torch.ones_like(y, device=y.device), torch.abs(y))
+        losses = torch.abs(y - y_hat) * scale
         weights = self._compute_weights(y=y, mask=mask)
-        return _weighted_mean(losses=losses, weights=weights)
+        mape = _weighted_mean(losses=losses, weights=weights)
+        return mape
 
 # %% ../../nbs/losses.pytorch.ipynb 31
 class SMAPE(BasePointLoss):
