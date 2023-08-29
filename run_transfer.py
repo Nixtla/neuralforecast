@@ -32,10 +32,22 @@ def load_data(args, frequency):
 			frequency = 'M'
 		else:
 			raise Exception("Frequency not defined")
+	elif (args.source_dataset == 'wiki'):
+		if frequency == 'daily':
+			Y_df = pd.read_csv('wiki_daily.csv')
+		elif frequency == 'weekly':
+			Y_df = pd.read_csv('wiki_weekly.csv')
+			frequency = 'W'
+		elif frequency == 'monthly':
+			Y_df = pd.read_csv('wiki_monthly.csv')
+			frequency = 'M'
 	else:
 		raise Exception("Dataset not defined")
 
 	Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+
+	print('Y_df', Y_df.shape)
+	print('Y_df', Y_df)
 
 	return Y_df, frequency
 
@@ -84,22 +96,20 @@ def main(args):
 		if args.k_shot > 0:
 			raise Exception('Train model before k_shot learning')
 
-		# Load data
 		Y_df, frequency = load_data(args, args.frequency)
 
 		# Train model
 		print('Fitting model')
-		model = load_model(args.model, args.frequency)
+		# Load data
+		if (args.frequency == 'monthly') and (args.source_dataset == 'wiki'):
+			short= True
+		else:
+			short = False
+		model = load_model(args.model, args.frequency, short=short)
 		nf = NeuralForecast(models=[model], freq=None) # freq is set later
-		#Y_hat_source_df = nf.cross_validation(df=Y_df, val_size=model.h, test_size=model.h, n_windows=None)
+		print('HORIZON: ', nf.models[0].h)
 		nf.fit(df=Y_df, val_size=2*model.h)
 
-		# Store source forecasts
-		# results_dir = f'./results/transferability/forecasts/{args.source_dataset}/'
-		# os.makedirs(results_dir, exist_ok=True)
-		# Y_hat_source_df.to_csv(f'{results_dir}/{args.model}_{args.source_dataset}_{args.experiment_id}.csv',
-		#  					   index=False)
-		
 		# Save model
 		nf.save(path=model_dir, overwrite=False, save_dataset=False)
 	else:
@@ -107,102 +117,104 @@ def main(args):
 		# do i need to check if the file/path exists? shouldn't it already be checked
 		nf = NeuralForecast.load(path=model_dir)
 
-	horizon = nf.models[0].h
-	
-	# Load target data
-	if (args.target_dataset == 'M3'):
-		if args.frequency == 'yearly':
-			Y_df_target, *_ = M3.load(directory='./', group='Yearly')
-			frequency = 'Y'		
-		elif args.frequency == 'quarterly':
-			Y_df_target, *_ = M3.load(directory='./', group='Quarterly')
-			frequency = 'Q'
-		elif args.frequency == 'monthly':
-			Y_df_target, *_ = M3.load(directory='./', group='Monthly')
-			frequency = 'M'
-		elif args.frequency == 'daily':
-			Y_df_target, *_ = M3.load(directory='./', group='Other')
-			frequency = 'D'
+	# UNCOMMENT FROM HERE
 
-	# if (args.target_dataset == 'AirPassengers'):
-	# 	Y_df_target = AirPassengersDF.copy()
-	# 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-	# 	test_size = horizon
-	# 	frequency = 'M'
-	# elif (args.target_dataset == 'M3'):
-	# 	Y_df_target, *_ = M3.load(directory='./', group='Monthly')
-	# 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-	# 	frequency = 'M'
-	# 	test_size = horizon
-	# elif (args.target_dataset == 'M4'):
-	# 	Y_df_target, *_ = M4.load(directory='./', group='Monthly', cache=True)
-	# 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-	# 	frequency = 'M'
-	# 	test_size = horizon
-	# elif (args.target_dataset == 'ILI'):
-	# 	Y_df_target, _, _ = LongHorizon.load(directory='./', group='ILI')
-	# 	Y_df_target['ds'] = np.repeat(np.array(range(len(Y_df_target)//7)), 7)
-	# 	test_size = horizon
-	# 	frequency = 'W'
-	# elif (args.target_dataset == 'TrafficL'):
-	# 	Y_df_target, _, _ = LongHorizon.load(directory='./', group='TrafficL')
-	# 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-	# 	test_size = horizon
-	# 	frequency = 'H'
-	# elif (args.target_dataset == 'Tourism'):
-	# 	tourism_data = pd.read_csv('tourism/data.csv')
-	# 	tourism_data = tourism_data.rename(columns={'Unnamed: 0': 'ds'})
-	# 	Y_df_target = []
-	# 	for col in tourism_data.columns[1:]:
-	# 		hola = tourism_data[['ds', col]].rename(columns={col: 'y'})
-	# 		hola['unique_id'] = col
-	# 		Y_df_target.append(hola)
-	# 	Y_df_target = pd.concat(Y_df_target).reset_index(drop=True)
-	# 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
-	# 	test_size = horizon
-	# 	frequency = 'MS'
+	# horizon = nf.models[0].h
+	
+	# # Load target data
+	# if (args.target_dataset == 'M3'):
+	# 	if args.frequency == 'yearly':
+	# 		Y_df_target, *_ = M3.load(directory='./', group='Yearly')
+	# 		frequency = 'Y'		
+	# 	elif args.frequency == 'quarterly':
+	# 		Y_df_target, *_ = M3.load(directory='./', group='Quarterly')
+	# 		frequency = 'Q'
+	# 	elif args.frequency == 'monthly':
+	# 		Y_df_target, *_ = M3.load(directory='./', group='Monthly')
+	# 		frequency = 'M'
+	# 	elif args.frequency == 'daily':
+	# 		Y_df_target, *_ = M3.load(directory='./', group='Other')
+	# 		frequency = 'D'
+
+	# # if (args.target_dataset == 'AirPassengers'):
+	# # 	Y_df_target = AirPassengersDF.copy()
+	# # 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+	# # 	test_size = horizon
+	# # 	frequency = 'M'
+	# # elif (args.target_dataset == 'M3'):
+	# # 	Y_df_target, *_ = M3.load(directory='./', group='Monthly')
+	# # 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+	# # 	frequency = 'M'
+	# # 	test_size = horizon
+	# # elif (args.target_dataset == 'M4'):
+	# # 	Y_df_target, *_ = M4.load(directory='./', group='Monthly', cache=True)
+	# # 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+	# # 	frequency = 'M'
+	# # 	test_size = horizon
+	# # elif (args.target_dataset == 'ILI'):
+	# # 	Y_df_target, _, _ = LongHorizon.load(directory='./', group='ILI')
+	# # 	Y_df_target['ds'] = np.repeat(np.array(range(len(Y_df_target)//7)), 7)
+	# # 	test_size = horizon
+	# # 	frequency = 'W'
+	# # elif (args.target_dataset == 'TrafficL'):
+	# # 	Y_df_target, _, _ = LongHorizon.load(directory='./', group='TrafficL')
+	# # 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+	# # 	test_size = horizon
+	# # 	frequency = 'H'
+	# # elif (args.target_dataset == 'Tourism'):
+	# # 	tourism_data = pd.read_csv('tourism/data.csv')
+	# # 	tourism_data = tourism_data.rename(columns={'Unnamed: 0': 'ds'})
+	# # 	Y_df_target = []
+	# # 	for col in tourism_data.columns[1:]:
+	# # 		hola = tourism_data[['ds', col]].rename(columns={col: 'y'})
+	# # 		hola['unique_id'] = col
+	# # 		Y_df_target.append(hola)
+	# # 	Y_df_target = pd.concat(Y_df_target).reset_index(drop=True)
+	# # 	Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+	# # 	test_size = horizon
+	# # 	frequency = 'MS'
+	# # else:
+	# # 	raise Exception("Dataset not defined")
+	
+	# nf.freq = pd.tseries.frequencies.to_offset(frequency)
+	# test_size = horizon
+
+	# # Predict on the test set of the target data
+	# print('Predicting on target data')
+	# start = time.time()
+	# # Fit model if k_shot > 0:
+	# # Set new trainer kwargs for k_shot learning
+	# set_trainer_kwargs(nf, max_steps=args.k_shot, early_stop_patience_steps=0)
+	# if (args.k_shot > 0):
+	# 	# Fit model and predict
+	# 	Y_hat_df = nf.cross_validation(df=Y_df_target,
+	# 								   n_windows=None,
+	# 								   test_size=test_size,
+	# 								   use_init_models=False).reset_index()
 	# else:
-	# 	raise Exception("Dataset not defined")
+	# 	# Predict
+	# 	print('Predicting on target data')
+	# 	print(nf.models[0].trainer_kwargs)
+	# 	Y_hat_df = nf.cross_validation(df=Y_df_target,
+	# 								   n_windows=None,
+	# 								   test_size=test_size,
+	# 								   use_init_models=False).reset_index()
 	
-	nf.freq = pd.tseries.frequencies.to_offset(frequency)
-	test_size = horizon
+	# end = time.time()
+	# time_df = pd.DataFrame({'time': [end-start]})
 
-	# Predict on the test set of the target data
-	print('Predicting on target data')
-	start = time.time()
-	# Fit model if k_shot > 0:
-	# Set new trainer kwargs for k_shot learning
-	set_trainer_kwargs(nf, max_steps=args.k_shot, early_stop_patience_steps=0)
-	if (args.k_shot > 0):
-		# Fit model and predict
-		Y_hat_df = nf.cross_validation(df=Y_df_target,
-									   n_windows=None,
-									   test_size=test_size,
-									   use_init_models=False).reset_index()
-	else:
-		# Predict
-		print('Predicting on target data')
-		print(nf.models[0].trainer_kwargs)
-		Y_hat_df = nf.cross_validation(df=Y_df_target,
-									   n_windows=None,
-									   test_size=test_size,
-									   use_init_models=False).reset_index()
-	
-	end = time.time()
-	time_df = pd.DataFrame({'time': [end-start]})
+	# # Store time
+	# time_dir = f'./results/transferability/time/{args.target_dataset}/{args.frequency}'
+	# os.makedirs(time_dir, exist_ok=True)
+	# time_dir = f'{time_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
+	# time_df.to_csv(time_dir, index=False)
 
-	# Store time
-	time_dir = f'./results/transferability/time/{args.target_dataset}/{args.frequency}'
-	os.makedirs(time_dir, exist_ok=True)
-	time_dir = f'{time_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-	time_df.to_csv(time_dir, index=False)
+	# # Store forecasts results, also check if this folder exists/create it if its done
+	# forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/{args.frequency}/'
+	# os.makedirs(forecasts_dir, exist_ok=True)
 
-	# Store forecasts results, also check if this folder exists/create it if its done
-	forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/{args.frequency}/'
-	os.makedirs(forecasts_dir, exist_ok=True)
-
-	forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-	Y_hat_df.to_csv(forecasts_dir, index=False)
+	# forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
+	# Y_hat_df.to_csv(forecasts_dir, index=False)
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="script arguments")
@@ -218,7 +230,7 @@ if __name__ == '__main__':
 	args = parse_args()
 
 	for k_shot in [0]:
-		for frequency in ['yearly', 'quarterly','monthly','daily']:
+		for frequency in ['weekly']: # ['yearly', 'quarterly','monthly','daily']
 			for model in MODEL_LIST:
 				args.k_shot = k_shot
 				args.model = model
@@ -234,4 +246,4 @@ if __name__ == '__main__':
 				print('Already done!')
 
 
-# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "M4" --target_dataset "M3" --experiment_id "20230816"
+# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "wiki" --target_dataset "M3" --experiment_id "20230816"

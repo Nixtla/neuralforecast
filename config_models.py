@@ -5,7 +5,10 @@ from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
 HORIZON_DICT = {'yearly': 6,
                 'quarterly': 8,
                 'monthly': 12,
+                'weekly': 4,
                 'daily': 14}
+
+HORIZON_DICT_SHORT = {'monthly': 6}
 
 LOSS = MQLoss(quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 LOSS_PROBA = DistributionLoss(distribution="StudentT", level=[80, 90], return_params=False)
@@ -26,10 +29,13 @@ MODEL_LIST = ['nhits_15_512',
               #'deepar_128_4',
               ]
 
-def load_model(model_name, frequency):
+def load_model(model_name, frequency, short=False):
     assert model_name in MODEL_LIST, f"Model {model_name} not in list of models"
     
-    horizon = HORIZON_DICT[frequency]
+    if short:
+        horizon = HORIZON_DICT_SHORT[frequency]
+    else:
+        horizon = HORIZON_DICT[frequency]
     max_steps = 15000
 
     # NHITS
