@@ -27,11 +27,20 @@ def load_model(args):
     config['stat_exog_list'] = args.stat_exog_list
 
     # Load model
-    model = MODEL_DICT[model_name](h=args.horizon,
-                                   config=config,
-                                   loss=HuberLoss(),
-                                   search_alg=HyperOptSearch(),
-                                   num_samples=args.num_samples)
+    model_func = MODEL_DICT[model_name]
+    if model_name == 'nhits':
+        model = model_func(h=args.horizon,
+                        config=config,
+                        loss=HuberLoss(),
+                        search_alg=HyperOptSearch(),
+                        num_samples=args.num_samples)
+    if model_name == 'tft':
+        model = model_func(h=args.horizon,
+                           n_series=12,
+                           config=config,
+                           loss=HuberLoss(),
+                           search_alg=HyperOptSearch(),
+                           num_samples=args.num_samples)
     return model
 
 
@@ -84,3 +93,4 @@ if __name__ == '__main__':
     main(args)
 
 # CUDA_VISIBLE_DEVICES=0 python run_exogenous.py --model "nhits" --experiment_id "20230829"
+# CUDA_VISIBLE_DEVICES=0 python run_exogenous.py --model "tft" --experiment_id "20230829"

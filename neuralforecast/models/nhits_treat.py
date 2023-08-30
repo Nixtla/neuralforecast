@@ -381,7 +381,7 @@ class NHITS_TREAT(BaseWindows):
                 if stack_types[i] == "identity":
                     hist_input_size = 0
                 if stack_types[i] == "concentrator":
-                    hist_input_size = 2
+                    hist_input_size = self.hist_input_size
 
                 if stack_types[i] == "concentrator":
                     concentrator = Concentrator(

@@ -592,7 +592,7 @@ class Concentrator(nn.Module):
 
         # Replace treatment variable with concentration
         treatment_exog_out = torch.zeros(treatment_exog.shape).to(treatment_exog.device)
-        # treatment_exog_out[:, :, :-2] += treatment_exog[:, :, :-2]
+        treatment_exog_out[:, :, :-2] += treatment_exog[:, :, :-2]
         treatment_exog_out[:, :, -2] += treatment1
         treatment_exog_out[:, :, -1] += treatment2
 

@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # Other params
     args.num_samples = 20
     args.horizon = 6
-    args.hist_exog_list = ['bolus_insulin', 'basal_insulin']
+    args.hist_exog_list = ['CHO', 'bolus_insulin', 'basal_insulin']
     args.stat_exog_list = ['#559', '#563', '#570', '#575', '#588', 
                            '#591', '#540', '#544', '#552', '#567',
                            '#584', 'insulin_type_novalog', 'female',
