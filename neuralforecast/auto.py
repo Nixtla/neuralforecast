@@ -2,8 +2,8 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
-           'AutoNHITS', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer',
-           'AutoPatchTST', 'AutoStemGNN', 'AutoHINT']
+           'AutoNHITS', 'AutoNHITS_TREAT', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer',
+           'AutoFEDformer', 'AutoPatchTST', 'AutoStemGNN', 'AutoHINT']
 
 # %% ../nbs/models.ipynb 3
 from os import cpu_count
@@ -25,6 +25,7 @@ from .models.mlp import MLP
 from .models.nbeats import NBEATS
 from .models.nbeatsx import NBEATSx
 from .models.nhits import NHITS
+from .models.nhits_treat import NHITS_TREAT
 
 from .models.tft import TFT
 from .models.vanillatransformer import VanillaTransformer
@@ -638,25 +639,41 @@ class AutoNHITS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 43
-class AutoTFT(BaseAuto):
+# %% ../nbs/models.ipynb 42
+class AutoNHITS_TREAT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "hidden_size": tune.choice([64, 128, 256]),
-        "n_head": tune.choice([4, 8]),
+        "n_pool_kernel_size": tune.choice(
+            [[2, 2, 1], 3 * [1], 3 * [2], 3 * [4], [8, 4, 1], [16, 8, 1]]
+        ),
+        "n_freq_downsample": tune.choice(
+            [
+                [168, 24, 1],
+                [24, 12, 1],
+                [180, 60, 1],
+                [60, 8, 1],
+                [40, 20, 1],
+                [1, 1, 1],
+            ]
+        ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
-        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.qloguniform(
+            lower=5, upper=9, base=2, q=1
+        ),  # [32, 64, 128, 256]
+        "windows_batch_size": tune.qloguniform(
+            lower=7, upper=10, base=2, q=1
+        ),  # [128, 256, 512, 1024]
         "loss": None,
-        "random_seed": tune.randint(1, 20),
+        "random_seed": tune.randint(lower=1, upper=20),
     }
 
     def __init__(
         self,
         h,
+        n_series,
         loss=MAE(),
         valid_loss=None,
         config=None,
@@ -680,6 +697,70 @@ class AutoTFT(BaseAuto):
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
 
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
+        super(AutoNHITS_TREAT, self).__init__(
+            cls_model=NHITS_TREAT,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+        )
+
+# %% ../nbs/models.ipynb 45
+class AutoTFT(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([64, 128, 256]),
+        "n_head": tune.choice([4, 8]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
         super(AutoTFT, self).__init__(
             cls_model=TFT,
             h=h,
@@ -695,7 +776,7 @@ class AutoTFT(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 46
+# %% ../nbs/models.ipynb 48
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -752,7 +833,7 @@ class AutoVanillaTransformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 49
+# %% ../nbs/models.ipynb 51
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -809,7 +890,7 @@ class AutoInformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 52
+# %% ../nbs/models.ipynb 54
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -866,7 +947,7 @@ class AutoAutoformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 55
+# %% ../nbs/models.ipynb 57
 class AutoFEDformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -922,7 +1003,7 @@ class AutoFEDformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 58
+# %% ../nbs/models.ipynb 60
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -981,7 +1062,7 @@ class AutoPatchTST(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 63
+# %% ../nbs/models.ipynb 65
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1042,7 +1123,7 @@ class AutoStemGNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 67
+# %% ../nbs/models.ipynb 69
 class AutoHINT(BaseAuto):
     def __init__(
         self,

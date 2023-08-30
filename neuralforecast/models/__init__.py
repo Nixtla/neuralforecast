@@ -1,5 +1,5 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
-           'MLP', 'NHITS', 'NBEATS', 'NBEATSx',
+           'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'NHITS_TREAT',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
            'StemGNN', 'HINT']
 
@@ -11,6 +11,7 @@ from .deepar import DeepAR
 from .dilated_rnn import DilatedRNN
 from .mlp import MLP
 from .nhits import NHITS
+from .nhits_treat import NHITS_TREAT
 from .nbeats import NBEATS
 from .nbeatsx import NBEATSx
 from .tft import TFT

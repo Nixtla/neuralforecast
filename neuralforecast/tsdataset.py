@@ -51,11 +51,15 @@ class TimeSeriesLoader(DataLoader):
                 out = elem.new(storage).resize_(len(batch), *list(elem.size()))
             return torch.stack(batch, 0, out=out)
 
+        if isinstance(elem, int):
+            return torch.Tensor(batch)[:, None]
+
         elif isinstance(elem, Mapping):
             if elem["static"] is None:
                 return dict(
                     temporal=self.collate_fn([d["temporal"] for d in batch]),
                     temporal_cols=elem["temporal_cols"],
+                    idx=self.collate_fn([d["idx"] for d in batch]),
                 )
 
             return dict(
@@ -63,6 +67,7 @@ class TimeSeriesLoader(DataLoader):
                 static_cols=elem["static_cols"],
                 temporal=self.collate_fn([d["temporal"] for d in batch]),
                 temporal_cols=elem["temporal_cols"],
+                idx=self.collate_fn([d["idx"] for d in batch]),
             )
 
         raise TypeError(f"Unknown {elem_type}")
@@ -118,6 +123,7 @@ class TimeSeriesDataset(Dataset):
                 temporal_cols=self.temporal_cols,
                 static=static,
                 static_cols=self.static_cols,
+                idx=idx,
             )
 
             return item

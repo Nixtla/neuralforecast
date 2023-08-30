@@ -20,6 +20,7 @@ from typing import Tuple, Optional
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+from ..common._modules import Concentrator
 
 # %% ../../nbs/models.tft.ipynb 10
 class MaybeLayerNorm(nn.Module):
@@ -457,6 +458,14 @@ class TFT(BaseWindows):
         num_workers_loader=0,
         drop_last_loader=False,
         random_seed: int = 1,
+        # New parameters
+        use_concentrator: bool = False,
+        concentrator_type: str = None,
+        n_series: int = 1,
+        treatment_var_name: str = "treatment",
+        init_ka1: float = 1.5,
+        init_ka2: float = 1.5,
+        freq: int = 1,
         **trainer_kwargs
     ):
         # Inherit BaseWindows class
@@ -482,6 +491,26 @@ class TFT(BaseWindows):
             random_seed=random_seed,
             **trainer_kwargs
         )
+
+        # ------------------ CONCENTRATOR ------------------ #
+        self.use_concentrator = use_concentrator
+
+        if self.use_concentrator:
+            self.concentrator = Concentrator(
+                n_series=n_series,
+                type=concentrator_type,
+                treatment_var_name=treatment_var_name,
+                init_ka1=init_ka1,
+                init_ka2=init_ka2,
+                input_size=input_size,
+                h=h,
+                freq=freq,
+                mask_future=False,
+            )
+        else:
+            self.concentrator = None
+        # --------------------------------------------------- #
+
         self.example_length = input_size + h
 
         # Parse lists hyperparameters
@@ -535,11 +564,14 @@ class TFT(BaseWindows):
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
+        batch_idx = windows_batch["batch_idx"]
 
         if futr_exog is None:
             futr_exog = y_insample[:, [-1]]
             futr_exog = futr_exog.repeat(1, self.example_length, 1)
 
+        if self.use_concentrator:
+            hist_exog = self.concentrator(treatment_exog=hist_exog, idx=batch_idx)
         s_inp, k_inp, o_inp, t_observed_tgt = self.embedding(
             target_inp=y_insample,
             hist_exog=hist_exog,
