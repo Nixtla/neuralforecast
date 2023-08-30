@@ -9,12 +9,12 @@ website:
         contents:
         - examples/Installation.ipynb
         - examples/Getting_Started.ipynb
-        - examples/Getting_Started_complete.ipynb
         - examples/Data_Format.ipynb
         - examples/Exogenous_Variables.ipynb
         - examples/Automatic_Hyperparameter_Tuning.ipynb
         - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
+        - examples/Getting_Started_complete.ipynb
         - examples/Neuralforecast_Map.ipynb
         - examples/How_to_add_models.ipynb
       - section: "Tutorials"
