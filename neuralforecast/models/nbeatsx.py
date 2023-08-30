@@ -80,6 +80,27 @@ class TrendBasis(nn.Module):
         return backcast, forecast
 
 
+class ExogenousBasis(nn.Module):
+    # Reference: https://github.com/cchallu/nbeatsx
+    def __init__(self, forecast_size: int):
+        super().__init__()
+        self.forecast_size = forecast_size
+
+    def forward(
+        self, theta: torch.Tensor, insample_x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        backcast_basis = insample_x[:, : -self.forecast_size, :].permute(0, 2, 1)
+        forecast_basis = insample_x[:, -self.forecast_size :, :].permute(0, 2, 1)
+        cut_point = forecast_basis.shape[1]
+        backcast_theta = theta[:, cut_point:]
+        forecast_theta = theta[:, :cut_point].reshape(len(theta), cut_point, -1)
+
+        backcast = torch.einsum("bp,bpt->bt", backcast_theta, backcast_basis)
+        forecast = torch.einsum("bpq,bpt->btq", forecast_theta, forecast_basis)
+
+        return backcast, forecast
+
+
 class SeasonalityBasis(nn.Module):
     def __init__(
         self,
@@ -226,8 +247,25 @@ class NBEATSBlock(nn.Module):
 
         # Compute local projection weights and projection
         theta = self.layers(insample_y)
-        backcast, forecast = self.basis(theta)
-        return backcast, forecast
+
+        if isinstance(self.basis, ExogenousBasis):
+            if self.futr_input_size > 0 and self.stat_input_size > 0:
+                insample_x = torch.cat((futr_exog, stat_exog), dim=2)
+            elif self.futr_input_size > 0:
+                insample_x = futr_exog
+            elif self.stat_input_size > 0:
+                insample_x = stat_exog
+            else:
+                raise (
+                    ValueError(
+                        "No stats or future exogenous. The ExogenousBlock can't be applied."
+                    )
+                )
+            backcast, forecast = self.basis(theta, insample_x)
+            return backcast, forecast
+        else:
+            backcast, forecast = self.basis(theta)
+            return backcast, forecast
 
 # %% ../../nbs/models.nbeatsx.ipynb 10
 class NBEATSx(BaseWindows):
@@ -291,8 +329,8 @@ class NBEATSx(BaseWindows):
         exclude_insample_y=False,
         n_harmonics=2,
         n_polynomials=2,
-        stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [1, 1, 1],
+        stack_types: list = ["identity", "trend", "seasonality", "exogenous"],
+        n_blocks: list = [1, 1, 1, 1],
         mlp_units: list = 3 * [[512, 512]],
         dropout_prob_theta=0.0,
         activation="ReLU",
@@ -432,6 +470,12 @@ class NBEATSx(BaseWindows):
                             forecast_size=h,
                             out_features=self.loss.outputsize_multiplier,
                         )
+
+                    elif stack_types[i] == "exogenous":
+                        if futr_input_size + stat_input_size > 0:
+                            n_theta = 2 * (futr_input_size)
+                            basis = ExogenousBasis(forecast_size=h)
+
                     else:
                         raise ValueError(f"Block type {stack_types[i]} not found!")
 
