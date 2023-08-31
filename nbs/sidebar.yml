@@ -19,18 +19,18 @@ website:
         - examples/How_to_add_models.ipynb
       - section: "Tutorials"
         contents:
-        - examples/Forecasting_TFT.ipynb
+        - examples/Signal_Decomposition.ipynb
         - examples/UncertaintyIntervals.ipynb
-        - examples/IntermittentData.ipynb
         - examples/LongHorizon_with_NHITS.ipynb
+        - examples/Forecasting_TFT.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
         - examples/LongHorizon_with_Transformers.ipynb
-        - examples/ElectricityPeakForecasting.ipynb
-        - examples/Transfer_Learning.ipynb
-        - examples/HierarchicalNetworks.ipynb
-        - examples/Temporal_Classifiers.ipynb
+        - examples/IntermittentData.ipynb
         - examples/Robust_Regression.ipynb
-        - examples/Signal_Decomposition.ipynb
+        - examples/ElectricityPeakForecasting.ipynb
+        - examples/HierarchicalNetworks.ipynb
+        - examples/Transfer_Learning.ipynb
+        - examples/Temporal_Classifiers.ipynb
         - examples/Predictive_Maintenance.ipynb
         - examples/StatsMlNeuralMethods.ipynb
       - examples/models_intro.qmd
