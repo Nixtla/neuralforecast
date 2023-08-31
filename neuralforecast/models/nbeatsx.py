@@ -87,10 +87,10 @@ class ExogenousBasis(nn.Module):
         self.forecast_size = forecast_size
 
     def forward(
-        self, theta: torch.Tensor, insample_x: torch.Tensor
+        self, theta: torch.Tensor, futr_exog: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        backcast_basis = insample_x[:, : -self.forecast_size, :].permute(0, 2, 1)
-        forecast_basis = insample_x[:, -self.forecast_size :, :].permute(0, 2, 1)
+        backcast_basis = futr_exog[:, : -self.forecast_size, :].permute(0, 2, 1)
+        forecast_basis = futr_exog[:, -self.forecast_size :, :].permute(0, 2, 1)
         cut_point = forecast_basis.shape[1]
         backcast_theta = theta[:, cut_point:]
         forecast_theta = theta[:, :cut_point].reshape(len(theta), cut_point, -1)
@@ -250,18 +250,18 @@ class NBEATSBlock(nn.Module):
 
         if isinstance(self.basis, ExogenousBasis):
             if self.futr_input_size > 0 and self.stat_input_size > 0:
-                insample_x = torch.cat((futr_exog, stat_exog), dim=2)
+                futr_exog = torch.cat((futr_exog, stat_exog), dim=2)
             elif self.futr_input_size > 0:
-                insample_x = futr_exog
+                futr_exog = futr_exog
             elif self.stat_input_size > 0:
-                insample_x = stat_exog
+                futr_exog = stat_exog
             else:
                 raise (
                     ValueError(
-                        "No stats or future exogenous. The ExogenousBlock can't be applied."
+                        "No stats or future exogenous. ExogenousBlock not supported."
                     )
                 )
-            backcast, forecast = self.basis(theta, insample_x)
+            backcast, forecast = self.basis(theta, futr_exog)
             return backcast, forecast
         else:
             backcast, forecast = self.basis(theta)
@@ -329,8 +329,8 @@ class NBEATSx(BaseWindows):
         exclude_insample_y=False,
         n_harmonics=2,
         n_polynomials=2,
-        stack_types: list = ["identity", "trend", "seasonality", "exogenous"],
-        n_blocks: list = [1, 1, 1, 1],
+        stack_types: list = ["identity", "trend", "seasonality"],
+        n_blocks: list = [1, 1, 1],
         mlp_units: list = 3 * [[512, 512]],
         dropout_prob_theta=0.0,
         activation="ReLU",
@@ -346,7 +346,7 @@ class NBEATSx(BaseWindows):
         valid_batch_size: Optional[int] = None,
         windows_batch_size: int = 1024,
         inference_windows_batch_size: int = -1,
-        start_padding_enabled=False,
+        start_padding_enabled: bool = False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -473,7 +473,7 @@ class NBEATSx(BaseWindows):
 
                     elif stack_types[i] == "exogenous":
                         if futr_input_size + stat_input_size > 0:
-                            n_theta = 2 * (futr_input_size)
+                            n_theta = 2 * (futr_input_size + stat_input_size)
                             basis = ExogenousBasis(forecast_size=h)
 
                     else:
