@@ -43,6 +43,11 @@ def main(args):
 
     static_df = pd.read_csv('data_glucose/ohiot1dm_static.csv')
 
+    # days = 10
+    # Y_df = Y_df.groupby('unique_id').tail(days*288+2691+2691)
+    # print('Y_df.shape: ', Y_df.shape)
+    # print(Y_df.unique_id.value_counts())
+
     # Train model
     model = load_model(args)
     nf = NeuralForecast(models=[model],
@@ -54,6 +59,8 @@ def main(args):
                                    test_size=2691,
                                    step_size=1,
                                    n_windows=None)
+    print('BEST CONFIGURATION: ', nf.models[0].results.get_best_result().config)
+
     end = time.time()
     print(f'Time: {end-start} seconds')
     # Save forecasts
@@ -84,4 +91,4 @@ if __name__ == '__main__':
 
     main(args)
 
-# CUDA_VISIBLE_DEVICES=0 python run_treat.py --model "nhits" --experiment_id "20230829"
+# CUDA_VISIBLE_DEVICES=0 python run_treat.py --model "nhits" --experiment_id "20230901_10_1"

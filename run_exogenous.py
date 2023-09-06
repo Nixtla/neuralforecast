@@ -51,6 +51,11 @@ def main(args):
 
     static_df = pd.read_csv('data_glucose/ohiot1dm_static.csv')
 
+    # days = 10
+    # Y_df = Y_df.groupby('unique_id').tail(days*288+2691+2691)
+    # print('Y_df.shape: ', Y_df.shape)
+    # print(Y_df.unique_id.value_counts())
+
     # Train model
     model = load_model(args)
     nf = NeuralForecast(models=[model],
@@ -92,5 +97,5 @@ if __name__ == '__main__':
 
     main(args)
 
-# CUDA_VISIBLE_DEVICES=0 python run_exogenous.py --model "nhits" --experiment_id "20230829"
+# CUDA_VISIBLE_DEVICES=0 python run_exogenous.py --model "nhits" --experiment_id "20230901_10_1"
 # CUDA_VISIBLE_DEVICES=0 python run_exogenous.py --model "tft" --experiment_id "20230829"
