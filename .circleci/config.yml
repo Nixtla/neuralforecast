@@ -3,24 +3,19 @@ jobs:
   nbdev-tests:
     resource_class: xlarge
     docker:
-      - image: continuumio/miniconda3:23.3.1-0
+      - image: mambaorg/micromamba:1.5-focal
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            conda install mamba -n base -c conda-forge
-            mamba create -n neuralforecast python=3.8
-            conda init bash
-            source ~/.bashrc
-            conda activate neuralforecast
-            mamba env update -f environment.yml
+            micromamba install -n base -c conda-forge -y python=3.8
+            micromamba update -n base -f environment.yml
       - run:
           name: Run nbdev tests
           command: |
-            conda init bash
-            source ~/.bashrc
-            conda activate neuralforecast
+            eval "$(micromamba shell hook --shell bash)"
+            micromamba activate base
             pip install ./
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
