@@ -16,7 +16,7 @@ jobs:
           command: |
             eval "$(micromamba shell hook --shell bash)"
             micromamba activate base
-            pip install ./
+            pip install ".[dev]"
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
     resource_class: xlarge
