@@ -331,6 +331,14 @@ class NeuralForecast:
         )
 
         # Update and define new forecasting dataset
+        if (
+            any([len(model.futr_exog_list) > 0 for model in self.models])
+            and futr_df is None
+        ):
+            raise ValueError(
+                f"A model uses future exogenous variables, please provide futr_df"
+            )
+
         if futr_df is not None:
             futr_orig_rows = futr_df.shape[0]
             futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
@@ -682,7 +690,7 @@ class NeuralForecast:
         -----------
         path : str
             Directory to save current status.
-        **kwargs
+        kwargs
             Additional keyword arguments to be passed to the function
             `load_from_checkpoint`.
 

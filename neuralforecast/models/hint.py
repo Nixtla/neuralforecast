@@ -151,6 +151,10 @@ class HINT:
                 f"The NeuralForecast model's loss {model.loss} is not a probabilistic objective"
             )
 
+        self.hist_exog_list = model.hist_exog_list
+        self.futr_exog_list = model.futr_exog_list
+        self.stat_exog_list = model.stat_exog_list
+
         self.h = h
         self.model = model
         self.early_stop_patience_steps = model.early_stop_patience_steps
