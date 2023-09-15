@@ -336,7 +336,7 @@ class NeuralForecast:
             and futr_df is None
         ):
             raise ValueError(
-                f"A model uses future exogenous variables, please provide futr_df"
+                "A model uses future exogenous variables, please provide futr_df"
             )
 
         if futr_df is not None:
