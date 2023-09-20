@@ -4,6 +4,7 @@
 __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 
 # %% ../nbs/tsdataset.ipynb 4
+import warnings
 from collections.abc import Mapping
 
 import numpy as np
@@ -11,6 +12,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
+from utilsforecast.processing import DataFrameProcessor
 
 # %% ../nbs/tsdataset.ipynb 5
 class TimeSeriesLoader(DataLoader):
@@ -127,9 +129,7 @@ class TimeSeriesDataset(Dataset):
         return self.n_groups
 
     def __repr__(self):
-        return (
-            f"TimeSeriesDataset(n_data={self.data.size:,}, n_groups={self.n_groups:,})"
-        )
+        return f"TimeSeriesDataset(n_data={self.temporal.shape[0]:,}, n_groups={self.n_groups:,})"
 
     def __eq__(self, other):
         if not hasattr(other, "data") or not hasattr(other, "indptr"):
@@ -149,7 +149,7 @@ class TimeSeriesDataset(Dataset):
         temporal_cols = dataset.temporal_cols.copy()
         for col in temporal_cols:
             if col not in future_df.columns:
-                future_df[col] = None
+                future_df[col] = np.nan
             if col == "available_mask":
                 future_df[col] = 1
 
@@ -247,33 +247,33 @@ class TimeSeriesDataset(Dataset):
     @staticmethod
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
-
+        if df.index.name == "unique_id":
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                DeprecationWarning,
+            )
+            df = df.reset_index("unique_id")
         # Define indexes if not given
-        if df.index.name != "unique_id":
-            df = df.set_index("unique_id")
-            if static_df is not None:
+        if static_df is not None:
+            if static_df.index.name == "unique_id":
+                warnings.warn(
+                    "Passing the id as index is deprecated, please provide it as a column instead.",
+                    DeprecationWarning,
+                )
+            else:
                 static_df = static_df.set_index("unique_id")
-
-        df = df.set_index("ds", append=True)
-
-        # Sort data by index
-        if not df.index.is_monotonic_increasing and sort_df:
-            df = df.sort_index()
-
-            if static_df is not None:
+            if sort_df:
                 static_df = static_df.sort_index()
 
-        # Create auxiliary temporal indices 'indptr'
-        temporal = df.values.astype(np.float32)
-        temporal_cols = df.columns
-        indices_sizes = df.index.get_level_values("unique_id").value_counts(sort=False)
-        indices = indices_sizes.index
-        sizes = indices_sizes.values
+        proc = DataFrameProcessor("unique_id", "ds", "y")
+        ids, times, data, indptr, sort_idxs = proc.process(df)
+        temporal_cols = df.columns.drop(["unique_id", "ds"])
+        temporal = data.astype(np.float32, copy=False)
+        indices = pd.Index(ids)
+        dates = pd.Index(times, name="ds")
+        sizes = np.diff(indptr)
         max_size = max(sizes)
         min_size = min(sizes)
-        cum_sizes = sizes.cumsum()
-        dates = df.index.get_level_values("ds")[cum_sizes - 1]
-        indptr = np.append(0, cum_sizes).astype(np.int32)
 
         # Add Available mask efficiently (without adding column to df)
         if "available_mask" not in df.columns:
@@ -299,7 +299,10 @@ class TimeSeriesDataset(Dataset):
             min_size=min_size,
             sorted=sort_df,
         )
-        return dataset, indices, dates, df.index
+        ds = pd.MultiIndex.from_frame(df[["unique_id", "ds"]])
+        if sort_idxs is not None:
+            ds = ds[sort_idxs]
+        return dataset, indices, dates, ds
 
 # %% ../nbs/tsdataset.ipynb 10
 class TimeSeriesDataModule(pl.LightningDataModule):
