@@ -267,7 +267,10 @@ class TimeSeriesDataset(Dataset):
 
         proc = DataFrameProcessor("unique_id", "ds", "y")
         ids, times, data, indptr, sort_idxs = proc.process(df)
-        temporal_cols = df.columns.drop(["unique_id", "ds"])
+        # processor sets y as the first column
+        temporal_cols = pd.Index(
+            ["y"] + df.columns.drop(["unique_id", "ds", "y"]).tolist()
+        )
         temporal = data.astype(np.float32, copy=False)
         indices = pd.Index(ids)
         dates = pd.Index(times, name="ds")
