@@ -33,6 +33,7 @@ from neuralforecast.models import (
     FEDformer,
     StemGNN,
     PatchTST,
+    TimesNet,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -148,6 +149,7 @@ MODEL_FILENAME_DICT = {
     "autopatchtst": PatchTST,
     "autofedformer": FEDformer,
     "autostemgnn": StemGNN,
+    "autotimesnet": TimesNet,
 }
 
 # %% ../nbs/core.ipynb 12
@@ -682,7 +684,7 @@ class NeuralForecast:
         -----------
         path : str
             Directory to save current status.
-        **kwargs
+        kwargs
             Additional keyword arguments to be passed to the function
             `load_from_checkpoint`.
 
