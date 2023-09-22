@@ -115,44 +115,70 @@ class TimesNet(BaseWindows):
 
     The TimesNet univariate model tackles the challenge of modeling multiple intraperiod and interperiod temporal variations.
 
-    The architecture has the following distinctive features:
-    - An embedding layer that maps the input sequence into a latent space.
-    - Transformation of 1D time seires into 2D tensors, based on periods found by FFT.
-    - A convolutional Inception block that captures temporal variations at different scales and between periods.
+    Parameters
+    ----------
+    h : int
+        Forecast horizon.
+    input_size : int
+        Length of input window (lags).
+    futr_exog_list : list of str, optional (default=None)
+        Future exogenous columns.
+    hist_exog_list : list of str, optional (default=None)
+        Historic exogenous columns.
+    stat_exog_list : list of str, optional (default=None)
+        Static exogenous columns.
+    exclude_insample_y : bool (default=False)
+        The model skips the autoregressive features y[t-input_size:t] if True
+    hidden_size : int (default=64)
+        Size of embedding for embedding and encoders.
+    dropout : float between [0, 1) (default=0.1)
+        Dropout for embeddings.
+        conv_hidden_size: int (default=64)
+        Channels of the Inception block.
+    top_k: int (default=5)
+        Number of periods.
+    num_kernels: int (default=6)
+        Number of kernels for the Inception block.
+    encoder_layers : int, (default=2)
+        Number of encoder layers.
+    loss: PyTorch module (default=MAE())
+        Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+    valid_loss: PyTorch module (default=None, uses loss)
+        Instantiated validation loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+    max_steps: int (default=1000)
+        Maximum number of training steps.
+    learning_rate : float (default=1e-4)
+        Learning rate.
+    num_lr_decays`: int (default=-1)
+        Number of learning rate decays, evenly distributed across max_steps. If -1, no learning rate decay is performed.
+    early_stop_patience_steps : int (default=-1)
+        Number of validation iterations before early stopping. If -1, no early stopping is performed.
+    val_check_steps : int (default=100)
+        Number of training steps between every validation loss check.
+    batch_size : int (default=32)
+        Number of different series in each batch.
+    valid_batch_size : int (default=None)
+        Number of different series in each validation and test batch, if None uses batch_size.
+    windows_batch_size : int (default=64)
+        Number of windows to sample in each training batch.
+    inference_windows_batch_size : int (default=256)
+        Number of windows to sample in each inference batch.
+    start_padding_enabled : bool (default=False)
+        If True, the model will pad the time series with zeros at the beginning by input size.
+    scaler_type : str (default='standard')
+        Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    random_seed : int (default=1)
+        Random_seed for pytorch initializer and numpy generators.
+    num_workers_loader : int (default=0)
+        Workers to be used by `TimeSeriesDataLoader`.
+    drop_last_loader : bool (default=False)
+        If True `TimeSeriesDataLoader` drops last non-full batch.
+    **trainer_kwargs
+        Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
-    *Parameters:*<br>
-    `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `hidden_size`: int=128, units of embeddings and encoders.<br>
-    `dropout`: float (0, 1), dropout for embeddings.<br>
-        `conv_hidden_size`: int=32, channels of the Inception block.<br>
-    `top_k`: int=5, number of periods.<br>
-    `num_kernels`: int=6, number of kernels for the Inception block.<br>
-    `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
-
-        *References*<br>
-        - [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou and Jianmin Wang and Mingsheng Long. TimesNet: Temporal 2D-Variation Modeling for General Time Series Analysis](https://openreview.net/pdf?id=ju_Uqw384Oq)<br>
+        References
+        ----------
+    Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou and Jianmin Wang and Mingsheng Long. TimesNet: Temporal 2D-Variation Modeling for General Time Series Analysis. https://openreview.net/pdf?id=ju_Uqw384Oq
     """
 
     # Class attributes
@@ -182,7 +208,7 @@ class TimesNet(BaseWindows):
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
         windows_batch_size=64,
-        inference_windows_batch_size=64,
+        inference_windows_batch_size=256,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "standard",

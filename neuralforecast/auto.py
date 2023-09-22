@@ -982,7 +982,7 @@ class AutoPatchTST(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 63
+# %% ../nbs/models.ipynb 62
 class AutoTimesNet(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1039,7 +1039,7 @@ class AutoTimesNet(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 67
+# %% ../nbs/models.ipynb 66
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1100,7 +1100,7 @@ class AutoStemGNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 71
+# %% ../nbs/models.ipynb 70
 class AutoHINT(BaseAuto):
     def __init__(
         self,
