@@ -176,6 +176,8 @@ class TimeSeriesDataset(Dataset):
     def _invert_target_transform(
         self, data: np.ndarray, indptr: np.ndarray
     ) -> np.ndarray:
+        if self.target_transform_ is None:
+            return data
         for i in range(data.shape[1]):
             ga = GroupedArray(data[:, i], indptr)
             data[:, i] = self.target_transform_.inverse_transform(ga)
