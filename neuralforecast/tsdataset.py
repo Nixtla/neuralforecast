@@ -6,12 +6,17 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from utilsforecast.target_transforms import BaseTargetTransform
 
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
+from utilsforecast.grouped_array import GroupedArray
 from utilsforecast.processing import DataFrameProcessor
 
 # %% ../nbs/tsdataset.ipynb 5
@@ -81,8 +86,38 @@ class TimeSeriesDataset(Dataset):
         static=None,
         static_cols=None,
         sorted=False,
+        scaler_type=None,
     ):
         super().__init__()
+
+        if scaler_type is None:
+            self.target_transform_: Optional["BaseTargetTransform"] = None
+        else:
+            # delay the import because these require numba, which isn't a requirement
+            from utilsforecast.target_transforms import (
+                LocalBoxCox,
+                LocalMinMaxScaler,
+                LocalRobustScaler,
+                LocalStandardScaler,
+            )
+
+            type2scaler = {
+                "standard": LocalStandardScaler,
+                "robust": lambda: LocalRobustScaler(scale="mad"),
+                "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
+                "minmax": LocalMinMaxScaler,
+                "boxcox": LocalBoxCox,
+            }
+            if scaler_type not in type2scaler:
+                raise ValueError(f"scaler_type must be one of {type2scaler.keys()}")
+            for i, col in enumerate(temporal_cols):
+                if col == "available_mask":
+                    continue
+                ga = GroupedArray(temporal[:, i], indptr)
+                scaler = type2scaler[scaler_type]()
+                temporal[:, i] = scaler.fit_transform(ga)
+                if col == "y":
+                    self.target_transform_ = scaler
 
         self.temporal = torch.tensor(temporal, dtype=torch.float)
         self.temporal_cols = pd.Index(list(temporal_cols))
@@ -137,6 +172,14 @@ class TimeSeriesDataset(Dataset):
         return np.allclose(self.data, other.data) and np.array_equal(
             self.indptr, other.indptr
         )
+
+    def _invert_target_transform(
+        self, data: np.ndarray, indptr: np.ndarray
+    ) -> np.ndarray:
+        for i in range(data.shape[1]):
+            ga = GroupedArray(data[:, i], indptr)
+            data[:, i] = self.target_transform_.inverse_transform(ga)
+        return data
 
     @staticmethod
     def update_dataset(dataset, future_df):
@@ -245,7 +288,7 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
-    def from_df(df, static_df=None, sort_df=False):
+    def from_df(df, static_df=None, sort_df=False, scaler_type=None):
         # TODO: protect on equality of static_df + df indexes
         if df.index.name == "unique_id":
             warnings.warn(
@@ -301,13 +344,14 @@ class TimeSeriesDataset(Dataset):
             max_size=max_size,
             min_size=min_size,
             sorted=sort_df,
+            scaler_type=scaler_type,
         )
         ds = pd.MultiIndex.from_frame(df[["unique_id", "ds"]])
         if sort_idxs is not None:
             ds = ds[sort_idxs]
         return dataset, indices, dates, ds
 
-# %% ../nbs/tsdataset.ipynb 10
+# %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
         self,
