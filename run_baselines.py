@@ -13,7 +13,7 @@ from statsforecast.models import Naive, AutoARIMA
 
 HORIZON_DICT = {'yearly': 6,
                 'quarterly': 8,
-                'monthly': 18,
+                'monthly': 12,
                 'daily': 14}
 
 def main(args):
@@ -35,6 +35,38 @@ def main(args):
             Y_df_target, *_ = M3.load(directory='./', group='Other')
             frequency = 'D'
             season_length = 7
+    elif (args.target_dataset == 'Tourism'):
+        if args.frequency == 'yearly':
+            Y_df_target = pd.read_csv('tourism/data_yearly.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'Y'
+            season_length = 1
+        elif args.frequency == 'quarterly':
+            Y_df_target = pd.read_csv('tourism/data_quarterly.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'Q'
+            season_length = 4
+        elif args.frequency == 'monthly':
+            Y_df_target = pd.read_csv('tourism/data.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'MS'
+            season_length = 12
+    elif (args.target_dataset == 'M1'):
+        if args.frequency == 'yearly':
+            Y_df_target = pd.read_csv('m1/data_Yearly.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'YS'
+            season_length = 1
+        elif args.frequency == 'quarterly':
+            Y_df_target = pd.read_csv('m1/data_Quarterly.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'QS'
+            season_length = 4
+        elif args.frequency == 'monthly':
+            Y_df_target = pd.read_csv('m1/data_Monthly.csv')
+            Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+            frequency = 'MS'
+            season_length = 12
 
     if model == 'naive':
         models = [Naive()]
@@ -51,6 +83,7 @@ def main(args):
     Y_hat_df = sf.cross_validation(df=Y_df_target,
                                    h=horizon,
                                    step_size=1,
+                                   level=[80, 60, 40, 20],
                                    n_windows=1)
     
     # Store forecasts results, also check if this folder exists/create it if its done
@@ -70,11 +103,11 @@ if __name__ == '__main__':
     # parse arguments
     args = parse_args()
 
-    for frequency in ['yearly', 'quarterly','monthly', 'daily']:
-        for model in ['autoarima']: # ,'autoarima' naive
+    for frequency in ['yearly', 'quarterly','monthly']: # ['yearly', 'quarterly','monthly', 'daily']
+        for model in ['naive', 'autoarima']: # ,'autoarima' naive
             args.model = model
             args.frequency = frequency
             print(f'Running {frequency} {model}!!')
             main(args)
 
-# CUDA_VISIBLE_DEVICES=0 python run_baselines.py --target_dataset "M3" --experiment_id "20230816"
+# CUDA_VISIBLE_DEVICES=0 python run_baselines.py --target_dataset "M1" --experiment_id "20230816_level"

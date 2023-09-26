@@ -41,6 +41,15 @@ def load_data(args, frequency):
 		elif frequency == 'monthly':
 			Y_df = pd.read_csv('wiki_monthly.csv')
 			frequency = 'M'
+	elif (args.source_dataset == 'M3'):
+		if args.frequency == 'yearly':
+			Y_df, *_ = M3.load(directory='./', group='Yearly')
+		elif args.frequency == 'quarterly':
+			Y_df, *_ = M3.load(directory='./', group='Quarterly')
+		elif args.frequency == 'monthly':
+			Y_df, *_ = M3.load(directory='./', group='Monthly')
+		else:
+			raise Exception("Frequency not defined")
 	else:
 		raise Exception("Dataset not defined")
 
@@ -88,7 +97,7 @@ def set_trainer_kwargs(nf, max_steps, early_stop_patience_steps):
 def main(args):
 	model_type = args.model.split('_')[0]
 	# make sure folder exists, then check if the file exists in the folder
-	model_dir = f'./results/transferability/stored_models/{args.source_dataset}/{args.frequency}/{args.model}/{args.experiment_id}'
+	model_dir = f'./results/transferability/stored_models/{args.source_dataset}/{args.frequency}/{args.model}/{args.experiment_id}_{args.random_seed}'
 	os.makedirs(model_dir, exist_ok=True)
 	file_exists = os.path.isfile(f'{model_dir}/{model_type}_0.ckpt')
 	
@@ -105,7 +114,7 @@ def main(args):
 			short= True
 		else:
 			short = False
-		model = load_model(args.model, args.frequency, short=short)
+		model = load_model(args.model, args.frequency, short=short, random_seed=args.random_seed)
 		nf = NeuralForecast(models=[model], freq=None) # freq is set later
 		print('HORIZON: ', nf.models[0].h)
 		nf.fit(df=Y_df, val_size=2*model.h)
@@ -119,22 +128,50 @@ def main(args):
 
 	# UNCOMMENT FROM HERE
 
-	# horizon = nf.models[0].h
+	horizon = nf.models[0].h
 	
-	# # Load target data
-	# if (args.target_dataset == 'M3'):
-	# 	if args.frequency == 'yearly':
-	# 		Y_df_target, *_ = M3.load(directory='./', group='Yearly')
-	# 		frequency = 'Y'		
-	# 	elif args.frequency == 'quarterly':
-	# 		Y_df_target, *_ = M3.load(directory='./', group='Quarterly')
-	# 		frequency = 'Q'
-	# 	elif args.frequency == 'monthly':
-	# 		Y_df_target, *_ = M3.load(directory='./', group='Monthly')
-	# 		frequency = 'M'
-	# 	elif args.frequency == 'daily':
-	# 		Y_df_target, *_ = M3.load(directory='./', group='Other')
-	# 		frequency = 'D'
+	# Load target data
+	if (args.target_dataset == 'M3'):
+		if args.frequency == 'yearly':
+			Y_df_target, *_ = M3.load(directory='./', group='Yearly')
+			frequency = 'Y'		
+		elif args.frequency == 'quarterly':
+			Y_df_target, *_ = M3.load(directory='./', group='Quarterly')
+			frequency = 'Q'
+		elif args.frequency == 'monthly':
+			Y_df_target, *_ = M3.load(directory='./', group='Monthly')
+			frequency = 'M'
+		elif args.frequency == 'daily':
+			Y_df_target, *_ = M3.load(directory='./', group='Other')
+			frequency = 'D'
+	elif (args.target_dataset == 'Tourism'):
+		if args.frequency == 'yearly':
+			Y_df_target = pd.read_csv('tourism/data_yearly.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'Y'
+		elif args.frequency == 'quarterly':
+			Y_df_target = pd.read_csv('tourism/data_quarterly.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'Q'
+		elif args.frequency == 'monthly':
+			Y_df_target = pd.read_csv('tourism/data.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'MS'
+	elif (args.target_dataset == 'M1'):
+		if args.frequency == 'yearly':
+			Y_df_target = pd.read_csv('m1/data_Yearly.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'YS'
+		elif args.frequency == 'quarterly':
+			Y_df_target = pd.read_csv('m1/data_Quarterly.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'QS'
+		elif args.frequency == 'monthly':
+			Y_df_target = pd.read_csv('m1/data_Monthly.csv')
+			Y_df_target['ds'] = pd.to_datetime(Y_df_target['ds'])
+			frequency = 'MS'
+	else:
+		raise Exception("Dataset not defined")
 
 	# # if (args.target_dataset == 'AirPassengers'):
 	# # 	Y_df_target = AirPassengersDF.copy()
@@ -176,45 +213,45 @@ def main(args):
 	# # else:
 	# # 	raise Exception("Dataset not defined")
 	
-	# nf.freq = pd.tseries.frequencies.to_offset(frequency)
-	# test_size = horizon
+	nf.freq = pd.tseries.frequencies.to_offset(frequency)
+	test_size = horizon
 
-	# # Predict on the test set of the target data
-	# print('Predicting on target data')
-	# start = time.time()
-	# # Fit model if k_shot > 0:
-	# # Set new trainer kwargs for k_shot learning
-	# set_trainer_kwargs(nf, max_steps=args.k_shot, early_stop_patience_steps=0)
-	# if (args.k_shot > 0):
-	# 	# Fit model and predict
-	# 	Y_hat_df = nf.cross_validation(df=Y_df_target,
-	# 								   n_windows=None,
-	# 								   test_size=test_size,
-	# 								   use_init_models=False).reset_index()
-	# else:
-	# 	# Predict
-	# 	print('Predicting on target data')
-	# 	print(nf.models[0].trainer_kwargs)
-	# 	Y_hat_df = nf.cross_validation(df=Y_df_target,
-	# 								   n_windows=None,
-	# 								   test_size=test_size,
-	# 								   use_init_models=False).reset_index()
+	# Predict on the test set of the target data
+	print('Predicting on target data')
+	start = time.time()
+	# Fit model if k_shot > 0:
+	# Set new trainer kwargs for k_shot learning
+	set_trainer_kwargs(nf, max_steps=args.k_shot, early_stop_patience_steps=0)
+	if (args.k_shot > 0):
+		# Fit model and predict
+		Y_hat_df = nf.cross_validation(df=Y_df_target,
+									   n_windows=None,
+									   test_size=test_size,
+									   use_init_models=False).reset_index()
+	else:
+		# Predict
+		print('Predicting on target data')
+		print(nf.models[0].trainer_kwargs)
+		Y_hat_df = nf.cross_validation(df=Y_df_target,
+									   n_windows=None,
+									   test_size=test_size,
+									   use_init_models=False).reset_index()
 	
-	# end = time.time()
-	# time_df = pd.DataFrame({'time': [end-start]})
+	end = time.time()
+	time_df = pd.DataFrame({'time': [end-start]})
 
-	# # Store time
-	# time_dir = f'./results/transferability/time/{args.target_dataset}/{args.frequency}'
-	# os.makedirs(time_dir, exist_ok=True)
-	# time_dir = f'{time_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-	# time_df.to_csv(time_dir, index=False)
+	# Store time
+	time_dir = f'./results/transferability/time/{args.target_dataset}/{args.frequency}'
+	os.makedirs(time_dir, exist_ok=True)
+	time_dir = f'{time_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
+	time_df.to_csv(time_dir, index=False)
 
-	# # Store forecasts results, also check if this folder exists/create it if its done
-	# forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/{args.frequency}/'
-	# os.makedirs(forecasts_dir, exist_ok=True)
+	# Store forecasts results, also check if this folder exists/create it if its done
+	forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/{args.frequency}/'
+	os.makedirs(forecasts_dir, exist_ok=True)
 
-	# forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-	# Y_hat_df.to_csv(forecasts_dir, index=False)
+	forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}_{args.random_seed}.csv'
+	Y_hat_df.to_csv(forecasts_dir, index=False)
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="script arguments")
@@ -230,20 +267,22 @@ if __name__ == '__main__':
 	args = parse_args()
 
 	for k_shot in [0]:
-		for frequency in ['weekly']: # ['yearly', 'quarterly','monthly','daily']
-			for model in MODEL_LIST:
-				args.k_shot = k_shot
-				args.model = model
-				args.frequency = frequency
-				print(f'Running {frequency} {model} {k_shot} !!')
-				forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/'
-				forecasts_dir = f'{forecasts_dir}{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-				print('forecasts_dir', forecasts_dir)
-				file_exists = os.path.isfile(forecasts_dir)
-				#if (not file_exists):
-				main(args)
-				#else:
-				print('Already done!')
+		for random_seed in [1,2,3,4]:
+			for frequency in ['yearly', 'quarterly','monthly','daily']: # ['yearly', 'quarterly','monthly','daily']
+				for model in MODEL_LIST:
+					args.k_shot = k_shot
+					args.model = model
+					args.frequency = frequency
+					args.random_seed = random_seed
+					print(f'Running {frequency} {model} {k_shot} {random_seed}!!')
+					# forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/'
+					# forecasts_dir = f'{forecasts_dir}{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
+					# print('forecasts_dir', forecasts_dir)
+					# file_exists = os.path.isfile(forecasts_dir)
+					#if (not file_exists):
+					main(args)
+					#else:
+					print('Already done!')
 
 
-# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "wiki" --target_dataset "M3" --experiment_id "20230816"
+# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "M4" --target_dataset "Tourism" --experiment_id "20230926"

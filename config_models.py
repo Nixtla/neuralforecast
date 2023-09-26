@@ -29,7 +29,7 @@ MODEL_LIST = ['nhits_15_512',
               #'deepar_128_4',
               ]
 
-def load_model(model_name, frequency, short=False):
+def load_model(model_name, frequency, short=False, random_seed=1):
     assert model_name in MODEL_LIST, f"Model {model_name} not in list of models"
     
     if short:
@@ -56,7 +56,7 @@ def load_model(model_name, frequency, short=False):
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=1)
+                        random_seed=random_seed)
 
     elif model_name == 'nhits_30_1024':
         model = NHITS(h=horizon,
@@ -75,7 +75,7 @@ def load_model(model_name, frequency, short=False):
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=1)
+                        random_seed=random_seed)
 
     # Transformer
     elif model_name == 'vanillatransformer_256_3': 
@@ -84,19 +84,19 @@ def load_model(model_name, frequency, short=False):
                                 encoder_layers=3,
                                 decoder_layers=1,
                                 n_head=4,
-                                hidden_size=256,
-                                conv_hidden_size=64,
-                                dropout=0.05,
+                                hidden_size=512, # 256
+                                conv_hidden_size=256, # 64
+                                dropout=0.1,
                                 loss=LOSS,
                                 learning_rate=1e-4,
-                                early_stop_patience_steps=-1,
+                                early_stop_patience_steps=10, # -1
                                 val_check_steps=300,
                                 scaler_type='minmax1',
                                 max_steps=max_steps,
                                 batch_size=256, # 256
                                 windows_batch_size=1024, # 1024
                                 num_sanity_val_steps=0,
-                                random_seed=1)
+                                random_seed=random_seed)
     
     # TFT
     elif model_name == 'tft_128':
@@ -111,7 +111,7 @@ def load_model(model_name, frequency, short=False):
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=1)
+                        random_seed=random_seed)
 
     elif model_name == 'tft_1024':
         model = TFT(h=horizon,
@@ -125,7 +125,7 @@ def load_model(model_name, frequency, short=False):
                     max_steps=max_steps,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=1)
+                    random_seed=random_seed)
     
     # MLP
     elif model_name == 'mlp_512_8':
@@ -141,7 +141,7 @@ def load_model(model_name, frequency, short=False):
                     max_steps=max_steps,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=1)
+                    random_seed=random_seed)
 
     elif model_name == 'mlp_2048_32':
         model = MLP(h=horizon,
@@ -156,7 +156,7 @@ def load_model(model_name, frequency, short=False):
                     max_steps=max_steps,
                     batch_size=256,
                     windows_batch_size=1024,
-                    random_seed=1)
+                    random_seed=random_seed)
         
     # TCN
     elif model_name == 'tcn_128_3':
@@ -193,7 +193,7 @@ def load_model(model_name, frequency, short=False):
                     scaler_type='minmax1',
                     max_steps=max_steps,
                     batch_size=256,
-                    random_seed=1)
+                    random_seed=random_seed)
 
     # LSTM
     elif model_name == 'lstm_128_3':
@@ -212,7 +212,7 @@ def load_model(model_name, frequency, short=False):
                     scaler_type='minmax1',
                     max_steps=max_steps,
                     batch_size=256,
-                    random_seed=1)
+                    random_seed=random_seed)
         
     elif model_name == 'lstm_512_5':
         model = LSTM(h=horizon,
@@ -230,7 +230,7 @@ def load_model(model_name, frequency, short=False):
                     scaler_type='minmax1',
                     max_steps=max_steps,
                     batch_size=256,
-                    random_seed=1) 
+                    random_seed=random_seed)
 
     elif model_name == 'deepar_128_4':
         model = DeepAR(h=horizon,
@@ -246,7 +246,7 @@ def load_model(model_name, frequency, short=False):
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=1)
+                        random_seed=random_seed)
 
     elif model_name == 'deepar_64_2':
         model = DeepAR(h=horizon,
@@ -262,6 +262,6 @@ def load_model(model_name, frequency, short=False):
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
-                        random_seed=1)
+                        random_seed=random_seed)
 
     return model
