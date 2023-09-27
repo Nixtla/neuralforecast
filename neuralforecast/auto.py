@@ -75,7 +75,8 @@ class AutoRNN(BaseAuto):
 
         """
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -87,6 +88,8 @@ class AutoRNN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoRNN, self).__init__(
             cls_model=RNN,
@@ -102,7 +105,7 @@ class AutoRNN(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 13
+# %% ../nbs/models.ipynb 15
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -133,7 +136,8 @@ class AutoLSTM(BaseAuto):
         verbose=False,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -145,6 +149,8 @@ class AutoLSTM(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoLSTM, self).__init__(
             cls_model=LSTM,
@@ -160,7 +166,7 @@ class AutoLSTM(BaseAuto):
             verbose=verbose,
         )
 
-# %% ../nbs/models.ipynb 17
+# %% ../nbs/models.ipynb 18
 class AutoGRU(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -192,7 +198,8 @@ class AutoGRU(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -204,6 +211,8 @@ class AutoGRU(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoGRU, self).__init__(
             cls_model=GRU,
@@ -220,7 +229,7 @@ class AutoGRU(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 20
+# %% ../nbs/models.ipynb 21
 class AutoTCN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -251,7 +260,8 @@ class AutoTCN(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -263,6 +273,8 @@ class AutoTCN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoTCN, self).__init__(
             cls_model=TCN,
@@ -279,7 +291,7 @@ class AutoTCN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 23
+# %% ../nbs/models.ipynb 24
 class AutoDeepAR(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -313,7 +325,8 @@ class AutoDeepAR(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -323,6 +336,8 @@ class AutoDeepAR(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoDeepAR, self).__init__(
             cls_model=DeepAR,
@@ -339,7 +354,7 @@ class AutoDeepAR(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 26
+# %% ../nbs/models.ipynb 27
 class AutoDilatedRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -372,7 +387,8 @@ class AutoDilatedRNN(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -384,6 +400,8 @@ class AutoDilatedRNN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoDilatedRNN, self).__init__(
             cls_model=DilatedRNN,
@@ -400,7 +418,7 @@ class AutoDilatedRNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 30
+# %% ../nbs/models.ipynb 31
 class AutoMLP(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -431,7 +449,8 @@ class AutoMLP(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -441,6 +460,8 @@ class AutoMLP(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoMLP, self).__init__(
             cls_model=MLP,
@@ -457,7 +478,7 @@ class AutoMLP(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 33
+# %% ../nbs/models.ipynb 34
 class AutoNBEATS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -486,7 +507,8 @@ class AutoNBEATS(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -496,6 +518,8 @@ class AutoNBEATS(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNBEATS, self).__init__(
             cls_model=NBEATS,
@@ -512,7 +536,7 @@ class AutoNBEATS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 36
+# %% ../nbs/models.ipynb 37
 class AutoNBEATSx(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -541,7 +565,8 @@ class AutoNBEATSx(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -551,6 +576,8 @@ class AutoNBEATSx(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNBEATSx, self).__init__(
             cls_model=NBEATSx,
@@ -567,7 +594,7 @@ class AutoNBEATSx(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 39
+# %% ../nbs/models.ipynb 40
 class AutoNHITS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -613,7 +640,8 @@ class AutoNHITS(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -623,6 +651,8 @@ class AutoNHITS(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNHITS, self).__init__(
             cls_model=NHITS,
@@ -639,7 +669,7 @@ class AutoNHITS(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 43
+# %% ../nbs/models.ipynb 44
 class AutoTFT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -670,7 +700,8 @@ class AutoTFT(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -680,6 +711,8 @@ class AutoTFT(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoTFT, self).__init__(
             cls_model=TFT,
@@ -696,7 +729,7 @@ class AutoTFT(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 46
+# %% ../nbs/models.ipynb 47
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -727,7 +760,8 @@ class AutoVanillaTransformer(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -737,6 +771,8 @@ class AutoVanillaTransformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoVanillaTransformer, self).__init__(
             cls_model=VanillaTransformer,
@@ -753,7 +789,7 @@ class AutoVanillaTransformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 49
+# %% ../nbs/models.ipynb 50
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -784,7 +820,8 @@ class AutoInformer(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -794,6 +831,8 @@ class AutoInformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoInformer, self).__init__(
             cls_model=Informer,
@@ -810,7 +849,7 @@ class AutoInformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 52
+# %% ../nbs/models.ipynb 53
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -841,7 +880,8 @@ class AutoAutoformer(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -851,6 +891,8 @@ class AutoAutoformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoAutoformer, self).__init__(
             cls_model=Autoformer,
@@ -867,7 +909,7 @@ class AutoAutoformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 55
+# %% ../nbs/models.ipynb 56
 class AutoFEDformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -897,7 +939,8 @@ class AutoFEDformer(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -907,6 +950,8 @@ class AutoFEDformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoFEDformer, self).__init__(
             cls_model=FEDformer,
@@ -923,7 +968,7 @@ class AutoFEDformer(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 58
+# %% ../nbs/models.ipynb 59
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -956,7 +1001,8 @@ class AutoPatchTST(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -966,6 +1012,8 @@ class AutoPatchTST(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         super(AutoPatchTST, self).__init__(
             cls_model=PatchTST,
@@ -982,7 +1030,7 @@ class AutoPatchTST(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 62
+# %% ../nbs/models.ipynb 63
 class AutoTimesNet(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1039,7 +1087,7 @@ class AutoTimesNet(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 66
+# %% ../nbs/models.ipynb 67
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1071,7 +1119,8 @@ class AutoStemGNN(BaseAuto):
         alias=None,
     ):
         # Define search space, input/output sizes
-        if config is None:
+        to_optuna = config == "default_optuna"
+        if config is None or to_optuna:
             config = self.default_config.copy()
             config["input_size"] = tune.choice(
                 [h * x for x in self.default_config["input_size_multiplier"]]
@@ -1081,6 +1130,8 @@ class AutoStemGNN(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if to_optuna:
+                config = self._ray_config_to_optuna(config)
 
         # Always use n_series from parameters
         config["n_series"] = n_series
@@ -1100,7 +1151,7 @@ class AutoStemGNN(BaseAuto):
             alias=alias,
         )
 
-# %% ../nbs/models.ipynb 70
+# %% ../nbs/models.ipynb 71
 class AutoHINT(BaseAuto):
     def __init__(
         self,

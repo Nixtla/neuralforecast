@@ -16,6 +16,14 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
 # %% ../../nbs/common.base_auto.ipynb 6
+class MockTrial:
+    def __getattr__(self, name):
+        def handler(*args, **kwargs):
+            return None
+
+        return handler
+
+# %% ../../nbs/common.base_auto.ipynb 7
 class BaseAuto(pl.LightningModule):
     """
     Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to
@@ -28,20 +36,33 @@ class BaseAuto(pl.LightningModule):
     It is important to note that the success of this hyperparameter optimization
     heavily relies on a strong correlation between the validation and test periods.
 
-    **Parameters:**<br>
-    `cls_model`: PyTorch/PyTorchLightning model, see `neuralforecast.models` [collection here](https://nixtla.github.io/neuralforecast/models.html).<br>
-    `h`: int, forecast horizon.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `config`: dict, dictionary with ray.tune defined search space.<br>
-    `search_alg`: ray.tune.search variant, BasicVariantGenerator, HyperOptSearch, DragonflySearch, TuneBOHB for details
-        see [tune.search](https://docs.ray.io/en/latest/tune/api_docs/suggestion.html#).<br>
-    `num_samples`: int, number of hyperparameter optimization steps/samples.<br>
-    `cpus`: int, number of cpus to use during optimization, default all available.<br>
-    `gpus`: int, number of gpus to use during optimization, default all available.<br>
-    `refit_wo_val`: bool, number of gpus to use during optimization, default all available.<br>
-    `verbose`: bool, wether print partial outputs.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
+    Parameters
+    ----------
+    cls_model : PyTorch/PyTorchLightning model
+        See `neuralforecast.models` [collection here](https://nixtla.github.io/neuralforecast/models.html).
+    h : int
+        Forecast horizon
+    loss : PyTorch module
+        Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    valid_loss : PyTorch module
+        Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    config : dict or callable
+        Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
+    search_alg : ray.tune.search variant or optuna.sampler
+        For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
+        For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
+    num_samples : int
+        Number of hyperparameter optimization steps/samples.
+    cpus : int (default=os.cpu_count())
+        Number of cpus to use during optimization. Only used with ray tune.
+    gpus : int (default=torch.cuda.device_count())
+        Number of gpus to use during optimization, default all available. Only used with ray tune.
+    refit_with_val : bool
+        Refit of best model should preserve val_size.
+    verbose : bool
+        Track progress.
+    alias : str, optional (default=None)
+        Custom name of the model.
     """
 
     def __init__(
@@ -62,19 +83,31 @@ class BaseAuto(pl.LightningModule):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
-        if config.get("h", None) is not None:
+        if isinstance(config, dict):
+            config_base = deepcopy(config)
+        else:
+            # extract constant values from the config fn for validations
+            config_base = config(MockTrial())
+        if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
-        if config.get("loss", None) is not None:
+        if config_base.get("loss", None) is not None:
             raise Exception(
                 "Please use `loss` init argument instead of `config['loss']`."
             )
-        if config.get("valid_loss", None) is not None:
+        if config_base.get("valid_loss", None) is not None:
             raise Exception(
                 "Please use `valid_loss` init argument instead of `config['valid_loss']`."
             )
+        # This attribute helps to protect
+        # model and datasets interactions protections
+        if "early_stop_patience_steps" in config_base.keys():
+            self.early_stop_patience_steps = 1
+        else:
+            self.early_stop_patience_steps = -1
 
-        # Deepcopy to avoid modifying the original config
-        config_base = deepcopy(config)
+        if callable(config):
+            # reset config_base here to save params to override in the config fn
+            config_base = {}
 
         # Add losses to config and protect valid_loss default
         config_base["h"] = h
@@ -83,19 +116,19 @@ class BaseAuto(pl.LightningModule):
             valid_loss = loss
         config_base["valid_loss"] = valid_loss
 
+        if isinstance(config, dict):
+            self.config = config_base
+        else:
+
+            def config_f(trial):
+                return {**config(trial), **config_base}
+
+            self.config = config_f
+
         self.h = h
         self.cls_model = cls_model
-
-        self.config = config_base
-        self.loss = self.config["loss"]
-        self.valid_loss = self.config["valid_loss"]
-
-        # This attribute helps to protect
-        # model and datasets interactions protections
-        if "early_stop_patience_steps" in config.keys():
-            self.early_stop_patience_steps = 1
-        else:
-            self.early_stop_patience_steps = -1
+        self.loss = loss
+        self.valid_loss = valid_loss
 
         self.num_samples = num_samples
         self.search_alg = search_alg
@@ -197,6 +230,69 @@ class BaseAuto(pl.LightningModule):
         results = tuner.fit()
         return results
 
+    def _ray_config_to_optuna(self, ray_config):
+        def optuna_config(trial):
+            out = {}
+            for k, v in ray_config.items():
+                if hasattr(v, "sampler"):
+                    sampler = v.sampler
+                    if isinstance(
+                        sampler, tune.search.sample.Integer.default_sampler_cls
+                    ):
+                        v = trial.suggest_int(k, v.lower, v.upper)
+                    elif isinstance(
+                        sampler, tune.search.sample.Categorical.default_sampler_cls
+                    ):
+                        v = trial.suggest_categorical(k, v.categories)
+                    elif isinstance(sampler, tune.search.sample.Uniform):
+                        v = trial.suggest_uniform(k, v.lower, v.upper)
+                    elif isinstance(sampler, tune.search.sample.LogUniform):
+                        v = trial.suggest_loguniform(k, v.lower, v.upper)
+                    else:
+                        raise ValueError(f"Coudln't translate {type(v)} to optuna.")
+                out[k] = v
+            return out
+
+        return optuna_config
+
+    def _optuna_tune_model(
+        self,
+        cls_model,
+        dataset,
+        val_size,
+        test_size,
+        verbose,
+        num_samples,
+        search_alg,
+        config,
+    ):
+        import optuna
+
+        def objective(trial):
+            cfg = config(trial)
+            fitted_model = self._fit_model(
+                cls_model=cls_model,
+                config=cfg,
+                dataset=dataset,
+                val_size=val_size,
+                test_size=test_size,
+            )
+            trial.set_user_attr("ALL_PARAMS", cfg)
+            return fitted_model.trainer.callback_metrics["valid_loss"].item()
+
+        if isinstance(search_alg, optuna.samplers.BaseSampler):
+            sampler = search_alg
+        else:
+            sampler = None
+
+        study = optuna.create_study(sampler=sampler, direction="minimize")
+        study.optimize(
+            objective,
+            n_trials=num_samples,
+            show_progress_bar=verbose,
+        )
+        return study
+
     def _fit_model(self, cls_model, config, dataset, val_size, test_size):
         model = cls_model(**config)
         model.fit(dataset, val_size=val_size, test_size=test_size)
@@ -223,25 +319,34 @@ class BaseAuto(pl.LightningModule):
         # hyperparameter selection.
         search_alg = deepcopy(self.search_alg)
         val_size = val_size if val_size > 0 else self.h
-        results = self._tune_model(
-            cls_model=self.cls_model,
-            dataset=dataset,
-            val_size=val_size,
-            test_size=test_size,
-            cpus=self.cpus,
-            gpus=self.gpus,
-            verbose=self.verbose,
-            num_samples=self.num_samples,
-            search_alg=search_alg,
-            config=self.config,
-        )
-        best_config = results.get_best_result().config
-        # self.model = self.cls_model(**best_config)
-        # self.model.fit(
-        #    dataset=dataset,
-        #    val_size=val_size * (1 - self.refit_with_val),
-        #    test_size=test_size,
-        # )
+        if isinstance(self.config, dict):
+            # ray tune
+            results = self._tune_model(
+                cls_model=self.cls_model,
+                dataset=dataset,
+                val_size=val_size,
+                test_size=test_size,
+                cpus=self.cpus,
+                gpus=self.gpus,
+                verbose=self.verbose,
+                num_samples=self.num_samples,
+                search_alg=None,
+                config=self.config,
+            )
+            best_config = results.get_best_result().config
+        else:
+            # optuna
+            results = self._optuna_tune_model(
+                cls_model=self.cls_model,
+                dataset=dataset,
+                val_size=val_size,
+                test_size=test_size,
+                verbose=self.verbose,
+                num_samples=self.num_samples,
+                search_alg=search_alg,
+                config=self.config,
+            )
+            best_config = results.best_trial.user_attrs["ALL_PARAMS"]
         self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
