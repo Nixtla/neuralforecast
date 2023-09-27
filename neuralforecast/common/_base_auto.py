@@ -330,7 +330,7 @@ class BaseAuto(pl.LightningModule):
                 gpus=self.gpus,
                 verbose=self.verbose,
                 num_samples=self.num_samples,
-                search_alg=None,
+                search_alg=search_alg,
                 config=self.config,
             )
             best_config = results.get_best_result().config
