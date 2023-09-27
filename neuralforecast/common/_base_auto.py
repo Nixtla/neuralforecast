@@ -43,9 +43,9 @@ class BaseAuto(pl.LightningModule):
     h : int
         Forecast horizon
     loss : PyTorch module
-        Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+        Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
     valid_loss : PyTorch module
-        Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+        Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
     config : dict or callable
         Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
     search_alg : ray.tune.search variant or optuna.sampler
