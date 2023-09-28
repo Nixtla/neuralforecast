@@ -6,7 +6,7 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
-from typing import Optional, TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from utilsforecast.target_transforms import BaseTargetTransform
