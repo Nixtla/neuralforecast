@@ -91,7 +91,7 @@ class TimeSeriesDataset(Dataset):
         super().__init__()
 
         if scaler_type is None:
-            self.target_transform_: Optional["BaseTargetTransform"] = None
+            self.scalers_: Optional[Dict[str, "BaseTargetTransform"]] = None
         else:
             # delay the import because these require numba, which isn't a requirement
             from utilsforecast.target_transforms import (
@@ -110,14 +110,13 @@ class TimeSeriesDataset(Dataset):
             }
             if scaler_type not in type2scaler:
                 raise ValueError(f"scaler_type must be one of {type2scaler.keys()}")
+            self.scalers_ = {}
             for i, col in enumerate(temporal_cols):
                 if col == "available_mask":
                     continue
                 ga = GroupedArray(temporal[:, i], indptr)
-                scaler = type2scaler[scaler_type]()
-                temporal[:, i] = scaler.fit_transform(ga)
-                if col == "y":
-                    self.target_transform_ = scaler
+                self.scalers_[col] = type2scaler[scaler_type]()
+                temporal[:, i] = self.scalers_[col].fit_transform(ga)
 
         self.temporal = torch.tensor(temporal, dtype=torch.float)
         self.temporal_cols = pd.Index(list(temporal_cols))
@@ -176,12 +175,24 @@ class TimeSeriesDataset(Dataset):
     def _invert_target_transform(
         self, data: np.ndarray, indptr: np.ndarray
     ) -> np.ndarray:
-        if self.target_transform_ is None:
+        if self.scalers_ is None:
             return data
         for i in range(data.shape[1]):
             ga = GroupedArray(data[:, i], indptr)
-            data[:, i] = self.target_transform_.inverse_transform(ga)
+            data[:, i] = self.scalers_["y"].inverse_transform(ga)
         return data
+
+    def _transform_temporal(self) -> None:
+        if self.scalers_ is None:
+            return
+        for i, col in enumerate(self.temporal_cols):
+            if col == "available_mask":
+                continue
+            scaler = self.scalers_.get(col, None)
+            if scaler is None:
+                continue
+            ga = GroupedArray(self.temporal[:, i].numpy(), self.indptr)
+            self.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
 
     @staticmethod
     def update_dataset(dataset, future_df):
@@ -203,6 +214,8 @@ class TimeSeriesDataset(Dataset):
 
         # Process future_df
         futr_dataset, *_ = dataset.from_df(df=future_df, sort_df=dataset.sorted)
+        futr_dataset.scalers_ = dataset.scalers_
+        futr_dataset._transform_temporal()
 
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = dataset.temporal.shape
