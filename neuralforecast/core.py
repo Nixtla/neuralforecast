@@ -13,7 +13,6 @@ from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
-from utilsforecast.grouped_array import GroupedArray
 
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
