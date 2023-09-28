@@ -17,11 +17,24 @@ from ray.tune.search.basic_variant import BasicVariantGenerator
 
 # %% ../../nbs/common.base_auto.ipynb 6
 class MockTrial:
-    def __getattr__(self, name):
-        def handler(*args, **kwargs):
-            return None
+    def suggest_int(*args, **kwargs):
+        return "int"
 
-        return handler
+    def suggest_categorical(*args, **kwargs):
+        return "categorical"
+
+    def suggest_uniform(*args, **kwargs):
+        return "uniform"
+
+    def suggest_loguniform(*args, **kwargs):
+        return "loguniform"
+
+    def suggest_float(*args, **kwargs):
+        if "log" in kwargs:
+            return "quantized_log"
+        elif "step" in kwargs:
+            return "quantized_loguniform"
+        return "float"
 
 # %% ../../nbs/common.base_auto.ipynb 7
 class BaseAuto(pl.LightningModule):
@@ -63,6 +76,8 @@ class BaseAuto(pl.LightningModule):
         Track progress.
     alias : str, optional (default=None)
         Custom name of the model.
+    backend : str (default='ray')
+        Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
     """
 
     def __init__(
@@ -79,15 +94,28 @@ class BaseAuto(pl.LightningModule):
         refit_with_val=False,
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
-        if isinstance(config, dict):
+        if backend == "ray":
+            if not isinstance(config, dict):
+                raise ValueError(
+                    "You have to provide a dict as `config` when using `backend='ray'`"
+                )
             config_base = deepcopy(config)
-        else:
+        elif backend == "optuna":
+            if not callable(config):
+                raise ValueError(
+                    "You have to provide a function that takes a trial and returns a dict as `config` when using `backend='optuna'`"
+                )
             # extract constant values from the config fn for validations
             config_base = config(MockTrial())
+        else:
+            raise ValueError(
+                f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
+            )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:
@@ -137,6 +165,7 @@ class BaseAuto(pl.LightningModule):
         self.refit_with_val = refit_with_val
         self.verbose = verbose
         self.alias = alias
+        self.backend = backend
 
         # Base Class attributes
         self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
@@ -248,6 +277,15 @@ class BaseAuto(pl.LightningModule):
                         v = trial.suggest_uniform(k, v.lower, v.upper)
                     elif isinstance(sampler, tune.search.sample.LogUniform):
                         v = trial.suggest_loguniform(k, v.lower, v.upper)
+                    elif isinstance(sampler, tune.search.sample.Quantized):
+                        if isinstance(
+                            sampler.get_sampler(), tune.search.sample.Float._LogUniform
+                        ):
+                            v = trial.suggest_float(k, v.lower, v.upper, log=True)
+                        elif isinstance(
+                            sampler.get_sampler(), tune.search.sample.Float._Uniform
+                        ):
+                            v = trial.suggest_float(k, v.lower, v.upper, step=sampler.q)
                     else:
                         raise ValueError(f"Coudln't translate {type(v)} to optuna.")
                 out[k] = v
@@ -319,8 +357,7 @@ class BaseAuto(pl.LightningModule):
         # hyperparameter selection.
         search_alg = deepcopy(self.search_alg)
         val_size = val_size if val_size > 0 else self.h
-        if isinstance(self.config, dict):
-            # ray tune
+        if self.backend == "ray":
             results = self._tune_model(
                 cls_model=self.cls_model,
                 dataset=dataset,
@@ -335,7 +372,6 @@ class BaseAuto(pl.LightningModule):
             )
             best_config = results.get_best_result().config
         else:
-            # optuna
             results = self._optuna_tune_model(
                 cls_model=self.cls_model,
                 dataset=dataset,
