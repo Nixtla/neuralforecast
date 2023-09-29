@@ -33,6 +33,7 @@ from neuralforecast.models import (
     FEDformer,
     StemGNN,
     PatchTST,
+    TimesNet,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -148,6 +149,7 @@ MODEL_FILENAME_DICT = {
     "autopatchtst": PatchTST,
     "autofedformer": FEDformer,
     "autostemgnn": StemGNN,
+    "autotimesnet": TimesNet,
 }
 
 # %% ../nbs/core.ipynb 12

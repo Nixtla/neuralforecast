@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
            'AutoNHITS', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer',
-           'AutoPatchTST', 'AutoStemGNN', 'AutoHINT']
+           'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT']
 
 # %% ../nbs/models.ipynb 3
 from os import cpu_count
@@ -32,6 +32,7 @@ from .models.informer import Informer
 from .models.autoformer import Autoformer
 from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
+from .models.timesnet import TimesNet
 
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
@@ -67,6 +68,7 @@ class AutoRNN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        backend="ray",
     ):
         """Auto RNN
 
@@ -86,6 +88,8 @@ class AutoRNN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoRNN, self).__init__(
             cls_model=RNN,
@@ -99,9 +103,10 @@ class AutoRNN(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            backend=backend,
         )
 
-# %% ../nbs/models.ipynb 13
+# %% ../nbs/models.ipynb 14
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -130,6 +135,7 @@ class AutoLSTM(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -144,6 +150,8 @@ class AutoLSTM(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoLSTM, self).__init__(
             cls_model=LSTM,
@@ -157,6 +165,7 @@ class AutoLSTM(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 17
@@ -189,6 +198,7 @@ class AutoGRU(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -203,6 +213,8 @@ class AutoGRU(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoGRU, self).__init__(
             cls_model=GRU,
@@ -217,6 +229,7 @@ class AutoGRU(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 20
@@ -248,6 +261,7 @@ class AutoTCN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -262,6 +276,8 @@ class AutoTCN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoTCN, self).__init__(
             cls_model=TCN,
@@ -276,6 +292,7 @@ class AutoTCN(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 23
@@ -310,6 +327,7 @@ class AutoDeepAR(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -322,6 +340,8 @@ class AutoDeepAR(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoDeepAR, self).__init__(
             cls_model=DeepAR,
@@ -336,6 +356,7 @@ class AutoDeepAR(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 26
@@ -369,6 +390,7 @@ class AutoDilatedRNN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -383,6 +405,8 @@ class AutoDilatedRNN(BaseAuto):
                 config["input_size_multiplier"],
                 config["inference_input_size_multiplier"],
             )
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoDilatedRNN, self).__init__(
             cls_model=DilatedRNN,
@@ -397,6 +421,7 @@ class AutoDilatedRNN(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 30
@@ -428,6 +453,7 @@ class AutoMLP(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -440,6 +466,8 @@ class AutoMLP(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoMLP, self).__init__(
             cls_model=MLP,
@@ -454,6 +482,7 @@ class AutoMLP(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 33
@@ -483,6 +512,7 @@ class AutoNBEATS(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -495,6 +525,8 @@ class AutoNBEATS(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNBEATS, self).__init__(
             cls_model=NBEATS,
@@ -509,6 +541,7 @@ class AutoNBEATS(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 36
@@ -538,6 +571,7 @@ class AutoNBEATSx(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -550,6 +584,8 @@ class AutoNBEATSx(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNBEATSx, self).__init__(
             cls_model=NBEATSx,
@@ -564,6 +600,7 @@ class AutoNBEATSx(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 39
@@ -610,6 +647,7 @@ class AutoNHITS(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -622,6 +660,8 @@ class AutoNHITS(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoNHITS, self).__init__(
             cls_model=NHITS,
@@ -636,6 +676,7 @@ class AutoNHITS(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 43
@@ -667,6 +708,7 @@ class AutoTFT(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -679,6 +721,8 @@ class AutoTFT(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoTFT, self).__init__(
             cls_model=TFT,
@@ -693,6 +737,7 @@ class AutoTFT(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 46
@@ -724,6 +769,7 @@ class AutoVanillaTransformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -736,6 +782,8 @@ class AutoVanillaTransformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoVanillaTransformer, self).__init__(
             cls_model=VanillaTransformer,
@@ -750,6 +798,7 @@ class AutoVanillaTransformer(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 49
@@ -781,6 +830,7 @@ class AutoInformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -793,6 +843,8 @@ class AutoInformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoInformer, self).__init__(
             cls_model=Informer,
@@ -807,6 +859,7 @@ class AutoInformer(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 52
@@ -838,6 +891,7 @@ class AutoAutoformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -850,6 +904,8 @@ class AutoAutoformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoAutoformer, self).__init__(
             cls_model=Autoformer,
@@ -864,6 +920,7 @@ class AutoAutoformer(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 55
@@ -894,6 +951,7 @@ class AutoFEDformer(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -906,6 +964,8 @@ class AutoFEDformer(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoFEDformer, self).__init__(
             cls_model=FEDformer,
@@ -920,6 +980,7 @@ class AutoFEDformer(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
 # %% ../nbs/models.ipynb 58
@@ -953,6 +1014,7 @@ class AutoPatchTST(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -965,6 +1027,8 @@ class AutoPatchTST(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         super(AutoPatchTST, self).__init__(
             cls_model=PatchTST,
@@ -979,9 +1043,71 @@ class AutoPatchTST(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
-# %% ../nbs/models.ipynb 63
+# %% ../nbs/models.ipynb 62
+class AutoTimesNet(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([32, 64, 128]),
+        "conv_hidden_size": tune.choice([32, 64, 128]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice(["robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128]),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
+
+        super(AutoTimesNet, self).__init__(
+            cls_model=TimesNet,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+        )
+
+# %% ../nbs/models.ipynb 66
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1011,6 +1137,7 @@ class AutoStemGNN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         alias=None,
+        backend="ray",
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -1023,6 +1150,8 @@ class AutoStemGNN(BaseAuto):
             # See `BaseWindows` and `BaseRNN`'s create_windows
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
 
         # Always use n_series from parameters
         config["n_series"] = n_series
@@ -1040,9 +1169,10 @@ class AutoStemGNN(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
         )
 
-# %% ../nbs/models.ipynb 67
+# %% ../nbs/models.ipynb 70
 class AutoHINT(BaseAuto):
     def __init__(
         self,

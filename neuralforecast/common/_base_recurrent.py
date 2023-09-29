@@ -243,9 +243,7 @@ class BaseRecurrent(pl.LightningModule):
             )
             min_time_stamp = int(av_condition.min())
 
-            available_ts = (
-                temporal.shape[-1] - min_time_stamp + 1
-            )  # +1, inclusive counting
+            available_ts = temporal.shape[-1] - min_time_stamp
             if available_ts < 1 + self.h:
                 raise Exception(
                     "Time series too short for given input and output size. \n"
