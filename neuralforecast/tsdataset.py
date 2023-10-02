@@ -4,13 +4,20 @@
 __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 
 # %% ../nbs/tsdataset.ipynb 4
+import warnings
 from collections.abc import Mapping
+from typing import Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from utilsforecast.target_transforms import BaseTargetTransform
 
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
+from utilsforecast.grouped_array import GroupedArray
+from utilsforecast.processing import DataFrameProcessor
 
 # %% ../nbs/tsdataset.ipynb 5
 class TimeSeriesLoader(DataLoader):
@@ -79,8 +86,37 @@ class TimeSeriesDataset(Dataset):
         static=None,
         static_cols=None,
         sorted=False,
+        scaler_type=None,
     ):
         super().__init__()
+
+        if scaler_type is None:
+            self.scalers_: Optional[Dict[str, "BaseTargetTransform"]] = None
+        else:
+            # delay the import because these require numba, which isn't a requirement
+            from utilsforecast.target_transforms import (
+                LocalBoxCox,
+                LocalMinMaxScaler,
+                LocalRobustScaler,
+                LocalStandardScaler,
+            )
+
+            type2scaler = {
+                "standard": LocalStandardScaler,
+                "robust": lambda: LocalRobustScaler(scale="mad"),
+                "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
+                "minmax": LocalMinMaxScaler,
+                "boxcox": LocalBoxCox,
+            }
+            if scaler_type not in type2scaler:
+                raise ValueError(f"scaler_type must be one of {type2scaler.keys()}")
+            self.scalers_ = {}
+            for i, col in enumerate(temporal_cols):
+                if col == "available_mask":
+                    continue
+                ga = GroupedArray(temporal[:, i], indptr)
+                self.scalers_[col] = type2scaler[scaler_type]()
+                temporal[:, i] = self.scalers_[col].fit_transform(ga)
 
         self.temporal = torch.tensor(temporal, dtype=torch.float)
         self.temporal_cols = pd.Index(list(temporal_cols))
@@ -127,9 +163,7 @@ class TimeSeriesDataset(Dataset):
         return self.n_groups
 
     def __repr__(self):
-        return (
-            f"TimeSeriesDataset(n_data={self.data.size:,}, n_groups={self.n_groups:,})"
-        )
+        return f"TimeSeriesDataset(n_data={self.temporal.shape[0]:,}, n_groups={self.n_groups:,})"
 
     def __eq__(self, other):
         if not hasattr(other, "data") or not hasattr(other, "indptr"):
@@ -137,6 +171,28 @@ class TimeSeriesDataset(Dataset):
         return np.allclose(self.data, other.data) and np.array_equal(
             self.indptr, other.indptr
         )
+
+    def _invert_target_transform(
+        self, data: np.ndarray, indptr: np.ndarray
+    ) -> np.ndarray:
+        if self.scalers_ is None:
+            return data
+        for i in range(data.shape[1]):
+            ga = GroupedArray(data[:, i], indptr)
+            data[:, i] = self.scalers_["y"].inverse_transform(ga)
+        return data
+
+    def _transform_temporal(self) -> None:
+        if self.scalers_ is None:
+            return
+        for i, col in enumerate(self.temporal_cols):
+            if col == "available_mask":
+                continue
+            scaler = self.scalers_.get(col, None)
+            if scaler is None:
+                continue
+            ga = GroupedArray(self.temporal[:, i].numpy(), self.indptr)
+            self.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
 
     @staticmethod
     def update_dataset(dataset, future_df):
@@ -149,7 +205,7 @@ class TimeSeriesDataset(Dataset):
         temporal_cols = dataset.temporal_cols.copy()
         for col in temporal_cols:
             if col not in future_df.columns:
-                future_df[col] = None
+                future_df[col] = np.nan
             if col == "available_mask":
                 future_df[col] = 1
 
@@ -158,6 +214,8 @@ class TimeSeriesDataset(Dataset):
 
         # Process future_df
         futr_dataset, *_ = dataset.from_df(df=future_df, sort_df=dataset.sorted)
+        futr_dataset.scalers_ = dataset.scalers_
+        futr_dataset._transform_temporal()
 
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = dataset.temporal.shape
@@ -245,35 +303,38 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
-    def from_df(df, static_df=None, sort_df=False):
+    def from_df(df, static_df=None, sort_df=False, scaler_type=None):
         # TODO: protect on equality of static_df + df indexes
-
+        if df.index.name == "unique_id":
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                DeprecationWarning,
+            )
+            df = df.reset_index("unique_id")
         # Define indexes if not given
-        if df.index.name != "unique_id":
-            df = df.set_index("unique_id")
-            if static_df is not None:
+        if static_df is not None:
+            if static_df.index.name == "unique_id":
+                warnings.warn(
+                    "Passing the id as index is deprecated, please provide it as a column instead.",
+                    DeprecationWarning,
+                )
+            else:
                 static_df = static_df.set_index("unique_id")
-
-        df = df.set_index("ds", append=True)
-
-        # Sort data by index
-        if not df.index.is_monotonic_increasing and sort_df:
-            df = df.sort_index()
-
-            if static_df is not None:
+            if sort_df:
                 static_df = static_df.sort_index()
 
-        # Create auxiliary temporal indices 'indptr'
-        temporal = df.values.astype(np.float32)
-        temporal_cols = df.columns
-        indices_sizes = df.index.get_level_values("unique_id").value_counts(sort=False)
-        indices = indices_sizes.index
-        sizes = indices_sizes.values
+        proc = DataFrameProcessor("unique_id", "ds", "y")
+        ids, times, data, indptr, sort_idxs = proc.process(df)
+        # processor sets y as the first column
+        temporal_cols = pd.Index(
+            ["y"] + df.columns.drop(["unique_id", "ds", "y"]).tolist()
+        )
+        temporal = data.astype(np.float32, copy=False)
+        indices = pd.Index(ids)
+        dates = pd.Index(times, name="ds")
+        sizes = np.diff(indptr)
         max_size = max(sizes)
         min_size = min(sizes)
-        cum_sizes = sizes.cumsum()
-        dates = df.index.get_level_values("ds")[cum_sizes - 1]
-        indptr = np.append(0, cum_sizes).astype(np.int32)
 
         # Add Available mask efficiently (without adding column to df)
         if "available_mask" not in df.columns:
@@ -298,10 +359,14 @@ class TimeSeriesDataset(Dataset):
             max_size=max_size,
             min_size=min_size,
             sorted=sort_df,
+            scaler_type=scaler_type,
         )
-        return dataset, indices, dates, df.index
+        ds = pd.MultiIndex.from_frame(df[["unique_id", "ds"]])
+        if sort_idxs is not None:
+            ds = ds[sort_idxs]
+        return dataset, indices, dates, ds
 
-# %% ../nbs/tsdataset.ipynb 10
+# %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
         self,
