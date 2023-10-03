@@ -347,7 +347,9 @@ class NeuralForecast:
         # Update and define new forecasting dataset
         if futr_df is not None:
             needed_futr_exog = set(
-                chain.from_iterable(m.futr_exog_list for m in self.models)
+                chain.from_iterable(
+                    getattr(m, "futr_exog_list", []) for m in self.models
+                )
             )
             missing = needed_futr_exog - set(futr_df.columns)
             if missing:
