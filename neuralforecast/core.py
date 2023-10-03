@@ -8,6 +8,7 @@ import os
 import pickle
 import warnings
 from copy import deepcopy
+from itertools import chain
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -345,6 +346,16 @@ class NeuralForecast:
 
         # Update and define new forecasting dataset
         if futr_df is not None:
+            needed_futr_exog = set(
+                chain.from_iterable(m.futr_exog_list for m in self.models)
+            )
+            missing = needed_futr_exog - set(futr_df.columns)
+            if missing:
+                raise ValueError(
+                    f"The following features are missing from `futr_df`: {missing}"
+                )
+            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
             futr_orig_rows = futr_df.shape[0]
             futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
             base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
