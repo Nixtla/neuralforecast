@@ -356,8 +356,6 @@ class NeuralForecast:
                 raise ValueError(
                     f"The following features are missing from `futr_df`: {missing}"
                 )
-            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
-                raise ValueError("Found null values in `futr_df`")
             futr_orig_rows = futr_df.shape[0]
             futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
             base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
@@ -369,6 +367,8 @@ class NeuralForecast:
                     f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
                     + base_err_msg
                 )
+            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
             dataset = TimeSeriesDataset.update_dataset(
                 dataset=dataset, future_df=futr_df
             )
