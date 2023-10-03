@@ -316,6 +316,22 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
+        needed_futr_exog = set(
+            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
+        )
+        if needed_futr_exog:
+            if futr_df is None:
+                raise ValueError(
+                    f"Models require the following future exogenous features: {needed_futr_exog}. "
+                    "Please provide them through the `futr_df` argument."
+                )
+            else:
+                missing = needed_futr_exog - set(futr_df.columns)
+                if missing:
+                    raise ValueError(
+                        f"The following features are missing from `futr_df`: {missing}"
+                    )
+
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, _ = self._prepare_fit(
@@ -346,16 +362,6 @@ class NeuralForecast:
 
         # Update and define new forecasting dataset
         if futr_df is not None:
-            needed_futr_exog = set(
-                chain.from_iterable(
-                    getattr(m, "futr_exog_list", []) for m in self.models
-                )
-            )
-            missing = needed_futr_exog - set(futr_df.columns)
-            if missing:
-                raise ValueError(
-                    f"The following features are missing from `futr_df`: {missing}"
-                )
             futr_orig_rows = futr_df.shape[0]
             futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
             base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
