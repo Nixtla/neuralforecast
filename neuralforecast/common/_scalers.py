@@ -425,12 +425,16 @@ class TemporalNorm(nn.Module):
         self.x_shift = x_shift
         self.x_scale = x_scale
 
-        z = self.scaler(x, x_shift, x_scale)
-
+        # Original Revin performs this operation
+        # z = self.revin_weight * z
+        # z = z + self.revin_bias
+        # However this is only valid for point forecast not for
+        # distribution's scale decouple technique.
         if self.scaler_type == "revin":
-            z = self.revin_weight * z
-            z = z + self.revin_bias
+            self.x_shift = self.x_shift + self.revin_bias
+            self.x_scale = self.x_scale * torch.relu(self.revin_weight + self.eps)
 
+        z = self.scaler(x, x_shift, x_scale)
         return z
 
     # @torch.no_grad()
@@ -443,18 +447,17 @@ class TemporalNorm(nn.Module):
         **Returns:**<br>
         `x`: torch.Tensor original data.
         """
-        if self.scaler_type == "revin":
-            z = z - self.revin_bias
-            z = z / (self.revin_weight + self.eps)
 
         if x_shift is None:
             x_shift = self.x_shift
         if x_scale is None:
             x_scale = self.x_scale
 
-        if self.scaler_type == "revin":
-            x_shift = x_shift - self.revin_bias
-            x_scale = x_scale / self.revin_weight
+        # Original Revin performs this operation
+        # z = z - self.revin_bias
+        # z = (z / (self.revin_weight + self.eps))
+        # However this is only valid for point forecast not for
+        # distribution's scale decouple technique.
 
         x = self.inverse_scaler(z, x_shift, x_scale)
         return x
