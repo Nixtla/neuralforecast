@@ -8,6 +8,7 @@ import os
 import pickle
 import warnings
 from copy import deepcopy
+from itertools import chain
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -315,6 +316,22 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
+        needed_futr_exog = set(
+            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
+        )
+        if needed_futr_exog:
+            if futr_df is None:
+                raise ValueError(
+                    f"Models require the following future exogenous features: {needed_futr_exog}. "
+                    "Please provide them through the `futr_df` argument."
+                )
+            else:
+                missing = needed_futr_exog - set(futr_df.columns)
+                if missing:
+                    raise ValueError(
+                        f"The following features are missing from `futr_df`: {missing}"
+                    )
+
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, _ = self._prepare_fit(
@@ -356,6 +373,8 @@ class NeuralForecast:
                     f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
                     + base_err_msg
                 )
+            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
             dataset = TimeSeriesDataset.update_dataset(
                 dataset=dataset, future_df=futr_df
             )
