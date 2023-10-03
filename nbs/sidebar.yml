@@ -11,6 +11,7 @@ website:
         - examples/Getting_Started.ipynb
         - examples/Data_Format.ipynb
         - examples/Exogenous_Variables.ipynb
+        - examples/Time_Series_Scaling.ipynb
         - examples/Automatic_Hyperparameter_Tuning.ipynb
         - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
