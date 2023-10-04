@@ -1,14 +1,14 @@
 version: 2.1
 jobs:
   nbdev-tests:
-    resource_class: large
+    resource_class: xlarge
     docker:
       - image: mambaorg/micromamba:1.5-focal
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.8 -f environment.yml
+          command: micromamba install -n base -c conda-forge -y python=3.9 -f environment.yml
       - run:
           name: Run nbdev tests
           command: |
