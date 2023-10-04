@@ -102,15 +102,17 @@ class BaseRecurrent(pl.LightningModule):
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
 
-        # Scaler
-        self.scaler = TemporalNorm(
-            scaler_type=scaler_type, dim=-1
-        )  # Time dimension is -1.
-
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
         self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
         self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+
+        # Scaler
+        self.scaler = TemporalNorm(
+            scaler_type=scaler_type,
+            dim=-1,  # Time dimension is -1.
+            num_features=1 + len(self.hist_exog_list) + len(self.futr_exog_list),
+        )
 
         # Fit arguments
         self.val_size = 0
@@ -176,12 +178,18 @@ class BaseRecurrent(pl.LightningModule):
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
+    def _get_temporal_data_cols(self, temporal_cols):
+        temporal_data_cols = ["y"] + list(
+            set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
+        )
+        return temporal_data_cols
+
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
         # Separate data and mask
-        temporal_data_cols = temporal_cols.drop("available_mask").tolist()
+        temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
         temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :]
         temporal_mask = temporal[:, temporal_cols.get_loc("available_mask"), :].clone()
 
