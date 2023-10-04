@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.9 -f environment.yml
+          command: micromamba install -n base -c conda-forge -y python=3.8 -f environment.yml
       - run:
           name: Run nbdev tests
           command: |
