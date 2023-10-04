@@ -1,7 +1,7 @@
 version: 2.1
 jobs:
   nbdev-tests:
-    resource_class: xlarge
+    resource_class: large
     docker:
       - image: mambaorg/micromamba:1.5-focal
     steps:
