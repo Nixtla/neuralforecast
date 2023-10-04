@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - pytorch
 dependencies:
+  - hyperopt
   - jupyterlab
   - matplotlib
   - numba
