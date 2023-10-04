@@ -392,6 +392,11 @@ class BaseAuto(pl.LightningModule):
         )
         self.results = results
 
+        # Added attributes for compatibility with NeuralForecast core
+        self.futr_exog_list = self.model.futr_exog_list
+        self.hist_exog_list = self.model.hist_exog_list
+        self.stat_exog_list = self.model.stat_exog_list
+
     def predict(self, dataset, step_size=1, **data_kwargs):
         """BaseAuto.predict
 

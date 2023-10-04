@@ -206,6 +206,11 @@ class HINT:
             random_seed=random_seed,
         )
 
+        # Added attributes for compatibility with NeuralForecast core
+        self.futr_exog_list = self.model.futr_exog_list
+        self.hist_exog_list = self.model.hist_exog_list
+        self.stat_exog_list = self.model.stat_exog_list
+
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """HINT.predict
 
