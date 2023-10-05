@@ -6,12 +6,13 @@ title: "NeuralForecast's Contents"
 ## Automatic Forecasting Models
 Automatic forecasting tools optimize the hyperparameters of a given model class and select the best-performing model for a validation set. The optimization methods include grid search, random search, and Bayesian optimization.
 
-| MLP-Based                                 |RNN-Based                             | Transformers                                 | Multivariate                               |
-|:------------------------------------------|:-------------------------------------|:---------------------------------------------|:-------------------------------------------|
-|[`AutoMLP`](../models.html#automlp)        |[`AutoRNN`](../models.html#autornn)   |[`AutoTFT`](../models.html#autotft)           |[`AutoStemGNN`](../models.html#autostemgnn) |
-|[`AutoNBEATS`](../models.html#autonbeats)  |[`AutoLSTM`](../models.html#autolstm) |[`AutoInformer`](../models.html#autoinformer) |[`AutoHINT`](../models.html#autohint)       |
-|[`AutoNBEATSx`](../models.html#autonbeatsx)|[`AutoGRU`](../models.html#autogru)   |[`Autoformer`](../models.html#autoautoformer) |                                            |
-|[`AutoNHITS`](../models.html#autonhits)    |[`AutoTCN`](../models.html#autotcn)   |[`AutoPatchTST`](../models.html#autopatchtst) |                                            |
+| MLP-Based                                 |RNN-Based                                | Transformers                                 | CNN-Based                                   | Multivariate                               |
+|:------------------------------------------|:-------------------------------------   |:---------------------------------------------|:--------------------------------------------| :-------------------------------------------|
+|[`AutoMLP`](../models.html#automlp)        |[`AutoRNN`](../models.html#autornn)      |[`AutoTFT`](../models.html#autotft)           |[`AutoTimesNet`](../models.html#autotimesnet)| [`AutoStemGNN`](../models.html#autostemgnn) |
+|[`AutoNBEATS`](../models.html#autonbeats)  |[`AutoLSTM`](../models.html#autolstm)    |[`AutoInformer`](../models.html#autoinformer) |                                             | [`AutoHINT`](../models.html#autohint)       |
+|[`AutoNBEATSx`](../models.html#autonbeatsx)|[`AutoGRU`](../models.html#autogru)      |[`Autoformer`](../models.html#autoautoformer) |                                             |                                             |
+|[`AutoNHITS`](../models.html#autonhits)    |[`AutoTCN`](../models.html#autotcn)      |[`AutoPatchTST`](../models.html#autopatchtst) |                                             |                                             |
+|                                           |[`AutoDeepAR`](../models.html#autodeepar)|                                              |                                             |                                             |
 : {tbl-colwidths="[25,25]"}
 
 ## Optimization Objectives
@@ -69,3 +70,10 @@ Transformer architectures are an alternative to recurrent networks. These networ
 |[`PatchTST`](../models.patchtst.html)                      |✅                |✅                      |✅                      |✅                            |
 |[`VanillaTransformer`](../models.vanillatransformer.html)  |✅                |✅                      |✅                      |✅                            |
 : {tbl-colwidths="[25,25]"}
+
+## CNN-Based Model Family
+Convolutional Neural Networks (CNNs), originally celebrated for their accomplishments in image processing and computer vision, have also revealed substantial prowess in time series forecasting. Navigating through temporal data, CNNs utilize their convolutional layers to automatically and adaptively learn temporal patterns from the input data, offering an approach to uncovering subtle, underlying patterns embedded within a series of values.
+
+|Model                                                      | Point Forecast   | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values  |
+|:----------------------------------------------------------|:----------------:|:----------------------:|:----------------------:|:----------------------------:|
+|[`TimesNet`](../models.timesnet.html)                      |✅                |✅                      |✅                      |✅                            |
