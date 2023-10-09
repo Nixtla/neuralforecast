@@ -62,7 +62,10 @@ website:
             - models.informer.ipynb
             - models.autoformer.ipynb
             - models.patchtst.ipynb
-          - section: D. Multivariate
+          - section: D. CNN-Based
+            contents:
+            - models.timesnet.ipynb
+          - section: E. Multivariate
             contents:
             - models.hint.ipynb
             - models.stemgnn.ipynb
