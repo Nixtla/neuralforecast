@@ -432,7 +432,7 @@ class TemporalNorm(nn.Module):
         # distribution's scale decouple technique.
         if self.scaler_type == "revin":
             self.x_shift = self.x_shift + self.revin_bias
-            self.x_scale = self.x_scale * torch.relu(self.revin_weight + self.eps)
+            self.x_scale = self.x_scale * (torch.relu(self.revin_weight) + self.eps)
 
         z = self.scaler(x, x_shift, x_scale)
         return z
