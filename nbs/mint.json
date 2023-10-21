@@ -17,11 +17,11 @@
   },
   "topbarCtaButton": {
     "type": "github",
-    "url": "https://github.com/Nixtla/nixtla"
+    "url": "https://github.com/Nixtla/neuralforecast"
   },
   "topAnchor": {
-    "name": "StatsForecast",
-    "icon": "bolt"
+    "name": "NeuralForecast",
+    "icon": "brain-circuit"
   },
   "navigation": [
     {
@@ -63,14 +63,14 @@
     },
     {
       "group": "",
-      "pages": ["examples/models_intro.html"]
+      "pages": ["examples/models_intro"]
     },
     {
       "group": "API Reference",
       "pages": [
         "core.html",
         "models.html",
-        "models_intro",
+        "models.html",
         {
           "group": "Models' Documentation",
           "pages": [
