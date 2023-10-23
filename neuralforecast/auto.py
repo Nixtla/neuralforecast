@@ -644,6 +644,7 @@ class AutoNHITS(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -673,6 +674,7 @@ class AutoNHITS(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 43

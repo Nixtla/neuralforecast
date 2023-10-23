@@ -78,6 +78,10 @@ class BaseAuto(pl.LightningModule):
         Custom name of the model.
     backend : str (default='ray')
         Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
+    callbacks : list of callable, optional (default=None)
+        List of functions to call during the optimization process.
+        ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
+        optuna reference: https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/007_optuna_callback.html
     """
 
     def __init__(
@@ -95,6 +99,7 @@ class BaseAuto(pl.LightningModule):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
@@ -166,6 +171,7 @@ class BaseAuto(pl.LightningModule):
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
+        self.callbacks = [] if callbacks is None else list(callbacks)
 
         # Base Class attributes
         self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
@@ -187,7 +193,7 @@ class BaseAuto(pl.LightningModule):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
-        metrics = {"loss": "ptl/val_loss"}
+        metrics = {"loss": "ptl/val_loss", "train_loss": "train_loss"}
         callbacks = [
             TQDMProgressBar(),
             TuneReportCallback(metrics, on="validation_end"),
@@ -241,13 +247,7 @@ class BaseAuto(pl.LightningModule):
 
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(
-                verbose=verbose,
-                # checkpoint_config=air.CheckpointConfig(
-                # num_to_keep=0,
-                # keep_checkpoints_num=None
-                # )
-            ),
+            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
@@ -316,7 +316,15 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
             )
             trial.set_user_attr("ALL_PARAMS", cfg)
-            return fitted_model.trainer.callback_metrics["valid_loss"].item()
+            metrics = fitted_model.trainer.callback_metrics
+            trial.set_user_attr(
+                "METRICS",
+                {
+                    "loss": metrics["ptl/val_loss"],
+                    "train_loss": metrics["train_loss"],
+                },
+            )
+            return trial.user_attrs["METRICS"]["loss"]
 
         if isinstance(search_alg, optuna.samplers.BaseSampler):
             sampler = search_alg
@@ -328,6 +336,7 @@ class BaseAuto(pl.LightningModule):
             objective,
             n_trials=num_samples,
             show_progress_bar=verbose,
+            callbacks=self.callbacks,
         )
         return study
 
