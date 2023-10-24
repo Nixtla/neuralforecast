@@ -1,0 +1,148 @@
+---
+description: Modules of the NeuralForecast library
+output-file: neuralforecast_map.html
+title: NeuralForecast map
+
+---
+
+The `neuralforecast` library provides a comprehensive set of
+state-of-the-art deep learning models designed to power-up time series
+forecasting pipelines.
+
+The library is constructed using a modular approach, where different
+responsibilities are isolated within specific modules. These modules
+include the user interface functions (`core`), data processing and
+loading (`tsdataset`), scalers, losses, and base classes for models.
+
+This tutorial aims to explain the library’s structure and to describe
+how the different modules interact with each other.
+
+## I. Map
+
+The following diagram presents the modules of the `neuralforecast`
+library and their relations.
+
+![Neuralforecast map](../imgs_indx/nf_map.png)
+
+## II. Modules
+
+### 1. Core (`core.py`)
+
+The `core` module acts as the primary interaction point for users of the
+`neuralforecast` library. It houses the
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+class, which incorporates a range of key user interface functions
+designed to simplify the process of training and forecasting models.
+Functions include `fit`, `predict`, `cross_validation`, and
+`predict_insample`, each one constructed to be intuitive and
+user-friendly. The design of the
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+class is centered around enabling users to streamline their forecasting
+pipelines and to comfortably train and evaluate models.
+
+### 2. Dataset and Loader (`tsdataset.py`)
+
+The
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset)
+class, located within the `tsdataset` module, is responsible for the
+storage and preprocessing of the input time series dataset. Once the
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset)
+class has prepared the data, it’s then consumed by the
+[`TimeSeriesLoader`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesloader)
+class, which samples batches (or subsets) of the time series during the
+training and inference stages.
+
+### 3. Base Model (`common`)
+
+The `common` module contains three `BaseModel` classes, which serve as
+the foundation for all the model structures provided in the library.
+These base classes allow for a level of abstraction and code-reusability
+in the design of the models. We currently support three type of models:
+
+-   `BaseWindows`: designed for window-based models like
+    [`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats)
+    and `Transformers`.
+-   `BaseRecurrent`: designed for recurrent models like
+    [`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn)
+    and
+    [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm).
+-   `BaseMultivariate`: caters to multivariate models like
+    [`StemGNN`](https://Nixtla.github.io/neuralforecast/models.stemgnn.html#stemgnn).
+
+### 4. Model (`models`)
+
+The `models` module encompasses all the specific model classes available
+for use in the library. These include a variety of both simple and
+complex models such as
+[`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn),
+[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
+[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
+[`StemGNN`](https://Nixtla.github.io/neuralforecast/models.stemgnn.html#stemgnn),
+and
+[`TFT`](https://Nixtla.github.io/neuralforecast/models.tft.html#tft).
+Each model in this module extends from one of the `BaseModel` classes in
+the `common` module.
+
+### 5. Losses (`losses`)
+
+The `losses` module includes both `numpy` and `pytorch` losses, used for
+evalaution and training respectively. The module contains a wide range
+of losses, including
+[`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae),
+[`MSE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mse),
+[`MAPE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mape),
+[`HuberLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#huberloss),
+among many others.
+
+### 6. Scalers (`_scalers.py`)
+
+The `_scalers.py` module houses the `TemporalNorm` class. This class is
+responsible for the scaling (normalization) and de-scaling (reversing
+the normalization) of time series data. This step is crucial because it
+ensures all data fed to the model have a similar range, leading to more
+stable and efficient training processes.
+
+## III. Flow
+
+The `user` first instantiates a model and the
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+core class. When they call the `fit` method, the following flow is
+executed:
+
+1.  The `fit` method instantiates a
+    [`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset)
+    object to store and pre-process the input time series dataset, and
+    the
+    [`TimeSeriesLoader`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesloader)
+    object to sample batches.
+2.  The `fit` method calls the model’s `fit` method (in the `BaseModel`
+    class).
+3.  The model’s `fit` method instantiates a Pytorch-Lightning `Trainer`
+    object, in charge of training the model.
+4.  The `Trainer` method samples a batch from the
+    [`TimeSeriesLoader`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesloader)
+    object, and calls the model’s `training_step` method (in the
+    `BaseModel` class).
+5.  The model’s `training_step`:
+    -   Samples windows from the original batch.
+    -   Normalizes the windows with the `scaler` module.
+    -   Calls the model’s `forward` method.
+    -   Computes the loss using the `losses` module.
+    -   Returns the loss.
+6.  The `Trainer` object repeats step 4 and 5 until `max_steps`
+    iterations are completed.
+7.  The model is fitted, and can be used for forecasting future values
+    (with the `predict` method) or recover insample predictions (using
+    the `predict_insample` method).
+
+## IV. Next Steps: add your own model
+
+Congratulations! You now know the internal details of the
+`neuralforecast` library.
+
+With this knowledge you can easily add new models to the library, by
+just creating a `model` class which only requires the `init` and
+`forward` methods.
+
+Check our detailed guide on how to add new models!
+

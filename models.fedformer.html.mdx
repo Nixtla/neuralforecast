@@ -1,0 +1,439 @@
+---
+output-file: models.fedformer.html
+title: FEDformer
+
+---
+
+The FEDformer model tackles the challenge of finding reliable
+dependencies on intricate temporal patterns of long-horizon forecasting.
+
+The architecture has the following distinctive features: - In-built
+progressive decomposition in trend and seasonal components based on a
+moving average filter. - Frequency Enhanced Block and Frequency Enhanced
+Attention to perform attention in the sparse representation on basis
+such as Fourier transform. - Classic encoder-decoder proposed by Vaswani
+et al. (2017) with a multi-head attention mechanism.
+
+The FEDformer model utilizes a three-component approach to define its
+embedding: - It employs encoded autoregressive features obtained from a
+convolution network. - Absolute positional embeddings obtained from
+calendar features are utilized.
+
+**References**<br/> - [Zhou, Tian, Ziqing Ma, Qingsong Wen, Xue Wang,
+Liang Sun, and Rong Jin.. “FEDformer: Frequency enhanced decomposed
+transformer for long-term series
+forecasting”](https://proceedings.mlr.press/v162/zhou22g.html)<br/>
+
+![Figure 1. FEDformer Architecture.](imgs_models/fedformer.png)
+
+## 1. Auxiliary functions
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L71"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### AutoCorrelationLayer
+
+> ``` text
+>  AutoCorrelationLayer (correlation, hidden_size, n_head, d_keys=None,
+>                        d_values=None)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L56"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### LayerNorm
+
+> ``` text
+>  LayerNorm (channels)
+> ```
+
+Special designed layernorm for the seasonal part
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L41"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### SeriesDecomp
+
+> ``` text
+>  SeriesDecomp (kernel_size)
+> ```
+
+Series decomposition block
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L21"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MovingAvg
+
+> ``` text
+>  MovingAvg (kernel_size, stride)
+> ```
+
+Moving average block to highlight the trend of time series
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L244"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Decoder
+
+> ``` text
+>  Decoder (layers, norm_layer=None, projection=None)
+> ```
+
+FEDformer decoder
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L178"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### DecoderLayer
+
+> ``` text
+>  DecoderLayer (self_attention, cross_attention, hidden_size, c_out,
+>                conv_hidden_size=None, MovingAvg=25, dropout=0.1,
+>                activation='relu')
+> ```
+
+FEDformer decoder layer with the progressive decomposition architecture
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L145"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Encoder
+
+> ``` text
+>  Encoder (attn_layers, conv_layers=None, norm_layer=None)
+> ```
+
+FEDformer encoder
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L100"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### EncoderLayer
+
+> ``` text
+>  EncoderLayer (attention, hidden_size, conv_hidden_size=None,
+>                MovingAvg=25, dropout=0.1, activation='relu')
+> ```
+
+FEDformer encoder layer with the progressive decomposition architecture
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L333"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FourierCrossAttention
+
+> ``` text
+>  FourierCrossAttention (in_channels, out_channels, seq_len_q, seq_len_kv,
+>                         modes=64, mode_select_method='random',
+>                         activation='tanh', policy=0)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L285"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FourierBlock
+
+> ``` text
+>  FourierBlock (in_channels, out_channels, seq_len, modes=0,
+>                mode_select_method='random')
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L268"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### get_frequency_modes
+
+> ``` text
+>  get_frequency_modes (seq_len, modes=64, mode_select_method='random')
+> ```
+
+Get modes on frequency domain: ‘random’ for sampling randomly ‘else’ for
+sampling the lowest modes;
+
+## 2. Model
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L422"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FEDformer
+
+> ``` text
+>  FEDformer (h:int, input_size:int, stat_exog_list=None,
+>             hist_exog_list=None, futr_exog_list=None,
+>             decoder_input_size_multiplier:float=0.5,
+>             version:str='Fourier', modes:int=64, mode_select:str='random',
+>             hidden_size:int=128, dropout:float=0.05, n_head:int=8,
+>             conv_hidden_size:int=32, activation:str='gelu',
+>             encoder_layers:int=2, decoder_layers:int=1,
+>             MovingAvg_window:int=25, loss=MAE(), valid_loss=None,
+>             max_steps:int=5000, learning_rate:float=0.0001,
+>             num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>             start_padding_enabled=False, val_check_steps:int=100,
+>             batch_size:int=32, valid_batch_size:Optional[int]=None,
+>             windows_batch_size=1024, inference_windows_batch_size=1024,
+>             step_size:int=1, scaler_type:str='identity',
+>             random_seed:int=1, num_workers_loader:int=0,
+>             drop_last_loader:bool=False, **trainer_kwargs)
+> ```
+
+FEDformer
+
+The FEDformer model tackles the challenge of finding reliable
+dependencies on intricate temporal patterns of long-horizon forecasting.
+
+The architecture has the following distinctive features: - In-built
+progressive decomposition in trend and seasonal components based on a
+moving average filter. - Frequency Enhanced Block and Frequency Enhanced
+Attention to perform attention in the sparse representation on basis
+such as Fourier transform. - Classic encoder-decoder proposed by Vaswani
+et al. (2017) with a multi-head attention mechanism.
+
+The FEDformer model utilizes a three-component approach to define its
+embedding: - It employs encoded autoregressive features obtained from a
+convolution network. - Absolute positional embeddings obtained from
+calendar features are utilized.
+
+*Parameters:*<br/> `h`: int, forecast horizon.<br/> `input_size`: int,
+maximum sequence length for truncated train backpropagation. Default -1
+uses all history.<br/> `futr_exog_list`: str list, future exogenous
+columns.<br/> `hist_exog_list`: str list, historic exogenous columns.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`decoder_input_size_multiplier`: float = 0.5, .<br/> `version`: str =
+‘Fourier’, version of the model.<br/> `modes`: int = 64, number of modes
+for the Fourier block.<br/> `mode_select`: str = ‘random’, method to
+select the modes for the Fourier block.<br/> `hidden_size`: int=128,
+units of embeddings and encoders.<br/> `dropout`: float (0, 1), dropout
+throughout Autoformer architecture.<br/> `n_head`: int=8, controls number
+of multi-head’s attention.<br/> `conv_hidden_size`: int=32, channels of
+the convolutional encoder.<br/> `activation`: str=`GELU`, activation from
+\[‘ReLU’, ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘PReLU’, ‘Sigmoid’,
+‘GELU’\].<br/> `encoder_layers`: int=2, number of layers for the TCN
+encoder.<br/> `decoder_layers`: int=1, number of layers for the MLP
+decoder.<br/> `MovingAvg_window`: int=25, window size for the moving
+average filter.<br/> `loss`: PyTorch module, instantiated train loss
+class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module, instantiated validation loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=1024, number of windows to
+sample in each training batch, default uses all.<br/>
+`inference_windows_batch_size`: int=1024, number of windows to sample in
+each inference batch.<br/> `start_padding_enabled`: bool=False, if True,
+the model will pad the time series with zeros at the beginning, by input
+size.<br/> `scaler_type`: str=‘robust’, type of scaler for temporal
+inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `**trainer_kwargs`: int, keyword
+trainer arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, MSE
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+```
+
+
+```python
+model = FEDformer(h=12,
+                 input_size=24,
+                 modes=64,
+                 hidden_size=64,
+                 conv_hidden_size=128,
+                 n_head=8,
+                 loss=MAE(),
+                 futr_exog_list=calendar_cols,
+                 scaler_type='robust',
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 batch_size=2,
+                 windows_batch_size=32,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='M',
+)
+nf.fit(df=Y_train_df, static_df=None, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['FEDformer-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['FEDformer-lo-90'][-12:].values, 
+                    y2=plot_df['FEDformer-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['FEDformer'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+

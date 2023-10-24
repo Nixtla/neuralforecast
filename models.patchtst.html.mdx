@@ -1,0 +1,671 @@
+---
+output-file: models.patchtst.html
+title: PatchTST
+
+---
+
+The PatchTST model is an efficient Transformer-based model for
+multivariate time series forecasting.
+
+It is based on two key components: - segmentation of time series into
+windows (patches) which are served as input tokens to Transformer -
+channel-independence. where each channel contains a single univariate
+time series.
+
+**References**<br/> - [Nie, Y., Nguyen, N. H., Sinthong, P., &
+Kalagnanam, J. (2022). “A Time Series is Worth 64 Words: Long-term
+Forecasting with
+Transformers”](https://arxiv.org/pdf/2211.14730.pdf)<br/>
+
+![Figure 1. PatchTST.](imgs_models/patchtst.png)
+
+## 1. Backbone
+
+### Auxiliary Functions
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L34"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### get_activation_fn
+
+> ``` text
+>  get_activation_fn (activation)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L22"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Transpose
+
+> ``` text
+>  Transpose (*dims, contiguous=False)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+### Positional Encoding
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L97"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### positional_encoding
+
+> ``` text
+>  positional_encoding (pe, learn_pe, q_len, hidden_size)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L86"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Coord1dPosEncoding
+
+> ``` text
+>  Coord1dPosEncoding (q_len, exponential=False, normalize=True)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L63"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Coord2dPosEncoding
+
+> ``` text
+>  Coord2dPosEncoding (q_len, hidden_size, exponential=False,
+>                      normalize=True, eps=0.001)
+> ```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L46"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### PositionalEncoding
+
+> ``` text
+>  PositionalEncoding (q_len, hidden_size, normalize=True)
+> ```
+
+### RevIN
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L137"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### RevIN
+
+> ``` text
+>  RevIN (num_features:int, eps=1e-05, affine=True, subtract_last=False)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+### Encoder
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L518"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TSTEncoderLayer
+
+> ``` text
+>  TSTEncoderLayer (q_len, hidden_size, n_heads, d_k=None, d_v=None,
+>                   linear_hidden_size=256, store_attn=False,
+>                   norm='BatchNorm', attn_dropout=0, dropout=0.0,
+>                   bias=True, activation='gelu', res_attention=False,
+>                   pre_norm=False)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L451"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TSTEncoder
+
+> ``` text
+>  TSTEncoder (q_len, hidden_size, n_heads, d_k=None, d_v=None,
+>              linear_hidden_size=None, norm='BatchNorm', attn_dropout=0.0,
+>              dropout=0.0, activation='gelu', res_attention=False,
+>              n_layers=1, pre_norm=False, store_attn=False)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L368"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TSTiEncoder
+
+> ``` text
+>  TSTiEncoder (c_in, patch_num, patch_len, max_seq_len=1024, n_layers=3,
+>               hidden_size=128, n_heads=16, d_k=None, d_v=None,
+>               linear_hidden_size=256, norm='BatchNorm', attn_dropout=0.0,
+>               dropout=0.0, act='gelu', store_attn=False,
+>               key_padding_mask='auto', padding_var=None, attn_mask=None,
+>               res_attention=True, pre_norm=False, pe='zeros',
+>               learn_pe=True)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L331"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Flatten_Head
+
+> ``` text
+>  Flatten_Head (individual, n_vars, nf, h, c_out, head_dropout=0)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L200"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### PatchTST_backbone
+
+> ``` text
+>  PatchTST_backbone (c_in:int, c_out:int, input_size:int, h:int,
+>                     patch_len:int, stride:int,
+>                     max_seq_len:Optional[int]=1024, n_layers:int=3,
+>                     hidden_size=128, n_heads=16, d_k:Optional[int]=None,
+>                     d_v:Optional[int]=None, linear_hidden_size:int=256,
+>                     norm:str='BatchNorm', attn_dropout:float=0.0,
+>                     dropout:float=0.0, act:str='gelu',
+>                     key_padding_mask:str='auto',
+>                     padding_var:Optional[int]=None,
+>                     attn_mask:Optional[torch.Tensor]=None,
+>                     res_attention:bool=True, pre_norm:bool=False,
+>                     store_attn:bool=False, pe:str='zeros',
+>                     learn_pe:bool=True, fc_dropout:float=0.0,
+>                     head_dropout=0, padding_patch=None,
+>                     pretrain_head:bool=False, head_type='flatten',
+>                     individual=False, revin=True, affine=True,
+>                     subtract_last=False)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+## 2. Model
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L817"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### PatchTST
+
+> ``` text
+>  PatchTST (h, input_size, stat_exog_list=None, hist_exog_list=None,
+>            futr_exog_list=None, exclude_insample_y=False,
+>            encoder_layers:int=3, n_heads:int=16, hidden_size:int=128,
+>            linear_hidden_size:int=256, dropout:float=0.2,
+>            fc_dropout:float=0.2, head_dropout:float=0.0,
+>            attn_dropout:float=0.0, patch_len:int=16, stride:int=8,
+>            revin:bool=True, revin_affine:bool=False,
+>            revin_subtract_last:bool=True, activation:str='gelu',
+>            res_attention:bool=True, batch_normalization:bool=False,
+>            learn_pos_embed:bool=True, loss=MAE(), valid_loss=None,
+>            max_steps:int=5000, learning_rate:float=0.0001,
+>            num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>            val_check_steps:int=100, batch_size:int=32,
+>            valid_batch_size:Optional[int]=None, windows_batch_size=1024,
+>            inference_windows_batch_size:int=1024,
+>            start_padding_enabled=False, step_size:int=1,
+>            scaler_type:str='identity', random_seed:int=1,
+>            num_workers_loader:int=0, drop_last_loader:bool=False,
+>            **trainer_kwargs)
+> ```
+
+PatchTST
+
+The PatchTST model is an efficient Transformer-based model for
+multivariate time series forecasting.
+
+It is based on two key components: - segmentation of time series into
+windows (patches) which are served as input tokens to Transformer -
+channel-independence, where each channel contains a single univariate
+time series.
+
+**Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
+autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
+y\_\[t-2:t\]=\[1,2\].<br/> `stat_exog_list`: str list, static exogenous
+columns.<br/> `hist_exog_list`: str list, historic exogenous columns.<br/>
+`futr_exog_list`: str list, future exogenous columns.<br/>
+`exclude_insample_y`: bool=False, the model skips the autoregressive
+features y\[t-input_size:t\] if True.<br/> `encoder_layers`: int, number
+of layers for encoder.<br/> `n_heads`: int=16, number of multi-head’s
+attention.<br/> `hidden_size`: int=128, units of embeddings and
+encoders.<br/> `linear_hidden_size`: int=256, units of linear layer.<br/>
+`dropout`: float=0.1, dropout rate for residual connection.<br/>
+`fc_dropout`: float=0.1, dropout rate for linear layer.<br/>
+`head_dropout`: float=0.1, dropout rate for Flatten head layer.<br/>
+`attn_dropout`: float=0.1, dropout rate for attention layer.<br/>
+`patch_len`: int=32, length of patch.<br/> `stride`: int=16, stride of
+patch.<br/> `revin`: bool=True, bool to use RevIn.<br/> `revin_affine`:
+bool=False, bool to use affine in RevIn.<br/> `revin_substract_last`:
+bool=False, bool to use substract last in RevIn.<br/> `activation`:
+str=‘ReLU’, activation from \[‘gelu’,‘relu’\].<br/> `res_attention`:
+bool=False, bool to use residual attention.<br/> `batch_normalization`:
+bool=False, bool to use batch normalization.<br/> `learn_pos_embedding`:
+bool=True, bool to learn positional embedding.<br/> `loss`: PyTorch
+module, instantiated train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=1024, number of windows to
+sample in each training batch, default uses all.<br/>
+`inference_windows_batch_size`: int=1024, number of windows to sample in
+each inference batch.<br/> `start_padding_enabled`: bool=False, if True,
+the model will pad the time series with zeros at the beginning, by input
+size.<br/> `step_size`: int=1, step size between each window of temporal
+data.<br/> `scaler_type`: str=‘identity’, type of scaler for temporal
+inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `**trainer_kwargs`: int, keyword
+trainer arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
+
+**References:**<br/> -[Nie, Y., Nguyen, N. H., Sinthong, P., &
+Kalagnanam, J. (2022). “A Time Series is Worth 64 Words: Long-term
+Forecasting with Transformers”](https://arxiv.org/pdf/2211.14730.pdf)
+
+------------------------------------------------------------------------
+
+### PatchTST.fit
+
+> ``` text
+>  PatchTST.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### PatchTST.predict
+
+> ``` text
+>  PatchTST.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                    **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
+TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+## Usage example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = PatchTST(h=12,
+                 input_size=104,
+                 patch_len=24,
+                 stride=24,
+                 revin=False,
+                 hidden_size=16,
+                 n_heads=4,
+                 scaler_type='robust',
+                 loss=DistributionLoss(distribution='StudentT', level=[80, 90]),
+                 #loss=MAE(),
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+```
+
+
+```python
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['PatchTST-lo-90'][-12:].values, 
+                    y2=plot_df['PatchTST-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+
+
+```python
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline2'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['PatchTST-lo-90'][-12:].values, 
+                    y2=plot_df['PatchTST-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline2'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+

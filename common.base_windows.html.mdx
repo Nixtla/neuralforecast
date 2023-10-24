@@ -1,0 +1,125 @@
+---
+description: The `BaseWindows` class contains standard methods shared across window-based
+  neural networks; in contrast to recurrent neural networks these models commit to
+  a fixed sequence length input. The class is represented by `MLP`, and other more
+  sophisticated architectures like `NBEATS`, and `NHITS`.<br/><br/>The standard methods
+  include data preprocessing `_normalization`, optimization utilities like parameter
+  initialization, `training_step`, `validation_step`, and shared `fit` and `predict`
+  methods.These shared methods enable all the `neuralforecast.models` compatibility
+  with the `core.NeuralForecast` wrapper class.
+output-file: common.base_windows.html
+title: BaseWindows
+
+---
+
+------------------------------------------------------------------------
+
+### BaseWindows
+
+> ``` text
+>  BaseWindows (h, input_size, loss, valid_loss, learning_rate, max_steps,
+>               val_check_steps, batch_size, valid_batch_size,
+>               windows_batch_size, inference_windows_batch_size,
+>               start_padding_enabled, step_size=1, num_lr_decays=0,
+>               early_stop_patience_steps=-1, scaler_type='identity',
+>               futr_exog_list=None, hist_exog_list=None,
+>               stat_exog_list=None, exclude_insample_y=False,
+>               num_workers_loader=0, drop_last_loader=False, random_seed=1,
+>               alias=None, **trainer_kwargs)
+> ```
+
+Base Windows
+
+Base class for all windows-based models. The forecasts are produced
+separately for each window, which are randomly sampled during training.
+
+This class implements the basic functionality for all windows-based
+models, including: - PyTorch Lightning’s methods training_step,
+validation_step, predict_step.<br/> - fit and predict methods used by
+NeuralForecast.core class.<br/> - sampling and wrangling methods to
+generate windows.
+
+------------------------------------------------------------------------
+
+### BaseWindows.fit
+
+> ``` text
+>  BaseWindows.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### BaseWindows.predict
+
+> ``` text
+>  BaseWindows.predict (dataset, test_size=None, step_size=1,
+>                       random_seed=None, **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
+TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+------------------------------------------------------------------------
+
+### BaseWindows.decompose
+
+> ``` text
+>  BaseWindows.decompose (dataset, step_size=1, random_seed=None,
+>                         **data_module_kwargs)
+> ```
+
+Decompose Predictions.
+
+Decompose the predictions through the network’s layers. Available
+methods are `ESRNN`,
+[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
+[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats),
+and
+[`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx).
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see [documentation
+here](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`step_size`: int=1, step size between each window of temporal data.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+

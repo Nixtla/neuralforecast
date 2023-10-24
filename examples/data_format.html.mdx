@@ -1,0 +1,143 @@
+---
+description: Dataset input requirments
+output-file: data_format.html
+title: Data Inputs
+
+---
+
+In this example we will go through the dataset input requirements of the
+`core.NeuralForecast` class.
+
+The `core.NeuralForecast` methods operate as global models that receive
+a set of time series rather than single series. The class uses
+cross-learning technique to fit flexible-shared models such as neural
+networks improving its generalization capabilities as shown by the M4
+international forecasting competition (Smyl 2019, Semenoglou 2021).
+
+You can run these experiments using GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Data_Format.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+## Long format
+
+### Multiple time series
+
+Store your time series in a pandas dataframe in long format, that is,
+each row represents an observation for a specific series and timestamp.
+Let’s see an example using the `datasetsforecast` library.
+
+`Y_df = pd.concat( [series1, series2, ...])`
+
+```python
+!pip install datasetsforecast
+```
+
+
+```python
+import pandas as pd
+from datasetsforecast.m3 import M3
+```
+
+
+```python
+Y_df, *_ = M3.load('./data', group='Yearly')
+```
+
+``` text
+100%|██████████| 1.76M/1.76M [00:00<00:00, 5.55MiB/s]
+INFO:datasetsforecast.utils:Successfully downloaded M3C.xls, 1757696, bytes.
+```
+
+```python
+Y_df.groupby('unique_id').head(2)
+```
+
+|       | unique_id | ds         | y       |
+|-------|-----------|------------|---------|
+| 0     | Y1        | 1975-12-31 | 940.66  |
+| 1     | Y1        | 1976-12-31 | 1084.86 |
+| 20    | Y10       | 1975-12-31 | 2160.04 |
+| 21    | Y10       | 1976-12-31 | 2553.48 |
+| 40    | Y100      | 1975-12-31 | 1424.70 |
+| ...   | ...       | ...        | ...     |
+| 18260 | Y97       | 1976-12-31 | 1618.91 |
+| 18279 | Y98       | 1975-12-31 | 1164.97 |
+| 18280 | Y98       | 1976-12-31 | 1277.87 |
+| 18299 | Y99       | 1975-12-31 | 1870.00 |
+| 18300 | Y99       | 1976-12-31 | 1307.20 |
+
+```python
+Y_df.groupby('unique_id').tail(2)
+```
+
+|       | unique_id | ds         | y       |
+|-------|-----------|------------|---------|
+| 18    | Y1        | 1993-12-31 | 8407.84 |
+| 19    | Y1        | 1994-12-31 | 9156.01 |
+| 38    | Y10       | 1993-12-31 | 3187.00 |
+| 39    | Y10       | 1994-12-31 | 3058.00 |
+| 58    | Y100      | 1993-12-31 | 3539.00 |
+| ...   | ...       | ...        | ...     |
+| 18278 | Y97       | 1994-12-31 | 4507.00 |
+| 18297 | Y98       | 1993-12-31 | 1801.00 |
+| 18298 | Y98       | 1994-12-31 | 1710.00 |
+| 18317 | Y99       | 1993-12-31 | 2379.30 |
+| 18318 | Y99       | 1994-12-31 | 2723.00 |
+
+`Y_df` is a dataframe with three columns: `unique_id` with a unique
+identifier for each time series, a column `ds` with the datestamp and a
+column `y` with the values of the series.
+
+### Single time series
+
+If you have only one time series, you have to include the `unique_id`
+column. Consider, for example, the
+[AirPassengers](https://github.com/Nixtla/transfer-learning-time-series/blob/main/datasets/air_passengers.csv)
+dataset.
+
+```python
+Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/air_passengers.csv')
+```
+
+In this example `Y_df` only contains two columns: `timestamp`, and
+`value`. To use
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+we have to include the `unique_id` column and rename the previuos ones.
+
+```python
+Y_df['unique_id'] = 1. # We can add an integer as identifier
+Y_df = Y_df.rename(columns={'timestamp': 'ds', 'value': 'y'})
+Y_df = Y_df[['unique_id', 'ds', 'y']]
+```
+
+
+```python
+Y_df
+```
+
+|     | unique_id | ds         | y   |
+|-----|-----------|------------|-----|
+| 0   | 1.0       | 1949-01-01 | 112 |
+| 1   | 1.0       | 1949-02-01 | 118 |
+| 2   | 1.0       | 1949-03-01 | 132 |
+| 3   | 1.0       | 1949-04-01 | 129 |
+| 4   | 1.0       | 1949-05-01 | 121 |
+| ... | ...       | ...        | ... |
+| 139 | 1.0       | 1960-08-01 | 606 |
+| 140 | 1.0       | 1960-09-01 | 508 |
+| 141 | 1.0       | 1960-10-01 | 461 |
+| 142 | 1.0       | 1960-11-01 | 390 |
+| 143 | 1.0       | 1960-12-01 | 432 |
+
+## References
+
+-   [Slawek Smyl. (2019). “A hybrid method of exponential smoothing and
+    recurrent networks for time series forecasting”. International
+    Journal of
+    Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301153)
+-   [Artemios-Anargyros Semenoglou, Evangelos Spiliotis, Spyros
+    Makridakis, and Vassilios Assimakopoulos. (2021). Investigating the
+    accuracy of cross-learning time series forecasting methods”.
+    International Journal of
+    Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207020301850)
+

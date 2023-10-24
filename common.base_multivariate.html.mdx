@@ -1,0 +1,40 @@
+---
+description: The `BaseWindows` class contains standard methods shared across window-based
+  multivariate neural networks; in contrast to recurrent neural networks these models
+  commit to a fixed sequence length input. <br/><br/>The standard methods include data
+  preprocessing `_normalization`, optimization utilities like parameter initialization,
+  `training_step`, `validation_step`, and shared `fit` and `predict` methods.These
+  shared methods enable all the `neuralforecast.models` compatibility with the `core.NeuralForecast`
+  wrapper class.
+output-file: common.base_multivariate.html
+title: BaseMultivariate
+
+---
+
+------------------------------------------------------------------------
+
+### BaseMultivariate
+
+> ``` text
+>  BaseMultivariate (h, input_size, loss, valid_loss, learning_rate,
+>                    max_steps, val_check_steps, n_series, batch_size,
+>                    step_size=1, num_lr_decays=0,
+>                    early_stop_patience_steps=-1, scaler_type='robust',
+>                    futr_exog_list=None, hist_exog_list=None,
+>                    stat_exog_list=None, num_workers_loader=0,
+>                    drop_last_loader=False, random_seed=1, alias=None,
+>                    **trainer_kwargs)
+> ```
+
+Base Multivariate
+
+Base class for all multivariate models. The forecasts for all
+time-series are produced simultaneously within each window, which are
+randomly sampled during training.
+
+This class implements the basic functionality for all windows-based
+models, including: - PyTorch Lightning’s methods training_step,
+validation_step, predict_step.<br/> - fit and predict methods used by
+NeuralForecast.core class.<br/> - sampling and wrangling methods to
+generate multivariate windows.
+

@@ -1,0 +1,190 @@
+---
+output-file: transfer_learning.html
+title: Transfer Learning
+
+---
+
+Transfer learning refers to the process of pre-training a flexible model
+on a large dataset and using it later on other data with little to no
+training. It is one of the most outstanding 🚀 achievements in Machine
+Learning 🧠 and has many practical applications.
+
+For time series forecasting, the technique allows you to get
+lightning-fast predictions ⚡ bypassing the tradeoff between accuracy
+and speed (more than 30 times faster than our alreadsy fast
+[autoARIMA](https://github.com/Nixtla/statsforecast) for a similar
+accuracy).
+
+This notebook shows how to generate a pre-trained model and store it in
+a checkpoint to make it available to forecast new time series never seen
+by the model.
+
+Table of Contents<br/> 1. Installing NeuralForecast/DatasetsForecast<br/>
+2. Load M4 Data<br/> 3. Instantiate NeuralForecast core, Fit, and
+save<br/> 4. Load pre-trained model and predict on AirPassengers<br/> 5.
+Evaluate Results<br/>
+
+You can run these experiments using GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Transfer_Learning.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+## 1. Installing Libraries
+
+```python
+# %%capture
+# !pip install git+https://github.com/Nixtla/datasetsforecast.git@main
+```
+
+
+```python
+# %%capture
+# !pip install neuralforecast
+```
+
+
+```python
+import numpy as np
+import pandas as pd
+import torch
+from IPython.display import display, Markdown
+
+import matplotlib.pyplot as plt
+
+from datasetsforecast.m4 import M4
+from neuralforecast.core import NeuralForecast
+from neuralforecast.models import NHITS
+from neuralforecast.utils import AirPassengersDF
+from neuralforecast.losses.numpy import mae, mse
+```
+
+
+```python
+import logging
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+```
+
+This example will automatically run on GPUs if available. **Make sure**
+cuda is available. (If you need help to put this into production send us
+an email or join or community, we also offer a fully hosted solution)
+
+```python
+torch.cuda.is_available()
+```
+
+## 2. Load M4 Data
+
+The `M4` class will automatically download the complete M4 dataset and
+process it.
+
+It return three Dataframes: `Y_df` contains the values for the target
+variables, `X_df` contains exogenous calendar features and `S_df`
+contains static features for each time-series (none for M4). For this
+example we will only use `Y_df`.
+
+If you want to use your own data just replace `Y_df`. Be sure to use a
+long format and have a simmilar structure than our data set.
+
+```python
+Y_df, _, _ = M4.load(directory='./', group='Monthly', cache=True)
+Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+Y_df
+```
+
+## 3. Model Train and Save
+
+Using the
+[`NeuralForecast.fit`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.fit)
+method you can train a set of models to your dataset. You just have to
+define the `input_size` and `horizon` of your model. The `input_size` is
+the number of historic observations (lags) that the model will use to
+learn to predict `h` steps in the future. Also, you can modify the
+hyperparameters of the model to get a better accuracy.
+
+```python
+horizon = 12
+stacks = 3
+models = [NHITS(input_size=5 * horizon,
+                h=horizon,
+                max_steps=100,
+                stack_types = stacks*['identity'],
+                n_blocks = stacks*[1],
+                mlp_units = [[256,256] for _ in range(stacks)],
+                n_pool_kernel_size = stacks*[1],
+                batch_size = 32,
+                scaler_type='standard',
+                n_freq_downsample=[12,4,1])]
+nf = NeuralForecast(models=models, freq='M')
+nf.fit(df=Y_df)
+```
+
+Save model with `core.NeuralForecast.save` method. This method uses
+PytorchLightning `save_checkpoint` function. We set `save_dataset=False`
+to only save the model.
+
+```python
+nf.save(path='./results/transfer/', model_index=None, overwrite=True, save_dataset=False)
+```
+
+## 4. Transfer M4 to AirPassengers
+
+We load the stored model with the `core.NeuralForecast.load` method, and
+forecast `AirPassenger` with the `core.NeuralForecast.predict` function.
+
+```python
+fcst2 = NeuralForecast.load(path='./results/transfer/')
+```
+
+
+```python
+# We define the train df. 
+Y_df = AirPassengersDF.copy()
+mean = Y_df[Y_df.ds<='1959-12-31']['y'].mean()
+std = Y_df[Y_df.ds<='1959-12-31']['y'].std()
+
+Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
+Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
+```
+
+
+```python
+Y_hat_df = fcst2.predict(df=Y_train_df).reset_index()
+Y_hat_df.head()
+```
+
+
+```python
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds'])
+plot_df = pd.concat([Y_train_df, Y_hat_df]).set_index('ds')
+
+plot_df[['y', 'NHITS']].plot(ax=ax, linewidth=2)
+
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+## 5. Evaluate Results
+
+We evaluate the forecasts of the pre-trained model with the Mean
+Absolute Error
+([`mae`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mae)).
+
+$$
+\qquad MAE = \frac{1}{Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}|\qquad
+$$
+
+```python
+y_true = Y_test_df.y.values
+y_hat = Y_hat_df['NHITS'].values
+```
+
+
+```python
+print('NHITS     MAE: %0.3f' % mae(y_hat, y_true))
+print('ETS       MAE: 16.222')
+print('AutoARIMA MAE: 18.551')
+```
+

@@ -1,0 +1,488 @@
+---
+output-file: common.modules.html
+title: NN Modules
+
+---
+
+## 1. MLP
+
+Multi-Layer Perceptron
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/mlp.py#L16"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MLP
+
+> ``` text
+>  MLP (in_features, out_features, activation, hidden_size, num_layers,
+>       dropout)
+> ```
+
+Multi-Layer Perceptron Class
+
+**Parameters:**<br/> `in_features`: int, dimension of input.<br/>
+`out_features`: int, dimension of output.<br/> `activation`: str,
+activation function to use.<br/> `hidden_size`: int, dimension of hidden
+layers.<br/> `num_layers`: int, number of hidden layers.<br/> `dropout`:
+float, dropout rate.<br/>
+
+## 2. Temporal Convolutions
+
+For long time in deep learning, sequence modelling was synonymous with
+recurrent networks, yet several papers have shown that simple
+convolutional architectures can outperform canonical recurrent networks
+like LSTMs by demonstrating longer effective memory.
+
+**References**<br/> -[van den Oord, A., Dieleman, S., Zen, H., Simonyan,
+K., Vinyals, O., Graves, A., Kalchbrenner, N., Senior, A. W., &
+Kavukcuoglu, K. (2016). Wavenet: A generative model for raw audio.
+Computing Research Repository, abs/1609.03499. URL:
+http://arxiv.org/abs/1609.03499.
+arXiv:1609.03499.](https://arxiv.org/abs/1609.03499)<br/> -[Shaojie Bai,
+Zico Kolter, Vladlen Koltun. (2018). An Empirical Evaluation of Generic
+Convolutional and Recurrent Networks for Sequence Modeling. Computing
+Research Repository, abs/1803.01271. URL:
+https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)<br/>
+
+------------------------------------------------------------------------
+
+### Chomp1d
+
+> ``` text
+>  Chomp1d (horizon)
+> ```
+
+Chomp1d
+
+Receives `x` input of dim \[N,C,T\], and trims it so that only ‘time
+available’ information is used. Used by one dimensional causal
+convolutions `CausalConv1d`.
+
+**Parameters:**<br/> `horizon`: int, length of outsample values to skip.
+
+------------------------------------------------------------------------
+
+### CausalConv1d
+
+> ``` text
+>  CausalConv1d (in_channels, out_channels, kernel_size, padding, dilation,
+>                activation, stride:int=1)
+> ```
+
+Causal Convolution 1d
+
+Receives `x` input of dim \[N,C_in,T\], and computes a causal
+convolution in the time dimension. Skipping the H steps of the forecast
+horizon, through its dilation. Consider a batch of one element, the
+dilated convolution operation on the $t$ time step is defined:
+
+$\mathrm{Conv1D}(\mathbf{x},\mathbf{w})(t) = (\mathbf{x}_{[*d]} \mathbf{w})(t) = \sum^{K}_{k=1} w_{k} \mathbf{x}_{t-dk}$
+
+where $d$ is the dilation factor, $K$ is the kernel size, $t-dk$ is the
+index of the considered past observation. The dilation effectively
+applies a filter with skip connections. If $d=1$ one recovers a normal
+convolution.
+
+**Parameters:**<br/> `in_channels`: int, dimension of `x` input’s initial
+channels.<br/> `out_channels`: int, dimension of `x` outputs’s
+channels.<br/> `activation`: str, identifying activations from PyTorch
+activations. select from ‘ReLU’,‘Softplus’,‘Tanh’,‘SELU’,
+‘LeakyReLU’,‘PReLU’,‘Sigmoid’.<br/> `padding`: int, number of zero
+padding used to the left.<br/> `kernel_size`: int, convolution’s kernel
+size.<br/> `dilation`: int, dilation skip connections.<br/>
+
+**Returns:**<br/> `x`: tensor, torch tensor of dim \[N,C_out,T\]
+activation(conv1d(inputs, kernel) + bias). <br/>
+
+------------------------------------------------------------------------
+
+### TemporalConvolutionEncoder
+
+> ``` text
+>  TemporalConvolutionEncoder (in_channels, out_channels, kernel_size,
+>                              dilations, activation:str='ReLU')
+> ```
+
+Temporal Convolution Encoder
+
+Receives `x` input of dim \[N,T,C_in\], permutes it to \[N,C_in,T\]
+applies a deep stack of exponentially dilated causal convolutions. The
+exponentially increasing dilations of the convolutions allow for the
+creation of weighted averages of exponentially large long-term memory.
+
+**Parameters:**<br/> `in_channels`: int, dimension of `x` input’s initial
+channels.<br/> `out_channels`: int, dimension of `x` outputs’s
+channels.<br/> `kernel_size`: int, size of the convolving kernel.<br/>
+`dilations`: int list, controls the temporal spacing between the kernel
+points.<br/> `activation`: str, identifying activations from PyTorch
+activations. select from ‘ReLU’,‘Softplus’,‘Tanh’,‘SELU’,
+‘LeakyReLU’,‘PReLU’,‘Sigmoid’.<br/>
+
+**Returns:**<br/> `x`: tensor, torch tensor of dim \[N,T,C_out\].<br/>
+
+## 3. Transformers
+
+**References**<br/> - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)<br/> - [Haixu Wu, Jiehui
+Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)<br/>
+
+------------------------------------------------------------------------
+
+### TransEncoder
+
+> ``` text
+>  TransEncoder (attn_layers, conv_layers=None, norm_layer=None)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### TransEncoderLayer
+
+> ``` text
+>  TransEncoderLayer (attention, hidden_size, conv_hidden_size=None,
+>                     dropout=0.1, activation='relu')
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### TransDecoder
+
+> ``` text
+>  TransDecoder (layers, norm_layer=None, projection=None)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### TransDecoderLayer
+
+> ``` text
+>  TransDecoderLayer (self_attention, cross_attention, hidden_size,
+>                     conv_hidden_size=None, dropout=0.1, activation='relu')
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### AttentionLayer
+
+> ``` text
+>  AttentionLayer (attention, hidden_size, n_head, d_keys=None,
+>                  d_values=None)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### DataEmbedding
+
+> ``` text
+>  DataEmbedding (c_in, exog_input_size, hidden_size, pos_embedding=True,
+>                 dropout=0.1)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### TimeFeatureEmbedding
+
+> ``` text
+>  TimeFeatureEmbedding (input_size, hidden_size)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### TokenEmbedding
+
+> ``` text
+>  TokenEmbedding (c_in, hidden_size)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+### PositionalEmbedding
+
+> ``` text
+>  PositionalEmbedding (hidden_size, max_len=5000)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+

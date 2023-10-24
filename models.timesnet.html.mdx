@@ -1,0 +1,309 @@
+---
+output-file: models.timesnet.html
+title: TimesNet
+
+---
+
+The TimesNet univariate model tackles the challenge of modeling multiple
+intraperiod and interperiod temporal variations.
+
+The architecture has the following distinctive features: - An embedding
+layer that maps the input sequence into a latent space. - Transformation
+of 1D time seires into 2D tensors, based on periods found by FFT. - A
+convolutional Inception block that captures temporal variations at
+different scales and between periods.
+
+**References**<br/> - [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou
+and Jianmin Wang and Mingsheng Long. TimesNet: Temporal 2D-Variation
+Modeling for General Time Series
+Analysis](https://openreview.net/pdf?id=ju_Uqw384Oq) - Based on the
+implementation in https://github.com/thuml/Time-Series-Library (license:
+https://github.com/thuml/Time-Series-Library/blob/main/LICENSE)
+
+![Figure 1. TimesNet Architecture.](imgs_models/timesnet.png)
+
+## 1. Auxiliary Functions
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timesnet.py#L20"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### Inception_Block_V1
+
+> ``` text
+>  Inception_Block_V1 (in_channels, out_channels, num_kernels=6,
+>                      init_weight=True)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timesnet.py#L62"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TimesBlock
+
+> ``` text
+>  TimesBlock (input_size, h, k, hidden_size, conv_hidden_size, num_kernels)
+> ```
+
+Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timesnet.py#L50"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FFT_for_Period
+
+> ``` text
+>  FFT_for_Period (x, k=2)
+> ```
+
+## 2. TimesNet
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timesnet.py#L113"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TimesNet
+
+> ``` text
+>  TimesNet (h:int, input_size:int, stat_exog_list=None,
+>            hist_exog_list=None, futr_exog_list=None,
+>            exclude_insample_y=False, hidden_size:int=64,
+>            dropout:float=0.1, conv_hidden_size:int=64, top_k:int=5,
+>            num_kernels:int=6, encoder_layers:int=2, loss=MAE(),
+>            valid_loss=None, max_steps:int=1000,
+>            learning_rate:float=0.0001, num_lr_decays:int=-1,
+>            early_stop_patience_steps:int=-1, val_check_steps:int=100,
+>            batch_size:int=32, valid_batch_size:Optional[int]=None,
+>            windows_batch_size=64, inference_windows_batch_size=256,
+>            start_padding_enabled=False, step_size:int=1,
+>            scaler_type:str='standard', random_seed:int=1,
+>            num_workers_loader:int=0, drop_last_loader:bool=False,
+>            **trainer_kwargs)
+> ```
+
+TimesNet
+
+The TimesNet univariate model tackles the challenge of modeling multiple
+intraperiod and interperiod temporal variations.
+
+|                              | **Type** | **Default** | **Details**                                                                                                                               |
+|------|------------------|-------------------------|-------------------------|
+| h                            | int      |             | Forecast horizon.                                                                                                                         |
+| input_size                   | int      |             | Length of input window (lags).                                                                                                            |
+| stat_exog_list               | NoneType | None        | Static exogenous columns.                                                                                                                 |
+| hist_exog_list               | NoneType | None        | Historic exogenous columns.                                                                                                               |
+| futr_exog_list               | NoneType | None        | Future exogenous columns.                                                                                                                 |
+| exclude_insample_y           | bool     | False       | The model skips the autoregressive features y\[t-input_size:t\] if True                                                                   |
+| hidden_size                  | int      | 64          | Size of embedding for embedding and encoders.                                                                                             |
+| dropout                      | float    | 0.1         | Dropout for embeddings.<br/>conv_hidden_size: int (default=64)<br/>Channels of the Inception block.                                         |
+| conv_hidden_size             | int      | 64          |                                                                                                                                           |
+| top_k                        | int      | 5           |                                                                                                                                           |
+| num_kernels                  | int      | 6           |                                                                                                                                           |
+| encoder_layers               | int      | 2           | Number of encoder layers.                                                                                                                 |
+| loss                         | MAE      | MAE()       |                                                                                                                                           |
+| valid_loss                   | NoneType | None        |                                                                                                                                           |
+| max_steps                    | int      | 1000        |                                                                                                                                           |
+| learning_rate                | float    | 0.0001      | Learning rate.                                                                                                                            |
+| num_lr_decays                | int      | -1          |                                                                                                                                           |
+| early_stop_patience_steps    | int      | -1          | Number of validation iterations before early stopping. If -1, no early stopping is performed.                                             |
+| val_check_steps              | int      | 100         | Number of training steps between every validation loss check.                                                                             |
+| batch_size                   | int      | 32          | Number of different series in each batch.                                                                                                 |
+| valid_batch_size             | Optional | None        | Number of different series in each validation and test batch, if None uses batch_size.                                                    |
+| windows_batch_size           | int      | 64          | Number of windows to sample in each training batch.                                                                                       |
+| inference_windows_batch_size | int      | 256         | Number of windows to sample in each inference batch.                                                                                      |
+| start_padding_enabled        | bool     | False       | If True, the model will pad the time series with zeros at the beginning by input size.                                                    |
+| step_size                    | int      | 1           |                                                                                                                                           |
+| scaler_type                  | str      | standard    | Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/> |
+| random_seed                  | int      | 1           | Random_seed for pytorch initializer and numpy generators.                                                                                 |
+| num_workers_loader           | int      | 0           | Workers to be used by `TimeSeriesDataLoader`.                                                                                             |
+| drop_last_loader             | bool     | False       | If True `TimeSeriesDataLoader` drops last non-full batch.                                                                                 |
+| trainer_kwargs               |          |             |                                                                                                                                           |
+
+------------------------------------------------------------------------
+
+### TimesNet.fit
+
+> ``` text
+>  TimesNet.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### TimesNet.predict
+
+> ``` text
+>  TimesNet.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                    **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
+TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+## Usage Example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = TimesNet(h=12,
+                 input_size=24,
+                 hidden_size = 16,
+                 conv_hidden_size = 32,
+                 #loss=MAE(),
+                 #loss=MQLoss(quantiles=[0.2, 0.5, 0.8]),
+                 loss=DistributionLoss(distribution='Normal', level=[80, 90]),
+                 futr_exog_list=calendar_cols,
+                 scaler_type='standard',
+                 learning_rate=1e-3,
+                 max_steps=5,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['TimesNet-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['TimesNet-lo-90'][-12:].values, 
+                    y2=plot_df['TimesNet-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['TimesNet'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+

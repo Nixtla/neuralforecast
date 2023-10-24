@@ -1,0 +1,345 @@
+---
+output-file: hierarchicalnetworks.html
+title: Hierarchical Forecast
+
+---
+
+This notebook offers a step by step guide to create a hierarchical
+forecasting pipeline.
+
+In the pipeline we will use
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+and
+[`HINT`](https://Nixtla.github.io/neuralforecast/models.hint.html#hint)
+class, to create fit, predict and reconcile forecasts.
+
+We will use the TourismL dataset that summarizes large Australian
+national visitor survey.
+
+Outline<br/> 1. Installing packages<br/> 2. Load hierarchical dataset<br/>
+3. Fit and Predict HINT<br/> 4. Forecast Evaluation
+
+You can run these experiments using GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/HierarchicalNetworks.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+## 1. Installing packages
+
+```python
+!pip install datasetsforecast hierarchicalforecast
+!pip install git+https://github.com/Nixtla/neuralforecast.git
+```
+
+## 2. Load hierarchical dataset
+
+This detailed Australian Tourism Dataset comes from the National Visitor
+Survey, managed by the Tourism Research Australia, it is composed of 555
+monthly series from 1998 to 2016, it is organized geographically, and
+purpose of travel. The natural geographical hierarchy comprises seven
+states, divided further in 27 zones and 76 regions. The purpose of
+travel categories are holiday, visiting friends and relatives (VFR),
+business and other. The MinT (Wickramasuriya et al., 2019), among other
+hierarchical forecasting studies has used the dataset it in the past.
+The dataset can be accessed in the [MinT reconciliation
+webpage](https://robjhyndman.com/publications/mint/), although other
+sources are available.
+
+| Geographical Division | Number of series per division | Number of series per purpose | Total |
+|------------------|------------------|------------------|------------------|
+| Australia             | 1                             | 4                            | 5     |
+| States                | 7                             | 28                           | 35    |
+| Zones                 | 27                            | 108                          | 135   |
+| Regions               | 76                            | 304                          | 380   |
+| Total                 | 111                           | 444                          | 555   |
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from datasetsforecast.hierarchical import HierarchicalData
+from hierarchicalforecast.utils import aggregate, HierarchicalPlot
+
+from neuralforecast.utils import augment_calendar_df
+
+def sort_df_hier(Y_df, S):
+    # NeuralForecast core, sorts unique_id lexicographically
+    # by default, this method matches S_df and Y_hat_df hierarchical order.
+    Y_df.unique_id = Y_df.unique_id.astype('category')
+    Y_df.unique_id = Y_df.unique_id.cat.set_categories(S.index)
+    Y_df = Y_df.sort_values(by=['unique_id', 'ds'])
+    return Y_df
+
+# Load hierarchical dataset
+Y_df, S_df, tags = HierarchicalData.load('./data', 'TourismLarge')
+Y_df['ds'] = pd.to_datetime(Y_df['ds'])
+Y_df = sort_df_hier(Y_df, S_df)
+
+Y_df, _ = augment_calendar_df(df=Y_df, freq='M')
+```
+
+Mathematically a hierarchical multivariate time series can be denoted by
+the vector $\mathbf{y}_{[a,b],t}$ defined by the following aggregation
+constraint:
+
+$$
+\mathbf{y}_{[a,b],t}  = \mathbf{S}_{[a,b][b]} \mathbf{y}_{[b],t} \quad \Leftrightarrow \quad 
+\begin{bmatrix}\mathbf{y}_{[a],t}
+\\ %\hline
+\mathbf{y}_{[b],t}\end{bmatrix} 
+= \begin{bmatrix}
+\mathbf{A}_{[a][b]}\\ %\hline
+\mathbf{I}_{[b][b]}
+\end{bmatrix}
+\mathbf{y}_{[b],t}
+$$
+
+where $\mathbf{y}_{[a],t}$ are the aggregate series,
+$\mathbf{y}_{[b],t}$ are the bottom level series and
+$\mathbf{S}_{[a,b][b]}$ are the hierarchical aggregation constraints.
+
+```python
+# Here we plot the hierarchical constraints matrix
+hplot = HierarchicalPlot(S=S_df, tags=tags)
+hplot.plot_summing_matrix()
+```
+
+![](/examples/HierarchicalNetworks_files/figure-markdown_strict/cell-4-output-1.png)
+
+```python
+# Here we plot the top most series from the dataset
+# that corresponds to the total tourist monthly visits to Australia
+plt.figure(figsize=(10,5))
+plt.plot(Y_df[Y_df['unique_id']=='TotalAll']['ds'], 
+         Y_df[Y_df['unique_id']=='TotalAll']['y'], label='target')
+plt.plot(Y_df[Y_df['unique_id']=='TotalAll']['ds'], 
+         Y_df[Y_df['unique_id']=='TotalAll']['month']*80000, label='month dummy')
+plt.xlabel('Date')
+plt.ylabel('Tourist Visits')
+plt.legend()
+plt.grid()
+plt.show()
+plt.close()
+```
+
+![](/examples/HierarchicalNetworks_files/figure-markdown_strict/cell-5-output-1.png)
+
+## 3. Fit and Predict HINT
+
+The Hierarchical Forecast Network (HINT) combines into an easy to use
+model three components:<br/> 1. SoTA neural forecast model.<br/> 2. An
+efficient and flexible multivariate probability distribution.<br/> 3.
+Builtin reconciliation capabilities.<br/>
+
+```python
+import numpy as np
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import NBEATSx, NHITS, HINT
+from neuralforecast.losses.pytorch import GMM, PMM, DistributionLoss, sCRPS
+```
+
+
+```python
+# Train test splits
+horizon = 12
+Y_test_df  = Y_df.groupby('unique_id').tail(horizon)
+Y_train_df = Y_df.drop(Y_test_df.index)
+Y_test_df  = Y_test_df.set_index('unique_id')
+Y_train_df = Y_train_df.set_index('unique_id')
+```
+
+
+```python
+# Horizon and quantiles
+level = np.arange(0, 100, 2)
+qs = [[50-lv/2, 50+lv/2] if lv!=0 else [50] for lv in level]
+quantiles = np.sort(np.concatenate(qs)/100)
+
+# HINT := BaseNetwork + Distribution + Reconciliation
+nhits = NHITS(h=horizon,
+              input_size=24,
+              loss=GMM(n_components=10, quantiles=quantiles),
+              hist_exog_list=['month'],
+              max_steps=2000,
+              early_stop_patience_steps=10,
+              val_check_steps=50,
+              scaler_type='robust',
+              learning_rate=1e-3,
+              valid_loss=sCRPS(quantiles=quantiles))
+
+model = HINT(h=horizon, S=S_df.values,
+             model=nhits,  reconciliation='BottomUp')
+```
+
+``` text
+INFO:lightning_fabric.utilities.seed:Global seed set to 1
+```
+
+```python
+Y_df['y'] = Y_df['y'] * (Y_df['y'] > 0)
+nf = NeuralForecast(models=[model], freq='MS')
+# Y_hat_df = nf.cross_validation(df=Y_df, val_size=12, n_windows=1)
+nf.fit(df=Y_train_df, val_size=12)
+Y_hat_df = nf.predict()
+```
+
+
+```python
+unique_id = 'TotalAll'
+Y_plot_df = Y_df[Y_df.unique_id==unique_id].tail(12*5)
+Y_hat_df = Y_hat_df.reset_index()
+plot_df = Y_hat_df[Y_hat_df.unique_id==unique_id]
+plot_df = Y_plot_df.merge(plot_df, on=['unique_id', 'ds'], how='left')
+
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['HINT-median'], c='blue', label='median')
+plt.fill_between(x=plot_df['ds'][-12:],
+                 y1=plot_df['HINT-lo-90.0'][-12:].values,
+                 y2=plot_df['HINT-hi-90.0'][-12:].values,
+                 alpha=0.4, label='level 90')
+plt.legend()
+plt.grid()
+plt.plot()
+```
+
+``` text
+[]
+```
+
+![](/examples/HierarchicalNetworks_files/figure-markdown_strict/cell-10-output-2.png)
+
+## 4. Forecast Evaluation
+
+To evaluate the coherent probabilistic predictions we use the scaled
+Continuous Ranked Probability Score (sCRPS), defined as follows:
+
+$$
+\mathrm{CRPS}(\hat{F}_{[a,b],\tau},\mathbf{y}_{[a,b],\tau}) = 
+    \frac{2}{N_{a}+N_{b}} \sum_{i} \int^{1}_{0} \mathrm{QL}(\hat{F}_{i,\tau}, y_{i,\tau})_{q} dq
+$$
+
+$$
+\mathrm{sCRPS}(\hat{F}_{[a,b\,],\tau},\mathbf{y}_{[a,b\,],\tau}) = 
+    \frac{\mathrm{CRPS}(\hat{F}_{[a,b\,],\tau},\mathbf{y}_{[a,b\,],\tau})}{\sum_{i} | y_{i,\tau} |}
+$$
+
+As you can see the HINT model efficiently achieves state of the art
+accuracy under minimal tuning.
+
+```python
+from hierarchicalforecast.evaluation import scaled_crps    
+    
+def _get_hierarchical_scrps(hier_idxs, Y, Yq_hat, quantiles):
+    # We use the indexes obtained from the aggregation tags
+    # to compute scaled CRPS across the hierarchy levels 
+    scrps_list = []
+    for idxs in hier_idxs:
+        y      = Y[idxs, :]
+        yq_hat = Yq_hat[idxs, :, :]
+        scrps  = scaled_crps(y, yq_hat, quantiles)
+        scrps_list.append(scrps)
+    return scrps_list
+
+hier_idxs = [np.arange(len(S_df))] +\
+    [S_df.index.get_indexer(tags[level]) for level in list(tags.keys())]
+```
+
+
+```python
+n_series = len(S_df)
+n_quantiles = len(quantiles)
+
+# Bootstrap predictions
+n_samples = 5
+Y_hat_df_list = [nf.predict() for _ in range(n_samples)]
+
+# Parse y_test and y_rec
+# Keep only quantile columns from Y_hat_df
+# Removing mean and median default outputs
+model_name = type(model).__name__
+quantile_columns = [model_name + n for n in nhits.loss.output_names]
+quantile_columns.remove(model_name)
+Yq_hat = []
+for sample_idx in range(n_samples):
+    Y_hat = Y_hat_df_list[sample_idx][quantile_columns].values
+    Yq_hat.append(Y_hat.reshape(1, n_series, horizon, n_quantiles))
+
+Yq_hat = np.concatenate(Yq_hat, axis=0)
+Y_test = Y_test_df['y'].values.reshape(n_series, horizon)
+```
+
+
+```python
+print('Y_test.shape [n_series, horizon]', Y_test.shape)
+print('Yq_hat.shape [n_samples, n_series, horizon, n_quantiles]', Yq_hat.shape)
+
+# Compute bootstraped sCRPS
+scrps_hint = [_get_hierarchical_scrps(hier_idxs, Y_test, Yq_hat[sample_idx], quantiles) \
+              for sample_idx in range(n_samples)]
+crps_mean = np.mean(np.array(scrps_hint), axis=0)
+crps_std = np.std(np.array(scrps_hint), axis=0)
+scrps_hint = [f'{crps_mean[level_idx]:.4f}±{(1.96 * crps_std[level_idx]):.4f}' \
+              for level_idx in range(len(crps_mean))]
+
+# Add reported baselines' performance
+levels = ['Overall', 'Country', 'State', 'Zone', 'Region',
+          'Country/Purpose', 'State/Purpose', 'Zone/Purpose', 'Region/Purpose']
+scrps_dpmn = ["0.1249±0.0020","0.0431±0.0042","0.0637±0.0032","0.1084±0.0033",
+              "0.1554±0.0025","0.0700±0.0038","0.1070±0.0023","0.1887±0.0032","0.2629±0.0034"]
+scrps_hiere2e = ["0.1472±0.0029","0.0842±0.0051","0.1012±0.0029","0.1317±0.0022",
+              "0.1705±0.0023","0.0995±0.0061","0.1336±0.0042","0.1955±0.0025","0.2615±0.0016"]
+scrps_arima_mintrace = ["0.1313±0.0009","0.0471±0.0018","0.0723±0.0011","0.1143±0.0007",
+              "0.1591±0.0006","0.0723±0.0014","0.1243±0.0014","0.1919±0.0008","0.2694±0.0006"]
+scrps_arima_bu = ["0.1375±0.0013","0.0622±0.0026","0.0820±0.0019","0.1207±0.0010",
+              "0.1646±0.0007","0.0788±0.0018","0.1268±0.0017","0.1949±0.0010","0.2698±0.0008"]
+scrps_arima = ["0.1416","0.0263","0.0904","0.1389","0.1878","0.0770","0.1270","0.2022","0.2834"]
+
+scrps_results = dict(Levels=levels,
+                     HINT=scrps_hint, 
+                     DPMN=scrps_dpmn,
+                     HierE2E=scrps_hiere2e, 
+                     ARIMA_MinTrace_B=scrps_arima_mintrace,
+                     ARIMA_BottomUp_B=scrps_arima_bu,
+                     ARIMA=scrps_arima)
+scrps_results = pd.DataFrame(scrps_results)
+scrps_results
+```
+
+``` text
+Y_test.shape [n_series, horizon] (555, 12)
+Yq_hat.shape [n_samples, n_series, horizon, n_quantiles] (5, 555, 12, 99)
+```
+
+|     | Levels          | HINT          | DPMN          | HierE2E       | ARIMA_MinTrace_B | ARIMA_BottomUp_B | ARIMA  |
+|-----|-----------------|---------------|---------------|---------------|------------------|------------------|--------|
+| 0   | Overall         | 0.1178±0.0002 | 0.1249±0.0020 | 0.1472±0.0029 | 0.1313±0.0009    | 0.1375±0.0013    | 0.1416 |
+| 1   | Country         | 0.0288±0.0007 | 0.0431±0.0042 | 0.0842±0.0051 | 0.0471±0.0018    | 0.0622±0.0026    | 0.0263 |
+| 2   | State           | 0.0593±0.0004 | 0.0637±0.0032 | 0.1012±0.0029 | 0.0723±0.0011    | 0.0820±0.0019    | 0.0904 |
+| 3   | Zone            | 0.1023±0.0003 | 0.1084±0.0033 | 0.1317±0.0022 | 0.1143±0.0007    | 0.1207±0.0010    | 0.1389 |
+| 4   | Region          | 0.1451±0.0004 | 0.1554±0.0025 | 0.1705±0.0023 | 0.1591±0.0006    | 0.1646±0.0007    | 0.1878 |
+| 5   | Country/Purpose | 0.0752±0.0006 | 0.0700±0.0038 | 0.0995±0.0061 | 0.0723±0.0014    | 0.0788±0.0018    | 0.0770 |
+| 6   | State/Purpose   | 0.1109±0.0001 | 0.1070±0.0023 | 0.1336±0.0042 | 0.1243±0.0014    | 0.1268±0.0017    | 0.1270 |
+| 7   | Zone/Purpose    | 0.1773±0.0003 | 0.1887±0.0032 | 0.1955±0.0025 | 0.1919±0.0008    | 0.1949±0.0010    | 0.2022 |
+| 8   | Region/Purpose  | 0.2438±0.0002 | 0.2629±0.0034 | 0.2615±0.0016 | 0.2694±0.0006    | 0.2698±0.0008    | 0.2834 |
+
+## References
+
+-   [Kin G. Olivares, David Luo, Cristian Challu, Stefania La Vattiata,
+    Max Mergenthaler, Artur Dubrawski (2023). “HINT: Hierarchical
+    Mixture Networks For Coherent Probabilistic Forecasting”.
+    International Conference on Machine Learning (ICML). Workshop on
+    Structured Probabilistic Inference & Generative Modeling. Available
+    at
+    https://arxiv.org/abs/2305.07089.](https://arxiv.org/abs/2305.07089)<br />
+-   [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei
+    Cao, Lee Dicker (2023).”Probabilistic Hierarchical Forecasting with
+    Deep Poisson Mixtures”. International Journal Forecasting, accepted
+    paper. URL
+    https://arxiv.org/pdf/2110.13179.pdf.](https://arxiv.org/pdf/2110.13179.pdf)<br />
+-   [Kin G. Olivares, Federico Garza, David Luo, Cristian Challu, Max
+    Mergenthaler, Souhaib Ben Taieb, Shanika Wickramasuriya, and Artur
+    Dubrawski (2023). “HierarchicalForecast: A reference framework for
+    hierarchical forecasting”. Journal of Machine Learning Research,
+    submitted. URL
+    https://arxiv.org/abs/2207.03517](https://arxiv.org/abs/2207.03517)
+

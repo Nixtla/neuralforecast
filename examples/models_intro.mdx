@@ -1,0 +1,103 @@
+---
+title: "NeuralForecast's Contents"
+---
+
+## Automatic Forecasting Models
+
+Automatic forecasting tools optimize the hyperparameters of a given
+model class and select the best-performing model for a validation set.
+The optimization methods include grid search, random search, and
+Bayesian optimization.
+
+| MLP-Based                                   | RNN-Based                                 | Transformers                                  | CNN-Based                                     | Multivariate                                |
+|:--------------|:--------------|:--------------|:--------------|:--------------|
+| [`AutoMLP`](../models.html#automlp)         | [`AutoRNN`](../models.html#autornn)       | [`AutoTFT`](../models.html#autotft)           | [`AutoTimesNet`](../models.html#autotimesnet) | [`AutoStemGNN`](../models.html#autostemgnn) |
+| [`AutoNBEATS`](../models.html#autonbeats)   | [`AutoLSTM`](../models.html#autolstm)     | [`AutoInformer`](../models.html#autoinformer) |                                               | [`AutoHINT`](../models.html#autohint)       |
+| [`AutoNBEATSx`](../models.html#autonbeatsx) | [`AutoGRU`](../models.html#autogru)       | [`Autoformer`](../models.html#autoautoformer) |                                               |                                             |
+| [`AutoNHITS`](../models.html#autonhits)     | [`AutoTCN`](../models.html#autotcn)       | [`AutoPatchTST`](../models.html#autopatchtst) |                                               |                                             |
+|                                             | [`AutoDeepAR`](../models.html#autodeepar) |                                               |                                               |                                             |
+
+## Optimization Objectives
+
+NeuralForecast is a highly modular framework capable of augmenting a
+wide variety of robust neural network architectures with different point
+or probability outputs as defined by their optimization objectives.
+
+| Scale-Dependent                                               | Percentage-Errors                                                    | Scale-Independent                                                | Robust                                                   |
+|:-----------------|:-----------------|:-----------------|:-----------------|
+| [`MAE`](../losses.pytorch.html#mean-absolute-error-mae)       | [`MAPE`](../losses.pytorch.html#mean-absolute-percentage-error-mape) | [`MASE`](../losses.pytorch.html#mean-absolute-scaled-error-mase) | [`Huber`](../losses.pytorch.html#huber-loss)             |
+| [`MSE`](../losses.pytorch.html#mean-squared-error-mse)        | [`sMAPE`](../losses.pytorch.html#symmetric-mape-smape)               |                                                                  | [`Tukey`](../losses.pytorch.html#tukey-loss)             |
+| [`RMSE`](../losses.pytorch.html#root-mean-squared-error-rmse) |                                                                      |                                                                  | [`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss) |
+
+| Parametric Probabilities                                                                                            | Non-Parametric Probabilities                                   |
+|:------------------|:------------------|
+| [`Normal`](../losses.pytorch.html#distributionloss)                                                                 | [`QuantileLoss`](../losses.pytorch.html#quantile-loss)         |
+| [`StudenT`](../losses.pytorch.html#distributionloss)                                                                | [`MQLoss`](../losses.pytorch.html#multi-quantile-loss-mqloss)  |
+| [`Poisson`](../losses.pytorch.html#distributionloss)                                                                | [`HuberQLoss`](../losses.pytorch.html#huberized-quantile-loss) |
+| [`Negative Binomial`](../losses.pytorch.html#distributionloss)                                                      | [`HuberMQLoss`](../losses.pytorch.html#huberized-mqloss)       |
+| [`Tweedie`](../losses.pytorch.html#distributionloss)                                                                |                                                                |
+| [`PMM`](../losses.pytorch.html#poisson-mixture-mesh-pmm) /[`GMM`](../losses.pytorch.html#gaussian-mixture-mesh-gmm) |                                                                |
+
+## MLP-Based Model Family
+
+The MLP-based family operates like a classic autoencoder. Its initial
+layers encode raw autoregressive window into a representation, and the
+decoder produces the desired output based on the horizon, probability
+output, or point objective. Recent architectures include modifications
+like residual learning techniques and task-specific changes.
+
+| Model                               | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values |
+|:--------------|:-------------:|:-------------:|:-------------:|:-------------:|
+| [`MLP`](../models.mlp.html)         |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`NBEATS`](../models.nbeats.html)   |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`NBEATSx`](../models.nbeatsx.html) |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`NHITS`](../models.nhits.html)     |       ✅       |           ✅           |           ✅           |             ✅              |
+
+## RNN-Based Model Family
+
+The RNN-based family attempts to leverage the data’s temporal structure
+while reducing MLPs over parametrization. Recurrent networks are dynamic
+and can handle sequences of varying lengths through a mechanism for
+updating internal states that considers the entire sequence history.
+Modern state modifications help diminish vanishing and exploding
+gradients.
+
+| Model                                      | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values |
+|:--------------|:-------------:|:-------------:|:-------------:|:-------------:|
+| [`RNN`](../models.rnn.html)                |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`GRU`](../models.gru.html)                |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`LSTM`](../models.lstm.html)              |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`TCN`](../models.tcn.html)                |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`DeepAR`](../models.deepar.html)          |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`DilatedRNN`](../models.dilated_rnn.html) |       ✅       |           ✅           |           ✅           |             ✅              |
+
+## Transformers Model Family
+
+Transformer architectures are an alternative to recurrent networks.
+These networks build on the self-attention mechanism that directly
+allows modeling the relationship between different sequence parts
+without sequential processing. Attention makes Transformers more
+parallelizable than RNNs.
+
+| Model                                                     | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values |
+|:--------------|:-------------:|:-------------:|:-------------:|:-------------:|
+| [`TFT`](../models.tft.html)                               |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`Informer`](../models.informer.html)                     |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`Autoformer`](../models.autoformer.html)                 |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`PatchTST`](../models.patchtst.html)                     |       ✅       |           ✅           |           ✅           |             ✅              |
+| [`VanillaTransformer`](../models.vanillatransformer.html) |       ✅       |           ✅           |           ✅           |             ✅              |
+
+## CNN-Based Model Family
+
+Convolutional Neural Networks (CNNs), originally celebrated for their
+accomplishments in image processing and computer vision, have also
+revealed substantial prowess in time series forecasting. Navigating
+through temporal data, CNNs utilize their convolutional layers to
+automatically and adaptively learn temporal patterns from the input
+data, offering an approach to uncovering subtle, underlying patterns
+embedded within a series of values.
+
+| Model                                 | Point Forecast | Probabilistic Forecast | Insample fitted values | Probabilistic fitted values |
+|:--------------------------|:-------:|:----------:|:----------:|:------------:|
+| [`TimesNet`](../models.timesnet.html) |       ✅       |           ✅           |           ✅           |             ✅              |
+

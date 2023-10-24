@@ -1,0 +1,130 @@
+---
+description: Torch Dataset for Time Series
+output-file: tsdataset.html
+title: PyTorch Dataset/Loader
+
+---
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L23"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TimeSeriesLoader
+
+> ``` text
+>  TimeSeriesLoader (dataset, **kwargs)
+> ```
+
+TimeSeriesLoader DataLoader. [Source
+code](https://github.com/Nixtla/neuralforecast1/blob/main/neuralforecast/tsdataset.py).
+
+Small change to PyTorch’s Data loader. Combines a dataset and a sampler,
+and provides an iterable over the given dataset.
+
+The class `~torch.utils.data.DataLoader` supports both map-style and
+iterable-style datasets with single- or multi-process loading,
+customizing loading order and optional automatic batching (collation)
+and memory pinning.
+
+**Parameters:**<br/> `batch_size`: (int, optional): how many samples per
+batch to load (default: 1).<br/> `shuffle`: (bool, optional): set to
+`True` to have the data reshuffled at every epoch (default:
+`False`).<br/> `sampler`: (Sampler or Iterable, optional): defines the
+strategy to draw samples from the dataset.<br/> Can be any `Iterable`
+with `__len__` implemented. If specified, `shuffle` must not be
+specified.<br/>
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L78"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TimeSeriesDataset
+
+> ``` text
+>  TimeSeriesDataset (temporal, temporal_cols, indptr, max_size:int,
+>                     min_size:int, static=None, static_cols=None,
+>                     sorted=False, scaler_type=None)
+> ```
+
+An abstract class representing a :class:`Dataset`.
+
+All datasets that represent a map from keys to data samples should
+subclass it. All subclasses should overwrite :meth:`__getitem__`,
+supporting fetching a data sample for a given key. Subclasses could also
+optionally overwrite :meth:`__len__`, which is expected to return the
+size of the dataset by many :class:`~torch.utils.data.Sampler`
+implementations and the default options of
+:class:`~torch.utils.data.DataLoader`. Subclasses could also optionally
+implement :meth:`__getitems__`, for speedup batched samples loading.
+This method accepts list of indices of samples of batch and returns list
+of samples.
+
+.. note:: :class:`~torch.utils.data.DataLoader` by default constructs a
+index sampler that yields integral indices. To make it work with a
+map-style dataset with non-integral indices/keys, a custom sampler must
+be provided.
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L370"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TimeSeriesDataModule
+
+> ``` text
+>  TimeSeriesDataModule (dataset:__main__.TimeSeriesDataset, batch_size=32,
+>                        valid_batch_size=1024, num_workers=0,
+>                        drop_last=False)
+> ```
+
+A DataModule standardizes the training, val, test splits, data
+preparation and transforms. The main advantage is consistent data
+splits, data preparation and transforms across models.
+
+Example::
+
+``` text
+import lightning.pytorch as L
+import torch.utils.data as data
+from pytorch_lightning.demos.boring_classes import RandomDataset
+
+class MyDataModule(L.LightningDataModule):
+    def prepare_data(self):
+        # download, IO, etc. Useful with shared filesystems
+        # only called on 1 GPU/TPU in distributed
+        ...
+
+    def setup(self, stage):
+        # make assignments here (val/train/test split)
+        # called on every process in DDP
+        dataset = RandomDataset(1, 100)
+        self.train, self.val, self.test = data.random_split(
+            dataset, [80, 10, 10], generator=torch.Generator().manual_seed(42)
+        )
+
+    def train_dataloader(self):
+        return data.DataLoader(self.train)
+
+    def val_dataloader(self):
+        return data.DataLoader(self.val)
+
+    def test_dataloader(self):
+        return data.DataLoader(self.test)
+
+    def teardown(self):
+        # clean up state after the trainer stops, delete files...
+        # called on every process in DDP
+        ...
+```
+
+```python
+# To test correct future_df wrangling of the `update_df` method
+# We are checking that we are able to recover the AirPassengers dataset
+# using the dataframe or splitting it into parts and initializing.
+```
+

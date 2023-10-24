@@ -1,0 +1,212 @@
+---
+description: NeuralForecast contains two main components, PyTorch implementations
+  deep learning predictive models, as well as parallelization and distributed computation
+  utilities. The first component comprises low-level PyTorch model estimator classes
+  like `models.NBEATS` and `models.RNN`. The second component is a high-level `core.NeuralForecast`
+  wrapper class that operates with sets of time series data stored in pandas DataFrames.
+output-file: core.html
+title: <span style="color:DarkOrange"> Core </span>
+
+---
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L157"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast
+
+> ``` text
+>  NeuralForecast (models:List[Any], freq:str,
+>                  local_scaler_type:Optional[str]=None)
+> ```
+
+The `core.StatsForecast` class allows you to efficiently fit multiple
+[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+models for large sets of time series. It operates with pandas DataFrame
+`df` that identifies series and datestamps with the `unique_id` and `ds`
+columns. The `y` column denotes the target time series variable.
+
+|                   | **Type**           | **Default** | **Details**                                                                                                                                                      |
+|------|------------------|-------------------------|-------------------------|
+| models            | List               |             | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html).                                             |
+| freq              | str                |             | Frequency of the data, <br/>see [panda’s available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).          |
+| local_scaler_type | Optional           | None        | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’, ‘minmax’ or ‘boxcox’ |
+| **Returns**       | **NeuralForecast** |             | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.**                                             |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L204"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.fit
+
+> ``` text
+>  NeuralForecast.fit (df:Optional[pandas.core.frame.DataFrame]=None,
+>                      static_df:Optional[pandas.core.frame.DataFrame]=None,
+>                      val_size:Optional[int]=0, sort_df:bool=True,
+>                      use_init_models:bool=False, verbose:bool=False)
+> ```
+
+Fit the core.NeuralForecast.
+
+Fit `models` to a large set of time series from DataFrame `df`. and
+store fitted models for later inspection.
+
+|                 | **Type**           | **Default** | **Details**                                                                                                                     |
+|------|------------------|-------------------------|-------------------------|
+| df              | Optional           | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
+| static_df       | Optional           | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
+| val_size        | Optional           | 0           | Size of validation set.                                                                                                         |
+| sort_df         | bool               | True        | Sort `df` before fitting.                                                                                                       |
+| use_init_models | bool               | False       | Use initial model passed when NeuralForecast object was instantiated.                                                           |
+| verbose         | bool               | False       | Print processing steps.                                                                                                         |
+| **Returns**     | **NeuralForecast** |             | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.**    |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L278"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.predict
+
+> ``` text
+>  NeuralForecast.predict (df:Optional[pandas.core.frame.DataFrame]=None,
+>                          static_df:Optional[pandas.core.frame.DataFrame]=N
+>                          one, futr_df:Optional[pandas.core.frame.DataFrame
+>                          ]=None, sort_df:bool=True, verbose:bool=False,
+>                          **data_kwargs)
+> ```
+
+Predict with core.NeuralForecast.
+
+Use stored fitted `models` to predict large set of time series from
+DataFrame `df`.
+
+|             | **Type**             | **Default** | **Details**                                                                                                                               |
+|------|------------------|-------------------------|-------------------------|
+| df          | Optional             | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If a DataFrame is passed, it is used to generate forecasts. |
+| static_df   | Optional             | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                              |
+| futr_df     | Optional             | None        | DataFrame with \[`unique_id`, `ds`\] columns and `df`’s future exogenous.                                                                 |
+| sort_df     | bool                 | True        | Sort `df` before fitting.                                                                                                                 |
+| verbose     | bool                 | False       | Print processing steps.                                                                                                                   |
+| data_kwargs | kwargs               |             | Extra arguments to be passed to the dataset within each model.                                                                            |
+| **Returns** | **pandas.DataFrame** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **             |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L407"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.cross_validation
+
+> ``` text
+>  NeuralForecast.cross_validation
+>                                   (df:Optional[pandas.core.frame.DataFrame
+>                                   ]=None, static_df:Optional[pandas.core.f
+>                                   rame.DataFrame]=None, n_windows:int=1,
+>                                   step_size:int=1,
+>                                   val_size:Optional[int]=0,
+>                                   test_size:Optional[int]=None,
+>                                   sort_df:bool=True,
+>                                   use_init_models:bool=False,
+>                                   verbose:bool=False, **data_kwargs)
+> ```
+
+Temporal Cross-Validation with core.NeuralForecast.
+
+`core.NeuralForecast`’s cross-validation efficiently fits a list of
+NeuralForecast models through multiple windows, in either chained or
+rolled manner.
+
+|                 | **Type**             | **Default** | **Details**                                                                                                                     |
+|------|------------------|-------------------------|-------------------------|
+| df              | Optional             | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
+| static_df       | Optional             | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
+| n_windows       | int                  | 1           | Number of windows used for cross validation.                                                                                    |
+| step_size       | int                  | 1           | Step size between each window.                                                                                                  |
+| val_size        | Optional             | 0           | Length of validation size. If passed, set `n_windows=None`.                                                                     |
+| test_size       | Optional             | None        | Length of test size. If passed, set `n_windows=None`.                                                                           |
+| sort_df         | bool                 | True        | Sort `df` before fitting.                                                                                                       |
+| use_init_models | bool                 | False       | Use initial model passed when object was instantiated.                                                                          |
+| verbose         | bool                 | False       | Print processing steps.                                                                                                         |
+| data_kwargs     | kwargs               |             | Extra arguments to be passed to the dataset within each model.                                                                  |
+| **Returns**     | **pandas.DataFrame** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **   |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L545"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.predict_insample
+
+> ``` text
+>  NeuralForecast.predict_insample (step_size:int=1)
+> ```
+
+Predict insample with core.NeuralForecast.
+
+`core.NeuralForecast`’s `predict_insample` uses stored fitted `models`
+to predict historic values of a time series from the stored dataframe.
+
+|             | **Type**             | **Default** | **Details**                                                       |
+|------|------------------|-------------------------|-------------------------|
+| step_size   | int                  | 1           | Step size between each window.                                    |
+| **Returns** | **pandas.DataFrame** |             | **DataFrame with insample predictions for all fitted `models`. ** |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L647"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.save
+
+> ``` text
+>  NeuralForecast.save (path:str, model_index:Optional[List]=None,
+>                       save_dataset:bool=True, overwrite:bool=False)
+> ```
+
+Save NeuralForecast core class.
+
+`core.NeuralForecast`’s method to save current status of models,
+dataset, and configuration. Note that by default the `models` are not
+saving training checkpoints to save disk memory, to get them change the
+individual model `**trainer_kwargs` to include
+`enable_checkpointing=True`.
+
+|              | **Type** | **Default** | **Details**                                                    |
+|------|------------------|-------------------------|-------------------------|
+| path         | str      |             | Directory to save current status.                              |
+| model_index  | Optional | None        | List to specify which models from list of self.models to save. |
+| save_dataset | bool     | True        | Whether to save dataset or not.                                |
+| overwrite    | bool     | False       | Whether to overwrite files or not.                             |
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L727"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NeuralForecast.load
+
+> ``` text
+>  NeuralForecast.load (path, verbose=False, **kwargs)
+> ```
+
+Load NeuralForecast
+
+`core.NeuralForecast`’s method to load checkpoint from path.
+
+|             | **Type**           | **Default** | **Details**                                                                                                  |
+|------|------------------|-------------------------|-------------------------|
+| path        | str                |             | Directory to save current status.                                                                            |
+| verbose     | bool               | False       |                                                                                                              |
+| kwargs      |                    |             | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`.                         |
+| **Returns** | **NeuralForecast** |             | **Instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
+
