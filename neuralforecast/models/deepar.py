@@ -468,10 +468,16 @@ class DeepAR(BaseWindows):
         )  # [n_layers, B*trajectory_samples, rnn_hidden_state]
 
         # Scales for inverse normalization
-        y_scale = self.scaler.x_scale[:, 0, temporal_cols.get_indexer(["y"])].squeeze(
-            -1
+        y_scale = (
+            self.scaler.x_scale[:, 0, temporal_cols.get_indexer(["y"])]
+            .squeeze(-1)
+            .to(encoder_input.device)
         )
-        y_loc = self.scaler.x_shift[:, 0, temporal_cols.get_indexer(["y"])].squeeze(-1)
+        y_loc = (
+            self.scaler.x_shift[:, 0, temporal_cols.get_indexer(["y"])]
+            .squeeze(-1)
+            .to(encoder_input.device)
+        )
         y_scale = torch.repeat_interleave(y_scale, self.trajectory_samples, 0)
         y_loc = torch.repeat_interleave(y_loc, self.trajectory_samples, 0)
 

@@ -8,6 +8,7 @@ import os
 import pickle
 import warnings
 from copy import deepcopy
+from itertools import chain
 from os.path import isfile, join
 from typing import Any, List, Optional
 
@@ -33,6 +34,7 @@ from neuralforecast.models import (
     FEDformer,
     StemGNN,
     PatchTST,
+    TimesNet,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -148,11 +150,14 @@ MODEL_FILENAME_DICT = {
     "autopatchtst": PatchTST,
     "autofedformer": FEDformer,
     "autostemgnn": StemGNN,
+    "autotimesnet": TimesNet,
 }
 
 # %% ../nbs/core.ipynb 12
 class NeuralForecast:
-    def __init__(self, models: List[Any], freq: str):
+    def __init__(
+        self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
+    ):
         """
         The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
         for large sets of time series. It operates with pandas DataFrame `df` that identifies series
@@ -167,6 +172,9 @@ class NeuralForecast:
         freq : str
             Frequency of the data,
             see [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+        local_scaler_type : str, optional (default=None)
+            Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
+            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
 
         Returns
         -------
@@ -181,14 +189,15 @@ class NeuralForecast:
         self.models_init = models
         self.models = [deepcopy(model) for model in self.models_init]
         self.freq = pd.tseries.frequencies.to_offset(freq)
+        self.local_scaler_type = local_scaler_type
 
         # Flags and attributes
         self._fitted = False
 
-    def _prepare_fit(self, df, static_df, sort_df):
+    def _prepare_fit(self, df, static_df, sort_df, scaler_type):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
-            df=df, static_df=static_df, sort_df=sort_df
+            df=df, static_df=static_df, sort_df=sort_df, scaler_type=scaler_type
         )
         return dataset, uids, last_dates, ds
 
@@ -239,7 +248,10 @@ class NeuralForecast:
         # Process and save new dataset (in self)
         if df is not None:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                scaler_type=self.local_scaler_type,
             )
             self.sort_df = sort_df
         else:
@@ -304,11 +316,29 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
+        needed_futr_exog = set(
+            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
+        )
+        if needed_futr_exog:
+            if futr_df is None:
+                raise ValueError(
+                    f"Models require the following future exogenous features: {needed_futr_exog}. "
+                    "Please provide them through the `futr_df` argument."
+                )
+            else:
+                missing = needed_futr_exog - set(futr_df.columns)
+                if missing:
+                    raise ValueError(
+                        f"The following features are missing from `futr_df`: {missing}"
+                    )
+
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df
+                df=df, static_df=static_df, sort_df=sort_df, scaler_type=None
             )
+            dataset.scalers_ = self.dataset.scalers_
+            dataset._transform_temporal()
         else:
             dataset = self.dataset
             uids = self.uids
@@ -332,6 +362,19 @@ class NeuralForecast:
 
         # Update and define new forecasting dataset
         if futr_df is not None:
+            futr_orig_rows = futr_df.shape[0]
+            futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
+            base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
+            if futr_df.shape[0] < fcsts_df.shape[0]:
+                raise ValueError(base_err_msg)
+            if futr_orig_rows > futr_df.shape[0]:
+                dropped_rows = futr_orig_rows - futr_df.shape[0]
+                warnings.warn(
+                    f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
+                    + base_err_msg
+                )
+            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
             dataset = TimeSeriesDataset.update_dataset(
                 dataset=dataset, future_df=futr_df
             )
@@ -351,6 +394,9 @@ class NeuralForecast:
             fcsts[:, col_idx : col_idx + output_length] = model_fcsts
             col_idx += output_length
             model.set_test_size(old_test_size)  # Set back to original value
+        if self.dataset.scalers_ is not None:
+            indptr = np.append(0, np.full(len(uids), self.h).cumsum())
+            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
@@ -412,7 +458,10 @@ class NeuralForecast:
         # Process and save new dataset (in self)
         if df is not None:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                scaler_type=self.local_scaler_type,
             )
             self.sort_df = sort_df
         else:
@@ -477,6 +526,11 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
+        if self.dataset.scalers_ is not None:
+            indptr = np.append(
+                0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
+            )
+            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
 
         self._fitted = True
 
@@ -579,6 +633,14 @@ class NeuralForecast:
         )
         Y_df = Y_df.reset_index(drop=False)
         fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
+        if self.dataset.scalers_ is not None:
+            sizes = fcsts_df.groupby("unique_id", observed=True).size().values
+            indptr = np.append(0, sizes.cumsum())
+            invert_cols = cols + ["y"]
+            fcsts_df[invert_cols] = self.dataset._invert_target_transform(
+                fcsts_df[invert_cols].values, indptr
+            )
+
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -662,7 +724,7 @@ class NeuralForecast:
             pickle.dump(config_dict, f)
 
     @staticmethod
-    def load(path, verbose=False):
+    def load(path, verbose=False, **kwargs):
         """Load NeuralForecast
 
         `core.NeuralForecast`'s method to load checkpoint from path.
@@ -671,6 +733,9 @@ class NeuralForecast:
         -----------
         path : str
             Directory to save current status.
+        kwargs
+            Additional keyword arguments to be passed to the function
+            `load_from_checkpoint`.
 
         Returns
         -------
@@ -690,7 +755,9 @@ class NeuralForecast:
         for model in models_ckpt:
             model_name = model.split("_")[0]
             models.append(
-                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(f"{path}/{model}")
+                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(
+                    f"{path}/{model}", **kwargs
+                )
             )
             if verbose:
                 print(f"Model {model_name} loaded.")

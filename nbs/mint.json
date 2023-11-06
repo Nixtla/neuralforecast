@@ -1,0 +1,138 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Nixtla",
+  "logo": {
+    "light": "/light.png",
+    "dark": "/dark.png"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0E0E0E",
+    "light": "#FAFAFA",
+    "dark": "#0E0E0E",
+    "anchors": {
+      "from": "#2AD0CA",
+      "to": "#0E00F8"
+    }
+  },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/Nixtla/neuralforecast"
+  },
+  "topAnchor": {
+    "name": "NeuralForecast",
+    "icon": "brain-circuit"
+  },
+  "navigation": [
+    {
+      "group": "",
+      "pages": ["index.html"]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "examples/installation.html",
+        "examples/getting_started.html",
+        "examples/data_format.html",
+        "examples/exogenous_variables.html",
+        "examples/time_series_scaling.html",
+        "examples/automatic_hyperparameter_tuning.html",
+        "examples/predictinsample.html",
+        "examples/save_load_models.html",
+        "examples/getting_started_complete.html",
+        "examples/neuralforecast_map.html",
+        "examples/how_to_add_models.html"
+      ]
+    },
+    {
+      "group": "Tutorials",
+      "pages": [
+        "examples/signal_decomposition.html",
+        "examples/uncertaintyintervals.html",
+        "examples/longhorizon_probabilistic.html",
+        "examples/longhorizon_with_transformers.html",
+        "examples/intermittentdata.html",
+        "examples/robust_regression.html",
+        "examples/electricitypeakforecasting.html",
+        "examples/hierarchicalnetworks.html",
+        "examples/transfer_learning.html",
+        "examples/temporal_classifiers.html",
+        "examples/predictive_maintenance.html",
+        "examples/statsmlneuralmethods.html"
+      ]
+    },
+    {
+      "group": "",
+      "pages": ["examples/models_intro"]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "core.html",
+        "models.html",
+        "models.html",
+        {
+          "group": "Models' Documentation",
+          "pages": [
+            {
+              "group": "A. RNN-Based",
+              "pages": [
+                "models.rnn.html",
+                "models.gru.html",
+                "models.lstm.html",
+                "models.dilated_rnn.html",
+                "models.tcn.html",
+                "models.deepar.html"
+              ]
+            },
+            {
+              "group": "B. MLP-Based",
+              "pages": [
+                "models.mlp.html",
+                "models.nhits.html",
+                "models.nbeats.html",
+                "models.nbeatsx.html"
+              ]
+            },
+            {
+              "group": "C. Transformer-Based",
+              "pages": [
+                "models.tft.html",
+                "models.vanillatransformer.html",
+                "models.informer.html",
+                "models.autoformer.html",
+                "models.patchtst.html"
+              ]
+            },
+            {
+              "group": "D. CNN-Based",
+              "pages": ["models.timesnet.html"]
+            },
+            {
+              "group": "E. Multivariate",
+              "pages": ["models.hint.html", "models.stemgnn.html"]
+            }
+          ]
+        },
+        {
+          "group": "Train/Evaluation",
+          "pages": ["losses.pytorch.html", "losses.numpy.html"]
+        },
+        {
+          "group": "Common Components",
+          "pages": [
+            "common.base_auto.html",
+            "common.base_recurrent.html",
+            "common.base_windows.html",
+            "common.scalers.html",
+            "common.modules.html"
+          ]
+        },
+        {
+          "group": "Utils",
+          "pages": ["tsdataset.html", "utils.html"]
+        }
+      ]
+    }
+  ]
+}

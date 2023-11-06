@@ -102,15 +102,17 @@ class BaseRecurrent(pl.LightningModule):
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
 
-        # Scaler
-        self.scaler = TemporalNorm(
-            scaler_type=scaler_type, dim=-1
-        )  # Time dimension is -1.
-
         # Variables
         self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
         self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
         self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+
+        # Scaler
+        self.scaler = TemporalNorm(
+            scaler_type=scaler_type,
+            dim=-1,  # Time dimension is -1.
+            num_features=1 + len(self.hist_exog_list) + len(self.futr_exog_list),
+        )
 
         # Fit arguments
         self.val_size = 0
@@ -176,12 +178,18 @@ class BaseRecurrent(pl.LightningModule):
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
+    def _get_temporal_data_cols(self, temporal_cols):
+        temporal_data_cols = ["y"] + list(
+            set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
+        )
+        return temporal_data_cols
+
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
 
         # Separate data and mask
-        temporal_data_cols = temporal_cols.drop("available_mask").tolist()
+        temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
         temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :]
         temporal_mask = temporal[:, temporal_cols.get_loc("available_mask"), :].clone()
 
@@ -243,9 +251,7 @@ class BaseRecurrent(pl.LightningModule):
             )
             min_time_stamp = int(av_condition.min())
 
-            available_ts = (
-                temporal.shape[-1] - min_time_stamp + 1
-            )  # +1, inclusive counting
+            available_ts = temporal.shape[-1] - min_time_stamp
             if available_ts < 1 + self.h:
                 raise Exception(
                     "Time series too short for given input and output size. \n"
@@ -580,6 +586,25 @@ class BaseRecurrent(pl.LightningModule):
         `test_size`: int, test size for temporal cross-validation.<br>
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         """
+
+        # Check exogenous variables are contained in dataset
+        temporal_cols = set(dataset.temporal_cols.tolist())
+        static_cols = set(
+            dataset.static_cols.tolist() if dataset.static_cols is not None else []
+        )
+        if len(set(self.hist_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
+            )
+        if len(set(self.futr_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
+            )
+        if len(set(self.stat_exog_list) - static_cols) > 0:
+            raise Exception(
+                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
+            )
+
         # Restart random seed
         if random_seed is None:
             random_seed = self.random_seed
@@ -618,6 +643,25 @@ class BaseRecurrent(pl.LightningModule):
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+
+        # Check exogenous variables are contained in dataset
+        temporal_cols = set(dataset.temporal_cols.tolist())
+        static_cols = set(
+            dataset.static_cols.tolist() if dataset.static_cols is not None else []
+        )
+        if len(set(self.hist_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
+            )
+        if len(set(self.futr_exog_list) - temporal_cols) > 0:
+            raise Exception(
+                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
+            )
+        if len(set(self.stat_exog_list) - static_cols) > 0:
+            raise Exception(
+                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
+            )
+
         # Restart random seed
         if random_seed is None:
             random_seed = self.random_seed

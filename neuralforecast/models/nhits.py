@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NHITS']
 
-# %% ../../nbs/models.nhits.ipynb 5
+# %% ../../nbs/models.nhits.ipynb 6
 from typing import Tuple, Optional
 
 import numpy as np
@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nhits.ipynb 8
+# %% ../../nbs/models.nhits.ipynb 9
 class _IdentityBasis(nn.Module):
     def __init__(
         self,
@@ -68,7 +68,7 @@ class _IdentityBasis(nn.Module):
         forecast = forecast.permute(0, 2, 1)
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 9
+# %% ../../nbs/models.nhits.ipynb 10
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 POOLING = ["MaxPool1d", "AvgPool1d"]
@@ -179,7 +179,7 @@ class NHITSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 10
+# %% ../../nbs/models.nhits.ipynb 11
 class NHITS(BaseWindows):
     """NHITS
 
