@@ -174,7 +174,6 @@ class TimeSeriesDataset(Dataset):
             curr_slice = slice(self.indptr[i], self.indptr[i + 1])
             curr_size = curr_slice.stop - curr_slice.start
             futr_slice = slice(futr_dataset.indptr[i], futr_dataset.indptr[i + 1])
-            new_slice = slice(new_indptr[i], new_indptr[i + 1])
             new_temporal[new_indptr[i] : new_indptr[i] + curr_size] = self.temporal[
                 curr_slice
             ]
