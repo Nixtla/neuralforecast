@@ -10,10 +10,19 @@ import warnings
 from copy import deepcopy
 from itertools import chain
 from os.path import isfile, join
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+import torch
+from utilsforecast.grouped_array import GroupedArray
+from utilsforecast.target_transforms import (
+    BaseTargetTransform,
+    LocalBoxCox,
+    LocalMinMaxScaler,
+    LocalRobustScaler,
+    LocalStandardScaler,
+)
 
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
@@ -154,6 +163,15 @@ MODEL_FILENAME_DICT = {
 }
 
 # %% ../nbs/core.ipynb 12
+_type2scaler = {
+    "standard": LocalStandardScaler,
+    "robust": lambda: LocalRobustScaler(scale="mad"),
+    "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
+    "minmax": LocalMinMaxScaler,
+    "boxcox": LocalBoxCox,
+}
+
+# %% ../nbs/core.ipynb 13
 class NeuralForecast:
     def __init__(
         self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
@@ -189,16 +207,56 @@ class NeuralForecast:
         self.models_init = models
         self.models = [deepcopy(model) for model in self.models_init]
         self.freq = pd.tseries.frequencies.to_offset(freq)
+        if local_scaler_type is not None and local_scaler_type not in _type2scaler:
+            raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
+        self.scalers_: Dict[str, BaseTargetTransform]
 
         # Flags and attributes
         self._fitted = False
 
-    def _prepare_fit(self, df, static_df, sort_df, scaler_type):
+    def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
+        self.scalers_ = {}
+        if self.local_scaler_type is None:
+            return None
+        for i, col in enumerate(dataset.temporal_cols):
+            if col == "available_mask":
+                continue
+            self.scalers_[col] = _type2scaler[self.local_scaler_type]()
+            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+            dataset.temporal[:, i] = torch.from_numpy(
+                self.scalers_[col].fit_transform(ga)
+            )
+
+    def _scalers_transform(self, dataset: TimeSeriesDataset) -> None:
+        if not self.scalers_:
+            return None
+        for i, col in enumerate(dataset.temporal_cols):
+            scaler = self.scalers_.get(col, None)
+            if scaler is None:
+                continue
+            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+            dataset.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
+
+    def _scalers_target_inverse_transform(
+        self, data: np.ndarray, indptr: np.ndarray
+    ) -> np.ndarray:
+        if not self.scalers_:
+            return data
+        for i in range(data.shape[1]):
+            ga = GroupedArray(data[:, i], indptr)
+            data[:, i] = self.scalers_["y"].inverse_transform(ga)
+        return data
+
+    def _prepare_fit(self, df, static_df, sort_df, predict_only):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
-            df=df, static_df=static_df, sort_df=sort_df, scaler_type=scaler_type
+            df=df, static_df=static_df, sort_df=sort_df
         )
+        if predict_only:
+            self._scalers_transform(dataset)
+        else:
+            self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
 
     def fit(
@@ -248,10 +306,7 @@ class NeuralForecast:
         # Process and save new dataset (in self)
         if df is not None:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df,
-                static_df=static_df,
-                sort_df=sort_df,
-                scaler_type=self.local_scaler_type,
+                df=df, static_df=static_df, sort_df=sort_df, predict_only=False
             )
             self.sort_df = sort_df
         else:
@@ -335,10 +390,8 @@ class NeuralForecast:
         # Process new dataset but does not store it.
         if df is not None:
             dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df, scaler_type=None
+                df=df, static_df=static_df, sort_df=sort_df, predict_only=True
             )
-            dataset.scalers_ = self.dataset.scalers_
-            dataset._transform_temporal()
         else:
             dataset = self.dataset
             uids = self.uids
@@ -375,13 +428,11 @@ class NeuralForecast:
                 )
             if any(futr_df[col].isnull().any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
-            dataset = TimeSeriesDataset.update_dataset(
-                dataset=dataset, future_df=futr_df
-            )
+            futr_dataset = dataset.align(futr_df)
         else:
-            dataset = TimeSeriesDataset.update_dataset(
-                dataset=dataset, future_df=fcsts_df.reset_index()
-            )
+            futr_dataset = dataset.align(fcsts_df.reset_index())
+        self._scalers_transform(futr_dataset)
+        dataset = dataset.append(futr_dataset)
 
         col_idx = 0
         fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
@@ -394,9 +445,9 @@ class NeuralForecast:
             fcsts[:, col_idx : col_idx + output_length] = model_fcsts
             col_idx += output_length
             model.set_test_size(old_test_size)  # Set back to original value
-        if self.dataset.scalers_ is not None:
+        if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
-            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
+            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
         fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
@@ -458,10 +509,7 @@ class NeuralForecast:
         # Process and save new dataset (in self)
         if df is not None:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df,
-                static_df=static_df,
-                sort_df=sort_df,
-                scaler_type=self.local_scaler_type,
+                df=df, static_df=static_df, sort_df=sort_df, predict_only=False
             )
             self.sort_df = sort_df
         else:
@@ -526,11 +574,11 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
-        if self.dataset.scalers_ is not None:
+        if self.scalers_:
             indptr = np.append(
                 0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
             )
-            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
+            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         self._fitted = True
 
@@ -633,11 +681,11 @@ class NeuralForecast:
         )
         Y_df = Y_df.reset_index(drop=False)
         fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
-        if self.dataset.scalers_ is not None:
+        if self.scalers_:
             sizes = fcsts_df.groupby("unique_id", observed=True).size().values
             indptr = np.append(0, sizes.cumsum())
             invert_cols = cols + ["y"]
-            fcsts_df[invert_cols] = self.dataset._invert_target_transform(
+            fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].values, indptr
             )
 
@@ -718,6 +766,8 @@ class NeuralForecast:
             "ds": self.ds,
             "sort_df": self.sort_df,
             "_fitted": self._fitted,
+            "local_scaler_type": self.local_scaler_type,
+            "scalers_": self.scalers_,
         }
 
         with open(f"{path}/configuration.pkl", "wb") as f:
@@ -787,7 +837,11 @@ class NeuralForecast:
             raise Exception("No configuration found in directory.")
 
         # Create NeuralForecast object
-        neuralforecast = NeuralForecast(models=models, freq=config_dict["freq"])
+        neuralforecast = NeuralForecast(
+            models=models,
+            freq=config_dict["freq"],
+            local_scaler_type=config_dict["local_scaler_type"],
+        )
 
         # Dataset
         if dataset is not None:
@@ -799,5 +853,7 @@ class NeuralForecast:
 
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
+
+        neuralforecast.scalers_ = config_dict["scalers_"]
 
         return neuralforecast
