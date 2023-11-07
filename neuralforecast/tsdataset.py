@@ -196,6 +196,11 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
+    def update_dataset(dataset, futr_df):
+        futr_dataset = dataset.align(futr_df)
+        return dataset.append(futr_dataset)
+
+    @staticmethod
     def trim_dataset(dataset, left_trim: int = 0, right_trim: int = 0):
         """
         Trim temporal information from a dataset.
