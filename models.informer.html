@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>neuralforecast - Informer</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon_png.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="neuralforecast - Informer">
+<meta property="og:description" content="">
+<meta property="og:image" content="https://github.com/Nixtla/styles/blob/2abf51612584169874c90cd7c4d347e3917eaf73/images/Banner%20Github.png">
+<meta property="og:site-name" content="neuralforecast">
+<meta name="twitter:title" content="neuralforecast - Informer">
+<meta name="twitter:description" content="">
+<meta name="twitter:image" content="https://farm6.staticflickr.com/5510/14338202952_93595258ff_z.jpg">
+<meta name="twitter:site" content="@Nixtlainc">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">neuralforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./examples/getting_started.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast" rel="" target="">
+ <span class="dropdown-text">HierarchicalForecast 👑</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/neuralforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./core.html">API Reference</a></li><li class="breadcrumb-item">Models' Documentation</li><li class="breadcrumb-item"><a href="./models.tft.html">C. Transformer-Based</a></li><li class="breadcrumb-item"><a href="./models.informer.html">Informer</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">🧠 NeuralForecast</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/getting_started.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/data_format.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data Inputs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/exogenous_variables.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exogenous Variables</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/time_series_scaling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time Series Scaling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/automatic_hyperparameter_tuning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hyperparameter Optimization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/predictinsample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Predict Insample</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/save_load_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Save and Load Models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/getting_started_complete.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">End to End Walkthrough</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/neuralforecast_map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NeuralForecast map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/how_to_add_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">How to add new Models to NeuralForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/signal_decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpretable Decompositions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/uncertaintyintervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Forecasts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_with_nhits.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Long-Horizon Forecast</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/forecasting_tft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TFT: Temporal Fusion Transformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_probabilistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Long-Horizon</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_with_transformers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transformer models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/intermittentdata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Intermittent/Sparse Series M5</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/robust_regression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outlier Robust Forecasting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/electricitypeakforecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Detect Demand Peaks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/hierarchicalnetworks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/transfer_learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transfer Learning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/temporal_classifiers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Temporal Classification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/predictive_maintenance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Predictive Maintenance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/statsmlneuralmethods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistical, Machine Learning and Neural Forecasting methods</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/models_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NeuralForecast’s Contents</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Core </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Models </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Models’ Documentation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">A. RNN-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.rnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">RNN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.gru.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GRU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.lstm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LSTM</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.dilated_rnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Dilated RNN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.tcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TCN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.deepar.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DeepAR</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">B. MLP-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.mlp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MLP</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nhits.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NHITS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nbeats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NBEATS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nbeatsx.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NBEATSx</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true">
+ <span class="menu-text">C. Transformer-Based</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth3 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.tft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.vanillatransformer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vanilla Transformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.informer.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Informer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.autoformer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Autoformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.patchtst.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PatchTST</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false">
+ <span class="menu-text">D. CNN-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.timesnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TimesNet</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="false">
+ <span class="menu-text">E. Multivariate</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.hint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HINT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.stemgnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StemGNN</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="false">
+ <span class="menu-text">Train/Evaluation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.pytorch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Losses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.numpy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NumPy Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="false">
+ <span class="menu-text">Common Components</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_auto.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hyperparameter Optimization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_recurrent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BaseRecurrent</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_windows.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BaseWindows</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.scalers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TemporalNorm</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NN Modules</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tsdataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Dataset/Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example Data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-13" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#auxiliary-functions" id="toc-auxiliary-functions" class="nav-link active" data-scroll-target="#auxiliary-functions">1. Auxiliary Functions</a>
+  <ul class="collapse">
+  <li><a href="#convlayer" id="toc-convlayer" class="nav-link" data-scroll-target="#convlayer">ConvLayer</a></li>
+  <li><a href="#probattention" id="toc-probattention" class="nav-link" data-scroll-target="#probattention">ProbAttention</a></li>
+  <li><a href="#probmask" id="toc-probmask" class="nav-link" data-scroll-target="#probmask">ProbMask</a></li>
+  </ul></li>
+  <li><a href="#informer" id="toc-informer" class="nav-link" data-scroll-target="#informer">2. Informer</a>
+  <ul class="collapse">
+  <li><a href="#informer-1" id="toc-informer-1" class="nav-link" data-scroll-target="#informer-1">Informer</a></li>
+  <li><a href="#informer.fit" id="toc-informer.fit" class="nav-link" data-scroll-target="#informer.fit">Informer.fit</a></li>
+  <li><a href="#informer.predict" id="toc-informer.predict" class="nav-link" data-scroll-target="#informer.predict">Informer.predict</a></li>
+  </ul></li>
+  <li><a href="#usage-example" id="toc-usage-example" class="nav-link" data-scroll-target="#usage-example">Usage Example</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/neuralforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Informer</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>The Informer model tackles the vanilla Transformer computational complexity challenges for long-horizon forecasting.</p>
+<p>The architecture has three distinctive features: - A ProbSparse self-attention mechanism with an O time and memory complexity Llog(L). - A self-attention distilling process that prioritizes attention and efficiently handles long input sequences. - An MLP multi-step decoder that predicts long time-series sequences in a single forward operation rather than step-by-step.</p>
+<p>The Informer model utilizes a three-component approach to define its embedding: - It employs encoded autoregressive features obtained from a convolution network. - It uses window-relative positional embeddings derived from harmonic functions. - Absolute positional embeddings obtained from calendar features are utilized.</p>
+<p><strong>References</strong><br> - <a href="https://arxiv.org/abs/2012.07436">Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting”</a><br></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="imgs_models/informer_architecture.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Figure 1. Temporal Fusion Transformer Architecture.</figcaption>
+</figure>
+</div>
+<section id="auxiliary-functions" class="level2">
+<h2 class="anchored" data-anchor-id="auxiliary-functions">1. Auxiliary Functions</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/informer.py#L27" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="convlayer" class="level3">
+<h3 class="anchored" data-anchor-id="convlayer">ConvLayer</h3>
+<blockquote class="blockquote">
+<pre><code> ConvLayer (c_in)</code></pre>
+</blockquote>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in a tree structure. You can assign the submodules as regular attributes::</p>
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note:: As per the example above, an <code>__init__()</code> call to the parent class must be made before assignment on the child.</p>
+<p>:ivar training: Boolean represents whether this module is in training or evaluation mode. :vartype training: bool</p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/informer.py#L64" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="probattention" class="level3">
+<h3 class="anchored" data-anchor-id="probattention">ProbAttention</h3>
+<blockquote class="blockquote">
+<pre><code> ProbAttention (mask_flag=True, factor=5, scale=None,
+                attention_dropout=0.1, output_attention=False)</code></pre>
+</blockquote>
+<p>Base class for all neural network modules.</p>
+<p>Your models should also subclass this class.</p>
+<p>Modules can also contain other Modules, allowing to nest them in a tree structure. You can assign the submodules as regular attributes::</p>
+<pre><code>import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))</code></pre>
+<p>Submodules assigned in this way will be registered, and will have their parameters converted too when you call :meth:<code>to</code>, etc.</p>
+<p>.. note:: As per the example above, an <code>__init__()</code> call to the parent class must be made before assignment on the child.</p>
+<p>:ivar training: Boolean represents whether this module is in training or evaluation mode. :vartype training: bool</p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/informer.py#L50" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="probmask" class="level3">
+<h3 class="anchored" data-anchor-id="probmask">ProbMask</h3>
+<blockquote class="blockquote">
+<pre><code> ProbMask (B, H, L, index, scores, device='cpu')</code></pre>
+</blockquote>
+<p>Initialize self. See help(type(self)) for accurate signature.</p>
+</section>
+</section>
+<section id="informer" class="level2">
+<h2 class="anchored" data-anchor-id="informer">2. Informer</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/informer.py#L168" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="informer-1" class="level3">
+<h3 class="anchored" data-anchor-id="informer-1">Informer</h3>
+<blockquote class="blockquote">
+<pre><code> Informer (h:int, input_size:int, stat_exog_list=None,
+           hist_exog_list=None, futr_exog_list=None,
+           exclude_insample_y=False,
+           decoder_input_size_multiplier:float=0.5, hidden_size:int=128,
+           dropout:float=0.05, factor:int=3, n_head:int=4,
+           conv_hidden_size:int=32, activation:str='gelu',
+           encoder_layers:int=2, decoder_layers:int=1, distil:bool=True,
+           loss=MAE(), valid_loss=None, max_steps:int=5000,
+           learning_rate:float=0.0001, num_lr_decays:int=-1,
+           early_stop_patience_steps:int=-1, val_check_steps:int=100,
+           batch_size:int=32, valid_batch_size:Optional[int]=None,
+           windows_batch_size=1024, inference_windows_batch_size=1024,
+           start_padding_enabled=False, step_size:int=1,
+           scaler_type:str='identity', random_seed:int=1,
+           num_workers_loader:int=0, drop_last_loader:bool=False,
+           **trainer_kwargs)</code></pre>
+</blockquote>
+<p>Informer</p>
+<pre><code>The Informer model tackles the vanilla Transformer computational complexity challenges for long-horizon forecasting. 
+The architecture has three distinctive features:
+1) A ProbSparse self-attention mechanism with an O time and memory complexity Llog(L).
+2) A self-attention distilling process that prioritizes attention and efficiently handles long input sequences.
+3) An MLP multi-step decoder that predicts long time-series sequences in a single forward operation rather than step-by-step.</code></pre>
+<p>The Informer model utilizes a three-component approach to define its embedding: 1) It employs encoded autoregressive features obtained from a convolution network. 2) It uses window-relative positional embeddings derived from harmonic functions. 3) Absolute positional embeddings obtained from calendar features are utilized.</p>
+<p><em>Parameters:</em><br> <code>h</code>: int, forecast horizon.<br> <code>input_size</code>: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br> <code>futr_exog_list</code>: str list, future exogenous columns.<br> <code>hist_exog_list</code>: str list, historic exogenous columns.<br> <code>stat_exog_list</code>: str list, static exogenous columns.<br> <code>exclude_insample_y</code>: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br> <code>decoder_input_size_multiplier</code>: float = 0.5, .<br> <code>hidden_size</code>: int=128, units of embeddings and encoders.<br> <code>n_head</code>: int=4, controls number of multi-head’s attention.<br> <code>dropout</code>: float (0, 1), dropout throughout Informer architecture.<br> <code>factor</code>: int=3, Probsparse attention factor.<br> <code>conv_hidden_size</code>: int=32, channels of the convolutional encoder.<br> <code>activation</code>: str=<code>GELU</code>, activation from [‘ReLU’, ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘PReLU’, ‘Sigmoid’, ‘GELU’].<br> <code>encoder_layers</code>: int=2, number of layers for the TCN encoder.<br> <code>decoder_layers</code>: int=1, number of layers for the MLP decoder.<br> <code>distil</code>: bool = True, wether the Informer decoder uses bottlenecks.<br> <code>loss</code>: PyTorch module, instantiated train loss class from <a href="https://nixtla.github.io/neuralforecast/losses.pytorch.html">losses collection</a>.<br> <code>max_steps</code>: int=1000, maximum number of training steps.<br> <code>learning_rate</code>: float=1e-3, Learning rate between (0, 1).<br> <code>num_lr_decays</code>: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br> <code>early_stop_patience_steps</code>: int=-1, Number of validation iterations before early stopping.<br> <code>val_check_steps</code>: int=100, Number of training steps between every validation loss check.<br> <code>batch_size</code>: int=32, number of different series in each batch.<br> <code>valid_batch_size</code>: int=None, number of different series in each validation and test batch, if None uses batch_size.<br> <code>windows_batch_size</code>: int=1024, number of windows to sample in each training batch, default uses all.<br> <code>inference_windows_batch_size</code>: int=1024, number of windows to sample in each inference batch.<br> <code>start_padding_enabled</code>: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br> <code>scaler_type</code>: str=‘robust’, type of scaler for temporal inputs normalization see <a href="https://nixtla.github.io/neuralforecast/common.scalers.html">temporal scalers</a>.<br> <code>random_seed</code>: int=1, random_seed for pytorch initializer and numpy generators.<br> <code>num_workers_loader</code>: int=os.cpu_count(), workers to be used by <code>TimeSeriesDataLoader</code>.<br> <code>drop_last_loader</code>: bool=False, if True <code>TimeSeriesDataLoader</code> drops last non-full batch.<br> <code>alias</code>: str, optional, Custom name of the model.<br> <code>**trainer_kwargs</code>: int, keyword trainer arguments inherited from <a href="https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer">PyTorch Lighning’s trainer</a>.<br></p>
+<pre><code>*References*&lt;br&gt;
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)&lt;br&gt;</code></pre>
+<hr>
+</section>
+<section id="informer.fit" class="level3">
+<h3 class="anchored" data-anchor-id="informer.fit">Informer.fit</h3>
+<blockquote class="blockquote">
+<pre><code> Informer.fit (dataset, val_size=0, test_size=0, random_seed=None)</code></pre>
+</blockquote>
+<p>Fit.</p>
+<p>The <code>fit</code> method, optimizes the neural network’s weights using the initialization parameters (<code>learning_rate</code>, <code>windows_batch_size</code>, …) and the <code>loss</code> function as defined during the initialization. Within <code>fit</code> we use a PyTorch Lightning <code>Trainer</code> that inherits the initialization’s <code>self.trainer_kwargs</code>, to customize its inputs, see <a href="https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer">PL’s trainer arguments</a>.</p>
+<p>The method is designed to be compatible with SKLearn-like classes and in particular to be compatible with the StatsForecast library.</p>
+<p>By default the <code>model</code> is not saving training checkpoints to protect disk memory, to get them change <code>enable_checkpointing=True</code> in <code>__init__</code>.</p>
+<p><strong>Parameters:</strong><br> <code>dataset</code>: NeuralForecast’s <a href="https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset"><code>TimeSeriesDataset</code></a>, see <a href="https://nixtla.github.io/neuralforecast/tsdataset.html">documentation</a>.<br> <code>val_size</code>: int, validation size for temporal cross-validation.<br> <code>random_seed</code>: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__’s.<br> <code>test_size</code>: int, test size for temporal cross-validation.<br></p>
+<hr>
+</section>
+<section id="informer.predict" class="level3">
+<h3 class="anchored" data-anchor-id="informer.predict">Informer.predict</h3>
+<blockquote class="blockquote">
+<pre><code> Informer.predict (dataset, test_size=None, step_size=1, random_seed=None,
+                   **data_module_kwargs)</code></pre>
+</blockquote>
+<p>Predict.</p>
+<p>Neural network prediction with PL’s <code>Trainer</code> execution of <code>predict_step</code>.</p>
+<p><strong>Parameters:</strong><br> <code>dataset</code>: NeuralForecast’s <a href="https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset"><code>TimeSeriesDataset</code></a>, see <a href="https://nixtla.github.io/neuralforecast/tsdataset.html">documentation</a>.<br> <code>test_size</code>: int=None, test size for temporal cross-validation.<br> <code>step_size</code>: int=1, Step size between each window.<br> <code>random_seed</code>: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__’s.<br> <code>**data_module_kwargs</code>: PL’s TimeSeriesDataModule args, see <a href="https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule">documentation</a>.</p>
+</section>
+</section>
+<section id="usage-example" class="level2">
+<h2 class="anchored" data-anchor-id="usage-example">Usage Example</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pytorch_lightning <span class="im">as</span> pl</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neuralforecast <span class="im">import</span> NeuralForecast</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neuralforecast.models <span class="im">import</span> MLP</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neuralforecast.losses.pytorch <span class="im">import</span> MQLoss, DistributionLoss</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neuralforecast.tsdataset <span class="im">import</span> TimeSeriesDataset</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> neuralforecast.utils <span class="im">import</span> AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>AirPassengersPanel, calendar_cols <span class="op">=</span> augment_calendar_df(df<span class="op">=</span>AirPassengersPanel, freq<span class="op">=</span><span class="st">'M'</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>Y_train_df <span class="op">=</span> AirPassengersPanel[AirPassengersPanel.ds<span class="op">&lt;</span>AirPassengersPanel[<span class="st">'ds'</span>].values[<span class="op">-</span><span class="dv">12</span>]] <span class="co"># 132 train</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>Y_test_df <span class="op">=</span> AirPassengersPanel[AirPassengersPanel.ds<span class="op">&gt;=</span>AirPassengersPanel[<span class="st">'ds'</span>].values[<span class="op">-</span><span class="dv">12</span>]].reset_index(drop<span class="op">=</span><span class="va">True</span>) <span class="co"># 12 test</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> Informer(h<span class="op">=</span><span class="dv">12</span>,</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>                 input_size<span class="op">=</span><span class="dv">24</span>,</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>                 hidden_size <span class="op">=</span> <span class="dv">16</span>,</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>                 conv_hidden_size <span class="op">=</span> <span class="dv">32</span>,</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>                 n_head <span class="op">=</span> <span class="dv">2</span>,</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>                 <span class="co">#loss=DistributionLoss(distribution='StudentT', level=[80, 90]),</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>                 loss<span class="op">=</span>MAE(),</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>                 futr_exog_list<span class="op">=</span>calendar_cols,</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>                 scaler_type<span class="op">=</span><span class="st">'robust'</span>,</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>                 learning_rate<span class="op">=</span><span class="fl">1e-3</span>,</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>                 max_steps<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>                 val_check_steps<span class="op">=</span><span class="dv">50</span>,</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>                 early_stop_patience_steps<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>nf <span class="op">=</span> NeuralForecast(</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>    models<span class="op">=</span>[model],</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    freq<span class="op">=</span><span class="st">'M'</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>nf.fit(df<span class="op">=</span>Y_train_df, static_df<span class="op">=</span>AirPassengersStatic, val_size<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>forecasts <span class="op">=</span> nf.predict(futr_df<span class="op">=</span>Y_test_df)</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>Y_hat_df <span class="op">=</span> forecasts.reset_index(drop<span class="op">=</span><span class="va">False</span>).drop(columns<span class="op">=</span>[<span class="st">'unique_id'</span>,<span class="st">'ds'</span>])</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> pd.concat([Y_test_df, Y_hat_df], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>plot_df <span class="op">=</span> pd.concat([Y_train_df, plot_df])</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> model.loss.is_distribution_output:</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>    plot_df <span class="op">=</span> plot_df[plot_df.unique_id<span class="op">==</span><span class="st">'Airline1'</span>].drop(<span class="st">'unique_id'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>    plt.plot(plot_df[<span class="st">'ds'</span>], plot_df[<span class="st">'y'</span>], c<span class="op">=</span><span class="st">'black'</span>, label<span class="op">=</span><span class="st">'True'</span>)</span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>    plt.plot(plot_df[<span class="st">'ds'</span>], plot_df[<span class="st">'Informer-median'</span>], c<span class="op">=</span><span class="st">'blue'</span>, label<span class="op">=</span><span class="st">'median'</span>)</span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(x<span class="op">=</span>plot_df[<span class="st">'ds'</span>][<span class="op">-</span><span class="dv">12</span>:], </span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>                    y1<span class="op">=</span>plot_df[<span class="st">'Informer-lo-90'</span>][<span class="op">-</span><span class="dv">12</span>:].values, </span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>                    y2<span class="op">=</span>plot_df[<span class="st">'Informer-hi-90'</span>][<span class="op">-</span><span class="dv">12</span>:].values,</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>                    alpha<span class="op">=</span><span class="fl">0.4</span>, label<span class="op">=</span><span class="st">'level 90'</span>)</span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>    plt.plot()</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a>    plot_df <span class="op">=</span> plot_df[plot_df.unique_id<span class="op">==</span><span class="st">'Airline1'</span>].drop(<span class="st">'unique_id'</span>, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>    plt.plot(plot_df[<span class="st">'ds'</span>], plot_df[<span class="st">'y'</span>], c<span class="op">=</span><span class="st">'black'</span>, label<span class="op">=</span><span class="st">'True'</span>)</span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a>    plt.plot(plot_df[<span class="st">'ds'</span>], plot_df[<span class="st">'Informer'</span>], c<span class="op">=</span><span class="st">'blue'</span>, label<span class="op">=</span><span class="st">'Forecast'</span>)</span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+
+<p>Give us a ⭐&nbsp;on <a href="https://github.com/nixtla/neuralforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

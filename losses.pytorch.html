@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="NeuralForecast contains a collection PyTorch Loss classes aimed to be used during the models’ optimization. The most important train signal is the forecast error, which is the difference between the observed value y_{\tau} and the prediction \hat{y}_{\tau}, at time y_{\tau}:e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \} The train loss summarizes the forecast errors in different train optimization objectives.  All the losses are torch.nn.modules which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch Lightning.">
+
+<title>neuralforecast - PyTorch Losses</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon_png.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-NXJNCVR18L"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-NXJNCVR18L', { 'anonymize_ip': true});
+</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="neuralforecast - PyTorch Losses">
+<meta property="og:description" content="NeuralForecast contains a collection PyTorch Loss classes aimed to be used during the models’ optimization. The most important train signal is the forecast error, which is the difference between the observed value \(y_{\tau}\) and the prediction \(\hat{y}_{\tau}\), at time \(y_{\tau}\):\[e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \}\] The train loss summarizes the forecast errors in different train optimization objectives.All the losses are torch.nn.modules which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch Lightning.">
+<meta property="og:image" content="https://github.com/Nixtla/styles/blob/2abf51612584169874c90cd7c4d347e3917eaf73/images/Banner%20Github.png">
+<meta property="og:site-name" content="neuralforecast">
+<meta name="twitter:title" content="neuralforecast - PyTorch Losses">
+<meta name="twitter:description" content="NeuralForecast contains a collection PyTorch Loss classes aimed to be used during the models’ optimization. The most important train signal is the forecast error, which is the difference between the observed value \(y_{\tau}\) and the prediction \(\hat{y}_{\tau}\), at time \(y_{\tau}\):\[e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \}\] The train loss summarizes the forecast errors in different train optimization objectives.All the losses are torch.nn.modules which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch Lightning.">
+<meta name="twitter:image" content="https://farm6.staticflickr.com/5510/14338202952_93595258ff_z.jpg">
+<meta name="twitter:site" content="@Nixtlainc">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">neuralforecast</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link active" href="./examples/getting_started.html" rel="" target="" aria-current="page">
+ <span class="menu-text">Get Started</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-nixtlaverse" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">NixtlaVerse</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-nixtlaverse">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/mlforecast" rel="" target="">
+ <span class="dropdown-text">MLForecast 🤖</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/statsforecast" rel="" target="">
+ <span class="dropdown-text">StatsForecast ⚡️</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/hierarchicalforecast" rel="" target="">
+ <span class="dropdown-text">HierarchicalForecast 👑</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-help" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Help</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-help">    
+        <li>
+    <a class="dropdown-item" href="https://github.com/nixtla/neuralforecast/issues/new/choose" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A" rel="" target=""><i class="bi bi-chat-right-text" role="img">
+</i> 
+ <span class="dropdown-text">Join our Slack</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nixtla/neuralforecast" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/nixtlainc" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Nixtla Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./core.html">API Reference</a></li><li class="breadcrumb-item"><a href="./losses.pytorch.html">Train/Evaluation</a></li><li class="breadcrumb-item"><a href="./losses.pytorch.html">PyTorch Losses</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">🧠 NeuralForecast</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">Getting Started</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/getting_started.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/data_format.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data Inputs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/exogenous_variables.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exogenous Variables</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/time_series_scaling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time Series Scaling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/automatic_hyperparameter_tuning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hyperparameter Optimization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/predictinsample.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Predict Insample</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/save_load_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Save and Load Models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/getting_started_complete.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">End to End Walkthrough</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/neuralforecast_map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NeuralForecast map</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/how_to_add_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">How to add new Models to NeuralForecast</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/signal_decomposition.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpretable Decompositions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/uncertaintyintervals.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Forecasts</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_with_nhits.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Long-Horizon Forecast</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/forecasting_tft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TFT: Temporal Fusion Transformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_probabilistic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Probabilistic Long-Horizon</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/longhorizon_with_transformers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transformer models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/intermittentdata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Intermittent/Sparse Series M5</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/robust_regression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Outlier Robust Forecasting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/electricitypeakforecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Detect Demand Peaks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/hierarchicalnetworks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hierarchical Forecast</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/transfer_learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transfer Learning</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/temporal_classifiers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Temporal Classification</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/predictive_maintenance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Predictive Maintenance</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/statsmlneuralmethods.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistical, Machine Learning and Neural Forecasting methods</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./examples/models_intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NeuralForecast’s Contents</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">API Reference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Core </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span style="color:DarkOrange"> Models </span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+ <span class="menu-text">Models’ Documentation</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">A. RNN-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.rnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">RNN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.gru.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GRU</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.lstm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LSTM</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.dilated_rnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Dilated RNN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.tcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TCN</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.deepar.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DeepAR</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">B. MLP-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.mlp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MLP</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nhits.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NHITS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nbeats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NBEATS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.nbeatsx.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NBEATSx</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">C. Transformer-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.tft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TFT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.vanillatransformer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vanilla Transformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.informer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Informer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.autoformer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Autoformer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.patchtst.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PatchTST</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false">
+ <span class="menu-text">D. CNN-Based</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.timesnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TimesNet</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="false">
+ <span class="menu-text">E. Multivariate</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth3 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.hint.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">HINT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models.stemgnn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StemGNN</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Train/Evaluation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth2 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.pytorch.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">PyTorch Losses</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.numpy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NumPy Evaluation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="false">
+ <span class="menu-text">Common Components</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_auto.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hyperparameter Optimization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_recurrent.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BaseRecurrent</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.base_windows.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BaseWindows</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.scalers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TemporalNorm</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./common.modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">NN Modules</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tsdataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Dataset/Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example Data</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false">
+ <span class="menu-text">Community</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-13" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+ <span class="menu-text">Contributing</span>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#basepointloss" id="toc-basepointloss" class="nav-link active" data-scroll-target="#basepointloss">BasePointLoss</a></li>
+  <li><a href="#scale-dependent-errors" id="toc-scale-dependent-errors" class="nav-link" data-scroll-target="#scale-dependent-errors"><span style="color:DarkBlue">1. Scale-dependent Errors </span></a>
+  <ul class="collapse">
+  <li><a href="#mean-absolute-error-mae" id="toc-mean-absolute-error-mae" class="nav-link" data-scroll-target="#mean-absolute-error-mae">Mean Absolute Error (MAE)</a>
+  <ul class="collapse">
+  <li><a href="#mae.__init__" id="toc-mae.__init__" class="nav-link" data-scroll-target="#mae.__init__">MAE.__init__</a></li>
+  <li><a href="#mae.__call__" id="toc-mae.__call__" class="nav-link" data-scroll-target="#mae.__call__">MAE.__call__</a></li>
+  </ul></li>
+  <li><a href="#mean-squared-error-mse" id="toc-mean-squared-error-mse" class="nav-link" data-scroll-target="#mean-squared-error-mse">Mean Squared Error (MSE)</a>
+  <ul class="collapse">
+  <li><a href="#mse.__init__" id="toc-mse.__init__" class="nav-link" data-scroll-target="#mse.__init__">MSE.__init__</a></li>
+  <li><a href="#mse.__call__" id="toc-mse.__call__" class="nav-link" data-scroll-target="#mse.__call__">MSE.__call__</a></li>
+  </ul></li>
+  <li><a href="#root-mean-squared-error-rmse" id="toc-root-mean-squared-error-rmse" class="nav-link" data-scroll-target="#root-mean-squared-error-rmse">Root Mean Squared Error (RMSE)</a>
+  <ul class="collapse">
+  <li><a href="#rmse.__init__" id="toc-rmse.__init__" class="nav-link" data-scroll-target="#rmse.__init__">RMSE.__init__</a></li>
+  <li><a href="#rmse.__call__" id="toc-rmse.__call__" class="nav-link" data-scroll-target="#rmse.__call__">RMSE.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#percentage-errors" id="toc-percentage-errors" class="nav-link" data-scroll-target="#percentage-errors"><span style="color:DarkBlue"> 2. Percentage errors </span></a>
+  <ul class="collapse">
+  <li><a href="#mean-absolute-percentage-error-mape" id="toc-mean-absolute-percentage-error-mape" class="nav-link" data-scroll-target="#mean-absolute-percentage-error-mape">Mean Absolute Percentage Error (MAPE)</a>
+  <ul class="collapse">
+  <li><a href="#mape.__init__" id="toc-mape.__init__" class="nav-link" data-scroll-target="#mape.__init__">MAPE.__init__</a></li>
+  <li><a href="#mape.__call__" id="toc-mape.__call__" class="nav-link" data-scroll-target="#mape.__call__">MAPE.__call__</a></li>
+  </ul></li>
+  <li><a href="#symmetric-mape-smape" id="toc-symmetric-mape-smape" class="nav-link" data-scroll-target="#symmetric-mape-smape">Symmetric MAPE (sMAPE)</a>
+  <ul class="collapse">
+  <li><a href="#smape.__init__" id="toc-smape.__init__" class="nav-link" data-scroll-target="#smape.__init__">SMAPE.__init__</a></li>
+  <li><a href="#smape.__call__" id="toc-smape.__call__" class="nav-link" data-scroll-target="#smape.__call__">SMAPE.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#scale-independent-errors" id="toc-scale-independent-errors" class="nav-link" data-scroll-target="#scale-independent-errors"><span style="color:DarkBlue"> 3. Scale-independent Errors </span></a>
+  <ul class="collapse">
+  <li><a href="#mean-absolute-scaled-error-mase" id="toc-mean-absolute-scaled-error-mase" class="nav-link" data-scroll-target="#mean-absolute-scaled-error-mase">Mean Absolute Scaled Error (MASE)</a>
+  <ul class="collapse">
+  <li><a href="#mase.__init__" id="toc-mase.__init__" class="nav-link" data-scroll-target="#mase.__init__">MASE.__init__</a></li>
+  <li><a href="#mase.__call__" id="toc-mase.__call__" class="nav-link" data-scroll-target="#mase.__call__">MASE.__call__</a></li>
+  </ul></li>
+  <li><a href="#relative-mean-squared-error-relmse" id="toc-relative-mean-squared-error-relmse" class="nav-link" data-scroll-target="#relative-mean-squared-error-relmse">Relative Mean Squared Error (relMSE)</a>
+  <ul class="collapse">
+  <li><a href="#relmse.__init__" id="toc-relmse.__init__" class="nav-link" data-scroll-target="#relmse.__init__">relMSE.__init__</a></li>
+  <li><a href="#relmse.__call__" id="toc-relmse.__call__" class="nav-link" data-scroll-target="#relmse.__call__">relMSE.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#probabilistic-errors" id="toc-probabilistic-errors" class="nav-link" data-scroll-target="#probabilistic-errors"><span style="color:DarkBlue"> 4. Probabilistic Errors </span></a>
+  <ul class="collapse">
+  <li><a href="#quantile-loss" id="toc-quantile-loss" class="nav-link" data-scroll-target="#quantile-loss">Quantile Loss</a>
+  <ul class="collapse">
+  <li><a href="#quantileloss.__init__" id="toc-quantileloss.__init__" class="nav-link" data-scroll-target="#quantileloss.__init__">QuantileLoss.__init__</a></li>
+  <li><a href="#quantileloss.__call__" id="toc-quantileloss.__call__" class="nav-link" data-scroll-target="#quantileloss.__call__">QuantileLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#multi-quantile-loss-mqloss" id="toc-multi-quantile-loss-mqloss" class="nav-link" data-scroll-target="#multi-quantile-loss-mqloss">Multi Quantile Loss (MQLoss)</a>
+  <ul class="collapse">
+  <li><a href="#mqloss.__init__" id="toc-mqloss.__init__" class="nav-link" data-scroll-target="#mqloss.__init__">MQLoss.__init__</a></li>
+  <li><a href="#mqloss.__call__" id="toc-mqloss.__call__" class="nav-link" data-scroll-target="#mqloss.__call__">MQLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#distributionloss" id="toc-distributionloss" class="nav-link" data-scroll-target="#distributionloss">DistributionLoss</a>
+  <ul class="collapse">
+  <li><a href="#distributionloss.__init__" id="toc-distributionloss.__init__" class="nav-link" data-scroll-target="#distributionloss.__init__">DistributionLoss.__init__</a></li>
+  <li><a href="#distributionloss.sample" id="toc-distributionloss.sample" class="nav-link" data-scroll-target="#distributionloss.sample">DistributionLoss.sample</a></li>
+  <li><a href="#distributionloss.__call__" id="toc-distributionloss.__call__" class="nav-link" data-scroll-target="#distributionloss.__call__">DistributionLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#poisson-mixture-mesh-pmm" id="toc-poisson-mixture-mesh-pmm" class="nav-link" data-scroll-target="#poisson-mixture-mesh-pmm">Poisson Mixture Mesh (PMM)</a>
+  <ul class="collapse">
+  <li><a href="#pmm.__init__" id="toc-pmm.__init__" class="nav-link" data-scroll-target="#pmm.__init__">PMM.__init__</a></li>
+  <li><a href="#pmm.sample" id="toc-pmm.sample" class="nav-link" data-scroll-target="#pmm.sample">PMM.sample</a></li>
+  <li><a href="#pmm.__call__" id="toc-pmm.__call__" class="nav-link" data-scroll-target="#pmm.__call__">PMM.__call__</a></li>
+  </ul></li>
+  <li><a href="#gaussian-mixture-mesh-gmm" id="toc-gaussian-mixture-mesh-gmm" class="nav-link" data-scroll-target="#gaussian-mixture-mesh-gmm">Gaussian Mixture Mesh (GMM)</a>
+  <ul class="collapse">
+  <li><a href="#gmm.__init__" id="toc-gmm.__init__" class="nav-link" data-scroll-target="#gmm.__init__">GMM.__init__</a></li>
+  <li><a href="#gmm.sample" id="toc-gmm.sample" class="nav-link" data-scroll-target="#gmm.sample">GMM.sample</a></li>
+  <li><a href="#gmm.__call__" id="toc-gmm.__call__" class="nav-link" data-scroll-target="#gmm.__call__">GMM.__call__</a></li>
+  </ul></li>
+  <li><a href="#negative-binomial-mixture-mesh-nbmm" id="toc-negative-binomial-mixture-mesh-nbmm" class="nav-link" data-scroll-target="#negative-binomial-mixture-mesh-nbmm">Negative Binomial Mixture Mesh (NBMM)</a>
+  <ul class="collapse">
+  <li><a href="#nbmm.__init__" id="toc-nbmm.__init__" class="nav-link" data-scroll-target="#nbmm.__init__">NBMM.__init__</a></li>
+  <li><a href="#nbmm.sample" id="toc-nbmm.sample" class="nav-link" data-scroll-target="#nbmm.sample">NBMM.sample</a></li>
+  <li><a href="#nbmm.__call__" id="toc-nbmm.__call__" class="nav-link" data-scroll-target="#nbmm.__call__">NBMM.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#robustified-errors" id="toc-robustified-errors" class="nav-link" data-scroll-target="#robustified-errors"><span style="color:DarkBlue"> 5. Robustified Errors </span></a>
+  <ul class="collapse">
+  <li><a href="#huber-loss" id="toc-huber-loss" class="nav-link" data-scroll-target="#huber-loss">Huber Loss</a>
+  <ul class="collapse">
+  <li><a href="#huberloss.__init__" id="toc-huberloss.__init__" class="nav-link" data-scroll-target="#huberloss.__init__">HuberLoss.__init__</a></li>
+  <li><a href="#huberloss.__call__" id="toc-huberloss.__call__" class="nav-link" data-scroll-target="#huberloss.__call__">HuberLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#tukey-loss" id="toc-tukey-loss" class="nav-link" data-scroll-target="#tukey-loss">Tukey Loss</a>
+  <ul class="collapse">
+  <li><a href="#tukeyloss.__init__" id="toc-tukeyloss.__init__" class="nav-link" data-scroll-target="#tukeyloss.__init__">TukeyLoss.__init__</a></li>
+  <li><a href="#tukeyloss.__call__" id="toc-tukeyloss.__call__" class="nav-link" data-scroll-target="#tukeyloss.__call__">TukeyLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#huberized-quantile-loss" id="toc-huberized-quantile-loss" class="nav-link" data-scroll-target="#huberized-quantile-loss">Huberized Quantile Loss</a>
+  <ul class="collapse">
+  <li><a href="#huberqloss.__init__" id="toc-huberqloss.__init__" class="nav-link" data-scroll-target="#huberqloss.__init__">HuberQLoss.__init__</a></li>
+  <li><a href="#huberqloss.__call__" id="toc-huberqloss.__call__" class="nav-link" data-scroll-target="#huberqloss.__call__">HuberQLoss.__call__</a></li>
+  </ul></li>
+  <li><a href="#huberized-mqloss" id="toc-huberized-mqloss" class="nav-link" data-scroll-target="#huberized-mqloss">Huberized MQLoss</a>
+  <ul class="collapse">
+  <li><a href="#hubermqloss.__init__" id="toc-hubermqloss.__init__" class="nav-link" data-scroll-target="#hubermqloss.__init__">HuberMQLoss.__init__</a></li>
+  <li><a href="#hubermqloss.__call__" id="toc-hubermqloss.__call__" class="nav-link" data-scroll-target="#hubermqloss.__call__">HuberMQLoss.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#others" id="toc-others" class="nav-link" data-scroll-target="#others"><span style="color:DarkBlue"> 6. Others </span></a>
+  <ul class="collapse">
+  <li><a href="#accuracy" id="toc-accuracy" class="nav-link" data-scroll-target="#accuracy">Accuracy</a>
+  <ul class="collapse">
+  <li><a href="#accuracy.__init__" id="toc-accuracy.__init__" class="nav-link" data-scroll-target="#accuracy.__init__">Accuracy.__init__</a></li>
+  <li><a href="#accuracy.__call__" id="toc-accuracy.__call__" class="nav-link" data-scroll-target="#accuracy.__call__">Accuracy.__call__</a></li>
+  </ul></li>
+  <li><a href="#scaled-continuous-ranked-probability-score-scrps" id="toc-scaled-continuous-ranked-probability-score-scrps" class="nav-link" data-scroll-target="#scaled-continuous-ranked-probability-score-scrps">Scaled Continuous Ranked Probability Score (sCRPS)</a>
+  <ul class="collapse">
+  <li><a href="#scrps.__init__" id="toc-scrps.__init__" class="nav-link" data-scroll-target="#scrps.__init__">sCRPS.__init__</a></li>
+  <li><a href="#scrps.__call__" id="toc-scrps.__call__" class="nav-link" data-scroll-target="#scrps.__call__">sCRPS.__call__</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/Nixtla/neuralforecast/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">PyTorch Losses</h1>
+</div>
+
+<div>
+  <div class="description">
+    NeuralForecast contains a collection PyTorch Loss classes aimed to be used during the models’ optimization. The most important train signal is the forecast error, which is the difference between the observed value <span class="math inline">\(y_{\tau}\)</span> and the prediction <span class="math inline">\(\hat{y}_{\tau}\)</span>, at time <span class="math inline">\(y_{\tau}\)</span>:<span class="math display">\[e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \}\]</span> The train loss summarizes the forecast errors in different train optimization objectives.<br><br>All the losses are <code>torch.nn.modules</code> which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch Lightning.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L38" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="basepointloss" class="level3">
+<h3 class="anchored" data-anchor-id="basepointloss">BasePointLoss</h3>
+<blockquote class="blockquote">
+<pre><code> BasePointLoss (horizon_weight, outputsize_multiplier, output_names)</code></pre>
+</blockquote>
+<p>Base class for point loss functions.</p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br> <code>outputsize_multiplier</code>: Multiplier for the output size. <br> <code>output_names</code>: Names of the outputs. <br></p>
+</section>
+<section id="scale-dependent-errors" class="level1">
+<h1><span style="color:DarkBlue">1. Scale-dependent Errors </span></h1>
+<p>These metrics are on the same scale as the data.</p>
+<section id="mean-absolute-error-mae" class="level2">
+<h2 class="anchored" data-anchor-id="mean-absolute-error-mae">Mean Absolute Error (MAE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L85" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mae.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="mae.__init__">MAE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> MAE.__init__ (horizon_weight=None)</code></pre>
+</blockquote>
+<p>Mean Absolute Error</p>
+<p>Calculates Mean Absolute Error between <code>y</code> and <code>y_hat</code>. MAE measures the relative prediction accuracy of a forecasting method by calculating the deviation of the prediction and the true value at a given time and averages these devations over the length of the series.</p>
+<p><span class="math display">\[ \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}| \]</span></p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L106" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mae.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="mae.__call__">MAE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> MAE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+               mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies datapoints to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#mae"><code>mae</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/mae_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="mean-squared-error-mse" class="level2">
+<h2 class="anchored" data-anchor-id="mean-squared-error-mse">Mean Squared Error (MSE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L126" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mse.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="mse.__init__">MSE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> MSE.__init__ (horizon_weight=None)</code></pre>
+</blockquote>
+<p>Mean Squared Error</p>
+<p>Calculates Mean Squared Error between <code>y</code> and <code>y_hat</code>. MSE measures the relative prediction accuracy of a forecasting method by calculating the squared deviation of the prediction and the true value at a given time, and averages these devations over the length of the series.</p>
+<p><span class="math display">\[ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L147" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mse.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="mse.__call__">MSE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> MSE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+               mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies datapoints to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#mse"><code>mse</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/mse_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="root-mean-squared-error-rmse" class="level2">
+<h2 class="anchored" data-anchor-id="root-mean-squared-error-rmse">Root Mean Squared Error (RMSE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L167" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="rmse.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="rmse.__init__">RMSE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> RMSE.__init__ (horizon_weight=None)</code></pre>
+</blockquote>
+<p>Root Mean Squared Error</p>
+<p>Calculates Root Mean Squared Error between <code>y</code> and <code>y_hat</code>. RMSE measures the relative prediction accuracy of a forecasting method by calculating the squared deviation of the prediction and the observed value at a given time and averages these devations over the length of the series. Finally the RMSE will be in the same scale as the original time series so its comparison with other series is possible only if they share a common scale. RMSE has a direct connection to the L2 norm.</p>
+<p><span class="math display">\[ \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L191" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rmse.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="rmse.__call__">RMSE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> RMSE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies datapoints to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#rmse"><code>rmse</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/rmse_loss.png" class="img-fluid"></p>
+</section>
+</section>
+</section>
+<section id="percentage-errors" class="level1">
+<h1><span style="color:DarkBlue"> 2. Percentage errors </span></h1>
+<p>These metrics are unit-free, suitable for comparisons across series.</p>
+<section id="mean-absolute-percentage-error-mape" class="level2">
+<h2 class="anchored" data-anchor-id="mean-absolute-percentage-error-mape">Mean Absolute Percentage Error (MAPE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L212" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mape.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="mape.__init__">MAPE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> MAPE.__init__ (horizon_weight=None)</code></pre>
+</blockquote>
+<p>Mean Absolute Percentage Error</p>
+<p>Calculates Mean Absolute Percentage Error between <code>y</code> and <code>y_hat</code>. MAPE measures the relative prediction accuracy of a forecasting method by calculating the percentual deviation of the prediction and the observed value at a given time and averages these devations over the length of the series. The closer to zero an observed value is, the higher penalty MAPE loss assigns to the corresponding error.</p>
+<p><span class="math display">\[ \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://www.sciencedirect.com/science/article/pii/0169207093900793">Makridakis S., “Accuracy measures: theoretical and practical concerns”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L237" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mape.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="mape.__call__">MAPE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> MAPE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#mape"><code>mape</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/mape_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="symmetric-mape-smape" class="level2">
+<h2 class="anchored" data-anchor-id="symmetric-mape-smape">Symmetric MAPE (sMAPE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L259" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="smape.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="smape.__init__">SMAPE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> SMAPE.__init__ (horizon_weight=None)</code></pre>
+</blockquote>
+<p>Symmetric Mean Absolute Percentage Error</p>
+<p>Calculates Symmetric Mean Absolute Percentage Error between <code>y</code> and <code>y_hat</code>. SMAPE measures the relative prediction accuracy of a forecasting method by calculating the relative deviation of the prediction and the observed value scaled by the sum of the absolute values for the prediction and observed value at a given time, then averages these devations over the length of the series. This allows the SMAPE to have bounds between 0% and 200% which is desireble compared to normal MAPE that may be undetermined when the target is zero.</p>
+<p><span class="math display">\[ \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://www.sciencedirect.com/science/article/pii/0169207093900793">Makridakis S., “Accuracy measures: theoretical and practical concerns”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L286" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="smape.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="smape.__call__">SMAPE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> SMAPE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                 mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#smape"><code>smape</code></a>: tensor (single value).</p>
+</section>
+</section>
+</section>
+<section id="scale-independent-errors" class="level1">
+<h1><span style="color:DarkBlue"> 3. Scale-independent Errors </span></h1>
+<p>These metrics measure the relative improvements versus baselines.</p>
+<section id="mean-absolute-scaled-error-mase" class="level2">
+<h2 class="anchored" data-anchor-id="mean-absolute-scaled-error-mase">Mean Absolute Scaled Error (MASE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L308" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mase.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="mase.__init__">MASE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> MASE.__init__ (seasonality:int, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error between <code>y</code> and <code>y_hat</code>. MASE measures the relative prediction accuracy of a forecasting method by comparinng the mean absolute errors of the prediction and the observed value against the mean absolute errors of the seasonal naive model. The MASE partially composed the Overall Weighted Average (OWA), used in the M4 Competition.</p>
+<p><span class="math display">\[ \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>seasonality</code>: int. Main frequency of the time series; Hourly 24, Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1. <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://www.sciencedirect.com/science/article/pii/S0169207006000239">Rob J. Hyndman, &amp; Koehler, A. B. “Another look at measures of forecast accuracy”.</a><br> <a href="https://www.sciencedirect.com/science/article/pii/S0169207019301128">Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, “The M4 Competition: 100,000 time series and 61 forecasting methods”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L335" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mase.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="mase.__call__">MASE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> MASE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                y_insample:torch.Tensor, mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor (batch_size, output_size), Actual values.<br> <code>y_hat</code>: tensor (batch_size, output_size)), Predicted values.<br> <code>y_insample</code>: tensor (batch_size, input_size), Actual insample Seasonal Naive predictions.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#mase"><code>mase</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/mase_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="relative-mean-squared-error-relmse" class="level2">
+<h2 class="anchored" data-anchor-id="relative-mean-squared-error-relmse">Relative Mean Squared Error (relMSE)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L364" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="relmse.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="relmse.__init__">relMSE.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> relMSE.__init__ (y_train, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Relative Mean Squared Error Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman &amp; Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. <span class="math display">\[ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{naive1}) =
+\frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{naive1})} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>y_train</code>: numpy array, Training values.<br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> - <a href="https://www.sciencedirect.com/science/article/pii/S0169207006000239">Hyndman, R. J and Koehler, A. B. (2006). “Another look at measures of forecast accuracy”, International Journal of Forecasting, Volume 22, Issue 4.</a><br> - <a href="https://arxiv.org/pdf/2110.13179.pdf">Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. “Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L391" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="relmse.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="relmse.__call__">relMSE.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> relMSE.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                  mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor (batch_size, output_size), Actual values.<br> <code>y_hat</code>: tensor (batch_size, output_size)), Predicted values.<br> <code>y_insample</code>: tensor (batch_size, input_size), Actual insample Seasonal Naive predictions.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.pytorch.html#relmse"><code>relMSE</code></a>: tensor (single value).</p>
+</section>
+</section>
+</section>
+<section id="probabilistic-errors" class="level1">
+<h1><span style="color:DarkBlue"> 4. Probabilistic Errors </span></h1>
+<p>These methods use statistical approaches for estimating unknown probability distributions using observed data.</p>
+<p>Maximum likelihood estimation involves finding the parameter values that maximize the likelihood function, which measures the probability of obtaining the observed data given the parameter values. MLE has good theoretical properties and efficiency under certain satisfied assumptions.</p>
+<p>On the non-parametric approach, quantile regression measures non-symmetrically deviation, producing under/over estimation.</p>
+<section id="quantile-loss" class="level2">
+<h2 class="anchored" data-anchor-id="quantile-loss">Quantile Loss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L418" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="quantileloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="quantileloss.__init__">QuantileLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> QuantileLoss.__init__ (q, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Quantile Loss</p>
+<p>Computes the quantile loss between <code>y</code> and <code>y_hat</code>. QL measures the deviation of a quantile forecast. By weighting the absolute deviation in a non symmetric way, the loss pays more attention to under or over estimation. A common value for q is 0.5 for the deviation from the median (Pinball loss).</p>
+<p><span class="math display">\[ \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big) \]</span></p>
+<p><strong>Parameters:</strong><br> <code>q</code>: float, between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.<br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://www.jstor.org/stable/1913643">Roger Koenker and Gilbert Bassett, Jr., “Regression Quantiles”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L445" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="quantileloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="quantileloss.__call__">QuantileLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> QuantileLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                        mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies datapoints to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#quantile_loss"><code>quantile_loss</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/q_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="multi-quantile-loss-mqloss" class="level2">
+<h2 class="anchored" data-anchor-id="multi-quantile-loss-mqloss">Multi Quantile Loss (MQLoss)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L494" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mqloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="mqloss.__init__">MQLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> MQLoss.__init__ (level=[80, 90], quantiles=None, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Multi-Quantile loss</p>
+<p>Calculates the Multi-Quantile loss (MQL) between <code>y</code> and <code>y_hat</code>. MQL calculates the average multi-quantile Loss for a given set of quantiles, based on the absolute difference between predicted quantiles and observed values.</p>
+<p><span class="math display">\[ \mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) \]</span></p>
+<p>The limit behavior of MQL allows to measure the accuracy of a full predictive distribution <span class="math inline">\(\mathbf{\hat{F}}_{\tau}\)</span> with the continuous ranked probability score (CRPS). This can be achieved through a numerical integration technique, that discretizes the quantiles and treats the CRPS integral with a left Riemann approximation, averaging over uniformly distanced quantiles.</p>
+<p><span class="math display">\[ \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq \]</span></p>
+<p><strong>Parameters:</strong><br> <code>level</code>: int list [0,100]. Probability levels for prediction intervals (Defaults median). <code>quantiles</code>: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution. <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://www.jstor.org/stable/1913643">Roger Koenker and Gilbert Bassett, Jr., “Regression Quantiles”.</a><br> <a href="https://www.jstor.org/stable/2629907">James E. Matheson and Robert L. Winkler, “Scoring Rules for Continuous Probability Distributions”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L567" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mqloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="mqloss.__call__">MQLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> MQLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                  mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <a href="https://Nixtla.github.io/neuralforecast/losses.numpy.html#mqloss"><code>mqloss</code></a>: tensor (single value).</p>
+<p><img src="imgs_losses/mq_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="distributionloss" class="level2">
+<h2 class="anchored" data-anchor-id="distributionloss">DistributionLoss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L912" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="distributionloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="distributionloss.__init__">DistributionLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> DistributionLoss.__init__ (distribution, level=[80, 90], quantiles=None,
+                            num_samples=1000, return_params=False,
+                            **distribution_kwargs)</code></pre>
+</blockquote>
+<p>DistributionLoss</p>
+<p>This PyTorch module wraps the <code>torch.distribution</code> classes allowing it to interact with NeuralForecast models modularly. It shares the negative log-likelihood as the optimization objective and a sample method to generate empirically the quantiles defined by the <code>level</code> list.</p>
+<p>Additionally, it implements a distribution transformation that factorizes the scale-dependent likelihood parameters into a base scale and a multiplier efficiently learnable within the network’s non-linearities operating ranges.</p>
+<p>Available distributions:<br> - Poisson<br> - Normal<br> - StudentT<br> - NegativeBinomial<br> - Tweedie<br> - Bernoulli (Temporal Classifiers)</p>
+<p><strong>Parameters:</strong><br> <code>distribution</code>: str, identifier of a torch.distributions.Distribution class.<br> <code>level</code>: float list [0,100], confidence levels for prediction intervals.<br> <code>quantiles</code>: float list [0,1], alternative to level list, target quantiles.<br> <code>num_samples</code>: int=500, number of samples for the empirical quantiles.<br> <code>return_params</code>: bool=False, wether or not return the Distribution parameters.<br><br></p>
+<p><strong>References:</strong><br> - <a href="https://pytorch.org/docs/stable/distributions.html#studentt">PyTorch Probability Distributions Package: StudentT.</a><br> - <a href="https://www.sciencedirect.com/science/article/pii/S0169207019301888">David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020). “DeepAR: Probabilistic forecasting with autoregressive recurrent networks”. International Journal of Forecasting.</a><br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1039" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="distributionloss.sample" class="level3">
+<h3 class="anchored" data-anchor-id="distributionloss.sample">DistributionLoss.sample</h3>
+<blockquote class="blockquote">
+<pre><code> DistributionLoss.sample (distr_args:torch.Tensor,
+                          num_samples:Optional[int]=None)</code></pre>
+</blockquote>
+<p>Construct the empirical quantiles from the estimated Distribution, sampling from it <code>num_samples</code> independently.</p>
+<p><strong>Parameters</strong><br> <code>distr_args</code>: Constructor arguments for the underlying Distribution type.<br> <code>loc</code>: Optional tensor, of the same shape as the batch_shape + event_shape of the resulting distribution.<br> <code>scale</code>: Optional tensor, of the same shape as the batch_shape+event_shape of the resulting distribution.<br> <code>num_samples</code>: int=500, overwrite number of samples for the empirical quantiles.<br></p>
+<p><strong>Returns</strong><br> <code>samples</code>: tensor, shape [B,H,<code>num_samples</code>].<br> <code>quantiles</code>: tensor, empirical quantiles defined by <code>levels</code>.<br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1082" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="distributionloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="distributionloss.__call__">DistributionLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> DistributionLoss.__call__ (y:torch.Tensor, distr_args:torch.Tensor,
+                            mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p>Computes the negative log-likelihood objective function. To estimate the following predictive distribution:</p>
+<p><span class="math display">\[\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))\]</span></p>
+<p>where <span class="math inline">\(\theta\)</span> represents the distributions parameters. It aditionally summarizes the objective signal using a weighted average using the <code>mask</code> tensor.</p>
+<p><strong>Parameters</strong><br> <code>y</code>: tensor, Actual values.<br> <code>distr_args</code>: Constructor arguments for the underlying Distribution type.<br> <code>loc</code>: Optional tensor, of the same shape as the batch_shape + event_shape of the resulting distribution.<br> <code>scale</code>: Optional tensor, of the same shape as the batch_shape+event_shape of the resulting distribution.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns</strong><br> <code>loss</code>: scalar, weighted loss function against which backpropagation will be performed.<br></p>
+</section>
+</section>
+<section id="poisson-mixture-mesh-pmm" class="level2">
+<h2 class="anchored" data-anchor-id="poisson-mixture-mesh-pmm">Poisson Mixture Mesh (PMM)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1116" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pmm.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="pmm.__init__">PMM.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> PMM.__init__ (n_components=10, level=[80, 90], quantiles=None,
+               num_samples=1000, return_params=False,
+               batch_correlation=False, horizon_correlation=False)</code></pre>
+</blockquote>
+<p>Poisson Mixture Mesh</p>
+<p>This Poisson Mixture statistical model assumes independence across groups of data <span class="math inline">\(\mathcal{G}=\{[g_{i}]\}\)</span>, and estimates relationships within the group.</p>
+<p><span class="math display">\[ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) =
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)\]</span></p>
+<p><strong>Parameters:</strong><br> <code>n_components</code>: int=10, the number of mixture components.<br> <code>level</code>: float list [0,100], confidence levels for prediction intervals.<br> <code>quantiles</code>: float list [0,1], alternative to level list, target quantiles.<br> <code>return_params</code>: bool=False, wether or not return the Distribution parameters.<br> <code>batch_correlation</code>: bool=False, wether or not model batch correlations.<br> <code>horizon_correlation</code>: bool=False, wether or not model horizon correlations.<br></p>
+<p><strong>References:</strong><br> <a href="https://arxiv.org/pdf/2110.13179.pdf">Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1200" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pmm.sample" class="level3">
+<h3 class="anchored" data-anchor-id="pmm.sample">PMM.sample</h3>
+<blockquote class="blockquote">
+<pre><code> PMM.sample (distr_args, num_samples=None)</code></pre>
+</blockquote>
+<p>Construct the empirical quantiles from the estimated Distribution, sampling from it <code>num_samples</code> independently.</p>
+<p><strong>Parameters</strong><br> <code>distr_args</code>: Constructor arguments for the underlying Distribution type.<br> <code>loc</code>: Optional tensor, of the same shape as the batch_shape + event_shape of the resulting distribution.<br> <code>scale</code>: Optional tensor, of the same shape as the batch_shape+event_shape of the resulting distribution.<br> <code>num_samples</code>: int=500, overwrites number of samples for the empirical quantiles.<br></p>
+<p><strong>Returns</strong><br> <code>samples</code>: tensor, shape [B,H,<code>num_samples</code>].<br> <code>quantiles</code>: tensor, empirical quantiles defined by <code>levels</code>.<br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1305" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pmm.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="pmm.__call__">PMM.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> PMM.__call__ (y:torch.Tensor, distr_args:Tuple[torch.Tensor],
+               mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p>Call self as a function.</p>
+<p><img src="imgs_losses/pmm.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="gaussian-mixture-mesh-gmm" class="level2">
+<h2 class="anchored" data-anchor-id="gaussian-mixture-mesh-gmm">Gaussian Mixture Mesh (GMM)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1314" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="gmm.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="gmm.__init__">GMM.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> GMM.__init__ (n_components=1, level=[80, 90], quantiles=None,
+               num_samples=1000, return_params=False,
+               batch_correlation=False, horizon_correlation=False)</code></pre>
+</blockquote>
+<p>Gaussian Mixture Mesh</p>
+<p>This Gaussian Mixture statistical model assumes independence across groups of data <span class="math inline">\(\mathcal{G}=\{[g_{i}]\}\)</span>, and estimates relationships within the group.</p>
+<p><span class="math display">\[ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+\mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)\]</span></p>
+<p><strong>Parameters:</strong><br> <code>n_components</code>: int=10, the number of mixture components.<br> <code>level</code>: float list [0,100], confidence levels for prediction intervals.<br> <code>quantiles</code>: float list [0,1], alternative to level list, target quantiles.<br> <code>return_params</code>: bool=False, wether or not return the Distribution parameters.<br> <code>batch_correlation</code>: bool=False, wether or not model batch correlations.<br> <code>horizon_correlation</code>: bool=False, wether or not model horizon correlations.<br><br></p>
+<p><strong>References:</strong><br> <a href="https://arxiv.org/pdf/2110.13179.pdf">Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1404" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="gmm.sample" class="level3">
+<h3 class="anchored" data-anchor-id="gmm.sample">GMM.sample</h3>
+<blockquote class="blockquote">
+<pre><code> GMM.sample (distr_args, num_samples=None)</code></pre>
+</blockquote>
+<p>Construct the empirical quantiles from the estimated Distribution, sampling from it <code>num_samples</code> independently.</p>
+<p><strong>Parameters</strong><br> <code>distr_args</code>: Constructor arguments for the underlying Distribution type.<br> <code>loc</code>: Optional tensor, of the same shape as the batch_shape + event_shape of the resulting distribution.<br> <code>scale</code>: Optional tensor, of the same shape as the batch_shape+event_shape of the resulting distribution.<br> <code>num_samples</code>: int=500, number of samples for the empirical quantiles.<br></p>
+<p><strong>Returns</strong><br> <code>samples</code>: tensor, shape [B,H,<code>num_samples</code>].<br> <code>quantiles</code>: tensor, empirical quantiles defined by <code>levels</code>.<br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1511" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="gmm.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="gmm.__call__">GMM.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> GMM.__call__ (y:torch.Tensor,
+               distr_args:Tuple[torch.Tensor,torch.Tensor],
+               mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p>Call self as a function.</p>
+<p><img src="imgs_losses/gmm.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="negative-binomial-mixture-mesh-nbmm" class="level2">
+<h2 class="anchored" data-anchor-id="negative-binomial-mixture-mesh-nbmm">Negative Binomial Mixture Mesh (NBMM)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1520" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="nbmm.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="nbmm.__init__">NBMM.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> NBMM.__init__ (n_components=1, level=[80, 90], quantiles=None,
+                num_samples=1000, return_params=False)</code></pre>
+</blockquote>
+<p>Negative Binomial Mixture Mesh</p>
+<p>This N. Binomial Mixture statistical model assumes independence across groups of data <span class="math inline">\(\mathcal{G}=\{[g_{i}]\}\)</span>, and estimates relationships within the group.</p>
+<p><span class="math display">\[ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+\mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)\]</span></p>
+<p><strong>Parameters:</strong><br> <code>n_components</code>: int=10, the number of mixture components.<br> <code>level</code>: float list [0,100], confidence levels for prediction intervals.<br> <code>quantiles</code>: float list [0,1], alternative to level list, target quantiles.<br> <code>return_params</code>: bool=False, wether or not return the Distribution parameters.<br><br></p>
+<p><strong>References:</strong><br> <a href="https://arxiv.org/pdf/2110.13179.pdf">Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1613" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="nbmm.sample" class="level3">
+<h3 class="anchored" data-anchor-id="nbmm.sample">NBMM.sample</h3>
+<blockquote class="blockquote">
+<pre><code> NBMM.sample (distr_args, num_samples=None)</code></pre>
+</blockquote>
+<p>Construct the empirical quantiles from the estimated Distribution, sampling from it <code>num_samples</code> independently.</p>
+<p><strong>Parameters</strong><br> <code>distr_args</code>: Constructor arguments for the underlying Distribution type.<br> <code>loc</code>: Optional tensor, of the same shape as the batch_shape + event_shape of the resulting distribution.<br> <code>scale</code>: Optional tensor, of the same shape as the batch_shape+event_shape of the resulting distribution.<br> <code>num_samples</code>: int=500, number of samples for the empirical quantiles.<br></p>
+<p><strong>Returns</strong><br> <code>samples</code>: tensor, shape [B,H,<code>num_samples</code>].<br> <code>quantiles</code>: tensor, empirical quantiles defined by <code>levels</code>.<br></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1724" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="nbmm.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="nbmm.__call__">NBMM.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> NBMM.__call__ (y:torch.Tensor,
+                distr_args:Tuple[torch.Tensor,torch.Tensor],
+                mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p>Call self as a function.</p>
+</section>
+</section>
+</section>
+<section id="robustified-errors" class="level1">
+<h1><span style="color:DarkBlue"> 5. Robustified Errors </span></h1>
+<p>This type of errors from robust statistic focus on methods resistant to outliers and violations of assumptions, providing reliable estimates and inferences. Robust estimators are used to reduce the impact of outliers, offering more stable results.</p>
+<section id="huber-loss" class="level2">
+<h2 class="anchored" data-anchor-id="huber-loss">Huber Loss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1733" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="huberloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="huberloss.__init__">HuberLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberLoss.__init__ (delta:float=1.0, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Huber Loss</p>
+<p>The Huber loss, employed in robust regression, is a loss function that exhibits reduced sensitivity to outliers in data when compared to the squared error loss. This function is also refered as SmoothL1.</p>
+<p>The Huber loss function is quadratic for small errors and linear for large errors, with equal values and slopes of the different sections at the two points where <span class="math inline">\((y_{\tau}-\hat{y}_{\tau})^{2}\)</span>=<span class="math inline">\(|y_{\tau}-\hat{y}_{\tau}|\)</span>.</p>
+<p><span class="math display">\[ L_{\delta}(y_{\tau},\; \hat{y}_{\tau})
+=\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \\
+\delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}\]</span></p>
+<p>where <span class="math inline">\(\delta\)</span> is a threshold parameter that determines the point at which the loss transitions from quadratic to linear, and can be tuned to control the trade-off between robustness and accuracy in the predictions.</p>
+<p><strong>Parameters:</strong><br> <code>delta</code>: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss. <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full">Huber Peter, J (1964). “Robust Estimation of a Location Parameter”. Annals of Statistics</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1765" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="huberloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="huberloss.__call__">HuberLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                     mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>huber_loss</code>: tensor (single value).</p>
+<p><img src="imgs_losses/huber_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="tukey-loss" class="level2">
+<h2 class="anchored" data-anchor-id="tukey-loss">Tukey Loss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1785" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="tukeyloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="tukeyloss.__init__">TukeyLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> TukeyLoss.__init__ (c:float=4.685, normalize:bool=True)</code></pre>
+</blockquote>
+<p>Tukey Loss</p>
+<p>The Tukey loss function, also known as Tukey’s biweight function, is a robust statistical loss function used in robust statistics. Tukey’s loss exhibits quadratic behavior near the origin, like the Huber loss; however, it is even more robust to outliers as the loss for large residuals remains constant instead of scaling linearly.</p>
+<p>The parameter <span class="math inline">\(c\)</span> in Tukey’s loss determines the ‘’saturation’’ point of the function: Higher values of <span class="math inline">\(c\)</span> enhance sensitivity, while lower values increase resistance to outliers.</p>
+<p><span class="math display">\[ L_{c}(y_{\tau},\; \hat{y}_{\tau})
+=\begin{cases}{
+\frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\
+\frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}\]</span></p>
+<p>Please note that the Tukey loss function assumes the data to be stationary or normalized beforehand. If the error values are excessively large, the algorithm may need help to converge during optimization. It is advisable to employ small learning rates.</p>
+<p><strong>Parameters:</strong><br> <code>c</code>: float=4.685, Specifies the Tukey loss’ threshold on which residuals are no longer considered.<br> <code>normalize</code>: bool=True, Wether normalization is performed within Tukey loss’ computation.<br></p>
+<p><strong>References:</strong><br> <a href="https://www.jstor.org/stable/1267936">Beaton, A. E., and Tukey, J. W. (1974). “The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data.”</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1836" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="tukeyloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="tukeyloss.__call__">TukeyLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> TukeyLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                     mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>tukey_loss</code>: tensor (single value).</p>
+<p><img src="imgs_losses/tukey_loss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="huberized-quantile-loss" class="level2">
+<h2 class="anchored" data-anchor-id="huberized-quantile-loss">Huberized Quantile Loss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1873" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="huberqloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="huberqloss.__init__">HuberQLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberQLoss.__init__ (q, delta:float=1.0, horizon_weight=None)</code></pre>
+</blockquote>
+<p>Huberized Quantile Loss</p>
+<p>The Huberized quantile loss is a modified version of the quantile loss function that combines the advantages of the quantile loss and the Huber loss. It is commonly used in regression tasks, especially when dealing with data that contains outliers or heavy tails.</p>
+<p>The Huberized quantile loss between <code>y</code> and <code>y_hat</code> measure the Huber Loss in a non-symmetric way. The loss pays more attention to under/over-estimation depending on the quantile parameter <span class="math inline">\(q\)</span>; and controls the trade-off between robustness and accuracy in the predictions with the parameter <span class="math inline">\(delta\)</span>.</p>
+<p><span class="math display">\[ \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
+(1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} +
+q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} &lt; y_{\tau} \} \]</span></p>
+<p><strong>Parameters:</strong><br> <code>delta</code>: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.<br> <code>q</code>: float, between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.<br> <code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full">Huber Peter, J (1964). “Robust Estimation of a Location Parameter”. Annals of Statistics</a><br> <a href="https://www.jstor.org/stable/1913643">Roger Koenker and Gilbert Bassett, Jr., “Regression Quantiles”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1907" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="huberqloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="huberqloss.__call__">HuberQLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberQLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                      mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies datapoints to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>huber_qloss</code>: tensor (single value).</p>
+<p><img src="imgs_losses/huber_qloss.png" class="img-fluid"></p>
+</section>
+</section>
+<section id="huberized-mqloss" class="level2">
+<h2 class="anchored" data-anchor-id="huberized-mqloss">Huberized MQLoss</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1936" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="hubermqloss.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="hubermqloss.__init__">HuberMQLoss.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberMQLoss.__init__ (level=[80, 90], quantiles=None, delta:float=1.0,
+                       horizon_weight=None)</code></pre>
+</blockquote>
+<p>Huberized Multi-Quantile loss</p>
+<p>The Huberized Multi-Quantile loss (HuberMQL) is a modified version of the multi-quantile loss function that combines the advantages of the quantile loss and the Huber loss. HuberMQL is commonly used in regression tasks, especially when dealing with data that contains outliers or heavy tails. The loss function pays more attention to under/over-estimation depending on the quantile list <span class="math inline">\([q_{1},q_{2},\dots]\)</span> parameter. It controls the trade-off between robustness and prediction accuracy with the parameter <span class="math inline">\(\delta\)</span>.</p>
+<p><span class="math display">\[ \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) =
+\frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) \]</span></p>
+<p><strong>Parameters:</strong><br> <code>level</code>: int list [0,100]. Probability levels for prediction intervals (Defaults median). <code>quantiles</code>: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution. <code>delta</code>: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.<br><br>
+<code>horizon_weight</code>: Tensor of size h, weight for each timestamp of the forecasting window. <br></p>
+<p><strong>References:</strong><br> <a href="https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full">Huber Peter, J (1964). “Robust Estimation of a Location Parameter”. Annals of Statistics</a><br> <a href="https://www.jstor.org/stable/1913643">Roger Koenker and Gilbert Bassett, Jr., “Regression Quantiles”.</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2006" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="hubermqloss.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="hubermqloss.__call__">HuberMQLoss.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> HuberMQLoss.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                       mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>hmqloss</code>: tensor (single value).</p>
+<p><img src="imgs_losses/hmq_loss.png" class="img-fluid"></p>
+</section>
+</section>
+</section>
+<section id="others" class="level1">
+<h1><span style="color:DarkBlue"> 6. Others </span></h1>
+<section id="accuracy" class="level2">
+<h2 class="anchored" data-anchor-id="accuracy">Accuracy</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2049" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="accuracy.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="accuracy.__init__">Accuracy.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> Accuracy.__init__ ()</code></pre>
+</blockquote>
+<p>Accuracy</p>
+<p>Computes the accuracy between categorical <code>y</code> and <code>y_hat</code>. This evaluation metric is only meant for evalution, as it is not differentiable.</p>
+<p><span class="math display">\[ \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\} \]</span></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2073" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="accuracy.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="accuracy.__call__">Accuracy.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> Accuracy.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                    mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per serie to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>accuracy</code>: tensor (single value).</p>
+</section>
+</section>
+<section id="scaled-continuous-ranked-probability-score-scrps" class="level2">
+<h2 class="anchored" data-anchor-id="scaled-continuous-ranked-probability-score-scrps">Scaled Continuous Ranked Probability Score (sCRPS)</h2>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2096" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="scrps.__init__" class="level3">
+<h3 class="anchored" data-anchor-id="scrps.__init__">sCRPS.__init__</h3>
+<blockquote class="blockquote">
+<pre><code> sCRPS.__init__ (level=[80, 90], quantiles=None)</code></pre>
+</blockquote>
+<p>Scaled Continues Ranked Probability Score</p>
+<p>Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021), to measure the accuracy of predicted quantiles <code>y_hat</code> compared to the observation <code>y</code>.</p>
+<p>This metric averages percentual weighted absolute deviations as defined by the quantile losses.</p>
+<p><span class="math display">\[ \mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
+\int^{1}_{0}
+\frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq \]</span></p>
+<p>where <span class="math inline">\(\mathbf{\hat{y}}^{(q}_{\tau}\)</span> is the estimated quantile, and <span class="math inline">\(y_{i,\tau}\)</span> are the target variable realizations.</p>
+<p><strong>Parameters:</strong><br> <code>level</code>: int list [0,100]. Probability levels for prediction intervals (Defaults median). <code>quantiles</code>: float list [0., 1.]. Alternative to level, quantiles to estimate from y distribution.</p>
+<p><strong>References:</strong><br> - <a href="https://www.sciencedirect.com/science/article/pii/S0169207010000063">Gneiting, Tilmann. (2011). “Quantiles as optimal point forecasts”. International Journal of Forecasting.</a><br> - <a href="https://www.sciencedirect.com/science/article/pii/S0169207021001722">Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). “The M5 uncertainty competition: Results, findings and conclusions”. International Journal of Forecasting.</a><br> - <a href="https://proceedings.mlr.press/v139/rangapuram21a.html">Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). “End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series”. Proceedings of the 38th International Conference on Machine Learning (ICML).</a></p>
+<hr>
+<p><a href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2132" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="scrps.__call__" class="level3">
+<h3 class="anchored" data-anchor-id="scrps.__call__">sCRPS.__call__</h3>
+<blockquote class="blockquote">
+<pre><code> sCRPS.__call__ (y:torch.Tensor, y_hat:torch.Tensor,
+                 mask:Optional[torch.Tensor]=None)</code></pre>
+</blockquote>
+<p><strong>Parameters:</strong><br> <code>y</code>: tensor, Actual values.<br> <code>y_hat</code>: tensor, Predicted values.<br> <code>mask</code>: tensor, Specifies date stamps per series to consider in loss.<br></p>
+<p><strong>Returns:</strong><br> <code>scrps</code>: tensor (single value).</p>
+
+
+</section>
+</section>
+</section>
+
+<p>Give us a ⭐&nbsp;on <a href="https://github.com/nixtla/neuralforecast">Github</a></p></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
