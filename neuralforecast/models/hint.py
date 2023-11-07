@@ -24,7 +24,7 @@ def get_bottomup_P(S: np.ndarray):
 
     **References:**<br>
     - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). \"Data aggregation and information loss\". The American
-    Economic Review, 58 , 773{787)](http://www.jstor.org/stable/1815532).
+    Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
     """
     n_series = len(S)
     n_agg = n_series - S.shape[1]
