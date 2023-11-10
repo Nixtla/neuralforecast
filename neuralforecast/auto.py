@@ -69,6 +69,7 @@ class AutoRNN(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         backend="ray",
+        callbacks=None,
     ):
         """Auto RNN
 
@@ -104,6 +105,7 @@ class AutoRNN(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 15
@@ -136,6 +138,7 @@ class AutoLSTM(BaseAuto):
         gpus=torch.cuda.device_count(),
         verbose=False,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -166,6 +169,7 @@ class AutoLSTM(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 18
@@ -199,6 +203,7 @@ class AutoGRU(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -230,6 +235,7 @@ class AutoGRU(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 21
@@ -262,6 +268,7 @@ class AutoTCN(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -293,6 +300,7 @@ class AutoTCN(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 24
@@ -328,6 +336,7 @@ class AutoDeepAR(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -357,6 +366,7 @@ class AutoDeepAR(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 27
@@ -391,6 +401,7 @@ class AutoDilatedRNN(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -422,6 +433,7 @@ class AutoDilatedRNN(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 31
@@ -454,6 +466,7 @@ class AutoMLP(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -483,6 +496,7 @@ class AutoMLP(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 34
@@ -513,6 +527,7 @@ class AutoNBEATS(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -542,6 +557,7 @@ class AutoNBEATS(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 37
@@ -572,6 +588,7 @@ class AutoNBEATSx(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -601,6 +618,7 @@ class AutoNBEATSx(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 40
@@ -644,6 +662,7 @@ class AutoNHITS(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -673,6 +692,7 @@ class AutoNHITS(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 44
@@ -705,6 +725,7 @@ class AutoTFT(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -734,6 +755,7 @@ class AutoTFT(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 47
@@ -766,6 +788,7 @@ class AutoVanillaTransformer(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -795,6 +818,7 @@ class AutoVanillaTransformer(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 50
@@ -827,6 +851,7 @@ class AutoInformer(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -856,6 +881,7 @@ class AutoInformer(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 53
@@ -888,6 +914,7 @@ class AutoAutoformer(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -917,6 +944,7 @@ class AutoAutoformer(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 56
@@ -948,6 +976,7 @@ class AutoFEDformer(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -977,6 +1006,7 @@ class AutoFEDformer(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 59
@@ -1011,6 +1041,7 @@ class AutoPatchTST(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -1040,6 +1071,7 @@ class AutoPatchTST(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 63
@@ -1072,6 +1104,7 @@ class AutoTimesNet(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -1101,6 +1134,7 @@ class AutoTimesNet(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 67
@@ -1134,6 +1168,7 @@ class AutoStemGNN(BaseAuto):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -1166,6 +1201,7 @@ class AutoStemGNN(BaseAuto):
             verbose=verbose,
             alias=alias,
             backend=backend,
+            callbacks=callbacks,
         )
 
 # %% ../nbs/models.ipynb 71
