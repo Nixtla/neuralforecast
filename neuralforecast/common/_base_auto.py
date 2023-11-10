@@ -171,7 +171,7 @@ class BaseAuto(pl.LightningModule):
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
-        self.callbacks = [] if callbacks is None else list(callbacks)
+        self.callbacks = callbacks
 
         # Base Class attributes
         self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
