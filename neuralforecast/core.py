@@ -190,6 +190,7 @@ class NeuralForecast:
         self.models = [deepcopy(model) for model in self.models_init]
         self.freq = pd.tseries.frequencies.to_offset(freq)
         self.local_scaler_type = local_scaler_type
+        self.dataset_df = None
 
         # Flags and attributes
         self._fitted = False
@@ -239,6 +240,7 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
+        self.dataset_df = df
         # Model and datasets interactions protections
         if (any(model.early_stop_patience_steps > 0 for model in self.models)) and (
             val_size == 0
@@ -539,7 +541,7 @@ class NeuralForecast:
         fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
+        fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"]) if df is not None else fcsts_df.merge(self.dataset_df, how="left", on=["unique_id", "ds"])
         return fcsts_df
 
     def predict_insample(self, step_size: int = 1):
