@@ -70,7 +70,6 @@
       "pages": [
         "core.html",
         "models.html",
-        "models.html",
         {
           "group": "Models' Documentation",
           "pages": [
