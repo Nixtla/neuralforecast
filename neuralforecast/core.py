@@ -590,7 +590,15 @@ class NeuralForecast:
         fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
         return fcsts_df
 
-    def predict_insample(self, step_size: int = 1):
+    def predict_insample(
+        self, 
+        df: Optional[pd.DataFrame] = None,
+        static_df: Optional[pd.DataFrame] = None,
+        step_size: int = 1,
+        test_size: Optional[int] = None,
+        sort_df: bool = True,
+        verbose: bool = False,
+    ):
         """Predict insample with core.NeuralForecast.
 
         `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
@@ -598,18 +606,42 @@ class NeuralForecast:
 
         Parameters
         ----------
+        df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
+        static_df : pandas.DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`] and static exogenous.
         step_size : int (default=1)
             Step size between each window.
+        sort_df : bool (default=True)
+            Sort `df` before fitting.
+        verbose : bool (default=False)
+            Print processing steps.
 
         Returns
         -------
         fcsts_df : pandas.DataFrame
             DataFrame with insample predictions for all fitted `models`.
         """
+        
+        if (df is None) and not (hasattr(self, 'dataset')):
+            raise Exception('You must pass a DataFrame or have one stored.')
+
         if not self._fitted:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
+        # Process new dataset but does not store it.
+        if df is not None:
+            dataset, uids, last_dates, ds = self._prepare_fit(df=df,
+             static_df=static_df, sort_df=sort_df)
+        else:
+            dataset = self.dataset
+            uids = self.uids
+            last_dates = self.last_dates
+            ds = self.ds
+            if verbose: 
+                print('Using stored dataset.')
 
         for model in self.models:
             if model.SAMPLING_TYPE == "recurrent":
@@ -635,19 +667,19 @@ class NeuralForecast:
         test_size = self.models[0].get_test_size()
         if test_size > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=0
+                dataset=dataset, right_trim=test_size, left_trim=0
             )
-            last_dates_train = self.last_dates.shift(-test_size, freq=self.freq)
+            last_dates_train = last_dates.shift(-test_size, freq=self.freq)
         else:
-            trimmed_dataset = self.dataset
-            last_dates_train = self.last_dates
+            trimmed_dataset = dataset
+            last_dates_train = last_dates
 
         # Generate dates
         len_series = np.diff(
             trimmed_dataset.indptr
         )  # Computes the length of each time series based on indptr
         fcsts_df = _insample_dates(
-            uids=self.uids,
+            uids=uids,
             last_dates=last_dates_train,
             freq=self.freq,
             h=self.h,
@@ -677,7 +709,7 @@ class NeuralForecast:
 
         # Add original input df's y to forecasts DataFrame
         Y_df = pd.DataFrame.from_records(
-            self.dataset.temporal[:, [0]].numpy(), columns=["y"], index=self.ds
+            dataset.temporal[:, [0]].numpy(), columns=["y"], index=ds
         )
         Y_df = Y_df.reset_index(drop=False)
         fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
