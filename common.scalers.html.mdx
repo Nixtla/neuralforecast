@@ -5,27 +5,34 @@ description: 'Temporal normalization has proven to be essential in neural foreca
   the variance dwells, contrary to other deep learning techniques like `BatchNorm`
   that normalizes across batch and temporal dimensions, and `LayerNorm` that normalizes
   across the feature dimension. Currently we support the following techniques: `std`,
-  `median`, `norm`, `norm1`, `invariant`, `revin`.<br/><br/>**References**<br/>- [Kin
-  G. Olivares, David Luo, Cristian Challu, Stefania La Vattiata, Max Mergenthaler,
-  Artur Dubrawski (2023). "HINT: Hierarchical Mixture Networks For Coherent Probabilistic
-  Forecasting". Neural Information Processing Systems, submitted. Working Paper version
-  available at arxiv.](https://arxiv.org/abs/2305.07089)<br/>- [Taesung Kim and Jinhee
-  Kim and Yunwon Tae and Cheonbok Park and Jang-Ho Choi and Jaegul Choo. "Reversible
-  Instance Normalization for Accurate Time-Series Forecasting against Distribution
-  Shift". ICLR 2022.](https://openreview.net/pdf?id=cGDAkQo1C0p).<br/>- [David Salinas,
-  Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020). "DeepAR: Probabilistic
-  forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br/>'
+  `median`, `norm`, `norm1`, `invariant`, `revin`.'
 output-file: common.scalers.html
 title: TemporalNorm
 
 ---
+
+## References
+
+-   [Kin G. Olivares, David Luo, Cristian Challu, Stefania La Vattiata,
+    Max Mergenthaler, Artur Dubrawski (2023). “HINT: Hierarchical
+    Mixture Networks For Coherent Probabilistic Forecasting”. Neural
+    Information Processing Systems, submitted. Working Paper version
+    available at arxiv.](https://arxiv.org/abs/2305.07089)
+-   [Taesung Kim and Jinhee Kim and Yunwon Tae and Cheonbok Park and
+    Jang-Ho Choi and Jaegul Choo. “Reversible Instance Normalization for
+    Accurate Time-Series Forecasting against Distribution Shift”. ICLR
+    2022.](https://openreview.net/pdf?id=cGDAkQo1C0p)
+-   [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski
+    (2020). “DeepAR: Probabilistic forecasting with autoregressive
+    recurrent networks”. International Journal of
+    Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)
 
 ![Figure 1. Illustration of temporal normalization (left), layer
 normalization (center) and batch normalization (right). The entries in
 green show the components used to compute the normalizing
 statistics.](/imgs_models/temporal_norm.png)
 
-# <span style="color:DarkBlue"> 1. Auxiliary Functions </span>
+# 1. Auxiliary Functions
 
 ------------------------------------------------------------------------
 
@@ -73,7 +80,7 @@ Defaults to True.<br/>
 
 **Returns:**<br/> `x_mean`: torch.Tensor with normalized values.
 
-# <span style="color:DarkBlue"> 2. Scalers </span>
+# 2. Scalers
 
 ------------------------------------------------------------------------
 
@@ -89,8 +96,10 @@ Standardizes temporal features by ensuring its range dweels between
 \[0,1\] range. This transformation is often used as an alternative to
 the standard scaler. The scaled features are obtained as:
 
-$$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
-    (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})$$
+$$
+\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
+    (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})
+$$
 
 **Parameters:**<br/> `x`: torch.Tensor input tensor.<br/> `mask`: torch
 Tensor bool, same dimension as `x`, indicates where `x` is valid and
@@ -243,7 +252,7 @@ mad. Defaults to -1.<br/>
 
 **Returns:**<br/> `x`: original torch.Tensor `x`.
 
-# <span style="color:DarkBlue"> 3. TemporalNorm Module </span>
+# 3. TemporalNorm Module
 
 ------------------------------------------------------------------------
 
@@ -316,7 +325,7 @@ scaled.<br/>
 
 **Returns:**<br/> `x`: torch.Tensor original data.
 
-# <span style="color:DarkBlue"> Example </span>
+# Example
 
 ```python
 import numpy as np
