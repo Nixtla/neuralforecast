@@ -267,8 +267,8 @@ if __name__ == '__main__':
 	args = parse_args()
 
 	for k_shot in [0]:
-		for random_seed in [1,2,3,4]:
-			for frequency in ['yearly', 'quarterly','monthly','daily']: # ['yearly', 'quarterly','monthly','daily']
+		for random_seed in [1]:
+			for frequency in ['daily']: #['yearly', 'quarterly','monthly']: # ['yearly', 'quarterly','monthly','daily']
 				for model in MODEL_LIST:
 					args.k_shot = k_shot
 					args.model = model
@@ -285,4 +285,4 @@ if __name__ == '__main__':
 					print('Already done!')
 
 
-# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "M4" --target_dataset "Tourism" --experiment_id "20230926"
+# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "wiki" --target_dataset "M3" --experiment_id "20231108"

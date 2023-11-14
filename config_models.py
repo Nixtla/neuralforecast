@@ -1,5 +1,5 @@
 from neuralforecast.models import *
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, HuberLoss
 
 # GLOBAL parameters
 HORIZON_DICT = {'yearly': 6,
@@ -11,22 +11,39 @@ HORIZON_DICT = {'yearly': 6,
 HORIZON_DICT_SHORT = {'monthly': 6}
 
 LOSS = MQLoss(quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+#LOSS = HuberLoss()
 LOSS_PROBA = DistributionLoss(distribution="StudentT", level=[80, 90], return_params=False)
 
 
-MODEL_LIST = ['nhits_15_512',
-              'nhits_30_1024',
-              'vanillatransformer_256_3',
-              'tft_128',
-              'tft_1024',
-              'mlp_512_8',
-              'mlp_2048_32',
-              'tcn_128_3',
-              'tcn_512_5',
-              'lstm_128_3',
-              'lstm_512_5',
-              #'deepar_64_2',
-              #'deepar_128_4',
+# MODEL_LIST = ['nhits_15_512',
+#               'nhits_30_1024',
+#               'vanillatransformer_256_3',
+#               'tft_128',
+#               'tft_1024',
+#               'mlp_512_8',
+#               'mlp_2048_32',
+#               'tcn_128_3',
+#               'tcn_512_5',
+#               'lstm_128_3',
+#               'lstm_512_5',
+#               #'deepar_64_2',
+#               #'deepar_128_4',
+#               ]
+
+# MODEL_LIST = ['vanillatransformer_256_3',
+#               'vanillatransformer_2',
+#               'vanillatransformer_3',
+#               'vanillatransformer_4',
+#               'vanillatransformer_5',
+#               'vanillatransformer_6'
+#               ]
+
+MODEL_LIST = ['patchtst_128_3',
+              'patchtst_2',
+              'patchtst_3',
+              'patchtst_4',
+              'patchtst_5',
+              'patchtst_6'
               ]
 
 def load_model(model_name, frequency, short=False, random_seed=1):
@@ -84,8 +101,8 @@ def load_model(model_name, frequency, short=False, random_seed=1):
                                 encoder_layers=3,
                                 decoder_layers=1,
                                 n_head=4,
-                                hidden_size=512, # 256
-                                conv_hidden_size=256, # 64
+                                hidden_size=256,
+                                conv_hidden_size=64,
                                 dropout=0.1,
                                 loss=LOSS,
                                 learning_rate=1e-4,
@@ -97,7 +114,101 @@ def load_model(model_name, frequency, short=False, random_seed=1):
                                 windows_batch_size=1024, # 1024
                                 num_sanity_val_steps=0,
                                 random_seed=random_seed)
-    
+    elif model_name == 'vanillatransformer_2': 
+        model = VanillaTransformer(h=horizon,
+                                input_size=2*horizon,
+                                encoder_layers=3,
+                                decoder_layers=1,
+                                n_head=4,
+                                hidden_size=256,
+                                conv_hidden_size=64,
+                                dropout=0.1,
+                                loss=LOSS,
+                                learning_rate=1e-5,
+                                early_stop_patience_steps=10, # -1
+                                val_check_steps=300,
+                                scaler_type='minmax1',
+                                max_steps=max_steps,
+                                batch_size=256, # 256
+                                windows_batch_size=1024, # 1024
+                                num_sanity_val_steps=0,
+                                random_seed=random_seed)
+    elif model_name == 'vanillatransformer_3': 
+        model = VanillaTransformer(h=horizon,
+                                input_size=2*horizon,
+                                encoder_layers=3,
+                                decoder_layers=1,
+                                n_head=4,
+                                hidden_size=128,
+                                conv_hidden_size=32,
+                                dropout=0.1,
+                                loss=LOSS,
+                                learning_rate=1e-4,
+                                early_stop_patience_steps=10, # -1
+                                val_check_steps=300,
+                                scaler_type='minmax1',
+                                max_steps=max_steps,
+                                batch_size=256, # 256
+                                windows_batch_size=1024, # 1024
+                                num_sanity_val_steps=0,
+                                random_seed=random_seed)
+    elif model_name == 'vanillatransformer_4': 
+        model = VanillaTransformer(h=horizon,
+                                input_size=2*horizon,
+                                encoder_layers=3,
+                                decoder_layers=1,
+                                n_head=4,
+                                hidden_size=256,
+                                conv_hidden_size=64,
+                                dropout=0.3,
+                                loss=LOSS,
+                                learning_rate=1e-4,
+                                early_stop_patience_steps=10, # -1
+                                val_check_steps=300,
+                                scaler_type='minmax1',
+                                max_steps=max_steps,
+                                batch_size=256, # 256
+                                windows_batch_size=1024, # 1024
+                                num_sanity_val_steps=0,
+                                random_seed=random_seed)
+    elif model_name == 'vanillatransformer_5': 
+        model = VanillaTransformer(h=horizon,
+                                input_size=3*horizon,
+                                encoder_layers=3,
+                                decoder_layers=1,
+                                n_head=4,
+                                hidden_size=256,
+                                conv_hidden_size=64,
+                                dropout=0.1,
+                                loss=LOSS,
+                                learning_rate=1e-4,
+                                early_stop_patience_steps=10, # -1
+                                val_check_steps=300,
+                                scaler_type='minmax1',
+                                max_steps=max_steps,
+                                batch_size=256, # 256
+                                windows_batch_size=1024, # 1024
+                                num_sanity_val_steps=0,
+                                random_seed=random_seed)
+    elif model_name == 'vanillatransformer_6': 
+        model = VanillaTransformer(h=horizon,
+                                input_size=2*horizon,
+                                encoder_layers=3,
+                                decoder_layers=1,
+                                n_head=4,
+                                hidden_size=256,
+                                conv_hidden_size=64,
+                                dropout=0.1,
+                                loss=LOSS,
+                                learning_rate=1e-4,
+                                early_stop_patience_steps=10, # -1
+                                val_check_steps=300,
+                                scaler_type='standard',
+                                max_steps=max_steps,
+                                batch_size=256, # 256
+                                windows_batch_size=1024, # 1024
+                                num_sanity_val_steps=0,
+                                random_seed=random_seed)
     # TFT
     elif model_name == 'tft_128':
         model = TFT(h=horizon,
@@ -255,6 +366,115 @@ def load_model(model_name, frequency, short=False, random_seed=1):
                         lstm_hidden_size=64,
                         lstm_dropout=0.1,
                         loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='minmax1',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+        
+    elif model_name == 'patchtst_128_3': 
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=128,
+                        linear_hidden_size=128,
+                        patch_len=4,
+                        stride=4,
+                        revin=False,
+                        loss=LOSS,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='minmax1',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+    elif model_name == 'patchtst_2': # Stride 1
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=128,
+                        linear_hidden_size=128,
+                        patch_len=4,
+                        stride=1,
+                        revin=False,
+                        loss=LOSS,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='minmax1',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+    elif model_name == 'patchtst_3': # Stride 1 and patch 2
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=128,
+                        linear_hidden_size=128,
+                        patch_len=2,
+                        stride=1,
+                        revin=False,
+                        loss=LOSS,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='minmax1',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+    elif model_name == 'patchtst_4': # Use Revin 4,4
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=128,
+                        linear_hidden_size=128,
+                        patch_len=4,
+                        stride=4,
+                        revin=True,
+                        loss=LOSS,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type=None,
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+    elif model_name == 'patchtst_5': # Use revin 4,1
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=128,
+                        linear_hidden_size=128,
+                        patch_len=4,
+                        stride=1,
+                        revin=True,
+                        loss=LOSS,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type=None,
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+    elif model_name == 'patchtst_6': # Larger model
+        model = PatchTST(h=horizon,
+                        input_size=2*horizon,
+                        encoder_layers=3,
+                        hidden_size=256,
+                        linear_hidden_size=256,
+                        patch_len=2,
+                        stride=1,
+                        revin=False,
+                        loss=LOSS,
                         learning_rate=1e-4,
                         early_stop_patience_steps=10,
                         val_check_steps=300,
