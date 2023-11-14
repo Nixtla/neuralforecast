@@ -5,7 +5,7 @@ __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilat
            'AutoNHITS', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer',
            'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT']
 
-# %% ../nbs/models.ipynb 3
+# %% ../nbs/models.ipynb 2
 from os import cpu_count
 import torch
 
@@ -39,7 +39,7 @@ from .models.hint import HINT
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
-# %% ../nbs/models.ipynb 10
+# %% ../nbs/models.ipynb 9
 class AutoRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -108,7 +108,7 @@ class AutoRNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 15
+# %% ../nbs/models.ipynb 14
 class AutoLSTM(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -172,7 +172,7 @@ class AutoLSTM(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 18
+# %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -238,7 +238,7 @@ class AutoGRU(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 21
+# %% ../nbs/models.ipynb 20
 class AutoTCN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -303,7 +303,7 @@ class AutoTCN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 24
+# %% ../nbs/models.ipynb 23
 class AutoDeepAR(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -369,7 +369,7 @@ class AutoDeepAR(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 27
+# %% ../nbs/models.ipynb 26
 class AutoDilatedRNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
@@ -436,7 +436,7 @@ class AutoDilatedRNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 31
+# %% ../nbs/models.ipynb 30
 class AutoMLP(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -499,7 +499,7 @@ class AutoMLP(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 34
+# %% ../nbs/models.ipynb 33
 class AutoNBEATS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -560,7 +560,7 @@ class AutoNBEATS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 37
+# %% ../nbs/models.ipynb 36
 class AutoNBEATSx(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -621,7 +621,7 @@ class AutoNBEATSx(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 40
+# %% ../nbs/models.ipynb 39
 class AutoNHITS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -695,7 +695,7 @@ class AutoNHITS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 44
+# %% ../nbs/models.ipynb 43
 class AutoTFT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -758,7 +758,7 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 47
+# %% ../nbs/models.ipynb 46
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -821,7 +821,7 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 50
+# %% ../nbs/models.ipynb 49
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -884,7 +884,7 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 53
+# %% ../nbs/models.ipynb 52
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -947,7 +947,7 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 56
+# %% ../nbs/models.ipynb 55
 class AutoFEDformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1009,7 +1009,7 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 59
+# %% ../nbs/models.ipynb 58
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -1074,7 +1074,7 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 63
+# %% ../nbs/models.ipynb 62
 class AutoTimesNet(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1137,7 +1137,7 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 67
+# %% ../nbs/models.ipynb 66
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1204,7 +1204,7 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 71
+# %% ../nbs/models.ipynb 70
 class AutoHINT(BaseAuto):
     def __init__(
         self,

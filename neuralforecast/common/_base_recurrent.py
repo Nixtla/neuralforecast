@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['BaseRecurrent']
 
-# %% ../../nbs/common.base_recurrent.ipynb 5
+# %% ../../nbs/common.base_recurrent.ipynb 6
 import random
 import warnings
 
@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 
-# %% ../../nbs/common.base_recurrent.ipynb 6
+# %% ../../nbs/common.base_recurrent.ipynb 7
 class BaseRecurrent(pl.LightningModule):
     """Base Recurrent
 
