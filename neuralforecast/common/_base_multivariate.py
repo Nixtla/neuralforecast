@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['BaseMultivariate']
 
-# %% ../../nbs/common.base_multivariate.ipynb 4
+# %% ../../nbs/common.base_multivariate.ipynb 5
 import random
 import warnings
 
@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 
-# %% ../../nbs/common.base_multivariate.ipynb 5
+# %% ../../nbs/common.base_multivariate.ipynb 6
 class BaseMultivariate(pl.LightningModule):
     """Base Multivariate
 
