@@ -12,7 +12,13 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import Dataset, DataLoader
-from utilsforecast.processing import process_df
+from utilsforecast.compat import DataFrame, pl_Series
+from utilsforecast.processing import (
+    assign_columns,
+    copy_if_pandas,
+    process_df,
+    sort,
+)
 
 # %% ../nbs/tsdataset.ipynb 5
 class TimeSeriesLoader(DataLoader):
@@ -137,17 +143,17 @@ class TimeSeriesDataset(Dataset):
             self.indptr, other.indptr
         )
 
-    def align(self, df: pd.DataFrame) -> "TimeSeriesDataset":
+    def align(self, df: DataFrame) -> "TimeSeriesDataset":
         # Protect consistency
-        df = df.copy()
+        df = copy_if_pandas(df, deep=False)
 
         # Add Nones to missing columns (without available_mask)
         temporal_cols = self.temporal_cols.copy()
         for col in temporal_cols:
             if col not in df.columns:
-                df[col] = np.nan
+                df = assign_columns(df, col, np.nan)
             if col == "available_mask":
-                df[col] = 1
+                df = assign_columns(df, col, 1.0)
 
         # Sort columns to match self.temporal_cols (without available_mask)
         df = df[["unique_id", "ds"] + temporal_cols.tolist()]
@@ -248,7 +254,7 @@ class TimeSeriesDataset(Dataset):
     @staticmethod
     def from_df(df, static_df=None, sort_df=False):
         # TODO: protect on equality of static_df + df indexes
-        if df.index.name == "unique_id":
+        if isinstance(df, pd.DataFrame) and df.index.name == "unique_id":
             warnings.warn(
                 "Passing the id as index is deprecated, please provide it as a column instead.",
                 DeprecationWarning,
@@ -256,24 +262,28 @@ class TimeSeriesDataset(Dataset):
             df = df.reset_index("unique_id")
         # Define indexes if not given
         if static_df is not None:
-            if static_df.index.name == "unique_id":
+            if (
+                isinstance(static_df, pd.DataFrame)
+                and static_df.index.name == "unique_id"
+            ):
                 warnings.warn(
                     "Passing the id as index is deprecated, please provide it as a column instead.",
                     DeprecationWarning,
                 )
-            else:
-                static_df = static_df.set_index("unique_id")
             if sort_df:
-                static_df = static_df.sort_index()
+                static_df = sort(static_df, by="unique_id")
 
         ids, times, data, indptr, sort_idxs = process_df(df, "unique_id", "ds", "y")
         # processor sets y as the first column
         temporal_cols = pd.Index(
-            ["y"] + df.columns.drop(["unique_id", "ds", "y"]).tolist()
+            ["y"] + [c for c in df.columns if c not in ("unique_id", "ds", "y")]
         )
         temporal = data.astype(np.float32, copy=False)
-        indices = pd.Index(ids)
-        dates = pd.Index(times, name="ds")
+        indices = ids
+        if isinstance(df, pd.DataFrame):
+            dates = pd.Index(times, name="ds")
+        else:
+            dates = pl_Series("ds", times)
         sizes = np.diff(indptr)
         max_size = max(sizes)
         min_size = min(sizes)
@@ -286,8 +296,8 @@ class TimeSeriesDataset(Dataset):
 
         # Static features
         if static_df is not None:
-            static = static_df.values
-            static_cols = static_df.columns
+            static = static_df.drop(columns="unique_id").to_numpy()
+            static_cols = pd.Index(static_df.columns)
         else:
             static = None
             static_cols = None
@@ -302,7 +312,7 @@ class TimeSeriesDataset(Dataset):
             min_size=min_size,
             sorted=sort_df,
         )
-        ds = pd.MultiIndex.from_frame(df[["unique_id", "ds"]])
+        ds = df["ds"].to_numpy()
         if sort_idxs is not None:
             ds = ds[sort_idxs]
         return dataset, indices, dates, ds
