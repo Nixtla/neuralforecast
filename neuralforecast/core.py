@@ -26,7 +26,6 @@ from utilsforecast.processing import (
     offset_times,
     repeat,
     sort,
-    time_ranges,
 )
 from utilsforecast.target_transforms import (
     BaseTargetTransform,
@@ -58,21 +57,30 @@ from neuralforecast.models import (
     TimesNet,
 )
 
-# %% ../nbs/core.ipynb 7
+# %% ../nbs/core.ipynb 5
 def _insample_times(
     times: np.ndarray,
     uids: Series,
     indptr: np.ndarray,
     h: int,
-    freq: Union[str, pd.offsets.BaseOffset],
+    freq: Union[int, str, pd.offsets.BaseOffset],
     step_size: int = 1,
 ) -> DataFrame:
     sizes = np.diff(indptr)
-    windows_per_serie = sizes - h + 1
-    cutoff_idxs = np.repeat(indptr[:-1], windows_per_serie) + np.hstack(
-        [np.arange(w) for w in windows_per_serie]
-    )
+    if (sizes < h).any():
+        raise ValueError("`sizes` should be greater or equal to `h`.")
+    # TODO: we can just truncate here instead of raising an error
+    ns, resids = np.divmod(sizes - h, step_size)
+    if (resids != 0).any():
+        raise ValueError("`sizes - h` should be multiples of `step_size`")
+    windows_per_serie = ns + 1
+    cutoffs_offsets = step_size * np.hstack([np.arange(w) for w in windows_per_serie])
+    start_idxs = np.repeat(indptr[:-1], windows_per_serie)
+    cutoff_idxs = np.repeat(start_idxs + cutoffs_offsets, h)
     cutoffs = times[cutoff_idxs]
+    ds_offsets = np.tile(np.arange(h), windows_per_serie.sum())
+    ds_idxs = cutoff_idxs + ds_offsets
+    ds = times[ds_idxs]
     offsets = np.tile(1 + np.arange(h), windows_per_serie.sum())
     if isinstance(uids, pl_Series):
         df_constructor = pl_DataFrame
@@ -81,34 +89,16 @@ def _insample_times(
     out = df_constructor(
         {
             "unique_id": repeat(uids, h * windows_per_serie),
-            "cutoff": np.repeat(cutoffs, h),
+            "ds": ds,
+            "cutoff": cutoffs,
         }
     )
     # the first cutoff is before the first train date
     actual_cutoffs = offset_times(out["cutoff"], freq, -1)
     out = assign_columns(out, "cutoff", actual_cutoffs)
-    ds = offset_times(out["cutoff"], freq, offsets)
-    out = assign_columns(out, "ds", ds)
-    return out[["unique_id", "ds", "cutoff"]]
+    return out
 
-# %% ../nbs/core.ipynb 13
-def _future_dates(dataset, uids, last_dates, freq, h):
-    """
-    Generate future dates for `predict` function.
-    """
-    if issubclass(last_dates.dtype.type, np.integer):
-        last_date_f = lambda x: np.arange(x + 1, x + 1 + h, dtype=last_dates.dtype)
-    else:
-        last_date_f = lambda x: pd.date_range(x + freq, periods=h, freq=freq)
-    if len(np.unique(last_dates)) == 1:
-        dates = np.tile(last_date_f(last_dates[0]), len(dataset))
-    else:
-        dates = np.hstack([last_date_f(last_date) for last_date in last_dates])
-    idx = pd.Index(np.repeat(uids, h), name="unique_id")
-    df = pd.DataFrame({"ds": dates}, index=idx)
-    return df
-
-# %% ../nbs/core.ipynb 14
+# %% ../nbs/core.ipynb 7
 MODEL_FILENAME_DICT = {
     "gru": GRU,
     "lstm": LSTM,
@@ -146,7 +136,7 @@ MODEL_FILENAME_DICT = {
     "autotimesnet": TimesNet,
 }
 
-# %% ../nbs/core.ipynb 15
+# %% ../nbs/core.ipynb 8
 _type2scaler = {
     "standard": LocalStandardScaler,
     "robust": lambda: LocalRobustScaler(scale="mad"),
@@ -155,7 +145,7 @@ _type2scaler = {
     "boxcox": LocalBoxCox,
 }
 
-# %% ../nbs/core.ipynb 16
+# %% ../nbs/core.ipynb 9
 class NeuralForecast:
     def __init__(
         self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
@@ -190,7 +180,7 @@ class NeuralForecast:
         self.h = models[0].h
         self.models_init = models
         self.models = [deepcopy(model) for model in self.models_init]
-        self.freq = pd.tseries.frequencies.to_offset(freq)
+        self.freq = freq
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
             raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
