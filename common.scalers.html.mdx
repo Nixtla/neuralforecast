@@ -97,8 +97,10 @@ Standardizes temporal features by ensuring its range dweels between
 the standard scaler. The scaled features are obtained as:
 
 $$
+
 \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
     (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})
+
 $$
 
 **Parameters:**<br/> `x`: torch.Tensor input tensor.<br/> `mask`: torch

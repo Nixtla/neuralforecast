@@ -124,8 +124,10 @@ covariance matrix of the coherency errors $\mathbf{W}_{h}$.
 
 $$ \mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})$$
 
-$$\mathbf{P}_{\text{MinTraceWLS}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
-\mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+$$
+\mathbf{P}_{\text{MinTraceWLS}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
+\mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}
+$$
 
 **Parameters:**<br/> `S`: Summing matrix of size (`base`, `bottom`).<br/>
 

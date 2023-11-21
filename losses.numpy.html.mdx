@@ -2,8 +2,10 @@
 description: NeuralForecast contains a collection NumPy loss functions aimed to be
   used during the models' evaluation. The most important train signal is the forecast
   error, which is the difference between the observed value $y_{\tau}$ and the prediction
-  $\hat{y}_{\tau}$, at time $y_{\tau}$:$$e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad
-  \qquad \tau \in \{t+1,\dots,t+H \}$$ The train loss summarizes the forecast errors
+  $\hat{y}_{\tau}$, at time $y_{\tau}$:$$
+e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad
+  \qquad \tau \in \{t+1,\dots,t+H \}
+$$ The train loss summarizes the forecast errors
   in different evaluation metrics.<br/><br/>
 output-file: losses.numpy.html
 title: NumPy Evaluation

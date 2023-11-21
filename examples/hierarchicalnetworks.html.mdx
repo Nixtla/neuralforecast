@@ -82,6 +82,7 @@ the vector $\mathbf{y}_{[a,b],t}$ defined by the following aggregation
 constraint:
 
 $$
+
 \mathbf{y}_{[a,b],t}  = \mathbf{S}_{[a,b][b]} \mathbf{y}_{[b],t} \quad \Leftrightarrow \quad 
 \begin{bmatrix}\mathbf{y}_{[a],t}
 \\ %\hline
@@ -91,6 +92,7 @@ $$
 \mathbf{I}_{[b][b]}
 \end{bmatrix}
 \mathbf{y}_{[b],t}
+
 $$
 
 where $\mathbf{y}_{[a],t}$ are the aggregate series,
@@ -214,13 +216,17 @@ To evaluate the coherent probabilistic predictions we use the scaled
 Continuous Ranked Probability Score (sCRPS), defined as follows:
 
 $$
+
 \mathrm{CRPS}(\hat{F}_{[a,b],\tau},\mathbf{y}_{[a,b],\tau}) = 
     \frac{2}{N_{a}+N_{b}} \sum_{i} \int^{1}_{0} \mathrm{QL}(\hat{F}_{i,\tau}, y_{i,\tau})_{q} dq
+
 $$
 
 $$
+
 \mathrm{sCRPS}(\hat{F}_{[a,b\,],\tau},\mathbf{y}_{[a,b\,],\tau}) = 
     \frac{\mathrm{CRPS}(\hat{F}_{[a,b\,],\tau},\mathbf{y}_{[a,b\,],\tau})}{\sum_{i} | y_{i,\tau} |}
+
 $$
 
 As you can see the HINT model efficiently achieves state of the art

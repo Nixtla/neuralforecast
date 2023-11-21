@@ -2,8 +2,10 @@
 description: NeuralForecast contains a collection PyTorch Loss classes aimed to be
   used during the models' optimization. The most important train signal is the forecast
   error, which is the difference between the observed value $y_{\tau}$ and the prediction
-  $\hat{y}_{\tau}$, at time $y_{\tau}$:$$e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad
-  \qquad \tau \in \{t+1,\dots,t+H \}$$ The train loss summarizes the forecast errors
+  $\hat{y}_{\tau}$, at time $y_{\tau}$:$$
+e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad
+  \qquad \tau \in \{t+1,\dots,t+H \}
+$$ The train loss summarizes the forecast errors
   in different train optimization objectives.<br/><br/>All the losses are `torch.nn.modules`
   which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch
   Lightning.
@@ -380,8 +382,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 Relative Mean Squared Error Computes Relative Mean Squared Error
 (relMSE), as proposed by Hyndman & Koehler (2006) as an alternative to
 percentage errors, to avoid measure unstability.
-$$ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{naive1}) =
-\frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{naive1})} $$
+$$
+ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{naive1}) =
+\frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{naive1})} 
+$$
 
 **Parameters:**<br/> `y_train`: numpy array, Training values.<br/>
 `horizon_weight`: Tensor of size h, weight for each timestamp of the
@@ -681,10 +685,12 @@ This Poisson Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
 within the group.
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
+$$
+ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
 \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) =
 \prod_{\beta\in[g_{i}]} 
-\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)$$
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)
+$$
 
 **Parameters:**<br/> `n_components`: int=10, the number of mixture
 components.<br/> `level`: float list \[0,100\], confidence levels for
@@ -766,11 +772,13 @@ This Gaussian Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
 within the group.
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
+$$
+ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
 \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
 \prod_{\beta\in[g_{i}]}
 \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} 
-\mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)$$
+\mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)
+$$
 
 **Parameters:**<br/> `n_components`: int=10, the number of mixture
 components.<br/> `level`: float list \[0,100\], confidence levels for
@@ -852,11 +860,13 @@ This N. Binomial Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
 within the group.
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
+$$
+ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = 
 \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
 \prod_{\beta\in[g_{i}]}
 \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} 
-\mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)$$
+\mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)
+$$
 
 **Parameters:**<br/> `n_components`: int=10, the number of mixture
 components.<br/> `level`: float list \[0,100\], confidence levels for
@@ -944,9 +954,11 @@ large errors, with equal values and slopes of the different sections at
 the two points where
 $(y_{\tau}-\hat{y}_{\tau})^{2}$=$|y_{\tau}-\hat{y}_{\tau}|$.
 
-$$ L_{\delta}(y_{\tau},\; \hat{y}_{\tau})
+$$
+ L_{\delta}(y_{\tau},\; \hat{y}_{\tau})
 =\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \\ 
-\delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}$$
+\delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}
+$$
 
 where $\delta$ is a threshold parameter that determines the point at
 which the loss transitions from quadratic to linear, and can be tuned to
@@ -1008,10 +1020,12 @@ The parameter $c$ in Tukey’s loss determines the ‘’saturation’’ point 
 the function: Higher values of $c$ enhance sensitivity, while lower
 values increase resistance to outliers.
 
-$$ L_{c}(y_{\tau},\; \hat{y}_{\tau})
+$$
+ L_{c}(y_{\tau},\; \hat{y}_{\tau})
 =\begin{cases}{
 \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\ 
-\frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}$$
+\frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}
+$$
 
 Please note that the Tukey loss function assumes the data to be
 stationary or normalized beforehand. If the error values are excessively
@@ -1075,9 +1089,11 @@ under/over-estimation depending on the quantile parameter $q$; and
 controls the trade-off between robustness and accuracy in the
 predictions with the parameter $delta$.
 
-$$ \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = 
+$$
+ \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = 
 (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} + 
-q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} $$
+q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} 
+$$
 
 **Parameters:**<br/> `delta`: float=1.0, Specifies the threshold at which
 to change between delta-scaled L1 and L2 loss.<br/> `q`: float, between 0
@@ -1139,8 +1155,10 @@ under/over-estimation depending on the quantile list
 $[q_{1},q_{2},\dots]$ parameter. It controls the trade-off between
 robustness and prediction accuracy with the parameter $\delta$.
 
-$$ \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = 
-\frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) $$
+$$
+ \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = 
+\frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) 
+$$
 
 **Parameters:**<br/> `level`: int list \[0,100\]. Probability levels for
 prediction intervals (Defaults median). `quantiles`: float list \[0.,
@@ -1243,9 +1261,11 @@ to the observation `y`.
 This metric averages percentual weighted absolute deviations as defined
 by the quantile losses.
 
-$$ \mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
+$$
+ \mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
 \int^{1}_{0}
-\frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq $$
+\frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq 
+$$
 
 where $\mathbf{\hat{y}}^{(q}_{\tau}$ is the estimated quantile, and
 $y_{i,\tau}$ are the target variable realizations.
