@@ -13,8 +13,8 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
-  - utilsforecast>=0.0.15
   - pip:
     - nbdev
     - black
     - "ray[tune]>=2.2.0"
+    - utilsforecast>=0.0.15
