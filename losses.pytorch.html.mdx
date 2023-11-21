@@ -1,18 +1,22 @@
 ---
 description: NeuralForecast contains a collection PyTorch Loss classes aimed to be
-  used during the models' optimization. The most important train signal is the forecast
-  error, which is the difference between the observed value $y_{\tau}$ and the prediction
-  $\hat{y}_{\tau}$, at time $y_{\tau}$:$$
-e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad
-  \qquad \tau \in \{t+1,\dots,t+H \}
-$$ The train loss summarizes the forecast errors
-  in different train optimization objectives.<br/><br/>All the losses are `torch.nn.modules`
-  which helps to automatically moved them across CPU/GPU/TPU devices with Pytorch
-  Lightning.
+  used during the models' optimization.
 output-file: losses.pytorch.html
 title: PyTorch Losses
 
 ---
+
+The most important train signal is the forecast error, which is the
+difference between the observed value $y_{\tau}$ and the prediction
+$\hat{y}_{\tau}$, at time $y_{\tau}$:
+
+$$e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \}$$
+
+The train loss summarizes the forecast errors in different train
+optimization objectives.
+
+All the losses are `torch.nn.modules` which helps to automatically moved
+them across CPU/GPU/TPU devices with Pytorch Lightning.
 
 ------------------------------------------------------------------------
 
