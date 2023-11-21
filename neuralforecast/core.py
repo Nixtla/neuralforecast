@@ -83,7 +83,6 @@ def _insample_times(
     ds_offsets = np.tile(np.arange(h), total_windows)
     ds_idxs = cutoff_idxs + ds_offsets
     ds = times[ds_idxs]
-    offsets = np.tile(1 + np.arange(h), total_windows)
     if isinstance(uids, pl_Series):
         df_constructor = pl_DataFrame
     else:
