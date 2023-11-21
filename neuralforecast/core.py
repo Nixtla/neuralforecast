@@ -26,6 +26,7 @@ from utilsforecast.processing import (
     offset_times,
     repeat,
     sort,
+    time_ranges,
 )
 from utilsforecast.target_transforms import (
     BaseTargetTransform,
@@ -78,10 +79,11 @@ def _insample_times(
     start_idxs = np.repeat(indptr[:-1], windows_per_serie)
     cutoff_idxs = np.repeat(start_idxs + cutoffs_offsets, h)
     cutoffs = times[cutoff_idxs]
-    ds_offsets = np.tile(np.arange(h), windows_per_serie.sum())
+    total_windows = windows_per_serie.sum()
+    ds_offsets = np.tile(np.arange(h), total_windows)
     ds_idxs = cutoff_idxs + ds_offsets
     ds = times[ds_idxs]
-    offsets = np.tile(1 + np.arange(h), windows_per_serie.sum())
+    offsets = np.tile(1 + np.arange(h), total_windows)
     if isinstance(uids, pl_Series):
         df_constructor = pl_DataFrame
     else:
