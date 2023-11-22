@@ -296,8 +296,8 @@ class TimeSeriesDataset(Dataset):
 
         # Static features
         if static_df is not None:
-            static = static_df.drop(columns="unique_id").to_numpy()
-            static_cols = pd.Index(static_df.columns)
+            static_cols = static_df.columns.drop("unique_id")
+            static = static_df[static_cols].to_numpy()
         else:
             static = None
             static_cols = None

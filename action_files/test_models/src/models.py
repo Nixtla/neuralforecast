@@ -97,7 +97,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
     end = time.time()
     print(end - start)
 
-    forecasts = forecasts.reset_index()
     forecasts = forecasts[['unique_id', 'ds', 'DeepAR-median']]
     forecasts.columns = ['unique_id', 'ds', 'DeepAR']
     forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
