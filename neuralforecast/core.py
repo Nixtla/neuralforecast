@@ -579,14 +579,7 @@ class NeuralForecast:
         fcsts_df = horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        original_y = df_constructor(
-            {
-                "unique_id": repeat(self.uids, np.diff(self.dataset.indptr)),
-                "ds": self.ds,
-                "y": self.dataset.temporal[:, 0].numpy(),
-            }
-        )
-        return join(fcsts_df, original_y, how="left", on=["unique_id", "ds"])
+        return join(fcsts_df, df, how="left", on=["unique_id", "ds"])
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
