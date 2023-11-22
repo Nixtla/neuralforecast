@@ -58,4 +58,4 @@ jobs:
         run: pip install ./ 
       
       - name: Tests
-        run: nbdev_test --do_print --timing --n_workers 1
+        run: nbdev_test --do_print --timing --n_workers 0 --flags polars

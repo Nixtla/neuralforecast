@@ -18,6 +18,7 @@ from utilsforecast.processing import (
     copy_if_pandas,
     process_df,
     sort,
+    to_numpy,
 )
 
 # %% ../nbs/tsdataset.ipynb 5
@@ -297,7 +298,7 @@ class TimeSeriesDataset(Dataset):
         # Static features
         if static_df is not None:
             static_cols = static_df.columns.drop("unique_id")
-            static = static_df[static_cols].to_numpy()
+            static = to_numpy(static_df[static_cols])
         else:
             static = None
             static_cols = None
