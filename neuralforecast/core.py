@@ -572,10 +572,8 @@ class NeuralForecast:
         # Add predictions to forecasts DataFrame
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(fcsts, schema=cols)
-            df_constructor = pl_DataFrame
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
-            df_constructor = pd.DataFrame
         fcsts_df = horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
