@@ -7,6 +7,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 
+import neuralforecast
 from neuralforecast.core import NeuralForecast
 
 from neuralforecast.models.gru import GRU
@@ -33,6 +34,8 @@ from neuralforecast.losses.pytorch import SMAPE, MAE
 from ray import tune
 
 from src.data import get_data
+
+neuralforecast.config.id_as_index = False
 
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:

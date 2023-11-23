@@ -25,6 +25,7 @@ from utilsforecast.target_transforms import (
     LocalStandardScaler,
 )
 
+import neuralforecast.config as nf_config
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
     GRU,
@@ -146,6 +147,15 @@ _type2scaler = {
 }
 
 # %% ../nbs/core.ipynb 9
+def _warn_id_as_idx():
+    warnings.warn(
+        "In a future version the predictions will have the id as a column. "
+        "You can set `neuralforecast.config.id_as_index = False` "
+        "to adopt the new behavior and to suppress this warning.",
+        category=DeprecationWarning,
+    )
+
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
     def __init__(
         self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
@@ -437,7 +447,9 @@ class NeuralForecast:
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-
+        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index("unique_id")
         return fcsts_df
 
     def cross_validation(
@@ -576,7 +588,11 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        return ufp.join(fcsts_df, df, how="left", on=["unique_id", "ds"])
+        fcsts_df = ufp.join(fcsts_df, df, how="left", on=["unique_id", "ds"])
+        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index("unique_id")
+        return fcsts_df
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
@@ -688,6 +704,9 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
+        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index("unique_id")
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
