@@ -14,20 +14,9 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 import torch
+import utilsforecast.processing as ufp
 from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
 from utilsforecast.grouped_array import GroupedArray
-from utilsforecast.processing import (
-    assign_columns,
-    counts_by_id,
-    cv_times,
-    horizontal_concat,
-    is_none,
-    join,
-    offset_times,
-    repeat,
-    sort,
-    time_ranges,
-)
 from utilsforecast.target_transforms import (
     BaseTargetTransform,
     LocalBoxCox,
@@ -89,14 +78,14 @@ def _insample_times(
         df_constructor = pd.DataFrame
     out = df_constructor(
         {
-            "unique_id": repeat(uids, h * windows_per_serie),
+            "unique_id": ufp.repeat(uids, h * windows_per_serie),
             "ds": ds,
             "cutoff": cutoffs,
         }
     )
     # the first cutoff is before the first train date
-    actual_cutoffs = offset_times(out["cutoff"], freq, -1)
-    out = assign_columns(out, "cutoff", actual_cutoffs)
+    actual_cutoffs = ufp.offset_times(out["cutoff"], freq, -1)
+    out = ufp.assign_columns(out, "cutoff", actual_cutoffs)
     return out
 
 # %% ../nbs/core.ipynb 7
@@ -388,11 +377,11 @@ class NeuralForecast:
             df_constructor = pl_DataFrame
         else:
             df_constructor = pd.DataFrame
-        starts = offset_times(last_dates, self.freq, 1)
+        starts = ufp.offset_times(last_dates, self.freq, 1)
         fcsts_df = df_constructor(
             {
-                "unique_id": repeat(self.uids, self.h),
-                "ds": time_ranges(starts, freq=self.freq, periods=self.h),
+                "unique_id": ufp.repeat(self.uids, self.h),
+                "ds": ufp.time_ranges(starts, freq=self.freq, periods=self.h),
             }
         )
 
@@ -401,7 +390,7 @@ class NeuralForecast:
             futr_dataset = dataset.align(fcsts_df)
         else:
             futr_orig_rows = futr_df.shape[0]
-            futr_df = join(futr_df, fcsts_df, on=["unique_id", "ds"])
+            futr_df = ufp.join(futr_df, fcsts_df, on=["unique_id", "ds"])
             base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
             if futr_df.shape[0] < fcsts_df.shape[0]:
                 raise ValueError(base_err_msg)
@@ -411,7 +400,7 @@ class NeuralForecast:
                     f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
                     + base_err_msg
                 )
-            if any(is_none(futr_df[col]).any() for col in needed_futr_exog):
+            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
             futr_dataset = dataset.align(futr_df)
         self._scalers_transform(futr_dataset)
@@ -437,7 +426,7 @@ class NeuralForecast:
             fcsts = pl_DataFrame(fcsts, schema=cols)
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
-        fcsts_df = horizontal_concat([fcsts_df, fcsts])
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         return fcsts_df
 
@@ -535,7 +524,7 @@ class NeuralForecast:
                     "Validation and test sets are larger than the shorter time-series."
                 )
 
-        fcsts_df = cv_times(
+        fcsts_df = ufp.cv_times(
             times=self.ds,
             uids=self.uids,
             indptr=self.dataset.indptr,
@@ -544,7 +533,7 @@ class NeuralForecast:
             step_size=step_size,
         )
         # the cv_times is sorted by window and then id
-        fcsts_df = sort(fcsts_df, ["unique_id", "cutoff", "ds"])
+        fcsts_df = ufp.sort(fcsts_df, ["unique_id", "cutoff", "ds"])
 
         col_idx = 0
         fcsts = np.full(
@@ -574,7 +563,7 @@ class NeuralForecast:
             fcsts = pl_DataFrame(fcsts, schema=cols)
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
-        fcsts_df = horizontal_concat([fcsts_df, fcsts])
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
         return join(fcsts_df, df, how="left", on=["unique_id", "ds"])
@@ -666,7 +655,7 @@ class NeuralForecast:
 
         # original y
         original_y = {
-            "unique_id": repeat(self.uids, np.diff(self.dataset.indptr)),
+            "unique_id": ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
             "ds": self.ds,
             "y": self.dataset.temporal[:, 0].numpy(),
         }
@@ -678,12 +667,12 @@ class NeuralForecast:
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
             Y_df = pd.DataFrame(original_y).reset_index(drop=True)
-        fcsts_df = horizontal_concat([fcsts_df, fcsts])
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = join(fcsts_df, Y_df, how="left", on=["unique_id", "ds"])
+        fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=["unique_id", "ds"])
         if self.scalers_:
-            sizes = counts_by_id(fcsts_df, "unique_id")["counts"].to_numpy()
+            sizes = ufp.counts_by_id(fcsts_df, "unique_id")["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())
             invert_cols = cols + ["y"]
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(

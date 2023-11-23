@@ -11,15 +11,9 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+import utilsforecast.processing as ufp
 from torch.utils.data import Dataset, DataLoader
 from utilsforecast.compat import DataFrame, pl_Series
-from utilsforecast.processing import (
-    assign_columns,
-    copy_if_pandas,
-    process_df,
-    sort,
-    to_numpy,
-)
 
 # %% ../nbs/tsdataset.ipynb 5
 class TimeSeriesLoader(DataLoader):
@@ -146,15 +140,15 @@ class TimeSeriesDataset(Dataset):
 
     def align(self, df: DataFrame) -> "TimeSeriesDataset":
         # Protect consistency
-        df = copy_if_pandas(df, deep=False)
+        df = ufp.copy_if_pandas(df, deep=False)
 
         # Add Nones to missing columns (without available_mask)
         temporal_cols = self.temporal_cols.copy()
         for col in temporal_cols:
             if col not in df.columns:
-                df = assign_columns(df, col, np.nan)
+                df = ufp.assign_columns(df, col, np.nan)
             if col == "available_mask":
-                df = assign_columns(df, col, 1.0)
+                df = ufp.assign_columns(df, col, 1.0)
 
         # Sort columns to match self.temporal_cols (without available_mask)
         df = df[["unique_id", "ds"] + temporal_cols.tolist()]
@@ -272,9 +266,9 @@ class TimeSeriesDataset(Dataset):
                     DeprecationWarning,
                 )
             if sort_df:
-                static_df = sort(static_df, by="unique_id")
+                static_df = ufp.sort(static_df, by="unique_id")
 
-        ids, times, data, indptr, sort_idxs = process_df(df, "unique_id", "ds", "y")
+        ids, times, data, indptr, sort_idxs = ufp.process_df(df, "unique_id", "ds", "y")
         # processor sets y as the first column
         temporal_cols = pd.Index(
             ["y"] + [c for c in df.columns if c not in ("unique_id", "ds", "y")]
@@ -298,7 +292,7 @@ class TimeSeriesDataset(Dataset):
         # Static features
         if static_df is not None:
             static_cols = static_df.columns.drop("unique_id")
-            static = to_numpy(static_df[static_cols])
+            static = ufp.to_numpy(static_df[static_cols])
         else:
             static = None
             static_cols = None
