@@ -64,12 +64,22 @@ def _insample_times(
     if (resids != 0).any():
         raise ValueError("`sizes - h` should be multiples of `step_size`")
     windows_per_serie = ns + 1
+    # determine the offsets for the cutoffs, e.g. 2 means the 3rd training date is a cutoff
     cutoffs_offsets = step_size * np.hstack([np.arange(w) for w in windows_per_serie])
+    # start index of each serie, e.g. [0, 17] means the the second serie starts on the 18th entry
+    # we repeat each of these as many times as we have windows, e.g. windows_per_serie = [2, 3]
+    # would yield [0, 0, 17, 17, 17]
     start_idxs = np.repeat(indptr[:-1], windows_per_serie)
+    # determine the actual indices of the cutoffs, we repeat the cutoff for the complete horizon
+    # e.g. if we have two series and h=2 this could be [0, 0, 1, 1, 17, 17, 18, 18]
+    # which would have the first two training dates from each serie as the cutoffs
     cutoff_idxs = np.repeat(start_idxs + cutoffs_offsets, h)
     cutoffs = times[cutoff_idxs]
     total_windows = windows_per_serie.sum()
+    # determine the offsets for the actual dates. this is going to be [0, ..., h] repeated
     ds_offsets = np.tile(np.arange(h), total_windows)
+    # determine the actual indices of the times
+    # e.g. if we have two series and h=2 this could be [0, 1, 1, 2, 17, 18, 18, 19]
     ds_idxs = cutoff_idxs + ds_offsets
     ds = times[ds_idxs]
     if isinstance(uids, pl_Series):
@@ -566,7 +576,7 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        return join(fcsts_df, df, how="left", on=["unique_id", "ds"])
+        return ufp.join(fcsts_df, df, how="left", on=["unique_id", "ds"])
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
