@@ -12,23 +12,22 @@ HORIZON_DICT_SHORT = {'monthly': 6}
 
 LOSS = MQLoss(quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 #LOSS = HuberLoss()
-LOSS_PROBA = DistributionLoss(distribution="StudentT", level=[80, 90], return_params=False)
+LOSS_PROBA = DistributionLoss(distribution="StudentT", quantiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], return_params=False)
 
 
-# MODEL_LIST = ['nhits_15_512',
-#               'nhits_30_1024',
-#               'vanillatransformer_256_3',
-#               'tft_128',
-#               'tft_1024',
-#               'mlp_512_8',
-#               'mlp_2048_32',
-#               'tcn_128_3',
-#               'tcn_512_5',
-#               'lstm_128_3',
-#               'lstm_512_5',
-#               #'deepar_64_2',
-#               #'deepar_128_4',
-#               ]
+MODEL_LIST = ['nhits_15_512',
+              'nhits_30_1024',
+              'tft_128',
+              'tft_1024',
+              'mlp_512_8',
+              'mlp_2048_32',
+              'tcn_128_3',
+              'tcn_512_5',
+              'lstm_128_3',
+              'lstm_512_5',
+              'vanillatransformer_256_3']
+
+# MODEL_LIST = ['deepar_64_2', 'patchtst_5']
 
 # MODEL_LIST = ['vanillatransformer_256_3',
 #               'vanillatransformer_2',
@@ -38,13 +37,13 @@ LOSS_PROBA = DistributionLoss(distribution="StudentT", level=[80, 90], return_pa
 #               'vanillatransformer_6'
 #               ]
 
-MODEL_LIST = ['patchtst_128_3',
-              'patchtst_2',
-              'patchtst_3',
-              'patchtst_4',
-              'patchtst_5',
-              'patchtst_6'
-              ]
+# MODEL_LIST = ['patchtst_128_3',
+#               'patchtst_2',
+#               'patchtst_3',
+#               'patchtst_4',
+#               'patchtst_5',
+#               'patchtst_6'
+#               ]
 
 def load_model(model_name, frequency, short=False, random_seed=1):
     assert model_name in MODEL_LIST, f"Model {model_name} not in list of models"
@@ -364,16 +363,90 @@ def load_model(model_name, frequency, short=False, random_seed=1):
                         input_size=2*horizon,
                         lstm_n_layers=2,
                         lstm_hidden_size=64,
-                        lstm_dropout=0.1,
+                        lstm_dropout=0.0, # 0.1
                         loss=LOSS_PROBA,
+                        valid_loss=LOSS,
                         learning_rate=1e-4,
                         early_stop_patience_steps=10,
-                        val_check_steps=300,
-                        scaler_type='minmax1',
+                        val_check_steps=500, # 300
+                        scaler_type='robust', # minmax1
                         max_steps=max_steps,
                         batch_size=256,
                         windows_batch_size=1024,
                         random_seed=random_seed)
+        
+    elif model_name == 'deepar_3': # 3 layers, no dropout
+        model = DeepAR(h=horizon,
+                        input_size=2*horizon,
+                        lstm_n_layers=3,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0,
+                        decoder_hidden_layers=0,
+                        decoder_hidden_size=0,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='standard',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+        
+    elif model_name == 'deepar_4': # 3 layers, no dropout, MLP decoder
+        model = DeepAR(h=horizon,
+                        input_size=2*horizon,
+                        lstm_n_layers=3,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0,
+                        decoder_hidden_layers=2,
+                        decoder_hidden_size=128,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='standard',
+                        max_steps=max_steps,
+                        batch_size=256,
+                        windows_batch_size=1024,
+                        random_seed=random_seed)
+        
+    elif model_name == 'deepar_5': # 3 layers, no dropout, MLP decoder, 64 batch size
+        model = DeepAR(h=horizon,
+                        input_size=2*horizon,
+                        lstm_n_layers=3,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0,
+                        decoder_hidden_layers=2,
+                        decoder_hidden_size=128,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-4,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='standard',
+                        max_steps=max_steps,
+                        batch_size=64,
+                        windows_batch_size=64,
+                        random_seed=random_seed)
+
+    elif model_name == 'deepar_6': # 3 layers, no dropout, MLP decoder, 64 batch size, 1e-5 lr, //2 max steps
+        model = DeepAR(h=horizon,
+                        input_size=2*horizon,
+                        lstm_n_layers=3,
+                        lstm_hidden_size=128,
+                        lstm_dropout=0,
+                        decoder_hidden_layers=2,
+                        decoder_hidden_size=128,
+                        loss=LOSS_PROBA,
+                        learning_rate=1e-5,
+                        early_stop_patience_steps=10,
+                        val_check_steps=300,
+                        scaler_type='standard',
+                        max_steps=max_steps//2,
+                        batch_size=64,
+                        windows_batch_size=64,
+                        random_seed=random_seed)
+        
         
     elif model_name == 'patchtst_128_3': 
         model = PatchTST(h=horizon,

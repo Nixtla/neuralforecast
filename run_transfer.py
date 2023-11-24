@@ -17,6 +17,10 @@ from neuralforecast.utils import AirPassengersDF
 
 from config_models import MODEL_LIST, load_model
 
+
+DATASET_CONFIG = {'M3': ['M1', 'Tourism'], 'M4': ['M1', 'M3', 'Tourism'], 'wiki': ['M3_daily']}
+TARGET_FREQ_CONFIG = {'M1': ['yearly', 'quarterly', 'monthly'], 'M3': ['yearly', 'quarterly', 'monthly','daily'], 'Tourism': ['yearly', 'quarterly', 'monthly'], 'M3_daily': ['daily']}
+
 def load_data(args, frequency):
 
 	# Read source data
@@ -97,10 +101,10 @@ def set_trainer_kwargs(nf, max_steps, early_stop_patience_steps):
 def main(args):
 	model_type = args.model.split('_')[0]
 	# make sure folder exists, then check if the file exists in the folder
-	model_dir = f'./results/transferability/stored_models/{args.source_dataset}/{args.frequency}/{args.model}/{args.experiment_id}_{args.random_seed}'
+	model_dir = f'./results/transferability/stored_models/{args.source_dataset}/{args.frequency}/{args.model}/{args.experiment_id}'
 	os.makedirs(model_dir, exist_ok=True)
 	file_exists = os.path.isfile(f'{model_dir}/{model_type}_0.ckpt')
-	
+	print('model_dir', model_dir)
 	if (not file_exists):
 		if args.k_shot > 0:
 			raise Exception('Train model before k_shot learning')
@@ -250,14 +254,14 @@ def main(args):
 	forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/{args.frequency}/'
 	os.makedirs(forecasts_dir, exist_ok=True)
 
-	forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}_{args.random_seed}.csv'
+	forecasts_dir = f'{forecasts_dir}/{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
 	Y_hat_df.to_csv(forecasts_dir, index=False)
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="script arguments")
-	parser.add_argument('--source_dataset', type=str, help='dataset to train models on')
+	#parser.add_argument('--source_dataset', type=str, help='dataset to train models on')
 	#parser.add_argument('--frequency', type=str, help='frequency')
-	parser.add_argument('--target_dataset', type=str, help='run model on this dataset')
+	#parser.add_argument('--target_dataset', type=str, help='run model on this dataset')
 	#parser.add_argument('--k_shot', type=int, help='number of steps to fin tune model')
 	parser.add_argument('--experiment_id', type=str, help='identify experiment')
 	return parser.parse_args()
@@ -266,23 +270,29 @@ if __name__ == '__main__':
 	# parse arguments
 	args = parse_args()
 
-	for k_shot in [0]:
+	for k_shot in [500]:
 		for random_seed in [1]:
-			for frequency in ['daily']: #['yearly', 'quarterly','monthly']: # ['yearly', 'quarterly','monthly','daily']
-				for model in MODEL_LIST:
-					args.k_shot = k_shot
-					args.model = model
-					args.frequency = frequency
-					args.random_seed = random_seed
-					print(f'Running {frequency} {model} {k_shot} {random_seed}!!')
-					# forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/'
-					# forecasts_dir = f'{forecasts_dir}{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
-					# print('forecasts_dir', forecasts_dir)
-					# file_exists = os.path.isfile(forecasts_dir)
-					#if (not file_exists):
-					main(args)
-					#else:
-					print('Already done!')
+			for source_dataset in DATASET_CONFIG.keys():
+				for target_dataset in DATASET_CONFIG[source_dataset]:
+					for frequency in TARGET_FREQ_CONFIG[target_dataset]:
+						for model in MODEL_LIST:
+							args.source_dataset = source_dataset
+							if target_dataset == 'M3_daily':
+								target_dataset = 'M3'
+							args.target_dataset = target_dataset
+							args.k_shot = k_shot
+							args.model = model
+							args.frequency = frequency
+							args.random_seed = random_seed
+							print(f'Running {frequency} {model} {k_shot} {random_seed}!!')
+							# forecasts_dir = f'./results/transferability/forecasts/{args.target_dataset}/'
+							# forecasts_dir = f'{forecasts_dir}{args.model}_{args.k_shot}_{args.source_dataset}_{args.experiment_id}.csv'
+							# print('forecasts_dir', forecasts_dir)
+							# file_exists = os.path.isfile(forecasts_dir)
+							#if (not file_exists):
+							main(args)
+							#else:
+							print('Already done!')
 
 
-# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --source_dataset "wiki" --target_dataset "M3" --experiment_id "20231108"
+# CUDA_VISIBLE_DEVICES=0 python run_transfer.py --experiment_id "20230816"
