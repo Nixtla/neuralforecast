@@ -56,17 +56,16 @@ synthetic_panel = generate_series(n_series=2)
 synthetic_panel.groupby('unique_id').head(4)
 ```
 
-|           | ds         | y        |
-|-----------|------------|----------|
-| unique_id |            |          |
-| 0         | 2000-01-01 | 0.357595 |
-| 0         | 2000-01-02 | 1.301382 |
-| 0         | 2000-01-03 | 2.272442 |
-| 0         | 2000-01-04 | 3.211827 |
-| 1         | 2000-01-01 | 5.399023 |
-| 1         | 2000-01-02 | 6.092818 |
-| 1         | 2000-01-03 | 0.476396 |
-| 1         | 2000-01-04 | 1.343744 |
+|     | unique_id | ds         | y        |
+|-----|-----------|------------|----------|
+| 0   | 0         | 2000-01-01 | 0.357595 |
+| 1   | 0         | 2000-01-02 | 1.301382 |
+| 2   | 0         | 2000-01-03 | 2.272442 |
+| 3   | 0         | 2000-01-04 | 3.211827 |
+| 222 | 1         | 2000-01-01 | 5.399023 |
+| 223 | 1         | 2000-01-02 | 6.092818 |
+| 224 | 1         | 2000-01-03 | 0.476396 |
+| 225 | 1         | 2000-01-04 | 1.343744 |
 
 ```python
 temporal_df, static_df = generate_series(n_series=1000, n_static_features=2,
@@ -190,7 +189,7 @@ Forecasting”](https://arxiv.org/abs/2012.07436)<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L404"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L402"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### augment_calendar_df
@@ -214,7 +213,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L366"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L364"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### time_features_from_frequency_str
@@ -230,7 +229,7 @@ frequency string. Parameters ———- freq_str Frequency string of the form
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L359"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L357"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### WeekOfYear
@@ -244,7 +243,7 @@ Week of year encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L352"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L350"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MonthOfYear
@@ -258,7 +257,7 @@ Month of year encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L345"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L343"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DayOfYear
@@ -272,7 +271,7 @@ Day of year encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L338"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L336"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DayOfMonth
@@ -286,7 +285,7 @@ Day of month encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L331"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L329"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DayOfWeek
@@ -300,7 +299,7 @@ Hour of day encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L324"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L322"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HourOfDay
@@ -314,7 +313,7 @@ Hour of day encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L317"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L315"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MinuteOfHour
@@ -328,7 +327,7 @@ Minute of hour encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L310"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L308"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### SecondOfMinute
@@ -342,7 +341,7 @@ Minute of hour encoded as value between \[-0.5, 0.5\]
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L299"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/utils.py#L297"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeFeature
