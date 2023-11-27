@@ -443,7 +443,7 @@ class NeuralForecast:
 
         # Declare predictions pd.DataFrame
         if df_constructor is pl_DataFrame:
-            fcsts = pl_DataFrame(fcsts, schema=cols)
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
@@ -582,7 +582,7 @@ class NeuralForecast:
 
         # Add predictions to forecasts DataFrame
         if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(fcsts, schema=cols)
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
@@ -688,7 +688,7 @@ class NeuralForecast:
 
         # Add predictions to forecasts DataFrame
         if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(fcsts, schema=cols)
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
