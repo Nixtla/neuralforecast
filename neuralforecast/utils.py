@@ -77,7 +77,6 @@ def generate_series(
 
     temporal_df["unique_id"] = temporal_df["unique_id"].astype("category")
     temporal_df["unique_id"] = temporal_df["unique_id"].cat.as_ordered()
-    temporal_df = temporal_df.set_index("unique_id")
 
     if n_static_features > 0:
         static_features = np.random.uniform(
@@ -90,7 +89,6 @@ def generate_series(
         static_df["unique_id"] = np.arange(n_series)
         static_df["unique_id"] = static_df["unique_id"].astype("category")
         static_df["unique_id"] = static_df["unique_id"].cat.as_ordered()
-        static_df = static_df.set_index("unique_id")
 
         return temporal_df, static_df
 

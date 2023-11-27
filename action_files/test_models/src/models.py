@@ -7,6 +7,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 
+import neuralforecast
 from neuralforecast.core import NeuralForecast
 
 from neuralforecast.models.gru import GRU
@@ -33,6 +34,8 @@ from neuralforecast.losses.pytorch import SMAPE, MAE
 from ray import tune
 
 from src.data import get_data
+
+neuralforecast.config.id_as_index = False
 
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
@@ -82,7 +85,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         end = time.time()
         print(end - start)
 
-        forecasts = forecasts.reset_index()
         forecasts.columns = ['unique_id', 'ds', model_name]
         forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
         time_df = pd.DataFrame({'time': [end - start], 'model': [model_name]})
@@ -97,7 +99,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
     end = time.time()
     print(end - start)
 
-    forecasts = forecasts.reset_index()
     forecasts = forecasts[['unique_id', 'ds', 'DeepAR-median']]
     forecasts.columns = ['unique_id', 'ds', 'DeepAR']
     forecasts.to_csv(f'data/{model_name}-forecasts-{dataset}-{group}.csv', index=False)
