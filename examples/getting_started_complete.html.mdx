@@ -10,7 +10,7 @@ title: End to End Walkthrough
 ### Prerequesites
 
 This Guide assumes basic familiarity with NeuralForecast. For a minimal
-example visit the [Quick Start](./Getting_Started.ipynb)
+example visit the [Quick Start](./getting_started.html)
 
 </Warning>
 
@@ -48,14 +48,14 @@ scalability, which makes it ideal for this task.
 
 -   Using external regressors or exogenous variables
     -   Follow this tutorial to [include exogenous
-        variables](./Exogenous_Variables.ipynb) like weather or holidays
+        variables](./exogenous_variables.html) like weather or holidays
         or static variables like category or family.
 -   Probabilistic forecasting
     -   Follow this tutorial to [generate probabilistic
-        forecasts](./LongHorizon_Probabilistic.ipynb)
+        forecasts](./longhorizon_probabilistic.html)
 -   Transfer Learning
     -   Train a model and use it to forecast on different data using
-        [this tutorial](./Transfer_Learning.ipynb)
+        [this tutorial](./transfer_learning.html)
 
 </Tip>
 
@@ -79,7 +79,7 @@ Colab, do not forget to activate it. Just go to
 We assume you have
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
 already installed. Check this guide for instructions on [how to install
-NeuralForecast](./Installation.ipynb).
+NeuralForecast](./installation.html).
 
 Additionally, we will install `s3fs` to read from the S3 Filesystem of
 AWS, `statsforecast` for plotting, and `datasetsforecast` for common
@@ -357,7 +357,7 @@ set contiguous as is required by our models.
 
 The following graph depicts such a Cross Validation Strategy:
 
-![](https://raw.githubusercontent.com/Nixtla/statsforecast/main/nbs/imgs/ChainedWindows.gif)
+![](https://raw.githubusercontent.com/Nixtla/statsforecast/main/nbs/imgs/chainedwindows.gif)
 
 <Tip>
 
