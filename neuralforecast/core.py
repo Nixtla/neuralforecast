@@ -24,6 +24,7 @@ from utilsforecast.target_transforms import (
     LocalRobustScaler,
     LocalStandardScaler,
 )
+from utilsforecast.validation import validate_freq
 
 import neuralforecast.config as nf_config
 from .tsdataset import TimeSeriesDataset
@@ -158,7 +159,10 @@ def _warn_id_as_idx():
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
     def __init__(
-        self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
+        self,
+        models: List[Any],
+        freq: Union[str, int],
+        local_scaler_type: Optional[str] = None,
     ):
         """
         The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
@@ -171,9 +175,8 @@ class NeuralForecast:
         models : List[typing.Any]
             Instantiated `neuralforecast.models`
             see [collection here](https://nixtla.github.io/neuralforecast/models.html).
-        freq : str
-            Frequency of the data,
-            see [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+        freq : str or int
+            Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
             Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
@@ -289,6 +292,7 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
+            validate_freq(df["ds"], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df, static_df=static_df, sort_df=sort_df, predict_only=False
             )
@@ -313,6 +317,51 @@ class NeuralForecast:
             model.fit(self.dataset, val_size=val_size)
 
         self._fitted = True
+
+    def make_future_dataframe(self, df: Optional[DataFrame] = None) -> DataFrame:
+        """Create a dataframe with all ids and future times in the forecasting horizon.
+
+        Parameters
+        ----------
+        df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            Only required if this is different than the one used in the fit step.
+        """
+        if df is not None:
+            df = ufp.sort(df, by=["unique_id", "ds"])
+            last_times_by_id = ufp.group_by_agg(
+                df, by="unique_id", aggs={"ds": "max"}, maintain_order=True
+            )
+            uids = last_times_by_id["unique_id"]
+            last_times = last_times_by_id["ds"]
+        else:
+            uids = self.uids
+            last_times = self.last_dates
+        return ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_times,
+            freq=self.freq,
+            h=self.h,
+            id_col="unique_id",
+            time_col="ds",
+        )
+
+    def get_missing_future(
+        self, futr_df: DataFrame, df: Optional[DataFrame] = None
+    ) -> DataFrame:
+        """Get the missing ids and times combinations in `futr_df`.
+
+        Parameters
+        ----------
+        futr_df : pandas or polars DataFrame
+            DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
+        df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            Only required if this is different than the one used in the fit step.
+        """
+        expected = self.make_future_dataframe(df)
+        ids = ["unique_id", "ds"]
+        return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def predict(
         self,
@@ -373,6 +422,7 @@ class NeuralForecast:
 
         # Process new dataset but does not store it.
         if df is not None:
+            validate_freq(df["ds"], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df, static_df=static_df, sort_df=sort_df, predict_only=True
             )
@@ -393,16 +443,13 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Placeholder dataframe for predictions with unique_id and ds
-        if isinstance(self.uids, pl_Series):
-            df_constructor = pl_DataFrame
-        else:
-            df_constructor = pd.DataFrame
-        starts = ufp.offset_times(last_dates, self.freq, 1)
-        fcsts_df = df_constructor(
-            {
-                "unique_id": ufp.repeat(self.uids, self.h),
-                "ds": ufp.time_ranges(starts, freq=self.freq, periods=self.h),
-            }
+        fcsts_df = ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_dates,
+            freq=self.freq,
+            h=self.h,
+            id_col="unique_id",
+            time_col="ds",
         )
 
         # Update and define new forecasting dataset
@@ -411,15 +458,21 @@ class NeuralForecast:
         else:
             futr_orig_rows = futr_df.shape[0]
             futr_df = ufp.join(futr_df, fcsts_df, on=["unique_id", "ds"])
-            base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
             if futr_df.shape[0] < fcsts_df.shape[0]:
-                raise ValueError(base_err_msg)
+                if df is None:
+                    expected_cmd = "make_future_dataframe()"
+                    missing_cmd = "get_missing_future(futr_df)"
+                else:
+                    expected_cmd = "make_future_dataframe(df)"
+                    missing_cmd = "get_missing_future(futr_df, df)"
+                raise ValueError(
+                    "There are missing combinations of ids and times in `futr_df`.\n"
+                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                    f"the `{missing_cmd}` method to get the missing combinations."
+                )
             if futr_orig_rows > futr_df.shape[0]:
                 dropped_rows = futr_orig_rows - futr_df.shape[0]
-                warnings.warn(
-                    f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
-                    + base_err_msg
-                )
+                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
             if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
             futr_dataset = dataset.align(futr_df)
@@ -442,7 +495,7 @@ class NeuralForecast:
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        if df_constructor is pl_DataFrame:
+        if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
@@ -505,6 +558,7 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
+            validate_freq(df["ds"], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df, static_df=static_df, sort_df=sort_df, predict_only=False
             )
