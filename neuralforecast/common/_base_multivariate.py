@@ -16,6 +16,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
+from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_multivariate.ipynb 6
 class BaseMultivariate(pl.LightningModule):
@@ -281,7 +282,8 @@ class BaseMultivariate(pl.LightningModule):
 
         # To avoid leakage uses only the lags
         temporal_data_cols = temporal_cols.drop("available_mask").tolist()
-        temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :, :]
+        temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
+        temporal_data = temporal[:, temporal_idxs, :, :]
         temporal_mask = temporal[
             :, temporal_cols.get_loc("available_mask"), :, :
         ].clone()
@@ -293,7 +295,7 @@ class BaseMultivariate(pl.LightningModule):
         )  # Add channel dimension for scaler.transform.
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
         # Replace values in windows dict
-        temporal[:, temporal_cols.get_indexer(temporal_data_cols), :, :] = temporal_data
+        temporal[:, temporal_idxs, :, :] = temporal_data
         windows["temporal"] = temporal
 
         return windows
@@ -310,12 +312,9 @@ class BaseMultivariate(pl.LightningModule):
         #     remove_dimension = False
 
         temporal_data_cols = temporal_cols.drop("available_mask")
-        y_scale = self.scaler.x_scale[
-            :, temporal_data_cols.get_indexer(["y"]), :
-        ].squeeze(1)
-        y_loc = self.scaler.x_shift[
-            :, temporal_data_cols.get_indexer(["y"]), :
-        ].squeeze(1)
+        y_idx = 0
+        y_scale = self.scaler.x_scale[:, [y_idx], :].squeeze(1)
+        y_loc = self.scaler.x_shift[:, [y_idx], :].squeeze(1)
 
         # y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1)
         # y_loc = torch.repeat_interleave(y_loc, repeats=y_hat.shape[-1], dim=-1)
@@ -333,7 +332,7 @@ class BaseMultivariate(pl.LightningModule):
         # Temporal: [Ws, C, L+H, n_series]
 
         # Filter insample lags from outsample horizon
-        y_idx = batch["temporal_cols"].get_loc("y")
+        y_idx = 0
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
         insample_y = windows["temporal"][:, y_idx, : -self.h, :]
         insample_mask = windows["temporal"][:, mask_idx, : -self.h, :]
@@ -342,21 +341,27 @@ class BaseMultivariate(pl.LightningModule):
 
         # Filter historic exogenous variables
         if len(self.hist_exog_list):
-            hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
+            hist_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.hist_exog_list
+            )
             hist_exog = windows["temporal"][:, hist_exog_idx, : -self.h, :]
         else:
             hist_exog = None
 
         # Filter future exogenous variables
         if len(self.futr_exog_list):
-            futr_exog_idx = windows["temporal_cols"].get_indexer(self.futr_exog_list)
+            futr_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.futr_exog_list
+            )
             futr_exog = windows["temporal"][:, futr_exog_idx, :, :]
         else:
             futr_exog = None
 
         # Filter static variables
         if len(self.stat_exog_list):
-            static_idx = windows["static_cols"].get_indexer(self.stat_exog_list)
+            static_idx = get_indexer_raise_missing(
+                windows["static_cols"], self.stat_exog_list
+            )
             stat_exog = windows["static"][:, static_idx]
         else:
             stat_exog = None

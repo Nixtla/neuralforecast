@@ -975,5 +975,7 @@ d = { 'settings': { 'branch': 'main',
                                       'neuralforecast.utils.augment_calendar_df': ( 'utils.html#augment_calendar_df',
                                                                                     'neuralforecast/utils.py'),
                                       'neuralforecast.utils.generate_series': ('utils.html#generate_series', 'neuralforecast/utils.py'),
+                                      'neuralforecast.utils.get_indexer_raise_missing': ( 'utils.html#get_indexer_raise_missing',
+                                                                                          'neuralforecast/utils.py'),
                                       'neuralforecast.utils.time_features_from_frequency_str': ( 'utils.html#time_features_from_frequency_str',
                                                                                                  'neuralforecast/utils.py')}}}

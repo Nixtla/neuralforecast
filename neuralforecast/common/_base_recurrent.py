@@ -16,6 +16,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
+from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_recurrent.ipynb 7
 class BaseRecurrent(pl.LightningModule):
@@ -179,7 +180,7 @@ class BaseRecurrent(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _get_temporal_data_cols(self, temporal_cols):
-        temporal_data_cols = ["y"] + list(
+        temporal_data_cols = list(
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
         return temporal_data_cols
@@ -190,7 +191,9 @@ class BaseRecurrent(pl.LightningModule):
 
         # Separate data and mask
         temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
-        temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :]
+        temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
+        temporal_idxs = np.append(0, temporal_idxs)
+        temporal_data = temporal[:, temporal_idxs, :]
         temporal_mask = temporal[:, temporal_cols.get_loc("available_mask"), :].clone()
 
         # Remove validation and test set to prevent leakeage
@@ -205,7 +208,7 @@ class BaseRecurrent(pl.LightningModule):
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         # Replace values in windows dict
-        temporal[:, temporal_cols.get_indexer(temporal_data_cols), :] = temporal_data
+        temporal[:, temporal_idxs, :] = temporal_data
         batch["temporal"] = temporal
 
         return batch
@@ -216,12 +219,9 @@ class BaseRecurrent(pl.LightningModule):
 
         # Get 'y' scale and shift, and add W dimension
         temporal_data_cols = temporal_cols.drop("available_mask")
-        y_loc = self.scaler.x_shift[
-            :, temporal_data_cols.get_indexer(["y"]), 0
-        ].flatten()  # [B,C,T] -> [B]
-        y_scale = self.scaler.x_scale[
-            :, temporal_data_cols.get_indexer(["y"]), 0
-        ].flatten()  # [B,C,T] -> [B]
+        y_idx = 0
+        y_loc = self.scaler.x_shift[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
+        y_scale = self.scaler.x_scale[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
 
         # Expand scale and shift to y_hat dimensions
         y_loc = y_loc.view(*y_loc.shape, *(1,) * (y_hat.ndim - 1))  # .expand(y_hat)
@@ -309,7 +309,7 @@ class BaseRecurrent(pl.LightningModule):
     def _parse_windows(self, batch, windows):
         # [B, C, seq_len, 1+H]
         # Filter insample lags from outsample horizon
-        y_idx = batch["temporal_cols"].get_loc("y")
+        y_idx = 0
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
         insample_y = windows["temporal"][:, y_idx, :, : -self.h]
         insample_mask = windows["temporal"][:, mask_idx, :, : -self.h]
@@ -318,20 +318,26 @@ class BaseRecurrent(pl.LightningModule):
 
         # Filter historic exogenous variables
         if len(self.hist_exog_list):
-            hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
+            hist_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.hist_exog_list
+            )
             hist_exog = windows["temporal"][:, hist_exog_idx, :, : -self.h]
         else:
             hist_exog = None
 
         # Filter future exogenous variables
         if len(self.futr_exog_list):
-            futr_exog_idx = windows["temporal_cols"].get_indexer(self.futr_exog_list)
+            futr_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.futr_exog_list
+            )
             futr_exog = windows["temporal"][:, futr_exog_idx, :, :]
         else:
             futr_exog = None
         # Filter static variables
         if len(self.stat_exog_list):
-            static_idx = windows["static_cols"].get_indexer(self.stat_exog_list)
+            static_idx = get_indexer_raise_missing(
+                windows["static_cols"], self.stat_exog_list
+            )
             stat_exog = windows["static"][:, static_idx]
         else:
             stat_exog = None

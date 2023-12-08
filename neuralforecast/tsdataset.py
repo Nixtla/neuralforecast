@@ -138,7 +138,9 @@ class TimeSeriesDataset(Dataset):
             self.indptr, other.indptr
         )
 
-    def align(self, df: DataFrame) -> "TimeSeriesDataset":
+    def align(
+        self, df: DataFrame, id_col: str, time_col: str, target_col: str
+    ) -> "TimeSeriesDataset":
         # Protect consistency
         df = ufp.copy_if_pandas(df, deep=False)
 
@@ -151,10 +153,16 @@ class TimeSeriesDataset(Dataset):
                 df = ufp.assign_columns(df, col, 1.0)
 
         # Sort columns to match self.temporal_cols (without available_mask)
-        df = df[["unique_id", "ds"] + temporal_cols.tolist()]
+        df = df[[id_col, time_col] + temporal_cols.tolist()]
 
         # Process future_df
-        dataset, *_ = TimeSeriesDataset.from_df(df=df, sort_df=self.sorted)
+        dataset, *_ = TimeSeriesDataset.from_df(
+            df=df,
+            sort_df=self.sorted,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
         return dataset
 
     def append(self, futr_dataset: "TimeSeriesDataset") -> "TimeSeriesDataset":
@@ -197,8 +205,12 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
-    def update_dataset(dataset, futr_df):
-        futr_dataset = dataset.align(futr_df)
+    def update_dataset(
+        dataset, futr_df, id_col="unique_id", time_col="ds", target_col="y"
+    ):
+        futr_dataset = dataset.align(
+            futr_df, id_col=id_col, time_col=time_col, target_col=target_col
+        )
         return dataset.append(futr_dataset)
 
     @staticmethod
@@ -247,38 +259,45 @@ class TimeSeriesDataset(Dataset):
         return updated_dataset
 
     @staticmethod
-    def from_df(df, static_df=None, sort_df=False):
+    def from_df(
+        df,
+        static_df=None,
+        sort_df=False,
+        id_col="unique_id",
+        time_col="ds",
+        target_col="y",
+    ):
         # TODO: protect on equality of static_df + df indexes
-        if isinstance(df, pd.DataFrame) and df.index.name == "unique_id":
+        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
             warnings.warn(
                 "Passing the id as index is deprecated, please provide it as a column instead.",
                 DeprecationWarning,
             )
-            df = df.reset_index("unique_id")
+            df = df.reset_index(id_col)
         # Define indexes if not given
         if static_df is not None:
-            if (
-                isinstance(static_df, pd.DataFrame)
-                and static_df.index.name == "unique_id"
-            ):
+            if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
                 warnings.warn(
                     "Passing the id as index is deprecated, please provide it as a column instead.",
                     DeprecationWarning,
                 )
             if sort_df:
-                static_df = ufp.sort(static_df, by="unique_id")
+                static_df = ufp.sort(static_df, by=id_col)
 
-        ids, times, data, indptr, sort_idxs = ufp.process_df(df, "unique_id", "ds", "y")
+        ids, times, data, indptr, sort_idxs = ufp.process_df(
+            df, id_col, time_col, target_col
+        )
         # processor sets y as the first column
         temporal_cols = pd.Index(
-            ["y"] + [c for c in df.columns if c not in ("unique_id", "ds", "y")]
+            [target_col]
+            + [c for c in df.columns if c not in (id_col, time_col, target_col)]
         )
         temporal = data.astype(np.float32, copy=False)
         indices = ids
         if isinstance(df, pd.DataFrame):
-            dates = pd.Index(times, name="ds")
+            dates = pd.Index(times, name=time_col)
         else:
-            dates = pl_Series("ds", times)
+            dates = pl_Series(time_col, times)
         sizes = np.diff(indptr)
         max_size = max(sizes)
         min_size = min(sizes)
@@ -291,7 +310,7 @@ class TimeSeriesDataset(Dataset):
 
         # Static features
         if static_df is not None:
-            static_cols = static_df.columns.drop("unique_id")
+            static_cols = static_df.columns.drop(id_col)
             static = ufp.to_numpy(static_df[static_cols])
         else:
             static = None
@@ -307,7 +326,7 @@ class TimeSeriesDataset(Dataset):
             min_size=min_size,
             sorted=sort_df,
         )
-        ds = df["ds"].to_numpy()
+        ds = df[time_col].to_numpy()
         if sort_idxs is not None:
             ds = ds[sort_idxs]
         return dataset, indices, dates, ds
