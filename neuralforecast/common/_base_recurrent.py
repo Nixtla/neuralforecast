@@ -218,7 +218,6 @@ class BaseRecurrent(pl.LightningModule):
         # Broadcasts outputs and inverts normalization
 
         # Get 'y' scale and shift, and add W dimension
-        temporal_data_cols = temporal_cols.drop("available_mask")
         y_idx = 0
         y_loc = self.scaler.x_shift[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
         y_scale = self.scaler.x_scale[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]

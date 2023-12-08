@@ -311,7 +311,6 @@ class BaseMultivariate(pl.LightningModule):
         # else:
         #     remove_dimension = False
 
-        temporal_data_cols = temporal_cols.drop("available_mask")
         y_idx = 0
         y_scale = self.scaler.x_scale[:, [y_idx], :].squeeze(1)
         y_loc = self.scaler.x_shift[:, [y_idx], :].squeeze(1)

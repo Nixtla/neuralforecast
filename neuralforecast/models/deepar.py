@@ -439,7 +439,6 @@ class DeepAR(BaseWindows):
         encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,L,1]
         futr_exog = windows_batch["futr_exog"]  # <- [B,L+H, n_f]
         stat_exog = windows_batch["stat_exog"]
-        temporal_cols = windows_batch["temporal_cols"]
 
         # [B, seq_len, X]
         batch_size, input_size = encoder_input.shape[:2]
@@ -469,8 +468,10 @@ class DeepAR(BaseWindows):
 
         # Scales for inverse normalization
         y_idx = 0
-        y_scale = self.scaler.x_scale[:, 0, y_idx].squeeze(-1).to(encoder_input.device)
-        y_loc = self.scaler.x_shift[:, 0, y_idx].squeeze(-1).to(encoder_input.device)
+        y_scale = (
+            self.scaler.x_scale[:, 0, [y_idx]].squeeze(-1).to(encoder_input.device)
+        )
+        y_loc = self.scaler.x_shift[:, 0, [y_idx]].squeeze(-1).to(encoder_input.device)
         y_scale = torch.repeat_interleave(y_scale, self.trajectory_samples, 0)
         y_loc = torch.repeat_interleave(y_loc, self.trajectory_samples, 0)
 
