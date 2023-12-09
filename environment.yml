@@ -14,9 +14,9 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
+  - ray-tune>=2.2.0
   - pip:
     - nbdev
     - black
     - polars
-    - "ray[tune]>=2.2.0"
     - utilsforecast>=0.0.19
