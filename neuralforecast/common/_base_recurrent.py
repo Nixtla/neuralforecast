@@ -179,7 +179,7 @@ class BaseRecurrent(pl.LightningModule):
         }
         return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
-    def _get_temporal_data_cols(self, temporal_cols):
+    def _get_temporal_exogenous_cols(self, temporal_cols):
         temporal_data_cols = list(
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
@@ -188,11 +188,14 @@ class BaseRecurrent(pl.LightningModule):
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
+        y_idx = batch["y_idx"]
 
         # Separate data and mask
-        temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
+        temporal_data_cols = self._get_temporal_exogenous_cols(
+            temporal_cols=temporal_cols
+        )
         temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
-        temporal_idxs = np.append(0, temporal_idxs)
+        temporal_idxs = np.append(y_idx, temporal_idxs)
         temporal_data = temporal[:, temporal_idxs, :]
         temporal_mask = temporal[:, temporal_cols.get_loc("available_mask"), :].clone()
 
@@ -213,12 +216,11 @@ class BaseRecurrent(pl.LightningModule):
 
         return batch
 
-    def _inv_normalization(self, y_hat, temporal_cols):
+    def _inv_normalization(self, y_hat, temporal_cols, y_idx):
         # Receives window predictions [B, seq_len, H, output]
         # Broadcasts outputs and inverts normalization
 
         # Get 'y' scale and shift, and add W dimension
-        y_idx = 0
         y_loc = self.scaler.x_shift[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
         y_scale = self.scaler.x_scale[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
 
@@ -308,8 +310,8 @@ class BaseRecurrent(pl.LightningModule):
     def _parse_windows(self, batch, windows):
         # [B, C, seq_len, 1+H]
         # Filter insample lags from outsample horizon
-        y_idx = 0
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        y_idx = batch["y_idx"]
         insample_y = windows["temporal"][:, y_idx, :, : -self.h]
         insample_mask = windows["temporal"][:, mask_idx, :, : -self.h]
         outsample_y = windows["temporal"][:, y_idx, :, -self.h :].contiguous()
@@ -381,7 +383,9 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
         if self.loss.is_distribution_output:
             outsample_y, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y,
+                temporal_cols=batch["temporal_cols"],
+                y_idx=batch["y_idx"],
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -420,6 +424,7 @@ class BaseRecurrent(pl.LightningModule):
             batch, val_size=self.val_size, test_size=self.test_size
         )
         windows = self._create_windows(batch, step="val")
+        y_idx = batch["y_idx"]
 
         # Parse windows
         (
@@ -451,7 +456,7 @@ class BaseRecurrent(pl.LightningModule):
         if self.loss.is_distribution_output:
             output = [arg[:, -val_windows:-1] for arg in output]
             outsample_y, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -486,10 +491,10 @@ class BaseRecurrent(pl.LightningModule):
             )
         else:
             outsample_y, _, _ = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             output, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
+                y_hat=output, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
@@ -520,6 +525,7 @@ class BaseRecurrent(pl.LightningModule):
         # Create and normalize windows [Ws, L+H, C]
         batch = self._normalization(batch, val_size=0, test_size=self.test_size)
         windows = self._create_windows(batch, step="predict")
+        y_idx = batch["y_idx"]
 
         # Parse windows
         (
@@ -544,7 +550,7 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch)  # tuple([B, seq_len, H], ...)
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"]
+                y_hat=output[0], temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -565,7 +571,7 @@ class BaseRecurrent(pl.LightningModule):
                 y_hat = torch.concat((y_hat, distr_args), axis=3)
         else:
             y_hat, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
+                y_hat=output, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
         return y_hat
 
