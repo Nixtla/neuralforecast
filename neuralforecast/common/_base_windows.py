@@ -194,7 +194,6 @@ class BaseWindows(pl.LightningModule):
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
         temporal = batch["temporal"]
-        y_idx = batch["y_idx"]
 
         if step == "train":
             if self.val_size + self.test_size > 0:
