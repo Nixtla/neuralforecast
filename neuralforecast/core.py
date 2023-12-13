@@ -57,6 +57,8 @@ def _insample_times(
     h: int,
     freq: Union[int, str, pd.offsets.BaseOffset],
     step_size: int = 1,
+    id_col: str = "unique_id",
+    time_col: str = "ds",
 ) -> DataFrame:
     sizes = np.diff(indptr)
     if (sizes < h).any():
@@ -90,8 +92,8 @@ def _insample_times(
         df_constructor = pd.DataFrame
     out = df_constructor(
         {
-            "unique_id": ufp.repeat(uids, h * windows_per_serie),
-            "ds": ds,
+            id_col: ufp.repeat(uids, h * windows_per_serie),
+            time_col: ds,
             "cutoff": cutoffs,
         }
     )
@@ -232,13 +234,23 @@ class NeuralForecast:
             return data
         for i in range(data.shape[1]):
             ga = GroupedArray(data[:, i], indptr)
-            data[:, i] = self.scalers_["y"].inverse_transform(ga)
+            data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
         return data
 
-    def _prepare_fit(self, df, static_df, sort_df, predict_only):
+    def _prepare_fit(
+        self, df, static_df, sort_df, predict_only, id_col, time_col, target_col
+    ):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
-            df=df, static_df=static_df, sort_df=sort_df
+            df=df,
+            static_df=static_df,
+            sort_df=sort_df,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
         )
         if predict_only:
             self._scalers_transform(dataset)
@@ -254,7 +266,10 @@ class NeuralForecast:
         sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
-    ):
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ) -> None:
         """Fit the core.NeuralForecast.
 
         Fit `models` to a large set of time series from DataFrame `df`.
@@ -275,6 +290,12 @@ class NeuralForecast:
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
+        id_col : str (default='unique_id')
+            Column that identifies each serie.
+        time_col : str (default='ds')
+            Column that identifies each timestep, its values can be timestamps or integers.
+        target_col : str (default='y')
+            Column that contains the target.
 
         Returns
         -------
@@ -292,9 +313,15 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
-            validate_freq(df["ds"], self.freq)
+            validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df, predict_only=False
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                predict_only=False,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
             )
             self.sort_df = sort_df
         else:
@@ -327,13 +354,18 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             Only required if this is different than the one used in the fit step.
         """
+        if not self._fitted:
+            raise Exception("You must fit the model first.")
         if df is not None:
-            df = ufp.sort(df, by=["unique_id", "ds"])
+            df = ufp.sort(df, by=[self.id_col, self.time_col])
             last_times_by_id = ufp.group_by_agg(
-                df, by="unique_id", aggs={"ds": "max"}, maintain_order=True
+                df,
+                by=self.id_col,
+                aggs={self.time_col: "max"},
+                maintain_order=True,
             )
-            uids = last_times_by_id["unique_id"]
-            last_times = last_times_by_id["ds"]
+            uids = last_times_by_id[self.id_col]
+            last_times = last_times_by_id[self.time_col]
         else:
             uids = self.uids
             last_times = self.last_dates
@@ -342,8 +374,8 @@ class NeuralForecast:
             last_times=last_times,
             freq=self.freq,
             h=self.h,
-            id_col="unique_id",
-            time_col="ds",
+            id_col=self.id_col,
+            time_col=self.time_col,
         )
 
     def get_missing_future(
@@ -360,7 +392,7 @@ class NeuralForecast:
             Only required if this is different than the one used in the fit step.
         """
         expected = self.make_future_dataframe(df)
-        ids = ["unique_id", "ds"]
+        ids = [self.id_col, self.time_col]
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def predict(
@@ -422,9 +454,15 @@ class NeuralForecast:
 
         # Process new dataset but does not store it.
         if df is not None:
-            validate_freq(df["ds"], self.freq)
+            validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df, predict_only=True
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                predict_only=True,
+                id_col=self.id_col,
+                time_col=self.time_col,
+                target_col=self.target_col,
             )
         else:
             dataset = self.dataset
@@ -448,16 +486,16 @@ class NeuralForecast:
             last_times=last_dates,
             freq=self.freq,
             h=self.h,
-            id_col="unique_id",
-            time_col="ds",
+            id_col=self.id_col,
+            time_col=self.time_col,
         )
 
         # Update and define new forecasting dataset
         if futr_df is None:
-            futr_dataset = dataset.align(fcsts_df)
+            futr_df = fcsts_df
         else:
             futr_orig_rows = futr_df.shape[0]
-            futr_df = ufp.join(futr_df, fcsts_df, on=["unique_id", "ds"])
+            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
             if futr_df.shape[0] < fcsts_df.shape[0]:
                 if df is None:
                     expected_cmd = "make_future_dataframe()"
@@ -475,7 +513,12 @@ class NeuralForecast:
                 warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
             if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
-            futr_dataset = dataset.align(futr_df)
+        futr_dataset = dataset.align(
+            futr_df,
+            id_col=self.id_col,
+            time_col=self.time_col,
+            target_col=self.target_col,
+        )
         self._scalers_transform(futr_dataset)
         dataset = dataset.append(futr_dataset)
 
@@ -502,7 +545,7 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
         if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
             _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index("unique_id")
+            fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
     def cross_validation(
@@ -516,6 +559,9 @@ class NeuralForecast:
         sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
         **data_kwargs,
     ):
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -544,6 +590,12 @@ class NeuralForecast:
             Use initial model passed when object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
+        id_col : str (default='unique_id')
+            Column that identifies each serie.
+        time_col : str (default='ds')
+            Column that identifies each timestep, its values can be timestamps or integers.
+        target_col : str (default='y')
+            Column that contains the target.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -558,9 +610,15 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
-            validate_freq(df["ds"], self.freq)
+            validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df, predict_only=False
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                predict_only=False,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
             )
             self.sort_df = sort_df
         else:
@@ -607,9 +665,11 @@ class NeuralForecast:
             h=self.h,
             test_size=test_size,
             step_size=step_size,
+            id_col=id_col,
+            time_col=time_col,
         )
         # the cv_times is sorted by window and then id
-        fcsts_df = ufp.sort(fcsts_df, ["unique_id", "cutoff", "ds"])
+        fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
         col_idx = 0
         fcsts = np.full(
@@ -642,10 +702,10 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = ufp.join(fcsts_df, df, how="left", on=["unique_id", "ds"])
+        fcsts_df = ufp.join(fcsts_df, df, how="left", on=[id_col, time_col])
         if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
             _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index("unique_id")
+            fcsts_df = fcsts_df.set_index(id_col)
         return fcsts_df
 
     def predict_insample(self, step_size: int = 1):
@@ -716,6 +776,8 @@ class NeuralForecast:
             h=self.h,
             freq=self.freq,
             step_size=step_size,
+            id_col=self.id_col,
+            time_col=self.time_col,
         )
 
         col_idx = 0
@@ -735,9 +797,9 @@ class NeuralForecast:
 
         # original y
         original_y = {
-            "unique_id": ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
-            "ds": self.ds,
-            "y": self.dataset.temporal[:, 0].numpy(),
+            self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
+            self.time_col: self.ds,
+            self.target_col: self.dataset.temporal[:, 0].numpy(),
         }
 
         # Add predictions to forecasts DataFrame
@@ -750,17 +812,17 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=["unique_id", "ds"])
+        fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
         if self.scalers_:
-            sizes = ufp.counts_by_id(fcsts_df, "unique_id")["counts"].to_numpy()
+            sizes = ufp.counts_by_id(fcsts_df, self.id_col)["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())
-            invert_cols = cols + ["y"]
+            invert_cols = cols + [self.target_col]
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
         if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
             _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index("unique_id")
+            fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -840,6 +902,9 @@ class NeuralForecast:
             "_fitted": self._fitted,
             "local_scaler_type": self.local_scaler_type,
             "scalers_": self.scalers_,
+            "id_col": self.id_col,
+            "time_col": self.time_col,
+            "target_col": self.target_col,
         }
 
         with open(f"{path}/configuration.pkl", "wb") as f:
@@ -918,10 +983,17 @@ class NeuralForecast:
         # Dataset
         if dataset is not None:
             neuralforecast.dataset = dataset
-            neuralforecast.uids = config_dict["uids"]
-            neuralforecast.last_dates = config_dict["last_dates"]
-            neuralforecast.ds = config_dict["ds"]
-            neuralforecast.sort_df = config_dict["sort_df"]
+            restore_attrs = [
+                "uids",
+                "last_dates",
+                "ds",
+                "sort_df",
+                "id_col",
+                "time_col",
+                "target_col",
+            ]
+            for attr in restore_attrs:
+                setattr(neuralforecast, attr, config_dict[attr])
 
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]

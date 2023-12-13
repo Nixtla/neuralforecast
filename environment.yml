@@ -19,4 +19,4 @@ dependencies:
     - black
     - polars
     - "ray[tune]>=2.2.0"
-    - utilsforecast>=0.0.19
+    - utilsforecast>=0.0.21
