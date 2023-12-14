@@ -158,7 +158,7 @@ def _warn_id_as_idx():
         category=DeprecationWarning,
     )
 
-# %% ../nbs/core.ipynb 11
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
     def __init__(
         self,
