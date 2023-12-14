@@ -753,6 +753,9 @@ class NeuralForecast:
                 target_col=target_col,
                 **data_kwargs,
             )
+        if df is None:
+            raise ValueError("Must specify `df` with `refit!=False`.")
+        validate_freq(df[time_col], self.freq)
         splits = ufp.backtest_splits(
             df,
             n_windows=n_windows,
@@ -804,7 +807,11 @@ class NeuralForecast:
             c for c in out.columns if c not in first_out_cols + [target_col]
         ]
         cols_order = first_out_cols + remaining_cols + [target_col]
-        return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
+        out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
+        if isinstance(out, pd.DataFrame) and nf_config.id_as_index:
+            _warn_id_as_idx()
+            out = out.set_index(id_col)
+        return out
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
