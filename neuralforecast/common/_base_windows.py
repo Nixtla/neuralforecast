@@ -16,6 +16,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
+from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_windows.ipynb 6
 class BaseWindows(pl.LightningModule):
@@ -331,13 +332,13 @@ class BaseWindows(pl.LightningModule):
         else:
             raise ValueError(f"Unknown step {step}")
 
-    def _get_temporal_data_cols(self, temporal_cols):
-        temporal_data_cols = ["y"] + list(
+    def _get_temporal_exogenous_cols(self, temporal_cols):
+        temporal_data_cols = list(
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
         return temporal_data_cols
 
-    def _normalization(self, windows):
+    def _normalization(self, windows, y_idx):
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
         temporal = windows["temporal"]  # B, L+H, C
@@ -345,8 +346,12 @@ class BaseWindows(pl.LightningModule):
 
         # To avoid leakage uses only the lags
         # temporal_data_cols = temporal_cols.drop('available_mask').tolist()
-        temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
-        temporal_data = temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)]
+        temporal_data_cols = self._get_temporal_exogenous_cols(
+            temporal_cols=temporal_cols
+        )
+        temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
+        temporal_idxs = np.append(y_idx, temporal_idxs)
+        temporal_data = temporal[:, :, temporal_idxs]
         temporal_mask = temporal[:, :, temporal_cols.get_loc("available_mask")].clone()
         if self.h > 0:
             temporal_mask[:, -self.h :] = 0.0
@@ -358,12 +363,12 @@ class BaseWindows(pl.LightningModule):
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         # Replace values in windows dict
-        temporal[:, :, temporal_cols.get_indexer(temporal_data_cols)] = temporal_data
+        temporal[:, :, temporal_idxs] = temporal_data
         windows["temporal"] = temporal
 
         return windows
 
-    def _inv_normalization(self, y_hat, temporal_cols):
+    def _inv_normalization(self, y_hat, temporal_cols, y_idx):
         # Receives window predictions [B, H, output]
         # Broadcasts outputs and inverts normalization
 
@@ -374,9 +379,8 @@ class BaseWindows(pl.LightningModule):
         else:
             remove_dimension = False
 
-        temporal_data_cols = temporal_cols.drop("available_mask")
-        y_scale = self.scaler.x_scale[:, :, temporal_data_cols.get_indexer(["y"])]
-        y_loc = self.scaler.x_shift[:, :, temporal_data_cols.get_indexer(["y"])]
+        y_scale = self.scaler.x_scale[:, :, [y_idx]]
+        y_loc = self.scaler.x_shift[:, :, [y_idx]]
 
         y_scale = torch.repeat_interleave(y_scale, repeats=y_hat.shape[-1], dim=-1).to(
             y_hat.device
@@ -398,7 +402,7 @@ class BaseWindows(pl.LightningModule):
 
     def _parse_windows(self, batch, windows):
         # Filter insample lags from outsample horizon
-        y_idx = batch["temporal_cols"].get_loc("y")
+        y_idx = batch["y_idx"]
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
 
         insample_y = windows["temporal"][:, : self.input_size, y_idx]
@@ -416,15 +420,21 @@ class BaseWindows(pl.LightningModule):
             outsample_mask = windows["temporal"][:, self.input_size :, mask_idx]
 
         if len(self.hist_exog_list):
-            hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
+            hist_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.hist_exog_list
+            )
             hist_exog = windows["temporal"][:, : self.input_size, hist_exog_idx]
 
         if len(self.futr_exog_list):
-            futr_exog_idx = windows["temporal_cols"].get_indexer(self.futr_exog_list)
+            futr_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.futr_exog_list
+            )
             futr_exog = windows["temporal"][:, :, futr_exog_idx]
 
         if len(self.stat_exog_list):
-            static_idx = windows["static_cols"].get_indexer(self.stat_exog_list)
+            static_idx = get_indexer_raise_missing(
+                windows["static_cols"], self.stat_exog_list
+            )
             stat_exog = windows["static"][:, static_idx]
 
         # TODO: think a better way of removing insample_y features
@@ -444,9 +454,9 @@ class BaseWindows(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
         windows = self._create_windows(batch, step="train")
-        y_idx = batch["temporal_cols"].get_loc("y")
+        y_idx = batch["y_idx"]
         original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
-        windows = self._normalization(windows=windows)
+        windows = self._normalization(windows=windows, y_idx=y_idx)
 
         # Parse windows
         (
@@ -471,7 +481,7 @@ class BaseWindows(pl.LightningModule):
         output = self(windows_batch)
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
@@ -492,10 +502,12 @@ class BaseWindows(pl.LightningModule):
         self.train_trajectories.append((self.global_step, float(loss)))
         return loss
 
-    def _compute_valid_loss(self, outsample_y, output, outsample_mask, temporal_cols):
+    def _compute_valid_loss(
+        self, outsample_y, output, outsample_mask, temporal_cols, y_idx
+    ):
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=temporal_cols
+                y_hat=outsample_y, temporal_cols=temporal_cols, y_idx=y_idx
             )
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
@@ -519,7 +531,7 @@ class BaseWindows(pl.LightningModule):
             )
         else:
             output, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=temporal_cols
+                y_hat=output, temporal_cols=temporal_cols, y_idx=y_idx
             )
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
@@ -533,6 +545,7 @@ class BaseWindows(pl.LightningModule):
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="val")
         n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
 
         # Number of windows in batch
         windows_batch_size = self.inference_windows_batch_size
@@ -548,9 +561,8 @@ class BaseWindows(pl.LightningModule):
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
             windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
-            y_idx = batch["temporal_cols"].get_loc("y")
             original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
-            windows = self._normalization(windows=windows)
+            windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
             (
@@ -577,6 +589,7 @@ class BaseWindows(pl.LightningModule):
                 output=output_batch,
                 outsample_mask=outsample_mask,
                 temporal_cols=batch["temporal_cols"],
+                y_idx=batch["y_idx"],
             )
             valid_losses.append(valid_loss_batch)
             batch_sizes.append(len(output_batch))
@@ -604,6 +617,7 @@ class BaseWindows(pl.LightningModule):
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
         n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
 
         # Number of windows in batch
         windows_batch_size = self.inference_windows_batch_size
@@ -618,7 +632,7 @@ class BaseWindows(pl.LightningModule):
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
             windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
-            windows = self._normalization(windows=windows)
+            windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
             (
@@ -643,7 +657,9 @@ class BaseWindows(pl.LightningModule):
             # Inverse normalization and sampling
             if self.loss.is_distribution_output:
                 _, y_loc, y_scale = self._inv_normalization(
-                    y_hat=output_batch[0], temporal_cols=batch["temporal_cols"]
+                    y_hat=output_batch[0],
+                    temporal_cols=batch["temporal_cols"],
+                    y_idx=y_idx,
                 )
                 distr_args = self.loss.scale_decouple(
                     output=output_batch, loc=y_loc, scale=y_scale
@@ -659,7 +675,9 @@ class BaseWindows(pl.LightningModule):
                     y_hat = torch.concat((y_hat, distr_args), axis=2)
             else:
                 y_hat, _, _ = self._inv_normalization(
-                    y_hat=output_batch, temporal_cols=batch["temporal_cols"]
+                    y_hat=output_batch,
+                    temporal_cols=batch["temporal_cols"],
+                    y_idx=y_idx,
                 )
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)

@@ -4,7 +4,7 @@
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
            'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
-           'time_features_from_frequency_str', 'augment_calendar_df']
+           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing']
 
 # %% ../nbs/utils.ipynb 3
 import random
@@ -439,3 +439,11 @@ def augment_calendar_df(df, freq="H"):
     ds_data = pd.DataFrame(ds_data, columns=freq_map[freq])
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
+
+# %% ../nbs/utils.ipynb 27
+def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
+    idxs = idx.get_indexer(vals)
+    missing = [v for i, v in zip(idxs, vals) if i == -1]
+    if missing:
+        raise ValueError(f"The following values are missing from the index: {missing}")
+    return idxs
