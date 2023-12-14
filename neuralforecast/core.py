@@ -772,7 +772,7 @@ class NeuralForecast:
                     static_df=static_df,
                     val_size=val_size,
                     sort_df=sort_df,
-                    use_init_models=use_init_models,
+                    use_init_models=False,
                     verbose=verbose,
                 )
                 predict_df: Optional[DataFrame] = None
