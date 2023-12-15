@@ -26,7 +26,6 @@ from utilsforecast.target_transforms import (
 )
 from utilsforecast.validation import validate_freq
 
-import neuralforecast.config as nf_config
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
     GRU,
@@ -150,10 +149,14 @@ _type2scaler = {
 }
 
 # %% ../nbs/core.ipynb 9
+def _id_as_idx() -> bool:
+    return not bool(os.getenv("NIXTLA_ID_AS_COL", ""))
+
+
 def _warn_id_as_idx():
     warnings.warn(
         "In a future version the predictions will have the id as a column. "
-        "You can set `neuralforecast.config.id_as_index = False` "
+        "You can set the `NIXTLA_ID_AS_COL` environment variable "
         "to adopt the new behavior and to suppress this warning.",
         category=DeprecationWarning,
     )
@@ -543,7 +546,7 @@ class NeuralForecast:
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
@@ -703,7 +706,7 @@ class NeuralForecast:
 
         # Add original input df's y to forecasts DataFrame
         fcsts_df = ufp.join(fcsts_df, df, how="left", on=[id_col, time_col])
-        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(id_col)
         return fcsts_df
@@ -820,7 +823,7 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
-        if isinstance(fcsts_df, pd.DataFrame) and nf_config.id_as_index:
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
