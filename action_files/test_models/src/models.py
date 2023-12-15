@@ -35,7 +35,7 @@ from ray import tune
 
 from src.data import get_data
 
-neuralforecast.config.id_as_index = False
+os.environ['NIXTLA_ID_AS_COL'] = '1'
 
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
