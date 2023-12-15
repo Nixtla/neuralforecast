@@ -811,7 +811,7 @@ class NeuralForecast:
         ]
         cols_order = first_out_cols + remaining_cols + [target_col]
         out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
-        if isinstance(out, pd.DataFrame) and nf_config.id_as_index:
+        if isinstance(out, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             out = out.set_index(id_col)
         return out
