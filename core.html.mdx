@@ -12,7 +12,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L162"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L165"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -38,7 +38,7 @@ columns. The `y` column denotes the target time series variable.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L261"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L264"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -74,7 +74,7 @@ store fitted models for later inspection.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L398"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L401"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -107,7 +107,7 @@ DataFrame `df`.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L551"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L554"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -154,7 +154,7 @@ rolled manner.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L711"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L714"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -176,7 +176,7 @@ to predict historic values of a time series from the stored dataframe.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L829"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L832"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -204,7 +204,7 @@ individual model `**trainer_kwargs` to include
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L914"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L917"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -225,6 +225,6 @@ Load NeuralForecast
 | **Returns** | **NeuralForecast** |             | **Instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ```python
-neuralforecast.config.id_as_index = False
+os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```
 
