@@ -594,6 +594,12 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
+        if val_size is not None:
+            if self.dataset.min_size < (val_size + test_size):
+                warnings.warn(
+                    "Validation and test sets are larger than the shorter time-series."
+                )
+
         cols = []
         count_names = {"model": 0}
         for model in self.models:
@@ -602,24 +608,6 @@ class NeuralForecast:
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
             cols += [model_name + n for n in model.loss.output_names]
-
-        h = self.models[0].h
-        if test_size is None:
-            test_size = h + step_size * (n_windows - 1)
-        elif n_windows is None:
-            if (test_size - h) % step_size:
-                raise Exception("`test_size - h` should be module `step_size`")
-            n_windows = int((test_size - h) / step_size) + 1
-        elif (n_windows is None) and (test_size is None):
-            raise Exception("you must define `n_windows` or `test_size`")
-        else:
-            raise Exception("you must define `n_windows` or `test_size` but not both")
-
-        if val_size is not None:
-            if self.dataset.min_size < (val_size + test_size):
-                warnings.warn(
-                    "Validation and test sets are larger than the shorter time-series."
-                )
 
         fcsts_df = ufp.cv_times(
             times=self.ds,
@@ -636,7 +624,9 @@ class NeuralForecast:
 
         col_idx = 0
         fcsts = np.full(
-            (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
+            (self.dataset.n_groups * self.h * n_windows, len(cols)),
+            np.nan,
+            dtype=np.float32,
         )
 
         for model in self.models:
@@ -738,6 +728,17 @@ class NeuralForecast:
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
+        h = self.h
+        if n_windows is None and test_size is None:
+            raise Exception("you must define `n_windows` or `test_size`.")
+        if test_size is None:
+            test_size = h + step_size * (n_windows - 1)
+        elif n_windows is None:
+            if (test_size - h) % step_size:
+                raise Exception("`test_size - h` should be module `step_size`")
+            n_windows = int((test_size - h) / step_size) + 1
+        else:
+            raise Exception("you must define `n_windows` or `test_size` but not both")
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
