@@ -566,7 +566,7 @@ class NeuralForecast:
         n_windows: int,
         step_size: int,
         val_size: Optional[int],
-        test_size: Optional[int],
+        test_size: int,
         sort_df: bool,
         verbose: bool,
         id_col: str,
