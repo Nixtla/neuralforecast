@@ -74,7 +74,7 @@ store fitted models for later inspection.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L401"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L404"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -107,22 +107,24 @@ DataFrame `df`.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L554"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L669"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
 
 > ``` text
->  NeuralForecast.cross_validation
->                                   (df:Optional[pandas.core.frame.DataFrame
->                                   ]=None, static_df:Optional[pandas.core.f
->                                   rame.DataFrame]=None, n_windows:int=1,
+>  NeuralForecast.cross_validation (df:Union[pandas.core.frame.DataFrame,pol
+>                                   ars.dataframe.frame.DataFrame,NoneType]=
+>                                   None, static_df:Union[pandas.core.frame.
+>                                   DataFrame,polars.dataframe.frame.DataFra
+>                                   me,NoneType]=None, n_windows:int=1,
 >                                   step_size:int=1,
 >                                   val_size:Optional[int]=0,
 >                                   test_size:Optional[int]=None,
 >                                   sort_df:bool=True,
 >                                   use_init_models:bool=False,
 >                                   verbose:bool=False,
+>                                   refit:Union[bool,int]=False,
 >                                   id_col:str='unique_id',
 >                                   time_col:str='ds', target_col:str='y',
 >                                   **data_kwargs)
@@ -134,27 +136,28 @@ Temporal Cross-Validation with core.NeuralForecast.
 NeuralForecast models through multiple windows, in either chained or
 rolled manner.
 
-|                 | **Type**             | **Default** | **Details**                                                                                                                     |
+|                 | **Type**  | **Default** | **Details**                                                                                                                                                                                                    |
 |------|------------------|-------------------------|-------------------------|
-| df              | Optional             | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
-| static_df       | Optional             | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
-| n_windows       | int                  | 1           | Number of windows used for cross validation.                                                                                    |
-| step_size       | int                  | 1           | Step size between each window.                                                                                                  |
-| val_size        | Optional             | 0           | Length of validation size. If passed, set `n_windows=None`.                                                                     |
-| test_size       | Optional             | None        | Length of test size. If passed, set `n_windows=None`.                                                                           |
-| sort_df         | bool                 | True        | Sort `df` before fitting.                                                                                                       |
-| use_init_models | bool                 | False       | Use initial model passed when object was instantiated.                                                                          |
-| verbose         | bool                 | False       | Print processing steps.                                                                                                         |
-| id_col          | str                  | unique_id   | Column that identifies each serie.                                                                                              |
-| time_col        | str                  | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                 |
-| target_col      | str                  | y           | Column that contains the target.                                                                                                |
-| data_kwargs     | kwargs               |             | Extra arguments to be passed to the dataset within each model.                                                                  |
-| **Returns**     | **pandas.DataFrame** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **   |
+| df              | Union     | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required.                                                                                |
+| static_df       | Union     | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                                                                                                   |
+| n_windows       | int       | 1           | Number of windows used for cross validation.                                                                                                                                                                   |
+| step_size       | int       | 1           | Step size between each window.                                                                                                                                                                                 |
+| val_size        | Optional  | 0           | Length of validation size. If passed, set `n_windows=None`.                                                                                                                                                    |
+| test_size       | Optional  | None        | Length of test size. If passed, set `n_windows=None`.                                                                                                                                                          |
+| sort_df         | bool      | True        | Sort `df` before fitting.                                                                                                                                                                                      |
+| use_init_models | bool      | False       | Use initial model passed when object was instantiated.                                                                                                                                                         |
+| verbose         | bool      | False       | Print processing steps.                                                                                                                                                                                        |
+| refit           | Union     | False       | Retrain model for each cross validation window.<br/>If False, the models are trained at the beginning and then used to predict each window.<br/>If positive int, the models are retrained every `refit` windows. |
+| id_col          | str       | unique_id   | Column that identifies each serie.                                                                                                                                                                             |
+| time_col        | str       | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                                                                                                |
+| target_col      | str       | y           | Column that contains the target.                                                                                                                                                                               |
+| data_kwargs     | kwargs    |             | Extra arguments to be passed to the dataset within each model.                                                                                                                                                 |
+| **Returns**     | **Union** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **                                                                                  |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L714"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L820"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -176,7 +179,7 @@ to predict historic values of a time series from the stored dataframe.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L832"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L938"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -204,7 +207,7 @@ individual model `**trainer_kwargs` to include
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L917"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1023"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
