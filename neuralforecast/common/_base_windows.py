@@ -110,9 +110,9 @@ class BaseWindows(pl.LightningModule):
         self.step_size = step_size
 
         # Variables
-        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
-        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
-        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+        self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
+        self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
+        self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
         self.exclude_insample_y = exclude_insample_y
 
         # Scaler
