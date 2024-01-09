@@ -158,7 +158,7 @@ def _warn_id_as_idx():
         "In a future version the predictions will have the id as a column. "
         "You can set the `NIXTLA_ID_AS_COL` environment variable "
         "to adopt the new behavior and to suppress this warning.",
-        category=DeprecationWarning,
+        category=FutureWarning,
     )
 
 # %% ../nbs/core.ipynb 10
