@@ -158,7 +158,7 @@ def _warn_id_as_idx():
         "In a future version the predictions will have the id as a column. "
         "You can set the `NIXTLA_ID_AS_COL` environment variable "
         "to adopt the new behavior and to suppress this warning.",
-        category=DeprecationWarning,
+        category=FutureWarning,
     )
 
 # %% ../nbs/core.ipynb 10
@@ -544,7 +544,7 @@ class NeuralForecast:
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        if isinstance(self.uids, pl_Series):
+        if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
@@ -1089,6 +1089,9 @@ class NeuralForecast:
             local_scaler_type=config_dict["local_scaler_type"],
         )
 
+        for attr in ["id_col", "time_col", "target_col"]:
+            setattr(neuralforecast, attr, config_dict[attr])
+
         # Dataset
         if dataset is not None:
             neuralforecast.dataset = dataset
@@ -1097,9 +1100,6 @@ class NeuralForecast:
                 "last_dates",
                 "ds",
                 "sort_df",
-                "id_col",
-                "time_col",
-                "target_col",
             ]
             for attr in restore_attrs:
                 setattr(neuralforecast, attr, config_dict[attr])

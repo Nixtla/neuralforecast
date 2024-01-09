@@ -278,7 +278,7 @@ class TimeSeriesDataset(Dataset):
         if isinstance(df, pd.DataFrame) and df.index.name == id_col:
             warnings.warn(
                 "Passing the id as index is deprecated, please provide it as a column instead.",
-                DeprecationWarning,
+                FutureWarning,
             )
             df = df.reset_index(id_col)
         # Define indexes if not given
@@ -286,7 +286,7 @@ class TimeSeriesDataset(Dataset):
             if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
                 warnings.warn(
                     "Passing the id as index is deprecated, please provide it as a column instead.",
-                    DeprecationWarning,
+                    FutureWarning,
                 )
             if sort_df:
                 static_df = ufp.sort(static_df, by=id_col)
