@@ -307,7 +307,8 @@ class BaseAuto(pl.LightningModule):
         import optuna
 
         def objective(trial):
-            cfg = config(trial)
+            user_cfg = config(trial)
+            cfg = deepcopy(user_cfg)
             fitted_model = self._fit_model(
                 cls_model=cls_model,
                 config=cfg,
@@ -315,7 +316,7 @@ class BaseAuto(pl.LightningModule):
                 val_size=val_size,
                 test_size=test_size,
             )
-            trial.set_user_attr("ALL_PARAMS", cfg)
+            trial.set_user_attr("ALL_PARAMS", user_cfg)
             metrics = fitted_model.trainer.callback_metrics
             trial.set_user_attr(
                 "METRICS",
