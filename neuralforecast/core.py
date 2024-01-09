@@ -197,7 +197,6 @@ class NeuralForecast:
 
         self.h = models[0].h
         self.models_init = models
-        self.models = [deepcopy(model) for model in self.models_init]
         self.freq = freq
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
             raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
@@ -206,6 +205,7 @@ class NeuralForecast:
 
         # Flags and attributes
         self._fitted = False
+        self._reset_models()
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
         self.scalers_ = {}
@@ -339,9 +339,7 @@ class NeuralForecast:
 
         # Recover initial model if use_init_models
         if use_init_models:
-            self.models = [deepcopy(model) for model in self.models_init]
-            if self._fitted:
-                print("WARNING: Deleting previously fitted models.")
+            self._reset_models()
 
         for model in self.models:
             model.fit(self.dataset, val_size=val_size)
@@ -398,6 +396,11 @@ class NeuralForecast:
         ids = [self.id_col, self.time_col]
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
+    def _get_needed_futr_exog(self):
+        return set(
+            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
+        )
+
     def predict(
         self,
         df: Optional[DataFrame] = None,
@@ -439,9 +442,7 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
-        needed_futr_exog = set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
             if futr_df is None:
                 raise ValueError(
@@ -526,7 +527,9 @@ class NeuralForecast:
         dataset = dataset.append(futr_dataset)
 
         col_idx = 0
-        fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
+        fcsts = np.full(
+            (self.h * len(uids), len(cols)), fill_value=np.nan, dtype=np.float32
+        )
         for model in self.models:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
@@ -551,63 +554,26 @@ class NeuralForecast:
             fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
-    def cross_validation(
+    def _reset_models(self):
+        self.models = [deepcopy(model) for model in self.models_init]
+        if self._fitted:
+            print("WARNING: Deleting previously fitted models.")
+
+    def _no_refit_cross_validation(
         self,
-        df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
-        n_windows: int = 1,
-        step_size: int = 1,
-        val_size: Optional[int] = 0,
-        test_size: Optional[int] = None,
-        sort_df: bool = True,
-        use_init_models: bool = False,
-        verbose: bool = False,
-        id_col: str = "unique_id",
-        time_col: str = "ds",
-        target_col: str = "y",
+        df: Optional[DataFrame],
+        static_df: Optional[DataFrame],
+        n_windows: int,
+        step_size: int,
+        val_size: Optional[int],
+        test_size: int,
+        sort_df: bool,
+        verbose: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
         **data_kwargs,
-    ):
-        """Temporal Cross-Validation with core.NeuralForecast.
-
-        `core.NeuralForecast`'s cross-validation efficiently fits a list of NeuralForecast
-        models through multiple windows, in either chained or rolled manner.
-
-        Parameters
-        ----------
-        df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
-            If None, a previously stored dataset is required.
-        static_df : pandas.DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`] and static exogenous.
-        n_windows : int (default=1)
-            Number of windows used for cross validation.
-        step_size : int (default=1)
-            Step size between each window.
-        val_size : int, optional (default=None)
-            Length of validation size. If passed, set `n_windows=None`.
-        test_size : int, optional (default=None)
-            Length of test size. If passed, set `n_windows=None`.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
-        use_init_models : bool, option (default=False)
-            Use initial model passed when object was instantiated.
-        verbose : bool (default=False)
-            Print processing steps.
-        id_col : str (default='unique_id')
-            Column that identifies each serie.
-        time_col : str (default='ds')
-            Column that identifies each timestep, its values can be timestamps or integers.
-        target_col : str (default='y')
-            Column that contains the target.
-        data_kwargs : kwargs
-            Extra arguments to be passed to the dataset within each model.
-
-        Returns
-        -------
-        fcsts_df : pandas.DataFrame
-            DataFrame with insample `models` columns for point predictions and probabilistic
-            predictions for all fitted `models`.
-        """
+    ) -> DataFrame:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
@@ -628,11 +594,11 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
-        # Recover initial model if use_init_models.
-        if use_init_models:
-            self.models = [deepcopy(model) for model in self.models_init]
-            if self._fitted:
-                print("WARNING: Deleting previously fitted models.")
+        if val_size is not None:
+            if self.dataset.min_size < (val_size + test_size):
+                warnings.warn(
+                    "Validation and test sets are larger than the shorter time-series."
+                )
 
         cols = []
         count_names = {"model": 0}
@@ -642,24 +608,6 @@ class NeuralForecast:
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
             cols += [model_name + n for n in model.loss.output_names]
-
-        h = self.models[0].h
-        if test_size is None:
-            test_size = h + step_size * (n_windows - 1)
-        elif n_windows is None:
-            if (test_size - h) % step_size:
-                raise Exception("`test_size - h` should be module `step_size`")
-            n_windows = int((test_size - h) / step_size) + 1
-        elif (n_windows is None) and (test_size is None):
-            raise Exception("you must define `n_windows` or `test_size`")
-        else:
-            raise Exception("you must define `n_windows` or `test_size` but not both")
-
-        if val_size is not None:
-            if self.dataset.min_size < (val_size + test_size):
-                warnings.warn(
-                    "Validation and test sets are larger than the shorter time-series."
-                )
 
         fcsts_df = ufp.cv_times(
             times=self.ds,
@@ -676,7 +624,9 @@ class NeuralForecast:
 
         col_idx = 0
         fcsts = np.full(
-            (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
+            (self.dataset.n_groups * self.h * n_windows, len(cols)),
+            np.nan,
+            dtype=np.float32,
         )
 
         for model in self.models:
@@ -705,11 +655,167 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = ufp.join(fcsts_df, df, how="left", on=[id_col, time_col])
+        fcsts_df = ufp.join(
+            fcsts_df,
+            df[[id_col, time_col, target_col]],
+            how="left",
+            on=[id_col, time_col],
+        )
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(id_col)
         return fcsts_df
+
+    def cross_validation(
+        self,
+        df: Optional[DataFrame] = None,
+        static_df: Optional[DataFrame] = None,
+        n_windows: int = 1,
+        step_size: int = 1,
+        val_size: Optional[int] = 0,
+        test_size: Optional[int] = None,
+        sort_df: bool = True,
+        use_init_models: bool = False,
+        verbose: bool = False,
+        refit: Union[bool, int] = False,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+        **data_kwargs,
+    ) -> DataFrame:
+        """Temporal Cross-Validation with core.NeuralForecast.
+
+        `core.NeuralForecast`'s cross-validation efficiently fits a list of NeuralForecast
+        models through multiple windows, in either chained or rolled manner.
+
+        Parameters
+        ----------
+        df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If None, a previously stored dataset is required.
+        static_df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`] and static exogenous.
+        n_windows : int (default=1)
+            Number of windows used for cross validation.
+        step_size : int (default=1)
+            Step size between each window.
+        val_size : int, optional (default=None)
+            Length of validation size. If passed, set `n_windows=None`.
+        test_size : int, optional (default=None)
+            Length of test size. If passed, set `n_windows=None`.
+        sort_df : bool (default=True)
+            Sort `df` before fitting.
+        use_init_models : bool, option (default=False)
+            Use initial model passed when object was instantiated.
+        verbose : bool (default=False)
+            Print processing steps.
+        refit : bool or int (default=False)
+            Retrain model for each cross validation window.
+            If False, the models are trained at the beginning and then used to predict each window.
+            If positive int, the models are retrained every `refit` windows.
+        id_col : str (default='unique_id')
+            Column that identifies each serie.
+        time_col : str (default='ds')
+            Column that identifies each timestep, its values can be timestamps or integers.
+        target_col : str (default='y')
+            Column that contains the target.
+        data_kwargs : kwargs
+            Extra arguments to be passed to the dataset within each model.
+
+        Returns
+        -------
+        fcsts_df : pandas or polars DataFrame
+            DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
+        """
+        h = self.h
+        if n_windows is None and test_size is None:
+            raise Exception("you must define `n_windows` or `test_size`.")
+        if test_size is None:
+            test_size = h + step_size * (n_windows - 1)
+        elif n_windows is None:
+            if (test_size - h) % step_size:
+                raise Exception("`test_size - h` should be module `step_size`")
+            n_windows = int((test_size - h) / step_size) + 1
+        else:
+            raise Exception("you must define `n_windows` or `test_size` but not both")
+        # Recover initial model if use_init_models.
+        if use_init_models:
+            self._reset_models()
+        if not refit:
+            return self._no_refit_cross_validation(
+                df=df,
+                static_df=static_df,
+                n_windows=n_windows,
+                step_size=step_size,
+                val_size=val_size,
+                test_size=test_size,
+                sort_df=sort_df,
+                verbose=verbose,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+                **data_kwargs,
+            )
+        if df is None:
+            raise ValueError("Must specify `df` with `refit!=False`.")
+        validate_freq(df[time_col], self.freq)
+        splits = ufp.backtest_splits(
+            df,
+            n_windows=n_windows,
+            h=self.h,
+            id_col=id_col,
+            time_col=time_col,
+            freq=self.freq,
+            step_size=step_size,
+            input_size=None,
+        )
+        results = []
+        for i_window, (cutoffs, train, test) in enumerate(splits):
+            should_fit = i_window == 0 or (refit > 0 and i_window % refit == 0)
+            if should_fit:
+                self.fit(
+                    df=train,
+                    static_df=static_df,
+                    val_size=val_size,
+                    sort_df=sort_df,
+                    use_init_models=False,
+                    verbose=verbose,
+                )
+                predict_df: Optional[DataFrame] = None
+            else:
+                predict_df = train
+            needed_futr_exog = self._get_needed_futr_exog()
+            if needed_futr_exog:
+                futr_df: Optional[DataFrame] = test
+            else:
+                futr_df = None
+            preds = self.predict(
+                df=predict_df,
+                static_df=static_df,
+                futr_df=futr_df,
+                sort_df=sort_df,
+                verbose=verbose,
+                **data_kwargs,
+            )
+            preds = ufp.join(preds, cutoffs, on=id_col, how="left")
+            fold_result = ufp.join(
+                preds, test[[id_col, time_col, target_col]], on=[id_col, time_col]
+            )
+            results.append(fold_result)
+        out = ufp.vertical_concat(results, match_categories=False)
+        out = ufp.drop_index_if_pandas(out)
+        # match order of cv with no refit
+        first_out_cols = [id_col, time_col, "cutoff"]
+        remaining_cols = [
+            c for c in out.columns if c not in first_out_cols + [target_col]
+        ]
+        cols_order = first_out_cols + remaining_cols + [target_col]
+        out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
+        if isinstance(out, pd.DataFrame) and _id_as_idx():
+            _warn_id_as_idx()
+            out = out.set_index(id_col)
+        return out
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
