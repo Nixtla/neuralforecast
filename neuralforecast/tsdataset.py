@@ -13,7 +13,7 @@ import pytorch_lightning as pl
 import torch
 import utilsforecast.processing as ufp
 from torch.utils.data import Dataset, DataLoader
-from utilsforecast.compat import DataFrame, pl_Series, pl_DataFrame
+from utilsforecast.compat import DataFrame, pl_Series
 
 # %% ../nbs/tsdataset.ipynb 5
 class TimeSeriesLoader(DataLoader):
@@ -317,12 +317,8 @@ class TimeSeriesDataset(Dataset):
 
         # Static features
         if static_df is not None:
-            if isinstance(static_df, pd.DataFrame):
-                static_cols = static_df.columns.drop(id_col)
-            elif isinstance(static_df, pl_DataFrame):
-                static_cols = [col for col in static_df.columns if col != id_col]
+            static_cols = static_df.drop(columns=id_col).columns
             static = ufp.to_numpy(static_df[static_cols])
-
             if not isinstance(static_cols, pd.Index):
                 static_cols = pd.Index(static_cols)
         else:
