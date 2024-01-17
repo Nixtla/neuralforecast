@@ -317,10 +317,9 @@ class TimeSeriesDataset(Dataset):
 
         # Static features
         if static_df is not None:
-            static_cols = static_df.drop(columns=id_col).columns
+            static_cols = [col for col in static_df.columns if col != id_col]
             static = ufp.to_numpy(static_df[static_cols])
-            if not isinstance(static_cols, pd.Index):
-                static_cols = pd.Index(static_cols)
+            static_cols = pd.Index(static_cols)
         else:
             static = None
             static_cols = None
