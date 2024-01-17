@@ -105,7 +105,7 @@ basic
 sf.plot(Y_df, engine='matplotlib')
 ```
 
-![](/examples/IntermittentData_files/figure-markdown_strict/cell-7-output-1.png)
+![](/neuralforecast/examples/IntermittentData_files/figure-markdown_strict/cell-7-output-1.png)
 
 ## 3. Train models for intermittent data
 
@@ -232,7 +232,7 @@ fcst_df.columns = fcst_df.columns.str.replace('-median', '')
 sf.plot(Y_df, fcst_df, engine='matplotlib', max_insample_length=28 * 3)
 ```
 
-![](/examples/IntermittentData_files/figure-markdown_strict/cell-14-output-1.png)
+![](/neuralforecast/examples/IntermittentData_files/figure-markdown_strict/cell-14-output-1.png)
 
 ## 4. Cross Validation
 
@@ -310,11 +310,11 @@ for cutoff in cv_df['cutoff'].unique():
             engine='matplotlib')
 ```
 
-![](/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-1.png)
+![](/neuralforecast/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-1.png)
 
-![](/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-2.png)
+![](/neuralforecast/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-2.png)
 
-![](/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-3.png)
+![](/neuralforecast/examples/IntermittentData_files/figure-markdown_strict/cell-19-output-3.png)
 
 ### Evaluate
 
