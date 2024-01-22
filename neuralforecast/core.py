@@ -983,14 +983,21 @@ class NeuralForecast:
 
         # Save models
         count_names = {"model": 0}
+        alias_to_model = {}
         for i, model in enumerate(self.models):
             # Skip model if not in list
             if i not in model_index:
                 continue
 
             model_name = repr(model).lower().replace("_", "")
+            model_class_name = model.__class__.__name__.lower()
+            if model_name != model_class_name:
+                alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
+        if alias_to_model:
+            with open(f"{path}/alias_to_model.pkl", "wb") as f:
+                pickle.dump(alias_to_model, f)
 
         # Save dataset
         if (save_dataset) and (hasattr(self, "dataset")):
@@ -1050,10 +1057,17 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading models " + 10 * "-")
         models = []
+        alias_file = "alias_to_model.pkl"
+        if os.path.isfile(f"{path}/{alias_file}"):
+            with open(f"{path}/{alias_file}", "rb") as f:
+                alias_to_model = pickle.load(f)
+        else:
+            alias_to_model = {}
         for model in models_ckpt:
             model_name = model.split("_")[0]
+            model_class_name = alias_to_model.get(model_name, model_name)
             models.append(
-                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(
+                MODEL_FILENAME_DICT[model_class_name].load_from_checkpoint(
                     f"{path}/{model}", **kwargs
                 )
             )
