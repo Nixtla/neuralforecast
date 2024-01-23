@@ -65,7 +65,7 @@ nbdev_export
 This project uses a couple of linters to validate different aspects of the code. Before opening a PR, please make sure that it passes all the linting tasks by following the next steps.
 
 * `mypy neuralforecast/`
-* `flake8 --select=F neuralforecast/`
+* `ruff neuralforecast/`
 
 ### Running tests
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
