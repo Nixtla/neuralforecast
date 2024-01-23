@@ -17,7 +17,7 @@ import torch
 import utilsforecast.processing as ufp
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.scalers import (
-    _BaseLocalScaler as BaseCoreScaler,
+    BaseLocalScaler,
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
@@ -201,7 +201,7 @@ class NeuralForecast:
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
             raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
-        self.scalers_: Dict[str, BaseCoreScaler]
+        self.scalers_: Dict[str, BaseLocalScaler]
 
         # Flags and attributes
         self._fitted = False
