@@ -1,6 +1,6 @@
 [tool.ruff]
 target-version = "py38"
-line-length = 120
+line-length = 88
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
 #    "E",
@@ -14,4 +14,4 @@ select = [
 
 
 [tool.mypy]
-ignore_missing_imports = "True"
+ignore_missing_imports = true
