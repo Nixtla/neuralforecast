@@ -4,15 +4,11 @@
 __all__ = ['MovingAvg', 'SeriesDecomp', 'DLinear']
 
 # %% ../../nbs/models.dlinear.ipynb 5
-import math
-import numpy as np
 from typing import Optional
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from ..common._modules import DataEmbedding
 from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
