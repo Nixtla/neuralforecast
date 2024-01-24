@@ -46,6 +46,7 @@ from neuralforecast.models import (
     StemGNN,
     PatchTST,
     TimesNet,
+    DLinear,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -125,6 +126,8 @@ MODEL_FILENAME_DICT = {
     "autonbeatsx": NBEATSx,
     "nhits": NHITS,
     "autonhits": NHITS,
+    "dlinear": DLinear,
+    "autodlinear": DLinear,
     "patchtst": PatchTST,
     "autopatchtst": PatchTST,
     "rnn": RNN,
