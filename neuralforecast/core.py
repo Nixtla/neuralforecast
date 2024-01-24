@@ -184,7 +184,7 @@ class NeuralForecast:
             Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
-            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
+            Can be 'standard', 'robust', 'robust-iqr' or 'minmax'
 
         Returns
         -------
