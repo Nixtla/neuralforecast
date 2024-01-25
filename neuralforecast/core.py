@@ -15,15 +15,13 @@ import numpy as np
 import pandas as pd
 import torch
 import utilsforecast.processing as ufp
-from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
-from utilsforecast.grouped_array import GroupedArray
-from utilsforecast.target_transforms import (
-    BaseTargetTransform,
-    LocalBoxCox,
+from coreforecast.grouped_array import GroupedArray
+from coreforecast.scalers import (
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
 )
+from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
 from .tsdataset import TimeSeriesDataset
@@ -150,7 +148,6 @@ _type2scaler = {
     "robust": lambda: LocalRobustScaler(scale="mad"),
     "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
     "minmax": LocalMinMaxScaler,
-    "boxcox": LocalBoxCox,
 }
 
 # %% ../nbs/core.ipynb 9
@@ -189,7 +186,7 @@ class NeuralForecast:
             Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
-            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
+            Can be 'standard', 'robust', 'robust-iqr' or 'minmax'
 
         Returns
         -------
@@ -206,7 +203,7 @@ class NeuralForecast:
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
             raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
-        self.scalers_: Dict[str, BaseTargetTransform]
+        self.scalers_: Dict
 
         # Flags and attributes
         self._fitted = False
@@ -219,11 +216,9 @@ class NeuralForecast:
         for i, col in enumerate(dataset.temporal_cols):
             if col == "available_mask":
                 continue
-            self.scalers_[col] = _type2scaler[self.local_scaler_type]()
             ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
-            dataset.temporal[:, i] = torch.from_numpy(
-                self.scalers_[col].fit_transform(ga)
-            )
+            self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
+            dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
 
     def _scalers_transform(self, dataset: TimeSeriesDataset) -> None:
         if not self.scalers_:
