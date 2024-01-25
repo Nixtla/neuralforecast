@@ -181,7 +181,7 @@ class DLinear(BaseWindows):
         seasonal_init, trend_init = self.decomp(insample_y)
 
         trend_part = self.linear_trend(trend_init)
-        seasonal_part = self.linear_trend(seasonal_init)
+        seasonal_part = self.linear_season(seasonal_init)
 
         # Final
         forecast = trend_part + seasonal_part
