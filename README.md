@@ -1,8 +1,7 @@
 # Nixtla &nbsp; [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Statistical%20Forecasting%20Algorithms%20by%20Nixtla%20&url=https://github.com/Nixtla/neuralforecast&via=nixtlainc&hashtags=StatisticalModels,TimeSeries,Forecasting) &nbsp;[![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlacommunity/shared_invite/zt-1pmhan9j5-F54XR20edHk0UtYAPcW4KQ)
 
 <div align="center">
-<!--- <img src="https://raw.githubusercontent.com/Nixtla/neuralforecast1/main/nbs/imgs_indx/logo_mid.png"> --->
-<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/main/nbs/imgs_indx/logo_mid.png">
+<img src="https://raw.githubusercontent.com/Nixtla/neuralforecast/fix/readme2/nbs/imgs_indx/logo_new.png">
 <h1 align="center">Neural 🧠 Forecast</h1>
 <h3 align="center">User friendly state-of-the-art neural forecasting models.</h3>
 
