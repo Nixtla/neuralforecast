@@ -1,8 +1,8 @@
 ---
 output-file: automatic_hyperparameter_tuning.html
 title: Hyperparameter Optimization
-
 ---
+
 
 Deep-learning models are the state-of-the-art in time series
 forecasting. They have outperformed statistical and tree-based
@@ -116,14 +116,12 @@ nhits_config = {
     }
 ```
 
-<Important>
-
-Configuration dictionaries are not interchangeable between models since
-they have different hyperparameters. Refer to
-https://nixtla.github.io/neuralforecast/models.html for a complete list
-of each model’s hyperparameters.
-
-</Important>
+> **Important**
+>
+> Configuration dictionaries are not interchangeable between models
+> since they have different hyperparameters. Refer to
+> https://nixtla.github.io/neuralforecast/models.html for a complete
+> list of each model’s hyperparameters.
 
 ### 3.b Instantiate `Auto` model
 
@@ -163,16 +161,14 @@ model = AutoNHITS(h=12,
                   num_samples=10)
 ```
 
-<Tip>
-
-The number of samples, `num_samples`, is a crucial parameter! Larger
-values will usually produce better results as we explore more
-configurations in the search space, but it will increase training times.
-Larger search spaces will usually require more samples. As a general
-rule, we recommend setting `num_samples` higher than 20. We set 10 in
-this example for demonstration purposes.
-
-</Tip>
+> **Tip**
+>
+> The number of samples, `num_samples`, is a crucial parameter! Larger
+> values will usually produce better results as we explore more
+> configurations in the search space, but it will increase training
+> times. Larger search spaces will usually require more samples. As a
+> general rule, we recommend setting `num_samples` higher than 20. We
+> set 10 in this example for demonstration purposes.
 
 ### 3.c Train model and predict with `Core` class
 
@@ -311,13 +307,11 @@ model = AutoNHITS(h=12,
                   num_samples=10)
 ```
 
-<Important>
-
-Configuration dictionaries and search algorithms for `Tune` and `Optuna`
-are not interchangeable! Use the appropriate type of search algorithm
-and custom configuration dictionary for each backend.
-
-</Important>
+> **Important**
+>
+> Configuration dictionaries and search algorithms for `Tune` and
+> `Optuna` are not interchangeable! Use the appropriate type of search
+> algorithm and custom configuration dictionary for each backend.
 
 ### 4.c Train model and predict with `Core` class
 

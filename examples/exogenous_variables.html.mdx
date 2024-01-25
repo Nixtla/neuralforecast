@@ -1,8 +1,8 @@
 ---
 output-file: exogenous_variables.html
 title: Exogenous Variables
-
 ---
+
 
 Exogenous variables can provide additional information to greatly
 improve forecasting accuracy. Some examples include price or future
@@ -28,13 +28,11 @@ We will show you how to include exogenous variables in the data, specify
 variables to a model, and produce forecasts using future exogenous
 variables.
 
-<Important>
-
-This Guide assumes basic knowledge on the NeuralForecast library. For a
-minimal example visit the [Getting Started](./getting_started.html)
-guide.
-
-</Important>
+> **Important**
+>
+> This Guide assumes basic knowledge on the NeuralForecast library. For
+> a minimal example visit the [Getting Started](./getting_started.html)
+> guide.
 
 You can run these experiments using GPU with Google Colab.
 
@@ -83,12 +81,10 @@ df.head()
 | 3   | FR        | 2015-01-01 03:00:00 | 42.27 | 72639.0      | 66704.0     | 3        |
 | 4   | FR        | 2015-01-01 04:00:00 | 38.41 | 69347.0      | 65051.0     | 3        |
 
-<Tip>
-
-Calendar variables such as day of week, month, and year are very useful
-to capture long seasonalities.
-
-</Tip>
+> **Tip**
+>
+> Calendar variables such as day of week, month, and year are very
+> useful to capture long seasonalities.
 
 ```python
 plt.figure(figsize=(15,5))
@@ -166,20 +162,16 @@ models = [NHITS(h = horizon,
                 scaler_type = 'robust')]
 ```
 
-<Tip>
+> **Tip**
+>
+> When including exogenous variables always use a scaler by setting the
+> `scaler_type` hyperparameter. The scaler will scale all the temporal
+> features: the target variable `y`, historic and future variables.
 
-When including exogenous variables always use a scaler by setting the
-`scaler_type` hyperparameter. The scaler will scale all the temporal
-features: the target variable `y`, historic and future variables.
-
-</Tip>
-
-<Important>
-
-Make sure future and historic variables are correctly placed. Defining
-historic variables as future variables will lead to data leakage.
-
-</Important>
+> **Important**
+>
+> Make sure future and historic variables are correctly placed. Defining
+> historic variables as future variables will lead to data leakage.
 
 Next, pass the datasets to the `df` and `static_df` inputs of the `fit`
 method.
@@ -212,13 +204,11 @@ futr_df.head()
 | 3   | FR        | 2016-11-01 03:00:00 | 45991.0      | 1        |
 | 4   | FR        | 2016-11-01 04:00:00 | 45378.0      | 1        |
 
-<Important>
-
-Make sure `futr_df` has informations for the entire forecast horizon. In
-this example, we are forecasting 24 hours ahead, so `futr_df` must have
-24 rows for each time series.
-
-</Important>
+> **Important**
+>
+> Make sure `futr_df` has informations for the entire forecast horizon.
+> In this example, we are forecasting 24 hours ahead, so `futr_df` must
+> have 24 rows for each time series.
 
 Finally, use the `predict` method to forecast the day-ahead prices.
 

@@ -2,8 +2,8 @@
 description: Fit an LSTM and NHITS model
 output-file: getting_started.html
 title: Getting Started
-
 ---
+
 
 This notebook provides an example on how to start using the main
 functionalities of the NeuralForecast library. The
@@ -53,12 +53,10 @@ Y_df.head()
 | 3   | 1.0       | 1949-04-30 | 129.0 |
 | 4   | 1.0       | 1949-05-31 | 121.0 |
 
-<Important>
-
-DataFrames must include all `['unique_id', 'ds', 'y']` columns. Make
-sure `y` column does not have missing or non-numeric values.
-
-</Important>
+> **Important**
+>
+> DataFrames must include all `['unique_id', 'ds', 'y']` columns. Make
+> sure `y` column does not have missing or non-numeric values.
 
 ## 3. Model Training
 
@@ -96,18 +94,16 @@ nf = NeuralForecast(models=models, freq='M')
 nf.fit(df=Y_df)
 ```
 
-<Tip>
-
-The performance of Deep Learning models can be very sensitive to the
-choice of hyperparameters. Tuning the correct hyperparameters is an
-important step to obtain the best forecasts. The `Auto` version of these
-models,
-[`AutoLSTM`](https://Nixtla.github.io/neuralforecast/models.html#autolstm)
-and
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits),
-already perform hyperparameter selection automatically.
-
-</Tip>
+> **Tip**
+>
+> The performance of Deep Learning models can be very sensitive to the
+> choice of hyperparameters. Tuning the correct hyperparameters is an
+> important step to obtain the best forecasts. The `Auto` version of
+> these models,
+> [`AutoLSTM`](https://Nixtla.github.io/neuralforecast/models.html#autolstm)
+> and
+> [`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits),
+> already perform hyperparameter selection automatically.
 
 ### Predict using the fitted models
 
@@ -166,21 +162,19 @@ ax.grid()
 
 ![](/neuralforecast/examples/Getting_Started_files/figure-markdown_strict/cell-9-output-1.png)
 
-<Tip>
-
-For this guide we are using a simple
-[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
-model. More recent models, such as
-[`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn),
-[`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
-and
-[`DilatedRNN`](https://Nixtla.github.io/neuralforecast/models.dilated_rnn.html#dilatedrnn)
-achieve better accuracy than
-[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
-in most settings. The full list of available models is available
-[here](https://nixtla.github.io/neuralforecast/models.html).
-
-</Tip>
+> **Tip**
+>
+> For this guide we are using a simple
+> [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
+> model. More recent models, such as
+> [`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn),
+> [`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
+> and
+> [`DilatedRNN`](https://Nixtla.github.io/neuralforecast/models.dilated_rnn.html#dilatedrnn)
+> achieve better accuracy than
+> [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
+> in most settings. The full list of available models is available
+> [here](https://nixtla.github.io/neuralforecast/models.html).
 
 ## References
 

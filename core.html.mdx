@@ -1,18 +1,20 @@
 ---
-description: NeuralForecast contains two main components, PyTorch implementations
-  deep learning predictive models, as well as parallelization and distributed computation
-  utilities. The first component comprises low-level PyTorch model estimator classes
-  like `models.NBEATS` and `models.RNN`. The second component is a high-level `core.NeuralForecast`
-  wrapper class that operates with sets of time series data stored in pandas DataFrames.
+description: >-
+  NeuralForecast contains two main components, PyTorch implementations deep
+  learning predictive models, as well as parallelization and distributed
+  computation utilities. The first component comprises low-level PyTorch model
+  estimator classes like `models.NBEATS` and `models.RNN`. The second component
+  is a high-level `core.NeuralForecast` wrapper class that operates with sets of
+  time series data stored in pandas DataFrames.
 output-file: core.html
 title: Core
-
 ---
+
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L167"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L164"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -28,17 +30,17 @@ models for large sets of time series. It operates with pandas DataFrame
 `df` that identifies series and datestamps with the `unique_id` and `ds`
 columns. The `y` column denotes the target time series variable.
 
-|                   | **Type**           | **Default** | **Details**                                                                                                                                                      |
+|                   | **Type**           | **Default** | **Details**                                                                                                                                            |
 |------|------------------|-------------------------|-------------------------|
-| models            | List               |             | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html).                                             |
-| freq              | Union              |             | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.                                                                             |
-| local_scaler_type | Optional           | None        | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’, ‘minmax’ or ‘boxcox’ |
-| **Returns**       | **NeuralForecast** |             | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.**                                             |
+| models            | List               |             | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html).                                   |
+| freq              | Union              |             | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.                                                                   |
+| local_scaler_type | Optional           | None        | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’ or ‘minmax’ |
+| **Returns**       | **NeuralForecast** |             | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.**                                   |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L266"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L261"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -74,7 +76,7 @@ store fitted models for later inspection.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L406"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L401"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -107,7 +109,7 @@ DataFrame `df`.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L671"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L666"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -157,7 +159,7 @@ rolled manner.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L822"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L817"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -179,7 +181,7 @@ to predict historic values of a time series from the stored dataframe.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L940"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L935"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -207,7 +209,7 @@ individual model `**trainer_kwargs` to include
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1032"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1027"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load

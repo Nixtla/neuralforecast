@@ -1,10 +1,11 @@
 ---
-description: In this notebook, we'll implement models for intermittent or sparse data
-  using the M5 dataset.
+description: >-
+  In this notebook, we'll implement models for intermittent or sparse data using
+  the M5 dataset.
 output-file: intermittentdata.html
 title: Intermittent/Sparse Series M5
-
 ---
+
 
 Intermittent or sparse data has very few non-zero observations. This
 type of data is hard to forecast because the zero values increase the
@@ -28,20 +29,16 @@ good understanding of these models and how to use them.
 3.  Train models for intermittent data
 4.  Perform Cross Validation
 
-<Tip>
+> **Tip**
+>
+> You can use Colab to run this Notebook interactively
+> <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/IntermittentData.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-You can use Colab to run this Notebook interactively
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/IntermittentData.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
-</Tip>
-
-<Warning>
-
-To reduce the computation time, it is recommended to use GPU. Using
-Colab, do not forget to activate it. Just go to
-`Runtime>Change runtime type` and select GPU as hardware accelerator.
-
-</Warning>
+> **Warning**
+>
+> To reduce the computation time, it is recommended to use GPU. Using
+> Colab, do not forget to activate it. Just go to
+> `Runtime>Change runtime type` and select GPU as hardware accelerator.
 
 ## 1. Install libraries
 
@@ -187,15 +184,13 @@ nf = NeuralForecast(
 )
 ```
 
-<Tip>
-
-The number of samples, `num_samples`, is a crucial parameter! Larger
-values will usually produce better results as we explore more
-configurations in the search space, but it will increase training times.
-Larger search spaces will usually require more samples. As a general
-rule, we recommend setting `num_samples` higher than 20.
-
-</Tip>
+> **Tip**
+>
+> The number of samples, `num_samples`, is a crucial parameter! Larger
+> values will usually produce better results as we explore more
+> configurations in the search space, but it will increase training
+> times. Larger search spaces will usually require more samples. As a
+> general rule, we recommend setting `num_samples` higher than 20.
 
 Next, we use the `Neuralforecast` class to train the `Auto` model. In
 this step, `Auto` models will automatically perform hyperparamter tuning

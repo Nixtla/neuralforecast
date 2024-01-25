@@ -1,8 +1,8 @@
 ---
 output-file: models.deepar.html
 title: DeepAR
-
 ---
+
 
 The DeepAR model produces probabilistic forecasts based on an
 autoregressive recurrent neural network optimized on panel data using
@@ -25,29 +25,30 @@ Forecasting.](https://www.sciencedirect.com/science/article/pii/s016920701930188
 Time Series Modeling in Python”. Journal of Machine Learning
 Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>
 
-<Warning>
+> **Exogenous Variables, Losses, and Parameters Availability**
+>
+> Given the sampling procedure during inference, DeepAR only supports
+> [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
+> as training loss.
+>
+> Note that DeepAR generates a non-parametric forecast distribution
+> using Monte Carlo. We use this sampling procedure also during
+> validation to make it closer to the inference procedure. Therefore,
+> only the
+> [`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)
+> is available for validation.
+>
+> Aditionally, Monte Carlo implies that historic exogenous variables are
+> not available for the model.
 
-### Exogenous Variables, Losses, and Parameters Availability
-
-Given the sampling procedure during inference, DeepAR only supports
-[`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
-as training loss.
-
-Note that DeepAR generates a non-parametric forecast distribution using
-Monte Carlo. We use this sampling procedure also during validation to
-make it closer to the inference procedure. Therefore, only the
-[`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)
-is available for validation.
-
-Aditionally, Monte Carlo implies that historic exogenous variables are
-not available for the model.
-
-</Warning>
-
-![Figure 1. DeepAR model, during training the optimization signal comes
-from likelihood of observations, during inference a recurrent multi-step
-strategy is used to generate predictive
-distributions.](/neuralforecast/imgs_models/deepar.jpeg)
+<figure>
+<img src="imgs_models/deepar.jpeg"
+alt="Figure 1. DeepAR model, during training the optimization signal comes from likelihood of observations, during inference a recurrent multi-step strategy is used to generate predictive distributions." />
+<figcaption aria-hidden="true">Figure 1. DeepAR model, during training
+the optimization signal comes from likelihood of observations, during
+inference a recurrent multi-step strategy is used to generate predictive
+distributions.</figcaption>
+</figure>
 
 ------------------------------------------------------------------------
 

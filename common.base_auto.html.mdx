@@ -1,24 +1,34 @@
 ---
-description: Machine Learning forecasting methods are defined by many hyperparameters
-  that control their behavior, with effects ranging from their speed and memory requirements
-  to their predictive performance. For a long time, manual hyperparameter tuning prevailed.
-  This approach is time-consuming, **automated hyperparameter optimization** methods
-  have been introduced, proving more efficient than manual tuning, grid search, and
-  random search.<br/><br/> The `BaseAuto` class offers shared API connections to hyperparameter
-  optimization algorithms like [Optuna](https://docs.ray.io/en/latest/tune/examples/bayesopt_example.html),
-  [HyperOpt](https://docs.ray.io/en/latest/tune/examples/hyperopt_example.html), [Dragonfly](https://docs.ray.io/en/latest/tune/examples/dragonfly_example.html)
-  among others through `ray`, which gives you access to grid search, bayesian optimization
-  and other state-of-the-art tools like hyperband.<br/><br/>Comprehending the impacts
-  of hyperparameters is still a precious skill, as it can help guide the design of
-  informed hyperparameter spaces that are faster to explore automatically.
+description: >-
+  Machine Learning forecasting methods are defined by many hyperparameters that
+  control their behavior, with effects ranging from their speed and memory
+  requirements to their predictive performance. For a long time, manual
+  hyperparameter tuning prevailed. This approach is time-consuming, **automated
+  hyperparameter optimization** methods have been introduced, proving more
+  efficient than manual tuning, grid search, and random search.<br/><br/> The
+  `BaseAuto` class offers shared API connections to hyperparameter optimization
+  algorithms like
+  [Optuna](https://docs.ray.io/en/latest/tune/examples/bayesopt_example.html),
+  [HyperOpt](https://docs.ray.io/en/latest/tune/examples/hyperopt_example.html),
+  [Dragonfly](https://docs.ray.io/en/latest/tune/examples/dragonfly_example.html)
+  among others through `ray`, which gives you access to grid search, bayesian
+  optimization and other state-of-the-art tools like
+  hyperband.<br/><br/>Comprehending the impacts of hyperparameters is still a
+  precious skill, as it can help guide the design of informed hyperparameter
+  spaces that are faster to explore automatically.
 output-file: common.base_auto.html
 title: Hyperparameter Optimization
-
 ---
 
-![Figure 1. Example of dataset split (left), validation (yellow) and
-test (orange). The hyperparameter optimization guiding signal is
-obtained from the validation set.](/neuralforecast/imgs_models/data_splits.png)
+
+<figure>
+<img src="imgs_models/data_splits.png"
+alt="Figure 1. Example of dataset split (left), validation (yellow) and test (orange). The hyperparameter optimization guiding signal is obtained from the validation set." />
+<figcaption aria-hidden="true">Figure 1. Example of dataset split
+(left), validation (yellow) and test (orange). The hyperparameter
+optimization guiding signal is obtained from the validation
+set.</figcaption>
+</figure>
 
 ------------------------------------------------------------------------
 
@@ -27,7 +37,7 @@ obtained from the validation set.](/neuralforecast/imgs_models/data_splits.png)
 > ``` text
 >  BaseAuto (cls_model, h, loss, valid_loss, config,
 >            search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->            object at 0x7f2e77ac5360>, num_samples=10, cpus=4, gpus=0,
+>            object at 0x7f1bc5adbd60>, num_samples=10, cpus=4, gpus=0,
 >            refit_with_val=False, verbose=False, alias=None, backend='ray',
 >            callbacks=None)
 > ```
@@ -52,7 +62,7 @@ validation and test periods.
 | loss           | PyTorch module                 |                                                                                  | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | PyTorch module                 |                                                                                  | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | dict or callable               |                                                                                  | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f2e77ac5360\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f1bc5adbd60\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                            | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | cpus           | int                            | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
 | gpus           | int                            | 0                                                                                | Number of gpus to use during optimization, default all available. Only used with ray tune.                                                                                                                                                            |

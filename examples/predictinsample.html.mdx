@@ -2,8 +2,8 @@
 description: Tutorial on how to produce insample predictions.
 output-file: predictinsample.html
 title: Predict Insample
-
 ---
+
 
 This tutorial provides and example on how to use the `predict_insample`
 function of the `core` class to produce forecasts of the train and
@@ -137,14 +137,12 @@ Y_hat_insample.head()
 | 3   | 1.0       | 1949-04-30 | 1948-12-31 | 0.429369 | 129.0 |
 | 4   | 1.0       | 1949-05-31 | 1948-12-31 | 0.518200 | 121.0 |
 
-<Important>
-
-The function will produce forecasts from the first timestamp of the time
-series. For these initial timestamps, the forecasts might not be
-accurate given that models have very limited input information to
-produce forecasts.
-
-</Important>
+> **Important**
+>
+> The function will produce forecasts from the first timestamp of the
+> time series. For these initial timestamps, the forecasts might not be
+> accurate given that models have very limited input information to
+> produce forecasts.
 
 ## 5. Plot Predictions
 
@@ -166,22 +164,16 @@ plt.grid()
 plt.legend()
 ```
 
-``` text
-<matplotlib.legend.Legend>
-```
+![](/neuralforecast/examples/PredictInsample_files/figure-markdown_strict/cell-10-output-1.png)
 
-![](/neuralforecast/examples/PredictInsample_files/figure-markdown_strict/cell-10-output-2.png)
-
-<Important>
-
-Note how the forecasts for the train set are very accurate, while the
-forecast in the validation set (last 12 timetamps), are less precise.
-This is because the model was trained on the train set, and deep
-learning models such as the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
-can easily overfit the train set.
-
-</Important>
+> **Important**
+>
+> Note how the forecasts for the train set are very accurate, while the
+> forecast in the validation set (last 12 timetamps), are less precise.
+> This is because the model was trained on the train set, and deep
+> learning models such as the
+> [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+> can easily overfit the train set.
 
 ## References
 

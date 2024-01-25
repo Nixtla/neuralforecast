@@ -1,10 +1,11 @@
 ---
-description: NeuralForecast contains a collection NumPy loss functions aimed to be
-  used during the models' evaluation.
+description: >-
+  NeuralForecast contains a collection NumPy loss functions aimed to be used
+  during the models' evaluation.
 output-file: losses.numpy.html
 title: NumPy Evaluation
-
 ---
+
 
 The most important train signal is the forecast error, which is the
 difference between the observed value $y_{\tau}$ and the prediction
@@ -20,6 +21,22 @@ metrics.
 These metrics are on the same scale as the data.
 
 ## Mean Absolute Error
+
+``` text
+/home/runner/work/neuralforecast/neuralforecast/neuralforecast/utils.py:252: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  "ds": pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M"),
+/home/runner/work/neuralforecast/neuralforecast/neuralforecast/utils.py:264: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
+/home/runner/work/neuralforecast/neuralforecast/neuralforecast/utils.py:265: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
+/home/runner/work/neuralforecast/neuralforecast/neuralforecast/utils.py:281: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.
+The behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.
+
+For example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.
+
+
+  AirPassengersPanel["y_[lag12]"].fillna(AirPassengersPanel["y"], inplace=True)
+```
 
 ------------------------------------------------------------------------
 

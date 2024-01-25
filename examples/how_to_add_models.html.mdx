@@ -2,23 +2,19 @@
 description: Tutorial on how to add new models to NeuralForecast
 output-file: how_to_add_models.html
 title: How to add new Models to NeuralForecast
-
 ---
 
-<Warning>
 
-### Prerequisites
-
-This Guide assumes advanced familiarity with NeuralForecast.
-
-We highly recommend reading first the Getting Started and the
-NeuralForecast Map tutorials!
-
-Additionally, refer to the [CONTRIBUTING
-guide](https://github.com/Nixtla/neuralforecast/blob/main/contributing.md)
-for the basics how to contribute to NeuralForecast.
-
-</Warning>
+> **Prerequisites**
+>
+> This Guide assumes advanced familiarity with NeuralForecast.
+>
+> We highly recommend reading first the Getting Started and the
+> NeuralForecast Map tutorials!
+>
+> Additionally, refer to the [CONTRIBUTING
+> guide](https://github.com/Nixtla/neuralforecast/blob/main/contributing.md)
+> for the basics how to contribute to NeuralForecast.
 
 ## Introduction
 
@@ -60,8 +56,12 @@ model will forecast the next $h$ values of the univariate target time,
 $Y_{t+1:t+h}$, using as inputs the last $L$ historical values, given by
 $Y_{t-L:t}$. The following figure presents a diagram of the model.
 
-![Figure 1. Three layer MLP with autorregresive
-inputs.](/neuralforecast/examples/../imgs_models/mlp.png)
+<figure>
+<img src="../imgs_models/mlp.png"
+alt="Figure 1. Three layer MLP with autorregresive inputs." />
+<figcaption aria-hidden="true">Figure 1. Three layer MLP with
+autorregresive inputs.</figcaption>
+</figure>
 
 ## 0. Preliminaries
 
@@ -92,12 +92,10 @@ The main difference between the three types is the sampling procedure
 and input batch for the `forward` method, which determines the type of
 model.
 
-<Important>
-
-If you want to add a `BaseRecurrent` or `BaseMultivariate` model, please
-add an issue in our github.
-
-</Important>
+> **Important**
+>
+> If you want to add a `BaseRecurrent` or `BaseMultivariate` model,
+> please add an issue in our github.
 
 ### a. Sampling process
 
@@ -154,12 +152,10 @@ of the next `h` timestamps for each window. Use the attributes of the
 `loss` class to automatically parse the output to the correct shape (see
 the example below).
 
-<Tip>
-
-Since we are using `nbdev`, you can easily add prints to the code and
-see the shapes of the tensors during training.
-
-</Tip>
+> **Tip**
+>
+> Since we are using `nbdev`, you can easily add prints to the code and
+> see the shapes of the tensors during training.
 
 ### d. `BaseWindows`’ methods
 
@@ -206,13 +202,11 @@ First, add the following **two cells** on top of the `nbdev` file.
 #| default_exp models.mlp
 ```
 
-<Important>
-
-Change `mlp` to your model’s name, using lowercase and underscores. When
-you later run `nbdev_export`, it will create a `YOUR_MODEL.py` script in
-the `neuralforecast/models/` directory.
-
-</Important>
+> **Important**
+>
+> Change `mlp` to your model’s name, using lowercase and underscores.
+> When you later run `nbdev_export`, it will create a `YOUR_MODEL.py`
+> script in the `neuralforecast/models/` directory.
 
 ```python
 #| hide
@@ -233,11 +227,9 @@ from neuralforecast.losses.pytorch import MAE
 from neuralforecast.common._base_windows import BaseWindows
 ```
 
-<Tip>
-
-Don’t forget to add the `#| export` tag on this cell.
-
-</Tip>
+> **Tip**
+>
+> Don’t forget to add the `#| export` tag on this cell.
 
 Next, create the class with the `init` and `forward` methods. The
 following example shows the example for the simplified
@@ -308,13 +300,11 @@ class MLP(BaseWindows): # <<---- Inherits from BaseWindows
 
 ```
 
-<Tip>
-
--   Don’t forget to add the `#| export` tag on each cell.
--   Larger architectures, such as Transformers, might require splitting
-    the `forward` by using intermediate functions.
-
-</Tip>
+> **Tip**
+>
+> -   Don’t forget to add the `#| export` tag on each cell.
+> -   Larger architectures, such as Transformers, might require
+>     splitting the `forward` by using intermediate functions.
 
 #### Important notes
 

@@ -1,8 +1,8 @@
 ---
 output-file: forecasting_tft.html
 title: 'TFT: Temporal Fusion Transformer'
-
 ---
+
 
 Temporal Fusion Transformer (TFT) proposed by Lim et al. \[1\] is one of
 the most popular transformer-based model for time-series forecasting. In
@@ -117,15 +117,13 @@ import logging
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 ```
 
-<Tip>
-
-Increase the `num_samples` parameter to explore a wider set of
-configurations for the selected models. As a rule of thumb choose it to
-be bigger than `15`.
-
-With `num_samples=3` this example should run in around 20 minutes.
-
-</Tip>
+> **Tip**
+>
+> Increase the `num_samples` parameter to explore a wider set of
+> configurations for the selected models. As a rule of thumb choose it
+> to be bigger than `15`.
+>
+> With `num_samples=3` this example should run in around 20 minutes.
 
 ```python
 horizon = 24
@@ -135,41 +133,37 @@ models = [AutoTFT(h=horizon,
                   num_samples=3)]
 ```
 
-<Tip>
+> **Tip**
+>
+> All our models can be used for both point and probabilistic
+> forecasting. For producing probabilistic outputs, simply modify the
+> loss to one of our
+> [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss).
+> The complete list of losses is available in [this
+> link](https://nixtla.github.io/neuralforecast/losses.pytorch.html)
 
-All our models can be used for both point and probabilistic forecasting.
-For producing probabilistic outputs, simply modify the loss to one of
-our
-[`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss).
-The complete list of losses is available in [this
-link](https://nixtla.github.io/neuralforecast/losses.pytorch.html)
-
-</Tip>
-
-<Important>
-
-TFT is a very large model and can require a lot of memory! If you are
-running out of GPU memory, try declaring your config search space and
-decrease the `hidden_size`, `n_heads`, and `windows_batch_size`
-parameters.
-
-This are all the parameters of the config:
-
-``` python
-config = {
-      "input_size": tune.choice([horizon]),
-      "hidden_size": tune.choice([32]),
-      "n_head": tune.choice([2]),
-      "learning_rate": tune.loguniform(1e-4, 1e-1),
-      "scaler_type": tune.choice(['robust', 'standard']),
-      "max_steps": tune.choice([500, 1000]),
-      "windows_batch_size": tune.choice([32]),
-      "check_val_every_n_epoch": tune.choice([100]),
-      "random_seed": tune.randint(1, 20),
-}
-```
-
-</Important>
+> **Important**
+>
+> TFT is a very large model and can require a lot of memory! If you are
+> running out of GPU memory, try declaring your config search space and
+> decrease the `hidden_size`, `n_heads`, and `windows_batch_size`
+> parameters.
+>
+> This are all the parameters of the config:
+>
+> ```python
+> config = {
+>       "input_size": tune.choice([horizon]),
+>       "hidden_size": tune.choice([32]),
+>       "n_head": tune.choice([2]),
+>       "learning_rate": tune.loguniform(1e-4, 1e-1),
+>       "scaler_type": tune.choice(['robust', 'standard']),
+>       "max_steps": tune.choice([500, 1000]),
+>       "windows_batch_size": tune.choice([32]),
+>       "check_val_every_n_epoch": tune.choice([100]),
+>       "random_seed": tune.randint(1, 20),
+> }
+> ```
 
 The
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
@@ -287,11 +281,7 @@ plt.grid()
 plt.plot()
 ```
 
-``` text
-[]
-```
-
-![](/neuralforecast/examples/Forecasting_TFT_files/figure-markdown_strict/cell-13-output-2.png)
+![](/neuralforecast/examples/Forecasting_TFT_files/figure-markdown_strict/cell-13-output-1.png)
 
 ## Next Steps
 

@@ -1,8 +1,8 @@
 ---
 output-file: models.tft.html
 title: TFT
-
 ---
+
 
 In summary Temporal Fusion Transformer (TFT) combines gating layers, an
 LSTM recurrent encoder, with multi-head attention layers for a
@@ -22,8 +22,12 @@ Examples”](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/
 Fusion Transformers for interpretable multi-horizon time series
 forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)<br/>
 
-![Figure 1. Temporal Fusion Transformer
-Architecture.](/neuralforecast/imgs_models/tft_architecture.png)
+<figure>
+<img src="imgs_models/tft_architecture.png"
+alt="Figure 1. Temporal Fusion Transformer Architecture." />
+<figcaption aria-hidden="true">Figure 1. Temporal Fusion Transformer
+Architecture.</figcaption>
+</figure>
 
 ## 1. Auxiliary Functions
 
@@ -40,7 +44,12 @@ transformation is defined by:
 
 $$\mathrm{GLU}(\gamma) = \sigma(\mathbf{W}_{4}\gamma +b_{4}) \odot (\mathbf{W}_{5}\gamma +b_{5})$$
 
-![Figure 2. Gated Residual Network.](/neuralforecast/imgs_models/tft_grn.png)
+<figure>
+<img src="imgs_models/tft_grn.png"
+alt="Figure 2. Gated Residual Network." />
+<figcaption aria-hidden="true">Figure 2. Gated Residual
+Network.</figcaption>
+</figure>
 
 ### 1.2 Variable Selection Networks
 
@@ -62,7 +71,12 @@ $$s^{(h)}_{t}=\mathrm{SoftMax}(\mathrm{GRN}(\mathbf{E}^{(h)}_{t},\mathbf{E}^{(s)
 The VSN processed features are then:
 $$\tilde{\mathbf{E}}^{(h)}_{t}= \sum_{j} s^{(h)}_{j} \tilde{e}^{(h)}_{t,j}$$
 
-![Figure 3. Variable Selection Network.](/neuralforecast/imgs_models/tft_vsn.png)
+<figure>
+<img src="imgs_models/tft_vsn.png"
+alt="Figure 3. Variable Selection Network." />
+<figcaption aria-hidden="true">Figure 3. Variable Selection
+Network.</figcaption>
+</figure>
 
 ### 1.3. Multi-Head Attention
 

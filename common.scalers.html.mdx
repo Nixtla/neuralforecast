@@ -1,15 +1,17 @@
 ---
-description: 'Temporal normalization has proven to be essential in neural forecasting
-  tasks, as it enables network''s non-linearities to express themselves. Forecasting
-  scaling methods take particular interest in the temporal dimension where most of
-  the variance dwells, contrary to other deep learning techniques like `BatchNorm`
-  that normalizes across batch and temporal dimensions, and `LayerNorm` that normalizes
-  across the feature dimension. Currently we support the following techniques: `std`,
-  `median`, `norm`, `norm1`, `invariant`, `revin`.'
+description: >-
+  Temporal normalization has proven to be essential in neural forecasting tasks,
+  as it enables network's non-linearities to express themselves. Forecasting
+  scaling methods take particular interest in the temporal dimension where most
+  of the variance dwells, contrary to other deep learning techniques like
+  `BatchNorm` that normalizes across batch and temporal dimensions, and
+  `LayerNorm` that normalizes across the feature dimension. Currently we support
+  the following techniques: `std`, `median`, `norm`, `norm1`, `invariant`,
+  `revin`.
 output-file: common.scalers.html
 title: TemporalNorm
-
 ---
+
 
 ## References
 
@@ -27,10 +29,14 @@ title: TemporalNorm
     recurrent networks”. International Journal of
     Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)
 
-![Figure 1. Illustration of temporal normalization (left), layer
-normalization (center) and batch normalization (right). The entries in
-green show the components used to compute the normalizing
-statistics.](/neuralforecast/imgs_models/temporal_norm.png)
+<figure>
+<img src="imgs_models/temporal_norm.png"
+alt="Figure 1. Illustration of temporal normalization (left), layer normalization (center) and batch normalization (right). The entries in green show the components used to compute the normalizing statistics." />
+<figcaption aria-hidden="true">Figure 1. Illustration of temporal
+normalization (left), layer normalization (center) and batch
+normalization (right). The entries in green show the components used to
+compute the normalizing statistics.</figcaption>
+</figure>
 
 # 1. Auxiliary Functions
 

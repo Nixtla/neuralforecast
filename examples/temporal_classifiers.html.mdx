@@ -1,8 +1,8 @@
 ---
 output-file: temporal_classifiers.html
 title: Temporal Classification
-
 ---
+
 
 A logistic regression analyzes the relationship between a binary target
 variable and its predictor variables to estimate the probability of the
@@ -128,18 +128,17 @@ and [`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
 [model
 documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 
-<Warning>
-
-For the moment Recurrent-based model family is not available to operate
-with Bernoulli distribution output. This affects the following methods
-[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
-[`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
-[`DilatedRNN`](https://Nixtla.github.io/neuralforecast/models.dilated_rnn.html#dilatedrnn),
-and
-[`TCN`](https://Nixtla.github.io/neuralforecast/models.tcn.html#tcn).
-This feature is work in progress.
-
-</Warning>
+> **Warning**
+>
+> For the moment Recurrent-based model family is not available to
+> operate with Bernoulli distribution output. This affects the following
+> methods
+> [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
+> [`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
+> [`DilatedRNN`](https://Nixtla.github.io/neuralforecast/models.dilated_rnn.html#dilatedrnn),
+> and
+> [`TCN`](https://Nixtla.github.io/neuralforecast/models.tcn.html#tcn).
+> This feature is work in progress.
 
 ```python
 # %%capture

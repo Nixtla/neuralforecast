@@ -1,8 +1,8 @@
 ---
 output-file: time_series_scaling.html
 title: Time Series Scaling
-
 ---
+
 
 Scaling time series data is an important preprocessing step when using
 neural forecasting methods for several reasons:
@@ -200,16 +200,14 @@ plt.grid()
 
 ![](/neuralforecast/examples/Time_Series_Scaling_files/figure-markdown_strict/cell-9-output-1.png)
 
-<Important>
-
-The inverse scaling is performed by the `Neuralforecast` class before
-returning the final forecasts. Therefore, the hyperparmater selection
-with `Auto` models and validation loss for early stopping or model
-selection are performed on the scaled data. Different types of scaling
-with the `Neuralforecast` class can’t be automatically compared with
-`Auto` models.
-
-</Important>
+> **Important**
+>
+> The inverse scaling is performed by the `Neuralforecast` class before
+> returning the final forecasts. Therefore, the hyperparmater selection
+> with `Auto` models and validation loss for early stopping or model
+> selection are performed on the scaled data. Different types of scaling
+> with the `Neuralforecast` class can’t be automatically compared with
+> `Auto` models.
 
 ## 4. Temporal Window normalization during training
 
@@ -309,17 +307,15 @@ plt.grid()
 
 ![](/neuralforecast/examples/Time_Series_Scaling_files/figure-markdown_strict/cell-13-output-1.png)
 
-<Important>
-
-For most applications, models with temporal normalization (section 4)
-produced more accurate forecasts than time series scaling (section 3).
-However, with temporal normalization models lose the information of the
-relative level between different windows. In some cases this global
-information within time series is crucial, for instance when an
-exogenous variables contains the dosage of a medication. In these cases,
-time series scaling (section 3) is preferred.
-
-</Important>
+> **Important**
+>
+> For most applications, models with temporal normalization (section 4)
+> produced more accurate forecasts than time series scaling (section 3).
+> However, with temporal normalization models lose the information of
+> the relative level between different windows. In some cases this
+> global information within time series is crucial, for instance when an
+> exogenous variables contains the dosage of a medication. In these
+> cases, time series scaling (section 3) is preferred.
 
 ## References
 

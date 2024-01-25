@@ -1,18 +1,14 @@
 ---
-description: Model training, evaluation and selection for multiple time series
+description: 'Model training, evaluation and selection for multiple time series'
 output-file: getting_started_complete.html
 title: End to End Walkthrough
-
 ---
 
-<Warning>
 
-### Prerequesites
-
-This Guide assumes basic familiarity with NeuralForecast. For a minimal
-example visit the [Quick Start](./getting_started.html)
-
-</Warning>
+> **Prerequesites**
+>
+> This Guide assumes basic familiarity with NeuralForecast. For a
+> minimal example visit the [Quick Start](./getting_started.html)
 
 Follow this article for a step to step guide on building a
 production-ready forecasting pipeline for multiple time series.
@@ -42,37 +38,29 @@ scalability, which makes it ideal for this task.
 5.  Evaluate the model’s performance using cross-validation.
 6.  Select the best model for every unique time series.
 
-<Tip>
+> **Not Covered in this guide**
+>
+> -   Using external regressors or exogenous variables
+>     -   Follow this tutorial to [include exogenous
+>         variables](./exogenous_variables.html) like weather or
+>         holidays or static variables like category or family.
+> -   Probabilistic forecasting
+>     -   Follow this tutorial to [generate probabilistic
+>         forecasts](./longhorizon_probabilistic.html)
+> -   Transfer Learning
+>     -   Train a model and use it to forecast on different data using
+>         [this tutorial](./transfer_learning.html)
 
-### Not Covered in this guide
+> **Tip**
+>
+> You can use Colab to run this Notebook interactively
+> <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_complete.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
--   Using external regressors or exogenous variables
-    -   Follow this tutorial to [include exogenous
-        variables](./exogenous_variables.html) like weather or holidays
-        or static variables like category or family.
--   Probabilistic forecasting
-    -   Follow this tutorial to [generate probabilistic
-        forecasts](./longhorizon_probabilistic.html)
--   Transfer Learning
-    -   Train a model and use it to forecast on different data using
-        [this tutorial](./transfer_learning.html)
-
-</Tip>
-
-<Tip>
-
-You can use Colab to run this Notebook interactively
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Getting_Started_complete.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
-</Tip>
-
-<Warning>
-
-To reduce the computation time, it is recommended to use GPU. Using
-Colab, do not forget to activate it. Just go to
-`Runtime>Change runtime type` and select GPU as hardware accelerator.
-
-</Warning>
+> **Warning**
+>
+> To reduce the computation time, it is recommended to use GPU. Using
+> Colab, do not forget to activate it. Just go to
+> `Runtime>Change runtime type` and select GPU as hardware accelerator.
 
 ## 1. Install libraries
 
@@ -145,13 +133,11 @@ average. For this example and reproducibility’s sake, we will select
 only 10 unique IDs. Depending on your processing infrastructure feel
 free to select more or less series.
 
-<Note>
-
-Processing time is dependent on the available computing resources.
-Running this example with the complete dataset takes around 10 minutes
-in a c5d.24xlarge (96 cores) instance from AWS.
-
-</Note>
+> **Note**
+>
+> Processing time is dependent on the available computing resources.
+> Running this example with the complete dataset takes around 10 minutes
+> in a c5d.24xlarge (96 cores) instance from AWS.
 
 ```python
 uids = Y_df['unique_id'].unique()[:10] # Select 10 ids to make the example faster
@@ -164,12 +150,10 @@ Plot some series using the `plot` method from the `StatsForecast` class.
 This method prints 8 random series from the dataset and is useful for
 basic EDA.
 
-<Note>
-
-The `StatsForecast.plot` method uses Plotly as a defaul engine. You can
-change to MatPlotLib by setting `engine="matplotlib"`.
-
-</Note>
+> **Note**
+>
+> The `StatsForecast.plot` method uses Plotly as a defaul engine. You
+> can change to MatPlotLib by setting `engine="matplotlib"`.
 
 ```python
 from statsforecast import StatsForecast
@@ -269,15 +253,13 @@ nf = NeuralForecast(
 )
 ```
 
-<Tip>
-
-The number of samples, `num_samples`, is a crucial parameter! Larger
-values will usually produce better results as we explore more
-configurations in the search space, but it will increase training times.
-Larger search spaces will usually require more samples. As a general
-rule, we recommend setting `num_samples` higher than 20.
-
-</Tip>
+> **Tip**
+>
+> The number of samples, `num_samples`, is a crucial parameter! Larger
+> values will usually produce better results as we explore more
+> configurations in the search space, but it will increase training
+> times. Larger search spaces will usually require more samples. As a
+> general rule, we recommend setting `num_samples` higher than 20.
 
 Next, we use the `Neuralforecast` class to train the `Auto` model. In
 this step, `Auto` models will automatically perform hyperparameter
@@ -359,13 +341,11 @@ The following graph depicts such a Cross Validation Strategy:
 
 ![](https://raw.githubusercontent.com/Nixtla/statsforecast/main/nbs/imgs/chainedwindows.gif)
 
-<Tip>
-
-Setting `n_windows=1` mirrors a traditional train-test split with our
-historical data serving as the training set and the last 48 hours
-serving as the testing set.
-
-</Tip>
+> **Tip**
+>
+> Setting `n_windows=1` mirrors a traditional train-test split with our
+> historical data serving as the training set and the last 48 hours
+> serving as the testing set.
 
 The `cross_validation` method from the
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
@@ -474,14 +454,12 @@ from datasetsforecast.losses import mse, mae, rmse
 from datasetsforecast.evaluation import accuracy
 ```
 
-<Warning>
-
-You can also use Mean Average Percentage Error (MAPE), however for
-granular forecasts, MAPE values are extremely [hard to
-judge](%22https://blog.blueyonder.com/mean-absolute-percentage-error-mape-has-served-its-duty-and-should-now-retire/%22)
-and not useful to assess forecasting quality.
-
-</Warning>
+> **Warning**
+>
+> You can also use Mean Average Percentage Error (MAPE), however for
+> granular forecasts, MAPE values are extremely [hard to
+> judge](%22https://blog.blueyonder.com/mean-absolute-percentage-error-mape-has-served-its-duty-and-should-now-retire/%22)
+> and not useful to assess forecasting quality.
 
 Create the data frame with the results of the evaluation of your
 cross-validation data frame using a Mean Squared Error metric.

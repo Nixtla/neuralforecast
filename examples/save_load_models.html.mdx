@@ -1,8 +1,8 @@
 ---
 output-file: save_load_models.html
 title: Save and Load Models
-
 ---
+
 
 Saving and loading trained Deep Learning models has multiple valuable
 uses. These models are often costly to train; storing a pre-trained
@@ -23,13 +23,11 @@ Saves models into disk, allows save dataset and config.<br/> 2.
 [`NeuralForecast.load`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.load):
 Loads models from a given path.<br/>
 
-<Important>
-
-This Guide assumes basic knowledge on the NeuralForecast library. For a
-minimal example visit the [Getting Started](./getting_started.html)
-guide.
-
-</Important>
+> **Important**
+>
+> This Guide assumes basic knowledge on the NeuralForecast library. For
+> a minimal example visit the [Getting Started](./getting_started.html)
+> guide.
 
 You can run these experiments using GPU with Google Colab.
 
@@ -141,14 +139,10 @@ plt.legend(prop={'size': 10})
 ```
 
 ``` text
-<matplotlib.legend.Legend>
-```
-
-``` text
 <Figure size 1200x300 with 0 Axes>
 ```
 
-![](/neuralforecast/examples/Save_Load_models_files/figure-markdown_strict/cell-9-output-3.png)
+![](/neuralforecast/examples/Save_Load_models_files/figure-markdown_strict/cell-9-output-2.png)
 
 ## 4. Save models
 
@@ -185,15 +179,13 @@ Where `model_name` corresponds to the name of the model in lowercase
 of each class. In this example the names will be `automlp_0`,
 `nbeats_0`, and `nhits_0`.
 
-<Important>
-
-The `Auto` models will be stored as their base model. For example, the
-[`AutoMLP`](https://Nixtla.github.io/neuralforecast/models.html#automlp)
-trained above is stored as an
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
-model, with the best hyparparameters found during tuning.
-
-</Important>
+> **Important**
+>
+> The `Auto` models will be stored as their base model. For example, the
+> [`AutoMLP`](https://Nixtla.github.io/neuralforecast/models.html#automlp)
+> trained above is stored as an
+> [`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+> model, with the best hyparparameters found during tuning.
 
 ## 5. Load models
 

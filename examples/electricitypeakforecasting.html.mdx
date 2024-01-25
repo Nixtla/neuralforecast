@@ -1,10 +1,11 @@
 ---
-description: In this example we will show how to perform electricity load forecasting
-  on the ERCOT (Texas) market for detecting daily peaks.
+description: >-
+  In this example we will show how to perform electricity load forecasting on
+  the ERCOT (Texas) market for detecting daily peaks.
 output-file: electricitypeakforecasting.html
 title: Detect Demand Peaks
-
 ---
+
 
 ## Introduction
 
@@ -43,12 +44,10 @@ to detect the coincident peak.
 3.  Fit NHITS model and forecast
 4.  Peak detection
 
-<Tip>
-
-You can use Colab to run this Notebook interactively
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/ElectricityPeakForecasting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
-
-</Tip>
+> **Tip**
+>
+> You can use Colab to run this Notebook interactively
+> <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/ElectricityPeakForecasting.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## Libraries
 
@@ -97,11 +96,7 @@ Y_df = Y_df.query("ds >= '2022-01-01' & ds <= '2022-10-01'")
 Y_df.plot(x='ds', y='y', figsize=(20, 7))
 ```
 
-``` text
-<AxesSubplot:xlabel='ds'>
-```
-
-![](/neuralforecast/examples/ElectricityPeakForecasting_files/figure-markdown_strict/cell-4-output-2.png)
+![](/neuralforecast/examples/ElectricityPeakForecasting_files/figure-markdown_strict/cell-4-output-1.png)
 
 ## Fit and Forecast with NHITS
 
@@ -195,13 +190,11 @@ crossvalidation_df.head()
 | 3   | ERCOT     | 2022-09-01 03:00:00 | 2022-08-31 23:00:00 | 42040.902344 | 41663.156771 |
 | 4   | ERCOT     | 2022-09-01 04:00:00 | 2022-08-31 23:00:00 | 42007.972656 | 41710.621904 |
 
-<Important>
-
-When using `cross_validation` make sure the forecasts are produced at
-the desired timestamps. Check the `cutoff` column which specifices the
-last timestamp before the forecasting window.
-
-</Important>
+> **Important**
+>
+> When using `cross_validation` make sure the forecasts are produced at
+> the desired timestamps. Check the `cutoff` column which specifices the
+> last timestamp before the forecasting window.
 
 ## Peak Detection
 
@@ -248,22 +241,16 @@ plt.grid()
 plt.legend()
 ```
 
-``` text
-<matplotlib.legend.Legend>
-```
+![](/neuralforecast/examples/ElectricityPeakForecasting_files/figure-markdown_strict/cell-13-output-1.png)
 
-![](/neuralforecast/examples/ElectricityPeakForecasting_files/figure-markdown_strict/cell-13-output-2.png)
-
-<Important>
-
-In this example we only include September. However,
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
-can correctly predict the peaks for the 4 months of 2022. You can try
-this by increasing the `nwindows` parameter of `cross_validation` or
-filtering the `Y_df` dataset. The complete run for all months take only
-10 minutes.
-
-</Important>
+> **Important**
+>
+> In this example we only include September. However,
+> [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+> can correctly predict the peaks for the 4 months of 2022. You can try
+> this by increasing the `nwindows` parameter of `cross_validation` or
+> filtering the `Y_df` dataset. The complete run for all months take
+> only 10 minutes.
 
 ## References
 
