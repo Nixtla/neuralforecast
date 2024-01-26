@@ -15,7 +15,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-11-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like `MLP` and `RNN`s to novel contributions like the `NHITS`, `TFT`, `Transfrormers` and other architectures.
+**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like `RNN` to the latest transformers: `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `DLinear`,`TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`,`StemGNN`, and `TimesNet`.
 </div>
 
 ## Installation
@@ -61,7 +61,7 @@ Unfortunately, available implementations and published research are yet to reali
 
 ## Features 
 
-* Fast and accurate implementations of `MLP`, `LSTM`, `RNN`, `TCN`, `DeepAR`, `NBEATS`, `NHITS`, `DLinear`,`TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `StemGNN`, and `TimesNet`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `DLinear`,`TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`,`StemGNN`, and `TimesNet`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 * Support for exogenous variables and static covariates.
 * Interpretability methods for trend, seasonality and exogenous components.
 * Probabilistic Forecasting with adapters for quantile losses and parametric distributions.
