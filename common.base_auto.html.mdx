@@ -37,7 +37,7 @@ set.</figcaption>
 > ``` text
 >  BaseAuto (cls_model, h, loss, valid_loss, config,
 >            search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->            object at 0x7fe73863c850>, num_samples=10, cpus=4, gpus=0,
+>            object at 0x7fed286e36a0>, num_samples=10, cpus=4, gpus=0,
 >            refit_with_val=False, verbose=False, alias=None, backend='ray',
 >            callbacks=None)
 > ```
@@ -62,7 +62,7 @@ validation and test periods.
 | loss           | PyTorch module                 |                                                                                  | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | PyTorch module                 |                                                                                  | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | dict or callable               |                                                                                  | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7fe73863c850\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7fed286e36a0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                            | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | cpus           | int                            | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
 | gpus           | int                            | 0                                                                                | Number of gpus to use during optimization, default all available. Only used with ray tune.                                                                                                                                                            |
