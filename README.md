@@ -94,6 +94,32 @@ The [documentation page](https://nixtla.github.io/neuralforecast/) contains all 
 
 👩‍🔬 [Add Your Own Model](https://nixtla.github.io/neuralforecast/examples/how_to_add_models.html): Learn how to add a new model to the library.
 
+## Models
+
+|Model | Structure | Sampling | Point Forecast | Probabilistic Forecast | Exogenous features | `Auto` Model
+|:------|:-------------:|:-----------------:|:---------------------:|:----------------------------:|:---------------------:|:---------------------:|
+|[LSTM](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html)| RNN | recurrent |✅|✅|✅|✅|
+|[GRU](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html)| RNN | recurrent |✅|✅|✅|✅|
+|[RNN](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html)| RNN | recurrent |✅|✅|✅|✅|
+|[DilatedRNN](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html)| RNN | recurrent |✅|✅|✅|✅|
+|[DeepAR](https://nixtlaverse.nixtla.io/neuralforecast/models.deepar.html)| RNN | recurrent ||✅|✅|✅|
+|[TCN](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html)| CNN | recurrent |✅|✅|✅|✅|
+|[TimesNet](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html)| CNN | windows |✅|✅||✅|
+|[DLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.dlinear.html)| Linear | windows |✅|✅||✅|
+|[MLP](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html)| MLP | windows |✅|✅|✅|✅|
+|[NBEATS](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html)| MLP | windows |✅|✅||✅|
+|[NBEATSx](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html)| MLP | windows |✅|✅|✅|✅|
+|[NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html)| MLP | windows |✅|✅|✅|✅|
+|[TFT](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html)| Transformer | windows |✅|✅|✅|✅|
+|[Transformer](https://nixtlaverse.nixtla.io/neuralforecast/models.vanillatransformer.html)| Transformer | windows |✅|✅|✅|✅|
+|[Informer](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html)| Transformer | windows |✅|✅|✅|✅|
+|[Autoformer](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html)| Transformer | windows |✅|✅|✅|✅|
+|[FEDFormer](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html)| Transformer | windows |✅|✅|✅|✅|
+|[PatchTST](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html)| Transformer | windows |✅|✅||✅|
+|[StemGNN](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html)| GNN | multivariate |✅|||✅|
+
+Missing a model? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
+
 ## How to contribute
 If you wish to contribute to the project, please refer to our [contribution guidelines](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md).
 
@@ -111,7 +137,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/FedericoGarza"><img src="https://avatars.githubusercontent.com/u/10517170?v=4?s=100" width="100px;" alt="fede"/><br /><sub><b>fede</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=FedericoGarza" title="Code">💻</a> <a href="#maintenance-FedericoGarza" title="Maintenance">🚧</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/cchallu"><img src="https://avatars.githubusercontent.com/u/31133398?v=4?s=100" width="100px;" alt="Cristian Challu"/><br /><sub><b>Cristian Challu</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=cchallu" title="Code">💻</a> <a href="#maintenance-cchallu" title="Maintenance">🚧</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jmoralez"><img src="https://avatars.githubusercontent.com/u/8473587?v=4?s=100" width="100px;" alt="José Morales"/><br /><sub><b>José Morales</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=jmoralez" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/jmoralez"><img src="https://avatars.githubusercontent.com/u/8473587?v=4?s=100" width="100px;" alt="José Morales"/><br /><sub><b>José Morales</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=jmoralez" title="Code">💻</a> <a href="#maintenance-jmoralez" title="Maintenance">🚧</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/mergenthaler"><img src="https://avatars.githubusercontent.com/u/4086186?v=4?s=100" width="100px;" alt="mergenthaler"/><br /><sub><b>mergenthaler</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=mergenthaler" title="Documentation">📖</a> <a href="https://github.com/Nixtla/neuralforecast/commits?author=mergenthaler" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kdgutier"><img src="https://avatars.githubusercontent.com/u/19935241?v=4?s=100" width="100px;" alt="Kin"/><br /><sub><b>Kin</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=kdgutier" title="Code">💻</a> <a href="https://github.com/Nixtla/neuralforecast/issues?q=author%3Akdgutier" title="Bug reports">🐛</a> <a href="#data-kdgutier" title="Data">🔣</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/gdevos010"><img src="https://avatars.githubusercontent.com/u/15316026?v=4?s=100" width="100px;" alt="Greg DeVos"/><br /><sub><b>Greg DeVos</b></sub></a><br /><a href="#ideas-gdevos010" title="Ideas, Planning, & Feedback">🤔</a></td>
