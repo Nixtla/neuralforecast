@@ -941,7 +941,7 @@ class NeuralForecast:
 
         ## Filter `cutoff` by `user_set_step_size`.
         fcsts_df["flag"] = fcsts_df.groupby(["cutoff"]).cumcount()
-        fcsts_df["flag"] = ((fcsts_df["flag"] % 3) == 0).astype(int)
+        fcsts_df["flag"] = ((fcsts_df["flag"] % user_set_step_size) == 0).astype(int)
         fcsts_df = fcsts_df[fcsts_df["flag"] == 1].drop(columns=["flag"])
 
         return fcsts_df
