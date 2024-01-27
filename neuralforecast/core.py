@@ -849,6 +849,12 @@ class NeuralForecast:
                       recurrent model {repr(model)} class yet due to scaling."
                 )
 
+        # Store value set by user so that we avoid division errors that may lead to
+        # forecasts past the last date. This is done by filtering the extra `cutoff``
+        # dates of the `fcsts_df`` dataframe considering `user_set_step_size`.
+        user_set_step_size = step_size
+        step_size = 1
+
         cols = []
         count_names = {"model": 0}
         for model in self.models:
@@ -877,7 +883,7 @@ class NeuralForecast:
             trimmed_dataset = self.dataset
             times = self.ds
 
-        # Generate dates
+        # Generate dates with unit step size.
         fcsts_df = _insample_times(
             times=times,
             uids=self.uids,
@@ -932,6 +938,12 @@ class NeuralForecast:
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
+
+        ## Filter `cutoff` by `user_set_step_size`.
+        fcsts_df["flag"] = fcsts_df.groupby(["cutoff"]).cumcount()
+        fcsts_df["flag"] = ((fcsts_df["flag"] % 3) == 0).astype(int)
+        fcsts_df = fcsts_df[fcsts_df["flag"] == 1].drop(columns=["flag"])
+
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
