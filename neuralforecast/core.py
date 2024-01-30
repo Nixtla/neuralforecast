@@ -935,14 +935,15 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
+
+        ## Filter `cutoff` by `user_set_step_size`.
+        fcsts_df = fcsts_df[
+            fcsts_df["cutoff"].isin(fcsts_df["cutoff"].unique()[0::user_set_step_size])
+        ]
+
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
-
-        ## Filter `cutoff` by `user_set_step_size`.
-        fcsts_df["flag"] = fcsts_df.groupby(["cutoff"]).cumcount()
-        fcsts_df["flag"] = ((fcsts_df["flag"] % user_set_step_size) == 0).astype(int)
-        fcsts_df = fcsts_df[fcsts_df["flag"] == 1].drop(columns=["flag"])
 
         return fcsts_df
 
