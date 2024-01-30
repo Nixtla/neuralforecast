@@ -944,7 +944,6 @@ class NeuralForecast:
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
-
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
