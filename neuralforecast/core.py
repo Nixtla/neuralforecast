@@ -945,7 +945,6 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
-
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
