@@ -926,6 +926,16 @@ class NeuralForecast:
             Y_df = pd.DataFrame(original_y).reset_index(drop=True)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
+        # Generate indices for the rows we want to keep and take the slicing.
+        n_series = len(self.uids)
+        n_windows = fcsts_df.shape[0] // (n_series * h)
+        offsets = (
+            np.repeat(np.arange(0, n_series * n_windows, user_set_step_size), h) * h
+        )
+        horizons = np.tile(np.arange(h), offsets.size // h)
+        keep_rows = offsets + horizons
+        fcsts_df = ufp.take_rows(fcsts_df, keep_rows)
+
         # Add original input df's y to forecasts DataFrame
         fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
         if self.scalers_:
@@ -935,11 +945,6 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
-
-        ## Filter `cutoff` by `user_set_step_size`.
-        fcsts_df = fcsts_df[
-            fcsts_df["cutoff"].isin(fcsts_df["cutoff"].unique()[0::user_set_step_size])
-        ]
 
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
