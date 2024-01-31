@@ -44,8 +44,7 @@ class MixingLayer(nn.Module):
         # Temporal MLP
         x = input.reshape(batch_size, -1)
         x = self.temporal_norm(x)
-        x = x.reshape(batch_size, n_series, input_size)
-        x = x.permute(0, 2, 1)
+        x = x.reshape(batch_size, input_size, n_series)
         x = F.relu(self.temporal_lin(x))
         x = x.permute(0, 2, 1)
         x = self.temporal_drop(x)
@@ -54,7 +53,8 @@ class MixingLayer(nn.Module):
         # Feature MLP
         x = res.reshape(batch_size, -1)
         x = self.feature_norm(x)
-        x = x.reshape(batch_size, n_series, input_size)
+        x = x.reshape(batch_size, input_size, n_series)
+        x = x.permute(0, 2, 1)
         x = F.relu(self.feature_lin_1(x))
         x = self.feature_drop_1(x)
         x = self.feature_lin_2(x)
@@ -107,11 +107,10 @@ class TSMixer(BaseMultivariate):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
-
     `n_block`: int=2, number of mixing layers in the model.<br>
     `ff_dim`: int=64, number of units for the second feed-forward layer in the feature MLP.<br>
-    `dropout`: float=0.9, Dropout rate between (0, 1) .<br>
-
+    `dropout`: float=0.9, dropout rate between (0, 1) .<br>
+    `revin`: bool=True, if True uses Reverse Instance Normalization to process inputs and outputs.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -147,6 +146,7 @@ class TSMixer(BaseMultivariate):
         n_block=2,
         ff_dim=64,
         dropout=0.9,
+        revin=True,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -186,7 +186,9 @@ class TSMixer(BaseMultivariate):
             **trainer_kwargs
         )
         # Reversible InstanceNormalization layer
-        self.norm = ReversibleInstanceNorm1d(num_features=n_series)
+        self.revin = revin
+        if self.revin:
+            self.norm = ReversibleInstanceNorm1d(num_features=n_series)
 
         # Mixing layers
         mixing_layers = [
@@ -197,19 +199,28 @@ class TSMixer(BaseMultivariate):
         ]
         self.mixing_layers = nn.Sequential(*mixing_layers)
 
-        # Linear output
-        self.out = nn.Linear(in_features=input_size, out_features=h)
+        # Linear output with Loss dependent dimensions
+        self.out = nn.Linear(
+            in_features=input_size, out_features=h * self.loss.outputsize_multiplier
+        )
 
     def forward(self, windows_batch):
         # Parse batch
         x = windows_batch["insample_y"]  # x: [batch_size, input_size, n_series]
+        batch_size = x.shape[0]
 
         # TSMixer: InstanceNorm + Mixing layers + Dense output layer + ReverseInstanceNorm
-        x = self.norm(x)
+        if self.revin:
+            x = self.norm(x)
         x = self.mixing_layers(x)
         x = x.permute(0, 2, 1)
         x = self.out(x)
         x = x.permute(0, 2, 1)
-        forecast = self.norm.reverse(x)
+        if self.revin:
+            x = self.norm.reverse(x)
 
+        x = x.reshape(
+            batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
+        )
+        forecast = self.loss.domain_map(x)
         return forecast
