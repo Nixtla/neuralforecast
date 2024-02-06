@@ -936,7 +936,7 @@ class NeuralForecast:
             )
             * self.h
         )
-        horizons = -np.tile(np.flip(np.arange(self.h)), offsets.size // self.h)
+        horizons = -np.tile(np.flip(np.arange(1, self.h + 1)), offsets.size // self.h)
         keep_rows = offsets + horizons
         fcsts_df = ufp.take_rows(fcsts_df, keep_rows)
 
