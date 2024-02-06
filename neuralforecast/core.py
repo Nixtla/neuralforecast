@@ -931,10 +931,12 @@ class NeuralForecast:
         n_series = len(self.uids)
         n_windows = fcsts_df.shape[0] // (n_series * self.h)
         offsets = (
-            np.repeat(np.arange(0, n_series * n_windows, user_set_step_size), self.h)
+            np.repeat(
+                np.flip(np.arange(n_series * n_windows, 0, -user_set_step_size)), self.h
+            )
             * self.h
         )
-        horizons = np.tile(np.arange(self.h), offsets.size // self.h)
+        horizons = -np.tile(np.flip(np.arange(self.h)), offsets.size // self.h)
         keep_rows = offsets + horizons
         fcsts_df = ufp.take_rows(fcsts_df, keep_rows)
 
