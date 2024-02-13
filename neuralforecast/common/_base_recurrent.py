@@ -642,6 +642,7 @@ class BaseRecurrent(pl.LightningModule):
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
+        return trainer
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Predict.
