@@ -63,7 +63,7 @@ implement :meth:`__getitems__`, for speedup batched samples loading.
 This method accepts list of indices of samples of batch and returns list
 of samples.
 
-.. note:: :class:`~torch.utils.data.DataLoader` by default constructs a
+.. note:: :class:`~torch.utils.data.DataLoader` by default constructs an
 index sampler that yields integral indices. To make it work with a
 map-style dataset with non-integral indices/keys, a custom sampler must
 be provided.
