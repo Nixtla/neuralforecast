@@ -1317,4 +1317,4 @@ class AutoHINT(BaseAuto):
         )
         model.test_size = test_size
         model.fit(dataset, val_size=val_size, test_size=test_size)
-        return model
+        return model, None

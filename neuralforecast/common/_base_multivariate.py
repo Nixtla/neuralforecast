@@ -614,6 +614,7 @@ class BaseMultivariate(pl.LightningModule):
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
+        return trainer
 
     def predict(
         self,
