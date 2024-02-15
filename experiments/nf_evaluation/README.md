@@ -16,6 +16,7 @@ The datasets used for this benchmark are:
 Each model went through hyperparameter optimization. The test was completed locally on CPU.
 
 The table below summarizes the results
+*Table will be updated as results are obtained*
 
 <br>
 
@@ -46,4 +47,4 @@ pip install git+https://github.com/Nixtla/neuralforecast.git
 python run_experiments.py --dataset M4-yearly --model AutoMLP
 ```
 
-5. The script creates a folder `results/<dataset>` which contains a CSV file with the metrics for the specified model.
+5. The script creates a folder `results/<dataset>` which contains a CSV file with the metrics for the specified model
