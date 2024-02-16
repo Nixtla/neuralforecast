@@ -56,7 +56,6 @@ def parse_args():
 	parser = argparse.ArgumentParser(description="script arguments")
 	parser.add_argument('--dataset', type=str, help='dataset to train models on')
 	parser.add_argument('--model', type=str, help='name of the model')
-	# parser.add_argument('--experiment_id', type=str, help='identify experiment')
 	return parser.parse_args()
 
 if __name__ == '__main__':
