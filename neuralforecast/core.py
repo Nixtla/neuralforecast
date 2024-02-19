@@ -266,8 +266,9 @@ class NeuralForecast:
         return dataset, uids, last_dates, ds
 
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
+        err_msg = ""
         msg_template = (
-            "Column {} has NaN values in the row records marked as 'available_mask=1'"
+            "Column {} has NaN values in the row records marked as 'available_mask=1'\n"
         )
 
         temporal_cols = [target_col] + [
@@ -282,14 +283,18 @@ class NeuralForecast:
         df_to_check = ufp.filter_with_mask(df, available_boolean_mask)
         for col in temporal_cols:
             if ufp.is_nan_or_none(df_to_check[col]).any():
-                raise ValueError(msg_template.format(col))
+                err_msg = err_msg + msg_template.format(col)
 
         if static_df is None:
-            return
-        static_cols = [col for col in static_df.columns if col != id_col]
+            static_cols = []
+        else:
+            static_cols = [col for col in static_df.columns if col != id_col]
         for col in static_cols:
             if ufp.is_nan_or_none(static_df[col]).any():
-                raise ValueError(msg_template.format(col))
+                err_msg = err_msg + msg_template.format(col)
+
+        if err_msg != "":
+            raise ValueError(err_msg)
 
     def fit(
         self,
