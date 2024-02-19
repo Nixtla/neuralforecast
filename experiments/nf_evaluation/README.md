@@ -38,13 +38,19 @@ pip install git+https://github.com/Nixtla/datasetsforecast.git
 pip install git+https://github.com/Nixtla/neuralforecast.git
 ```
 
-4. Run the experiments for each dataset and each model using with 
+4. Run the experiments for each dataset and each model using the 
 - `--dataset` parameter in `[M4-yearly, M4-quarterly, M4-monthly, M4-daily, Ettm2, Electricity, Weather, Traffic, ILI]`
 - `--model` parameter in `['AutoLSTM', 'AutoRNN', 'AutoGRU', 'AutoDilatedRNN', 'AutoDeepAR', 'AutoTCN', 'AutoMLP', 'AutoNBEATS', 'AutoNHITS', 'AutoDLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer', 'AutoTimesNet', 'AutoPatchTST']`
 <br>
 
 ```shell
 python run_experiments.py --dataset M4-yearly --model AutoMLP
+```
+
+You can also run all experiments in a single command using
+<br>
+```shell
+run.sh
 ```
 
 5. The script creates a folder `results/<dataset>` which contains a CSV file with the metrics for the specified model
