@@ -4,6 +4,8 @@ channels:
   - pytorch
 dependencies:
   - coreforecast>=0.0.3
+  - fsspec
+  - gitpython
   - hyperopt
   - jupyterlab
   - matplotlib
@@ -15,6 +17,7 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
+  - s3fs
   - pip:
     - nbdev
     - black
