@@ -18,6 +18,7 @@ website:
         - examples/Getting_Started_complete.ipynb
         - examples/Neuralforecast_Map.ipynb
         - examples/How_to_add_models.ipynb
+        - examples/MLFlow_and_neuralforecast.ipynb
       - section: "Tutorials"
         contents:
         - examples/Signal_Decomposition.ipynb
