@@ -25,6 +25,7 @@ from neuralforecast.models.vanillatransformer import VanillaTransformer
 from neuralforecast.models.informer import Informer
 from neuralforecast.models.autoformer import Autoformer
 from neuralforecast.models.patchtst import PatchTST
+from neuralforecast.models.dlinear import DLinear
 
 from neuralforecast.auto import (
     AutoMLP, AutoNHITS, AutoNBEATS, AutoDilatedRNN, AutoTFT
@@ -35,7 +36,7 @@ from ray import tune
 
 from src.data import get_data
 
-neuralforecast.config.id_as_index = False
+os.environ['NIXTLA_ID_AS_COL'] = '1'
 
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
@@ -69,6 +70,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=300),
         NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=MAE(), max_steps=1000, val_check_steps=500),
         AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, cpus=1),
+        DLinear(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=2000, val_check_steps=500),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), hidden_size=64, scaler_type='robust', windows_batch_size=512, max_steps=1500, val_check_steps=500),
         VanillaTransformer(h=horizon, input_size=2 * horizon, loss=MAE(), hidden_size=64, scaler_type='minmax1', windows_batch_size=512, max_steps=1500, val_check_steps=500),
         DeepAR(h=horizon, input_size=2 * horizon, scaler_type='minmax1', max_steps=1000),

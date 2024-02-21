@@ -3,12 +3,12 @@
 # %% auto 0
 __all__ = ['mae', 'mse', 'rmse', 'mape', 'smape', 'mase', 'rmae', 'quantile_loss', 'mqloss']
 
-# %% ../../nbs/losses.numpy.ipynb 3
+# %% ../../nbs/losses.numpy.ipynb 4
 from typing import Optional, Union
 
 import numpy as np
 
-# %% ../../nbs/losses.numpy.ipynb 6
+# %% ../../nbs/losses.numpy.ipynb 7
 def _divide_no_nan(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
     Auxiliary funtion to handle divide by 0
@@ -18,7 +18,7 @@ def _divide_no_nan(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     div[div == float("inf")] = 0.0
     return div
 
-# %% ../../nbs/losses.numpy.ipynb 7
+# %% ../../nbs/losses.numpy.ipynb 8
 def _metric_protections(
     y: np.ndarray, y_hat: np.ndarray, weights: Optional[np.ndarray]
 ) -> None:
@@ -27,7 +27,7 @@ def _metric_protections(
         weights.shape == y.shape
     ), f"Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}"
 
-# %% ../../nbs/losses.numpy.ipynb 10
+# %% ../../nbs/losses.numpy.ipynb 11
 def mae(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -65,7 +65,7 @@ def mae(
 
     return mae
 
-# %% ../../nbs/losses.numpy.ipynb 14
+# %% ../../nbs/losses.numpy.ipynb 15
 def mse(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -103,7 +103,7 @@ def mse(
 
     return mse
 
-# %% ../../nbs/losses.numpy.ipynb 18
+# %% ../../nbs/losses.numpy.ipynb 19
 def rmse(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -134,7 +134,7 @@ def rmse(
     """
     return np.sqrt(mse(y, y_hat, weights, axis))
 
-# %% ../../nbs/losses.numpy.ipynb 23
+# %% ../../nbs/losses.numpy.ipynb 24
 def mape(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -170,7 +170,7 @@ def mape(
 
     return mape
 
-# %% ../../nbs/losses.numpy.ipynb 27
+# %% ../../nbs/losses.numpy.ipynb 28
 def smape(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -216,7 +216,7 @@ def smape(
 
     return smape
 
-# %% ../../nbs/losses.numpy.ipynb 31
+# %% ../../nbs/losses.numpy.ipynb 32
 def mase(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -260,7 +260,7 @@ def mase(
 
     return mase
 
-# %% ../../nbs/losses.numpy.ipynb 35
+# %% ../../nbs/losses.numpy.ipynb 36
 def rmae(
     y: np.ndarray,
     y_hat1: np.ndarray,
@@ -298,7 +298,7 @@ def rmae(
 
     return rmae
 
-# %% ../../nbs/losses.numpy.ipynb 40
+# %% ../../nbs/losses.numpy.ipynb 41
 def quantile_loss(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -342,7 +342,7 @@ def quantile_loss(
 
     return quantile_loss
 
-# %% ../../nbs/losses.numpy.ipynb 44
+# %% ../../nbs/losses.numpy.ipynb 45
 def mqloss(
     y: np.ndarray,
     y_hat: np.ndarray,
