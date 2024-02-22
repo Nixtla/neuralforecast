@@ -168,6 +168,7 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
+
     def __init__(
         self,
         models: List[Any],
@@ -250,6 +251,8 @@ class NeuralForecast:
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
+        self._check_nan(df, static_df, id_col, time_col, target_col)
+
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
             static_df=static_df,
@@ -263,6 +266,30 @@ class NeuralForecast:
         else:
             self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
+
+    def _check_nan(self, df, static_df, id_col, time_col, target_col):
+        cols_with_nans = []
+
+        temporal_cols = [target_col] + [
+            c for c in df.columns if c not in (id_col, time_col, target_col)
+        ]
+        if "available_mask" in temporal_cols:
+            available_mask = df["available_mask"].to_numpy().astype(bool)
+        else:
+            available_mask = np.full(df.shape[0], True)
+
+        df_to_check = ufp.filter_with_mask(df, available_mask)
+        for col in temporal_cols:
+            if ufp.is_nan_or_none(df_to_check[col]).any():
+                cols_with_nans.append(col)
+
+        if static_df is not None:
+            for col in [x for x in static_df.columns if x != id_col]:
+                if ufp.is_nan_or_none(static_df[col]).any():
+                    cols_with_nans.append(col)
+
+        if cols_with_nans:
+            raise ValueError(f"Found missing values in {cols_with_nans}.")
 
     def fit(
         self,
