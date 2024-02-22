@@ -18,6 +18,7 @@ import torch
 import utilsforecast.processing as ufp
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.scalers import (
+    LocalBoxCoxScaler,
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
@@ -149,6 +150,7 @@ _type2scaler = {
     "robust": lambda: LocalRobustScaler(scale="mad"),
     "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
     "minmax": LocalMinMaxScaler,
+    "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
 }
 
 # %% ../nbs/core.ipynb 9
@@ -188,7 +190,7 @@ class NeuralForecast:
             Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
-            Can be 'standard', 'robust', 'robust-iqr' or 'minmax'
+            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
 
         Returns
         -------
