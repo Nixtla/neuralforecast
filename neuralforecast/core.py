@@ -266,35 +266,28 @@ class NeuralForecast:
         return dataset, uids, last_dates, ds
 
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
-        err_msg = ""
-        msg_template = (
-            "Column {} has NaN values in the row records marked as 'available_mask=1'\n"
-        )
+        cols_with_nans = []
 
         temporal_cols = [target_col] + [
             c for c in df.columns if c not in (id_col, time_col, target_col)
         ]
-        if "available_mask" not in temporal_cols:
-            available_mask = pd.Series(np.ones(df.shape[0], dtype=np.float32))
+        if "available_mask" in temporal_cols:
+            available_mask = df["available_mask"].to_numpy().astype(bool)
         else:
-            available_mask = df["available_mask"]
+            available_mask = np.full(df.shape[0], True)
 
-        available_boolean_mask = available_mask.astype(bool).values
-        df_to_check = ufp.filter_with_mask(df, available_boolean_mask)
+        df_to_check = ufp.filter_with_mask(df, available_mask)
         for col in temporal_cols:
             if ufp.is_nan_or_none(df_to_check[col]).any():
-                err_msg = err_msg + msg_template.format(col)
+                cols_with_nans.append(col)
 
-        if static_df is None:
-            static_cols = []
-        else:
-            static_cols = [col for col in static_df.columns if col != id_col]
-        for col in static_cols:
-            if ufp.is_nan_or_none(static_df[col]).any():
-                err_msg = err_msg + msg_template.format(col)
+        if static_df is not None:
+            for col in [x for x in static_df.columns if x != id_col]:
+                if ufp.is_nan_or_none(static_df[col]).any():
+                    cols_with_nans.append(col)
 
-        if err_msg != "":
-            raise ValueError(err_msg)
+        if cols_with_nans:
+            raise ValueError(f"Found missing values in {cols_with_nans}.")
 
     def fit(
         self,
