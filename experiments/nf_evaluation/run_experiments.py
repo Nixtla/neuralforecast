@@ -12,6 +12,8 @@ from datasets import get_dataset
 # For compatibitlity with Mac with M chip
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+# For memory allocation
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 def main(args):
 
