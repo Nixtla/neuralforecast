@@ -42,6 +42,7 @@ from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
 # %% ../nbs/models.ipynb 9
 class AutoRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -51,7 +52,7 @@ class AutoRNN(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -111,6 +112,7 @@ class AutoRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 14
 class AutoLSTM(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -120,7 +122,7 @@ class AutoLSTM(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -141,6 +143,7 @@ class AutoLSTM(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -175,6 +178,7 @@ class AutoLSTM(BaseAuto):
 
 # %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -184,7 +188,7 @@ class AutoGRU(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -206,6 +210,7 @@ class AutoGRU(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -241,6 +246,7 @@ class AutoGRU(BaseAuto):
 
 # %% ../nbs/models.ipynb 20
 class AutoTCN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -249,7 +255,7 @@ class AutoTCN(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -271,6 +277,7 @@ class AutoTCN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -306,6 +313,7 @@ class AutoTCN(BaseAuto):
 
 # %% ../nbs/models.ipynb 23
 class AutoDeepAR(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -314,7 +322,7 @@ class AutoDeepAR(BaseAuto):
         "lstm_dropout": tune.uniform(0.0, 0.5),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice(["robust", "minmax1"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -339,6 +347,7 @@ class AutoDeepAR(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -372,6 +381,7 @@ class AutoDeepAR(BaseAuto):
 
 # %% ../nbs/models.ipynb 26
 class AutoDilatedRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -382,7 +392,7 @@ class AutoDilatedRNN(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -404,6 +414,7 @@ class AutoDilatedRNN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -439,6 +450,7 @@ class AutoDilatedRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 30
 class AutoMLP(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -446,7 +458,7 @@ class AutoMLP(BaseAuto):
         "num_layers": tune.randint(2, 6),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -469,6 +481,7 @@ class AutoMLP(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -502,12 +515,13 @@ class AutoMLP(BaseAuto):
 
 # %% ../nbs/models.ipynb 33
 class AutoNBEATS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -530,6 +544,7 @@ class AutoNBEATS(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -563,12 +578,13 @@ class AutoNBEATS(BaseAuto):
 
 # %% ../nbs/models.ipynb 36
 class AutoNBEATSx(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -591,6 +607,7 @@ class AutoNBEATSx(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -624,6 +641,7 @@ class AutoNBEATSx(BaseAuto):
 
 # %% ../nbs/models.ipynb 39
 class AutoNHITS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -642,7 +660,7 @@ class AutoNHITS(BaseAuto):
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -665,6 +683,7 @@ class AutoNHITS(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -698,13 +717,14 @@ class AutoNHITS(BaseAuto):
 
 # %% ../nbs/models.ipynb 42
 class AutoDLinear(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "moving_avg_window": tune.choice([10, 25, 50]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -727,6 +747,7 @@ class AutoDLinear(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -760,6 +781,7 @@ class AutoDLinear(BaseAuto):
 
 # %% ../nbs/models.ipynb 46
 class AutoTFT(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -767,7 +789,7 @@ class AutoTFT(BaseAuto):
         "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -790,6 +812,7 @@ class AutoTFT(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -823,6 +846,7 @@ class AutoTFT(BaseAuto):
 
 # %% ../nbs/models.ipynb 49
 class AutoVanillaTransformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -830,7 +854,7 @@ class AutoVanillaTransformer(BaseAuto):
         "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -853,6 +877,7 @@ class AutoVanillaTransformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -886,6 +911,7 @@ class AutoVanillaTransformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 52
 class AutoInformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -893,7 +919,7 @@ class AutoInformer(BaseAuto):
         "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -916,6 +942,7 @@ class AutoInformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -949,6 +976,7 @@ class AutoInformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 55
 class AutoAutoformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -956,7 +984,7 @@ class AutoAutoformer(BaseAuto):
         "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -979,6 +1007,7 @@ class AutoAutoformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1012,13 +1041,14 @@ class AutoAutoformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 58
 class AutoFEDformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "hidden_size": tune.choice([64, 128, 256]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -1041,6 +1071,7 @@ class AutoFEDformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1074,6 +1105,7 @@ class AutoFEDformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 61
 class AutoPatchTST(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3],
         "h": None,
@@ -1083,7 +1115,7 @@ class AutoPatchTST(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "revin": tune.choice([False, True]),
-        "max_steps": tune.choice([500, 1000, 5000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
@@ -1106,6 +1138,7 @@ class AutoPatchTST(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1139,6 +1172,7 @@ class AutoPatchTST(BaseAuto):
 
 # %% ../nbs/models.ipynb 65
 class AutoTimesNet(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -1146,7 +1180,7 @@ class AutoTimesNet(BaseAuto):
         "conv_hidden_size": tune.choice([32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice(["robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128]),
         "windows_batch_size": tune.choice([32, 64, 128, 256]),
         "loss": None,
@@ -1169,6 +1203,7 @@ class AutoTimesNet(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1202,6 +1237,7 @@ class AutoTimesNet(BaseAuto):
 
 # %% ../nbs/models.ipynb 69
 class AutoStemGNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
@@ -1210,7 +1246,7 @@ class AutoStemGNN(BaseAuto):
         "multi_layer": tune.choice([3, 5, 7]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 2000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -1233,6 +1269,7 @@ class AutoStemGNN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1269,6 +1306,7 @@ class AutoStemGNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 73
 class AutoHINT(BaseAuto):
+
     def __init__(
         self,
         cls_model,
