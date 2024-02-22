@@ -64,7 +64,7 @@ def get_dataset(name):
         h = 48
         val_size = 48
         test_size = 48
-    elif name == 'ETTm2':
+    elif name == 'Ettm2':
         Y_df, *_ = LongHorizon.load(directory='./', group='ETTm2')
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
         freq = '15T'
@@ -83,15 +83,15 @@ def get_dataset(name):
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
         freq = 'H'
         h = 720
-        val_size = 11520
-        test_size = 11520
+        val_size = 2880
+        test_size = 2880
     elif name == 'Etth2':
         Y_df, *_ = LongHorizon.load(directory='./', group='ETTh2')
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
         freq = 'H'
         h = 720
-        val_size = 11520
-        test_size = 11520
+        val_size = 2880
+        test_size = 2880
     elif name == 'Electricity':
         Y_df, *_ = LongHorizon.load(directory='./', group='ECL')
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
