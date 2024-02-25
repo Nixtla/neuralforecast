@@ -52,6 +52,8 @@ class BaseMultivariate(pl.LightningModule):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         super(BaseMultivariate, self).__init__()
@@ -88,6 +90,13 @@ class BaseMultivariate(pl.LightningModule):
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
         self.step_size = step_size
+        # custom optimizer defined by user
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -151,7 +160,12 @@ class BaseMultivariate(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        if self.optimizer:
+            optimizer = self.optimizer(
+                params=self.parameters(), **self.optimizer_kwargs
+            )
+        else:
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         scheduler = {
             "scheduler": torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
