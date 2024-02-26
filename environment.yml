@@ -22,5 +22,5 @@ dependencies:
     - nbdev
     - black
     - polars
-    - "ray[tune]>=2.2.0"
+    - ray[tune]>=2.2.0
     - utilsforecast>=0.0.25
