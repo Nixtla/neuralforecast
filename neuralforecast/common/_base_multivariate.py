@@ -4,6 +4,7 @@
 __all__ = ['BaseMultivariate']
 
 # %% ../../nbs/common.base_multivariate.ipynb 5
+import inspect
 import random
 import warnings
 
@@ -11,6 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+from copy import deepcopy
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
@@ -161,6 +163,14 @@ class BaseMultivariate(pl.LightningModule):
 
     def configure_optimizers(self):
         if self.optimizer:
+            optimizer_signature = inspect.signature(self.optimizer)
+            optimizer_kwargs = deepcopy(self.optimizer_kwargs)
+            if "lr" in optimizer_signature.parameters:
+                if "lr" in optimizer_kwargs:
+                    warnings.warn(
+                        "ignoring learning rate passed in optimizer_kwargs, using the model's learning rate"
+                    )
+                optimizer_kwargs["lr"] = self.learning_rate
             optimizer = self.optimizer(
                 params=self.parameters(), **self.optimizer_kwargs
             )
