@@ -788,6 +788,7 @@ class BaseWindows(pl.LightningModule):
             model, trainer = TorchDistributor(
                 num_processes=num_processes, local_mode=False, use_gpu=use_gpu
             ).run(train_fn, type(self), self.hparams, datamodule, self.trainer_kwargs)
+            del model.trainer_kwargs["num_nodes"]
         return model, trainer
 
     def predict(

@@ -370,7 +370,7 @@ class NeuralForecast:
                 )
             temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
             if static_df is not None:
-                if isinstance(static_df, SparkDataFrame):
+                if not isinstance(static_df, SparkDataFrame):
                     raise ValueError(
                         "`static_df` must be a spark dataframe when `df` is a spark dataframe."
                     )
@@ -378,15 +378,14 @@ class NeuralForecast:
                 df = df.join(static_df, on=[id_col], how="left")
             else:
                 static_cols = None
-            (
-                df.repartitionByRange(partitions_number, id_col).write.parquet(
-                    path=partitions_path, mode="overwrite"
-                )
-            )
+            self.id_col = id_col
+            self.time_col = time_col
+            self.target_col = target_col
+            self.scalers_ = {}
+            df = df.repartitionByRange(partitions_number, id_col)
+            df.write.parquet(path=partitions_path, mode="overwrite")
             fs, _, _ = fsspec.get_fs_token_paths(partitions_path)
             files = [f for f in fs.ls(partitions_path) if f.endswith("parquet")]
-            if files[0].startswith("dbfs:/"):
-                files = [f'/dbfs/{f.replace("dbfs:/", "")}' for f in files]
             self.dataset = _FilesDataset(
                 files=files,
                 temporal_cols=temporal_cols,
@@ -394,6 +393,9 @@ class NeuralForecast:
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
+            )
+            self.dataset.min_size = (
+                df.groupBy(id_col).count().agg({"count": "min"}).first()[0]
             )
         elif df is None:
             if verbose:
@@ -413,8 +415,8 @@ class NeuralForecast:
         if use_init_models:
             self._reset_models()
 
-        for model in self.models:
-            model.fit(self.dataset, val_size=val_size)
+        for i, model in enumerate(self.models):
+            self.models[i], _ = model.fit(self.dataset, val_size=val_size)
 
         self._fitted = True
 

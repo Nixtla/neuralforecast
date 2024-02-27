@@ -354,7 +354,7 @@ class _FilesDataset:
     ):
         self.files = files
         self.temporal_cols = pd.Index(temporal_cols)
-        self.static_cols = pd.Index(static_cols)
+        self.static_cols = pd.Index(static_cols) if static_cols is not None else None
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
@@ -409,7 +409,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
 class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
     def __init__(
         self,
-        files_dataset: _FilesDataset,
+        dataset: _FilesDataset,
         batch_size=32,
         valid_batch_size=1024,
         num_workers=0,
@@ -426,7 +426,7 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
         import torch.distributed as dist
 
         df = pd.read_parquet(self.files_ds.files[dist.get_rank()])
-        if static_cols is not None:
+        if self.files_ds.static_cols is not None:
             static_df = df[[self.id_col] + self.files_ds.static_cols].drop_duplicates()
             df = df.drop(columns=self.files_ds.static_cols)
         else:
