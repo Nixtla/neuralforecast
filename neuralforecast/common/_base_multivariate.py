@@ -11,7 +11,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import TQDMProgressBar
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
@@ -115,17 +114,12 @@ class BaseMultivariate(pl.LightningModule):
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
-        if trainer_kwargs.get("callbacks", None) is None:
-            callbacks = [TQDMProgressBar()]
-            # Early stopping
-            if self.early_stop_patience_steps > 0:
-                callbacks += [
-                    EarlyStopping(
-                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                    )
-                ]
-
-            trainer_kwargs["callbacks"] = callbacks
+        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
+            trainer_kwargs["callbacks"] = [
+                EarlyStopping(
+                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                )
+            ]
 
         # Add GPU accelerator if available
         if trainer_kwargs.get("accelerator", None) is None:
