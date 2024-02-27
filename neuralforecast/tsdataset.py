@@ -6,6 +6,7 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -340,7 +341,25 @@ class TimeSeriesDataset(Dataset):
             ds = ds[sort_idxs]
         return dataset, indices, dates, ds
 
-# %% ../nbs/tsdataset.ipynb 10
+# %% ../nbs/tsdataset.ipynb 8
+class _FilesDataset:
+    def __init__(
+        self,
+        files: List[str],
+        temporal_cols: List[str],
+        static_cols: Optional[List[str]],
+        id_col: str,
+        time_col: str,
+        target_col: str,
+    ):
+        self.files = files
+        self.temporal_cols = pd.Index(temporal_cols)
+        self.static_cols = pd.Index(static_cols)
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+
+# %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
     def __init__(
         self,
@@ -385,3 +404,38 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shuffle=False,
         )
         return loader
+
+# %% ../nbs/tsdataset.ipynb 12
+class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
+    def __init__(
+        self,
+        files_dataset: _FilesDataset,
+        batch_size=32,
+        valid_batch_size=1024,
+        num_workers=0,
+        drop_last=False,
+    ):
+        super(TimeSeriesDataModule, self).__init__()
+        self.files_ds = dataset
+        self.batch_size = batch_size
+        self.valid_batch_size = valid_batch_size
+        self.num_workers = num_workers
+        self.drop_last = drop_last
+
+    def setup(self, stage):
+        import torch.distributed as dist
+
+        df = pd.read_parquet(self.files_ds.files[dist.get_rank()])
+        if static_cols is not None:
+            static_df = df[[self.id_col] + self.files_ds.static_cols].drop_duplicates()
+            df = df.drop(columns=self.files_ds.static_cols)
+        else:
+            static_df = None
+        self.dataset, *_ = TimeSeriesDataset.from_df(
+            df=df,
+            static_df=static_df,
+            sort_df=True,
+            id_col=self.files_ds.id_col,
+            time_col=self.files_ds.time_col,
+            target_col=self.files_ds.target_col,
+        )

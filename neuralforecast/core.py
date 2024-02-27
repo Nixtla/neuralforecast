@@ -26,7 +26,8 @@ from coreforecast.scalers import (
 from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
-from .tsdataset import TimeSeriesDataset
+from .compat import SparkDataFrame
+from .tsdataset import _FilesDataset, TimeSeriesDataset
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -168,7 +169,6 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
-
     def __init__(
         self,
         models: List[Any],
@@ -302,6 +302,8 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        partitions_number: Optional[int] = None,
+        partitions_path: Optional[str] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -310,7 +312,7 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas or polars DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas or polars DataFrame, optional (default=None)
@@ -329,6 +331,9 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        partitions_path : str, optional (default=None)
+            Path to save partitions to perform multi-node distributed training.
+            Must be a storage accessible to all nodes e.g. HDFS or S3.
 
         Returns
         -------
@@ -345,7 +350,7 @@ class NeuralForecast:
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
         # Process and save new dataset (in self)
-        if df is not None:
+        if isinstance(df, (pd.DataFrame, pl_DataFrame)):
             validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
@@ -357,9 +362,46 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
-        else:
+        elif isinstance(df, SparkDataFrame):
+            if partitions_number is None or partitions_path is None:
+                raise ValueError(
+                    "Must set `partitions_number` and `partitions_path` when "
+                    "using a spark dataframe"
+                )
+            temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
+            if static_df is not None:
+                if isinstance(static_df, SparkDataFrame):
+                    raise ValueError(
+                        "`static_df` must be a spark dataframe when `df` is a spark dataframe."
+                    )
+                static_cols = [c for c in static_df.columns if c != id_col]
+                df = df.join(static_df, on=[id_col], how="left")
+            else:
+                static_cols = None
+            (
+                df.repartitionByRange(partitions_number, id_col).write.parquet(
+                    path=partitions_path, mode="overwrite"
+                )
+            )
+            fs, _, _ = fsspec.get_fs_token_paths(partitions_path)
+            files = [f for f in fs.ls(partitions_path) if f.endswith("parquet")]
+            if files[0].startswith("dbfs:/"):
+                files = [f'/dbfs/{f.replace("dbfs:/", "")}' for f in files]
+            self.dataset = _FilesDataset(
+                files=files,
+                temporal_cols=temporal_cols,
+                static_cols=static_cols,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+        elif df is None:
             if verbose:
                 print("Using stored dataset.")
+        else:
+            raise ValueError(
+                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+            )
 
         if val_size is not None:
             if self.dataset.min_size < val_size:

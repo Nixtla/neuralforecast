@@ -14,7 +14,12 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
-from ..tsdataset import TimeSeriesDataModule
+from neuralforecast.tsdataset import (
+    _DistributedTimeSeriesDataModule,
+    _FilesDataset,
+    TimeSeriesDataset,
+    TimeSeriesDataModule,
+)
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_windows.ipynb 6
@@ -725,7 +730,12 @@ class BaseWindows(pl.LightningModule):
 
         self.val_size = val_size
         self.test_size = test_size
-        datamodule = TimeSeriesDataModule(
+        is_local = isinstance(dataset, TimeSeriesDataset)
+        if is_local:
+            datamodule_constructor = TimeSeriesDataModule
+        else:
+            datamodule_constructor = _DistributedTimeSeriesDataModule
+        datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=self.batch_size,
             valid_batch_size=self.valid_batch_size,
@@ -742,9 +752,43 @@ class BaseWindows(pl.LightningModule):
         self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
         self.trainer_kwargs["check_val_every_n_epoch"] = None
 
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
-        return trainer
+        if is_local:
+            model = self
+            trainer = pl.Trainer(**model.trainer_kwargs)
+            trainer.fit(model, datamodule=datamodule)
+        else:
+            from pyspark.ml.torch.distributor import TorchDistributor
+
+            def train_fn(model_cls, model_params, datamodule, trainer_kwargs):
+                import pytorch_lightning as pl
+
+                # we instantiate here to avoid pickling large tensors (weights)
+                model = model_cls(**model_params)
+                trainer = pl.Trainer(
+                    strategy="ddp",
+                    use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
+                    devices=1,  # use only one GPU per task (total tasks = #gpus in cluster)
+                    **trainer_kwargs,
+                )
+                trainer.fit(model=model, datamodule=datamodule)
+                return model, trainer
+
+            def is_gpu_accelerator(accelerator):
+                from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+                return (
+                    accelerator == "gpu"
+                    or isinstance(accelerator, CUDAAccelerator)
+                    or (accelerator == "auto" and CUDAAccelerator.is_available())
+                )
+
+            devices = self.trainer_kwargs.pop("devices")
+            num_processes = self.trainer_kwargs["num_nodes"] * devices
+            use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+            model, trainer = TorchDistributor(
+                num_processes=num_processes, local_mode=False, use_gpu=use_gpu
+            ).run(train_fn, type(self), self.hparams, datamodule, self.trainer_kwargs)
+        return model, trainer
 
     def predict(
         self,
