@@ -3,7 +3,9 @@ channels:
   - conda-forge
   - pytorch
 dependencies:
-  - coreforecast>=0.0.3
+  - coreforecast>=0.0.6
+  - fsspec
+  - gitpython
   - hyperopt
   - jupyterlab
   - matplotlib
@@ -15,9 +17,10 @@ dependencies:
   - pytorch>=2.0.0
   - pytorch-lightning>=2.0.0
   - pip
+  - s3fs
   - pip:
     - nbdev
     - black
     - polars
-    - "ray[tune]>=2.2.0"
+    - ray[tune]>=2.2.0
     - utilsforecast>=0.0.25
