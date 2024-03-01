@@ -13,12 +13,13 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from ._base_model import _BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_recurrent.ipynb 7
-class BaseRecurrent(pl.LightningModule):
+class BaseRecurrent(_BaseModel):
     """Base Recurrent
 
     Base class for all recurrent-based models. The forecasts are produced sequentially between
@@ -54,7 +55,7 @@ class BaseRecurrent(pl.LightningModule):
         alias=None,
         **trainer_kwargs,
     ):
-        super(BaseRecurrent, self).__init__()
+        super(_BaseModel, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
@@ -591,52 +592,14 @@ class BaseRecurrent(pl.LightningModule):
         `test_size`: int, test size for temporal cross-validation.<br>
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
-
-        self.val_size = val_size
-        self.test_size = test_size
-        datamodule = TimeSeriesDataModule(
+        return self._fit(
             dataset=dataset,
             batch_size=self.batch_size,
             valid_batch_size=self.valid_batch_size,
-            num_workers=self.num_workers_loader,
-            drop_last=self.drop_last_loader,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
         )
-
-        if self.val_check_steps > self.max_steps:
-            warnings.warn(
-                "val_check_steps is greater than max_steps, \
-                    setting val_check_steps to max_steps"
-            )
-        val_check_interval = min(self.val_check_steps, self.max_steps)
-        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
-        self.trainer_kwargs["check_val_every_n_epoch"] = None
-
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
-        return trainer
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Predict.

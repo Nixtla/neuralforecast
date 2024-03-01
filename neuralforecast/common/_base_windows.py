@@ -13,6 +13,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from ._base_model import _BaseModel
 from ._scalers import TemporalNorm
 from neuralforecast.tsdataset import (
     _DistributedTimeSeriesDataModule,
@@ -23,7 +24,7 @@ from neuralforecast.tsdataset import (
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_windows.ipynb 6
-class BaseWindows(pl.LightningModule):
+class BaseWindows(_BaseModel):
     """Base Windows
 
     Base class for all windows-based models. The forecasts are produced separately
@@ -63,7 +64,7 @@ class BaseWindows(pl.LightningModule):
         alias=None,
         **trainer_kwargs,
     ):
-        super(BaseWindows, self).__init__()
+        super(_BaseModel, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
@@ -704,92 +705,14 @@ class BaseWindows(pl.LightningModule):
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
-
-        self.val_size = val_size
-        self.test_size = test_size
-        is_local = isinstance(dataset, TimeSeriesDataset)
-        if is_local:
-            datamodule_constructor = TimeSeriesDataModule
-        else:
-            datamodule_constructor = _DistributedTimeSeriesDataModule
-        datamodule = datamodule_constructor(
+        return self._fit(
             dataset=dataset,
             batch_size=self.batch_size,
             valid_batch_size=self.valid_batch_size,
-            num_workers=self.num_workers_loader,
-            drop_last=self.drop_last_loader,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
         )
-
-        if self.val_check_steps > self.max_steps:
-            warnings.warn(
-                "val_check_steps is greater than max_steps, \
-                    setting val_check_steps to max_steps"
-            )
-        val_check_interval = min(self.val_check_steps, self.max_steps)
-        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
-        self.trainer_kwargs["check_val_every_n_epoch"] = None
-
-        if is_local:
-            model = self
-            trainer = pl.Trainer(**model.trainer_kwargs)
-            trainer.fit(model, datamodule=datamodule)
-        else:
-            from pyspark.ml.torch.distributor import TorchDistributor
-
-            def train_fn(model_cls, model_params, datamodule, trainer_kwargs):
-                import pytorch_lightning as pl
-
-                # we instantiate here to avoid pickling large tensors (weights)
-                model = model_cls(**model_params)
-                trainer = pl.Trainer(
-                    strategy="ddp",
-                    use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
-                    devices=1,  # use only one GPU per task (total tasks = #gpus in cluster)
-                    **trainer_kwargs,
-                )
-                trainer.fit(model=model, datamodule=datamodule)
-                return model, trainer
-
-            def is_gpu_accelerator(accelerator):
-                from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-                return (
-                    accelerator == "gpu"
-                    or isinstance(accelerator, CUDAAccelerator)
-                    or (accelerator == "auto" and CUDAAccelerator.is_available())
-                )
-
-            devices = self.trainer_kwargs.pop("devices")
-            num_processes = self.trainer_kwargs["num_nodes"] * devices
-            use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
-            model, trainer = TorchDistributor(
-                num_processes=num_processes, local_mode=False, use_gpu=use_gpu
-            ).run(train_fn, type(self), self.hparams, datamodule, self.trainer_kwargs)
-            del model.trainer_kwargs["num_nodes"]
-        return model, trainer
 
     def predict(
         self,

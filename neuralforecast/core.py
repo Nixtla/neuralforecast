@@ -315,7 +315,7 @@ class NeuralForecast:
         df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
-        static_df : pandas or polars DataFrame, optional (default=None)
+        static_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
@@ -416,7 +416,7 @@ class NeuralForecast:
             self._reset_models()
 
         for i, model in enumerate(self.models):
-            self.models[i], _ = model.fit(self.dataset, val_size=val_size)
+            self.models[i] = model.fit(self.dataset, val_size=val_size)
 
         self._fitted = True
 
