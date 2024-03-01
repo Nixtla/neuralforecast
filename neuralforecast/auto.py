@@ -2,8 +2,8 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
-           'AutoNHITS', 'AutoDLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer',
-           'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT']
+           'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer',
+           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -26,6 +26,7 @@ from .models.nbeats import NBEATS
 from .models.nbeatsx import NBEATSx
 from .models.nhits import NHITS
 from .models.dlinear import DLinear
+from .models.nlinear import NLinear
 
 from .models.tft import TFT
 from .models.vanillatransformer import VanillaTransformer
@@ -758,7 +759,68 @@ class AutoDLinear(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 46
+# %% ../nbs/models.ipynb 45
+class AutoNLinear(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(lower=1, upper=20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
+
+        super(AutoNLinear, self).__init__(
+            cls_model=NLinear,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+# %% ../nbs/models.ipynb 49
 class AutoTFT(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -821,7 +883,7 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 49
+# %% ../nbs/models.ipynb 52
 class AutoVanillaTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -884,7 +946,7 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 52
+# %% ../nbs/models.ipynb 55
 class AutoInformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -947,7 +1009,7 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 55
+# %% ../nbs/models.ipynb 58
 class AutoAutoformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1010,7 +1072,7 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 58
+# %% ../nbs/models.ipynb 61
 class AutoFEDformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1072,7 +1134,7 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 61
+# %% ../nbs/models.ipynb 64
 class AutoPatchTST(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3],
@@ -1137,7 +1199,7 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 65
+# %% ../nbs/models.ipynb 68
 class AutoTimesNet(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
@@ -1200,7 +1262,7 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 69
+# %% ../nbs/models.ipynb 72
 class AutoStemGNN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
@@ -1267,7 +1329,7 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 73
+# %% ../nbs/models.ipynb 76
 class AutoHINT(BaseAuto):
     def __init__(
         self,
