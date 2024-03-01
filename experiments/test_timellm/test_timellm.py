@@ -49,7 +49,7 @@ forecasts = nf.predict(futr_df=Y_test_df)
 
 end = time.time()
 
-print(f'It took {start-end} seconds to fit and predict with TimeLLM')
+print(f'It took {end-start} seconds to fit and predict with TimeLLM')
 
 print(forecasts)
 
