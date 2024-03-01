@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['ReplicationPad1d', 'TokenEmbedding', 'PatchEmbedding', 'FlattenHead', 'ReprogrammingLayer', 'Normalize', 'TimeLLM']
 
-# %% ../../nbs/models.timellm.ipynb 5
+# %% ../../nbs/models.timellm.ipynb 6
 import math
 import numpy as np
 from typing import Optional
@@ -15,7 +15,7 @@ from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.timellm.ipynb 8
+# %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
     def __init__(self, padding):
         super(ReplicationPad1d, self).__init__()
@@ -210,9 +210,62 @@ class Normalize(nn.Module):
             x = x + self.mean
         return x
 
-# %% ../../nbs/models.timellm.ipynb 10
+# %% ../../nbs/models.timellm.ipynb 11
 class TimeLLM(BaseWindows):
-    """TimeLLM docstring"""
+    """TimeLLM
+
+    Time-LLM is a reprogramming framework to repurpose an off-the-shelf LLM for time series forecasting.
+
+    It trains a reprogramming layer that translates the observed series into a language task. This is fed to the LLM and an output
+    projection layer translates the output back to numerical predictions.
+
+    **Parameters:**<br>
+    `h`: int, Forecast horizon. <br>
+    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `patch_len`: int=16, length of patch.<br>
+    `stride`: int=8, stride of patch.<br>
+    `d_ff`: int=128, dimension of fcn.<br>
+    `top_k`: int=5, top tokens to consider.<br>
+    `d_llm`: int=768, hidden dimension of LLM.<br>
+    `d_model`: int=32, dimension of model.<br>
+    `n_heads`: int=8, number of heads in attention layer.<br>
+    `enc_in`: int=7, encoder input size.<br>
+    `dec_in`: int=7, decoder input size.<br>
+    `llm` = None, LLM to use (loaded from HuggingFace).<br>
+    `llm_config` = None, configuration of LLM (loaded from HuggingFace).<br>
+    `llm_tokenizer` = None, tokenizer of LLM (loaded from HuggingFace).<br>
+    `llm_num_hidden_layers` = 32, hidden layers in LLM
+    `llm_output_attention`: bool = True, whether to output attention in encoder.<br>
+    `llm_output_hidden_states`: bool = True, whether to output hidden states.<br>
+    `prompt_prefix`: str=None, prompt to inform the LLM about the dataset.<br>
+    `dropout`: float=0.1, dropout rate.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References:**<br>
+    -[Ming Jin, Shiyu Wang, Lintao Ma, Zhixuan Chu, James Y. Zhang, Xiaoming Shi, Pin-Yu Chen, Yuxuan Liang, Yuan-Fang Li, Shirui Pan, Qingsong Wen. "Time-LLM: Time Series Forecasting by Reprogramming Large Language Models"](https://arxiv.org/abs/2310.01728)
+
+    """
 
     SAMPLING_TYPE = "windows"
 
@@ -224,7 +277,7 @@ class TimeLLM(BaseWindows):
         stride: int = 8,
         d_ff: int = 128,
         top_k: int = 5,
-        d_llm: int = 768,  # changed from 4096
+        d_llm: int = 768,
         d_model: int = 32,
         n_heads: int = 8,
         enc_in: int = 7,
@@ -309,6 +362,20 @@ class TimeLLM(BaseWindows):
         self.llm_config = llm_config
         self.llm_tokenizer = llm_tokenizer
 
+        # Asserts
+        if self.llm is None:
+            raise Exception(
+                "TimeLLM requires an LLM from HuggingFace. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
+            )
+        if self.llm_config is None:
+            raise Exception(
+                "TimeLLM an LLM configuration. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
+            )
+        if self.llm_tokenizer is None:
+            raise Exception(
+                "TimeLLM requires an LLM tokenizer. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
+            )
+
         self.llm_num_hidden_layers = llm_num_hidden_layers
         self.llm_output_attention = llm_output_attention
         self.llm_output_hidden_states = llm_output_hidden_states
@@ -330,7 +397,7 @@ class TimeLLM(BaseWindows):
 
         self.word_embeddings = self.llm.get_input_embeddings().weight
         self.vocab_size = self.word_embeddings.shape[0]
-        self.num_tokens = 1024  # changed from 1000
+        self.num_tokens = 1024
         self.mapping_layer = nn.Linear(self.vocab_size, self.num_tokens)
 
         self.reprogramming_layer = ReprogrammingLayer(
