@@ -173,6 +173,10 @@ class TimesNet(BaseWindows):
         Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
+        User specified optimizer instead of the default choice (Adam).
+    `optimizer_kwargs`: dict, optional (defualt=None)
+        List of parameters used by the user specified `optimizer`.
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
@@ -215,6 +219,8 @@ class TimesNet(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         super(TimesNet, self).__init__(
@@ -241,6 +247,8 @@ class TimesNet(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 
