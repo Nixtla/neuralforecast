@@ -230,7 +230,7 @@ class BaseMultivariate(pl.LightningModule):
                 raise Exception("No windows available for training")
 
             # Sample windows
-            n_windows = len(windows)
+            n_windows = windows.shape[2]
             if self.batch_size is not None:
                 w_idxs = np.random.choice(
                     n_windows,
@@ -619,6 +619,7 @@ class BaseMultivariate(pl.LightningModule):
             batch_size=self.n_series,
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
+            shuffle_train=False,
         )
 
         if self.val_check_steps > self.max_steps:
