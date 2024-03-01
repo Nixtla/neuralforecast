@@ -26,6 +26,7 @@ from coreforecast.scalers import (
 from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
+from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
 from .tsdataset import _FilesDataset, TimeSeriesDataset
 from neuralforecast.models import (
@@ -302,8 +303,7 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
-        partitions_number: Optional[int] = None,
-        partitions_path: Optional[str] = None,
+        distributed_config: Optional[DistributedConfig] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -363,10 +363,9 @@ class NeuralForecast:
             )
             self.sort_df = sort_df
         elif isinstance(df, SparkDataFrame):
-            if partitions_number is None or partitions_path is None:
+            if distributed_config is None:
                 raise ValueError(
-                    "Must set `partitions_number` and `partitions_path` when "
-                    "using a spark dataframe"
+                    "Must set `distributed_config` when using a spark dataframe"
                 )
             temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
             if static_df is not None:
@@ -382,10 +381,10 @@ class NeuralForecast:
             self.time_col = time_col
             self.target_col = target_col
             self.scalers_ = {}
-            df = df.repartitionByRange(partitions_number, id_col)
-            df.write.parquet(path=partitions_path, mode="overwrite")
-            fs, _, _ = fsspec.get_fs_token_paths(partitions_path)
-            files = [f for f in fs.ls(partitions_path) if f.endswith("parquet")]
+            df = df.repartitionByRange(distributed_config.partitions_num, id_col)
+            df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
+            fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
+            files = [f for f in fs.ls(distributed_config.partitions_path) if f.endswith("parquet")]
             self.dataset = _FilesDataset(
                 files=files,
                 temporal_cols=temporal_cols,
@@ -416,7 +415,7 @@ class NeuralForecast:
             self._reset_models()
 
         for i, model in enumerate(self.models):
-            self.models[i] = model.fit(self.dataset, val_size=val_size)
+            self.models[i] = model.fit(self.dataset, val_size=val_size, distributed_config=distributed_config)
 
         self._fitted = True
 

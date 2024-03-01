@@ -601,7 +601,7 @@ class BaseWindows(_BaseModel):
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True, sync_dist=True)
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
@@ -609,7 +609,7 @@ class BaseWindows(_BaseModel):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(self.validation_step_outputs).mean()
-        self.log("ptl/val_loss", avg_loss)
+        self.log("ptl/val_loss", avg_loss, sync_dist=True)
         self.valid_trajectories.append((self.global_step, float(avg_loss)))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
@@ -683,7 +683,7 @@ class BaseWindows(_BaseModel):
         y_hat = torch.cat(y_hats, dim=0)
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(self, dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -712,6 +712,7 @@ class BaseWindows(_BaseModel):
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
     def predict(

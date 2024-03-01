@@ -4,6 +4,10 @@
 __all__ = []
 
 # %% ../../nbs/common.base_model.ipynb 2
+import warnings
+from dataclasses import dataclass
+from typing import Optional
+
 import torch
 import pytorch_lightning as pl
 
@@ -12,6 +16,13 @@ from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
     TimeSeriesDataset,
 )
+
+@dataclass
+class DistributedConfig:
+    partitions_path: str
+    partitions_num: int
+    num_nodes: int
+    devices: int
 
 # %% ../../nbs/common.base_model.ipynb 3
 class _BaseModel(pl.LightningModule):
@@ -26,6 +37,7 @@ class _BaseModel(pl.LightningModule):
         val_size=0,
         test_size=0,
         random_seed=None,
+        distributed_config: Optional[DistributedConfig] = None,
     ):
         # Check exogenous variables are contained in dataset
         temporal_cols = set(dataset.temporal_cols.tolist())
@@ -79,22 +91,41 @@ class _BaseModel(pl.LightningModule):
             model = self
             trainer = pl.Trainer(**model.trainer_kwargs)
             trainer.fit(model, datamodule=datamodule)
+            model.metrics = trainer.callback_metrics
+            model.__dict__.pop('trainer', None)
         else:
+            assert distributed_config is not None
             from pyspark.ml.torch.distributor import TorchDistributor
 
-            def train_fn(model_cls, model_params, datamodule, trainer_kwargs):
+            def train_fn(
+                model_cls,
+                model_params,
+                datamodule,
+                trainer_kwargs,
+                num_tasks,
+                num_proc_per_task,
+                val_size,
+                test_size,
+            ):
                 import pytorch_lightning as pl
 
                 # we instantiate here to avoid pickling large tensors (weights)
                 model = model_cls(**model_params)
+                model.val_size = val_size
+                model.test_size = test_size
+                for arg in ('devices', 'num_nodes'):
+                    trainer_kwargs.pop(arg, None)
                 trainer = pl.Trainer(
                     strategy="ddp",
                     use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
-                    devices=1,  # use only one GPU per task (total tasks = #gpus in cluster)
+                    num_nodes=num_tasks,
+                    devices=num_proc_per_task,
                     **trainer_kwargs,
                 )
                 trainer.fit(model=model, datamodule=datamodule)
-                return model, trainer
+                model.metrics = trainer.callback_metrics
+                model.__dict__.pop('trainer', None)
+                return model
 
             def is_gpu_accelerator(accelerator):
                 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
@@ -105,12 +136,28 @@ class _BaseModel(pl.LightningModule):
                     or (accelerator == "auto" and CUDAAccelerator.is_available())
                 )
 
-            devices = self.trainer_kwargs.pop("devices")
-            num_processes = self.trainer_kwargs["num_nodes"] * devices
+            local_mode = distributed_config.num_nodes == 1
+            if local_mode:
+                num_tasks = 1
+                num_proc_per_task = distributed_config.devices
+            else:
+                num_tasks = distributed_config.devices * distributed_config.devices
+                num_proc_per_task = 1  # number of GPUs per task
+            num_proc = num_tasks * num_proc_per_task
             use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
-            model, trainer = TorchDistributor(
-                num_processes=num_processes, local_mode=num_nodes == 1, use_gpu=use_gpu
-            ).run(train_fn, type(self), self.hparams, datamodule, self.trainer_kwargs)
-            del trainer["strategy"], model.trainer_kwargs["num_nodes"]
-        model.trainer = trainer
+            model = TorchDistributor(
+                num_processes=num_proc,
+                local_mode=local_mode,
+                use_gpu=use_gpu,
+            ).run(
+                train_fn,
+                model_cls=type(self),
+                model_params=self.hparams,
+                datamodule=datamodule,
+                trainer_kwargs=self.trainer_kwargs,
+                num_tasks=num_tasks,
+                num_proc_per_task=num_proc_per_task,
+                val_size=val_size,
+                test_size=test_size,
+            )
         return model

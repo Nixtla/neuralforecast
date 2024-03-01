@@ -178,7 +178,7 @@ class BaseAuto(pl.LightningModule):
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
-    def _train_tune(self, config_step, cls_model, dataset, val_size, test_size):
+    def _train_tune(self, config_step, cls_model, dataset, val_size, test_size, distributed_config):
         """BaseAuto._train_tune
 
         Internal function that instantiates a NF class model, then automatically
@@ -212,6 +212,7 @@ class BaseAuto(pl.LightningModule):
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
+            distributed_config=distributed_config,
         )
 
     def _tune_model(
@@ -226,6 +227,7 @@ class BaseAuto(pl.LightningModule):
         num_samples,
         search_alg,
         config,
+        distributed_config,
     ):
         train_fn_with_parameters = tune.with_parameters(
             self._train_tune,
@@ -233,6 +235,7 @@ class BaseAuto(pl.LightningModule):
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
+            distributed_config=distributed_config,
         )
 
         # Device
@@ -299,6 +302,7 @@ class BaseAuto(pl.LightningModule):
         num_samples,
         search_alg,
         config,
+        distributed_config,
     ):
         import optuna
 
@@ -311,14 +315,15 @@ class BaseAuto(pl.LightningModule):
                 dataset=dataset,
                 val_size=val_size,
                 test_size=test_size,
+                distributed_config=distributed_config,
             )
             trial.set_user_attr("ALL_PARAMS", user_cfg)
-            metrics = trained_model.trainer.callback_metrics
+            metrics = trained_model.metrics
             trial.set_user_attr(
                 "METRICS",
                 {
-                    "loss": metrics["ptl/val_loss"],
-                    "train_loss": metrics["train_loss"],
+                    "loss": metrics["ptl/val_loss"].item(),
+                    "train_loss": metrics["train_loss"].item(),
                 },
             )
             return trial.user_attrs["METRICS"]["loss"]
@@ -337,12 +342,14 @@ class BaseAuto(pl.LightningModule):
         )
         return study
 
-    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+    def _fit_model(self, cls_model, config, dataset, val_size, test_size, distributed_config):
         model = cls_model(**config)
-        trained_model = model.fit(dataset, val_size=val_size, test_size=test_size)
+        trained_model = model.fit(
+            dataset, val_size=val_size, test_size=test_size, distributed_config=distributed_config
+            )
         return trained_model
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(self, dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None):
         """BaseAuto.fit
 
         Perform the hyperparameter optimization as specified by the BaseAuto configuration
@@ -375,6 +382,7 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
+                distributed_config=distributed_config,
             )
             best_config = results.get_best_result().config
         else:
@@ -387,6 +395,7 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
+                distributed_config=distributed_config,
             )
             best_config = results.best_trial.user_attrs["ALL_PARAMS"]
         self.model = self._fit_model(
@@ -395,6 +404,7 @@ class BaseAuto(pl.LightningModule):
             dataset=dataset,
             val_size=val_size * (1 - self.refit_with_val),
             test_size=test_size,
+            distributed_config=distributed_config,
         )
         self.results = results
 
@@ -402,6 +412,7 @@ class BaseAuto(pl.LightningModule):
         self.futr_exog_list = self.model.futr_exog_list
         self.hist_exog_list = self.model.hist_exog_list
         self.stat_exog_list = self.model.stat_exog_list
+        return self
 
     def predict(self, dataset, step_size=1, **data_kwargs):
         """BaseAuto.predict

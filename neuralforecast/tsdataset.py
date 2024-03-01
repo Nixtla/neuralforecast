@@ -416,6 +416,7 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
         valid_batch_size=1024,
         num_workers=0,
         drop_last=False,
+        shuffle_train=True,
     ):
         super(TimeSeriesDataModule, self).__init__()
         self.files_ds = dataset
@@ -423,6 +424,7 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
         self.valid_batch_size = valid_batch_size
         self.num_workers = num_workers
         self.drop_last = drop_last
+        self.shuffle_train = shuffle_train
 
     def setup(self, stage):
         import torch.distributed as dist
