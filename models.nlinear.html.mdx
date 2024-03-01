@@ -1,0 +1,208 @@
+---
+output-file: models.nlinear.html
+title: NLinear
+---
+
+
+NLinear is a simple and fast yet accurate time series forecasting model
+for long-horizon forecasting.
+
+The architecture aims to boost the performance when there is a
+distribution shift in the dataset: 1. NLinear first subtracts the input
+by the last value of the sequence; 2. Then, the input goes through a
+linear layer, and the subtracted part is added back before making the
+final prediction.
+
+**References**<br/> - [Zeng, Ailing, et al. “Are transformers effective
+for time series forecasting?.” Proceedings of the AAAI conference on
+artificial intelligence. Vol. 37. No. 9.
+2023.”](https://ojs.aaai.org/index.php/AAAI/article/view/26317)<br/>
+
+<figure>
+<img src="imgs_models/dlinear.png"
+alt="Figure 1. DLinear Architecture." />
+<figcaption aria-hidden="true">Figure 1. DLinear
+Architecture.</figcaption>
+</figure>
+
+## 1. NLinear
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/nlinear.py#L16"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### NLinear
+
+> ``` text
+>  NLinear (h:int, input_size:int, stat_exog_list=None, hist_exog_list=None,
+>           futr_exog_list=None, exclude_insample_y=False, loss=MAE(),
+>           valid_loss=None, max_steps:int=5000, learning_rate:float=0.0001,
+>           num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>           val_check_steps:int=100, batch_size:int=32,
+>           valid_batch_size:Optional[int]=None, windows_batch_size=1024,
+>           inference_windows_batch_size=1024, start_padding_enabled=False,
+>           step_size:int=1, scaler_type:str='identity', random_seed:int=1,
+>           num_workers_loader:int=0, drop_last_loader:bool=False,
+>           **trainer_kwargs)
+> ```
+
+NLinear
+
+*Parameters:*<br/> `h`: int, forecast horizon.<br/> `input_size`: int,
+maximum sequence length for truncated train backpropagation. Default -1
+uses all history.<br/> `futr_exog_list`: str list, future exogenous
+columns.<br/> `hist_exog_list`: str list, historic exogenous columns.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`exclude_insample_y`: bool=False, the model skips the autoregressive
+features y\[t-input_size:t\] if True.<br/> `loss`: PyTorch module,
+instantiated train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=1024, number of windows to
+sample in each training batch, default uses all.<br/>
+`inference_windows_batch_size`: int=1024, number of windows to sample in
+each inference batch.<br/> `start_padding_enabled`: bool=False, if True,
+the model will pad the time series with zeros at the beginning, by input
+size.<br/> `scaler_type`: str=‘robust’, type of scaler for temporal
+inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `**trainer_kwargs`: int, keyword
+trainer arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+
+``` text
+*References*<br/>
+- Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."
+```
+
+------------------------------------------------------------------------
+
+### NLinear.fit
+
+> ``` text
+>  NLinear.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### NLinear.predict
+
+> ``` text
+>  NLinear.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                   **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
+TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+## Usage Example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = NLinear(h=12,
+                 input_size=24,
+                 loss=MAE(),
+                 #loss=DistributionLoss(distribution='StudentT', level=[80, 90], return_params=True),
+                 scaler_type='robust',
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['NLinear-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['NLinear-lo-90'][-12:].values, 
+                    y2=plot_df['NLinear-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['NLinear'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+
