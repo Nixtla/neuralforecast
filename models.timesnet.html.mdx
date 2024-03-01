@@ -152,7 +152,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            start_padding_enabled=False, step_size:int=1,
 >            scaler_type:str='standard', random_seed:int=1,
 >            num_workers_loader:int=0, drop_last_loader:bool=False,
->            **trainer_kwargs)
+>            optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
 TimesNet
@@ -191,6 +191,8 @@ intraperiod and interperiod temporal variations.
 | random_seed                  | int      | 1           | Random_seed for pytorch initializer and numpy generators.                                                                                 |
 | num_workers_loader           | int      | 0           | Workers to be used by `TimeSeriesDataLoader`.                                                                                             |
 | drop_last_loader             | bool     | False       | If True `TimeSeriesDataLoader` drops last non-full batch.                                                                                 |
+| optimizer                    | NoneType | None        |                                                                                                                                           |
+| optimizer_kwargs             | NoneType | None        |                                                                                                                                           |
 | trainer_kwargs               |          |             |                                                                                                                                           |
 
 ------------------------------------------------------------------------

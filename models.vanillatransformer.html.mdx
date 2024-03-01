@@ -120,7 +120,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      start_padding_enabled=False, step_size:int=1,
 >                      scaler_type:str='identity', random_seed:int=1,
 >                      num_workers_loader:int=0,
->                      drop_last_loader:bool=False, **trainer_kwargs)
+>                      drop_last_loader:bool=False, optimizer=None,
+>                      optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
 VanillaTransformer
@@ -176,8 +177,12 @@ scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
 used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
 True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
-optional, Custom name of the model.<br/> `**trainer_kwargs`: int, keyword
-trainer arguments inherited from [PyTorch Lighning’s
+optional, Custom name of the model.<br/> `optimizer`: Subclass of
+‘torch.optim.Optimizer’, optional, user specified optimizer instead of
+the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
+of parameters used by the user specified `optimizer`.<br/>
+`**trainer_kwargs`: int, keyword trainer arguments inherited from
+[PyTorch Lighning’s
 trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
 
 ``` text
