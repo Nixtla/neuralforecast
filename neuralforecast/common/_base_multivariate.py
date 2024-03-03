@@ -4,6 +4,7 @@
 __all__ = ['BaseMultivariate']
 
 # %% ../../nbs/common.base_multivariate.ipynb 5
+import inspect
 import random
 import warnings
 
@@ -11,6 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+from copy import deepcopy
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
@@ -52,6 +54,8 @@ class BaseMultivariate(pl.LightningModule):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         super(BaseMultivariate, self).__init__()
@@ -88,6 +92,13 @@ class BaseMultivariate(pl.LightningModule):
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
         self.step_size = step_size
+        # custom optimizer defined by user
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -151,7 +162,20 @@ class BaseMultivariate(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        if self.optimizer:
+            optimizer_signature = inspect.signature(self.optimizer)
+            optimizer_kwargs = deepcopy(self.optimizer_kwargs)
+            if "lr" in optimizer_signature.parameters:
+                if "lr" in optimizer_kwargs:
+                    warnings.warn(
+                        "ignoring learning rate passed in optimizer_kwargs, using the model's learning rate"
+                    )
+                optimizer_kwargs["lr"] = self.learning_rate
+            optimizer = self.optimizer(
+                params=self.parameters(), **self.optimizer_kwargs
+            )
+        else:
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         scheduler = {
             "scheduler": torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
@@ -206,7 +230,7 @@ class BaseMultivariate(pl.LightningModule):
                 raise Exception("No windows available for training")
 
             # Sample windows
-            n_windows = len(windows)
+            n_windows = windows.shape[2]
             if self.batch_size is not None:
                 w_idxs = np.random.choice(
                     n_windows,
@@ -595,6 +619,7 @@ class BaseMultivariate(pl.LightningModule):
             batch_size=self.n_series,
             num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
+            shuffle_train=False,
         )
 
         if self.val_check_steps > self.max_steps:
