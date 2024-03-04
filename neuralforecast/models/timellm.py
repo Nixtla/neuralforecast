@@ -15,6 +15,8 @@ from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
 
+from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
+
 # %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
     def __init__(self, padding):
@@ -231,9 +233,9 @@ class TimeLLM(BaseWindows):
     `n_heads`: int=8, number of heads in attention layer.<br>
     `enc_in`: int=7, encoder input size.<br>
     `dec_in`: int=7, decoder input size.<br>
-    `llm` = None, LLM to use (loaded from HuggingFace).<br>
-    `llm_config` = None, configuration of LLM (loaded from HuggingFace).<br>
-    `llm_tokenizer` = None, tokenizer of LLM (loaded from HuggingFace).<br>
+    `llm` = None, LLM model to use. For example, you can use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_config` = None, configuration of LLM. For example, you can use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_tokenizer` = None, tokenizer of LLM. For example, you can use GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
     `llm_num_hidden_layers` = 32, hidden layers in LLM
     `llm_output_attention`: bool = True, whether to output attention in encoder.<br>
     `llm_output_hidden_states`: bool = True, whether to output hidden states.<br>
@@ -358,23 +360,18 @@ class TimeLLM(BaseWindows):
         self.enc_in = enc_in
         self.dec_in = dec_in
 
-        self.llm = llm
         self.llm_config = llm_config
+        self.llm = llm
         self.llm_tokenizer = llm_tokenizer
 
-        # Asserts
-        if self.llm is None:
-            raise Exception(
-                "TimeLLM requires an LLM from HuggingFace. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
-            )
         if self.llm_config is None:
-            raise Exception(
-                "TimeLLM an LLM configuration. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
+            self.llm_confg = GPT2Config.from_pretrained("openai-community/gpt2")
+        if self.llm is None:
+            self.llm = GPT2Model.from_pretrained(
+                "openai-community/gpt2", config=self.llm_confg
             )
         if self.llm_tokenizer is None:
-            raise Exception(
-                "TimeLLM requires an LLM tokenizer. For example, you can use GPT2 from https://huggingface.co/openai-community/gpt2"
-            )
+            self.llm_tokenizer = GPT2Tokenizer.from_pretrained("openai-community/gpt2")
 
         self.llm_num_hidden_layers = llm_num_hidden_layers
         self.llm_output_attention = llm_output_attention
