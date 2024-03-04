@@ -74,13 +74,12 @@ uses all history.<br/> `inference_input_size`: int, maximum sequence
 length for truncated inference. Default -1 uses all history.<br/>
 `encoder_n_layers`: int=2, number of layers for the LSTM.<br/>
 `encoder_hidden_size`: int=200, units for the LSTM’s hidden state
-size.<br/> `encoder_activation`: str=`tanh`, type of LSTM activation from
-`tanh` or `relu`.<br/> `encoder_bias`: bool=True, whether or not to use
-biases b_ih, b_hh within LSTM units.<br/> `encoder_dropout`: float=0.,
-dropout regularization applied to LSTM outputs.<br/> `context_size`:
-int=10, size of context vector for each timestamp on the forecasting
-window.<br/> `decoder_hidden_size`: int=200, size of hidden layer for the
-MLP decoder.<br/> `decoder_layers`: int=2, number of layers for the MLP
+size.<br/> `encoder_bias`: bool=True, whether or not to use biases b_ih,
+b_hh within LSTM units.<br/> `encoder_dropout`: float=0., dropout
+regularization applied to LSTM outputs.<br/> `context_size`: int=10, size
+of context vector for each timestamp on the forecasting window.<br/>
+`decoder_hidden_size`: int=200, size of hidden layer for the MLP
+decoder.<br/> `decoder_layers`: int=2, number of layers for the MLP
 decoder.<br/> `futr_exog_list`: str list, future exogenous columns.<br/>
 `hist_exog_list`: str list, historic exogenous columns.<br/>
 `stat_exog_list`: str list, static exogenous columns.<br/> `loss`:
