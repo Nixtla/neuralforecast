@@ -37,6 +37,7 @@
         "examples/exogenous_variables.html",
         "examples/time_series_scaling.html",
         "examples/automatic_hyperparameter_tuning.html",
+        "examples/cross_validation_tutorial.html",
         "examples/predictinsample.html",
         "examples/save_load_models.html",
         "examples/getting_started_complete.html",

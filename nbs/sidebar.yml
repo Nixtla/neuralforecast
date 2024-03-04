@@ -13,6 +13,7 @@ website:
         - examples/Exogenous_Variables.ipynb
         - examples/Time_Series_Scaling.ipynb
         - examples/Automatic_Hyperparameter_Tuning.ipynb
+        - examples/Cross_Validation_Tutorial.ipynb
         - examples/PredictInsample.ipynb
         - examples/Save_Load_models.ipynb
         - examples/Getting_Started_complete.ipynb
