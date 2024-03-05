@@ -2,7 +2,7 @@
 target-version = "py38"
 line-length = 88
 # Enable Pyflakes `E` and `F` codes by default.
-select = [
+lint.select = [
 #    "E",
 #    "W", # see: https://pypi.org/project/pycodestyle
     "F", # see: https://pypi.org/project/pyflakes
