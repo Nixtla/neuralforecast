@@ -155,7 +155,6 @@ class DeepAR(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
-
         # DeepAR does not support historic exogenous variables
         if hist_exog_list is not None:
             raise Exception("DeepAR does not support historic exogenous variables.")
