@@ -884,9 +884,8 @@ class NeuralForecast:
 
         # Store value set by user so that we avoid division errors that may lead to
         # forecasts past the last date. This is done by filtering the extra `cutoff``
-        # dates of the `fcsts_df`` dataframe considering `user_set_step_size`.
-        user_set_step_size = step_size
-        step_size = 1
+        # dates of the `fcsts_df`` dataframe considering `step_size`.
+        default_step_size = 1
 
         cols = []
         count_names = {"model": 0}
@@ -923,7 +922,7 @@ class NeuralForecast:
             indptr=trimmed_dataset.indptr,
             h=self.h,
             freq=self.freq,
-            step_size=step_size,
+            step_size=default_step_size,
             id_col=self.id_col,
             time_col=self.time_col,
         )
@@ -936,7 +935,7 @@ class NeuralForecast:
             model.set_test_size(test_size=trimmed_dataset.max_size)
 
             # Predict
-            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
+            model_fcsts = model.predict(trimmed_dataset, step_size=default_step_size)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
@@ -963,9 +962,7 @@ class NeuralForecast:
         n_series = len(self.uids)
         n_windows = fcsts_df.shape[0] // (n_series * self.h)
         offsets = (
-            np.repeat(
-                np.flip(np.arange(n_series * n_windows, 0, -user_set_step_size)), self.h
-            )
+            np.repeat(np.flip(np.arange(n_series * n_windows, 0, -step_size)), self.h)
             * self.h
         )
         horizons = -np.tile(np.flip(np.arange(1, self.h + 1)), offsets.size // self.h)
