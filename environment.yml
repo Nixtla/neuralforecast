@@ -18,7 +18,6 @@ dependencies:
   - pytorch-lightning>=2.0.0
   - pip
   - s3fs
-  - transformers
   - pip:
     - nbdev
     - black
