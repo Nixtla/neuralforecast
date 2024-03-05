@@ -26,7 +26,9 @@ from coreforecast.scalers import (
 from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
-from .tsdataset import TimeSeriesDataset
+from .common._base_model import DistributedConfig
+from .compat import SparkDataFrame
+from .tsdataset import _FilesDataset, TimeSeriesDataset
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -171,6 +173,7 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
+
     def __init__(
         self,
         models: List[Any],
@@ -304,6 +307,7 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        distributed_config: Optional[DistributedConfig] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -347,7 +351,7 @@ class NeuralForecast:
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
         # Process and save new dataset (in self)
-        if df is not None:
+        if isinstance(df, (pd.DataFrame, pl_DataFrame)):
             validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
@@ -359,9 +363,53 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
-        else:
+        elif isinstance(df, SparkDataFrame):
+            if distributed_config is None:
+                raise ValueError(
+                    "Must set `distributed_config` when using a spark dataframe"
+                )
+            temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
+            if static_df is not None:
+                if not isinstance(static_df, SparkDataFrame):
+                    raise ValueError(
+                        "`static_df` must be a spark dataframe when `df` is a spark dataframe."
+                    )
+                static_cols = [c for c in static_df.columns if c != id_col]
+                df = df.join(static_df, on=[id_col], how="left")
+            else:
+                static_cols = None
+            self.id_col = id_col
+            self.time_col = time_col
+            self.target_col = target_col
+            self.scalers_ = {}
+            self.sort_df = sort_df
+            num_partitions = distributed_config.num_nodes * distributed_config.devices
+            df = df.repartitionByRange(num_partitions, id_col)
+            df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
+            fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
+            files = [
+                f
+                for f in fs.ls(distributed_config.partitions_path)
+                if f.endswith("parquet")
+            ]
+            self.dataset = _FilesDataset(
+                files=files,
+                temporal_cols=temporal_cols,
+                static_cols=static_cols,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.dataset.min_size = (
+                df.groupBy(id_col).count().agg({"count": "min"}).first()[0]
+            )
+        elif df is None:
             if verbose:
                 print("Using stored dataset.")
+        else:
+            raise ValueError(
+                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+            )
 
         if val_size is not None:
             if self.dataset.min_size < val_size:
@@ -373,8 +421,10 @@ class NeuralForecast:
         if use_init_models:
             self._reset_models()
 
-        for model in self.models:
-            model.fit(self.dataset, val_size=val_size)
+        for i, model in enumerate(self.models):
+            self.models[i] = model.fit(
+                self.dataset, val_size=val_size, distributed_config=distributed_config
+            )
 
         self._fitted = True
 
@@ -999,18 +1049,22 @@ class NeuralForecast:
         if model_index is None:
             model_index = list(range(len(self.models)))
 
-        fs, _, paths = fsspec.get_fs_token_paths(path)
+        fs, _, _ = fsspec.get_fs_token_paths(path)
         if not fs.exists(path):
             fs.makedirs(path)
         else:
             # Check if directory is empty to protect overwriting files
-            dir = fs.ls(path)
+            files = fs.ls(path)
 
             # Checking if the list is empty or not
-            if dir and not overwrite:
-                raise Exception(
-                    "Directory is not empty. Set `overwrite=True` to overwrite files."
-                )
+            if files:
+                if not overwrite:
+                    raise Exception(
+                        "Directory is not empty. Set `overwrite=True` to overwrite files."
+                    )
+            else:
+                fs.rm(path, recursive=True)
+                fs.mkdir(path)
 
         # Save models
         count_names = {"model": 0}
@@ -1044,9 +1098,6 @@ class NeuralForecast:
         config_dict = {
             "h": self.h,
             "freq": self.freq,
-            "uids": self.uids,
-            "last_dates": self.last_dates,
-            "ds": self.ds,
             "sort_df": self.sort_df,
             "_fitted": self._fitted,
             "local_scaler_type": self.local_scaler_type,
@@ -1055,6 +1106,14 @@ class NeuralForecast:
             "time_col": self.time_col,
             "target_col": self.target_col,
         }
+        if save_dataset:
+            config_dict.update(
+                {
+                    "uids": self.uids,
+                    "last_dates": self.last_dates,
+                    "ds": self.ds,
+                }
+            )
 
         with fsspec.open(f"{path}/configuration.pkl", "wb") as f:
             pickle.dump(config_dict, f)

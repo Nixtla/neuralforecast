@@ -215,6 +215,7 @@ class BaseMultivariate(BaseModel):
             return windows_batch
 
         elif step in ["predict", "val"]:
+
             if step == "predict":
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -257,6 +258,7 @@ class BaseMultivariate(BaseModel):
             raise ValueError(f"Unknown step {step}")
 
     def _normalization(self, windows, y_idx):
+
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
         temporal = windows["temporal"]  # [Ws, C, L+H, n_series]
@@ -476,15 +478,9 @@ class BaseMultivariate(BaseModel):
         windows = self._normalization(windows=windows, y_idx=y_idx)
 
         # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            _,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+            self._parse_windows(batch, windows)
+        )
 
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L]
@@ -517,7 +513,14 @@ class BaseMultivariate(BaseModel):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -545,6 +548,7 @@ class BaseMultivariate(BaseModel):
             test_size=test_size,
             random_seed=random_seed,
             shuffle_train=False,
+            distributed_config=distributed_config,
         )
 
     def predict(

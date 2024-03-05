@@ -496,15 +496,9 @@ class BaseRecurrent(BaseModel):
         y_idx = batch["y_idx"]
 
         # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            _,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+            self._parse_windows(batch, windows)
+        )
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
@@ -543,7 +537,14 @@ class BaseRecurrent(BaseModel):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -572,6 +573,7 @@ class BaseRecurrent(BaseModel):
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
