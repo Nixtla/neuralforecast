@@ -15,13 +15,13 @@ import pytorch_lightning as pl
 from copy import deepcopy
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from ._base_model import _BaseModel
+from ._base_model import BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_recurrent.ipynb 7
-class BaseRecurrent(_BaseModel):
+class BaseRecurrent(BaseModel):
     """Base Recurrent
 
     Base class for all recurrent-based models. The forecasts are produced sequentially between
@@ -59,7 +59,7 @@ class BaseRecurrent(_BaseModel):
         optimizer_kwargs=None,
         **trainer_kwargs,
     ):
-        super(_BaseModel, self).__init__()
+        super(BaseModel, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
