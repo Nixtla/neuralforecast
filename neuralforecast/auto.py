@@ -1385,6 +1385,7 @@ class AutoHINT(BaseAuto):
 # %% ../nbs/models.ipynb 80
 class AutoTSMixer(BaseAuto):
     default_config = {
+        "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
         "n_series": None,
         "n_block": tune.choice([1, 2, 4, 6, 8]),

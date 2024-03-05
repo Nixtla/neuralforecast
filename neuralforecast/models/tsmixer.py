@@ -222,4 +222,9 @@ class TSMixer(BaseMultivariate):
             batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
         )
         forecast = self.loss.domain_map(x)
-        return forecast
+
+        # domain_map might have squeezed the last dimension in case n_series == 1
+        if forecast.ndim == 2:
+            return forecast.unsqueeze(-1)
+        else:
+            return forecast
