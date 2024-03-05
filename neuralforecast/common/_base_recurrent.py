@@ -4,6 +4,7 @@
 __all__ = ['BaseRecurrent']
 
 # %% ../../nbs/common.base_recurrent.ipynb 6
+import inspect
 import random
 import warnings
 
@@ -11,7 +12,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import TQDMProgressBar
+from copy import deepcopy
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._scalers import TemporalNorm
@@ -53,6 +54,8 @@ class BaseRecurrent(pl.LightningModule):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         super(BaseRecurrent, self).__init__()
@@ -102,6 +105,13 @@ class BaseRecurrent(pl.LightningModule):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
+        # custom optimizer defined by user
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
         # Variables
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
@@ -127,17 +137,12 @@ class BaseRecurrent(pl.LightningModule):
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
-        if trainer_kwargs.get("callbacks", None) is None:
-            callbacks = [TQDMProgressBar()]
-            # Early stopping
-            if self.early_stop_patience_steps > 0:
-                callbacks += [
-                    EarlyStopping(
-                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                    )
-                ]
-
-            trainer_kwargs["callbacks"] = callbacks
+        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
+            trainer_kwargs["callbacks"] = [
+                EarlyStopping(
+                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                )
+            ]
 
         # Add GPU accelerator if available
         if trainer_kwargs.get("accelerator", None) is None:
@@ -169,7 +174,18 @@ class BaseRecurrent(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        if self.optimizer:
+            optimizer_signature = inspect.signature(self.optimizer)
+            optimizer_kwargs = deepcopy(self.optimizer_kwargs)
+            if "lr" in optimizer_signature.parameters:
+                if "lr" in optimizer_kwargs:
+                    warnings.warn(
+                        "ignoring learning rate passed in optimizer_kwargs, using the model's learning rate"
+                    )
+                optimizer_kwargs["lr"] = self.learning_rate
+            optimizer = self.optimizer(params=self.parameters(), **optimizer_kwargs)
+        else:
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         scheduler = {
             "scheduler": torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
@@ -642,6 +658,7 @@ class BaseRecurrent(pl.LightningModule):
 
         trainer = pl.Trainer(**self.trainer_kwargs)
         trainer.fit(self, datamodule=datamodule)
+        return trainer
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Predict.

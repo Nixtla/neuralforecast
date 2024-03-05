@@ -10,7 +10,6 @@ from os import cpu_count
 import torch
 import pytorch_lightning as pl
 
-from pytorch_lightning.callbacks import TQDMProgressBar
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
@@ -194,12 +193,9 @@ class BaseAuto(pl.LightningModule):
         `test_size`: int, test size for temporal cross-validation.<br>
         """
         metrics = {"loss": "ptl/val_loss", "train_loss": "train_loss"}
-        callbacks = [
-            TQDMProgressBar(),
-            TuneReportCallback(metrics, on="validation_end"),
-        ]
+        callbacks = [TuneReportCallback(metrics, on="validation_end")]
         if "callbacks" in config_step.keys():
-            callbacks += config_step["callbacks"]
+            callbacks.extend(config_step["callbacks"])
         config_step = {**config_step, **{"callbacks": callbacks}}
 
         # Protect dtypes from tune samplers
@@ -309,7 +305,7 @@ class BaseAuto(pl.LightningModule):
         def objective(trial):
             user_cfg = config(trial)
             cfg = deepcopy(user_cfg)
-            fitted_model = self._fit_model(
+            _, trainer = self._fit_model(
                 cls_model=cls_model,
                 config=cfg,
                 dataset=dataset,
@@ -317,7 +313,7 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
             )
             trial.set_user_attr("ALL_PARAMS", user_cfg)
-            metrics = fitted_model.trainer.callback_metrics
+            metrics = trainer.callback_metrics
             trial.set_user_attr(
                 "METRICS",
                 {
@@ -343,8 +339,8 @@ class BaseAuto(pl.LightningModule):
 
     def _fit_model(self, cls_model, config, dataset, val_size, test_size):
         model = cls_model(**config)
-        model.fit(dataset, val_size=val_size, test_size=test_size)
-        return model
+        trainer = model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model, trainer
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """BaseAuto.fit
@@ -393,7 +389,7 @@ class BaseAuto(pl.LightningModule):
                 config=self.config,
             )
             best_config = results.best_trial.user_attrs["ALL_PARAMS"]
-        self.model = self._fit_model(
+        self.model, _ = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
             dataset=dataset,
