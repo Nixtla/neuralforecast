@@ -4,6 +4,9 @@ channels:
   - nvidia
   - conda-forge
 dependencies:
+  - coreforecast>=0.0.6
+  - fsspec
+  - gitpython
   - hyperopt
   - jupyterlab
   - matplotlib
@@ -16,6 +19,7 @@ dependencies:
   - pytorch-cuda>=11.8
   - pytorch-lightning>=2.0.0
   - pip
+  - s3fs
   - pip:
     - nbdev
     - black
