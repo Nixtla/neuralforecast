@@ -3,6 +3,7 @@ channels:
   - pytorch
   - conda-forge
 dependencies:
+  - python=3.10
   - coreforecast>=0.0.6
   - fsspec
   - gitpython

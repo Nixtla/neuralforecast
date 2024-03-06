@@ -35,13 +35,12 @@ Bug fixes and features are added through pull requests (PRs).
 #### Set up a conda environment
 The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
-Once you have `conda` go to the top level directory of the repository and run the following lines (we recommend to use `python=3.10` for development, currently `python>=3.11` is not supported):
-
+Once you have `conda` go to the top level directory of the repository and run one of the following lines:
 ```
-conda create -n neuralforecast python=3.10
-conda activate neuralforecast
-conda env update -f environment.yml
+conda env create --file=environment-cpu.yml  # choose this if you want to install the CPU-only version of neuralforecast
+conda env create --file=environment-cuda.yml # choose this if you want to install the CUDA-enabled version of neuralforecast
 ```
+This will create a Python 3.10 conda environment called `neuralforecast`.
 
 #### Install the library
 Once you have your environment setup, activate it using `conda activate neuralforecast` and then install the library in editable mode using `pip install -e ".[dev]"`
