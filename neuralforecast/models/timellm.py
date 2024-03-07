@@ -6,7 +6,6 @@ __all__ = ['IS_TRANSFORMERS_INSTALLED', 'ReplicationPad1d', 'TokenEmbedding', 'P
 
 # %% ../../nbs/models.timellm.ipynb 6
 import math
-import numpy as np
 from typing import Optional
 
 import torch
