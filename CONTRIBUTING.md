@@ -36,7 +36,7 @@ Bug fixes and features are added through pull requests (PRs).
 The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
 Once you have `conda` go to the top level directory of the repository and run the following lines:
-````
+```
 conda create -n neuralforecast python=3.10
 conda activate neuralforecast
 ```
