@@ -48,6 +48,7 @@ from neuralforecast.models import (
     StemGNN,
     PatchTST,
     TimesNet,
+    TSMixer,
     TimeLLM,
 )
 
@@ -146,6 +147,8 @@ MODEL_FILENAME_DICT = {
     "autotimesnet": TimesNet,
     "vanillatransformer": VanillaTransformer,
     "autovanillatransformer": VanillaTransformer,
+    "tsmixer": TSMixer,
+    "autotsmixer": TSMixer,
     "timellm": TimeLLM,
 }
 
