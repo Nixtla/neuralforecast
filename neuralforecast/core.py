@@ -49,6 +49,7 @@ from neuralforecast.models import (
     PatchTST,
     TimesNet,
     TimeLLM,
+    TSMixer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -147,6 +148,8 @@ MODEL_FILENAME_DICT = {
     "vanillatransformer": VanillaTransformer,
     "autovanillatransformer": VanillaTransformer,
     "timellm": TimeLLM,
+    "tsmixer": TSMixer,
+    "autotsmixer": TSMixer,
 }
 
 # %% ../nbs/core.ipynb 8

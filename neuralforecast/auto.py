@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
            'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer',
-           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT']
+           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -38,6 +38,7 @@ from .models.timesnet import TimesNet
 
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
+from .models.tsmixer import TSMixer
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
@@ -1380,3 +1381,71 @@ class AutoHINT(BaseAuto):
         model.test_size = test_size
         model.fit(dataset, val_size=val_size, test_size=test_size)
         return model, None
+
+# %% ../nbs/models.ipynb 80
+class AutoTSMixer(BaseAuto):
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4],
+        "h": None,
+        "n_series": None,
+        "n_block": tune.choice([1, 2, 4, 6, 8]),
+        "learning_rate": tune.loguniform(1e-4, 1e-2),
+        "ff_dim": tune.choice([32, 64, 128]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "dropout": tune.uniform(0.0, 0.99),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
+
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
+        super(AutoTSMixer, self).__init__(
+            cls_model=TSMixer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
