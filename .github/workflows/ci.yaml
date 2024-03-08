@@ -23,6 +23,8 @@ jobs:
 
       - name: Set up python
         uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
       - name: Install nbdev
         run: pip install black nbdev
