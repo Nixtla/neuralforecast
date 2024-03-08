@@ -88,7 +88,6 @@ class MLP(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
-
         # Inherit BaseWindows class
         super(MLP, self).__init__(
             h=h,
