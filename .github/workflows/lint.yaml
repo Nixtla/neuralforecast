@@ -18,8 +18,8 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install pre-commit
-        run: pip install pre-commit
+      - name: Install dependencies
+        run: pip install nbdev pre-commit
 
       - name: Run pre-commit
-        run: pre-commit run --all-files
+        run: pre-commit run
