@@ -19,7 +19,7 @@ jobs:
           python-version: 3.8
 
       - name: Install dependencies
-        run: pip install nbdev pre-commit
+        run: pip install black nbdev pre-commit
 
       - name: Run pre-commit
         run: pre-commit run
