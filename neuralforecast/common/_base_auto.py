@@ -241,6 +241,10 @@ class BaseAuto(pl.LightningModule):
         else:
             device_dict = {"cpu": cpus}
 
+        # on Windows, prevent long trial directory names
+        import platform
+        trial_dirname_creator=(lambda trial: f"{trial.trainable_name}_{trial.trial_id}") if platform.system() == 'Windows' else None
+
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
             run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
@@ -249,6 +253,7 @@ class BaseAuto(pl.LightningModule):
                 mode="min",
                 num_samples=num_samples,
                 search_alg=search_alg,
+                trial_dirname_creator=trial_dirname_creator,
             ),
             param_space=config,
         )
