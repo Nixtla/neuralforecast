@@ -25,4 +25,4 @@ jobs:
         run: mypy neuralforecast/
 
       - name: Ruff
-        run: ruff neuralforecast/
+        run: ruff check neuralforecast/
