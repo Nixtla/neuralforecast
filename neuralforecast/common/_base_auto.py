@@ -10,7 +10,6 @@ from os import cpu_count
 import torch
 import pytorch_lightning as pl
 
-from pytorch_lightning.callbacks import TQDMProgressBar
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
@@ -78,6 +77,10 @@ class BaseAuto(pl.LightningModule):
         Custom name of the model.
     backend : str (default='ray')
         Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
+    callbacks : list of callable, optional (default=None)
+        List of functions to call during the optimization process.
+        ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
+        optuna reference: https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/007_optuna_callback.html
     """
 
     def __init__(
@@ -95,6 +98,7 @@ class BaseAuto(pl.LightningModule):
         verbose=False,
         alias=None,
         backend="ray",
+        callbacks=None,
     ):
         super(BaseAuto, self).__init__()
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
@@ -166,6 +170,7 @@ class BaseAuto(pl.LightningModule):
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
+        self.callbacks = callbacks
 
         # Base Class attributes
         self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
@@ -187,13 +192,10 @@ class BaseAuto(pl.LightningModule):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
-        metrics = {"loss": "ptl/val_loss"}
-        callbacks = [
-            TQDMProgressBar(),
-            TuneReportCallback(metrics, on="validation_end"),
-        ]
+        metrics = {"loss": "ptl/val_loss", "train_loss": "train_loss"}
+        callbacks = [TuneReportCallback(metrics, on="validation_end")]
         if "callbacks" in config_step.keys():
-            callbacks += config_step["callbacks"]
+            callbacks.extend(config_step["callbacks"])
         config_step = {**config_step, **{"callbacks": callbacks}}
 
         # Protect dtypes from tune samplers
@@ -245,13 +247,7 @@ class BaseAuto(pl.LightningModule):
 
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(
-                verbose=verbose,
-                # checkpoint_config=air.CheckpointConfig(
-                # num_to_keep=0,
-                # keep_checkpoints_num=None
-                # )
-            ),
+            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
@@ -312,16 +308,25 @@ class BaseAuto(pl.LightningModule):
         import optuna
 
         def objective(trial):
-            cfg = config(trial)
-            fitted_model = self._fit_model(
+            user_cfg = config(trial)
+            cfg = deepcopy(user_cfg)
+            _, trainer = self._fit_model(
                 cls_model=cls_model,
                 config=cfg,
                 dataset=dataset,
                 val_size=val_size,
                 test_size=test_size,
             )
-            trial.set_user_attr("ALL_PARAMS", cfg)
-            return fitted_model.trainer.callback_metrics["valid_loss"].item()
+            trial.set_user_attr("ALL_PARAMS", user_cfg)
+            metrics = trainer.callback_metrics
+            trial.set_user_attr(
+                "METRICS",
+                {
+                    "loss": metrics["ptl/val_loss"],
+                    "train_loss": metrics["train_loss"],
+                },
+            )
+            return trial.user_attrs["METRICS"]["loss"]
 
         if isinstance(search_alg, optuna.samplers.BaseSampler):
             sampler = search_alg
@@ -333,13 +338,14 @@ class BaseAuto(pl.LightningModule):
             objective,
             n_trials=num_samples,
             show_progress_bar=verbose,
+            callbacks=self.callbacks,
         )
         return study
 
     def _fit_model(self, cls_model, config, dataset, val_size, test_size):
         model = cls_model(**config)
-        model.fit(dataset, val_size=val_size, test_size=test_size)
-        return model
+        trainer = model.fit(dataset, val_size=val_size, test_size=test_size)
+        return model, trainer
 
     def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
         """BaseAuto.fit
@@ -388,7 +394,7 @@ class BaseAuto(pl.LightningModule):
                 config=self.config,
             )
             best_config = results.best_trial.user_attrs["ALL_PARAMS"]
-        self.model = self._fit_model(
+        self.model, _ = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
             dataset=dataset,

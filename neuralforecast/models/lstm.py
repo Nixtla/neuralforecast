@@ -28,7 +28,6 @@ class LSTM(BaseRecurrent):
     `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `encoder_n_layers`: int=2, number of layers for the LSTM.<br>
     `encoder_hidden_size`: int=200, units for the LSTM's hidden state size.<br>
-    `encoder_activation`: str=`tanh`, type of LSTM activation from `tanh` or `relu`.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within LSTM units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to LSTM outputs.<br>
     `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
@@ -51,6 +50,8 @@ class LSTM(BaseRecurrent):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
@@ -85,6 +86,8 @@ class LSTM(BaseRecurrent):
         random_seed=1,
         num_workers_loader=0,
         drop_last_loader=False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         super(LSTM, self).__init__(
@@ -107,6 +110,8 @@ class LSTM(BaseRecurrent):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 

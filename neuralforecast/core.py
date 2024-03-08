@@ -9,11 +9,22 @@ import pickle
 import warnings
 from copy import deepcopy
 from itertools import chain
-from os.path import isfile, join
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
+import fsspec
 import numpy as np
 import pandas as pd
+import torch
+import utilsforecast.processing as ufp
+from coreforecast.grouped_array import GroupedArray
+from coreforecast.scalers import (
+    LocalBoxCoxScaler,
+    LocalMinMaxScaler,
+    LocalRobustScaler,
+    LocalStandardScaler,
+)
+from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
+from utilsforecast.validation import validate_freq
 
 from .tsdataset import TimeSeriesDataset
 from neuralforecast.models import (
@@ -27,6 +38,8 @@ from neuralforecast.models import (
     NHITS,
     NBEATS,
     NBEATSx,
+    DLinear,
+    NLinear,
     TFT,
     VanillaTransformer,
     Informer,
@@ -35,128 +48,137 @@ from neuralforecast.models import (
     StemGNN,
     PatchTST,
     TimesNet,
+    TSMixer,
 )
 
 # %% ../nbs/core.ipynb 5
-def _cv_dates(last_dates, freq, h, test_size, step_size=1):
-    # assuming step_size = 1
-    if (test_size - h) % step_size:
-        raise Exception("`test_size - h` should be module `step_size`")
-    n_windows = int((test_size - h) / step_size) + 1
-    if len(np.unique(last_dates)) == 1:
-        if issubclass(last_dates.dtype.type, np.integer):
-            total_dates = np.arange(last_dates[0] - test_size + 1, last_dates[0] + 1)
-            out = np.empty((h * n_windows, 2), dtype=last_dates.dtype)
-            freq = 1
-        else:
-            total_dates = pd.date_range(end=last_dates[0], periods=test_size, freq=freq)
-            out = np.empty((h * n_windows, 2), dtype="datetime64[s]")
-        for i_window, cutoff in enumerate(
-            range(-test_size, -h + 1, step_size), start=0
-        ):
-            end_cutoff = cutoff + h
-            out[h * i_window : h * (i_window + 1), 0] = (
-                total_dates[cutoff:]
-                if end_cutoff == 0
-                else total_dates[cutoff:end_cutoff]
-            )
-            out[h * i_window : h * (i_window + 1), 1] = np.tile(
-                total_dates[cutoff] - freq, h
-            )
-        dates = pd.DataFrame(
-            np.tile(out, (len(last_dates), 1)), columns=["ds", "cutoff"]
-        )
+def _insample_times(
+    times: np.ndarray,
+    uids: Series,
+    indptr: np.ndarray,
+    h: int,
+    freq: Union[int, str, pd.offsets.BaseOffset],
+    step_size: int = 1,
+    id_col: str = "unique_id",
+    time_col: str = "ds",
+) -> DataFrame:
+    sizes = np.diff(indptr)
+    if (sizes < h).any():
+        raise ValueError("`sizes` should be greater or equal to `h`.")
+    # TODO: we can just truncate here instead of raising an error
+    ns, resids = np.divmod(sizes - h, step_size)
+    if (resids != 0).any():
+        raise ValueError("`sizes - h` should be multiples of `step_size`")
+    windows_per_serie = ns + 1
+    # determine the offsets for the cutoffs, e.g. 2 means the 3rd training date is a cutoff
+    cutoffs_offsets = step_size * np.hstack([np.arange(w) for w in windows_per_serie])
+    # start index of each serie, e.g. [0, 17] means the the second serie starts on the 18th entry
+    # we repeat each of these as many times as we have windows, e.g. windows_per_serie = [2, 3]
+    # would yield [0, 0, 17, 17, 17]
+    start_idxs = np.repeat(indptr[:-1], windows_per_serie)
+    # determine the actual indices of the cutoffs, we repeat the cutoff for the complete horizon
+    # e.g. if we have two series and h=2 this could be [0, 0, 1, 1, 17, 17, 18, 18]
+    # which would have the first two training dates from each serie as the cutoffs
+    cutoff_idxs = np.repeat(start_idxs + cutoffs_offsets, h)
+    cutoffs = times[cutoff_idxs]
+    total_windows = windows_per_serie.sum()
+    # determine the offsets for the actual dates. this is going to be [0, ..., h] repeated
+    ds_offsets = np.tile(np.arange(h), total_windows)
+    # determine the actual indices of the times
+    # e.g. if we have two series and h=2 this could be [0, 1, 1, 2, 17, 18, 18, 19]
+    ds_idxs = cutoff_idxs + ds_offsets
+    ds = times[ds_idxs]
+    if isinstance(uids, pl_Series):
+        df_constructor = pl_DataFrame
     else:
-        dates = pd.concat(
-            [
-                _cv_dates(np.array([ld]), freq, h, test_size, step_size)
-                for ld in last_dates
-            ]
-        )
-        dates = dates.reset_index(drop=True)
-    return dates
-
-# %% ../nbs/core.ipynb 6
-def _insample_dates(uids, last_dates, freq, h, len_series, step_size=1):
-    """
-    Generate insample dates for `predict_insample` function. Uses `_cv_dates`
-    method with separate sizes and last dates for each series.
-    """
-    if (len(np.unique(last_dates)) == 1) and (len(np.unique(len_series)) == 1):
-        # Dates can be generated simulatenously if ld and ls are the same for all series
-        dates = _cv_dates(last_dates, freq, h, len_series[0], step_size)
-        dates["unique_id"] = np.repeat(uids, len(dates) // len(uids))
-    else:
-        dates = []
-        for ui, ld, ls in zip(uids, last_dates, len_series):
-            # Dates have to be generated for each series separately, considering its own ld and ls
-            dates_series = _cv_dates(np.array([ld]), freq, h, ls, step_size)
-            dates_series["unique_id"] = ui
-            dates.append(dates_series)
-        dates = pd.concat(dates)
-    dates = dates.reset_index(drop=True)
-    dates = dates[["unique_id", "ds", "cutoff"]]
-    return dates
+        df_constructor = pd.DataFrame
+    out = df_constructor(
+        {
+            id_col: ufp.repeat(uids, h * windows_per_serie),
+            time_col: ds,
+            "cutoff": cutoffs,
+        }
+    )
+    # the first cutoff is before the first train date
+    actual_cutoffs = ufp.offset_times(out["cutoff"], freq, -1)
+    out = ufp.assign_columns(out, "cutoff", actual_cutoffs)
+    return out
 
 # %% ../nbs/core.ipynb 7
-def _future_dates(dataset, uids, last_dates, freq, h):
-    """
-    Generate future dates for `predict` function.
-    """
-    if issubclass(last_dates.dtype.type, np.integer):
-        last_date_f = lambda x: np.arange(x + 1, x + 1 + h, dtype=last_dates.dtype)
-    else:
-        last_date_f = lambda x: pd.date_range(x + freq, periods=h, freq=freq)
-    if len(np.unique(last_dates)) == 1:
-        dates = np.tile(last_date_f(last_dates[0]), len(dataset))
-    else:
-        dates = np.hstack([last_date_f(last_date) for last_date in last_dates])
-    idx = pd.Index(np.repeat(uids, h), name="unique_id")
-    df = pd.DataFrame({"ds": dates}, index=idx)
-    return df
-
-# %% ../nbs/core.ipynb 11
 MODEL_FILENAME_DICT = {
-    "gru": GRU,
-    "lstm": LSTM,
-    "rnn": RNN,
-    "tcn": TCN,
-    "deepar": DeepAR,
-    "dilatedrnn": DilatedRNN,
-    "mlp": MLP,
-    "nbeats": NBEATS,
-    "nbeatsx": NBEATSx,
-    "nhits": NHITS,
-    "tft": TFT,
-    "vanillatransformer": VanillaTransformer,
-    "informer": Informer,
     "autoformer": Autoformer,
-    "patchtst": PatchTST,
-    "stemgnn": StemGNN,
-    "autogru": GRU,
-    "autolstm": LSTM,
-    "autornn": RNN,
-    "autotcn": TCN,
-    "autodeepar": DeepAR,
-    "autodilatedrnn": DilatedRNN,
-    "automlp": MLP,
-    "autonbeats": NBEATS,
-    "autonbeatsx": NBEATSx,
-    "autonhits": NHITS,
-    "autotft": TFT,
-    "autovanillatransformer": VanillaTransformer,
-    "autoinformer": Informer,
     "autoautoformer": Autoformer,
-    "autopatchtst": PatchTST,
+    "deepar": DeepAR,
+    "autodeepar": DeepAR,
+    "dlinear": DLinear,
+    "autodlinear": DLinear,
+    "nlinear": NLinear,
+    "autonlinear": NLinear,
+    "dilatedrnn": DilatedRNN,
+    "autodilatedrnn": DilatedRNN,
+    "fedformer": FEDformer,
     "autofedformer": FEDformer,
+    "gru": GRU,
+    "autogru": GRU,
+    "informer": Informer,
+    "autoinformer": Informer,
+    "lstm": LSTM,
+    "autolstm": LSTM,
+    "mlp": MLP,
+    "automlp": MLP,
+    "nbeats": NBEATS,
+    "autonbeats": NBEATS,
+    "nbeatsx": NBEATSx,
+    "autonbeatsx": NBEATSx,
+    "nhits": NHITS,
+    "autonhits": NHITS,
+    "patchtst": PatchTST,
+    "autopatchtst": PatchTST,
+    "rnn": RNN,
+    "autornn": RNN,
+    "stemgnn": StemGNN,
     "autostemgnn": StemGNN,
+    "tcn": TCN,
+    "autotcn": TCN,
+    "tft": TFT,
+    "autotft": TFT,
+    "timesnet": TimesNet,
     "autotimesnet": TimesNet,
+    "vanillatransformer": VanillaTransformer,
+    "autovanillatransformer": VanillaTransformer,
+    "tsmixer": TSMixer,
+    "autotsmixer": TSMixer,
 }
 
-# %% ../nbs/core.ipynb 12
+# %% ../nbs/core.ipynb 8
+_type2scaler = {
+    "standard": LocalStandardScaler,
+    "robust": lambda: LocalRobustScaler(scale="mad"),
+    "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
+    "minmax": LocalMinMaxScaler,
+    "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
+}
+
+# %% ../nbs/core.ipynb 9
+def _id_as_idx() -> bool:
+    return not bool(os.getenv("NIXTLA_ID_AS_COL", ""))
+
+
+def _warn_id_as_idx():
+    warnings.warn(
+        "In a future version the predictions will have the id as a column. "
+        "You can set the `NIXTLA_ID_AS_COL` environment variable "
+        "to adopt the new behavior and to suppress this warning.",
+        category=FutureWarning,
+    )
+
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
     def __init__(
-        self, models: List[Any], freq: str, local_scaler_type: Optional[str] = None
+        self,
+        models: List[Any],
+        freq: Union[str, int],
+        local_scaler_type: Optional[str] = None,
     ):
         """
         The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
@@ -169,9 +191,8 @@ class NeuralForecast:
         models : List[typing.Any]
             Instantiated `neuralforecast.models`
             see [collection here](https://nixtla.github.io/neuralforecast/models.html).
-        freq : str
-            Frequency of the data,
-            see [panda's available frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).
+        freq : str or int
+            Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
             Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
@@ -187,29 +208,106 @@ class NeuralForecast:
 
         self.h = models[0].h
         self.models_init = models
-        self.models = [deepcopy(model) for model in self.models_init]
-        self.freq = pd.tseries.frequencies.to_offset(freq)
+        self.freq = freq
+        if local_scaler_type is not None and local_scaler_type not in _type2scaler:
+            raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
+        self.scalers_: Dict
 
         # Flags and attributes
         self._fitted = False
+        self._reset_models()
 
-    def _prepare_fit(self, df, static_df, sort_df, scaler_type):
+    def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
+        self.scalers_ = {}
+        if self.local_scaler_type is None:
+            return None
+        for i, col in enumerate(dataset.temporal_cols):
+            if col == "available_mask":
+                continue
+            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+            self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
+            dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
+
+    def _scalers_transform(self, dataset: TimeSeriesDataset) -> None:
+        if not self.scalers_:
+            return None
+        for i, col in enumerate(dataset.temporal_cols):
+            scaler = self.scalers_.get(col, None)
+            if scaler is None:
+                continue
+            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+            dataset.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
+
+    def _scalers_target_inverse_transform(
+        self, data: np.ndarray, indptr: np.ndarray
+    ) -> np.ndarray:
+        if not self.scalers_:
+            return data
+        for i in range(data.shape[1]):
+            ga = GroupedArray(data[:, i], indptr)
+            data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
+        return data
+
+    def _prepare_fit(
+        self, df, static_df, sort_df, predict_only, id_col, time_col, target_col
+    ):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self._check_nan(df, static_df, id_col, time_col, target_col)
+
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
-            df=df, static_df=static_df, sort_df=sort_df, scaler_type=scaler_type
+            df=df,
+            static_df=static_df,
+            sort_df=sort_df,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
         )
+        if predict_only:
+            self._scalers_transform(dataset)
+        else:
+            self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
+
+    def _check_nan(self, df, static_df, id_col, time_col, target_col):
+        cols_with_nans = []
+
+        temporal_cols = [target_col] + [
+            c for c in df.columns if c not in (id_col, time_col, target_col)
+        ]
+        if "available_mask" in temporal_cols:
+            available_mask = df["available_mask"].to_numpy().astype(bool)
+        else:
+            available_mask = np.full(df.shape[0], True)
+
+        df_to_check = ufp.filter_with_mask(df, available_mask)
+        for col in temporal_cols:
+            if ufp.is_nan_or_none(df_to_check[col]).any():
+                cols_with_nans.append(col)
+
+        if static_df is not None:
+            for col in [x for x in static_df.columns if x != id_col]:
+                if ufp.is_nan_or_none(static_df[col]).any():
+                    cols_with_nans.append(col)
+
+        if cols_with_nans:
+            raise ValueError(f"Found missing values in {cols_with_nans}.")
 
     def fit(
         self,
-        df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
+        df: Optional[DataFrame] = None,
+        static_df: Optional[DataFrame] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
-    ):
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
+    ) -> None:
         """Fit the core.NeuralForecast.
 
         Fit `models` to a large set of time series from DataFrame `df`.
@@ -217,10 +315,10 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas.DataFrame, optional (default=None)
+        df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
-        static_df : pandas.DataFrame, optional (default=None)
+        static_df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
@@ -230,6 +328,12 @@ class NeuralForecast:
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
+        id_col : str (default='unique_id')
+            Column that identifies each serie.
+        time_col : str (default='ds')
+            Column that identifies each timestep, its values can be timestamps or integers.
+        target_col : str (default='y')
+            Column that contains the target.
 
         Returns
         -------
@@ -247,11 +351,15 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if df is not None:
+            validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
                 sort_df=sort_df,
-                scaler_type=self.local_scaler_type,
+                predict_only=False,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
             )
             self.sort_df = sort_df
         else:
@@ -266,20 +374,73 @@ class NeuralForecast:
 
         # Recover initial model if use_init_models
         if use_init_models:
-            self.models = [deepcopy(model) for model in self.models_init]
-            if self._fitted:
-                print("WARNING: Deleting previously fitted models.")
+            self._reset_models()
 
         for model in self.models:
             model.fit(self.dataset, val_size=val_size)
 
         self._fitted = True
 
+    def make_future_dataframe(self, df: Optional[DataFrame] = None) -> DataFrame:
+        """Create a dataframe with all ids and future times in the forecasting horizon.
+
+        Parameters
+        ----------
+        df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            Only required if this is different than the one used in the fit step.
+        """
+        if not self._fitted:
+            raise Exception("You must fit the model first.")
+        if df is not None:
+            df = ufp.sort(df, by=[self.id_col, self.time_col])
+            last_times_by_id = ufp.group_by_agg(
+                df,
+                by=self.id_col,
+                aggs={self.time_col: "max"},
+                maintain_order=True,
+            )
+            uids = last_times_by_id[self.id_col]
+            last_times = last_times_by_id[self.time_col]
+        else:
+            uids = self.uids
+            last_times = self.last_dates
+        return ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_times,
+            freq=self.freq,
+            h=self.h,
+            id_col=self.id_col,
+            time_col=self.time_col,
+        )
+
+    def get_missing_future(
+        self, futr_df: DataFrame, df: Optional[DataFrame] = None
+    ) -> DataFrame:
+        """Get the missing ids and times combinations in `futr_df`.
+
+        Parameters
+        ----------
+        futr_df : pandas or polars DataFrame
+            DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
+        df : pandas or polars DataFrame, optional (default=None)
+            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            Only required if this is different than the one used in the fit step.
+        """
+        expected = self.make_future_dataframe(df)
+        ids = [self.id_col, self.time_col]
+        return ufp.anti_join(expected, futr_df[ids], on=ids)
+
+    def _get_needed_futr_exog(self):
+        return set(
+            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
+        )
+
     def predict(
         self,
-        df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
-        futr_df: Optional[pd.DataFrame] = None,
+        df: Optional[DataFrame] = None,
+        static_df: Optional[DataFrame] = None,
+        futr_df: Optional[DataFrame] = None,
         sort_df: bool = True,
         verbose: bool = False,
         **data_kwargs,
@@ -290,12 +451,12 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas.DataFrame, optional (default=None)
+        df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
-        static_df : pandas.DataFrame, optional (default=None)
+        static_df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
-        futr_df : pandas.DataFrame, optional (default=None)
+        futr_df : pandas or polars DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
         sort_df : bool (default=True)
             Sort `df` before fitting.
@@ -306,7 +467,7 @@ class NeuralForecast:
 
         Returns
         -------
-        fcsts_df : pandas.DataFrame
+        fcsts_df : pandas or polars DataFrame
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
@@ -316,9 +477,7 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
-        needed_futr_exog = set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
             if futr_df is None:
                 raise ValueError(
@@ -334,11 +493,16 @@ class NeuralForecast:
 
         # Process new dataset but does not store it.
         if df is not None:
+            validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df, static_df=static_df, sort_df=sort_df, scaler_type=None
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                predict_only=True,
+                id_col=self.id_col,
+                time_col=self.time_col,
+                target_col=self.target_col,
             )
-            dataset.scalers_ = self.dataset.scalers_
-            dataset._transform_temporal()
         else:
             dataset = self.dataset
             uids = self.uids
@@ -356,35 +520,51 @@ class NeuralForecast:
             cols += [model_name + n for n in model.loss.output_names]
 
         # Placeholder dataframe for predictions with unique_id and ds
-        fcsts_df = _future_dates(
-            dataset=dataset, uids=uids, last_dates=last_dates, freq=self.freq, h=self.h
+        fcsts_df = ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_dates,
+            freq=self.freq,
+            h=self.h,
+            id_col=self.id_col,
+            time_col=self.time_col,
         )
 
         # Update and define new forecasting dataset
-        if futr_df is not None:
+        if futr_df is None:
+            futr_df = fcsts_df
+        else:
             futr_orig_rows = futr_df.shape[0]
-            futr_df = futr_df.merge(fcsts_df, on=["unique_id", "ds"])
-            base_err_msg = f"`futr_df` must have one row per id and ds in the forecasting horizon ({self.h})."
+            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
             if futr_df.shape[0] < fcsts_df.shape[0]:
-                raise ValueError(base_err_msg)
+                if df is None:
+                    expected_cmd = "make_future_dataframe()"
+                    missing_cmd = "get_missing_future(futr_df)"
+                else:
+                    expected_cmd = "make_future_dataframe(df)"
+                    missing_cmd = "get_missing_future(futr_df, df)"
+                raise ValueError(
+                    "There are missing combinations of ids and times in `futr_df`.\n"
+                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                    f"the `{missing_cmd}` method to get the missing combinations."
+                )
             if futr_orig_rows > futr_df.shape[0]:
                 dropped_rows = futr_orig_rows - futr_df.shape[0]
-                warnings.warn(
-                    f"Dropped {dropped_rows:,} unused rows from `futr_df`. "
-                    + base_err_msg
-                )
-            if any(futr_df[col].isnull().any() for col in needed_futr_exog):
+                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
+            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
-            dataset = TimeSeriesDataset.update_dataset(
-                dataset=dataset, future_df=futr_df
-            )
-        else:
-            dataset = TimeSeriesDataset.update_dataset(
-                dataset=dataset, future_df=fcsts_df.reset_index()
-            )
+        futr_dataset = dataset.align(
+            futr_df,
+            id_col=self.id_col,
+            time_col=self.time_col,
+            target_col=self.target_col,
+        )
+        self._scalers_transform(futr_dataset)
+        dataset = dataset.append(futr_dataset)
 
         col_idx = 0
-        fcsts = np.full((self.h * len(uids), len(cols)), fill_value=np.nan)
+        fcsts = np.full(
+            (self.h * len(uids), len(cols)), fill_value=np.nan, dtype=np.float32
+        )
         for model in self.models:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
@@ -394,20 +574,137 @@ class NeuralForecast:
             fcsts[:, col_idx : col_idx + output_length] = model_fcsts
             col_idx += output_length
             model.set_test_size(old_test_size)  # Set back to original value
-        if self.dataset.scalers_ is not None:
+        if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
-            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
+            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
-        fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)
+        if isinstance(fcsts_df, pl_DataFrame):
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+        else:
+            fcsts = pd.DataFrame(fcsts, columns=cols)
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index(self.id_col)
+        return fcsts_df
 
+    def _reset_models(self):
+        self.models = [deepcopy(model) for model in self.models_init]
+        if self._fitted:
+            print("WARNING: Deleting previously fitted models.")
+
+    def _no_refit_cross_validation(
+        self,
+        df: Optional[DataFrame],
+        static_df: Optional[DataFrame],
+        n_windows: int,
+        step_size: int,
+        val_size: Optional[int],
+        test_size: int,
+        sort_df: bool,
+        verbose: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        **data_kwargs,
+    ) -> DataFrame:
+        if (df is None) and not (hasattr(self, "dataset")):
+            raise Exception("You must pass a DataFrame or have one stored.")
+
+        # Process and save new dataset (in self)
+        if df is not None:
+            validate_freq(df[time_col], self.freq)
+            self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                predict_only=False,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.sort_df = sort_df
+        else:
+            if verbose:
+                print("Using stored dataset.")
+
+        if val_size is not None:
+            if self.dataset.min_size < (val_size + test_size):
+                warnings.warn(
+                    "Validation and test sets are larger than the shorter time-series."
+                )
+
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            cols += [model_name + n for n in model.loss.output_names]
+
+        fcsts_df = ufp.cv_times(
+            times=self.ds,
+            uids=self.uids,
+            indptr=self.dataset.indptr,
+            h=self.h,
+            test_size=test_size,
+            step_size=step_size,
+            id_col=id_col,
+            time_col=time_col,
+        )
+        # the cv_times is sorted by window and then id
+        fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
+
+        col_idx = 0
+        fcsts = np.full(
+            (self.dataset.n_groups * self.h * n_windows, len(cols)),
+            np.nan,
+            dtype=np.float32,
+        )
+
+        for model in self.models:
+            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            model_fcsts = model.predict(
+                self.dataset, step_size=step_size, **data_kwargs
+            )
+
+            # Append predictions in memory placeholder
+            output_length = len(model.loss.output_names)
+            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
+            col_idx += output_length
+        if self.scalers_:
+            indptr = np.append(
+                0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
+            )
+            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+
+        self._fitted = True
+
+        # Add predictions to forecasts DataFrame
+        if isinstance(self.uids, pl_Series):
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+        else:
+            fcsts = pd.DataFrame(fcsts, columns=cols)
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
+
+        # Add original input df's y to forecasts DataFrame
+        fcsts_df = ufp.join(
+            fcsts_df,
+            df[[id_col, time_col, target_col]],
+            how="left",
+            on=[id_col, time_col],
+        )
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index(id_col)
         return fcsts_df
 
     def cross_validation(
         self,
-        df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
+        df: Optional[DataFrame] = None,
+        static_df: Optional[DataFrame] = None,
         n_windows: int = 1,
         step_size: int = 1,
         val_size: Optional[int] = 0,
@@ -415,8 +712,12 @@ class NeuralForecast:
         sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
+        refit: Union[bool, int] = False,
+        id_col: str = "unique_id",
+        time_col: str = "ds",
+        target_col: str = "y",
         **data_kwargs,
-    ):
+    ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
 
         `core.NeuralForecast`'s cross-validation efficiently fits a list of NeuralForecast
@@ -424,10 +725,10 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas.DataFrame, optional (default=None)
+        df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
-        static_df : pandas.DataFrame, optional (default=None)
+        static_df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
         n_windows : int (default=1)
             Number of windows used for cross validation.
@@ -443,104 +744,113 @@ class NeuralForecast:
             Use initial model passed when object was instantiated.
         verbose : bool (default=False)
             Print processing steps.
+        refit : bool or int (default=False)
+            Retrain model for each cross validation window.
+            If False, the models are trained at the beginning and then used to predict each window.
+            If positive int, the models are retrained every `refit` windows.
+        id_col : str (default='unique_id')
+            Column that identifies each serie.
+        time_col : str (default='ds')
+            Column that identifies each timestep, its values can be timestamps or integers.
+        target_col : str (default='y')
+            Column that contains the target.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
         Returns
         -------
-        fcsts_df : pandas.DataFrame
+        fcsts_df : pandas or polars DataFrame
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
-        if (df is None) and not (hasattr(self, "dataset")):
-            raise Exception("You must pass a DataFrame or have one stored.")
-
-        # Process and save new dataset (in self)
-        if df is not None:
-            self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df,
-                static_df=static_df,
-                sort_df=sort_df,
-                scaler_type=self.local_scaler_type,
-            )
-            self.sort_df = sort_df
-        else:
-            if verbose:
-                print("Using stored dataset.")
-
-        # Recover initial model if use_init_models.
-        if use_init_models:
-            self.models = [deepcopy(model) for model in self.models_init]
-            if self._fitted:
-                print("WARNING: Deleting previously fitted models.")
-
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
-
-        h = self.models[0].h
+        h = self.h
+        if n_windows is None and test_size is None:
+            raise Exception("you must define `n_windows` or `test_size`.")
         if test_size is None:
             test_size = h + step_size * (n_windows - 1)
         elif n_windows is None:
             if (test_size - h) % step_size:
                 raise Exception("`test_size - h` should be module `step_size`")
             n_windows = int((test_size - h) / step_size) + 1
-        elif (n_windows is None) and (test_size is None):
-            raise Exception("you must define `n_windows` or `test_size`")
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
-
-        if val_size is not None:
-            if self.dataset.min_size < (val_size + test_size):
-                warnings.warn(
-                    "Validation and test sets are larger than the shorter time-series."
-                )
-
-        fcsts_df = _cv_dates(
-            last_dates=self.last_dates,
+        # Recover initial model if use_init_models.
+        if use_init_models:
+            self._reset_models()
+        if not refit:
+            return self._no_refit_cross_validation(
+                df=df,
+                static_df=static_df,
+                n_windows=n_windows,
+                step_size=step_size,
+                val_size=val_size,
+                test_size=test_size,
+                sort_df=sort_df,
+                verbose=verbose,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+                **data_kwargs,
+            )
+        if df is None:
+            raise ValueError("Must specify `df` with `refit!=False`.")
+        validate_freq(df[time_col], self.freq)
+        splits = ufp.backtest_splits(
+            df,
+            n_windows=n_windows,
+            h=self.h,
+            id_col=id_col,
+            time_col=time_col,
             freq=self.freq,
-            h=h,
-            test_size=test_size,
             step_size=step_size,
+            input_size=None,
         )
-        idx = pd.Index(np.repeat(self.uids, h * n_windows), name="unique_id")
-        fcsts_df.index = idx
-
-        col_idx = 0
-        fcsts = np.full(
-            (self.dataset.n_groups * h * n_windows, len(cols)), np.nan, dtype=np.float32
-        )
-
-        for model in self.models:
-            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
-            model_fcsts = model.predict(
-                self.dataset, step_size=step_size, **data_kwargs
+        results = []
+        for i_window, (cutoffs, train, test) in enumerate(splits):
+            should_fit = i_window == 0 or (refit > 0 and i_window % refit == 0)
+            if should_fit:
+                self.fit(
+                    df=train,
+                    static_df=static_df,
+                    val_size=val_size,
+                    sort_df=sort_df,
+                    use_init_models=False,
+                    verbose=verbose,
+                )
+                predict_df: Optional[DataFrame] = None
+            else:
+                predict_df = train
+            needed_futr_exog = self._get_needed_futr_exog()
+            if needed_futr_exog:
+                futr_df: Optional[DataFrame] = test
+            else:
+                futr_df = None
+            preds = self.predict(
+                df=predict_df,
+                static_df=static_df,
+                futr_df=futr_df,
+                sort_df=sort_df,
+                verbose=verbose,
+                **data_kwargs,
             )
-
-            # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
-        if self.dataset.scalers_ is not None:
-            indptr = np.append(
-                0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
+            preds = ufp.join(preds, cutoffs, on=id_col, how="left")
+            fold_result = ufp.join(
+                preds, test[[id_col, time_col, target_col]], on=[id_col, time_col]
             )
-            fcsts = self.dataset._invert_target_transform(fcsts, indptr)
-
-        self._fitted = True
-
-        # Add predictions to forecasts DataFrame
-        fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
-        fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)
-
-        # Add original input df's y to forecasts DataFrame
-        fcsts_df = fcsts_df.merge(df, how="left", on=["unique_id", "ds"])
-        return fcsts_df
+            results.append(fold_result)
+        out = ufp.vertical_concat(results, match_categories=False)
+        out = ufp.drop_index_if_pandas(out)
+        # match order of cv with no refit
+        first_out_cols = [id_col, time_col, "cutoff"]
+        remaining_cols = [
+            c for c in out.columns if c not in first_out_cols + [target_col]
+        ]
+        cols_order = first_out_cols + remaining_cols + [target_col]
+        out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
+        if isinstance(out, pd.DataFrame) and _id_as_idx():
+            _warn_id_as_idx()
+            out = out.set_index(id_col)
+        return out
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
@@ -589,24 +899,30 @@ class NeuralForecast:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
                 dataset=self.dataset, right_trim=test_size, left_trim=0
             )
-            last_dates_train = self.last_dates.shift(-test_size, freq=self.freq)
+            new_idxs = np.hstack(
+                [
+                    np.arange(
+                        self.dataset.indptr[i], self.dataset.indptr[i + 1] - test_size
+                    )
+                    for i in range(self.dataset.n_groups)
+                ]
+            )
+            times = self.ds[new_idxs]
         else:
             trimmed_dataset = self.dataset
-            last_dates_train = self.last_dates
+            times = self.ds
 
         # Generate dates
-        len_series = np.diff(
-            trimmed_dataset.indptr
-        )  # Computes the length of each time series based on indptr
-        fcsts_df = _insample_dates(
+        fcsts_df = _insample_times(
+            times=times,
             uids=self.uids,
-            last_dates=last_dates_train,
-            freq=self.freq,
+            indptr=trimmed_dataset.indptr,
             h=self.h,
-            len_series=len_series,
+            freq=self.freq,
             step_size=step_size,
+            id_col=self.id_col,
+            time_col=self.time_col,
         )
-        fcsts_df = fcsts_df.set_index("unique_id")
 
         col_idx = 0
         fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
@@ -623,24 +939,34 @@ class NeuralForecast:
             col_idx += output_length
             model.set_test_size(test_size=test_size)  # Set original test_size
 
+        # original y
+        original_y = {
+            self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
+            self.time_col: self.ds,
+            self.target_col: self.dataset.temporal[:, 0].numpy(),
+        }
+
         # Add predictions to forecasts DataFrame
-        fcsts = pd.DataFrame.from_records(fcsts, columns=cols, index=fcsts_df.index)
-        fcsts_df = pd.concat([fcsts_df, fcsts], axis=1)
+        if isinstance(self.uids, pl_Series):
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+            Y_df = pl_DataFrame(original_y)
+        else:
+            fcsts = pd.DataFrame(fcsts, columns=cols)
+            Y_df = pd.DataFrame(original_y).reset_index(drop=True)
+        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        Y_df = pd.DataFrame.from_records(
-            self.dataset.temporal[:, [0]].numpy(), columns=["y"], index=self.ds
-        )
-        Y_df = Y_df.reset_index(drop=False)
-        fcsts_df = fcsts_df.merge(Y_df, how="left", on=["unique_id", "ds"])
-        if self.dataset.scalers_ is not None:
-            sizes = fcsts_df.groupby("unique_id", observed=True).size().values
+        fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
+        if self.scalers_:
+            sizes = ufp.counts_by_id(fcsts_df, self.id_col)["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())
-            invert_cols = cols + ["y"]
-            fcsts_df[invert_cols] = self.dataset._invert_target_transform(
-                fcsts_df[invert_cols].values, indptr
+            invert_cols = cols + [self.target_col]
+            fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
+                fcsts_df[invert_cols].to_numpy(), indptr
             )
-
+        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
+            _warn_id_as_idx()
+            fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -676,32 +1002,40 @@ class NeuralForecast:
         if model_index is None:
             model_index = list(range(len(self.models)))
 
-        # Create directory if not exists
-        os.makedirs(path, exist_ok=True)
+        fs, _, paths = fsspec.get_fs_token_paths(path)
+        if not fs.exists(path):
+            fs.makedirs(path)
+        else:
+            # Check if directory is empty to protect overwriting files
+            dir = fs.ls(path)
 
-        # Check if directory is empty to protect overwriting files
-        dir = os.listdir(path)
-
-        # Checking if the list is empty or not
-        if (len(dir) > 0) and (not overwrite):
-            raise Exception(
-                "Directory is not empty. Set `overwrite=True` to overwrite files."
-            )
+            # Checking if the list is empty or not
+            if dir and not overwrite:
+                raise Exception(
+                    "Directory is not empty. Set `overwrite=True` to overwrite files."
+                )
 
         # Save models
         count_names = {"model": 0}
+        alias_to_model = {}
         for i, model in enumerate(self.models):
             # Skip model if not in list
             if i not in model_index:
                 continue
 
             model_name = repr(model).lower().replace("_", "")
+            model_class_name = model.__class__.__name__.lower()
+            if model_name != model_class_name:
+                alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
+        if alias_to_model:
+            with fsspec.open(f"{path}/alias_to_model.pkl", "wb") as f:
+                pickle.dump(alias_to_model, f)
 
         # Save dataset
         if (save_dataset) and (hasattr(self, "dataset")):
-            with open(f"{path}/dataset.pkl", "wb") as f:
+            with fsspec.open(f"{path}/dataset.pkl", "wb") as f:
                 pickle.dump(self.dataset, f)
         elif save_dataset:
             raise Exception(
@@ -718,9 +1052,14 @@ class NeuralForecast:
             "ds": self.ds,
             "sort_df": self.sort_df,
             "_fitted": self._fitted,
+            "local_scaler_type": self.local_scaler_type,
+            "scalers_": self.scalers_,
+            "id_col": self.id_col,
+            "time_col": self.time_col,
+            "target_col": self.target_col,
         }
 
-        with open(f"{path}/configuration.pkl", "wb") as f:
+        with fsspec.open(f"{path}/configuration.pkl", "wb") as f:
             pickle.dump(config_dict, f)
 
     @staticmethod
@@ -732,7 +1071,7 @@ class NeuralForecast:
         Parameters
         -----------
         path : str
-            Directory to save current status.
+            Directory with stored artifacts.
         kwargs
             Additional keyword arguments to be passed to the function
             `load_from_checkpoint`.
@@ -742,7 +1081,12 @@ class NeuralForecast:
         result : NeuralForecast
             Instantiated `NeuralForecast` class.
         """
-        files = [f for f in os.listdir(path) if isfile(join(path, f))]
+        # Standarize path without '/'
+        if path[-1] == "/":
+            path = path[:-1]
+
+        fs, _, paths = fsspec.get_fs_token_paths(path)
+        files = [f.split("/")[-1] for f in fs.ls(path) if fs.isfile(f)]
 
         # Load models
         models_ckpt = [f for f in files if f.endswith(".ckpt")]
@@ -752,10 +1096,16 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading models " + 10 * "-")
         models = []
+        try:
+            with fsspec.open(f"{path}/alias_to_model.pkl", "rb") as f:
+                alias_to_model = pickle.load(f)
+        except FileNotFoundError:
+            alias_to_model = {}
         for model in models_ckpt:
             model_name = model.split("_")[0]
+            model_class_name = alias_to_model.get(model_name, model_name)
             models.append(
-                MODEL_FILENAME_DICT[model_name].load_from_checkpoint(
+                MODEL_FILENAME_DICT[model_class_name].load_from_checkpoint(
                     f"{path}/{model}", **kwargs
                 )
             )
@@ -765,12 +1115,12 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading dataset " + 10 * "-")
         # Load dataset
-        if "dataset.pkl" in files:
-            with open(f"{path}/dataset.pkl", "rb") as f:
+        try:
+            with fsspec.open(f"{path}/dataset.pkl", "rb") as f:
                 dataset = pickle.load(f)
             if verbose:
                 print("Dataset loaded.")
-        else:
+        except FileNotFoundError:
             dataset = None
             if verbose:
                 print("No dataset found in directory.")
@@ -778,26 +1128,39 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading configuration " + 10 * "-")
         # Load configuration
-        if "configuration.pkl" in files:
-            with open(f"{path}/configuration.pkl", "rb") as f:
+        try:
+            with fsspec.open(f"{path}/configuration.pkl", "rb") as f:
                 config_dict = pickle.load(f)
             if verbose:
                 print("Configuration loaded.")
-        else:
+        except FileNotFoundError:
             raise Exception("No configuration found in directory.")
 
         # Create NeuralForecast object
-        neuralforecast = NeuralForecast(models=models, freq=config_dict["freq"])
+        neuralforecast = NeuralForecast(
+            models=models,
+            freq=config_dict["freq"],
+            local_scaler_type=config_dict["local_scaler_type"],
+        )
+
+        for attr in ["id_col", "time_col", "target_col"]:
+            setattr(neuralforecast, attr, config_dict[attr])
 
         # Dataset
         if dataset is not None:
             neuralforecast.dataset = dataset
-            neuralforecast.uids = config_dict["uids"]
-            neuralforecast.last_dates = config_dict["last_dates"]
-            neuralforecast.ds = config_dict["ds"]
-            neuralforecast.sort_df = config_dict["sort_df"]
+            restore_attrs = [
+                "uids",
+                "last_dates",
+                "ds",
+                "sort_df",
+            ]
+            for attr in restore_attrs:
+                setattr(neuralforecast, attr, config_dict[attr])
 
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
+
+        neuralforecast.scalers_ = config_dict["scalers_"]
 
         return neuralforecast

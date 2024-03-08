@@ -4,11 +4,11 @@
 __all__ = ['masked_median', 'masked_mean', 'minmax_statistics', 'minmax1_statistics', 'std_statistics', 'robust_statistics',
            'invariant_statistics', 'identity_statistics', 'TemporalNorm']
 
-# %% ../../nbs/common.scalers.ipynb 5
+# %% ../../nbs/common.scalers.ipynb 6
 import torch
 import torch.nn as nn
 
-# %% ../../nbs/common.scalers.ipynb 8
+# %% ../../nbs/common.scalers.ipynb 10
 def masked_median(x, mask, dim=-1, keepdim=True):
     """Masked Median
 
@@ -54,7 +54,7 @@ def masked_mean(x, mask, dim=-1, keepdim=True):
     x_mean = torch.nan_to_num(x_mean, nan=0.0)
     return x_mean
 
-# %% ../../nbs/common.scalers.ipynb 12
+# %% ../../nbs/common.scalers.ipynb 14
 def minmax_statistics(x, mask, eps=1e-6, dim=-1):
     """MinMax Scaler
 
@@ -62,8 +62,10 @@ def minmax_statistics(x, mask, eps=1e-6, dim=-1):
     [0,1] range. This transformation is often used as an alternative
     to the standard scaler. The scaled features are obtained as:
 
-    $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
-        (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})$$
+    $$
+    \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
+        (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})
+    $$
 
     **Parameters:**<br>
     `x`: torch.Tensor input tensor.<br>
@@ -94,7 +96,7 @@ def minmax_statistics(x, mask, eps=1e-6, dim=-1):
     x_range = x_range + eps
     return x_min, x_range
 
-# %% ../../nbs/common.scalers.ipynb 13
+# %% ../../nbs/common.scalers.ipynb 15
 def minmax_scaler(x, x_min, x_range):
     return (x - x_min) / x_range
 
@@ -102,7 +104,7 @@ def minmax_scaler(x, x_min, x_range):
 def inv_minmax_scaler(z, x_min, x_range):
     return z * x_range + x_min
 
-# %% ../../nbs/common.scalers.ipynb 15
+# %% ../../nbs/common.scalers.ipynb 17
 def minmax1_statistics(x, mask, eps=1e-6, dim=-1):
     """MinMax1 Scaler
 
@@ -143,7 +145,7 @@ def minmax1_statistics(x, mask, eps=1e-6, dim=-1):
     x_range = x_range + eps
     return x_min, x_range
 
-# %% ../../nbs/common.scalers.ipynb 16
+# %% ../../nbs/common.scalers.ipynb 18
 def minmax1_scaler(x, x_min, x_range):
     x = (x - x_min) / x_range
     z = x * (2) - 1
@@ -154,7 +156,7 @@ def inv_minmax1_scaler(z, x_min, x_range):
     z = (z + 1) / 2
     return z * x_range + x_min
 
-# %% ../../nbs/common.scalers.ipynb 18
+# %% ../../nbs/common.scalers.ipynb 20
 def std_statistics(x, mask, dim=-1, eps=1e-6):
     """Standard Scaler
 
@@ -184,7 +186,7 @@ def std_statistics(x, mask, dim=-1, eps=1e-6):
     x_stds = x_stds + eps
     return x_means, x_stds
 
-# %% ../../nbs/common.scalers.ipynb 19
+# %% ../../nbs/common.scalers.ipynb 21
 def std_scaler(x, x_means, x_stds):
     return (x - x_means) / x_stds
 
@@ -192,7 +194,7 @@ def std_scaler(x, x_means, x_stds):
 def inv_std_scaler(z, x_mean, x_std):
     return (z * x_std) + x_mean
 
-# %% ../../nbs/common.scalers.ipynb 21
+# %% ../../nbs/common.scalers.ipynb 23
 def robust_statistics(x, mask, dim=-1, eps=1e-6):
     """Robust Median Scaler
 
@@ -234,7 +236,7 @@ def robust_statistics(x, mask, dim=-1, eps=1e-6):
     x_mad = x_mad + eps
     return x_median, x_mad
 
-# %% ../../nbs/common.scalers.ipynb 22
+# %% ../../nbs/common.scalers.ipynb 24
 def robust_scaler(x, x_median, x_mad):
     return (x - x_median) / x_mad
 
@@ -242,7 +244,7 @@ def robust_scaler(x, x_median, x_mad):
 def inv_robust_scaler(z, x_median, x_mad):
     return z * x_mad + x_median
 
-# %% ../../nbs/common.scalers.ipynb 24
+# %% ../../nbs/common.scalers.ipynb 26
 def invariant_statistics(x, mask, dim=-1, eps=1e-6):
     """Invariant Median Scaler
 
@@ -282,7 +284,7 @@ def invariant_statistics(x, mask, dim=-1, eps=1e-6):
     x_mad = x_mad + eps
     return x_median, x_mad
 
-# %% ../../nbs/common.scalers.ipynb 25
+# %% ../../nbs/common.scalers.ipynb 27
 def invariant_scaler(x, x_median, x_mad):
     return torch.arcsinh((x - x_median) / x_mad)
 
@@ -290,7 +292,7 @@ def invariant_scaler(x, x_median, x_mad):
 def inv_invariant_scaler(z, x_median, x_mad):
     return torch.sinh(z) * x_mad + x_median
 
-# %% ../../nbs/common.scalers.ipynb 27
+# %% ../../nbs/common.scalers.ipynb 29
 def identity_statistics(x, mask, dim=-1, eps=1e-6):
     """Identity Scaler
 
@@ -316,7 +318,7 @@ def identity_statistics(x, mask, dim=-1, eps=1e-6):
 
     return x_shift, x_scale
 
-# %% ../../nbs/common.scalers.ipynb 28
+# %% ../../nbs/common.scalers.ipynb 30
 def identity_scaler(x, x_shift, x_scale):
     return x
 
@@ -324,7 +326,7 @@ def identity_scaler(x, x_shift, x_scale):
 def inv_identity_scaler(z, x_shift, x_scale):
     return z
 
-# %% ../../nbs/common.scalers.ipynb 31
+# %% ../../nbs/common.scalers.ipynb 33
 class TemporalNorm(nn.Module):
     """Temporal Normalization
 

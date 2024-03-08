@@ -3,22 +3,20 @@
 # %% auto 0
 __all__ = ['BaseRecurrent']
 
-# %% ../../nbs/common.base_recurrent.ipynb 5
-import random
-import warnings
-
+# %% ../../nbs/common.base_recurrent.ipynb 6
 import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import TQDMProgressBar
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from ._base_model import BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
+from ..utils import get_indexer_raise_missing
 
-# %% ../../nbs/common.base_recurrent.ipynb 6
-class BaseRecurrent(pl.LightningModule):
+# %% ../../nbs/common.base_recurrent.ipynb 7
+class BaseRecurrent(BaseModel):
     """Base Recurrent
 
     Base class for all recurrent-based models. The forecasts are produced sequentially between
@@ -52,9 +50,11 @@ class BaseRecurrent(pl.LightningModule):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
-        super(BaseRecurrent, self).__init__()
+        super(BaseModel, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
@@ -101,11 +101,18 @@ class BaseRecurrent(pl.LightningModule):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
+        # custom optimizer defined by user
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
         # Variables
-        self.futr_exog_list = futr_exog_list if futr_exog_list is not None else []
-        self.hist_exog_list = hist_exog_list if hist_exog_list is not None else []
-        self.stat_exog_list = stat_exog_list if stat_exog_list is not None else []
+        self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
+        self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
+        self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -126,17 +133,12 @@ class BaseRecurrent(pl.LightningModule):
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
-        if trainer_kwargs.get("callbacks", None) is None:
-            callbacks = [TQDMProgressBar()]
-            # Early stopping
-            if self.early_stop_patience_steps > 0:
-                callbacks += [
-                    EarlyStopping(
-                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                    )
-                ]
-
-            trainer_kwargs["callbacks"] = callbacks
+        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
+            trainer_kwargs["callbacks"] = [
+                EarlyStopping(
+                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                )
+            ]
 
         # Add GPU accelerator if available
         if trainer_kwargs.get("accelerator", None) is None:
@@ -159,38 +161,18 @@ class BaseRecurrent(pl.LightningModule):
         self.validation_step_outputs = []
         self.alias = alias
 
-    def __repr__(self):
-        return type(self).__name__ if self.alias is None else self.alias
-
-    def on_fit_start(self):
-        torch.manual_seed(self.random_seed)
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = {
-            "scheduler": torch.optim.lr_scheduler.StepLR(
-                optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
-            ),
-            "frequency": 1,
-            "interval": "step",
-        }
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
-
-    def _get_temporal_data_cols(self, temporal_cols):
-        temporal_data_cols = ["y"] + list(
-            set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
-        )
-        return temporal_data_cols
-
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
+        y_idx = batch["y_idx"]
 
         # Separate data and mask
-        temporal_data_cols = self._get_temporal_data_cols(temporal_cols=temporal_cols)
-        temporal_data = temporal[:, temporal_cols.get_indexer(temporal_data_cols), :]
+        temporal_data_cols = self._get_temporal_exogenous_cols(
+            temporal_cols=temporal_cols
+        )
+        temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
+        temporal_idxs = np.append(y_idx, temporal_idxs)
+        temporal_data = temporal[:, temporal_idxs, :]
         temporal_mask = temporal[:, temporal_cols.get_loc("available_mask"), :].clone()
 
         # Remove validation and test set to prevent leakeage
@@ -205,23 +187,18 @@ class BaseRecurrent(pl.LightningModule):
         temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
 
         # Replace values in windows dict
-        temporal[:, temporal_cols.get_indexer(temporal_data_cols), :] = temporal_data
+        temporal[:, temporal_idxs, :] = temporal_data
         batch["temporal"] = temporal
 
         return batch
 
-    def _inv_normalization(self, y_hat, temporal_cols):
+    def _inv_normalization(self, y_hat, temporal_cols, y_idx):
         # Receives window predictions [B, seq_len, H, output]
         # Broadcasts outputs and inverts normalization
 
         # Get 'y' scale and shift, and add W dimension
-        temporal_data_cols = temporal_cols.drop("available_mask")
-        y_loc = self.scaler.x_shift[
-            :, temporal_data_cols.get_indexer(["y"]), 0
-        ].flatten()  # [B,C,T] -> [B]
-        y_scale = self.scaler.x_scale[
-            :, temporal_data_cols.get_indexer(["y"]), 0
-        ].flatten()  # [B,C,T] -> [B]
+        y_loc = self.scaler.x_shift[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
+        y_scale = self.scaler.x_scale[:, [y_idx], 0].flatten()  # [B,C,T] -> [B]
 
         # Expand scale and shift to y_hat dimensions
         y_loc = y_loc.view(*y_loc.shape, *(1,) * (y_hat.ndim - 1))  # .expand(y_hat)
@@ -309,8 +286,8 @@ class BaseRecurrent(pl.LightningModule):
     def _parse_windows(self, batch, windows):
         # [B, C, seq_len, 1+H]
         # Filter insample lags from outsample horizon
-        y_idx = batch["temporal_cols"].get_loc("y")
         mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        y_idx = batch["y_idx"]
         insample_y = windows["temporal"][:, y_idx, :, : -self.h]
         insample_mask = windows["temporal"][:, mask_idx, :, : -self.h]
         outsample_y = windows["temporal"][:, y_idx, :, -self.h :].contiguous()
@@ -318,20 +295,26 @@ class BaseRecurrent(pl.LightningModule):
 
         # Filter historic exogenous variables
         if len(self.hist_exog_list):
-            hist_exog_idx = windows["temporal_cols"].get_indexer(self.hist_exog_list)
+            hist_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.hist_exog_list
+            )
             hist_exog = windows["temporal"][:, hist_exog_idx, :, : -self.h]
         else:
             hist_exog = None
 
         # Filter future exogenous variables
         if len(self.futr_exog_list):
-            futr_exog_idx = windows["temporal_cols"].get_indexer(self.futr_exog_list)
+            futr_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.futr_exog_list
+            )
             futr_exog = windows["temporal"][:, futr_exog_idx, :, :]
         else:
             futr_exog = None
         # Filter static variables
         if len(self.stat_exog_list):
-            static_idx = windows["static_cols"].get_indexer(self.stat_exog_list)
+            static_idx = get_indexer_raise_missing(
+                windows["static_cols"], self.stat_exog_list
+            )
             stat_exog = windows["static"][:, static_idx]
         else:
             stat_exog = None
@@ -376,7 +359,9 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch)  # tuple([B, seq_len, H, output])
         if self.loss.is_distribution_output:
             outsample_y, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y,
+                temporal_cols=batch["temporal_cols"],
+                y_idx=batch["y_idx"],
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -415,6 +400,7 @@ class BaseRecurrent(pl.LightningModule):
             batch, val_size=self.val_size, test_size=self.test_size
         )
         windows = self._create_windows(batch, step="val")
+        y_idx = batch["y_idx"]
 
         # Parse windows
         (
@@ -446,7 +432,7 @@ class BaseRecurrent(pl.LightningModule):
         if self.loss.is_distribution_output:
             output = [arg[:, -val_windows:-1] for arg in output]
             outsample_y, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -481,10 +467,10 @@ class BaseRecurrent(pl.LightningModule):
             )
         else:
             outsample_y, _, _ = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             output, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
+                y_hat=output, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
@@ -503,18 +489,11 @@ class BaseRecurrent(pl.LightningModule):
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
-    def on_validation_epoch_end(self):
-        if self.val_size == 0:
-            return
-        avg_loss = torch.stack(self.validation_step_outputs).mean()
-        self.log("ptl/val_loss", avg_loss, batch_size=self.batch_size)
-        self.valid_trajectories.append((self.global_step, float(avg_loss)))
-        self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
-
     def predict_step(self, batch, batch_idx):
         # Create and normalize windows [Ws, L+H, C]
         batch = self._normalization(batch, val_size=0, test_size=self.test_size)
         windows = self._create_windows(batch, step="predict")
+        y_idx = batch["y_idx"]
 
         # Parse windows
         (
@@ -539,7 +518,7 @@ class BaseRecurrent(pl.LightningModule):
         output = self(windows_batch)  # tuple([B, seq_len, H], ...)
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"]
+                y_hat=output[0], temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
             B = output[0].size()[0]
             T = output[0].size()[1]
@@ -560,7 +539,7 @@ class BaseRecurrent(pl.LightningModule):
                 y_hat = torch.concat((y_hat, distr_args), axis=3)
         else:
             y_hat, _, _ = self._inv_normalization(
-                y_hat=output, temporal_cols=batch["temporal_cols"]
+                y_hat=output, temporal_cols=batch["temporal_cols"], y_idx=y_idx
             )
         return y_hat
 
@@ -586,51 +565,14 @@ class BaseRecurrent(pl.LightningModule):
         `test_size`: int, test size for temporal cross-validation.<br>
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
-
-        self.val_size = val_size
-        self.test_size = test_size
-        datamodule = TimeSeriesDataModule(
+        return self._fit(
             dataset=dataset,
             batch_size=self.batch_size,
             valid_batch_size=self.valid_batch_size,
-            num_workers=self.num_workers_loader,
-            drop_last=self.drop_last_loader,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
         )
-
-        if self.val_check_steps > self.max_steps:
-            warnings.warn(
-                "val_check_steps is greater than max_steps, \
-                    setting val_check_steps to max_steps"
-            )
-        val_check_interval = min(self.val_check_steps, self.max_steps)
-        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
-        self.trainer_kwargs["check_val_every_n_epoch"] = None
-
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """Predict.
@@ -643,29 +585,8 @@ class BaseRecurrent(pl.LightningModule):
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
+        self._check_exog(dataset)
+        self._restart_seed(random_seed)
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")
@@ -699,19 +620,3 @@ class BaseRecurrent(pl.LightningModule):
             fcsts = torch.vstack([fcst[:, -1:, :] for fcst in fcsts]).numpy().flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
-
-    def set_test_size(self, test_size):
-        self.test_size = test_size
-
-    def get_test_size(self):
-        return self.test_size
-
-    def save(self, path):
-        """BaseRecurrent.save
-
-        Save the fitted model to disk.
-
-        **Parameters:**<br>
-        `path`: str, path to save the model.<br>
-        """
-        self.trainer.save_checkpoint(path)

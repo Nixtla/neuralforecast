@@ -1,8 +1,12 @@
 name: neuralforecast
 channels:
-  - conda-forge
   - pytorch
+  - nvidia
+  - conda-forge
 dependencies:
+  - coreforecast>=0.0.6
+  - fsspec
+  - gitpython
   - hyperopt
   - jupyterlab
   - matplotlib
@@ -10,11 +14,15 @@ dependencies:
   - numpy>=1.21.6
   - optuna
   - pandas>=1.3.5
+  - pyarrow
   - pytorch>=2.0.0
+  - pytorch-cuda>=11.8
   - pytorch-lightning>=2.0.0
   - pip
-  - utilsforecast>=0.0.6
+  - s3fs
   - pip:
     - nbdev
     - black
+    - polars
     - "ray[tune]>=2.2.0"
+    - utilsforecast>=0.0.24

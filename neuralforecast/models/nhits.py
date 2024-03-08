@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NHITS']
 
-# %% ../../nbs/models.nhits.ipynb 6
+# %% ../../nbs/models.nhits.ipynb 5
 from typing import Tuple, Optional
 
 import numpy as np
@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nhits.ipynb 9
+# %% ../../nbs/models.nhits.ipynb 8
 class _IdentityBasis(nn.Module):
     def __init__(
         self,
@@ -68,7 +68,7 @@ class _IdentityBasis(nn.Module):
         forecast = forecast.permute(0, 2, 1)
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 10
+# %% ../../nbs/models.nhits.ipynb 9
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 POOLING = ["MaxPool1d", "AvgPool1d"]
@@ -179,7 +179,7 @@ class NHITSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nhits.ipynb 11
+# %% ../../nbs/models.nhits.ipynb 10
 class NHITS(BaseWindows):
     """NHITS
 
@@ -222,6 +222,8 @@ class NHITS(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -267,6 +269,8 @@ class NHITS(BaseWindows):
         random_seed: int = 1,
         num_workers_loader=0,
         drop_last_loader=False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         # Inherit BaseWindows class
@@ -294,6 +298,8 @@ class NHITS(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
 

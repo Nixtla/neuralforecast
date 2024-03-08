@@ -12,17 +12,7 @@
       "profile": "https://github.com/FedericoGarza",
       "contributions": [
         "code",
-        "bug",
-        "doc"
-      ]
-    },
-    {
-      "login": "gdevos010",
-      "name": "Greg DeVos",
-      "avatar_url": "https://avatars.githubusercontent.com/u/15316026?v=4",
-      "profile": "https://github.com/gdevos010",
-      "contributions": [
-        "ideas"
+        "maintenance"
       ]
     },
     {
@@ -31,7 +21,18 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/31133398?v=4",
       "profile": "https://github.com/cchallu",
       "contributions": [
-        "code"
+        "code",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "jmoralez",
+      "name": "José Morales",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8473587?v=4",
+      "profile": "https://github.com/jmoralez",
+      "contributions": [
+        "code",
+        "maintenance"
       ]
     },
     {
@@ -56,12 +57,12 @@
       ]
     },
     {
-      "login": "jmoralez",
-      "name": "José Morales",
-      "avatar_url": "https://avatars.githubusercontent.com/u/8473587?v=4",
-      "profile": "https://github.com/jmoralez",
+      "login": "gdevos010",
+      "name": "Greg DeVos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15316026?v=4",
+      "profile": "https://github.com/gdevos010",
       "contributions": [
-        "code"
+        "ideas"
       ]
     },
     {

@@ -105,6 +105,8 @@ class DeepAR(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>    
 
     **References**<br>
@@ -149,6 +151,8 @@ class DeepAR(BaseWindows):
         random_seed: int = 1,
         num_workers_loader=0,
         drop_last_loader=False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         # DeepAR does not support historic exogenous variables
@@ -196,6 +200,8 @@ class DeepAR(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 
@@ -235,16 +241,17 @@ class DeepAR(BaseWindows):
     def training_step(self, batch, batch_idx):
         # During training h=0
         self.h = 0
+        y_idx = batch["y_idx"]
 
         # Create and normalize windows [Ws, L, C]
         windows = self._create_windows(batch, step="train")
         original_insample_y = windows["temporal"][
-            :, :, 0
+            :, :, y_idx
         ].clone()  # windows: [B, L, Feature] -> [B, L]
         original_insample_y = original_insample_y[
             :, 1:
         ]  # Remove first (shift in DeepAr, cell at t outputs t+1)
-        windows = self._normalization(windows=windows)
+        windows = self._normalization(windows=windows, y_idx=y_idx)
 
         # Parse windows
         insample_y, insample_mask, _, _, _, futr_exog, stat_exog = self._parse_windows(
@@ -257,6 +264,7 @@ class DeepAR(BaseWindows):
             futr_exog=futr_exog,  # [Ws, L+H]
             hist_exog=None,  # None
             stat_exog=stat_exog,
+            y_idx=y_idx,
         )  # [Ws, 1]
 
         # Model Predictions
@@ -264,7 +272,9 @@ class DeepAR(BaseWindows):
 
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=original_insample_y, temporal_cols=batch["temporal_cols"]
+                y_hat=original_insample_y,
+                temporal_cols=batch["temporal_cols"],
+                y_idx=y_idx,
             )
             outsample_y = original_insample_y
             distr_args = self.loss.scale_decouple(
@@ -299,6 +309,7 @@ class DeepAR(BaseWindows):
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="val")
         n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
 
         # Number of windows in batch
         windows_batch_size = self.inference_windows_batch_size
@@ -315,7 +326,7 @@ class DeepAR(BaseWindows):
             )
             windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
             original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, 0])
-            windows = self._normalization(windows=windows)
+            windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
             (
@@ -334,6 +345,7 @@ class DeepAR(BaseWindows):
                 hist_exog=None,
                 stat_exog=stat_exog,
                 temporal_cols=batch["temporal_cols"],
+                y_idx=y_idx,
             )
 
             # Model Predictions
@@ -363,6 +375,7 @@ class DeepAR(BaseWindows):
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
         n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
 
         # Number of windows in batch
         windows_batch_size = self.inference_windows_batch_size
@@ -377,7 +390,7 @@ class DeepAR(BaseWindows):
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
             windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
-            windows = self._normalization(windows=windows)
+            windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
             (
@@ -395,6 +408,7 @@ class DeepAR(BaseWindows):
                 futr_exog=futr_exog,  # [Ws, L+H]
                 stat_exog=stat_exog,
                 temporal_cols=batch["temporal_cols"],
+                y_idx=y_idx,
             )
 
             # Model Predictions
@@ -439,7 +453,7 @@ class DeepAR(BaseWindows):
         encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,L,1]
         futr_exog = windows_batch["futr_exog"]  # <- [B,L+H, n_f]
         stat_exog = windows_batch["stat_exog"]
-        temporal_cols = windows_batch["temporal_cols"]
+        y_idx = windows_batch["y_idx"]
 
         # [B, seq_len, X]
         batch_size, input_size = encoder_input.shape[:2]
@@ -469,15 +483,9 @@ class DeepAR(BaseWindows):
 
         # Scales for inverse normalization
         y_scale = (
-            self.scaler.x_scale[:, 0, temporal_cols.get_indexer(["y"])]
-            .squeeze(-1)
-            .to(encoder_input.device)
+            self.scaler.x_scale[:, 0, [y_idx]].squeeze(-1).to(encoder_input.device)
         )
-        y_loc = (
-            self.scaler.x_shift[:, 0, temporal_cols.get_indexer(["y"])]
-            .squeeze(-1)
-            .to(encoder_input.device)
-        )
+        y_loc = self.scaler.x_shift[:, 0, [y_idx]].squeeze(-1).to(encoder_input.device)
         y_scale = torch.repeat_interleave(y_scale, self.trajectory_samples, 0)
         y_loc = torch.repeat_interleave(y_loc, self.trajectory_samples, 0)
 

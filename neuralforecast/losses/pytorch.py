@@ -4,7 +4,7 @@
 __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relMSE', 'QuantileLoss', 'MQLoss', 'DistributionLoss',
            'PMM', 'GMM', 'NBMM', 'HuberLoss', 'TukeyLoss', 'HuberQLoss', 'HuberMQLoss', 'Accuracy', 'sCRPS']
 
-# %% ../../nbs/losses.pytorch.ipynb 3
+# %% ../../nbs/losses.pytorch.ipynb 4
 from typing import Optional, Union, Tuple
 
 import math
@@ -17,7 +17,7 @@ from torch.distributions import Bernoulli, Normal, StudentT, Poisson, NegativeBi
 
 from torch.distributions import constraints
 
-# %% ../../nbs/losses.pytorch.ipynb 5
+# %% ../../nbs/losses.pytorch.ipynb 6
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
     Auxiliary funtion to handle divide by 0
@@ -27,14 +27,14 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     div[div == float("inf")] = 0.0
     return div
 
-# %% ../../nbs/losses.pytorch.ipynb 6
+# %% ../../nbs/losses.pytorch.ipynb 7
 def _weighted_mean(losses, weights):
     """
     Compute weighted mean of losses per datapoint.
     """
     return _divide_no_nan(torch.sum(losses * weights), torch.sum(weights))
 
-# %% ../../nbs/losses.pytorch.ipynb 7
+# %% ../../nbs/losses.pytorch.ipynb 8
 class BasePointLoss(torch.nn.Module):
     """
     Base class for point loss functions.
@@ -81,7 +81,7 @@ class BasePointLoss(torch.nn.Module):
         weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
         return weights * mask
 
-# %% ../../nbs/losses.pytorch.ipynb 10
+# %% ../../nbs/losses.pytorch.ipynb 11
 class MAE(BasePointLoss):
     """Mean Absolute Error
 
@@ -122,7 +122,7 @@ class MAE(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 15
+# %% ../../nbs/losses.pytorch.ipynb 16
 class MSE(BasePointLoss):
     """Mean Squared Error
 
@@ -163,7 +163,7 @@ class MSE(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 20
+# %% ../../nbs/losses.pytorch.ipynb 21
 class RMSE(BasePointLoss):
     """Root Mean Squared Error
 
@@ -208,7 +208,7 @@ class RMSE(BasePointLoss):
         losses = _weighted_mean(losses=losses, weights=weights)
         return torch.sqrt(losses)
 
-# %% ../../nbs/losses.pytorch.ipynb 26
+# %% ../../nbs/losses.pytorch.ipynb 27
 class MAPE(BasePointLoss):
     """Mean Absolute Percentage Error
 
@@ -255,7 +255,7 @@ class MAPE(BasePointLoss):
         mape = _weighted_mean(losses=losses, weights=weights)
         return mape
 
-# %% ../../nbs/losses.pytorch.ipynb 31
+# %% ../../nbs/losses.pytorch.ipynb 32
 class SMAPE(BasePointLoss):
     """Symmetric Mean Absolute Percentage Error
 
@@ -304,7 +304,7 @@ class SMAPE(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return 2 * _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 36
+# %% ../../nbs/losses.pytorch.ipynb 37
 class MASE(BasePointLoss):
     """Mean Absolute Scaled Error
     Calculates the Mean Absolute Scaled Error between
@@ -360,7 +360,7 @@ class MASE(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 41
+# %% ../../nbs/losses.pytorch.ipynb 42
 class relMSE(BasePointLoss):
     """Relative Mean Squared Error
     Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006)
@@ -414,7 +414,7 @@ class relMSE(BasePointLoss):
         loss = _divide_no_nan(loss, norm)
         return loss
 
-# %% ../../nbs/losses.pytorch.ipynb 46
+# %% ../../nbs/losses.pytorch.ipynb 47
 class QuantileLoss(BasePointLoss):
     """Quantile Loss
 
@@ -462,7 +462,7 @@ class QuantileLoss(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 51
+# %% ../../nbs/losses.pytorch.ipynb 52
 def level_to_outputs(level):
     qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
     output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
@@ -490,7 +490,7 @@ def quantiles_to_outputs(quantiles):
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../../nbs/losses.pytorch.ipynb 52
+# %% ../../nbs/losses.pytorch.ipynb 53
 class MQLoss(BasePointLoss):
     """Multi-Quantile loss
 
@@ -602,7 +602,7 @@ class MQLoss(BasePointLoss):
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 58
+# %% ../../nbs/losses.pytorch.ipynb 59
 def weighted_average(
     x: torch.Tensor, weights: Optional[torch.Tensor] = None, dim=None
 ) -> torch.Tensor:
@@ -630,7 +630,7 @@ def weighted_average(
     else:
         return x.mean(dim=dim)
 
-# %% ../../nbs/losses.pytorch.ipynb 59
+# %% ../../nbs/losses.pytorch.ipynb 60
 def bernoulli_domain_map(input: torch.Tensor):
     """Bernoulli Domain Map
     Maps input into distribution constraints, by construction input's
@@ -787,7 +787,7 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
     return (total_count, probs)
 
-# %% ../../nbs/losses.pytorch.ipynb 60
+# %% ../../nbs/losses.pytorch.ipynb 61
 def est_lambda(mu, rho):
     return mu ** (2 - rho) / (2 - rho)
 
@@ -908,7 +908,7 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
         log_mu += torch.log(loc)  # TODO : rho scaling
     return (log_mu,)
 
-# %% ../../nbs/losses.pytorch.ipynb 61
+# %% ../../nbs/losses.pytorch.ipynb 62
 class DistributionLoss(torch.nn.Module):
     """DistributionLoss
 
@@ -1112,7 +1112,7 @@ class DistributionLoss(torch.nn.Module):
         loss_weights = mask
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 67
+# %% ../../nbs/losses.pytorch.ipynb 68
 class PMM(torch.nn.Module):
     """Poisson Mixture Mesh
 
@@ -1310,7 +1310,7 @@ class PMM(torch.nn.Module):
     ):
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 75
+# %% ../../nbs/losses.pytorch.ipynb 76
 class GMM(torch.nn.Module):
     """Gaussian Mixture Mesh
 
@@ -1516,7 +1516,7 @@ class GMM(torch.nn.Module):
     ):
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 83
+# %% ../../nbs/losses.pytorch.ipynb 84
 class NBMM(torch.nn.Module):
     """Negative Binomial Mixture Mesh
 
@@ -1729,20 +1729,20 @@ class NBMM(torch.nn.Module):
     ):
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 90
+# %% ../../nbs/losses.pytorch.ipynb 91
 class HuberLoss(BasePointLoss):
-    """Huber Loss
+    """ Huber Loss
 
-    The Huber loss, employed in robust regression, is a loss function that
-    exhibits reduced sensitivity to outliers in data when compared to the
+    The Huber loss, employed in robust regression, is a loss function that 
+    exhibits reduced sensitivity to outliers in data when compared to the 
     squared error loss. This function is also refered as SmoothL1.
 
-    The Huber loss function is quadratic for small errors and linear for large
-    errors, with equal values and slopes of the different sections at the two
+    The Huber loss function is quadratic for small errors and linear for large 
+    errors, with equal values and slopes of the different sections at the two 
     points where $(y_{\\tau}-\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\hat{y}_{\\tau}|$.
 
     $$ L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
-    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\
+    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\ 
     \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}$$
 
     where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
@@ -1751,7 +1751,7 @@ class HuberLoss(BasePointLoss):
     **Parameters:**<br>
     `delta`: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.
     `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
-
+    
     **References:**<br>
     [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)
     """
@@ -1781,23 +1781,23 @@ class HuberLoss(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 95
+# %% ../../nbs/losses.pytorch.ipynb 96
 class TukeyLoss(torch.nn.Module):
-    """Tukey Loss
+    """ Tukey Loss
 
-    The Tukey loss function, also known as Tukey's biweight function, is a
+    The Tukey loss function, also known as Tukey's biweight function, is a 
     robust statistical loss function used in robust statistics. Tukey's loss exhibits
     quadratic behavior near the origin, like the Huber loss; however, it is even more
-    robust to outliers as the loss for large residuals remains constant instead of
+    robust to outliers as the loss for large residuals remains constant instead of 
     scaling linearly.
 
     The parameter $c$ in Tukey's loss determines the ''saturation'' point
-    of the function: Higher values of $c$ enhance sensitivity, while lower values
+    of the function: Higher values of $c$ enhance sensitivity, while lower values 
     increase resistance to outliers.
 
     $$ L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
     =\\begin{cases}{
-    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
+    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\ 
     \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}$$
 
     Please note that the Tukey loss function assumes the data to be stationary or
@@ -1869,7 +1869,7 @@ class TukeyLoss(torch.nn.Module):
         tukey_loss = (self.c**2 / 6) * torch.mean(tukey_loss)
         return tukey_loss
 
-# %% ../../nbs/losses.pytorch.ipynb 100
+# %% ../../nbs/losses.pytorch.ipynb 101
 class HuberQLoss(BasePointLoss):
     """Huberized Quantile Loss
 
@@ -1932,7 +1932,7 @@ class HuberQLoss(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 105
+# %% ../../nbs/losses.pytorch.ipynb 106
 class HuberMQLoss(BasePointLoss):
     """Huberized Multi-Quantile loss
 
@@ -2045,7 +2045,7 @@ class HuberMQLoss(BasePointLoss):
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 111
+# %% ../../nbs/losses.pytorch.ipynb 112
 class Accuracy(torch.nn.Module):
     """Accuracy
 
@@ -2092,7 +2092,7 @@ class Accuracy(torch.nn.Module):
         accuracy = torch.mean(measure)
         return accuracy
 
-# %% ../../nbs/losses.pytorch.ipynb 115
+# %% ../../nbs/losses.pytorch.ipynb 116
 class sCRPS(torch.nn.Module):
     """Scaled Continues Ranked Probability Score
 

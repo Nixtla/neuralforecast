@@ -42,7 +42,7 @@ def evaluate(model: str, dataset: str, group: str):
 if __name__ == '__main__':
     groups = ['Monthly']
     models = ['AutoDilatedRNN', 'RNN', 'TCN', 'DeepAR',
-              'NHITS', 'TFT', 'AutoMLP', 'VanillaTransformer']
+              'NHITS', 'TFT', 'AutoMLP', 'DLinear', 'VanillaTransformer']
     datasets = ['M3']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]

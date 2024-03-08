@@ -4,11 +4,12 @@
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
            'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
-           'time_features_from_frequency_str', 'augment_calendar_df']
+           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing']
 
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -77,7 +78,6 @@ def generate_series(
 
     temporal_df["unique_id"] = temporal_df["unique_id"].astype("category")
     temporal_df["unique_id"] = temporal_df["unique_id"].cat.as_ordered()
-    temporal_df = temporal_df.set_index("unique_id")
 
     if n_static_features > 0:
         static_features = np.random.uniform(
@@ -90,7 +90,6 @@ def generate_series(
         static_df["unique_id"] = np.arange(n_series)
         static_df["unique_id"] = static_df["unique_id"].astype("category")
         static_df["unique_id"] = static_df["unique_id"].cat.as_ordered()
-        static_df = static_df.set_index("unique_id")
 
         return temporal_df, static_df
 
@@ -251,21 +250,23 @@ AirPassengers = np.array(
 AirPassengersDF = pd.DataFrame(
     {
         "unique_id": np.ones(len(AirPassengers)),
-        "ds": pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M"),
+        "ds": pd.date_range(
+            start="1949-01-01", periods=len(AirPassengers), freq=pd.offsets.MonthEnd()
+        ),
         "y": AirPassengers,
     }
 )
 
-# %% ../nbs/utils.ipynb 18
+# %% ../nbs/utils.ipynb 19
 # Declare Panel Data
 unique_id = np.concatenate(
     [["Airline1"] * len(AirPassengers), ["Airline2"] * len(AirPassengers)]
 )
-ds = np.concatenate(
-    [
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-    ]
+ds = np.tile(
+    pd.date_range(
+        start="1949-01-01", periods=len(AirPassengers), freq=pd.offsets.MonthEnd()
+    ).to_numpy(),
+    2,
 )
 y = np.concatenate([AirPassengers, AirPassengers + 300])
 
@@ -279,8 +280,7 @@ snaive = (
     .reset_index(drop=True)
 )
 AirPassengersPanel["trend"] = range(len(AirPassengersPanel))
-AirPassengersPanel["y_[lag12]"] = snaive
-AirPassengersPanel["y_[lag12]"].fillna(AirPassengersPanel["y"], inplace=True)
+AirPassengersPanel["y_[lag12]"] = snaive.fillna(AirPassengersPanel["y"])
 
 # Declare Static Data
 unique_id = np.array(["Airline1", "Airline2"])
@@ -292,10 +292,7 @@ AirPassengersStatic = pd.DataFrame(
 
 AirPassengersPanel.groupby("unique_id").tail(4)
 
-# %% ../nbs/utils.ipynb 24
-from typing import List
-
-
+# %% ../nbs/utils.ipynb 25
 class TimeFeature:
     def __init__(self):
         pass
@@ -441,3 +438,11 @@ def augment_calendar_df(df, freq="H"):
     ds_data = pd.DataFrame(ds_data, columns=freq_map[freq])
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
+
+# %% ../nbs/utils.ipynb 28
+def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
+    idxs = idx.get_indexer(vals)
+    missing = [v for i, v in zip(idxs, vals) if i == -1]
+    if missing:
+        raise ValueError(f"The following values are missing from the index: {missing}")
+    return idxs
