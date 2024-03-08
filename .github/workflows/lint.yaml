@@ -22,4 +22,4 @@ jobs:
         run: pip install black nbdev pre-commit
 
       - name: Run pre-commit
-        run: pre-commit run
+        run: pre-commit run --files neuralforecast/*
