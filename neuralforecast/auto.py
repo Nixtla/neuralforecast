@@ -3,7 +3,8 @@
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
            'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer',
-           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer']
+           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer',
+           'AutoTSMixerx']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -39,11 +40,13 @@ from .models.timesnet import TimesNet
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
 from .models.tsmixer import TSMixer
+from .models.tsmixerx import TSMixerx
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
 # %% ../nbs/models.ipynb 9
 class AutoRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -113,6 +116,7 @@ class AutoRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 14
 class AutoLSTM(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -143,6 +147,7 @@ class AutoLSTM(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -177,6 +182,7 @@ class AutoLSTM(BaseAuto):
 
 # %% ../nbs/models.ipynb 17
 class AutoGRU(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -208,6 +214,7 @@ class AutoGRU(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -243,6 +250,7 @@ class AutoGRU(BaseAuto):
 
 # %% ../nbs/models.ipynb 20
 class AutoTCN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -273,6 +281,7 @@ class AutoTCN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -308,6 +317,7 @@ class AutoTCN(BaseAuto):
 
 # %% ../nbs/models.ipynb 23
 class AutoDeepAR(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -341,6 +351,7 @@ class AutoDeepAR(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -374,6 +385,7 @@ class AutoDeepAR(BaseAuto):
 
 # %% ../nbs/models.ipynb 26
 class AutoDilatedRNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -406,6 +418,7 @@ class AutoDilatedRNN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -441,6 +454,7 @@ class AutoDilatedRNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 30
 class AutoMLP(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -471,6 +485,7 @@ class AutoMLP(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -504,6 +519,7 @@ class AutoMLP(BaseAuto):
 
 # %% ../nbs/models.ipynb 33
 class AutoNBEATS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -532,6 +548,7 @@ class AutoNBEATS(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -565,6 +582,7 @@ class AutoNBEATS(BaseAuto):
 
 # %% ../nbs/models.ipynb 36
 class AutoNBEATSx(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -593,6 +611,7 @@ class AutoNBEATSx(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -626,6 +645,7 @@ class AutoNBEATSx(BaseAuto):
 
 # %% ../nbs/models.ipynb 39
 class AutoNHITS(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -667,6 +687,7 @@ class AutoNHITS(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -700,6 +721,7 @@ class AutoNHITS(BaseAuto):
 
 # %% ../nbs/models.ipynb 42
 class AutoDLinear(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -729,6 +751,7 @@ class AutoDLinear(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -762,6 +785,7 @@ class AutoDLinear(BaseAuto):
 
 # %% ../nbs/models.ipynb 45
 class AutoNLinear(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -790,6 +814,7 @@ class AutoNLinear(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -823,6 +848,7 @@ class AutoNLinear(BaseAuto):
 
 # %% ../nbs/models.ipynb 49
 class AutoTFT(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -853,6 +879,7 @@ class AutoTFT(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -886,6 +913,7 @@ class AutoTFT(BaseAuto):
 
 # %% ../nbs/models.ipynb 52
 class AutoVanillaTransformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -916,6 +944,7 @@ class AutoVanillaTransformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -949,6 +978,7 @@ class AutoVanillaTransformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 55
 class AutoInformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -979,6 +1009,7 @@ class AutoInformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1012,6 +1043,7 @@ class AutoInformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 58
 class AutoAutoformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -1042,6 +1074,7 @@ class AutoAutoformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1075,6 +1108,7 @@ class AutoAutoformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 61
 class AutoFEDformer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -1104,6 +1138,7 @@ class AutoFEDformer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1137,6 +1172,7 @@ class AutoFEDformer(BaseAuto):
 
 # %% ../nbs/models.ipynb 64
 class AutoPatchTST(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3],
         "h": None,
@@ -1169,6 +1205,7 @@ class AutoPatchTST(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1202,6 +1239,7 @@ class AutoPatchTST(BaseAuto):
 
 # %% ../nbs/models.ipynb 68
 class AutoTimesNet(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
@@ -1232,6 +1270,7 @@ class AutoTimesNet(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1265,6 +1304,7 @@ class AutoTimesNet(BaseAuto):
 
 # %% ../nbs/models.ipynb 72
 class AutoStemGNN(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
@@ -1296,6 +1336,7 @@ class AutoStemGNN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1332,6 +1373,7 @@ class AutoStemGNN(BaseAuto):
 
 # %% ../nbs/models.ipynb 76
 class AutoHINT(BaseAuto):
+
     def __init__(
         self,
         cls_model,
@@ -1384,6 +1426,7 @@ class AutoHINT(BaseAuto):
 
 # %% ../nbs/models.ipynb 80
 class AutoTSMixer(BaseAuto):
+
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
@@ -1416,6 +1459,7 @@ class AutoTSMixer(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
+
         # Define search space, input/output sizes
         if config is None:
             config = self.default_config.copy()
@@ -1435,6 +1479,76 @@ class AutoTSMixer(BaseAuto):
 
         super(AutoTSMixer, self).__init__(
             cls_model=TSMixer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+# %% ../nbs/models.ipynb 83
+class AutoTSMixerx(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4],
+        "h": None,
+        "n_series": None,
+        "n_block": tune.choice([1, 2, 4, 6, 8]),
+        "learning_rate": tune.loguniform(1e-4, 1e-2),
+        "ff_dim": tune.choice([32, 64, 128]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "dropout": tune.uniform(0.0, 0.99),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.default_config.copy()
+            config["input_size"] = tune.choice(
+                [h * x for x in self.default_config["input_size_multiplier"]]
+            )
+
+            # Rolling windows with step_size=1 or step_size=h
+            # See `BaseWindows` and `BaseRNN`'s create_windows
+            config["step_size"] = tune.choice([1, h])
+            del config["input_size_multiplier"]
+            if backend == "optuna":
+                config = self._ray_config_to_optuna(config)
+
+        # Always use n_series from parameters
+        config["n_series"] = n_series
+
+        super(AutoTSMixerx, self).__init__(
+            cls_model=TSMixerx,
             h=h,
             loss=loss,
             valid_loss=valid_loss,

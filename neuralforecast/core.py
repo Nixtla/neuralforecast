@@ -49,6 +49,7 @@ from neuralforecast.models import (
     PatchTST,
     TimesNet,
     TSMixer,
+    TSMixerx,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -148,6 +149,8 @@ MODEL_FILENAME_DICT = {
     "autovanillatransformer": VanillaTransformer,
     "tsmixer": TSMixer,
     "autotsmixer": TSMixer,
+    "tsmixerx": TSMixerx,
+    "autotsmixerx": TSMixerx,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -174,6 +177,7 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
+
     def __init__(
         self,
         models: List[Any],
