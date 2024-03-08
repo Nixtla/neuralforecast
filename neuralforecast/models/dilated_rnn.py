@@ -148,6 +148,7 @@ class AttentiveLSTMLayer(nn.Module):
 
 # %% ../../nbs/models.dilated_rnn.ipynb 11
 class DRNN(nn.Module):
+
     def __init__(
         self,
         n_input,
@@ -435,6 +436,7 @@ class DilatedRNN(BaseRecurrent):
         )
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
         futr_exog = windows_batch["futr_exog"]

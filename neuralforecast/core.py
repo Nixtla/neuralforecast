@@ -174,6 +174,7 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
+
     def __init__(
         self,
         models: List[Any],

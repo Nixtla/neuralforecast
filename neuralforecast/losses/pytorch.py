@@ -521,6 +521,7 @@ class MQLoss(BasePointLoss):
     """
 
     def __init__(self, level=[80, 90], quantiles=None, horizon_weight=None):
+
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneus output names
@@ -1308,6 +1309,7 @@ class PMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 76
@@ -1476,6 +1478,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1514,6 +1517,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 84
@@ -1686,6 +1690,7 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
@@ -1727,6 +1732,7 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 91
@@ -1959,6 +1965,7 @@ class HuberMQLoss(BasePointLoss):
     def __init__(
         self, level=[80, 90], quantiles=None, delta: float = 1.0, horizon_weight=None
     ):
+
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneus output names

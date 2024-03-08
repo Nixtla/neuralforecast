@@ -496,15 +496,9 @@ class BaseRecurrent(BaseModel):
         y_idx = batch["y_idx"]
 
         # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            _,
-            _,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+        insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+            self._parse_windows(batch, windows)
+        )
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]

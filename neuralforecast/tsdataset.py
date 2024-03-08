@@ -74,6 +74,7 @@ class TimeSeriesLoader(DataLoader):
 
 # %% ../nbs/tsdataset.ipynb 7
 class TimeSeriesDataset(Dataset):
+
     def __init__(
         self,
         temporal,
@@ -191,9 +192,9 @@ class TimeSeriesDataset(Dataset):
             new_temporal[new_indptr[i] : new_indptr[i] + curr_size] = self.temporal[
                 curr_slice
             ]
-            new_temporal[
-                new_indptr[i] + curr_size : new_indptr[i + 1]
-            ] = futr_dataset.temporal[futr_slice]
+            new_temporal[new_indptr[i] + curr_size : new_indptr[i + 1]] = (
+                futr_dataset.temporal[futr_slice]
+            )
 
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
@@ -342,6 +343,7 @@ class TimeSeriesDataset(Dataset):
 
 # %% ../nbs/tsdataset.ipynb 10
 class TimeSeriesDataModule(pl.LightningDataModule):
+
     def __init__(
         self,
         dataset: TimeSeriesDataset,
