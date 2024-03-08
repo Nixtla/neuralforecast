@@ -483,6 +483,17 @@ class NeuralForecast:
             chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
         )
 
+    def _get_model_names(self) -> List[str]:
+        names = []
+        count_names = {"model": 0}
+        for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            names.extend(model_name + n for n in model.loss.output_names)
+        return names
+
     def predict(
         self,
         df: Optional[DataFrame] = None,
@@ -524,6 +535,50 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
+        if isinstance(df, SparkDataFrame):
+            import fugue.api as fa
+
+            def _predict(
+                df: pd.DataFrame,
+                models,
+                freq,
+                id_col,
+                time_col,
+                target_col,
+            ) -> pd.DataFrame:
+                import os
+
+                from neuralforecast import NeuralForecast
+
+                id_as_col = os.getenv("NIXTLA_ID_AS_COL", None)
+                if id_as_col is None:
+                    os.environ["NIXTLA_ID_AS_COL"] = "1"
+                nf = NeuralForecast(models=models, freq=freq)
+                nf.id_col = id_col
+                nf.time_col = time_col
+                nf.target_col = target_col
+                nf.scalers_ = {}
+                nf._fitted = True
+                preds = nf.predict(df=df)
+                if id_as_col is None:
+                    del os.environ["NIXTLA_ID_AS_COL"]
+                return preds
+
+            base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
+            models_schema = {model: "float" for model in self._get_model_names()}
+            return fa.transform(
+                df=df,
+                using=_predict,
+                schema=base_schema.append(models_schema),
+                params=dict(
+                    models=self.models,
+                    freq=self.freq,
+                    id_col=self.id_col,
+                    time_col=self.time_col,
+                    target_col=self.target_col,
+                ),
+            )
+
         needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
             if futr_df is None:
@@ -557,14 +612,7 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
+        cols = self._get_model_names()
 
         # Placeholder dataframe for predictions with unique_id and ds
         fcsts_df = ufp.make_future_dataframe(
@@ -1161,9 +1209,7 @@ class NeuralForecast:
             model_name = model.split("_")[0]
             model_class_name = alias_to_model.get(model_name, model_name)
             models.append(
-                MODEL_FILENAME_DICT[model_class_name].load_from_checkpoint(
-                    f"{path}/{model}", **kwargs
-                )
+                MODEL_FILENAME_DICT[model_class_name].load(f"{path}/{model}", **kwargs)
             )
             if verbose:
                 print(f"Model {model_name} loaded.")

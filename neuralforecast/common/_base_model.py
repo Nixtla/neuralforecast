@@ -227,11 +227,12 @@ class BaseModel(pl.LightningModule):
     def save(self, path):
         with fsspec.open(path, "wb") as f:
             torch.save(
-                {"hyper_parameters": self.hparams, "state_dict": self.state_dict()}, f
+                {"hyper_parameters": self.hparams, "state_dict": self.state_dict()},
+                f,
             )
 
     @classmethod
-    def load_from_checkpoint(cls, path):
+    def load(cls, path):
         with fsspec.open(path, "rb") as f:
             content = torch.load(f)
         model = cls(**content["hyper_parameters"])

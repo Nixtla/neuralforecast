@@ -7,6 +7,7 @@ __all__ = ['BaseAuto']
 from copy import deepcopy
 from os import cpu_count
 
+import fsspec
 import torch
 import pytorch_lightning as pl
 
@@ -299,21 +300,23 @@ class BaseAuto(pl.LightningModule):
         num_samples,
         search_alg,
         config,
+        distributed_config,
     ):
         import optuna
 
         def objective(trial):
             user_cfg = config(trial)
             cfg = deepcopy(user_cfg)
-            _, trainer = self._fit_model(
+            model = self._fit_model(
                 cls_model=cls_model,
                 config=cfg,
                 dataset=dataset,
                 val_size=val_size,
                 test_size=test_size,
+                distributed_config=distributed_config,
             )
             trial.set_user_attr("ALL_PARAMS", user_cfg)
-            metrics = trainer.callback_metrics
+            metrics = model.metrics
             trial.set_user_attr(
                 "METRICS",
                 {
@@ -337,12 +340,26 @@ class BaseAuto(pl.LightningModule):
         )
         return study
 
-    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+    def _fit_model(
+        self, cls_model, config, dataset, val_size, test_size, distributed_config
+    ):
         model = cls_model(**config)
-        trainer = model.fit(dataset, val_size=val_size, test_size=test_size)
-        return model, trainer
+        model = model.fit(
+            dataset,
+            val_size=val_size,
+            test_size=test_size,
+            distributed_config=distributed_config,
+        )
+        return model
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """BaseAuto.fit
 
         Perform the hyperparameter optimization as specified by the BaseAuto configuration
@@ -375,6 +392,7 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
+                distributed_config=distributed_config,
             )
             best_config = results.get_best_result().config
         else:
@@ -387,14 +405,16 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
+                distributed_config=distributed_config,
             )
             best_config = results.best_trial.user_attrs["ALL_PARAMS"]
-        self.model, _ = self._fit_model(
+        self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
             dataset=dataset,
             val_size=val_size * (1 - self.refit_with_val),
             test_size=test_size,
+            distributed_config=distributed_config,
         )
         self.results = results
 
@@ -402,6 +422,7 @@ class BaseAuto(pl.LightningModule):
         self.futr_exog_list = self.model.futr_exog_list
         self.hist_exog_list = self.model.hist_exog_list
         self.stat_exog_list = self.model.stat_exog_list
+        return self
 
     def predict(self, dataset, step_size=1, **data_kwargs):
         """BaseAuto.predict
@@ -432,4 +453,12 @@ class BaseAuto(pl.LightningModule):
         **Parameters:**<br>
         `path`: str, path to save the model.<br>
         """
-        self.model.trainer.save_checkpoint(path)
+        self.model.save(path)
+
+    @classmethod
+    def load(cls, path):
+        with fsspec.open(path, "rb") as f:
+            content = torch.load(f)
+        model = cls(**content["hyper_parameters"])
+        model.load_state_dict(content["state_dict"])
+        return model
