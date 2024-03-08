@@ -4,8 +4,6 @@
 __all__ = ['TSMixer']
 
 # %% ../../nbs/models.tsmixer.ipynb 5
-from typing import Optional
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
