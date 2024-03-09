@@ -53,6 +53,7 @@ Once you have your environment setup, activate it using `conda activate neuralfo
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
 ```
 nbdev_install_hooks
+pre-commit install
 ```
 
 ### Preview Changes
@@ -63,12 +64,6 @@ The library is built using the notebooks contained in the `nbs` folder. If you w
 ```
 nbdev_export
 ```
-
-### Linters
-This project uses a couple of linters to validate different aspects of the code. Before opening a PR, please make sure that it passes all the linting tasks by following the next steps.
-
-* `mypy neuralforecast/`
-* `ruff neuralforecast/`
 
 ### Running tests
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 

@@ -155,6 +155,7 @@ class DeepAR(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
+
         # DeepAR does not support historic exogenous variables
         if hist_exog_list is not None:
             raise Exception("DeepAR does not support historic exogenous variables.")
@@ -239,6 +240,7 @@ class DeepAR(BaseWindows):
 
     # Override BaseWindows method
     def training_step(self, batch, batch_idx):
+
         # During training h=0
         self.h = 0
         y_idx = batch["y_idx"]
@@ -301,6 +303,7 @@ class DeepAR(BaseWindows):
         return loss
 
     def validation_step(self, batch, batch_idx):
+
         self.h == self.horizon_backup
 
         if self.val_size == 0:
@@ -329,15 +332,9 @@ class DeepAR(BaseWindows):
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
-            (
-                insample_y,
-                insample_mask,
-                _,
-                outsample_mask,
-                _,
-                futr_exog,
-                stat_exog,
-            ) = self._parse_windows(batch, windows)
+            insample_y, insample_mask, _, outsample_mask, _, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
             windows_batch = dict(
                 insample_y=insample_y,
                 insample_mask=insample_mask,
@@ -370,6 +367,7 @@ class DeepAR(BaseWindows):
         return valid_loss
 
     def predict_step(self, batch, batch_idx):
+
         self.h == self.horizon_backup
 
         # TODO: Hack to compute number of windows
@@ -393,15 +391,9 @@ class DeepAR(BaseWindows):
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
-            (
-                insample_y,
-                insample_mask,
-                _,
-                _,
-                _,
-                futr_exog,
-                stat_exog,
-            ) = self._parse_windows(batch, windows)
+            insample_y, insample_mask, _, _, _, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
                 insample_mask=insample_mask,  # [Ws, L]
@@ -419,6 +411,7 @@ class DeepAR(BaseWindows):
         return y_hat
 
     def train_forward(self, windows_batch):
+
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
@@ -449,6 +442,7 @@ class DeepAR(BaseWindows):
         return output
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"][:, :, None]  # <- [B,L,1]
         futr_exog = windows_batch["futr_exog"]  # <- [B,L+H, n_f]

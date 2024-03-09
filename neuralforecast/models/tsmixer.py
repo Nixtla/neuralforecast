@@ -4,7 +4,6 @@
 __all__ = ['TSMixer']
 
 # %% ../../nbs/models.tsmixer.ipynb 5
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -161,6 +160,7 @@ class TSMixer(BaseMultivariate):
         drop_last_loader: bool = False,
         **trainer_kwargs
     ):
+
         # Inherit BaseWindows class
         super(TSMixer, self).__init__(
             h=h,
