@@ -293,6 +293,7 @@ class TimesNet(BaseWindows):
         self.projection = nn.Linear(hidden_size, self.c_out, bias=True)
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']
