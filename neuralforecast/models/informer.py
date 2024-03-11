@@ -353,9 +353,11 @@ class Informer(BaseWindows):
                 )
                 for l in range(encoder_layers)
             ],
-            [ConvLayer(hidden_size) for l in range(encoder_layers - 1)]
-            if distil
-            else None,
+            (
+                [ConvLayer(hidden_size) for l in range(encoder_layers - 1)]
+                if distil
+                else None
+            ),
             norm_layer=torch.nn.LayerNorm(hidden_size),
         )
         # Decoder

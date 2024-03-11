@@ -243,7 +243,12 @@ class BaseAuto(pl.LightningModule):
 
         # on Windows, prevent long trial directory names
         import platform
-        trial_dirname_creator=(lambda trial: f"{trial.trainable_name}_{trial.trial_id}") if platform.system() == 'Windows' else None
+
+        trial_dirname_creator = (
+            (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
+            if platform.system() == "Windows"
+            else None
+        )
 
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),

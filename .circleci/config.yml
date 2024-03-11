@@ -8,7 +8,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 git -f environment.yml
+          command: micromamba install -n base -c conda-forge -y python=3.10 git -f environment-cpu.yml
       - run:
           name: Run nbdev tests
           command: |
@@ -24,7 +24,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment.yml
+          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
       - run:
           name: Run model performance tests
           command: |
@@ -48,7 +48,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment.yml
+          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
       - run:
           name: Run model performance tests
           command: |

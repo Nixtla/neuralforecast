@@ -246,6 +246,7 @@ class BaseWindows(BaseModel):
             return windows_batch
 
         elif step in ["predict", "val"]:
+
             if step == "predict":
                 initial_input = temporal.shape[-1] - self.test_size
                 if (
@@ -582,6 +583,7 @@ class BaseWindows(BaseModel):
         return valid_loss
 
     def predict_step(self, batch, batch_idx):
+
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
         n_windows = len(windows["temporal"])
@@ -603,15 +605,9 @@ class BaseWindows(BaseModel):
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
-            (
-                insample_y,
-                insample_mask,
-                _,
-                _,
-                hist_exog,
-                futr_exog,
-                stat_exog,
-            ) = self._parse_windows(batch, windows)
+            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
                 insample_mask=insample_mask,  # [Ws, L]

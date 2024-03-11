@@ -198,6 +198,7 @@ class StemGNN(BaseMultivariate):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
+
         # Inherit BaseMultivariate class
         super(StemGNN, self).__init__(
             h=h,
