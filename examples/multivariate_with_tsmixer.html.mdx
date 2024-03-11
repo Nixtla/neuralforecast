@@ -19,13 +19,15 @@ methods are commonly less well suited for large-scale problems
 In this notebook, we will demonstrate the performance of a
 state-of-the-art multivariate forecasting architecture
 [`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+/
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 when compared to a univariate forecasting method
 ([`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)).
 
 We will show how to: \* Load the
 [ETTm2](https://github.com/zhouhaoyi/etdataset) benchmark dataset, used
-in the academic literature. \* Train a TSMixer model \* Forecast the
-test set \* Optimize the hyperparameters
+in the academic literature. \* Train a TSMixer and TSMixerx model \*
+Forecast the test set \* Optimize the hyperparameters
 
 You can run these experiments using GPU with Google Colab.
 
@@ -45,10 +47,20 @@ dataset and process it.
 It return three Dataframes: `Y_df` contains the values for the target
 variables, `X_df` contains exogenous calendar features and `S_df`
 contains static features for each time-series (none for ETTm2). For this
-example we will only use `Y_df`.
+example we will use `Y_df` and `X_df`.
 
-If you want to use your own data just replace `Y_df`. Be sure to use a
-long format and have a simmilar structure than our data set.
+In
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx),
+we can make use of the additional exogenous features contained in
+`X_df`. In
+[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
+there is *no* support for exogenous features. Hence, if you want to use
+exogenous features, you should use
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx).
+
+If you want to use your own data just replace `Y_df` and `X_df`. Be sure
+to use a long format and make sure to have a similar structure as our
+data set.
 
 ```python
 import pandas as pd
@@ -59,12 +71,22 @@ from datasetsforecast.long_horizon import LongHorizon
 
 ```python
 # Change this to your own data to try the model
-Y_df, _, _ = LongHorizon.load(directory='./', group='ETTm2')
+Y_df, X_df, _ = LongHorizon.load(directory='./', group='ETTm2')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 
+# X_df contains the exogenous features, which we add to Y_df
+X_df['ds'] = pd.to_datetime(X_df['ds'])
+Y_df = Y_df.merge(X_df, on=['unique_id', 'ds'], how='left')
+
+# We make validation and test splits
 n_time = len(Y_df.ds.unique())
 val_size = int(.2 * n_time)
 test_size = int(.2 * n_time)
+```
+
+
+```python
+Y_df
 ```
 
 ## 3. Train models
@@ -78,11 +100,15 @@ hyperparameter selection and early stopping, and will then produce the
 forecasts for the test set.
 
 First, instantiate each model in the `models` list, specifying the
-`horizon`, `input_size`, and training iterations.
+`horizon`, `input_size`, and training iterations. In this notebook, we
+compare against the
+[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+model.
 
 ```python
+# %%capture
 from neuralforecast.core import NeuralForecast
-from neuralforecast.models import TSMixer, NHITS
+from neuralforecast.models import TSMixer, TSMixerx, NHITS
 from neuralforecast.losses.pytorch import MSE, MAE
 ```
 
@@ -100,7 +126,19 @@ models = [
                 scaler_type='identity',
                 valid_loss=MAE(),
                 random_seed=12345678,
-                ),           
+                ),  
+          TSMixerx(h=horizon,
+                input_size=input_size,
+                n_series=7,
+                max_steps=1000,
+                val_check_steps=100,
+                early_stop_patience_steps=5,
+                scaler_type='identity',
+                dropout=0.7,
+                valid_loss=MAE(),
+                random_seed=12345678,
+                futr_exog_list=['ex_1', 'ex_2', 'ex_3', 'ex_4'],
+                ),                          
            NHITS(h=horizon,
                 input_size=horizon,
                 max_steps=1000,
@@ -108,18 +146,15 @@ models = [
                 early_stop_patience_steps=5,
                 scaler_type='robust',
                 valid_loss=MAE(),
+                random_seed=12345678,
                 ),                                                                       
          ]
 ```
 
-``` text
-INFO:lightning_fabric.utilities.seed:Seed set to 12345678
-INFO:lightning_fabric.utilities.seed:Seed set to 1
-```
-
 > **Tip**
 >
-> Check our `auto` models for automatic hyperparameter optimization.
+> Check our `auto` models for automatic hyperparameter optimization, and
+> see the end of this tutorial for an example of hyperparameter tuning.
 
 Instantiate a
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
@@ -142,7 +177,8 @@ nf = NeuralForecast(
 Y_hat_df = nf.cross_validation(df=Y_df,
                                val_size=val_size,
                                test_size=test_size,
-                               n_windows=None)                                 
+                               n_windows=None
+                               )                                 
 Y_hat_df = Y_hat_df.reset_index()
 ```
 
@@ -163,14 +199,13 @@ Y_plot = Y_plot[Y_hat_df['cutoff'].isin(cutoffs)]
 plt.figure(figsize=(20,5))
 plt.plot(Y_plot['ds'], Y_plot['y'], label='True')
 plt.plot(Y_plot['ds'], Y_plot['TSMixer'], label='TSMixer')
+plt.plot(Y_plot['ds'], Y_plot['TSMixerx'], label='TSMixerx')
 plt.plot(Y_plot['ds'], Y_plot['NHITS'], label='NHITS')
 plt.xlabel('Datestamp')
 plt.ylabel('OT')
 plt.grid()
 plt.legend()
 ```
-
-![](/neuralforecast/examples/Multivariate_with_TSMixer_files/figure-markdown_strict/cell-8-output-1.png)
 
 Finally, we compute the test errors using the Mean Absolute Error (MAE)
 and Mean Squared Error (MSE):
@@ -184,20 +219,18 @@ from neuralforecast.losses.numpy import mse, mae
 
 mae_tsmixer = mae(Y_hat_df['y'], Y_hat_df['TSMixer'])
 mse_tsmixer = mse(Y_hat_df['y'], Y_hat_df['TSMixer'])
+mae_tsmixerx = mae(Y_hat_df['y'], Y_hat_df['TSMixerx'])
+mse_tsmixerx = mse(Y_hat_df['y'], Y_hat_df['TSMixerx'])
 mae_nhits = mae(Y_hat_df['y'], Y_hat_df['NHITS'])
 mse_nhits = mse(Y_hat_df['y'], Y_hat_df['NHITS'])
 
+
 print(f'TSMixer horizon {horizon} - MAE: {mae_tsmixer:.3f}')
 print(f'TSMixer horizon {horizon} - MSE: {mse_tsmixer:.3f}')
+print(f'TSMixerx horizon {horizon} - MAE: {mae_tsmixerx:.3f}')
+print(f'TSMixerx horizon {horizon} - MSE: {mse_tsmixerx:.3f}')
 print(f'NHITS horizon {horizon} - MAE: {mae_nhits:.3f}')
 print(f'NHITS horizon {horizon} - MSE: {mse_nhits:.3f}')
-```
-
-``` text
-TSMixer horizon 96 - MAE: 0.249
-TSMixer horizon 96 - MSE: 0.163
-NHITS horizon 96 - MAE: 0.251
-NHITS horizon 96 - MSE: 0.178
 ```
 
 For reference, we can check the performance when compared to
@@ -207,27 +240,33 @@ provides better results than the *univariate* method
 [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits).
 Also, our implementation of
 [`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
-very closely tracks the results of the original paper.
+very closely tracks the results of the original paper. Finally, it seems
+that there is little benefit of using the additional exogenous variables
+contained in the dataframe `X_df` as
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+performs worse than
+[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
+especially on longer horizons.
 
 Mean Absolute Error (MAE)
 
-| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
-|---------------|---------------|---------------|---------------|---------------|
-| 96      | **0.249**                   | 0.252               | 0.251                     | 0.255             |
-| 192     | **0.289**                   | 0.290               | 0.294                     | 0.305             |
-| 336     | 0.325                       | **0.324**           | 0.345                     | 0.346             |
-| 720     | **0.382**                   | 0.422               | 0.420                     | 0.413             |
+| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
+|------------|------------|------------|------------|------------|------------|
+| 96      | **0.250**                   | 0.252               | 0.257                        | 0.251                     | 0.255             |
+| 192     | **0.288**                   | 0.290               | 0.300                        | 0.291                     | 0.305             |
+| 336     | **0.323**                   | 0.324               | 0.380                        | 0.344                     | 0.346             |
+| 720     | **0.377**                   | 0.422               | 0.464                        | 0.417                     | 0.413             |
 
 Mean Squared Error (MSE)
 
-| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
-|---------------|---------------|---------------|---------------|---------------|
-| 96      | **0.163**                   | **0.163**           | 0.178                     | 0.176             |
-| 192     | 0.221                       | **0.216**           | 0.243                     | 0.245             |
-| 336     | 0.275                       | **0.268**           | 0.315                     | 0.295             |
-| 720     | **0.363**                   | 0.420               | 0.445                     | 0.401             |
+| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
+|------------|------------|------------|------------|------------|------------|
+| 96      | **0.163**                   | **0.163**           | 0.170                        | 0.179                     | 0.176             |
+| 192     | 0.220                       | **0.216**           | 0.231                        | 0.239                     | 0.245             |
+| 336     | 0.272                       | **0.268**           | 0.361                        | 0.311                     | 0.295             |
+| 720     | **0.356**                   | 0.420               | 0.493                        | 0.451                     | 0.401             |
 
-Note that for the table above, we use the same hyperparameters for both
+Note that for the table above, we use the same hyperparameters for all
 methods for all horizons, whereas the original papers tune the
 hyperparameters for each horizon.
 
@@ -235,21 +274,26 @@ hyperparameters for each horizon.
 
 The
 [`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+/
+[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
 class will automatically perform hyperparamter tunning using the [Tune
 library](https://docs.ray.io/en/latest/tune/index.html), exploring a
 user-defined or default search space. Models are selected based on the
 error on a validation set and the best model is then stored and used
 during inference.
 
-The `AutoTSMixer.default_config` attribute contains a suggested
-hyperparameter space. Here, we specify a different search space
-following the paper’s hyperparameters. Feel free to play around with
-this space.
+The `AutoTSMixer.default_config` / `AutoTSMixerx.default_config`
+attribute contains a suggested hyperparameter space. Here, we specify a
+different search space following the paper’s hyperparameters. Feel free
+to play around with this space.
+
+For this example, we will optimize the hyperparameters for
+`horizon = 96`.
 
 ```python
 from ray import tune
 from ray.tune.search.hyperopt import HyperOptSearch
-from neuralforecast.auto import AutoTSMixer
+from neuralforecast.auto import AutoTSMixer, AutoTSMixerx
 
 horizon = 96 # 24hrs = 4 * 15 min.
 
@@ -264,10 +308,15 @@ tsmixer_config = {
        "ff_dim": tune.choice([32, 64, 128]),                                     # Dimension of the feature linear layer
        "scaler_type": 'identity',       
     }
+
+tsmixerx_config = tsmixer_config.copy()
+tsmixerx_config['futr_exog_list'] = ['ex_1', 'ex_2', 'ex_3', 'ex_4']
 ```
 
 To instantiate
 [`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+and
+[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
 you need to define:
 
 -   `h`: forecasting horizon
@@ -276,7 +325,7 @@ you need to define:
 
 In addition, we define the following parameters (if these are not given,
 the
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
 class will use a pre-defined value): \* `loss`: training loss. Use the
 [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
 to produce probabilistic forecasts. \* `config`: hyperparameter search
@@ -295,6 +344,15 @@ model = AutoTSMixer(h=horizon,
                     n_series=7,
                     loss=MAE(),
                     config=tsmixer_config,
+                    num_samples=10,
+                    search_alg=HyperOptSearch(),
+                    backend='ray',
+                    valid_loss=MAE())
+
+modelx = AutoTSMixerx(h=horizon,
+                    n_series=7,
+                    loss=MAE(),
+                    config=tsmixerx_config,
                     num_samples=10,
                     search_alg=HyperOptSearch(),
                     backend='ray',
@@ -327,7 +385,7 @@ hyperparameter selection, and will then produce the forecasts for the
 test set.
 
 ```python
-nf = NeuralForecast(models=[model], freq='15min')
+nf = NeuralForecast(models=[model, modelx], freq='15min')
 Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
                                test_size=test_size, n_windows=None)
 ```
@@ -335,15 +393,24 @@ Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
 ## 6. Evaluate Results
 
 The
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
 class contains a `results` attribute that stores information of each
 configuration explored. It contains the validation loss and best
 validation hyperparameter. The result dataframe `Y_hat_df` that we
 obtained in the previous step is based on the best config of the
-hyperparameter search.
+hyperparameter search. For
+[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer),
+the best config is:
 
 ```python
 nf.models[0].results.get_best_result().config
+```
+
+and for
+[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx):
+
+```python
+nf.models[1].results.get_best_result().config
 ```
 
 We compute the test errors of the best config for the two metrics of
@@ -355,22 +422,32 @@ $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau}
 
 ```python
 y_true = Y_hat_df.y.values
-y_hat = Y_hat_df['AutoTSMixer'].values
+y_hat_tsmixer = Y_hat_df['AutoTSMixer'].values
+y_hat_tsmixerx = Y_hat_df['AutoTSMixerx'].values
 
-print(f'MAE: {mae(y_hat, y_true):.3f}')
-print(f'MSE: {mse(y_hat, y_true):.3f}')
+print(f'MAE TSMixer: {mae(y_hat_tsmixer, y_true):.3f}')
+print(f'MSE TSMixer: {mse(y_hat_tsmixer, y_true):.3f}')
+print(f'MAE TSMixerx: {mae(y_hat_tsmixerx, y_true):.3f}')
+print(f'MSE TSMixerx: {mse(y_hat_tsmixerx, y_true):.3f}')
 ```
 
 We can compare the error metrics for our optimized setting to the
 earlier setting in which we used the default hyperparameters. In this
-case, for a horizon of 96, we got slightly improved results on both
-metrics as compared to the default settings, demonstrating the benefit
-of hyperparameter optimization.
+case, for a horizon of 96, we got slightly improved results for
+[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+on
+[`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae).
+Interestingly, we did not improve for
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+as compared to the default settings. For this dataset, it seems there is
+limited value in using exogenous features with the
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+architecture for a horizon of 96.
 
-| Metric | TSMixer<br/> (optimized) | TSMixer <br/>(default) | TSMixer <br/>(paper) |
-|------------------|------------------|------------------|------------------|
-| MAE    | **0.248**               | 0.249                 | 0.252               |
-| MSE    | **0.162**               | 0.163                 | 0.163               |
+| Metric | TSMixer<br/> (optimized) | TSMixer <br/>(default) | TSMixer <br/>(paper) | TSMixerx<br/> (optimized) | TSMixerx <br/>(default) |
+|------------|------------|------------|------------|------------|------------|
+| MAE    | **0.247**               | 0.250                 | 0.252               | 0.258                    | 0.257                  |
+| MSE    | **0.162**               | 0.163                 | **0.163**           | 0.174                    | 0.170                  |
 
 Note that we only evaluated 10 hyperparameter configurations
 (`num_samples=10`), which may suggest that it is possible to further
@@ -381,9 +458,9 @@ configurations.
 
 [Chen, Si-An, Chun-Liang Li, Nate Yoder, Sercan O. Arik, and Tomas
 Pfister (2023). “TSMixer: An All-MLP Architecture for Time Series
-Forecasting.”](http://arxiv.org/abs/2303.06053) [Cristian Challu, Kin G.
-Olivares, Boris N. Oreshkin, Federico Garza, Max Mergenthaler-Canseco,
-Artur Dubrawski (2021). NHITS: Neural Hierarchical Interpolation for
-Time Series Forecasting. Accepted at AAAI
+Forecasting.”](http://arxiv.org/abs/2303.06053) <br/> [Cristian Challu,
+Kin G. Olivares, Boris N. Oreshkin, Federico Garza, Max
+Mergenthaler-Canseco, Artur Dubrawski (2021). NHITS: Neural Hierarchical
+Interpolation for Time Series Forecasting. Accepted at AAAI
 2023.](https://arxiv.org/abs/2201.12886)
 
