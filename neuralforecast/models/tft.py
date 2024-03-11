@@ -564,10 +564,14 @@ class TFT(BaseWindows):
         else:
             # If None add zeros
             batch_size, example_length, target_size, hidden_size = t_observed_tgt.shape
-            cs = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
-            ce = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
-            ch = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
-            cc = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
+            cs = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
+            ce = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
+            ch = torch.zeros(
+                size=(1, batch_size, hidden_size), device=y_insample.device
+            )
+            cc = torch.zeros(
+                size=(1, batch_size, hidden_size), device=y_insample.device
+            )
 
         # Historical inputs
         _historical_inputs = [
