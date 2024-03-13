@@ -501,6 +501,7 @@ class NeuralForecast:
         futr_df: Optional[DataFrame] = None,
         sort_df: bool = True,
         verbose: bool = False,
+        engine=None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -520,6 +521,8 @@ class NeuralForecast:
             Sort `df` before fitting.
         verbose : bool (default=False)
             Print processing steps.
+        engine : spark session
+            Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -535,7 +538,9 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
 
-        if isinstance(df, SparkDataFrame):
+        if isinstance(df, SparkDataFrame) or (
+            df is None and isinstance(getattr(self, "dataset", None), _FilesDataset)
+        ):
             import fugue.api as fa
 
             def _predict(
@@ -564,6 +569,12 @@ class NeuralForecast:
                     del os.environ["NIXTLA_ID_AS_COL"]
                 return preds
 
+            if isinstance(df, SparkDataFrame):
+                df = df.repartitionByRange(df.rdd.getNumPartitions(), self.id_col)
+            else:
+                if engine is None:
+                    raise ValueError("engine is required for distributed inference")
+                df = engine.read.parquet(*self.dataset.files)
             base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
             models_schema = {model: "float" for model in self._get_model_names()}
             return fa.transform(
@@ -1122,15 +1133,13 @@ class NeuralForecast:
             if i not in model_index:
                 continue
 
-            model_name = repr(model).lower().replace("_", "")
+            model_name = repr(model)
             model_class_name = model.__class__.__name__.lower()
-            if model_name != model_class_name:
-                alias_to_model[model_name] = model_class_name
+            alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
-        if alias_to_model:
-            with fsspec.open(f"{path}/alias_to_model.pkl", "wb") as f:
-                pickle.dump(alias_to_model, f)
+        with fsspec.open(f"{path}/alias_to_model.pkl", "wb") as f:
+            pickle.dump(alias_to_model, f)
 
         # Save dataset
         if (save_dataset) and (hasattr(self, "dataset")):
@@ -1189,7 +1198,7 @@ class NeuralForecast:
         if path[-1] == "/":
             path = path[:-1]
 
-        fs, _, paths = fsspec.get_fs_token_paths(path)
+        fs, _, _ = fsspec.get_fs_token_paths(path)
         files = [f.split("/")[-1] for f in fs.ls(path) if fs.isfile(f)]
 
         # Load models
@@ -1206,11 +1215,13 @@ class NeuralForecast:
         except FileNotFoundError:
             alias_to_model = {}
         for model in models_ckpt:
-            model_name = model.split("_")[0]
+            model_name = "_".join(model.split("_")[:-1])
             model_class_name = alias_to_model.get(model_name, model_name)
-            models.append(
-                MODEL_FILENAME_DICT[model_class_name].load(f"{path}/{model}", **kwargs)
+            loaded_model = MODEL_FILENAME_DICT[model_class_name].load(
+                f"{path}/{model}", **kwargs
             )
+            loaded_model.alias = model_name
+            models.append(loaded_model)
             if verbose:
                 print(f"Model {model_name} loaded.")
 
