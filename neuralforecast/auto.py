@@ -14,6 +14,7 @@ from ray import tune
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
 from .common._base_auto import BaseAuto
+from .common._base_auto import MockTrial
 
 from .models.rnn import RNN
 from .models.gru import GRU
@@ -1355,9 +1356,16 @@ class AutoStemGNN(BaseAuto):
                 config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
         if backend == "ray":
-            # Always use n_series from parameters
             config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoStemGNN, self).__init__(
             cls_model=StemGNN,
@@ -1414,6 +1422,9 @@ class AutoHINT(BaseAuto):
             backend=backend,
             callbacks=callbacks,
         )
+        if backend == "optuna":
+            raise Exception("Optuna is not supported for AutoHINT.")
+
         # Validate presence of reconciliation strategy
         # parameter in configuration space
         if not ("reconciliation" in config.keys()):
@@ -1486,9 +1497,16 @@ class AutoTSMixer(BaseAuto):
                 config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
         if backend == "ray":
-            # Always use n_series from parameters
             config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoTSMixer, self).__init__(
             cls_model=TSMixer,
@@ -1559,9 +1577,16 @@ class AutoTSMixerx(BaseAuto):
                 config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
         if backend == "ray":
-            # Always use n_series from parameters
             config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoTSMixerx, self).__init__(
             cls_model=TSMixerx,
