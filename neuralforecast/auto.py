@@ -44,7 +44,7 @@ from .models.tsmixerx import TSMixerx
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
-# %% ../nbs/models.ipynb 9
+# %% ../nbs/models.ipynb 13
 class AutoRNN(BaseAuto):
 
     default_config = {
@@ -115,7 +115,7 @@ class AutoRNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 14
+# %% ../nbs/models.ipynb 17
 class AutoLSTM(BaseAuto):
 
     default_config = {
@@ -182,7 +182,7 @@ class AutoLSTM(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 17
+# %% ../nbs/models.ipynb 21
 class AutoGRU(BaseAuto):
 
     default_config = {
@@ -250,7 +250,7 @@ class AutoGRU(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 20
+# %% ../nbs/models.ipynb 25
 class AutoTCN(BaseAuto):
 
     default_config = {
@@ -317,7 +317,7 @@ class AutoTCN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 23
+# %% ../nbs/models.ipynb 29
 class AutoDeepAR(BaseAuto):
 
     default_config = {
@@ -385,7 +385,7 @@ class AutoDeepAR(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 26
+# %% ../nbs/models.ipynb 33
 class AutoDilatedRNN(BaseAuto):
 
     default_config = {
@@ -454,7 +454,7 @@ class AutoDilatedRNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 30
+# %% ../nbs/models.ipynb 38
 class AutoMLP(BaseAuto):
 
     default_config = {
@@ -519,7 +519,7 @@ class AutoMLP(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 33
+# %% ../nbs/models.ipynb 42
 class AutoNBEATS(BaseAuto):
 
     default_config = {
@@ -582,7 +582,7 @@ class AutoNBEATS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 36
+# %% ../nbs/models.ipynb 46
 class AutoNBEATSx(BaseAuto):
 
     default_config = {
@@ -645,7 +645,7 @@ class AutoNBEATSx(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 39
+# %% ../nbs/models.ipynb 50
 class AutoNHITS(BaseAuto):
 
     default_config = {
@@ -721,7 +721,7 @@ class AutoNHITS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 42
+# %% ../nbs/models.ipynb 54
 class AutoDLinear(BaseAuto):
 
     default_config = {
@@ -785,7 +785,7 @@ class AutoDLinear(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 45
+# %% ../nbs/models.ipynb 58
 class AutoNLinear(BaseAuto):
 
     default_config = {
@@ -848,7 +848,7 @@ class AutoNLinear(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 49
+# %% ../nbs/models.ipynb 63
 class AutoTFT(BaseAuto):
 
     default_config = {
@@ -913,7 +913,7 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 52
+# %% ../nbs/models.ipynb 67
 class AutoVanillaTransformer(BaseAuto):
 
     default_config = {
@@ -978,7 +978,7 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 55
+# %% ../nbs/models.ipynb 71
 class AutoInformer(BaseAuto):
 
     default_config = {
@@ -1043,7 +1043,7 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 58
+# %% ../nbs/models.ipynb 75
 class AutoAutoformer(BaseAuto):
 
     default_config = {
@@ -1108,7 +1108,7 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 61
+# %% ../nbs/models.ipynb 79
 class AutoFEDformer(BaseAuto):
 
     default_config = {
@@ -1172,7 +1172,7 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 64
+# %% ../nbs/models.ipynb 83
 class AutoPatchTST(BaseAuto):
 
     default_config = {
@@ -1239,7 +1239,7 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 68
+# %% ../nbs/models.ipynb 88
 class AutoTimesNet(BaseAuto):
 
     default_config = {
@@ -1304,7 +1304,7 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 72
+# %% ../nbs/models.ipynb 93
 class AutoStemGNN(BaseAuto):
 
     default_config = {
@@ -1351,10 +1351,13 @@ class AutoStemGNN(BaseAuto):
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
             if backend == "optuna":
+                # Always use n_series from parameters
+                config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        if backend == "ray":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
 
         super(AutoStemGNN, self).__init__(
             cls_model=StemGNN,
@@ -1373,7 +1376,7 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 76
+# %% ../nbs/models.ipynb 97
 class AutoHINT(BaseAuto):
 
     def __init__(
@@ -1431,7 +1434,7 @@ class AutoHINT(BaseAuto):
         model.fit(dataset, val_size=val_size, test_size=test_size)
         return model, None
 
-# %% ../nbs/models.ipynb 80
+# %% ../nbs/models.ipynb 102
 class AutoTSMixer(BaseAuto):
 
     default_config = {
@@ -1479,10 +1482,13 @@ class AutoTSMixer(BaseAuto):
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
             if backend == "optuna":
+                # Always use n_series from parameters
+                config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        if backend == "ray":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
 
         super(AutoTSMixer, self).__init__(
             cls_model=TSMixer,
@@ -1501,7 +1507,7 @@ class AutoTSMixer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 83
+# %% ../nbs/models.ipynb 106
 class AutoTSMixerx(BaseAuto):
 
     default_config = {
@@ -1549,10 +1555,13 @@ class AutoTSMixerx(BaseAuto):
             config["step_size"] = tune.choice([1, h])
             del config["input_size_multiplier"]
             if backend == "optuna":
+                # Always use n_series from parameters
+                config["n_series"] = n_series
                 config = self._ray_config_to_optuna(config)
 
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        if backend == "ray":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
 
         super(AutoTSMixerx, self).__init__(
             cls_model=TSMixerx,
