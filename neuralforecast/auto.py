@@ -72,6 +72,7 @@ class AutoRNN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
         backend="ray",
         callbacks=None,
     ):
@@ -142,6 +143,7 @@ class AutoLSTM(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
         backend="ray",
         callbacks=None,
     ):
@@ -1387,7 +1389,10 @@ class AutoHINT(BaseAuto):
         refit_with_val=False,
         verbose=False,
         alias=None,
+        backend="ray",
+        callbacks=None,
     ):
+
         super(AutoHINT, self).__init__(
             cls_model=cls_model,
             h=h,
@@ -1401,6 +1406,8 @@ class AutoHINT(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
+            callbacks=callbacks,
         )
         # Validate presence of reconciliation strategy
         # parameter in configuration space
