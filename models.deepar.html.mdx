@@ -17,6 +17,16 @@ hidden states $\mathbf{h}_{t}$ into predictive distribution parameters
 $\theta_{t}$, and then generating samples $\mathbf{\hat{y}}_{[t+1:t+H]}$
 through Monte Carlo sampling trajectories.
 
+$$
+
+\begin{align}
+\mathbf{h}_{t} &= \textrm{RNN}([\mathbf{y}_{t},\mathbf{x}^{(f)}_{t+1},\mathbf{x}^{(s)}], \mathbf{h}_{t-1})\\
+\mathbf{\theta}_{t}&=\textrm{Linear}(\mathbf{h}_{t}) \\
+\hat{y}_{t+1}&=\textrm{sample}(\;\mathrm{P}(y_{t+1}\;|\;\mathbf{\theta}_{t})\;)
+\end{align}
+
+$$
+
 **References**<br/> - [David Salinas, Valentin Flunkert, Jan Gasthaus,
 Tim Januschowski (2020). “DeepAR: Probabilistic forecasting with
 autoregressive recurrent networks”. International Journal of
@@ -96,24 +106,6 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ```
 
 DeepAR
-
-The DeepAR model produces probabilistic forecasts based on an
-autoregressive recurrent neural network optimized on panel data using
-cross-learning. DeepAR obtains its forecast distribution uses a Markov
-Chain Monte Carlo sampler with the following conditional probability:
-$$\mathbb{P}(\mathbf{y}_{[t+1:t+H]}|\;\mathbf{y}_{[:t]},\; \mathbf{x}^{(f)}_{[:t+H]},\; \mathbf{x}^{(s)})$$
-
-where $\mathbf{x}^{(s)}$ are static exogenous inputs,
-$\mathbf{x}^{(f)}_{[:t+H]}$ are future exogenous available at the time
-of the prediction. The predictions are obtained by transforming the
-hidden states $\mathbf{h}_{t}$ into predictive distribution parameters
-\$ heta\_{t}\$, and then generating samples
-$\mathbf{\hat{y}}_{[t+1:t+H]}$ through Monte Carlo sampling
-trajectories.
-
-egin{align} *{t} &= extrm{RNN}(\[*{t},^{(f)}*{t+1},^{(s)}\], *{t-1})  
-*{t}&= extrm{Linear}(*{t})  
-*{t+1}&= extrm{sample}(;(y*{t+1};\|;\_{t});) \end{align}
 
 **Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
 autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
