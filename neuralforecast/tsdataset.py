@@ -433,7 +433,11 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
 
         df = pd.read_parquet(self.files_ds.files[dist.get_rank()])
         if self.files_ds.static_cols is not None:
-            static_df = df[[self.id_col] + self.files_ds.static_cols].drop_duplicates()
+            static_df = (
+                df[[self.files_ds.id_col] + self.files_ds.static_cols.tolist()]
+                .groupby(self.files_ds.id_col, observed=True)
+                .head(1)
+            )
             df = df.drop(columns=self.files_ds.static_cols)
         else:
             static_df = None
