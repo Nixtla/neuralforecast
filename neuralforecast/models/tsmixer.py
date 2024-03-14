@@ -12,60 +12,81 @@ from ..losses.pytorch import MAE
 from ..common._base_multivariate import BaseMultivariate
 
 # %% ../../nbs/models.tsmixer.ipynb 8
-class MixingLayer(nn.Module):
-    def __init__(self, n_series, input_size, dropout, ff_dim):
+class TemporalMixing(nn.Module):
+    def __init__(self, n_series, input_size, dropout):
         super().__init__()
-        # Normalization layers
         self.temporal_norm = nn.BatchNorm1d(
             num_features=n_series * input_size, eps=0.001, momentum=0.01
         )
+        self.temporal_lin = nn.Linear(input_size, input_size)
+        self.temporal_drop = nn.Dropout(dropout)
+
+    def forward(self, input):
+        # Get shapes
+        batch_size = input.shape[0]
+        input_size = input.shape[1]
+        n_series = input.shape[2]
+
+        # Temporal MLP
+        x = input.permute(0, 2, 1)  # [B, L, N] -> [B, N, L]
+        x = x.reshape(batch_size, -1)  # [B, N, L] -> [B, N * L]
+        x = self.temporal_norm(x)  # [B, N * L] -> [B, N * L]
+        x = x.reshape(batch_size, n_series, input_size)  # [B, N * L] -> [B, N, L]
+        x = F.relu(self.temporal_lin(x))  # [B, N, L] -> [B, N, L]
+        x = x.permute(0, 2, 1)  # [B, N, L] -> [B, L, N]
+        x = self.temporal_drop(x)  # [B, L, N] -> [B, L, N]
+
+        return x + input
+
+
+class FeatureMixing(nn.Module):
+    def __init__(self, n_series, input_size, dropout, ff_dim):
+        super().__init__()
         self.feature_norm = nn.BatchNorm1d(
             num_features=n_series * input_size, eps=0.001, momentum=0.01
         )
-
-        # Linear layers
-        self.temporal_lin = nn.Linear(input_size, input_size)
         self.feature_lin_1 = nn.Linear(n_series, ff_dim)
         self.feature_lin_2 = nn.Linear(ff_dim, n_series)
-
-        # Drop out layers
-        self.temporal_drop = nn.Dropout(dropout)
         self.feature_drop_1 = nn.Dropout(dropout)
         self.feature_drop_2 = nn.Dropout(dropout)
 
     def forward(self, input):
         # Get shapes
         batch_size = input.shape[0]
-        n_series = input.shape[1]
-        input_size = input.shape[2]
-
-        # Temporal MLP
-        x = input.reshape(batch_size, -1)
-        x = self.temporal_norm(x)
-        x = x.reshape(batch_size, input_size, n_series)
-        x = F.relu(self.temporal_lin(x))
-        x = x.permute(0, 2, 1)
-        x = self.temporal_drop(x)
-        res = x + input
+        input_size = input.shape[1]
+        n_series = input.shape[2]
 
         # Feature MLP
-        x = res.reshape(batch_size, -1)
-        x = self.feature_norm(x)
-        x = x.reshape(batch_size, input_size, n_series)
-        x = x.permute(0, 2, 1)
-        x = F.relu(self.feature_lin_1(x))
-        x = self.feature_drop_1(x)
-        x = self.feature_lin_2(x)
-        x = self.feature_drop_2(x)
+        x = input.reshape(batch_size, -1)  # [B, L, N] -> [B, L * N]
+        x = self.feature_norm(x)  # [B, L * N] -> [B, L * N]
+        x = x.reshape(batch_size, input_size, n_series)  # [B, L * N] -> [B, L, N]
+        x = F.relu(self.feature_lin_1(x))  # [B, L, N] -> [B, L, ff_dim]
+        x = self.feature_drop_1(x)  # [B, L, ff_dim] -> [B, L, ff_dim]
+        x = self.feature_lin_2(x)  # [B, L, ff_dim] -> [B, L, N]
+        x = self.feature_drop_2(x)  # [B, L, N] -> [B, L, N]
 
-        return x + res
+        return x + input
+
+
+class MixingLayer(nn.Module):
+    def __init__(self, n_series, input_size, dropout, ff_dim):
+        super().__init__()
+        # Mixing layer consists of a temporal and feature mixer
+        self.temporal_mixer = TemporalMixing(n_series, input_size, dropout)
+        self.feature_mixer = FeatureMixing(n_series, input_size, dropout, ff_dim)
+
+    def forward(self, input):
+        x = self.temporal_mixer(input)
+        x = self.feature_mixer(x)
+        return x
 
 # %% ../../nbs/models.tsmixer.ipynb 10
 class ReversibleInstanceNorm1d(nn.Module):
-    def __init__(self, num_features, eps=1e-5):
+    def __init__(self, n_series, eps=1e-5):
         super().__init__()
-        self.weight = nn.Parameter(torch.ones(num_features))
-        self.bias = nn.Parameter(torch.zeros(num_features))
+        self.weight = nn.Parameter(torch.ones((1, 1, n_series)))
+        self.bias = nn.Parameter(torch.zeros((1, 1, n_series)))
+
         self.eps = eps
 
     def forward(self, x):
@@ -92,7 +113,7 @@ class ReversibleInstanceNorm1d(nn.Module):
 
         return x
 
-# %% ../../nbs/models.tsmixer.ipynb 11
+# %% ../../nbs/models.tsmixer.ipynb 12
 class TSMixer(BaseMultivariate):
     """TSMixer
 
@@ -123,6 +144,8 @@ class TSMixer(BaseMultivariate):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -158,6 +181,8 @@ class TSMixer(BaseMultivariate):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
 
@@ -182,12 +207,28 @@ class TSMixer(BaseMultivariate):
             random_seed=random_seed,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
+        # Asserts
+        if stat_exog_list is not None:
+            raise Exception(
+                "TSMixer does not support static exogenous variables. Use TSMixerx if you want to use static exogenous variables."
+            )
+        if futr_exog_list is not None:
+            raise Exception(
+                "TSMixer does not support future exogenous variables. Use TSMixerx if you want to use future exogenous variables."
+            )
+        if hist_exog_list is not None:
+            raise Exception(
+                "TSMixer does not support historical exogenous variables. Use TSMixerx if you want to use historical exogenous variables."
+            )
+
         # Reversible InstanceNormalization layer
         self.revin = revin
         if self.revin:
-            self.norm = ReversibleInstanceNorm1d(num_features=n_series)
+            self.norm = ReversibleInstanceNorm1d(n_series=n_series)
 
         # Mixing layers
         mixing_layers = [

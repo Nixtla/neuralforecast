@@ -50,6 +50,7 @@ from neuralforecast.models import (
     TimesNet,
     TimeLLM,
     TSMixer,
+    TSMixerx,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -150,6 +151,8 @@ MODEL_FILENAME_DICT = {
     "timellm": TimeLLM,
     "tsmixer": TSMixer,
     "autotsmixer": TSMixer,
+    "tsmixerx": TSMixerx,
+    "autotsmixerx": TSMixerx,
 }
 
 # %% ../nbs/core.ipynb 8
