@@ -224,6 +224,9 @@ class StemGNN(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
+        # Quick fix for now, fix the model later.
+        if n_stacks != 2:
+            raise Exception("StemGNN currently only supports n_stacks=2.")
 
         # Exogenous variables
         self.futr_input_size = len(self.futr_exog_list)
