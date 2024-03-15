@@ -905,7 +905,7 @@ class NeuralForecast:
         # trim the forefront period to ensure `test_size - h` should be module `step_size
         # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
         series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
-        _, forefront_offset = np.divmod((series_length - self.h), step_size)
+        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
 
         if test_size > 0 or forefront_offset > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
