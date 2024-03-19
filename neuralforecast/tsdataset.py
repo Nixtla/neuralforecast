@@ -8,7 +8,6 @@ import warnings
 from collections.abc import Mapping
 from typing import List, Optional
 
-import fsspec
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -347,7 +346,6 @@ class TimeSeriesDataset(Dataset):
 class _FilesDataset:
     def __init__(
         self,
-        fs: fsspec.AbstractFileSystem,
         files: List[str],
         temporal_cols: List[str],
         static_cols: Optional[List[str]],
@@ -355,7 +353,6 @@ class _FilesDataset:
         time_col: str,
         target_col: str,
     ):
-        self.fs = fs
         self.files = files
         self.temporal_cols = pd.Index(temporal_cols)
         self.static_cols = pd.Index(static_cols) if static_cols is not None else None
@@ -434,9 +431,7 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
     def setup(self, stage):
         import torch.distributed as dist
 
-        partition = self.files_ds.files[dist.get_rank()]
-        with self.files_ds.fs.open(partition) as f:
-            df = pd.read_parquet(f)
+        df = pd.read_parquet(self.files_ds.files[dist.get_rank()])
         if self.files_ds.static_cols is not None:
             static_df = (
                 df[[self.files_ds.id_col] + self.files_ds.static_cols.tolist()]

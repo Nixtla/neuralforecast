@@ -392,13 +392,15 @@ class NeuralForecast:
             df = df.repartitionByRange(num_partitions, id_col)
             df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
             fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
+            protocol = fs.protocol
+            if isinstance(protocol, tuple):
+                protocol = protocol[0]
             files = [
-                f
-                for f in fs.ls(distributed_config.partitions_path)
-                if f.endswith("parquet")
+                f"{protocol}://{file}"
+                for file in fs.ls(distributed_config.partitions_path)
+                if file.endswith("parquet")
             ]
             self.dataset = _FilesDataset(
-                fs=fs,
                 files=files,
                 temporal_cols=temporal_cols,
                 static_cols=static_cols,
@@ -1211,7 +1213,13 @@ class NeuralForecast:
             pickle.dump(alias_to_model, f)
 
         # Save dataset
-        if (save_dataset) and (hasattr(self, "dataset")):
+        if save_dataset and hasattr(self, "dataset"):
+            if isinstance(self.dataset, _FilesDataset):
+                raise ValueError(
+                    "Cannot save distributed dataset.\n"
+                    "You can set `save_dataset=False` and use the `df` argument in the predict method after loading "
+                    "this model to use it for inference."
+                )
             with fsspec.open(f"{path}/dataset.pkl", "wb") as f:
                 pickle.dump(self.dataset, f)
         elif save_dataset:
