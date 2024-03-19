@@ -265,7 +265,8 @@ class BaseAuto(pl.LightningModule):
         results = tuner.fit()
         return results
 
-    def _ray_config_to_optuna(self, ray_config):
+    @staticmethod
+    def _ray_config_to_optuna(ray_config):
         def optuna_config(trial):
             out = {}
             for k, v in ray_config.items():
@@ -293,7 +294,7 @@ class BaseAuto(pl.LightningModule):
                         ):
                             v = trial.suggest_float(k, v.lower, v.upper, step=sampler.q)
                     else:
-                        raise ValueError(f"Coudln't translate {type(v)} to optuna.")
+                        raise ValueError(f"Couldn't translate {type(v)} to optuna.")
                 out[k] = v
             return out
 

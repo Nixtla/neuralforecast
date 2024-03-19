@@ -14,6 +14,7 @@ from ray import tune
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
 from .common._base_auto import BaseAuto
+from .common._base_auto import MockTrial
 
 from .models.rnn import RNN
 from .models.gru import GRU
@@ -44,7 +45,7 @@ from .models.tsmixerx import TSMixerx
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
-# %% ../nbs/models.ipynb 9
+# %% ../nbs/models.ipynb 13
 class AutoRNN(BaseAuto):
 
     default_config = {
@@ -74,6 +75,7 @@ class AutoRNN(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
         backend="ray",
         callbacks=None,
     ):
@@ -84,19 +86,7 @@ class AutoRNN(BaseAuto):
         """
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoRNN, self).__init__(
             cls_model=RNN,
@@ -110,11 +100,27 @@ class AutoRNN(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
             backend=backend,
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 14
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["inference_input_size"] = tune.choice(
+            [h * x for x in config["inference_input_size_multiplier"]]
+        )
+        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 17
 class AutoLSTM(BaseAuto):
 
     default_config = {
@@ -144,25 +150,14 @@ class AutoLSTM(BaseAuto):
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
+        alias=None,
         backend="ray",
         callbacks=None,
     ):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoLSTM, self).__init__(
             cls_model=LSTM,
@@ -176,11 +171,27 @@ class AutoLSTM(BaseAuto):
             cpus=cpus,
             gpus=gpus,
             verbose=verbose,
+            alias=alias,
             backend=backend,
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 17
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["inference_input_size"] = tune.choice(
+            [h * x for x in config["inference_input_size_multiplier"]]
+        )
+        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 21
 class AutoGRU(BaseAuto):
 
     default_config = {
@@ -217,19 +228,7 @@ class AutoGRU(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoGRU, self).__init__(
             cls_model=GRU,
@@ -248,7 +247,22 @@ class AutoGRU(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 20
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["inference_input_size"] = tune.choice(
+            [h * x for x in config["inference_input_size_multiplier"]]
+        )
+        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 25
 class AutoTCN(BaseAuto):
 
     default_config = {
@@ -284,19 +298,7 @@ class AutoTCN(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoTCN, self).__init__(
             cls_model=TCN,
@@ -315,7 +317,22 @@ class AutoTCN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 23
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["inference_input_size"] = tune.choice(
+            [h * x for x in config["inference_input_size_multiplier"]]
+        )
+        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 29
 class AutoDeepAR(BaseAuto):
 
     default_config = {
@@ -354,17 +371,7 @@ class AutoDeepAR(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoDeepAR, self).__init__(
             cls_model=DeepAR,
@@ -383,7 +390,20 @@ class AutoDeepAR(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 26
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 33
 class AutoDilatedRNN(BaseAuto):
 
     default_config = {
@@ -421,19 +441,7 @@ class AutoDilatedRNN(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoDilatedRNN, self).__init__(
             cls_model=DilatedRNN,
@@ -452,7 +460,22 @@ class AutoDilatedRNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 30
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["inference_input_size"] = tune.choice(
+            [h * x for x in config["inference_input_size_multiplier"]]
+        )
+        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 38
 class AutoMLP(BaseAuto):
 
     default_config = {
@@ -488,17 +511,7 @@ class AutoMLP(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoMLP, self).__init__(
             cls_model=MLP,
@@ -517,7 +530,20 @@ class AutoMLP(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 33
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 42
 class AutoNBEATS(BaseAuto):
 
     default_config = {
@@ -551,17 +577,7 @@ class AutoNBEATS(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoNBEATS, self).__init__(
             cls_model=NBEATS,
@@ -580,7 +596,20 @@ class AutoNBEATS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 36
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 46
 class AutoNBEATSx(BaseAuto):
 
     default_config = {
@@ -614,17 +643,7 @@ class AutoNBEATSx(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoNBEATSx, self).__init__(
             cls_model=NBEATSx,
@@ -643,7 +662,20 @@ class AutoNBEATSx(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 39
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 50
 class AutoNHITS(BaseAuto):
 
     default_config = {
@@ -690,17 +722,7 @@ class AutoNHITS(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoNHITS, self).__init__(
             cls_model=NHITS,
@@ -719,13 +741,26 @@ class AutoNHITS(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 42
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 54
 class AutoDLinear(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "moving_avg_window": tune.choice([10, 25, 50]),
+        "moving_avg_window": tune.choice([11, 25, 51]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.quniform(lower=500, upper=1500, q=100),
@@ -754,17 +789,7 @@ class AutoDLinear(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoDLinear, self).__init__(
             cls_model=DLinear,
@@ -783,7 +808,20 @@ class AutoDLinear(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 45
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 58
 class AutoNLinear(BaseAuto):
 
     default_config = {
@@ -817,17 +855,7 @@ class AutoNLinear(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoNLinear, self).__init__(
             cls_model=NLinear,
@@ -846,7 +874,20 @@ class AutoNLinear(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 49
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 63
 class AutoTFT(BaseAuto):
 
     default_config = {
@@ -882,17 +923,7 @@ class AutoTFT(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoTFT, self).__init__(
             cls_model=TFT,
@@ -911,7 +942,20 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 52
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 67
 class AutoVanillaTransformer(BaseAuto):
 
     default_config = {
@@ -947,17 +991,7 @@ class AutoVanillaTransformer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoVanillaTransformer, self).__init__(
             cls_model=VanillaTransformer,
@@ -976,7 +1010,20 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 55
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 71
 class AutoInformer(BaseAuto):
 
     default_config = {
@@ -1012,17 +1059,7 @@ class AutoInformer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoInformer, self).__init__(
             cls_model=Informer,
@@ -1041,7 +1078,20 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 58
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 75
 class AutoAutoformer(BaseAuto):
 
     default_config = {
@@ -1077,17 +1127,7 @@ class AutoAutoformer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoAutoformer, self).__init__(
             cls_model=Autoformer,
@@ -1106,7 +1146,20 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 61
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 79
 class AutoFEDformer(BaseAuto):
 
     default_config = {
@@ -1141,17 +1194,7 @@ class AutoFEDformer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoFEDformer, self).__init__(
             cls_model=FEDformer,
@@ -1170,7 +1213,20 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 64
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 83
 class AutoPatchTST(BaseAuto):
 
     default_config = {
@@ -1208,17 +1264,7 @@ class AutoPatchTST(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoPatchTST, self).__init__(
             cls_model=PatchTST,
@@ -1237,7 +1283,20 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 68
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 88
 class AutoTimesNet(BaseAuto):
 
     default_config = {
@@ -1273,17 +1332,7 @@ class AutoTimesNet(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
+            config = self.get_default_config(h=h, backend=backend)
 
         super(AutoTimesNet, self).__init__(
             cls_model=TimesNet,
@@ -1302,14 +1351,27 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 72
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 93
 class AutoStemGNN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
         "n_series": None,
-        "n_stacks": tune.choice([2, 3]),
+        "n_stacks": tune.choice([2]),
         "multi_layer": tune.choice([3, 5, 7]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
@@ -1339,20 +1401,18 @@ class AutoStemGNN(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
 
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
-
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoStemGNN, self).__init__(
             cls_model=StemGNN,
@@ -1371,7 +1431,25 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 76
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 97
 class AutoHINT(BaseAuto):
 
     def __init__(
@@ -1389,7 +1467,10 @@ class AutoHINT(BaseAuto):
         refit_with_val=False,
         verbose=False,
         alias=None,
+        backend="ray",
+        callbacks=None,
     ):
+
         super(AutoHINT, self).__init__(
             cls_model=cls_model,
             h=h,
@@ -1403,7 +1484,12 @@ class AutoHINT(BaseAuto):
             gpus=gpus,
             verbose=verbose,
             alias=alias,
+            backend=backend,
+            callbacks=callbacks,
         )
+        if backend == "optuna":
+            raise Exception("Optuna is not supported for AutoHINT.")
+
         # Validate presence of reconciliation strategy
         # parameter in configuration space
         if not ("reconciliation" in config.keys()):
@@ -1424,7 +1510,11 @@ class AutoHINT(BaseAuto):
         model.fit(dataset, val_size=val_size, test_size=test_size)
         return model, None
 
-# %% ../nbs/models.ipynb 80
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        raise Exception("AutoHINT has no default configuration.")
+
+# %% ../nbs/models.ipynb 102
 class AutoTSMixer(BaseAuto):
 
     default_config = {
@@ -1462,20 +1552,18 @@ class AutoTSMixer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
 
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
-
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoTSMixer, self).__init__(
             cls_model=TSMixer,
@@ -1494,7 +1582,25 @@ class AutoTSMixer(BaseAuto):
             callbacks=callbacks,
         )
 
-# %% ../nbs/models.ipynb 83
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 106
 class AutoTSMixerx(BaseAuto):
 
     default_config = {
@@ -1532,20 +1638,18 @@ class AutoTSMixerx(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
 
-            # Rolling windows with step_size=1 or step_size=h
-            # See `BaseWindows` and `BaseRNN`'s create_windows
-            config["step_size"] = tune.choice([1, h])
-            del config["input_size_multiplier"]
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
-
-        # Always use n_series from parameters
-        config["n_series"] = n_series
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoTSMixerx, self).__init__(
             cls_model=TSMixerx,
@@ -1563,3 +1667,21 @@ class AutoTSMixerx(BaseAuto):
             backend=backend,
             callbacks=callbacks,
         )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
