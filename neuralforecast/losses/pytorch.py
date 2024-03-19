@@ -68,7 +68,7 @@ class BasePointLoss(torch.nn.Module):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
 
         if self.horizon_weight is None:
             self.horizon_weight = torch.ones(mask.shape[-1])
@@ -550,7 +550,7 @@ class MQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 
@@ -1225,7 +1225,7 @@ class PMM(torch.nn.Module):
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
-        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1235,11 +1235,12 @@ class PMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = (
+            torch.unsqueeze(torch.arange(B * H, device=lambdas.device), -1) * K
+        )
 
         # To device
         sample_idxs = sample_idxs.to(lambdas.device)
-        aux_col_idx = aux_col_idx.to(lambdas.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1278,7 +1279,7 @@ class PMM(torch.nn.Module):
         lambdas = distr_args[0]
         B, H, K = lambdas.size()
 
-        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1432,7 +1433,7 @@ class GMM(torch.nn.Module):
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
 
-        weights = (1 / K) * torch.ones_like(means).to(means.device)
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1443,11 +1444,10 @@ class GMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H, device=means.device), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(means.device)
-        aux_col_idx = aux_col_idx.to(means.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1485,7 +1485,7 @@ class GMM(torch.nn.Module):
         means, stds = distr_args
         B, H, K = means.size()
 
-        weights = (1 / K) * torch.ones_like(means).to(means.device)
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1643,7 +1643,7 @@ class NBMM(torch.nn.Module):
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
 
-        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1654,11 +1654,10 @@ class NBMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H, device=probs.device), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(probs.device)
-        aux_col_idx = aux_col_idx.to(probs.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1697,7 +1696,7 @@ class NBMM(torch.nn.Module):
         total_count, probs = distr_args
         B, H, K = total_count.size()
 
-        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1995,7 +1994,7 @@ class HuberMQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 

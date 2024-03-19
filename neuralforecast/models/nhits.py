@@ -52,7 +52,9 @@ class _IdentityBasis(nn.Module):
                 )
             batch_size = len(backcast)
             knots = knots[:, None, :, :]
-            forecast = torch.zeros((len(knots), self.forecast_size)).to(knots.device)
+            forecast = torch.zeros(
+                (len(knots), self.forecast_size), device=knots.device
+            )
             n_batches = int(np.ceil(len(knots) / batch_size))
             for i in range(n_batches):
                 forecast_i = F.interpolate(
