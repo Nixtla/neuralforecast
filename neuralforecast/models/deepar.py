@@ -344,7 +344,7 @@ class DeepAR(BaseWindows):
             batch_sizes.append(len(output_batch))
 
         valid_loss = torch.stack(valid_losses)
-        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
+        batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
         valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
 
         if torch.isnan(valid_loss):
@@ -473,8 +473,8 @@ class DeepAR(BaseWindows):
 
         # Recursive strategy prediction
         quantiles = self.loss.quantiles.to(encoder_input.device)
-        y_hat = torch.zeros(batch_size, self.h, len(quantiles) + 1).to(
-            encoder_input.device
+        y_hat = torch.zeros(
+            batch_size, self.h, len(quantiles) + 1, device=encoder_input.device
         )
         for tau in range(self.h):
             # Decoder forward
