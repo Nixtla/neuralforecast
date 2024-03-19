@@ -18,7 +18,6 @@ import pytorch_lightning as pl
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
     TimeSeriesDataset,
-    _FilesDataset,
     _DistributedTimeSeriesDataModule,
 )
 

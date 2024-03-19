@@ -415,9 +415,7 @@ class NeuralForecast:
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
-            )
-            self.dataset.min_size = (
-                df.groupBy(id_col).count().agg({"count": "min"}).first()[0]
+                min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
             )
         elif df is None:
             if verbose:
@@ -500,7 +498,7 @@ class NeuralForecast:
         )
 
     def _get_model_names(self) -> List[str]:
-        names = []
+        names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
             model_name = repr(model)
@@ -656,7 +654,7 @@ class NeuralForecast:
                         "You can also provide local dataframes (pandas or polars) as `df` and `futr_df`."
                     )
                 if self.target_col in futr_df.columns:
-                    raise ValueError(f"`futr_df` must not contain the target column.")
+                    raise ValueError("`futr_df` must not contain the target column.")
                 # df has the statics, historic exog and target at this point, futr_df doesnt
                 df = df.unionByName(futr_df, allowMissingColumns=True)
                 # union doesn't guarantee preserving the partitioning

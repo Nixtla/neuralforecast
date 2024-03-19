@@ -15,3 +15,6 @@ lint.select = [
 
 [tool.mypy]
 ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = 'neuralforecast.compat'
+ignore_errors = true

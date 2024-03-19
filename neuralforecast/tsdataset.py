@@ -352,6 +352,7 @@ class _FilesDataset:
         id_col: str,
         time_col: str,
         target_col: str,
+        min_size: int,
     ):
         self.files = files
         self.temporal_cols = pd.Index(temporal_cols)
@@ -359,6 +360,7 @@ class _FilesDataset:
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
+        self.min_size = min_size
 
 # %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
