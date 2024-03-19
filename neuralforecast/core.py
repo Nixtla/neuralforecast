@@ -398,6 +398,7 @@ class NeuralForecast:
                 if f.endswith("parquet")
             ]
             self.dataset = _FilesDataset(
+                fs=fs,
                 files=files,
                 temporal_cols=temporal_cols,
                 static_cols=static_cols,
