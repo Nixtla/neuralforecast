@@ -217,6 +217,22 @@ fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 ```
 
+``` text
+Seed set to 1
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+X shape: torch.Size([1, 1, 2, 24])
+forecast shape: torch.Size([1, 2, 24])
+```
+
+``` text
+IndexError: list index out of range
+```
 
 ```python
 # Plot quantile predictions

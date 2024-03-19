@@ -82,27 +82,47 @@ it is used by many companies and research labs. If you plan to use the
 ### 3.a Define hyperparameter grid
 
 Each `Auto` model contains a default search space that was extensively
-tested on multiple large-scale datasets. Additionally, users can define
-specific search spaces tailored for particular datasets and tasks.
+tested on multiple large-scale datasets. Search spaces are specified
+with dictionaries, where keys corresponds to the model’s hyperparameter
+and the value is a `Tune` function to specify how the hyperparameter
+will be sampled. For example, use `randint` to sample integers
+uniformly, and `choice` to sample values of a list.
 
-First, we create a custom search space for the
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
-model. Search spaces are specified with dictionaries, where keys
-corresponds to the model’s hyperparameter and the value is a `Tune`
-function to specify how the hyperparameter will be sampled. For example,
-use `randint` to sample integers uniformly, and `choice` to sample
-values of a list.
+### 3.a.1 Default hyperparameter grid
+
+The default search space dictionary can be accessed through the
+`get_default_config` function of the `Auto` model. This is useful if you
+wish to use the default parameter configuration but want to change one
+or more hyperparameter spaces without changing the other default values.
+
+To extract the default config, you need to define: \* `h`: forecasting
+horizon. \* `backend`: backend to use. \* `n_series`: Optional, the
+number of unique time series, required only for Multivariate models.
+
+In this example, we will use `h=12` and we use `ray` as backend. We will
+use the default hyperparameter space but only change `random_seed` range
+and `n_pool_kernel_size`.
+
+```python
+from ray import tune
+from neuralforecast.auto import AutoNHITS
+
+nhits_config = AutoNHITS.get_default_config(h = 12, backend="ray")                      # Extract the default hyperparameter settings
+nhits_config["random_seed"] = tune.randint(1, 10)                                       # Random seed
+nhits_config["n_pool_kernel_size"] = tune.choice([[2, 2, 2], [16, 8, 1]])               # MaxPool's Kernelsize
+```
+
+### 3.a.2 Custom hyperparameter grid
+
+More generally, users can define fully customized search spaces tailored
+for particular datasets and tasks, by fully specifying a hyperparameter
+search space dictionary.
 
 In the following example we are optimizing the `learning_rate` and two
 [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
 specific hyperparameters: `n_pool_kernel_size` and `n_freq_downsample`.
 Additionaly, we use the search space to modify default hyperparameters,
 such as `max_steps` and `val_check_steps`.
-
-```python
-from ray import tune
-```
-
 
 ```python
 nhits_config = {
@@ -243,30 +263,59 @@ you plan to use the `Tune` backend, you can skip this section.
 ### 4.a Define hyperparameter grid
 
 Each `Auto` model contains a default search space that was extensively
-tested on multiple large-scale datasets. Additionally, users can define
-specific search spaces tailored for particular datasets and tasks.
-
-First, we create a custom search space for the
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
-model. Search spaces are specified with a function that returns a
-dictionary, where keys corresponds to the model’s hyperparameter and the
-value is a `suggest` function to specify how the hyperparameter will be
-sampled. For example, use `suggest_int` to sample integers uniformly,
-and `suggest_categorical` to sample values of a list. See
+tested on multiple large-scale datasets. Search spaces are specified
+with a function that returns a dictionary, where keys corresponds to the
+model’s hyperparameter and the value is a `suggest` function to specify
+how the hyperparameter will be sampled. For example, use `suggest_int`
+to sample integers uniformly, and `suggest_categorical` to sample values
+of a list. See
 https://optuna.readthedocs.io/en/stable/reference/generated/optuna.trial.Trial.html
 for more details.
 
-In the following example we are optimizing the `learning_rate` and two
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
-specific hyperparameters: `n_pool_kernel_size` and `n_freq_downsample`.
-Additionaly, we use the search space to modify default hyperparameters,
-such as `max_steps` and `val_check_steps`.
+### 4.a.1 Default hyperparameter grid
+
+The default search space dictionary can be accessed through the
+`get_default_config` function of the `Auto` model. This is useful if you
+wish to use the default parameter configuration but want to change one
+or more hyperparameter spaces without changing the other default values.
+
+To extract the default config, you need to define: \* `h`: forecasting
+horizon. \* `backend`: backend to use. \* `n_series`: Optional, the
+number of unique time series, required only for Multivariate models.
+
+In this example, we will use `h=12` and we use `optuna` as backend. We
+will use the default hyperparameter space but only change `random_seed`
+range and `n_pool_kernel_size`.
 
 ```python
 import optuna
 optuna.logging.set_verbosity(optuna.logging.WARNING) # Use this to disable training prints from optuna
 ```
 
+
+```python
+nhits_default_config = AutoNHITS.get_default_config(h = 12, backend="optuna")                   # Extract the default hyperparameter settings
+
+def config_nhits(trial):
+    config = {**nhits_default_config(trial)}
+    config.update({
+                   "random_seed": trial.suggest_int("random_seed", 1, 10), 
+                   "n_pool_kernel_size": trial.suggest_categorical("n_pool_kernel_size", [[2, 2, 2], [16, 8, 1]])
+                   })
+    return config
+```
+
+### 3.a.2 Custom hyperparameter grid
+
+More generally, users can define fully customized search spaces tailored
+for particular datasets and tasks, by fully specifying a hyperparameter
+search space function.
+
+In the following example we are optimizing the `learning_rate` and two
+[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+specific hyperparameters: `n_pool_kernel_size` and `n_freq_downsample`.
+Additionaly, we use the search space to modify default hyperparameters,
+such as `max_steps` and `val_check_steps`.
 
 ```python
 def config_nhits(trial):
@@ -408,7 +457,7 @@ ax.legend(prop={'size': 15})
 ax.grid()
 ```
 
-![](/neuralforecast/examples/Automatic_Hyperparameter_Tuning_files/figure-markdown_strict/cell-19-output-1.png)
+![](/neuralforecast/examples/Automatic_Hyperparameter_Tuning_files/figure-markdown_strict/cell-20-output-1.png)
 
 ### References
 

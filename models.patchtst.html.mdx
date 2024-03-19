@@ -479,15 +479,16 @@ encoders.<br/> `linear_hidden_size`: int=256, units of linear layer.<br/>
 `fc_dropout`: float=0.1, dropout rate for linear layer.<br/>
 `head_dropout`: float=0.1, dropout rate for Flatten head layer.<br/>
 `attn_dropout`: float=0.1, dropout rate for attention layer.<br/>
-`patch_len`: int=32, length of patch.<br/> `stride`: int=16, stride of
-patch.<br/> `revin`: bool=True, bool to use RevIn.<br/> `revin_affine`:
-bool=False, bool to use affine in RevIn.<br/> `revin_substract_last`:
-bool=False, bool to use substract last in RevIn.<br/> `activation`:
-str=‘ReLU’, activation from \[‘gelu’,‘relu’\].<br/> `res_attention`:
-bool=False, bool to use residual attention.<br/> `batch_normalization`:
-bool=False, bool to use batch normalization.<br/> `learn_pos_embedding`:
-bool=True, bool to learn positional embedding.<br/> `loss`: PyTorch
-module, instantiated train loss class from [losses
+`patch_len`: int=32, length of patch. Note: patch_len = min(patch_len,
+input_size + stride).<br/> `stride`: int=16, stride of patch.<br/>
+`revin`: bool=True, bool to use RevIn.<br/> `revin_affine`: bool=False,
+bool to use affine in RevIn.<br/> `revin_substract_last`: bool=False,
+bool to use substract last in RevIn.<br/> `activation`: str=‘ReLU’,
+activation from \[‘gelu’,‘relu’\].<br/> `res_attention`: bool=False, bool
+to use residual attention.<br/> `batch_normalization`: bool=False, bool
+to use batch normalization.<br/> `learn_pos_embedding`: bool=True, bool
+to learn positional embedding.<br/> `loss`: PyTorch module, instantiated
+train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
