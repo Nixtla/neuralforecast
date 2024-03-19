@@ -352,7 +352,7 @@ class BaseAuto(pl.LightningModule):
         return study
 
     def _fit_model(
-        self, cls_model, config, dataset, val_size, test_size, distributed_config
+        self, cls_model, config, dataset, val_size, test_size, distributed_config=None
     ):
         model = cls_model(**config)
         model = model.fit(
@@ -392,6 +392,10 @@ class BaseAuto(pl.LightningModule):
         search_alg = deepcopy(self.search_alg)
         val_size = val_size if val_size > 0 else self.h
         if self.backend == "ray":
+            if distributed_config is not None:
+                raise ValueError(
+                    "distributed training is not supported for the ray backend."
+                )
             results = self._tune_model(
                 cls_model=self.cls_model,
                 dataset=dataset,
@@ -403,7 +407,6 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
-                distributed_config=distributed_config,
             )
             best_config = results.get_best_result().config
         else:

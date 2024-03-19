@@ -1200,9 +1200,9 @@ class NeuralForecast:
                     raise Exception(
                         "Directory is not empty. Set `overwrite=True` to overwrite files."
                     )
-            else:
-                fs.rm(path, recursive=True)
-                fs.mkdir(path)
+                else:
+                    fs.rm(path, recursive=True)
+                    fs.mkdir(path)
 
         # Save models
         count_names = {"model": 0}
