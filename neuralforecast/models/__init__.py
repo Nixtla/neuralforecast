@@ -1,7 +1,7 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'DLinear', 'NLinear',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
-           'StemGNN', 'HINT', 'TimesNet']
+           'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx']
 
 from .rnn import RNN
 from .gru import GRU
@@ -24,3 +24,6 @@ from .fedformer import FEDformer
 from .patchtst import PatchTST
 from .hint import HINT
 from .timesnet import TimesNet
+from .timellm import TimeLLM
+from .tsmixer import TSMixer
+from .tsmixerx import TSMixerx

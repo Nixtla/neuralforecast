@@ -273,6 +273,7 @@ class NBEATS(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs,
     ):
+
         # Inherit BaseWindows class
         super(NBEATS, self).__init__(
             h=h,
@@ -327,9 +328,11 @@ class NBEATS(BaseWindows):
         n_polynomials,
         n_harmonics,
     ):
+
         block_list = []
         for i in range(len(stack_types)):
             for block_id in range(n_blocks[i]):
+
                 # Shared weights
                 if shared_weights and block_id > 0:
                     nbeats_block = block_list[-1]
@@ -383,6 +386,7 @@ class NBEATS(BaseWindows):
         return block_list
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         insample_mask = windows_batch["insample_mask"]

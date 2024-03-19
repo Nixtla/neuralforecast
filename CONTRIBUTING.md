@@ -35,12 +35,15 @@ Bug fixes and features are added through pull requests (PRs).
 #### Set up a conda environment
 The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
-Once you have `conda` go to the top level directory of the repository and run the following lines (we recommend to use `python=3.10` for development, currently `python>=3.11` is not supported):
-
+Once you have `conda` go to the top level directory of the repository and run the following lines:
 ```
 conda create -n neuralforecast python=3.10
 conda activate neuralforecast
-conda env update -f environment.yml
+```
+Then, run one of the following commands:
+```
+conda env update -f environment-cpu.yml  # choose this if you want to install the CPU-only version of neuralforecast
+conda env update -f environment-cuda.yml # choose this if you want to install the CUDA-enabled version of neuralforecast
 ```
 
 #### Install the library
@@ -50,6 +53,7 @@ Once you have your environment setup, activate it using `conda activate neuralfo
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
 ```
 nbdev_install_hooks
+pre-commit install
 ```
 
 ### Preview Changes
@@ -60,12 +64,6 @@ The library is built using the notebooks contained in the `nbs` folder. If you w
 ```
 nbdev_export
 ```
-
-### Linters
-This project uses a couple of linters to validate different aspects of the code. Before opening a PR, please make sure that it passes all the linting tasks by following the next steps.
-
-* `mypy neuralforecast/`
-* `ruff neuralforecast/`
 
 ### Running tests
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 

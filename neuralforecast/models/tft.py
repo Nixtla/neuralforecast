@@ -120,6 +120,7 @@ class TFTEmbedding(nn.Module):
         cont_emb: Tensor,
         cont_bias: Tensor,
     ):
+
         if cont is not None:
             # the line below is equivalent to following einsums
             # e_cont = torch.einsum('btf,fh->bthf', cont, cont_emb)
@@ -463,6 +464,7 @@ class TFT(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
+
         # Inherit BaseWindows class
         super(TFT, self).__init__(
             h=h,
@@ -536,6 +538,7 @@ class TFT(BaseWindows):
         )
 
     def forward(self, windows_batch):
+
         # Parsiw windows_batch
         y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
@@ -561,10 +564,14 @@ class TFT(BaseWindows):
         else:
             # If None add zeros
             batch_size, example_length, target_size, hidden_size = t_observed_tgt.shape
-            cs = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
-            ce = torch.zeros(size=(batch_size, hidden_size)).to(y_insample.device)
-            ch = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
-            cc = torch.zeros(size=(1, batch_size, hidden_size)).to(y_insample.device)
+            cs = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
+            ce = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
+            ch = torch.zeros(
+                size=(1, batch_size, hidden_size), device=y_insample.device
+            )
+            cc = torch.zeros(
+                size=(1, batch_size, hidden_size), device=y_insample.device
+            )
 
         # Historical inputs
         _historical_inputs = [

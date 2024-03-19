@@ -198,6 +198,7 @@ class StemGNN(BaseMultivariate):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
+
         # Inherit BaseMultivariate class
         super(StemGNN, self).__init__(
             h=h,
@@ -223,6 +224,9 @@ class StemGNN(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
+        # Quick fix for now, fix the model later.
+        if n_stacks != 2:
+            raise Exception("StemGNN currently only supports n_stacks=2.")
 
         # Exogenous variables
         self.futr_input_size = len(self.futr_exog_list)
@@ -254,7 +258,9 @@ class StemGNN(BaseMultivariate):
         self.fc = nn.Sequential(
             nn.Linear(int(self.time_step), int(self.time_step)),
             nn.LeakyReLU(),
-            nn.Linear(int(self.time_step), self.horizon),
+            nn.Linear(
+                int(self.time_step), self.horizon * self.loss.outputsize_multiplier
+            ),
         )
         self.leakyrelu = nn.LeakyReLU(self.alpha)
         self.dropout = nn.Dropout(p=dropout_rate)
@@ -334,6 +340,7 @@ class StemGNN(BaseMultivariate):
     def forward(self, windows_batch):
         # Parse batch
         x = windows_batch["insample_y"]
+        batch_size = x.shape[0]
 
         mul_L, attention = self.latent_correlation_layer(x)
         X = x.unsqueeze(1).permute(0, 1, 3, 2).contiguous()
@@ -344,7 +351,14 @@ class StemGNN(BaseMultivariate):
         forecast = result[0] + result[1]
         forecast = self.fc(forecast)
 
-        if forecast.size()[-1] == 1:
-            return forecast.unsqueeze(1).squeeze(-1)
+        forecast = forecast.permute(0, 2, 1).contiguous()
+        forecast = forecast.reshape(
+            batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
+        )
+        forecast = self.loss.domain_map(forecast)
+
+        # domain_map might have squeezed the last dimension in case n_series == 1
+        if forecast.ndim == 2:
+            return forecast.unsqueeze(-1)
         else:
-            return forecast.permute(0, 2, 1).contiguous()
+            return forecast

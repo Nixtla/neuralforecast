@@ -27,6 +27,7 @@ website:
         - examples/Forecasting_TFT.ipynb
         - examples/LongHorizon_Probabilistic.ipynb
         - examples/LongHorizon_with_Transformers.ipynb
+        - examples/LongHorizon_with_TSMixer.ipynb
         - examples/IntermittentData.ipynb
         - examples/Robust_Regression.ipynb
         - examples/ElectricityPeakForecasting.ipynb
@@ -70,6 +71,7 @@ website:
             contents:
             - models.hint.ipynb
             - models.stemgnn.ipynb
+            - models.tsmixer.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb

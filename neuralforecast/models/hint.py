@@ -143,6 +143,7 @@ class HINT:
         reconciliation: str,
         alias: Optional[str] = None,
     ):
+
         if model.h != h:
             raise Exception(f"Model h {model.h} does not match HINT h {h}")
 

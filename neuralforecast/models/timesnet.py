@@ -83,8 +83,9 @@ class TimesBlock(nn.Module):
             if (self.input_size + self.h) % period != 0:
                 length = (((self.input_size + self.h) // period) + 1) * period
                 padding = torch.zeros(
-                    [x.shape[0], (length - (self.input_size + self.h)), x.shape[2]]
-                ).to(x.device)
+                    [x.shape[0], (length - (self.input_size + self.h)), x.shape[2]],
+                    device=x.device,
+                )
                 out = torch.cat([x, padding], dim=1)
             else:
                 length = self.input_size + self.h
@@ -293,6 +294,7 @@ class TimesNet(BaseWindows):
         self.projection = nn.Linear(hidden_size, self.c_out, bias=True)
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']
