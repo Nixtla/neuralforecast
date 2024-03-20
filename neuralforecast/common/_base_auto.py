@@ -7,7 +7,6 @@ __all__ = ['BaseAuto']
 from copy import deepcopy
 from os import cpu_count
 
-import fsspec
 import torch
 import pytorch_lightning as pl
 
@@ -468,11 +467,3 @@ class BaseAuto(pl.LightningModule):
         `path`: str, path to save the model.<br>
         """
         self.model.save(path)
-
-    @classmethod
-    def load(cls, path):
-        with fsspec.open(path, "rb") as f:
-            content = torch.load(f)
-        model = cls(**content["hyper_parameters"])
-        model.load_state_dict(content["state_dict"])
-        return model
