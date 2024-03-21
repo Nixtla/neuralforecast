@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['GLU', 'StockBlockLayer', 'StemGNN']
 
-# %% ../../nbs/models.stemgnn.ipynb 5
+# %% ../../nbs/models.stemgnn.ipynb 6
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from ..losses.pytorch import MAE
 from ..common._base_multivariate import BaseMultivariate
 
-# %% ../../nbs/models.stemgnn.ipynb 6
+# %% ../../nbs/models.stemgnn.ipynb 7
 class GLU(nn.Module):
     def __init__(self, input_channel, output_channel):
         super(GLU, self).__init__()
@@ -21,7 +21,7 @@ class GLU(nn.Module):
     def forward(self, x):
         return torch.mul(self.linear_left(x), torch.sigmoid(self.linear_right(x)))
 
-# %% ../../nbs/models.stemgnn.ipynb 7
+# %% ../../nbs/models.stemgnn.ipynb 8
 class StockBlockLayer(nn.Module):
     def __init__(self, time_step, unit, multi_layer, stack_cnt=0):
         super(StockBlockLayer, self).__init__()
@@ -127,7 +127,7 @@ class StockBlockLayer(nn.Module):
             backcast_source = None
         return forecast, backcast_source
 
-# %% ../../nbs/models.stemgnn.ipynb 8
+# %% ../../nbs/models.stemgnn.ipynb 9
 class StemGNN(BaseMultivariate):
     """StemGNN
 
@@ -358,6 +358,7 @@ class StemGNN(BaseMultivariate):
         forecast = self.loss.domain_map(forecast)
 
         # domain_map might have squeezed the last dimension in case n_series == 1
+        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
         if forecast.ndim == 2:
             return forecast.unsqueeze(-1)
         else:
