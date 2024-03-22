@@ -843,7 +843,7 @@ class PatchTST(BaseWindows):
     `fc_dropout`: float=0.1, dropout rate for linear layer.<br>
     `head_dropout`: float=0.1, dropout rate for Flatten head layer.<br>
     `attn_dropout`: float=0.1, dropout rate for attention layer.<br>
-    `patch_len`: int=32, length of patch.<br>
+    `patch_len`: int=32, length of patch. Note: patch_len = min(patch_len, input_size + stride).<br>
     `stride`: int=16, stride of patch.<br>
     `revin`: bool=True, bool to use RevIn.<br>
     `revin_affine`: bool=False, bool to use affine in RevIn.<br>
@@ -964,6 +964,9 @@ class PatchTST(BaseWindows):
             raise Exception(
                 "PatchTST does not yet support historical exogenous variables"
             )
+
+        # Enforce correct patch_len, regardless of user input
+        patch_len = min(input_size + stride, patch_len)
 
         c_out = self.loss.outputsize_multiplier
 
