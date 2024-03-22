@@ -415,7 +415,6 @@ class TSMixerx(BaseMultivariate):
                 batch_size, self.h, self.loss.outputsize_multiplier, -1
             )  #   [B, h, N * n_outputs] -> [B, h, n_outputs, N]
             x = self.norm.reverse(x)
-            # x = x.reshape(batch_size, self.h, -1)               #   [B, h, n_outputs, N] -> [B, h, n_outputs * N]
             x = x.reshape(
                 batch_size, self.h, -1
             )  #   [B, h, n_outputs, N] -> [B, h, n_outputs * N]
