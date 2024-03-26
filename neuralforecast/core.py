@@ -874,11 +874,6 @@ class NeuralForecast:
         fcsts_df : pandas.DataFrame
             DataFrame with insample predictions for all fitted `models`.
         """
-        if not self._fitted:
-            raise Exception(
-                "The models must be fitted first with `fit` or `cross_validation`."
-            )
-
         for model in self.models:
             if model.SAMPLING_TYPE == "recurrent":
                 warnings.warn(
@@ -889,15 +884,6 @@ class NeuralForecast:
                     f"WARNING: Predict insample might not provide accurate predictions for \
                       recurrent model {repr(model)} class yet due to scaling."
                 )
-
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
 
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
@@ -918,11 +904,87 @@ class NeuralForecast:
             trimmed_dataset = self.dataset
             times = self.ds
 
+        # original y
+        original_y = {
+            self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
+            self.time_col: self.ds,
+            self.target_col: self.dataset.temporal[:, 0].numpy(),
+        }
+
+        return self._predict_sliding(
+            trimmed_dataset,
+            self.uids,
+            times,
+            test_size,
+            original_y,
+            step_size=step_size,
+        )
+
+    def predict_sliding(self, df, step_size: int = 1):
+        """Sliding window prediction with core.NeuralForecast.
+
+        `core.NeuralForecast`'s `predict_sliding` uses stored fitted `models`
+        to predict values of a time series given a dataframe.
+
+        Parameters
+        ----------
+        df : pandas or polars DataFrame
+        step_size : int (default=1)
+            Step size between each window.
+
+        Returns
+        -------
+        fcsts_df : pandas.DataFrame
+            DataFrame with insample predictions for all fitted `models`.
+        """
+        for model in self.models:
+            if model.SAMPLING_TYPE == "recurrent":
+                warnings.warn(
+                    f"Sliding predictions might not provide accurate predictions for \
+                       recurrent model {repr(model)} class yet due to scaling."
+                )
+                print(
+                    f"WARNING: Sliding predictions might not provide accurate predictions for \
+                      recurrent model {repr(model)} class yet due to scaling."
+                )
+
+        # TODO does sorting need to happen?
+        dataset, uids, _, times = TimeSeriesDataset.from_df(
+            df, id_col=self.id_col, time_col=self.time_col, target_col=self.target_col
+        )
+
+        original_y = {
+            self.id_col: ufp.repeat(uids, np.diff(dataset.indptr)),
+            self.time_col: times,
+            self.target_col: dataset.temporal[:, 0].numpy(),
+        }
+
+        return self._predict_sliding(
+            dataset, uids, times, 0, original_y, step_size=step_size
+        )
+
+    def _predict_sliding(
+        self, dataset, uids, times, test_size, original_y, step_size: int = 1
+    ):
+        if not self._fitted:
+            raise Exception(
+                "The models must be fitted first with `fit` or `cross_validation`."
+            )
+
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+            cols += [model_name + n for n in model.loss.output_names]
+
         # Generate dates
         fcsts_df = _insample_times(
             times=times,
-            uids=self.uids,
-            indptr=trimmed_dataset.indptr,
+            uids=uids,
+            indptr=dataset.indptr,
             h=self.h,
             freq=self.freq,
             step_size=step_size,
@@ -935,22 +997,15 @@ class NeuralForecast:
 
         for model in self.models:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
-            model.set_test_size(test_size=trimmed_dataset.max_size)
+            model.set_test_size(test_size=dataset.max_size)
 
             # Predict
-            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
+            model_fcsts = model.predict(dataset, step_size=step_size)
             # Append predictions in memory placeholder
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
             model.set_test_size(test_size=test_size)  # Set original test_size
-
-        # original y
-        original_y = {
-            self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
-            self.time_col: self.ds,
-            self.target_col: self.dataset.temporal[:, 0].numpy(),
-        }
 
         # Add predictions to forecasts DataFrame
         if isinstance(self.uids, pl_Series):
