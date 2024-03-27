@@ -51,6 +51,7 @@ from neuralforecast.models import (
     TimeLLM,
     TSMixer,
     TSMixerx,
+    iTransformer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -153,6 +154,7 @@ MODEL_FILENAME_DICT = {
     "autotsmixer": TSMixer,
     "tsmixerx": TSMixerx,
     "autotsmixerx": TSMixerx,
+    "itransformer": iTransformer,
 }
 
 # %% ../nbs/core.ipynb 8

@@ -3,8 +3,8 @@
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
            'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer',
-           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer',
-           'AutoTSMixerx']
+           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoiTransformer', 'AutoTimesNet', 'AutoStemGNN',
+           'AutoHINT', 'AutoTSMixer', 'AutoTSMixerx']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -37,6 +37,7 @@ from .models.autoformer import Autoformer
 from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
 from .models.timesnet import TimesNet
+from .models.itransformer import iTransformer
 
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
@@ -1296,7 +1297,77 @@ class AutoPatchTST(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 88
+# %% ../nbs/models.ipynb 87
+class AutoiTransformer(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3],
+        "h": None,
+        "hidden_size": tune.choice([16, 128, 256]),
+        "n_heads": tune.choice([4, 16]),
+        "patch_len": tune.choice([16, 24]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "revin": tune.choice([False, True]),
+        "max_steps": tune.choice([500, 1000, 5000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend)
+
+        super(AutoiTransformer, self).__init__(
+            cls_model=iTransformer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 92
 class AutoTimesNet(BaseAuto):
 
     default_config = {
@@ -1364,7 +1435,7 @@ class AutoTimesNet(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 93
+# %% ../nbs/models.ipynb 97
 class AutoStemGNN(BaseAuto):
 
     default_config = {
@@ -1449,7 +1520,7 @@ class AutoStemGNN(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 97
+# %% ../nbs/models.ipynb 101
 class AutoHINT(BaseAuto):
 
     def __init__(
@@ -1514,7 +1585,7 @@ class AutoHINT(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         raise Exception("AutoHINT has no default configuration.")
 
-# %% ../nbs/models.ipynb 102
+# %% ../nbs/models.ipynb 106
 class AutoTSMixer(BaseAuto):
 
     default_config = {
@@ -1600,7 +1671,7 @@ class AutoTSMixer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 106
+# %% ../nbs/models.ipynb 110
 class AutoTSMixerx(BaseAuto):
 
     default_config = {
