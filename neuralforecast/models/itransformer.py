@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['iTransformer']
 
-# %% ../../nbs/models.itransformer.ipynb 3
+# %% ../../nbs/models.itransformer.ipynb 6
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,7 +22,7 @@ from neuralforecast.common._modules import (
     AttentionLayer,
 )
 
-# %% ../../nbs/models.itransformer.ipynb 6
+# %% ../../nbs/models.itransformer.ipynb 9
 class TriangularCausalMask:
     def __init__(self, B, L, device="cpu"):
         mask_shape = [B, 1, L, L]
@@ -72,7 +72,7 @@ class FullAttention(nn.Module):
         else:
             return (V.contiguous(), None)
 
-# %% ../../nbs/models.itransformer.ipynb 8
+# %% ../../nbs/models.itransformer.ipynb 11
 class DataEmbedding_inverted(nn.Module):
     def __init__(self, c_in, hidden_size, dropout=0.1):
         super(DataEmbedding_inverted, self).__init__()
@@ -90,24 +90,46 @@ class DataEmbedding_inverted(nn.Module):
         # x: [Batch Variate hidden_size]
         return self.dropout(x)
 
-# %% ../../nbs/models.itransformer.ipynb 10
+# %% ../../nbs/models.itransformer.ipynb 13
 class iTransformer(BaseWindows):
     """iTransformer
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `enc_in`: int, encoder input size
-    `dec_in`: int, decoder input size
-    `c_out`: int, output size
-    `hidden_size`: int, dimension of the model
-    `n_heads`: int, number of heads
-    `e_layers`: int, number of encoder layers
-    `d_layers`: int, number of decoder layers
-    `d_ff`: int, dimension of fully-connected layer
-    `factor`: int, attention factor
-    `dropout`: float, dropout rate
-    `use_norm`: bool, whether to normalize or not
+    `enc_in`: int, encoder input size.<br>
+    `dec_in`: int, decoder input size.<br>
+    `c_out`: int, output size.<br>
+    `hidden_size`: int, dimension of the model.<br>
+    `n_heads`: int, number of heads.<br>
+    `e_layers`: int, number of encoder layers.<br>
+    `d_layers`: int, number of decoder layers.<br>
+    `d_ff`: int, dimension of fully-connected layer.<br>
+    `factor`: int, attention factor.<br>
+    `dropout`: float, dropout rate.<br>
+    `use_norm`: bool, whether to normalize or not.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
     SAMPLING_TYPE = "windows"
@@ -116,7 +138,6 @@ class iTransformer(BaseWindows):
         self,
         h,
         input_size,
-        # Model specific
         enc_in: int = 7,
         dec_in: int = 7,
         c_out: int = 7,
@@ -128,7 +149,6 @@ class iTransformer(BaseWindows):
         factor: int = 1,
         dropout: float = 0.1,
         use_norm: bool = True,
-        # Inherited params
         stat_exog_list=None,
         futr_exog_list=None,
         hist_exog_list=None,
@@ -238,7 +258,7 @@ class iTransformer(BaseWindows):
             x_enc /= stdev
 
         _, _, N = x_enc.shape  # B L N
-        # B: batch_size;    E: hidden_size;
+        # B: batch_size;       E: hidden_size;
         # L: input_size;       S: horizon(h);
         # N: number of variate (tokens), can also includes covariates
 
