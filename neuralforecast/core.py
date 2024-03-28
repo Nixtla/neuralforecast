@@ -155,6 +155,7 @@ MODEL_FILENAME_DICT = {
     "tsmixerx": TSMixerx,
     "autotsmixerx": TSMixerx,
     "itransformer": iTransformer,
+    "autoitransformer": iTransformer,
 }
 
 # %% ../nbs/core.ipynb 8
