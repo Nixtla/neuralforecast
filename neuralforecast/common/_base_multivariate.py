@@ -73,6 +73,21 @@ class BaseMultivariate(BaseModel):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
+
+        # Multivariate models do not support these loss functions yet.
+        if (str(type(self.loss)) or str(type(self.valid_loss))) in [
+            "<class 'neuralforecast.losses.pytorch.sCRPS'>",
+            "<class 'neuralforecast.losses.pytorch.MQLoss'>",
+            "<class 'neuralforecast.losses.pytorch.DistributionLoss'>",
+            "<class 'neuralforecast.losses.pytorch.PMM'>",
+            "<class 'neuralforecast.losses.pytorch.GMM'>",
+            "<class 'neuralforecast.losses.pytorch.HuberMQLoss'>",
+            "<class 'neuralforecast.losses.pytorch.MASE'>",
+            "<class 'neuralforecast.losses.pytorch.relMSE'>",
+            "<class 'neuralforecast.losses.pytorch.NBMM'>",
+        ]:
+            raise Exception(f"{self.loss} is not supported in a Multivariate model.")
+
         self.train_trajectories = []
         self.valid_trajectories = []
 

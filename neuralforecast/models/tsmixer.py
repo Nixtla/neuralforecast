@@ -186,7 +186,7 @@ class TSMixer(BaseMultivariate):
         **trainer_kwargs
     ):
 
-        # Inherit BaseWindows class
+        # Inherit BaseMultivariate class
         super(TSMixer, self).__init__(
             h=h,
             input_size=input_size,
@@ -265,6 +265,7 @@ class TSMixer(BaseMultivariate):
         forecast = self.loss.domain_map(x)
 
         # domain_map might have squeezed the last dimension in case n_series == 1
+        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
         if forecast.ndim == 2:
             return forecast.unsqueeze(-1)
         else:
