@@ -106,10 +106,13 @@ The [documentation page](https://nixtla.github.io/neuralforecast/) contains all 
 |[TCN](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html)| CNN | recurrent |✅|✅|✅|✅|
 |[TimesNet](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html)| CNN | windows |✅|✅||✅|
 |[DLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.dlinear.html)| Linear | windows |✅|✅||✅|
+|[NLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.nlinear.html)| Linear | windows |✅|✅||✅|
 |[MLP](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html)| MLP | windows |✅|✅|✅|✅|
 |[NBEATS](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html)| MLP | windows |✅|✅||✅|
 |[NBEATSx](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html)| MLP | windows |✅|✅|✅|✅|
 |[NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html)| MLP | windows |✅|✅|✅|✅|
+|[TSMixer](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html)| MLP | multivariate |✅|✅||✅|
+|[TSMixerx](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html)| MLP | multivariate |✅|✅|✅|✅|
 |[TFT](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html)| Transformer | windows |✅|✅|✅|✅|
 |[Transformer](https://nixtlaverse.nixtla.io/neuralforecast/models.vanillatransformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[Informer](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html)| Transformer | windows |✅|✅|✅|✅|
