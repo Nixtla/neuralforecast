@@ -14,7 +14,7 @@ from typing import Optional
 from math import sqrt
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_multivariate import BaseMultivariate
 
 from neuralforecast.common._modules import (
     TransEncoder,
@@ -91,15 +91,16 @@ class DataEmbedding_inverted(nn.Module):
         return self.dropout(x)
 
 # %% ../../nbs/models.itransformer.ipynb 13
-class iTransformer(BaseWindows):
+class iTransformer(BaseMultivariate):
     """iTransformer
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `enc_in`: int, encoder input size.<br>
-    `dec_in`: int, decoder input size.<br>
-    `c_out`: int, output size.<br>
+    `n_series`: int, number of time-series.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
     `hidden_size`: int, dimension of the model.<br>
     `n_heads`: int, number of heads.<br>
     `e_layers`: int, number of encoder layers.<br>
@@ -108,39 +109,39 @@ class iTransformer(BaseWindows):
     `factor`: int, attention factor.<br>
     `dropout`: float, dropout rate.<br>
     `use_norm`: bool, whether to normalize or not.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References**<br>
+    - [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu Wang, Lintao Ma, Mingsheng Long. "iTransformer: Inverted Transformers Are Effective for Time Series Forecasting"](https://arxiv.org/abs/2310.06625)
     """
 
-    SAMPLING_TYPE = "windows"
+    # Class attributes
+    SAMPLING_TYPE = "multivariate"
 
     def __init__(
         self,
         h,
         input_size,
-        enc_in: int = 7,
-        dec_in: int = 7,
-        c_out: int = 7,
+        n_series,
+        futr_exog_list=None,
+        hist_exog_list=None,
+        stat_exog_list=None,
         hidden_size: int = 512,
         n_heads: int = 8,
         e_layers: int = 2,
@@ -149,52 +150,46 @@ class iTransformer(BaseWindows):
         factor: int = 1,
         dropout: float = 0.1,
         use_norm: bool = True,
-        stat_exog_list=None,
-        futr_exog_list=None,
-        hist_exog_list=None,
         loss=MAE(),
         valid_loss=None,
-        learning_rate: float = 1e-4,
         max_steps: int = 1000,
+        learning_rate: float = 1e-3,
+        num_lr_decays: int = -1,
+        early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
-        valid_batch_size: Optional[int] = None,
-        windows_batch_size: int = 1024,
-        inference_windows_batch_size: int = 1024,
-        start_padding_enabled: bool = False,
         step_size: int = 1,
-        num_lr_decays: int = 0,
-        early_stop_patience_steps: int = -1,
         scaler_type: str = "identity",
+        random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
-        random_seed: int = 1,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
 
         super(iTransformer, self).__init__(
             h=h,
             input_size=input_size,
+            n_series=n_series,
             stat_exog_list=None,
             futr_exog_list=None,
             hist_exog_list=None,
             loss=loss,
             valid_loss=valid_loss,
-            learning_rate=learning_rate,
             max_steps=max_steps,
-            val_check_steps=val_check_steps,
-            batch_size=batch_size,
-            valid_batch_size=valid_batch_size,
-            windows_batch_size=windows_batch_size,
-            inference_windows_batch_size=inference_windows_batch_size,
-            start_padding_enabled=start_padding_enabled,
-            step_size=step_size,
+            learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_check_steps=val_check_steps,
+            batch_size=batch_size,
+            step_size=step_size,
             scaler_type=scaler_type,
+            random_seed=random_seed,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
-            random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 
@@ -208,9 +203,9 @@ class iTransformer(BaseWindows):
                 "iTransformer does not support historical exogenous variables"
             )
 
-        self.enc_in = enc_in
-        self.dec_in = dec_in
-        self.c_out = c_out
+        self.enc_in = n_series
+        self.dec_in = n_series
+        self.c_out = n_series
         self.hidden_size = hidden_size
         self.n_heads = n_heads
         self.e_layers = e_layers
@@ -287,9 +282,8 @@ class iTransformer(BaseWindows):
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]
 
-        x = insample_y.unsqueeze(-1)
-        y_pred = self.forecast(x)
+        y_pred = self.forecast(insample_y)
         y_pred = y_pred[:, -self.h :, :]
         y_pred = self.loss.domain_map(y_pred)
 
-        return y_pred  # [B, L, D]
+        return y_pred
