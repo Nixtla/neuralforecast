@@ -783,6 +783,12 @@ class NeuralForecast:
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
+        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                FutureWarning,
+            )
+            df = df.reset_index(id_col)
         if not refit:
             return self._no_refit_cross_validation(
                 df=df,
