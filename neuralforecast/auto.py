@@ -1310,7 +1310,6 @@ class AutoiTransformer(BaseAuto):
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
-        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
     }
