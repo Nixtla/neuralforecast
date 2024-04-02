@@ -1303,6 +1303,7 @@ class AutoiTransformer(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
+        "n_series": None,
         "hidden_size": tune.choice([64, 128, 256]),
         "n_heads": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
@@ -1317,6 +1318,7 @@ class AutoiTransformer(BaseAuto):
     def __init__(
         self,
         h,
+        n_series,
         loss=MAE(),
         valid_loss=None,
         config=None,
@@ -1333,7 +1335,18 @@ class AutoiTransformer(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.get_default_config(h=h, backend=backend)
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
+
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
 
         super(AutoiTransformer, self).__init__(
             cls_model=iTransformer,
@@ -1353,14 +1366,19 @@ class AutoiTransformer(BaseAuto):
         )
 
     @classmethod
-    def get_default_config(cls, h, backend, n_series=None):
+    def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
         config["step_size"] = tune.choice([1, h])
         del config["input_size_multiplier"]
         if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config

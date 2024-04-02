@@ -286,4 +286,8 @@ class iTransformer(BaseMultivariate):
         y_pred = y_pred[:, -self.h :, :]
         y_pred = self.loss.domain_map(y_pred)
 
-        return y_pred
+        # domain_map might have squeezed the last dimension in case n_series == 1
+        if y_pred.ndim == 2:
+            return y_pred.unsqueeze(-1)
+        else:
+            return y_pred
