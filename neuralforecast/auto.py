@@ -3,8 +3,8 @@
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoMLP', 'AutoNBEATS', 'AutoNBEATSx',
            'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer',
-           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer',
-           'AutoTSMixerx', 'AutoMLPMultivariate', 'AutoiTransformer']
+           'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST', 'AutoiTransformer', 'AutoTimesNet', 'AutoStemGNN',
+           'AutoHINT', 'AutoTSMixer', 'AutoTSMixerx', 'AutoMLPMultivariate']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -1773,7 +1773,7 @@ class AutoTSMixerx(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 110
+# %% ../nbs/models.ipynb 114
 class AutoMLPMultivariate(BaseAuto):
 
     default_config = {

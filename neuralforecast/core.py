@@ -52,7 +52,7 @@ from neuralforecast.models import (
     TSMixer,
     TSMixerx,
     MLPMultivariate,
-    iTransformer
+    iTransformer,
 )
 
 # %% ../nbs/core.ipynb 5
