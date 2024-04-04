@@ -63,7 +63,6 @@ class BaseModel(pl.LightningModule):
         # Max steps, validation steps and check_val_every_n_epoch
         trainer_kwargs = {**trainer_kwargs, "max_steps": max_steps}
 
-        self.trainer_kwargs = trainer_kwargs
         if "max_epochs" in trainer_kwargs.keys():
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
