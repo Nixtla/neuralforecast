@@ -68,7 +68,7 @@ class BasePointLoss(torch.nn.Module):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
 
         if self.horizon_weight is None:
             self.horizon_weight = torch.ones(mask.shape[-1])
@@ -521,6 +521,7 @@ class MQLoss(BasePointLoss):
     """
 
     def __init__(self, level=[80, 90], quantiles=None, horizon_weight=None):
+
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneus output names
@@ -549,7 +550,7 @@ class MQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 
@@ -1224,7 +1225,7 @@ class PMM(torch.nn.Module):
         # Sample K ~ Mult(weights)
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
-        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1234,11 +1235,12 @@ class PMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = (
+            torch.unsqueeze(torch.arange(B * H, device=lambdas.device), -1) * K
+        )
 
         # To device
         sample_idxs = sample_idxs.to(lambdas.device)
-        aux_col_idx = aux_col_idx.to(lambdas.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1277,7 +1279,7 @@ class PMM(torch.nn.Module):
         lambdas = distr_args[0]
         B, H, K = lambdas.size()
 
-        weights = (1 / K) * torch.ones_like(lambdas).to(lambdas.device)
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1308,6 +1310,7 @@ class PMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 76
@@ -1430,7 +1433,7 @@ class GMM(torch.nn.Module):
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
 
-        weights = (1 / K) * torch.ones_like(means).to(means.device)
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1441,11 +1444,10 @@ class GMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H, device=means.device), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(means.device)
-        aux_col_idx = aux_col_idx.to(means.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1476,13 +1478,14 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
         means, stds = distr_args
         B, H, K = means.size()
 
-        weights = (1 / K) * torch.ones_like(means).to(means.device)
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1514,6 +1517,7 @@ class GMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 84
@@ -1639,7 +1643,7 @@ class NBMM(torch.nn.Module):
         # shared across B, H
         # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
 
-        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1650,11 +1654,10 @@ class NBMM(torch.nn.Module):
         sample_idxs = torch.multinomial(
             input=weights, num_samples=num_samples, replacement=True
         )
-        aux_col_idx = torch.unsqueeze(torch.arange(B * H), -1) * K
+        aux_col_idx = torch.unsqueeze(torch.arange(B * H, device=probs.device), -1) * K
 
         # To device
         sample_idxs = sample_idxs.to(probs.device)
-        aux_col_idx = aux_col_idx.to(probs.device)
 
         sample_idxs = sample_idxs + aux_col_idx
         sample_idxs = sample_idxs.flatten()
@@ -1686,13 +1689,14 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         if mask is None:
             mask = torch.ones_like(y)
 
         total_count, probs = distr_args
         B, H, K = total_count.size()
 
-        weights = (1 / K) * torch.ones_like(probs).to(probs.device)
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1727,22 +1731,23 @@ class NBMM(torch.nn.Module):
         distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
+
         return self.neglog_likelihood(y=y, distr_args=distr_args, mask=mask)
 
 # %% ../../nbs/losses.pytorch.ipynb 91
 class HuberLoss(BasePointLoss):
-    """Huber Loss
+    """ Huber Loss
 
-    The Huber loss, employed in robust regression, is a loss function that
-    exhibits reduced sensitivity to outliers in data when compared to the
+    The Huber loss, employed in robust regression, is a loss function that 
+    exhibits reduced sensitivity to outliers in data when compared to the 
     squared error loss. This function is also refered as SmoothL1.
 
-    The Huber loss function is quadratic for small errors and linear for large
-    errors, with equal values and slopes of the different sections at the two
+    The Huber loss function is quadratic for small errors and linear for large 
+    errors, with equal values and slopes of the different sections at the two 
     points where $(y_{\\tau}-\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\hat{y}_{\\tau}|$.
 
     $$ L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
-    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\
+    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\ 
     \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}$$
 
     where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
@@ -1751,7 +1756,7 @@ class HuberLoss(BasePointLoss):
     **Parameters:**<br>
     `delta`: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.
     `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
-
+    
     **References:**<br>
     [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)
     """
@@ -1783,21 +1788,21 @@ class HuberLoss(BasePointLoss):
 
 # %% ../../nbs/losses.pytorch.ipynb 96
 class TukeyLoss(torch.nn.Module):
-    """Tukey Loss
+    """ Tukey Loss
 
-    The Tukey loss function, also known as Tukey's biweight function, is a
+    The Tukey loss function, also known as Tukey's biweight function, is a 
     robust statistical loss function used in robust statistics. Tukey's loss exhibits
     quadratic behavior near the origin, like the Huber loss; however, it is even more
-    robust to outliers as the loss for large residuals remains constant instead of
+    robust to outliers as the loss for large residuals remains constant instead of 
     scaling linearly.
 
     The parameter $c$ in Tukey's loss determines the ''saturation'' point
-    of the function: Higher values of $c$ enhance sensitivity, while lower values
+    of the function: Higher values of $c$ enhance sensitivity, while lower values 
     increase resistance to outliers.
 
     $$ L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
     =\\begin{cases}{
-    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
+    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\ 
     \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}$$
 
     Please note that the Tukey loss function assumes the data to be stationary or
@@ -1959,6 +1964,7 @@ class HuberMQLoss(BasePointLoss):
     def __init__(
         self, level=[80, 90], quantiles=None, delta: float = 1.0, horizon_weight=None
     ):
+
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneus output names
@@ -1988,7 +1994,7 @@ class HuberMQLoss(BasePointLoss):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y).to(y.device)
+            mask = torch.ones_like(y, device=y.device)
         else:
             mask = mask.unsqueeze(1)  # Add Q dimension.
 

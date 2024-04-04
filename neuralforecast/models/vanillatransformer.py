@@ -113,6 +113,8 @@ class VanillaTransformer(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
         *References*<br>
@@ -154,6 +156,8 @@ class VanillaTransformer(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         super(VanillaTransformer, self).__init__(
@@ -179,6 +183,8 @@ class VanillaTransformer(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
 
@@ -298,7 +304,7 @@ class VanillaTransformer(BaseWindows):
             x_mark_enc = None
             x_mark_dec = None
 
-        x_dec = torch.zeros(size=(len(insample_y), self.h, 1)).to(insample_y.device)
+        x_dec = torch.zeros(size=(len(insample_y), self.h, 1), device=insample_y.device)
         x_dec = torch.cat([insample_y[:, -self.label_len :, :], x_dec], dim=1)
 
         enc_out = self.enc_embedding(insample_y, x_mark_enc)

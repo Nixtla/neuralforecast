@@ -15,34 +15,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  nb-sync:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repo
-        uses: actions/checkout@v3
-
-      - name: Set up python
-        uses: actions/setup-python@v4
-
-      - name: Install nbdev
-        run: pip install nbdev
-
-      - name: Check if all notebooks are cleaned
-        run: |
-          echo "Check we are starting with clean git checkout"
-          if [ -n "$(git status -uno -s)" ]; then echo "git status is not clean"; false; fi
-          echo "Trying to strip out notebooks"
-          nbdev_clean
-          echo "Check that strip out was unnecessary"
-          git status -s # display the status to see which nbs need cleaning up
-          if [ -n "$(git status -uno -s)" ]; then echo -e "!!! Detected unstripped out notebooks\n!!!Remember to run nbdev_install_git_hooks"; false; fi
   run-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python-version: [3.8, 3.9, '3.10', '3.11']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        exclude:
+          - os: windows-latest
+            python-version: '3.11'
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_NIXTLA_TMP }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NIXTLA_TMP }}
     steps:
       - name: Clone repo
         uses: actions/checkout@v3
@@ -50,7 +35,7 @@ jobs:
       - name: Set up environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: environment.yml
+          environment-file: environment-cpu.yml
           create-args: python=${{ matrix.python-version }}
           cache-environment: true
       

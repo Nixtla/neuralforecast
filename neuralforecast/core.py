@@ -11,12 +11,14 @@ from copy import deepcopy
 from itertools import chain
 from typing import Any, Dict, List, Optional, Union
 
+import fsspec
 import numpy as np
 import pandas as pd
 import torch
 import utilsforecast.processing as ufp
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.scalers import (
+    LocalBoxCoxScaler,
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
@@ -37,6 +39,7 @@ from neuralforecast.models import (
     NBEATS,
     NBEATSx,
     DLinear,
+    NLinear,
     TFT,
     VanillaTransformer,
     Informer,
@@ -45,6 +48,9 @@ from neuralforecast.models import (
     StemGNN,
     PatchTST,
     TimesNet,
+    TimeLLM,
+    TSMixer,
+    TSMixerx,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -106,6 +112,10 @@ MODEL_FILENAME_DICT = {
     "autoautoformer": Autoformer,
     "deepar": DeepAR,
     "autodeepar": DeepAR,
+    "dlinear": DLinear,
+    "autodlinear": DLinear,
+    "nlinear": NLinear,
+    "autonlinear": NLinear,
     "dilatedrnn": DilatedRNN,
     "autodilatedrnn": DilatedRNN,
     "fedformer": FEDformer,
@@ -124,8 +134,6 @@ MODEL_FILENAME_DICT = {
     "autonbeatsx": NBEATSx,
     "nhits": NHITS,
     "autonhits": NHITS,
-    "dlinear": DLinear,
-    "autodlinear": DLinear,
     "patchtst": PatchTST,
     "autopatchtst": PatchTST,
     "rnn": RNN,
@@ -140,6 +148,11 @@ MODEL_FILENAME_DICT = {
     "autotimesnet": TimesNet,
     "vanillatransformer": VanillaTransformer,
     "autovanillatransformer": VanillaTransformer,
+    "timellm": TimeLLM,
+    "tsmixer": TSMixer,
+    "autotsmixer": TSMixer,
+    "tsmixerx": TSMixerx,
+    "autotsmixerx": TSMixerx,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -148,6 +161,7 @@ _type2scaler = {
     "robust": lambda: LocalRobustScaler(scale="mad"),
     "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
     "minmax": LocalMinMaxScaler,
+    "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
 }
 
 # %% ../nbs/core.ipynb 9
@@ -165,6 +179,7 @@ def _warn_id_as_idx():
 
 # %% ../nbs/core.ipynb 10
 class NeuralForecast:
+
     def __init__(
         self,
         models: List[Any],
@@ -186,7 +201,7 @@ class NeuralForecast:
             Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
-            Can be 'standard', 'robust', 'robust-iqr' or 'minmax'
+            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
 
         Returns
         -------
@@ -247,6 +262,8 @@ class NeuralForecast:
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
+        self._check_nan(df, static_df, id_col, time_col, target_col)
+
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
             static_df=static_df,
@@ -260,6 +277,30 @@ class NeuralForecast:
         else:
             self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
+
+    def _check_nan(self, df, static_df, id_col, time_col, target_col):
+        cols_with_nans = []
+
+        temporal_cols = [target_col] + [
+            c for c in df.columns if c not in (id_col, time_col, target_col)
+        ]
+        if "available_mask" in temporal_cols:
+            available_mask = df["available_mask"].to_numpy().astype(bool)
+        else:
+            available_mask = np.full(df.shape[0], True)
+
+        df_to_check = ufp.filter_with_mask(df, available_mask)
+        for col in temporal_cols:
+            if ufp.is_nan_or_none(df_to_check[col]).any():
+                cols_with_nans.append(col)
+
+        if static_df is not None:
+            for col in [x for x in static_df.columns if x != id_col]:
+                if ufp.is_nan_or_none(static_df[col]).any():
+                    cols_with_nans.append(col)
+
+        if cols_with_nans:
+            raise ValueError(f"Found missing values in {cols_with_nans}.")
 
     def fit(
         self,
@@ -742,6 +783,12 @@ class NeuralForecast:
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
+        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                FutureWarning,
+            )
+            df = df.reset_index(id_col)
         if not refit:
             return self._no_refit_cross_validation(
                 df=df,
@@ -860,14 +907,21 @@ class NeuralForecast:
 
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
-        if test_size > 0:
+
+        # trim the forefront period to ensure `test_size - h` should be module `step_size
+        # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
+        series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
+        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
+
+        if test_size > 0 or forefront_offset > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=0
+                dataset=self.dataset, right_trim=test_size, left_trim=forefront_offset
             )
             new_idxs = np.hstack(
                 [
                     np.arange(
-                        self.dataset.indptr[i], self.dataset.indptr[i + 1] - test_size
+                        self.dataset.indptr[i] + forefront_offset,
+                        self.dataset.indptr[i + 1] - test_size,
                     )
                     for i in range(self.dataset.n_groups)
                 ]
@@ -967,17 +1021,18 @@ class NeuralForecast:
         if model_index is None:
             model_index = list(range(len(self.models)))
 
-        # Create directory if not exists
-        os.makedirs(path, exist_ok=True)
+        fs, _, paths = fsspec.get_fs_token_paths(path)
+        if not fs.exists(path):
+            fs.makedirs(path)
+        else:
+            # Check if directory is empty to protect overwriting files
+            dir = fs.ls(path)
 
-        # Check if directory is empty to protect overwriting files
-        dir = os.listdir(path)
-
-        # Checking if the list is empty or not
-        if (len(dir) > 0) and (not overwrite):
-            raise Exception(
-                "Directory is not empty. Set `overwrite=True` to overwrite files."
-            )
+            # Checking if the list is empty or not
+            if dir and not overwrite:
+                raise Exception(
+                    "Directory is not empty. Set `overwrite=True` to overwrite files."
+                )
 
         # Save models
         count_names = {"model": 0}
@@ -994,12 +1049,12 @@ class NeuralForecast:
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
         if alias_to_model:
-            with open(f"{path}/alias_to_model.pkl", "wb") as f:
+            with fsspec.open(f"{path}/alias_to_model.pkl", "wb") as f:
                 pickle.dump(alias_to_model, f)
 
         # Save dataset
         if (save_dataset) and (hasattr(self, "dataset")):
-            with open(f"{path}/dataset.pkl", "wb") as f:
+            with fsspec.open(f"{path}/dataset.pkl", "wb") as f:
                 pickle.dump(self.dataset, f)
         elif save_dataset:
             raise Exception(
@@ -1023,7 +1078,7 @@ class NeuralForecast:
             "target_col": self.target_col,
         }
 
-        with open(f"{path}/configuration.pkl", "wb") as f:
+        with fsspec.open(f"{path}/configuration.pkl", "wb") as f:
             pickle.dump(config_dict, f)
 
     @staticmethod
@@ -1035,7 +1090,7 @@ class NeuralForecast:
         Parameters
         -----------
         path : str
-            Directory to save current status.
+            Directory with stored artifacts.
         kwargs
             Additional keyword arguments to be passed to the function
             `load_from_checkpoint`.
@@ -1045,7 +1100,12 @@ class NeuralForecast:
         result : NeuralForecast
             Instantiated `NeuralForecast` class.
         """
-        files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+        # Standarize path without '/'
+        if path[-1] == "/":
+            path = path[:-1]
+
+        fs, _, paths = fsspec.get_fs_token_paths(path)
+        files = [f.split("/")[-1] for f in fs.ls(path) if fs.isfile(f)]
 
         # Load models
         models_ckpt = [f for f in files if f.endswith(".ckpt")]
@@ -1055,11 +1115,10 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading models " + 10 * "-")
         models = []
-        alias_file = "alias_to_model.pkl"
-        if os.path.isfile(f"{path}/{alias_file}"):
-            with open(f"{path}/{alias_file}", "rb") as f:
+        try:
+            with fsspec.open(f"{path}/alias_to_model.pkl", "rb") as f:
                 alias_to_model = pickle.load(f)
-        else:
+        except FileNotFoundError:
             alias_to_model = {}
         for model in models_ckpt:
             model_name = model.split("_")[0]
@@ -1075,12 +1134,12 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading dataset " + 10 * "-")
         # Load dataset
-        if "dataset.pkl" in files:
-            with open(f"{path}/dataset.pkl", "rb") as f:
+        try:
+            with fsspec.open(f"{path}/dataset.pkl", "rb") as f:
                 dataset = pickle.load(f)
             if verbose:
                 print("Dataset loaded.")
-        else:
+        except FileNotFoundError:
             dataset = None
             if verbose:
                 print("No dataset found in directory.")
@@ -1088,12 +1147,12 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading configuration " + 10 * "-")
         # Load configuration
-        if "configuration.pkl" in files:
-            with open(f"{path}/configuration.pkl", "rb") as f:
+        try:
+            with fsspec.open(f"{path}/configuration.pkl", "rb") as f:
                 config_dict = pickle.load(f)
             if verbose:
                 print("Configuration loaded.")
-        else:
+        except FileNotFoundError:
             raise Exception("No configuration found in directory.")
 
         # Create NeuralForecast object

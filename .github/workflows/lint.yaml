@@ -18,11 +18,8 @@ jobs:
         with:
           python-version: 3.8
 
-      - name: Install linters
-        run: pip install mypy ruff
+      - name: Install dependencies
+        run: pip install black nbdev pre-commit
 
-      - name: mypy
-        run: mypy neuralforecast/
-
-      - name: Ruff
-        run: ruff neuralforecast/
+      - name: Run pre-commit
+        run: pre-commit run --files neuralforecast/*

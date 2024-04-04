@@ -9,6 +9,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -249,21 +250,23 @@ AirPassengers = np.array(
 AirPassengersDF = pd.DataFrame(
     {
         "unique_id": np.ones(len(AirPassengers)),
-        "ds": pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M"),
+        "ds": pd.date_range(
+            start="1949-01-01", periods=len(AirPassengers), freq=pd.offsets.MonthEnd()
+        ),
         "y": AirPassengers,
     }
 )
 
-# %% ../nbs/utils.ipynb 18
+# %% ../nbs/utils.ipynb 19
 # Declare Panel Data
 unique_id = np.concatenate(
     [["Airline1"] * len(AirPassengers), ["Airline2"] * len(AirPassengers)]
 )
-ds = np.concatenate(
-    [
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-        pd.date_range(start="1949-01-01", periods=len(AirPassengers), freq="M").values,
-    ]
+ds = np.tile(
+    pd.date_range(
+        start="1949-01-01", periods=len(AirPassengers), freq=pd.offsets.MonthEnd()
+    ).to_numpy(),
+    2,
 )
 y = np.concatenate([AirPassengers, AirPassengers + 300])
 
@@ -277,8 +280,7 @@ snaive = (
     .reset_index(drop=True)
 )
 AirPassengersPanel["trend"] = range(len(AirPassengersPanel))
-AirPassengersPanel["y_[lag12]"] = snaive
-AirPassengersPanel["y_[lag12]"].fillna(AirPassengersPanel["y"], inplace=True)
+AirPassengersPanel["y_[lag12]"] = snaive.fillna(AirPassengersPanel["y"])
 
 # Declare Static Data
 unique_id = np.array(["Airline1", "Airline2"])
@@ -290,10 +292,7 @@ AirPassengersStatic = pd.DataFrame(
 
 AirPassengersPanel.groupby("unique_id").tail(4)
 
-# %% ../nbs/utils.ipynb 24
-from typing import List
-
-
+# %% ../nbs/utils.ipynb 25
 class TimeFeature:
     def __init__(self):
         pass
@@ -440,7 +439,7 @@ def augment_calendar_df(df, freq="H"):
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
 
-# %% ../nbs/utils.ipynb 27
+# %% ../nbs/utils.ipynb 28
 def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
     idxs = idx.get_indexer(vals)
     missing = [v for i, v in zip(idxs, vals) if i == -1]

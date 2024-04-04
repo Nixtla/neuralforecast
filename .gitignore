@@ -22,4 +22,5 @@ _proc
 lightning_logs/
 data/
 
-examples/
+longhorizon/
+_old/

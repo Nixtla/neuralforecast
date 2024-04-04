@@ -4,22 +4,19 @@
 __all__ = ['BaseWindows']
 
 # %% ../../nbs/common.base_windows.ipynb 5
-import random
-import warnings
-
 import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import TQDMProgressBar
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from ._base_model import BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_windows.ipynb 6
-class BaseWindows(pl.LightningModule):
+class BaseWindows(BaseModel):
     """Base Windows
 
     Base class for all windows-based models. The forecasts are produced separately
@@ -57,9 +54,11 @@ class BaseWindows(pl.LightningModule):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
-        super(BaseWindows, self).__init__()
+        super(BaseModel, self).__init__()
 
         self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
@@ -108,6 +107,13 @@ class BaseWindows(pl.LightningModule):
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
+        # custom optimizer defined by user
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
         # Variables
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
@@ -137,17 +143,12 @@ class BaseWindows(pl.LightningModule):
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
-        if trainer_kwargs.get("callbacks", None) is None:
-            callbacks = [TQDMProgressBar()]
-            # Early stopping
-            if self.early_stop_patience_steps > 0:
-                callbacks += [
-                    EarlyStopping(
-                        monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                    )
-                ]
-
-            trainer_kwargs["callbacks"] = callbacks
+        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
+            trainer_kwargs["callbacks"] = [
+                EarlyStopping(
+                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
+                )
+            ]
 
         # Add GPU accelerator if available
         if trainer_kwargs.get("accelerator", None) is None:
@@ -169,25 +170,6 @@ class BaseWindows(pl.LightningModule):
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
         self.alias = alias
-
-    def __repr__(self):
-        return type(self).__name__ if self.alias is None else self.alias
-
-    def on_fit_start(self):
-        torch.manual_seed(self.random_seed)
-        np.random.seed(self.random_seed)
-        random.seed(self.random_seed)
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = {
-            "scheduler": torch.optim.lr_scheduler.StepLR(
-                optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
-            ),
-            "frequency": 1,
-            "interval": "step",
-        }
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def _create_windows(self, batch, step, w_idxs=None):
         # Parse common data
@@ -264,6 +246,7 @@ class BaseWindows(pl.LightningModule):
             return windows_batch
 
         elif step in ["predict", "val"]:
+
             if step == "predict":
                 initial_input = temporal.shape[-1] - self.test_size
                 if (
@@ -331,12 +314,6 @@ class BaseWindows(pl.LightningModule):
             return windows_batch
         else:
             raise ValueError(f"Unknown step {step}")
-
-    def _get_temporal_exogenous_cols(self, temporal_cols):
-        temporal_data_cols = list(
-            set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
-        )
-        return temporal_data_cols
 
     def _normalization(self, windows, y_idx):
         # windows are already filtered by train/validation/test
@@ -605,15 +582,8 @@ class BaseWindows(pl.LightningModule):
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
-    def on_validation_epoch_end(self):
-        if self.val_size == 0:
-            return
-        avg_loss = torch.stack(self.validation_step_outputs).mean()
-        self.log("ptl/val_loss", avg_loss)
-        self.valid_trajectories.append((self.global_step, float(avg_loss)))
-        self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
-
     def predict_step(self, batch, batch_idx):
+
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
         n_windows = len(windows["temporal"])
@@ -635,15 +605,9 @@ class BaseWindows(pl.LightningModule):
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
-            (
-                insample_y,
-                insample_mask,
-                _,
-                _,
-                hist_exog,
-                futr_exog,
-                stat_exog,
-            ) = self._parse_windows(batch, windows)
+            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
                 insample_mask=insample_mask,  # [Ws, L]
@@ -705,52 +669,14 @@ class BaseWindows(pl.LightningModule):
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
-
-        self.val_size = val_size
-        self.test_size = test_size
-        datamodule = TimeSeriesDataModule(
+        return self._fit(
             dataset=dataset,
             batch_size=self.batch_size,
             valid_batch_size=self.valid_batch_size,
-            num_workers=self.num_workers_loader,
-            drop_last=self.drop_last_loader,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
         )
-
-        if self.val_check_steps > self.max_steps:
-            warnings.warn(
-                "val_check_steps is greater than max_steps, \
-                    setting val_check_steps to max_steps"
-            )
-        val_check_interval = min(self.val_check_steps, self.max_steps)
-        self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
-        self.trainer_kwargs["check_val_every_n_epoch"] = None
-
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        trainer.fit(self, datamodule=datamodule)
-        return trainer
 
     def predict(
         self,
@@ -771,29 +697,8 @@ class BaseWindows(pl.LightningModule):
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
-
-        # Check exogenous variables are contained in dataset
-        temporal_cols = set(dataset.temporal_cols.tolist())
-        static_cols = set(
-            dataset.static_cols.tolist() if dataset.static_cols is not None else []
-        )
-        if len(set(self.hist_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.hist_exog_list) - temporal_cols} historical exogenous variables not found in input dataset"
-            )
-        if len(set(self.futr_exog_list) - temporal_cols) > 0:
-            raise Exception(
-                f"{set(self.futr_exog_list) - temporal_cols} future exogenous variables not found in input dataset"
-            )
-        if len(set(self.stat_exog_list) - static_cols) > 0:
-            raise Exception(
-                f"{set(self.stat_exog_list) - static_cols} static exogenous variables not found in input dataset"
-            )
-
-        # Restart random seed
-        if random_seed is None:
-            random_seed = self.random_seed
-        torch.manual_seed(random_seed)
+        self._check_exog(dataset)
+        self._restart_seed(random_seed)
 
         self.predict_step_size = step_size
         self.decompose_forecast = False
@@ -843,22 +748,3 @@ class BaseWindows(pl.LightningModule):
         fcsts = trainer.predict(self, datamodule=datamodule)
         self.decompose_forecast = False  # Default decomposition back to false
         return torch.vstack(fcsts).numpy()
-
-    def forward(self, insample_y, insample_mask):
-        raise NotImplementedError("forward")
-
-    def set_test_size(self, test_size):
-        self.test_size = test_size
-
-    def get_test_size(self):
-        return self.test_size
-
-    def save(self, path):
-        """BaseWindows.save
-
-        Save the fitted model to disk.
-
-        **Parameters:**<br>
-        `path`: str, path to save the model.<br>
-        """
-        self.trainer.save_checkpoint(path)
