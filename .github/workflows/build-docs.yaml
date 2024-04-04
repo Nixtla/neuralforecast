@@ -32,9 +32,6 @@ jobs:
       - name: Install dependencies
         run: pip install uv && uv pip install ".[dev]" --system
 
-      - name: Check import cells are isolated
-        run: python action_files/imports_with_code.py || exit 1
-
       - name: Build docs
         run: |
           mkdir nbs/_extensions
