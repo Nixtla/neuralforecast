@@ -1,7 +1,12 @@
 __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'DLinear', 'NLinear',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
+<<<<<<< HEAD
            'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx', 'iTransformer']
+=======
+           'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx', 'MLPMultivariate',
+           ]
+>>>>>>> main
 
 from .rnn import RNN
 from .gru import GRU
@@ -27,4 +32,8 @@ from .timesnet import TimesNet
 from .timellm import TimeLLM
 from .tsmixer import TSMixer
 from .tsmixerx import TSMixerx
+<<<<<<< HEAD
 from .itransformer import iTransformer
+=======
+from .mlpmultivariate import MLPMultivariate
+>>>>>>> main

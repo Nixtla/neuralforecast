@@ -4,8 +4,6 @@
 __all__ = ['TSMixerx']
 
 # %% ../../nbs/models.tsmixerx.ipynb 5
-from typing import Optional
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -216,7 +214,7 @@ class TSMixerx(BaseMultivariate):
         **trainer_kwargs
     ):
 
-        # Inherit BaseWindows class
+        # Inherit BaseMultvariate class
         super(TSMixerx, self).__init__(
             h=h,
             input_size=input_size,
@@ -425,6 +423,7 @@ class TSMixerx(BaseMultivariate):
         forecast = self.loss.domain_map(x)
 
         # domain_map might have squeezed the last dimension in case n_series == 1
+        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
         if forecast.ndim == 2:
             return forecast.unsqueeze(-1)
         else:
