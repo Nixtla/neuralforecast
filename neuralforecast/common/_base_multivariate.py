@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 
+import neuralforecast.losses.pytorch as losses
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
@@ -73,6 +74,25 @@ class BaseMultivariate(BaseModel):
         self.input_size = input_size
         self.n_series = n_series
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+
+        # Multivariate models do not support these loss functions yet.
+        unsupported_losses = (
+            losses.sCRPS,
+            losses.MQLoss,
+            losses.DistributionLoss,
+            losses.PMM,
+            losses.GMM,
+            losses.HuberMQLoss,
+            losses.MASE,
+            losses.relMSE,
+            losses.NBMM,
+        )
+        if isinstance(self.loss, unsupported_losses):
+            raise Exception(f"{self.loss} is not supported in a Multivariate model.")
+        if isinstance(self.valid_loss, unsupported_losses):
+            raise Exception(
+                f"{self.valid_loss} is not supported in a Multivariate model."
+            )
 
         self.batch_size = batch_size
 
