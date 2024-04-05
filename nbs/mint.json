@@ -43,7 +43,7 @@
         "examples/getting_started_complete.html",
         "examples/neuralforecast_map.html",
         "examples/how_to_add_models.html",
-        "examples/MLFlow_and_neuralforecast.html"
+        "examples/mlflow_and_neuralforecast.html"
       ]
     },
     {
