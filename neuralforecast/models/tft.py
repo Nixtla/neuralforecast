@@ -4,19 +4,13 @@
 __all__ = ['TFT']
 
 # %% ../../nbs/models.tft.ipynb 4
+from typing import Tuple, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LayerNorm
-
-import logging
-import warnings
-
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-warnings.filterwarnings("ignore")
-
-from typing import Tuple, Optional
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows

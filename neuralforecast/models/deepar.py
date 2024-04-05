@@ -9,12 +9,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-import logging
-import warnings
-
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-warnings.filterwarnings("ignore")
-
 from typing import Optional
 
 from ..common._base_windows import BaseWindows
