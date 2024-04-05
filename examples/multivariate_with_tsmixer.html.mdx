@@ -22,12 +22,18 @@ state-of-the-art multivariate forecasting architecture
 /
 [`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 when compared to a univariate forecasting method
-([`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)).
+([`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits))
+and a simple MLP-based multivariate method
+([`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)).
 
 We will show how to: \* Load the
 [ETTm2](https://github.com/zhouhaoyi/etdataset) benchmark dataset, used
-in the academic literature. \* Train a TSMixer and TSMixerx model \*
-Forecast the test set \* Optimize the hyperparameters
+in the academic literature. \* Train a
+[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
+[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+and
+[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+model \* Forecast the test set \* Optimize the hyperparameters
 
 You can run these experiments using GPU with Google Colab.
 
@@ -89,6 +95,20 @@ test_size = int(.2 * n_time)
 Y_df
 ```
 
+|        | unique_id | ds                  | y         | ex_1      | ex_2      | ex_3      | ex_4      |
+|--------|-----------|---------------------|-----------|-----------|-----------|-----------|-----------|
+| 0      | HUFL      | 2016-07-01 00:00:00 | -0.041413 | -0.500000 | 0.166667  | -0.500000 | -0.001370 |
+| 1      | HUFL      | 2016-07-01 00:15:00 | -0.185467 | -0.500000 | 0.166667  | -0.500000 | -0.001370 |
+| 2      | HUFL      | 2016-07-01 00:30:00 | -0.257495 | -0.500000 | 0.166667  | -0.500000 | -0.001370 |
+| 3      | HUFL      | 2016-07-01 00:45:00 | -0.577510 | -0.500000 | 0.166667  | -0.500000 | -0.001370 |
+| 4      | HUFL      | 2016-07-01 01:00:00 | -0.385501 | -0.456522 | 0.166667  | -0.500000 | -0.001370 |
+| ...    | ...       | ...                 | ...       | ...       | ...       | ...       | ...       |
+| 403195 | OT        | 2018-02-20 22:45:00 | -1.581325 | 0.456522  | -0.333333 | 0.133333  | -0.363014 |
+| 403196 | OT        | 2018-02-20 23:00:00 | -1.581325 | 0.500000  | -0.333333 | 0.133333  | -0.363014 |
+| 403197 | OT        | 2018-02-20 23:15:00 | -1.581325 | 0.500000  | -0.333333 | 0.133333  | -0.363014 |
+| 403198 | OT        | 2018-02-20 23:30:00 | -1.562328 | 0.500000  | -0.333333 | 0.133333  | -0.363014 |
+| 403199 | OT        | 2018-02-20 23:45:00 | -1.562328 | 0.500000  | -0.333333 | 0.133333  | -0.363014 |
+
 ## 3. Train models
 
 We will train models using the `cross_validation` method, which allows
@@ -101,14 +121,16 @@ forecasts for the test set.
 
 First, instantiate each model in the `models` list, specifying the
 `horizon`, `input_size`, and training iterations. In this notebook, we
-compare against the
+compare against the univariate
 [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
-model.
+and multivariate
+[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+models.
 
 ```python
 # %%capture
 from neuralforecast.core import NeuralForecast
-from neuralforecast.models import TSMixer, TSMixerx, NHITS
+from neuralforecast.models import TSMixer, TSMixerx, NHITS, MLPMultivariate
 from neuralforecast.losses.pytorch import MSE, MAE
 ```
 
@@ -138,7 +160,18 @@ models = [
                 valid_loss=MAE(),
                 random_seed=12345678,
                 futr_exog_list=['ex_1', 'ex_2', 'ex_3', 'ex_4'],
-                ),                          
+                ),
+          MLPMultivariate(h=horizon,
+                input_size=input_size,
+                n_series=7,
+                max_steps=1000,
+                val_check_steps=100,
+                early_stop_patience_steps=5,
+                scaler_type='standard',
+                hidden_size=256,
+                valid_loss=MAE(),
+                random_seed=12345678,
+                ),                                             
            NHITS(h=horizon,
                 input_size=horizon,
                 max_steps=1000,
@@ -149,6 +182,13 @@ models = [
                 random_seed=12345678,
                 ),                                                                       
          ]
+```
+
+``` text
+INFO:lightning_fabric.utilities.seed:Seed set to 12345678
+INFO:lightning_fabric.utilities.seed:Seed set to 12345678
+INFO:lightning_fabric.utilities.seed:Seed set to 12345678
+INFO:lightning_fabric.utilities.seed:Seed set to 12345678
 ```
 
 > **Tip**
@@ -198,14 +238,15 @@ Y_plot = Y_plot[Y_hat_df['cutoff'].isin(cutoffs)]
 
 plt.figure(figsize=(20,5))
 plt.plot(Y_plot['ds'], Y_plot['y'], label='True')
-plt.plot(Y_plot['ds'], Y_plot['TSMixer'], label='TSMixer')
-plt.plot(Y_plot['ds'], Y_plot['TSMixerx'], label='TSMixerx')
-plt.plot(Y_plot['ds'], Y_plot['NHITS'], label='NHITS')
+for model in models:
+    plt.plot(Y_plot['ds'], Y_plot[f'{model}'], label=f'{model}')
 plt.xlabel('Datestamp')
 plt.ylabel('OT')
 plt.grid()
 plt.legend()
 ```
+
+![](/neuralforecast/examples/Multivariate_with_TSMixer_files/figure-markdown_strict/cell-9-output-1.png)
 
 Finally, we compute the test errors using the Mean Absolute Error (MAE)
 and Mean Squared Error (MSE):
@@ -217,20 +258,22 @@ $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau}
 ```python
 from neuralforecast.losses.numpy import mse, mae
 
-mae_tsmixer = mae(Y_hat_df['y'], Y_hat_df['TSMixer'])
-mse_tsmixer = mse(Y_hat_df['y'], Y_hat_df['TSMixer'])
-mae_tsmixerx = mae(Y_hat_df['y'], Y_hat_df['TSMixerx'])
-mse_tsmixerx = mse(Y_hat_df['y'], Y_hat_df['TSMixerx'])
-mae_nhits = mae(Y_hat_df['y'], Y_hat_df['NHITS'])
-mse_nhits = mse(Y_hat_df['y'], Y_hat_df['NHITS'])
+for model in models:
+    mae_model = mae(Y_hat_df['y'], Y_hat_df[f'{model}'])
+    mse_model = mse(Y_hat_df['y'], Y_hat_df[f'{model}'])
+    print(f'{model} horizon {horizon} - MAE: {mae_model:.3f}')
+    print(f'{model} horizon {horizon} - MSE: {mse_model:.3f}')
+```
 
-
-print(f'TSMixer horizon {horizon} - MAE: {mae_tsmixer:.3f}')
-print(f'TSMixer horizon {horizon} - MSE: {mse_tsmixer:.3f}')
-print(f'TSMixerx horizon {horizon} - MAE: {mae_tsmixerx:.3f}')
-print(f'TSMixerx horizon {horizon} - MSE: {mse_tsmixerx:.3f}')
-print(f'NHITS horizon {horizon} - MAE: {mae_nhits:.3f}')
-print(f'NHITS horizon {horizon} - MSE: {mse_nhits:.3f}')
+``` text
+TSMixer horizon 96 - MAE: 0.250
+TSMixer horizon 96 - MSE: 0.163
+TSMixerx horizon 96 - MAE: 0.257
+TSMixerx horizon 96 - MSE: 0.170
+MLPMultivariate horizon 96 - MAE: 0.322
+MLPMultivariate horizon 96 - MSE: 0.257
+NHITS horizon 96 - MAE: 0.251
+NHITS horizon 96 - MSE: 0.179
 ```
 
 For reference, we can check the performance when compared to
@@ -246,25 +289,28 @@ contained in the dataframe `X_df` as
 [`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 performs worse than
 [`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
-especially on longer horizons.
+especially on longer horizons. Note also that
+[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+clearly underperforms as compared to the other methods, which can be
+somewhat expected given its relative simplicity.
 
 Mean Absolute Error (MAE)
 
-| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
-|------------|------------|------------|------------|------------|------------|
-| 96      | **0.250**                   | 0.252               | 0.257                        | 0.251                     | 0.255             |
-| 192     | **0.288**                   | 0.290               | 0.300                        | 0.291                     | 0.305             |
-| 336     | **0.323**                   | 0.324               | 0.380                        | 0.344                     | 0.346             |
-| 720     | **0.377**                   | 0.422               | 0.464                        | 0.417                     | 0.413             |
+| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) | MLPMultivariate <br/>(this notebook) |
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| 96      | **0.250**                   | 0.252               | 0.257                        | 0.251                     | 0.255             | 0.322                               |
+| 192     | **0.288**                   | 0.290               | 0.300                        | 0.291                     | 0.305             | 0.361                               |
+| 336     | **0.323**                   | 0.324               | 0.380                        | 0.344                     | 0.346             | 0.390                               |
+| 720     | **0.377**                   | 0.422               | 0.464                        | 0.417                     | 0.413             | 0.608                               |
 
 Mean Squared Error (MSE)
 
-| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) |
-|------------|------------|------------|------------|------------|------------|
-| 96      | **0.163**                   | **0.163**           | 0.170                        | 0.179                     | 0.176             |
-| 192     | 0.220                       | **0.216**           | 0.231                        | 0.239                     | 0.245             |
-| 336     | 0.272                       | **0.268**           | 0.361                        | 0.311                     | 0.295             |
-| 720     | **0.356**                   | 0.420               | 0.493                        | 0.451                     | 0.401             |
+| Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) | MLPMultivariate <br/>(this notebook) |
+|-----------|-----------|-----------|-----------|-----------|-----------|-----------|
+| 96      | **0.163**                   | **0.163**           | 0.170                        | 0.179                     | 0.176             | 0.255                               |
+| 192     | 0.220                       | **0.216**           | 0.231                        | 0.239                     | 0.245             | 0.330                               |
+| 336     | 0.272                       | **0.268**           | 0.361                        | 0.311                     | 0.295             | 0.376                               |
+| 720     | **0.356**                   | 0.420               | 0.493                        | 0.451                     | 0.401             | 3.421                               |
 
 Note that for the table above, we use the same hyperparameters for all
 methods for all horizons, whereas the original papers tune the
@@ -390,6 +436,35 @@ Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
                                test_size=test_size, n_windows=None)
 ```
 
+``` text
+2024-03-22 09:08:28,183 INFO worker.py:1724 -- Started a local Ray instance.
+2024-03-22 09:08:29,427 INFO tune.py:220 -- Initializing Ray automatically. For cluster usage or custom Ray initialization, call `ray.init(...)` before `Tuner(...)`.
+2024-03-22 09:08:29,429 INFO tune.py:583 -- [output] This uses the legacy output and progress reporter, as Jupyter notebooks are not supported by the new engine, yet. For more information, please see https://github.com/ray-project/ray/issues/36949
+2024-03-22 09:08:45,570 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:09:03,688 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:09:17,107 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:09:28,650 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:09:47,489 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:10:19,949 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:11:20,191 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:11:30,224 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:12:06,451 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:12:28,275 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+INFO:lightning_fabric.utilities.seed:Seed set to 1
+2024-03-22 09:13:12,831 INFO tune.py:583 -- [output] This uses the legacy output and progress reporter, as Jupyter notebooks are not supported by the new engine, yet. For more information, please see https://github.com/ray-project/ray/issues/36949
+2024-03-22 09:13:42,119 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:14:08,067 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:14:34,340 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:14:59,946 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:16:44,930 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:17:02,576 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:17:22,409 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:17:41,035 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:18:02,149 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-03-22 09:19:45,156 INFO tensorboardx.py:275 -- Removed the following hyperparameter values when logging to tensorboard: {'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'), 'loss': ('__ref_ph', 'de895953'), 'valid_loss': ('__ref_ph', '004b9a7a')}
+INFO:lightning_fabric.utilities.seed:Seed set to 1
+```
+
 ## 6. Evaluate Results
 
 The
@@ -406,11 +481,44 @@ the best config is:
 nf.models[0].results.get_best_result().config
 ```
 
+``` text
+{'input_size': 512,
+ 'max_steps': 2000,
+ 'val_check_steps': 100,
+ 'early_stop_patience_steps': 5,
+ 'learning_rate': 0.0008831625975972278,
+ 'n_block': 1,
+ 'dropout': 0.531963627534685,
+ 'ff_dim': 128,
+ 'scaler_type': 'identity',
+ 'n_series': 7,
+ 'h': 96,
+ 'loss': MAE(),
+ 'valid_loss': MAE()}
+```
+
 and for
 [`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx):
 
 ```python
 nf.models[1].results.get_best_result().config
+```
+
+``` text
+{'input_size': 512,
+ 'max_steps': 500,
+ 'val_check_steps': 100,
+ 'early_stop_patience_steps': 5,
+ 'learning_rate': 0.006813015000503828,
+ 'n_block': 1,
+ 'dropout': 0.6915259307542235,
+ 'ff_dim': 32,
+ 'scaler_type': 'identity',
+ 'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'),
+ 'n_series': 7,
+ 'h': 96,
+ 'loss': MAE(),
+ 'valid_loss': MAE()}
 ```
 
 We compute the test errors of the best config for the two metrics of
@@ -431,6 +539,13 @@ print(f'MAE TSMixerx: {mae(y_hat_tsmixerx, y_true):.3f}')
 print(f'MSE TSMixerx: {mse(y_hat_tsmixerx, y_true):.3f}')
 ```
 
+``` text
+MAE TSMixer: 0.250
+MSE TSMixer: 0.163
+MAE TSMixerx: 0.264
+MSE TSMixerx: 0.178
+```
+
 We can compare the error metrics for our optimized setting to the
 earlier setting in which we used the default hyperparameters. In this
 case, for a horizon of 96, we got slightly improved results for
@@ -447,7 +562,7 @@ architecture for a horizon of 96.
 | Metric | TSMixer<br/> (optimized) | TSMixer <br/>(default) | TSMixer <br/>(paper) | TSMixerx<br/> (optimized) | TSMixerx <br/>(default) |
 |------------|------------|------------|------------|------------|------------|
 | MAE    | **0.247**               | 0.250                 | 0.252               | 0.258                    | 0.257                  |
-| MSE    | **0.162**               | 0.163                 | **0.163**           | 0.174                    | 0.170                  |
+| MSE    | **0.162**               | 0.163                 | 0.163               | 0.174                    | 0.170                  |
 
 Note that we only evaluated 10 hyperparameter configurations
 (`num_samples=10`), which may suggest that it is possible to further

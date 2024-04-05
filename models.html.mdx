@@ -43,7 +43,7 @@ dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L49"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L50"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoRNN
@@ -51,7 +51,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoRNN (h, loss=MAE(), valid_loss=None, config=None,
 >           search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->           object at 0x7eff298cfa00>, num_samples=10, refit_with_val=False,
+>           object at 0x7f285dd38e80>, num_samples=10, refit_with_val=False,
 >           cpus=4, gpus=0, verbose=False, alias=None, backend='ray',
 >           callbacks=None)
 > ```
@@ -75,7 +75,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff298cfa00\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dd38e80\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -100,7 +100,7 @@ model = AutoRNN(h=12, config=None, num_samples=1, cpus=1, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L124"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L125"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoLSTM
@@ -108,7 +108,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoLSTM (h, loss=MAE(), valid_loss=None, config=None,
 >            search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->            object at 0x7eff298aac50>, num_samples=10,
+>            object at 0x7f285dd23370>, num_samples=10,
 >            refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >            alias=None, backend='ray', callbacks=None)
 > ```
@@ -132,7 +132,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff298aac50\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dd23370\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -158,7 +158,7 @@ model = AutoLSTM(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L195"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L196"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoGRU
@@ -166,7 +166,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoGRU (h, loss=MAE(), valid_loss=None, config=None,
 >           search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->           object at 0x7eff298befe0>, num_samples=10, refit_with_val=False,
+>           object at 0x7f2929ac8bb0>, num_samples=10, refit_with_val=False,
 >           cpus=4, gpus=0, verbose=False, alias=None, backend='ray',
 >           callbacks=None)
 > ```
@@ -190,7 +190,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff298befe0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f2929ac8bb0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -216,7 +216,7 @@ model = AutoGRU(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L266"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L267"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoTCN
@@ -224,7 +224,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoTCN (h, loss=MAE(), valid_loss=None, config=None,
 >           search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->           object at 0x7eff298aa710>, num_samples=10, refit_with_val=False,
+>           object at 0x7f285dcecdf0>, num_samples=10, refit_with_val=False,
 >           cpus=4, gpus=0, verbose=False, alias=None, backend='ray',
 >           callbacks=None)
 > ```
@@ -248,7 +248,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff298aa710\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dcecdf0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -274,7 +274,7 @@ model = AutoTCN(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L336"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L337"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoDeepAR
@@ -282,7 +282,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoDeepAR (h, loss=DistributionLoss(), valid_loss=MQLoss(), config=None,
 >              search_alg=<ray.tune.search.basic_variant.BasicVariantGenerat
->              or object at 0x7eff2984dae0>, num_samples=10,
+>              or object at 0x7f285dcfb460>, num_samples=10,
 >              refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >              alias=None, backend='ray', callbacks=None)
 > ```
@@ -306,7 +306,7 @@ validation and test periods.
 | loss           | DistributionLoss      | DistributionLoss()                                                               | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | MQLoss                | MQLoss()                                                                         | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2984dae0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dcfb460\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -332,7 +332,7 @@ model = AutoDeepAR(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L407"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L408"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoDilatedRNN
@@ -340,7 +340,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoDilatedRNN (h, loss=MAE(), valid_loss=None, config=None,
 >                  search_alg=<ray.tune.search.basic_variant.BasicVariantGen
->                  erator object at 0x7eff2989a650>, num_samples=10,
+>                  erator object at 0x7f285dec12d0>, num_samples=10,
 >                  refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                  alias=None, backend='ray', callbacks=None)
 > ```
@@ -364,7 +364,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2989a650\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dec12d0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -392,7 +392,7 @@ model = AutoDilatedRNN(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L479"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L480"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoMLP
@@ -400,7 +400,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoMLP (h, loss=MAE(), valid_loss=None, config=None,
 >           search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->           object at 0x7eff29875a80>, num_samples=10, refit_with_val=False,
+>           object at 0x7f285dcf9690>, num_samples=10, refit_with_val=False,
 >           cpus=4, gpus=0, verbose=False, alias=None, backend='ray',
 >           callbacks=None)
 > ```
@@ -424,7 +424,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29875a80\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dcf9690\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -450,7 +450,7 @@ model = AutoMLP(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L547"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L548"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoNBEATS
@@ -458,7 +458,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoNBEATS (h, loss=MAE(), valid_loss=None, config=None,
 >              search_alg=<ray.tune.search.basic_variant.BasicVariantGenerat
->              or object at 0x7eff275e81c0>, num_samples=10,
+>              or object at 0x7f285decfcd0>, num_samples=10,
 >              refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >              alias=None, backend='ray', callbacks=None)
 > ```
@@ -482,7 +482,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff275e81c0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285decfcd0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -509,7 +509,7 @@ model = AutoNBEATS(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L613"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L614"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoNBEATSx
@@ -517,7 +517,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoNBEATSx (h, loss=MAE(), valid_loss=None, config=None,
 >               search_alg=<ray.tune.search.basic_variant.BasicVariantGenera
->               tor object at 0x7eff2985dbd0>, num_samples=10,
+>               tor object at 0x7f285deaafe0>, num_samples=10,
 >               refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >               alias=None, backend='ray', callbacks=None)
 > ```
@@ -541,7 +541,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2985dbd0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285deaafe0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -568,7 +568,7 @@ model = AutoNBEATSx(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L679"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L680"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoNHITS
@@ -576,7 +576,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoNHITS (h, loss=MAE(), valid_loss=None, config=None,
 >             search_alg=<ray.tune.search.basic_variant.BasicVariantGenerato
->             r object at 0x7eff2985ec80>, num_samples=10,
+>             r object at 0x7f285dec0dc0>, num_samples=10,
 >             refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >             alias=None, backend='ray', callbacks=None)
 > ```
@@ -600,7 +600,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2985ec80\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285dec0dc0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -627,7 +627,7 @@ model = AutoNHITS(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L758"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L759"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoDLinear
@@ -635,7 +635,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoDLinear (h, loss=MAE(), valid_loss=None, config=None,
 >               search_alg=<ray.tune.search.basic_variant.BasicVariantGenera
->               tor object at 0x7eff29a670d0>, num_samples=10,
+>               tor object at 0x7f285bb8d840>, num_samples=10,
 >               refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >               alias=None, backend='ray', callbacks=None)
 > ```
@@ -659,7 +659,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29a670d0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285bb8d840\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -685,7 +685,7 @@ model = AutoDLinear(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L825"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L826"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoNLinear
@@ -693,7 +693,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoNLinear (h, loss=MAE(), valid_loss=None, config=None,
 >               search_alg=<ray.tune.search.basic_variant.BasicVariantGenera
->               tor object at 0x7eff2984dea0>, num_samples=10,
+>               tor object at 0x7f285de7d600>, num_samples=10,
 >               refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >               alias=None, backend='ray', callbacks=None)
 > ```
@@ -717,7 +717,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2984dea0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de7d600\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -745,7 +745,7 @@ model = AutoNLinear(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L891"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L892"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoTFT
@@ -753,7 +753,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoTFT (h, loss=MAE(), valid_loss=None, config=None,
 >           search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->           object at 0x7eff29838f40>, num_samples=10, refit_with_val=False,
+>           object at 0x7f285de9fa00>, num_samples=10, refit_with_val=False,
 >           cpus=4, gpus=0, verbose=False, alias=None, backend='ray',
 >           callbacks=None)
 > ```
@@ -777,7 +777,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29838f40\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de9fa00\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -803,7 +803,7 @@ model = AutoTFT(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L959"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L960"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoVanillaTransformer
@@ -811,7 +811,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoVanillaTransformer (h, loss=MAE(), valid_loss=None, config=None,
 >                          search_alg=<ray.tune.search.basic_variant.BasicVa
->                          riantGenerator object at 0x7eff297f1150>,
+>                          riantGenerator object at 0x7f285de8af50>,
 >                          num_samples=10, refit_with_val=False, cpus=4,
 >                          gpus=0, verbose=False, alias=None, backend='ray',
 >                          callbacks=None)
@@ -836,7 +836,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff297f1150\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de8af50\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -862,7 +862,7 @@ model = AutoVanillaTransformer(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1027"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1028"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoInformer
@@ -870,7 +870,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoInformer (h, loss=MAE(), valid_loss=None, config=None,
 >                search_alg=<ray.tune.search.basic_variant.BasicVariantGener
->                ator object at 0x7eff29ac1240>, num_samples=10,
+>                ator object at 0x7f285e25d960>, num_samples=10,
 >                refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                alias=None, backend='ray', callbacks=None)
 > ```
@@ -894,7 +894,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29ac1240\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285e25d960\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -920,7 +920,7 @@ model = AutoInformer(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1095"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1096"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoAutoformer
@@ -928,7 +928,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoAutoformer (h, loss=MAE(), valid_loss=None, config=None,
 >                  search_alg=<ray.tune.search.basic_variant.BasicVariantGen
->                  erator object at 0x7eff29a8a740>, num_samples=10,
+>                  erator object at 0x7f285de7df60>, num_samples=10,
 >                  refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                  alias=None, backend='ray', callbacks=None)
 > ```
@@ -952,7 +952,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29a8a740\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de7df60\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -978,7 +978,7 @@ model = AutoAutoformer(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1163"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1164"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoFEDformer
@@ -986,7 +986,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoFEDformer (h, loss=MAE(), valid_loss=None, config=None,
 >                 search_alg=<ray.tune.search.basic_variant.BasicVariantGene
->                 rator object at 0x7eff27604160>, num_samples=10,
+>                 rator object at 0x7f285de66ad0>, num_samples=10,
 >                 refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                 alias=None, backend='ray', callbacks=None)
 > ```
@@ -1010,7 +1010,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff27604160\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de66ad0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1036,7 +1036,7 @@ model = AutoFEDformer(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1230"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1231"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoPatchTST
@@ -1044,7 +1044,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoPatchTST (h, loss=MAE(), valid_loss=None, config=None,
 >                search_alg=<ray.tune.search.basic_variant.BasicVariantGener
->                ator object at 0x7eff2982a860>, num_samples=10,
+>                ator object at 0x7f285de64430>, num_samples=10,
 >                refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                alias=None, backend='ray', callbacks=None)
 > ```
@@ -1068,7 +1068,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2982a860\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de64430\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1096,7 +1096,7 @@ model = AutoPatchTST(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1300"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1301"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoTimesNet
@@ -1104,7 +1104,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoTimesNet (h, loss=MAE(), valid_loss=None, config=None,
 >                search_alg=<ray.tune.search.basic_variant.BasicVariantGener
->                ator object at 0x7eff297f0340>, num_samples=10,
+>                ator object at 0x7f285de56b60>, num_samples=10,
 >                refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                alias=None, backend='ray', callbacks=None)
 > ```
@@ -1128,7 +1128,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff297f0340\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de56b60\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1156,7 +1156,7 @@ model = AutoTimesNet(h=12, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1368"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1369"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoStemGNN
@@ -1164,7 +1164,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoStemGNN (h, n_series, loss=MAE(), valid_loss=None, config=None,
 >               search_alg=<ray.tune.search.basic_variant.BasicVariantGenera
->               tor object at 0x7eff2980b3a0>, num_samples=10,
+>               tor object at 0x7f285e219390>, num_samples=10,
 >               refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >               alias=None, backend='ray', callbacks=None)
 > ```
@@ -1189,7 +1189,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff2980b3a0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285e219390\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1215,7 +1215,7 @@ model = AutoStemGNN(h=12, n_series=1, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1453"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1454"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoHINT
@@ -1223,7 +1223,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoHINT (cls_model, h, loss, valid_loss, S, config,
 >            search_alg=<ray.tune.search.basic_variant.BasicVariantGenerator
->            object at 0x7eff297e7a60>, num_samples=10, cpus=4, gpus=0,
+>            object at 0x7f285de1e6e0>, num_samples=10, cpus=4, gpus=0,
 >            refit_with_val=False, verbose=False, alias=None, backend='ray',
 >            callbacks=None)
 > ```
@@ -1249,7 +1249,7 @@ validation and test periods.
 | valid_loss     | PyTorch module                 |                                                                                  | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | S              |                                |                                                                                  |                                                                                                                                                                                                                                                       |
 | config         | dict or callable               |                                                                                  | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff297e7a60\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator          | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de1e6e0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                            | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | cpus           | int                            | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
 | gpus           | int                            | 0                                                                                | Number of gpus to use during optimization, default all available. Only used with ray tune.                                                                                                                                                            |
@@ -1304,7 +1304,7 @@ y_hat = model.predict(dataset=hint_dataset)
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1518"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1519"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoTSMixer
@@ -1312,7 +1312,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoTSMixer (h, n_series, loss=MAE(), valid_loss=None, config=None,
 >               search_alg=<ray.tune.search.basic_variant.BasicVariantGenera
->               tor object at 0x7eff29921b10>, num_samples=10,
+>               tor object at 0x7f285de1e2c0>, num_samples=10,
 >               refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >               alias=None, backend='ray', callbacks=None)
 > ```
@@ -1337,7 +1337,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff29921b10\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de1e2c0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1363,7 +1363,7 @@ model = AutoTSMixer(h=12, n_series=1, config=None, backend='optuna')
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1604"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1605"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoTSMixerx
@@ -1371,7 +1371,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  AutoTSMixerx (h, n_series, loss=MAE(), valid_loss=None, config=None,
 >                search_alg=<ray.tune.search.basic_variant.BasicVariantGener
->                ator object at 0x7eff299d39d0>, num_samples=10,
+>                ator object at 0x7f285de24190>, num_samples=10,
 >                refit_with_val=False, cpus=4, gpus=0, verbose=False,
 >                alias=None, backend='ray', callbacks=None)
 > ```
@@ -1396,7 +1396,7 @@ validation and test periods.
 | loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
 | config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
-| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7eff299d39d0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de24190\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
 | num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
 | refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
 | cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
@@ -1417,6 +1417,66 @@ y_hat = model.predict(dataset=dataset)
 
 # Optuna
 model = AutoTSMixerx(h=12, n_series=1, config=None, backend='optuna')
+```
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/auto.py#L1691"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### AutoMLPMultivariate
+
+> ``` text
+>  AutoMLPMultivariate (h, n_series, loss=MAE(), valid_loss=None,
+>                       config=None, search_alg=<ray.tune.search.basic_varia
+>                       nt.BasicVariantGenerator object at 0x7f285de43ca0>,
+>                       num_samples=10, refit_with_val=False, cpus=4,
+>                       gpus=0, verbose=False, alias=None, backend='ray',
+>                       callbacks=None)
+> ```
+
+Class for Automatic Hyperparameter Optimization, it builds on top of
+`ray` to give access to a wide variety of hyperparameter optimization
+tools ranging from classic grid search, to Bayesian optimization and
+HyperBand algorithm.
+
+The validation loss to be optimized is defined by the `config['loss']`
+dictionary value, the config also contains the rest of the
+hyperparameter search space.
+
+It is important to note that the success of this hyperparameter
+optimization heavily relies on a strong correlation between the
+validation and test periods.
+
+|                | **Type**              | **Default**                                                                      | **Details**                                                                                                                                                                                                                                           |
+|------|------------------|-------------------------|-------------------------|
+| h              | int                   |                                                                                  | Forecast horizon                                                                                                                                                                                                                                      |
+| n_series       |                       |                                                                                  |                                                                                                                                                                                                                                                       |
+| loss           | MAE                   | MAE()                                                                            | Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
+| valid_loss     | NoneType              | None                                                                             | Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).                                                                                                                                  |
+| config         | NoneType              | None                                                                             | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.                                                                                                                                |
+| search_alg     | BasicVariantGenerator | \<ray.tune.search.basic_variant.BasicVariantGenerator object at 0x7f285de43ca0\> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html<br/>For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.                                                                                      |
+| num_samples    | int                   | 10                                                                               | Number of hyperparameter optimization steps/samples.                                                                                                                                                                                                  |
+| refit_with_val | bool                  | False                                                                            | Refit of best model should preserve val_size.                                                                                                                                                                                                         |
+| cpus           | int                   | 4                                                                                | Number of cpus to use during optimization. Only used with ray tune.                                                                                                                                                                                   |
+| gpus           | int                   | 0                                                                                | Number of gpus to use during optimization, default all available. Only used with ray tune.                                                                                                                                                            |
+| verbose        | bool                  | False                                                                            | Track progress.                                                                                                                                                                                                                                       |
+| alias          | NoneType              | None                                                                             | Custom name of the model.                                                                                                                                                                                                                             |
+| backend        | str                   | ray                                                                              | Backend to use for searching the hyperparameter space, can be either ‘ray’ or ‘optuna’.                                                                                                                                                               |
+| callbacks      | NoneType              | None                                                                             | List of functions to call during the optimization process.<br/>ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html<br/>optuna reference: https://optuna.readthedocs.io/en/stable/tutorial/20_recipes/007_optuna_callback.html |
+
+```python
+# Use your own config or AutoTSMixerx.default_config
+config = dict(max_steps=1, val_check_steps=1, input_size=12)
+model = AutoMLPMultivariate(h=12, n_series=1, config=config, num_samples=1, cpus=1)
+
+# Fit and predict
+model.fit(dataset=dataset)
+y_hat = model.predict(dataset=dataset)
+
+# Optuna
+model = AutoMLPMultivariate(h=12, n_series=1, config=None, backend='optuna')
 ```
 
 # TESTS

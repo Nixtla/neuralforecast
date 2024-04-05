@@ -29,7 +29,7 @@ Forecasting”.](https://proceedings.neurips.cc/paper/2020/hash/cdf6581cb7aca4b7
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L37"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L31"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### GLU
@@ -180,6 +180,60 @@ of parameters used by the user specified `optimizer`.<br/>
 [PyTorch Lighning’s
 trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
 
+------------------------------------------------------------------------
+
+### StemGNN.fit
+
+> ``` text
+>  StemGNN.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### StemGNN.predict
+
+> ``` text
+>  StemGNN.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                   **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
 ## Usage Examples
 
 Train model and forecast future values with `predict` method.
@@ -203,7 +257,7 @@ model = StemGNN(h=12,
                 stat_exog_list=['airline1'],
                 futr_exog_list=['trend'],
                 scaler_type='robust',
-                max_steps=200,
+                max_steps=500,
                 early_stop_patience_steps=-1,
                 val_check_steps=10,
                 learning_rate=1e-3,
@@ -217,25 +271,10 @@ fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 ```
 
-``` text
-Seed set to 1
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-X shape: torch.Size([1, 1, 2, 24])
-forecast shape: torch.Size([1, 2, 24])
-```
-
-``` text
-IndexError: list index out of range
-```
 
 ```python
-# Plot quantile predictions
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])
@@ -243,8 +282,11 @@ plot_df = pd.concat([Y_train_df, plot_df])
 plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
 plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
 plt.plot(plot_df['ds'], plot_df['StemGNN'], c='blue', label='Forecast')
-plt.legend()
-plt.grid()
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Year', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
 ```
 
 Using `cross_validation` to forecast multiple historic values.
@@ -256,13 +298,17 @@ forecasts = fcst.cross_validation(df=AirPassengersPanel, static_df=AirPassengers
 
 
 ```python
-# Plot quantile predictions
-Y_hat_df = forecasts[forecasts['unique_id']=='Airline1']
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = forecasts.loc['Airline1']
 Y_df = AirPassengersPanel[AirPassengersPanel['unique_id']=='Airline1']
 
 plt.plot(Y_df['ds'], Y_df['y'], c='black', label='True')
 plt.plot(Y_hat_df['ds'], Y_hat_df['StemGNN'], c='blue', label='Forecast')
-plt.legend()
-plt.grid()
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Year', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
 ```
 

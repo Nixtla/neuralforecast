@@ -1,0 +1,197 @@
+---
+description: >-
+  One of the simplest neural architectures are Multi Layer Perceptrons (`MLP`)
+  composed of stacked Fully Connected Neural Networks trained with
+  backpropagation. Each node in the architecture is capable of modeling
+  non-linear relationships granted by their activation functions. Novel
+  activations like Rectified Linear Units (`ReLU`) have greatly improved the
+  ability to fit deeper networks overcoming gradient vanishing problems that
+  were associated with `Sigmoid` and `TanH` activations. For the forecasting
+  task the last layer is changed to follow a auto-regression problem. This
+  version is multivariate, indicating that it will predict all time series of
+  the forecasting problem jointly. <br/><br/>**References**<br/>-[Rosenblatt, F.
+  (1958). "The perceptron: A probabilistic model for information storage and
+  organization in the
+  brain."](https://psycnet.apa.org/record/1959-09865-001)<br/>-[Fukushima, K.
+  (1975). "Cognitron: A self-organizing multilayered neural
+  network."](https://pascal-francis.inist.fr/vibad/index.php?action=getrecorddetail&idt=pascal7750396723)<br/>-[Vinod
+  Nair, Geoffrey E. Hinton (2010). "Rectified Linear Units Improve Restricted
+  Boltzmann Machines"](https://www.cs.toronto.edu/~fritz/absps/reluicml.pdf)<br/>
+output-file: models.mlpmultivariate.html
+title: MLPMultivariate
+---
+
+
+<figure>
+<img src="imgs_models/mlp.png"
+alt="Figure 1. Three layer MLP with autorregresive inputs." />
+<figcaption aria-hidden="true">Figure 1. Three layer MLP with
+autorregresive inputs.</figcaption>
+</figure>
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/mlpmultivariate.py#L14"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MLPMultivariate
+
+> ``` text
+>  MLPMultivariate (h, input_size, n_series, futr_exog_list=None,
+>                   hist_exog_list=None, stat_exog_list=None, num_layers=2,
+>                   hidden_size=1024, loss=MAE(), valid_loss=None,
+>                   max_steps:int=1000, learning_rate:float=0.001,
+>                   num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>                   val_check_steps:int=100, batch_size:int=32,
+>                   step_size:int=1, scaler_type:str='identity',
+>                   random_seed:int=1, num_workers_loader:int=0,
+>                   drop_last_loader:bool=False, optimizer=None,
+>                   optimizer_kwargs=None, **trainer_kwargs)
+> ```
+
+MLPMultivariate
+
+Simple Multi Layer Perceptron architecture (MLP) for multivariate
+forecasting. This deep neural network has constant units through its
+layers, each with ReLU non-linearities, it is trained using ADAM
+stochastic gradient descent. The network accepts static, historic and
+future exogenous data, flattens the inputs and learns fully connected
+relationships against the target variables.
+
+**Parameters:**<br/> `h`: int, forecast horizon.<br/> `input_size`: int,
+considered autorregresive inputs (lags), y=\[1,2,3,4\] input_size=2 -\>
+lags=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`hist_exog_list`: str list, historic exogenous columns.<br/>
+`futr_exog_list`: str list, future exogenous columns.<br/> `n_layers`:
+int, number of layers for the MLP.<br/> `hidden_size`: int, number of
+units for each layer of the MLP.<br/> `loss`: PyTorch module,
+instantiated train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `step_size`: int=1, step size between each
+window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+scaler for temporal inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `optimizer`: Subclass of
+‘torch.optim.Optimizer’, optional, user specified optimizer instead of
+the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
+of parameters used by the user specified `optimizer`.<br/>
+`**trainer_kwargs`: int, keyword trainer arguments inherited from
+[PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+
+------------------------------------------------------------------------
+
+### MLPMultivariate.fit
+
+> ``` text
+>  MLPMultivariate.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### MLPMultivariate.predict
+
+> ``` text
+>  MLPMultivariate.predict (dataset, test_size=None, step_size=1,
+>                           random_seed=None, **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+## Usage Example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+# from neuralforecast.models import MLP
+from neuralforecast.losses.pytorch import MAE
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = MLPMultivariate(h=12, 
+            input_size=24,
+            n_series=2,
+            loss = MAE(),
+            scaler_type='robust',
+            learning_rate=1e-3,
+            max_steps=200,
+            val_check_steps=10,
+            early_stop_patience_steps=2)
+
+fcst = NeuralForecast(
+    models=[model],
+    freq='M'
+)
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['MLPMultivariate'], c='blue', label='median')
+plt.grid()
+plt.legend()
+plt.plot()
+```
+
