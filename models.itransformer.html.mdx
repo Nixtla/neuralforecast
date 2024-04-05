@@ -1,0 +1,411 @@
+---
+output-file: models.itransformer.html
+title: iTransformer
+---
+
+
+The iTransformer model simply takes the Transformer architecture but it
+applies the attention and feed-forward network on the inverted
+dimensions. This means that time points of each individual series are
+embedded into tokens. That way, the attention mechanisms learn
+multivariate correlation and the feed-forward network learns non-linear
+relationships.
+
+**References** - [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu
+Wang, Lintao Ma, Mingsheng Long. “iTransformer: Inverted Transformers
+Are Effective for Time Series
+Forecasting”](https://arxiv.org/abs/2310.06625)
+
+<figure>
+<img src="imgs_models/itransformer.png"
+alt="Figure 1. Architecture of iTransformer." />
+<figcaption aria-hidden="true">Figure 1. Architecture of
+iTransformer.</figcaption>
+</figure>
+
+# 1. Auxiliary functions
+
+## 1.1 Attention
+
+## 1.2 Inverted embedding
+
+# 2. Model
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/itransformer.py#L94"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### iTransformer
+
+> ``` text
+>  iTransformer (h, input_size, n_series, futr_exog_list=None,
+>                hist_exog_list=None, stat_exog_list=None,
+>                hidden_size:int=512, n_heads:int=8, e_layers:int=2,
+>                d_layers:int=1, d_ff:int=2048, factor:int=1,
+>                dropout:float=0.1, use_norm:bool=True, loss=MAE(),
+>                valid_loss=None, max_steps:int=1000,
+>                learning_rate:float=0.001, num_lr_decays:int=-1,
+>                early_stop_patience_steps:int=-1, val_check_steps:int=100,
+>                batch_size:int=32, step_size:int=1,
+>                scaler_type:str='identity', random_seed:int=1,
+>                num_workers_loader:int=0, drop_last_loader:bool=False,
+>                optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
+> ```
+
+iTransformer
+
+**Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
+autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
+y\_\[t-2:t\]=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
+`futr_exog_list`: str list, future exogenous columns.<br/>
+`hist_exog_list`: str list, historic exogenous columns.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/> `hidden_size`:
+int, dimension of the model.<br/> `n_heads`: int, number of heads.<br/>
+`e_layers`: int, number of encoder layers.<br/> `d_layers`: int, number
+of decoder layers.<br/> `d_ff`: int, dimension of fully-connected
+layer.<br/> `factor`: int, attention factor.<br/> `dropout`: float,
+dropout rate.<br/> `use_norm`: bool, whether to normalize or not.<br/>
+`loss`: PyTorch module, instantiated train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `step_size`: int=1, step size between each
+window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+scaler for temporal inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `optimizer`: Subclass of
+‘torch.optim.Optimizer’, optional, user specified optimizer instead of
+the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
+of parameters used by the user specified `optimizer`.<br/>
+`**trainer_kwargs`: int, keyword trainer arguments inherited from
+[PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+
+**References**<br/> - [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu
+Wang, Lintao Ma, Mingsheng Long. “iTransformer: Inverted Transformers
+Are Effective for Time Series
+Forecasting”](https://arxiv.org/abs/2310.06625)
+
+------------------------------------------------------------------------
+
+### iTransformer.fit
+
+> ``` text
+>  iTransformer.fit (dataset, val_size=0, test_size=0, random_seed=None)
+> ```
+
+Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>
+
+------------------------------------------------------------------------
+
+### iTransformer.predict
+
+> ``` text
+>  iTransformer.predict (dataset, test_size=None, step_size=1,
+>                        random_seed=None, **data_module_kwargs)
+> ```
+
+Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+
+# 3. Usage example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+from neuralforecast.losses.pytorch import MSE
+```
+
+
+```python
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = iTransformer(h=12,
+                     input_size=24,
+                     n_series=2,
+                     hidden_size=128,
+                     n_heads=2,
+                     e_layers=2,
+                     d_layers=1,
+                     d_ff=4,
+                     factor=1,
+                     dropout=0.1,
+                     use_norm=True,
+                     loss=MSE(),
+                     valid_loss=MAE(),
+                     early_stop_patience_steps=3,
+                     batch_size=32)
+
+fcst = NeuralForecast(models=[model], freq='M')
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+```
+
+``` text
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:198: Attribute 'loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['loss'])`.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:198: Attribute 'valid_loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['valid_loss'])`.
+Seed set to 1
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+
+  | Name          | Type                   | Params
+---------------------------------------------------------
+0 | padder        | ConstantPad1d          | 0     
+1 | loss          | MSE                    | 0     
+2 | valid_loss    | MAE                    | 0     
+3 | scaler        | TemporalNorm           | 0     
+4 | enc_embedding | DataEmbedding_inverted | 3.2 K 
+5 | encoder       | TransEncoder           | 135 K 
+6 | projector     | Linear                 | 1.5 K 
+---------------------------------------------------------
+140 K     Trainable params
+0         Non-trainable params
+140 K     Total params
+0.562     Total estimated model params size (MB)
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:77: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 2. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py:293: The number of training batches (1) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/utilsforecast/processing.py:352: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/utilsforecast/processing.py:404: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+/Users/marcopeix/dev/neuralforecast/neuralforecast/tsdataset.py:91: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.temporal = torch.tensor(temporal, dtype=torch.float)
+/Users/marcopeix/dev/neuralforecast/neuralforecast/tsdataset.py:95: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.static = torch.tensor(static, dtype=torch.float)
+Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'predict_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/dev/neuralforecast/neuralforecast/core.py:179: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
+  warnings.warn(
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+```python
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['iTransformer'], c='blue', label='Forecast')
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Year', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+![](/neuralforecast/models.itransformer_files/figure-markdown_strict/cell-7-output-1.png)
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+from neuralforecast.losses.pytorch import MSE
+```
+
+
+```python
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = iTransformer(h=12,
+                     input_size=24,
+                     n_series=1,
+                     hidden_size=128,
+                     n_heads=2,
+                     e_layers=2,
+                     d_layers=1,
+                     d_ff=4,
+                     factor=1,
+                     dropout=0.1,
+                     use_norm=True,
+                     loss=MSE(),
+                     valid_loss=MAE(),
+                     early_stop_patience_steps=3,
+                     batch_size=32)
+
+fcst = NeuralForecast(models=[model], freq='M')
+fcst.fit(df=Y_train_df, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+```
+
+``` text
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:198: Attribute 'loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['loss'])`.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:198: Attribute 'valid_loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['valid_loss'])`.
+Seed set to 1
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+
+  | Name          | Type                   | Params
+---------------------------------------------------------
+0 | padder        | ConstantPad1d          | 0     
+1 | loss          | MSE                    | 0     
+2 | valid_loss    | MAE                    | 0     
+3 | scaler        | TemporalNorm           | 0     
+4 | enc_embedding | DataEmbedding_inverted | 3.2 K 
+5 | encoder       | TransEncoder           | 135 K 
+6 | projector     | Linear                 | 1.5 K 
+---------------------------------------------------------
+140 K     Trainable params
+0         Non-trainable params
+140 K     Total params
+0.562     Total estimated model params size (MB)
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py:293: The number of training batches (2) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:77: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 1. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/utilsforecast/processing.py:352: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/utilsforecast/processing.py:404: FutureWarning: 'M' is deprecated and will be removed in a future version, please use 'ME' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+/Users/marcopeix/dev/neuralforecast/neuralforecast/tsdataset.py:91: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.temporal = torch.tensor(temporal, dtype=torch.float)
+Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'predict_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=10` in the `DataLoader` to improve performance.
+/Users/marcopeix/dev/neuralforecast/neuralforecast/core.py:179: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
+  warnings.warn(
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
