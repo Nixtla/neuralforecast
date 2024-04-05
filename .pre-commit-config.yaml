@@ -1,4 +1,12 @@
+fail_fast: true
+
 repos:
+  - repo: local
+    hooks:
+      - id: imports_with_code
+        name: Cells with imports and code
+        entry: python action_files/imports_with_code.py
+        language: system
   - repo: https://github.com/fastai/nbdev
     rev: 2.2.10
     hooks:
