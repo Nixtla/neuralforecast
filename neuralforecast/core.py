@@ -52,6 +52,7 @@ from neuralforecast.models import (
     TSMixer,
     TSMixerx,
     MLPMultivariate,
+    iTransformer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -156,6 +157,8 @@ MODEL_FILENAME_DICT = {
     "autotsmixerx": TSMixerx,
     "mlpmultivariate": MLPMultivariate,
     "automlpmultivariate": MLPMultivariate,
+    "itransformer": iTransformer,
+    "autoitransformer": iTransformer,
 }
 
 # %% ../nbs/core.ipynb 8
