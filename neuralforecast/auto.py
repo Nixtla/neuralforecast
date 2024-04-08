@@ -49,147 +49,7 @@ from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
 # %% ../nbs/models.ipynb 13
 class AutoRNN(BaseAuto):
-<<<<<<< HEAD
 
-    default_config = {
-        "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
-        "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
-        "encoder_n_layers": tune.randint(1, 4),
-        "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
-        "batch_size": tune.choice([16, 32]),
-        "loss": None,
-        "random_seed": tune.randint(1, 20),
-    }
-
-    def __init__(
-        self,
-        h,
-        loss=MAE(),
-        valid_loss=None,
-        config=None,
-        search_alg=BasicVariantGenerator(random_state=1),
-        num_samples=10,
-        refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
-        verbose=False,
-        backend="ray",
-        callbacks=None,
-    ):
-        """Auto RNN
-
-        **Parameters:**<br>
-
-        """
-        # Define search space, input/output sizes
-        if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
-
-        super(AutoRNN, self).__init__(
-            cls_model=RNN,
-            h=h,
-            loss=loss,
-            valid_loss=valid_loss,
-            config=config,
-            search_alg=search_alg,
-            num_samples=num_samples,
-            refit_with_val=refit_with_val,
-            cpus=cpus,
-            gpus=gpus,
-            verbose=verbose,
-            backend=backend,
-            callbacks=callbacks,
-        )
-
-# %% ../nbs/models.ipynb 14
-class AutoLSTM(BaseAuto):
-
-    default_config = {
-        "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
-        "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
-        "encoder_n_layers": tune.randint(1, 4),
-        "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
-        "batch_size": tune.choice([16, 32]),
-        "loss": None,
-        "random_seed": tune.randint(1, 20),
-    }
-
-    def __init__(
-        self,
-        h,
-        loss=MAE(),
-        valid_loss=None,
-        config=None,
-        search_alg=BasicVariantGenerator(random_state=1),
-        num_samples=10,
-        refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
-        verbose=False,
-        backend="ray",
-        callbacks=None,
-    ):
-
-        # Define search space, input/output sizes
-        if config is None:
-            config = self.default_config.copy()
-            config["input_size"] = tune.choice(
-                [h * x for x in self.default_config["input_size_multiplier"]]
-            )
-            config["inference_input_size"] = tune.choice(
-                [h * x for x in self.default_config["inference_input_size_multiplier"]]
-            )
-            del (
-                config["input_size_multiplier"],
-                config["inference_input_size_multiplier"],
-            )
-            if backend == "optuna":
-                config = self._ray_config_to_optuna(config)
-
-        super(AutoLSTM, self).__init__(
-            cls_model=LSTM,
-            h=h,
-            loss=loss,
-            valid_loss=valid_loss,
-            config=config,
-            search_alg=search_alg,
-            num_samples=num_samples,
-            refit_with_val=refit_with_val,
-            cpus=cpus,
-            gpus=gpus,
-            verbose=verbose,
-            backend=backend,
-            callbacks=callbacks,
-        )
-
-# %% ../nbs/models.ipynb 17
-class AutoGRU(BaseAuto):
-
-=======
-
->>>>>>> main
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
@@ -221,15 +81,11 @@ class AutoGRU(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
-<<<<<<< HEAD
-
-=======
         """Auto RNN
 
         **Parameters:**<br>
 
         """
->>>>>>> main
         # Define search space, input/output sizes
         if config is None:
             config = self.get_default_config(h=h, backend=backend)
@@ -278,7 +134,7 @@ class AutoLSTM(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -349,7 +205,7 @@ class AutoGRU(BaseAuto):
         "context_size": tune.choice([5, 10, 50]),
         "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "max_steps": tune.choice([500, 1000]),
+        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
@@ -1537,7 +1393,7 @@ class AutoTimesNet(BaseAuto):
         "conv_hidden_size": tune.choice([32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice(["robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=5000, q=500),
+        "max_steps": tune.choice([500, 1000, 2000]),
         "batch_size": tune.choice([32, 64, 128]),
         "windows_batch_size": tune.choice([32, 64, 128, 256]),
         "loss": None,
