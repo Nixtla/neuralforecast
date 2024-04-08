@@ -144,7 +144,7 @@ produce the next day hourly forecasts, and set `input_size` to use the
 last 5 days of data as input.
 
 ```python
-from neuralforecast.auto import NHITS
+from neuralforecast.auto import NHITS, BiTCN
 from neuralforecast.core import NeuralForecast
 
 import logging
@@ -159,7 +159,21 @@ models = [NHITS(h = horizon,
                 futr_exog_list = ['gen_forecast', 'week_day'], # <- Future exogenous variables
                 hist_exog_list = ['system_load'], # <- Historical exogenous variables
                 stat_exog_list = ['market_0', 'market_1'], # <- Static exogenous variables
-                scaler_type = 'robust')]
+                scaler_type = 'robust'),
+          BiTCN(h = horizon,
+                input_size = 5*horizon,
+                futr_exog_list = ['gen_forecast', 'week_day'], # <- Future exogenous variables
+                hist_exog_list = ['system_load'], # <- Historical exogenous variables
+                stat_exog_list = ['market_0', 'market_1'], # <- Static exogenous variables
+                scaler_type = 'robust',
+                ),                
+                ]
+```
+
+``` text
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\pytorch_lightning\utilities\parsing.py:199: Attribute 'loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['loss'])`.
+Seed set to 1
+Seed set to 1
 ```
 
 > **Tip**
@@ -218,17 +232,35 @@ Y_hat_df.head()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 95.56it/s] 
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:352: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:404: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+c:\Users\ospra\OneDrive\Phd\Repositories\neuralforecast\neuralforecast\tsdataset.py:91: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.temporal = torch.tensor(temporal, dtype=torch.float)
+c:\Users\ospra\OneDrive\Phd\Repositories\neuralforecast\neuralforecast\tsdataset.py:95: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  self.static = torch.tensor(static, dtype=torch.float)
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\pytorch_lightning\trainer\connectors\data_connector.py:441: The 'predict_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=19` in the `DataLoader` to improve performance.
+c:\Users\ospra\OneDrive\Phd\Repositories\neuralforecast\neuralforecast\core.py:179: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
+  warnings.warn(
 ```
 
-|           | ds                  | NHITS     |
-|-----------|---------------------|-----------|
-| unique_id |                     |           |
-| BE        | 2016-11-01 00:00:00 | 36.936493 |
-| BE        | 2016-11-01 01:00:00 | 33.701057 |
-| BE        | 2016-11-01 02:00:00 | 30.956253 |
-| BE        | 2016-11-01 03:00:00 | 28.285088 |
-| BE        | 2016-11-01 04:00:00 | 27.118006 |
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+|           | ds                  | NHITS     | BiTCN     |
+|-----------|---------------------|-----------|-----------|
+| unique_id |                     |           |           |
+| BE        | 2016-11-01 00:00:00 | 38.138920 | 41.105774 |
+| BE        | 2016-11-01 01:00:00 | 34.647514 | 35.589905 |
+| BE        | 2016-11-01 02:00:00 | 33.428795 | 33.034309 |
+| BE        | 2016-11-01 03:00:00 | 32.428146 | 30.183418 |
+| BE        | 2016-11-01 04:00:00 | 31.068453 | 29.396011 |
 
 ```python
 import matplotlib.pyplot as plt
@@ -239,7 +271,7 @@ Y_hat_df = Y_hat_df[Y_hat_df['unique_id']=='FR']
 
 plot_df = pd.concat([plot_df, Y_hat_df ]).set_index('ds') # Concatenate the train and forecast dataframes
 
-plot_df[['y', 'NHITS']].plot(linewidth=2)
+plot_df[['y', 'NHITS', 'BiTCN']].plot(linewidth=2)
 plt.axvline('2016-11-01', color='red')
 plt.ylabel('Price [EUR/MWh]', fontsize=12)
 plt.xlabel('Date', fontsize=12)
