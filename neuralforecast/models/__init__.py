@@ -2,7 +2,7 @@ __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'DLinear', 'NLinear',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
            'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx', 'MLPMultivariate',
-           'iTransformer'
+           'iTransformer', 'BiTCN',
            ]
 
 from .rnn import RNN
@@ -31,3 +31,5 @@ from .tsmixer import TSMixer
 from .tsmixerx import TSMixerx
 from .mlpmultivariate import MLPMultivariate
 from .itransformer import iTransformer
+from .bitcn import BiTCN
+
