@@ -114,7 +114,7 @@ def get_dataset(name):
         val_size = 5270
         test_size = 10539
     elif name == 'Traffic':
-        Y_df, *_ = LongHorizon.load(directory='./', group='Traffic')
+        Y_df, *_ = LongHorizon.load(directory='./', group='TrafficL')
         Y_df['ds'] = pd.to_datetime(Y_df['ds'])
         freq = 'H'
         h = 720

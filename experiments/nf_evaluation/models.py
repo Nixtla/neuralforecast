@@ -24,7 +24,9 @@ def get_model(model_name, horizon, num_samples):
         'AutoAutoformer': AutoAutoformer(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples),
         'AutoFEDformer': AutoFEDformer(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples),
         'AutoTimesNet': AutoTimesNet(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples),
-        'AutoPatchTST': AutoPatchTST(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples)
+        'AutoPatchTST': AutoPatchTST(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples),
+        'AutoTSMixer': AutoTSMixer(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples, n_series=1),
+        'AutoiTransformer': AutoiTransformer(config=None, h=horizon, loss=HuberLoss(), num_samples=num_samples, n_series=1)
     }
 
     return model_dict[model_name]
