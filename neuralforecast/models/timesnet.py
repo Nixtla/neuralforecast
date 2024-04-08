@@ -83,8 +83,9 @@ class TimesBlock(nn.Module):
             if (self.input_size + self.h) % period != 0:
                 length = (((self.input_size + self.h) // period) + 1) * period
                 padding = torch.zeros(
-                    [x.shape[0], (length - (self.input_size + self.h)), x.shape[2]]
-                ).to(x.device)
+                    [x.shape[0], (length - (self.input_size + self.h)), x.shape[2]],
+                    device=x.device,
+                )
                 out = torch.cat([x, padding], dim=1)
             else:
                 length = self.input_size + self.h
@@ -173,6 +174,10 @@ class TimesNet(BaseWindows):
         Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
+        User specified optimizer instead of the default choice (Adam).
+    `optimizer_kwargs`: dict, optional (defualt=None)
+        List of parameters used by the user specified `optimizer`.
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
@@ -215,6 +220,8 @@ class TimesNet(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         super(TimesNet, self).__init__(
@@ -241,6 +248,8 @@ class TimesNet(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 
@@ -285,6 +294,7 @@ class TimesNet(BaseWindows):
         self.projection = nn.Linear(hidden_size, self.c_out, bias=True)
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']

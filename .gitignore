@@ -20,6 +20,8 @@ sidebar.yml
 nbs/.last_checked
 _proc
 lightning_logs/
-data/
+/**/data/
+debug_run
 
-examples/
+longhorizon/
+_old/

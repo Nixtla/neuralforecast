@@ -235,6 +235,7 @@ class PatchTST_backbone(nn.Module):
         affine=True,
         subtract_last=False,
     ):
+
         super().__init__()
 
         # RevIn
@@ -391,6 +392,7 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
         pe="zeros",
         learn_pe=True,
     ):
+
         super().__init__()
 
         self.patch_num = patch_num
@@ -428,6 +430,7 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
         )
 
     def forward(self, x) -> torch.Tensor:  # x: [bs x nvars x patch_len x patch_num]
+
         n_vars = x.shape[1]
         # Input encoding
         x = x.permute(0, 1, 3, 2)  # x: [bs x nvars x patch_num x patch_len]
@@ -588,6 +591,7 @@ class TSTEncoderLayer(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ):  # -> Tuple[torch.Tensor, Any]:
+
         # Multi-Head attention sublayer
         if self.pre_norm:
             src = self.norm_attn(src)
@@ -686,6 +690,7 @@ class _MultiheadAttention(nn.Module):
         key_padding_mask: Optional[torch.Tensor] = None,
         attn_mask: Optional[torch.Tensor] = None,
     ):
+
         bs = Q.size(0)
         if K is None:
             K = Q
@@ -838,7 +843,7 @@ class PatchTST(BaseWindows):
     `fc_dropout`: float=0.1, dropout rate for linear layer.<br>
     `head_dropout`: float=0.1, dropout rate for Flatten head layer.<br>
     `attn_dropout`: float=0.1, dropout rate for attention layer.<br>
-    `patch_len`: int=32, length of patch.<br>
+    `patch_len`: int=32, length of patch. Note: patch_len = min(patch_len, input_size + stride).<br>
     `stride`: int=16, stride of patch.<br>
     `revin`: bool=True, bool to use RevIn.<br>
     `revin_affine`: bool=False, bool to use affine in RevIn.<br>
@@ -865,6 +870,8 @@ class PatchTST(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -916,6 +923,8 @@ class PatchTST(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         super(PatchTST, self).__init__(
@@ -942,6 +951,8 @@ class PatchTST(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
         # Asserts
@@ -953,6 +964,9 @@ class PatchTST(BaseWindows):
             raise Exception(
                 "PatchTST does not yet support historical exogenous variables"
             )
+
+        # Enforce correct patch_len, regardless of user input
+        patch_len = min(input_size + stride, patch_len)
 
         c_out = self.loss.outputsize_multiplier
 
@@ -1010,6 +1024,7 @@ class PatchTST(BaseWindows):
         )
 
     def forward(self, windows_batch):  # x: [batch, input_size]
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         # insample_mask = windows_batch['insample_mask']

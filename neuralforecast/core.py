@@ -18,6 +18,7 @@ import torch
 import utilsforecast.processing as ufp
 from coreforecast.grouped_array import GroupedArray
 from coreforecast.scalers import (
+    LocalBoxCoxScaler,
     LocalMinMaxScaler,
     LocalRobustScaler,
     LocalStandardScaler,
@@ -38,6 +39,7 @@ from neuralforecast.models import (
     NBEATS,
     NBEATSx,
     DLinear,
+    NLinear,
     TFT,
     VanillaTransformer,
     Informer,
@@ -46,6 +48,11 @@ from neuralforecast.models import (
     StemGNN,
     PatchTST,
     TimesNet,
+    TimeLLM,
+    TSMixer,
+    TSMixerx,
+    MLPMultivariate,
+    iTransformer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -109,6 +116,8 @@ MODEL_FILENAME_DICT = {
     "autodeepar": DeepAR,
     "dlinear": DLinear,
     "autodlinear": DLinear,
+    "nlinear": NLinear,
+    "autonlinear": NLinear,
     "dilatedrnn": DilatedRNN,
     "autodilatedrnn": DilatedRNN,
     "fedformer": FEDformer,
@@ -141,6 +150,15 @@ MODEL_FILENAME_DICT = {
     "autotimesnet": TimesNet,
     "vanillatransformer": VanillaTransformer,
     "autovanillatransformer": VanillaTransformer,
+    "timellm": TimeLLM,
+    "tsmixer": TSMixer,
+    "autotsmixer": TSMixer,
+    "tsmixerx": TSMixerx,
+    "autotsmixerx": TSMixerx,
+    "mlpmultivariate": MLPMultivariate,
+    "automlpmultivariate": MLPMultivariate,
+    "itransformer": iTransformer,
+    "autoitransformer": iTransformer,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -149,6 +167,7 @@ _type2scaler = {
     "robust": lambda: LocalRobustScaler(scale="mad"),
     "robust-iqr": lambda: LocalRobustScaler(scale="iqr"),
     "minmax": LocalMinMaxScaler,
+    "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
 }
 
 # %% ../nbs/core.ipynb 9
@@ -188,7 +207,7 @@ class NeuralForecast:
             Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
         local_scaler_type : str, optional (default=None)
             Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
-            Can be 'standard', 'robust', 'robust-iqr' or 'minmax'
+            Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'
 
         Returns
         -------
@@ -770,6 +789,12 @@ class NeuralForecast:
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
+        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                FutureWarning,
+            )
+            df = df.reset_index(id_col)
         if not refit:
             return self._no_refit_cross_validation(
                 df=df,
@@ -888,14 +913,21 @@ class NeuralForecast:
 
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
-        if test_size > 0:
+
+        # trim the forefront period to ensure `test_size - h` should be module `step_size
+        # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
+        series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
+        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
+
+        if test_size > 0 or forefront_offset > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=0
+                dataset=self.dataset, right_trim=test_size, left_trim=forefront_offset
             )
             new_idxs = np.hstack(
                 [
                     np.arange(
-                        self.dataset.indptr[i], self.dataset.indptr[i + 1] - test_size
+                        self.dataset.indptr[i] + forefront_offset,
+                        self.dataset.indptr[i + 1] - test_size,
                     )
                     for i in range(self.dataset.n_groups)
                 ]

@@ -49,7 +49,7 @@ class ConvLayer(nn.Module):
 # %% ../../nbs/models.informer.ipynb 9
 class ProbMask:
     def __init__(self, B, H, L, index, scores, device="cpu"):
-        _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
+        _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool, device=device).triu(1)
         _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
         indicator = _mask_ex[
             torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
@@ -127,7 +127,9 @@ class ProbAttention(nn.Module):
             torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
         ] = torch.matmul(attn, V).type_as(context_in)
         if self.output_attention:
-            attns = (torch.ones([B, H, L_V, L_V]) / L_V).type_as(attn).to(attn.device)
+            attns = (torch.ones([B, H, L_V, L_V], device=attn.device) / L_V).type_as(
+                attn
+            )
             attns[
                 torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
             ] = attn
@@ -212,6 +214,8 @@ class Informer(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
         *References*<br>
@@ -256,6 +260,8 @@ class Informer(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
         super(Informer, self).__init__(
@@ -282,6 +288,8 @@ class Informer(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
 
@@ -347,9 +355,11 @@ class Informer(BaseWindows):
                 )
                 for l in range(encoder_layers)
             ],
-            [ConvLayer(hidden_size) for l in range(encoder_layers - 1)]
-            if distil
-            else None,
+            (
+                [ConvLayer(hidden_size) for l in range(encoder_layers - 1)]
+                if distil
+                else None
+            ),
             norm_layer=torch.nn.LayerNorm(hidden_size),
         )
         # Decoder
@@ -405,7 +415,7 @@ class Informer(BaseWindows):
             x_mark_enc = None
             x_mark_dec = None
 
-        x_dec = torch.zeros(size=(len(insample_y), self.h, 1)).to(insample_y.device)
+        x_dec = torch.zeros(size=(len(insample_y), self.h, 1), device=insample_y.device)
         x_dec = torch.cat([insample_y[:, -self.label_len :, :], x_dec], dim=1)
 
         enc_out = self.enc_embedding(insample_y, x_mark_enc)

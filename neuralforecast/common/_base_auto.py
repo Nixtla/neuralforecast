@@ -10,7 +10,6 @@ from os import cpu_count
 import torch
 import pytorch_lightning as pl
 
-from pytorch_lightning.callbacks import TQDMProgressBar
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
@@ -194,12 +193,9 @@ class BaseAuto(pl.LightningModule):
         `test_size`: int, test size for temporal cross-validation.<br>
         """
         metrics = {"loss": "ptl/val_loss", "train_loss": "train_loss"}
-        callbacks = [
-            TQDMProgressBar(),
-            TuneReportCallback(metrics, on="validation_end"),
-        ]
+        callbacks = [TuneReportCallback(metrics, on="validation_end")]
         if "callbacks" in config_step.keys():
-            callbacks += config_step["callbacks"]
+            callbacks.extend(config_step["callbacks"])
         config_step = {**config_step, **{"callbacks": callbacks}}
 
         # Protect dtypes from tune samplers
@@ -245,6 +241,15 @@ class BaseAuto(pl.LightningModule):
         else:
             device_dict = {"cpu": cpus}
 
+        # on Windows, prevent long trial directory names
+        import platform
+
+        trial_dirname_creator = (
+            (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
+            if platform.system() == "Windows"
+            else None
+        )
+
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
             run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
@@ -253,13 +258,15 @@ class BaseAuto(pl.LightningModule):
                 mode="min",
                 num_samples=num_samples,
                 search_alg=search_alg,
+                trial_dirname_creator=trial_dirname_creator,
             ),
             param_space=config,
         )
         results = tuner.fit()
         return results
 
-    def _ray_config_to_optuna(self, ray_config):
+    @staticmethod
+    def _ray_config_to_optuna(ray_config):
         def optuna_config(trial):
             out = {}
             for k, v in ray_config.items():
@@ -287,7 +294,7 @@ class BaseAuto(pl.LightningModule):
                         ):
                             v = trial.suggest_float(k, v.lower, v.upper, step=sampler.q)
                     else:
-                        raise ValueError(f"Coudln't translate {type(v)} to optuna.")
+                        raise ValueError(f"Couldn't translate {type(v)} to optuna.")
                 out[k] = v
             return out
 

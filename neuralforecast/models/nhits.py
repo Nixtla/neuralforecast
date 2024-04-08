@@ -33,6 +33,7 @@ class _IdentityBasis(nn.Module):
         self.out_features = out_features
 
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+
         backcast = theta[:, : self.backcast_size]
         knots = theta[:, self.backcast_size :]
 
@@ -51,7 +52,9 @@ class _IdentityBasis(nn.Module):
                 )
             batch_size = len(backcast)
             knots = knots[:, None, :, :]
-            forecast = torch.zeros((len(knots), self.forecast_size)).to(knots.device)
+            forecast = torch.zeros(
+                (len(knots), self.forecast_size), device=knots.device
+            )
             n_batches = int(np.ceil(len(knots) / batch_size))
             for i in range(n_batches):
                 forecast_i = F.interpolate(
@@ -144,6 +147,7 @@ class NHITSBlock(nn.Module):
         hist_exog: torch.Tensor,
         stat_exog: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+
         # Pooling
         # Pool1d needs 3D input, (B,C,L), adding C dimension
         insample_y = insample_y.unsqueeze(1)
@@ -222,6 +226,8 @@ class NHITS(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -267,8 +273,11 @@ class NHITS(BaseWindows):
         random_seed: int = 1,
         num_workers_loader=0,
         drop_last_loader=False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
+
         # Inherit BaseWindows class
         super(NHITS, self).__init__(
             h=h,
@@ -294,6 +303,8 @@ class NHITS(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
 
@@ -337,9 +348,11 @@ class NHITS(BaseWindows):
         hist_input_size,
         stat_input_size,
     ):
+
         block_list = []
         for i in range(len(stack_types)):
             for block_id in range(n_blocks[i]):
+
                 assert (
                     stack_types[i] == "identity"
                 ), f"Block type {stack_types[i]} not found!"
@@ -375,6 +388,7 @@ class NHITS(BaseWindows):
         return block_list
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         insample_mask = windows_batch["insample_mask"]

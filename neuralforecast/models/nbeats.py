@@ -228,6 +228,8 @@ class NBEATS(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -267,8 +269,11 @@ class NBEATS(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs,
     ):
+
         # Inherit BaseWindows class
         super(NBEATS, self).__init__(
             h=h,
@@ -290,6 +295,8 @@ class NBEATS(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
 
@@ -321,9 +328,11 @@ class NBEATS(BaseWindows):
         n_polynomials,
         n_harmonics,
     ):
+
         block_list = []
         for i in range(len(stack_types)):
             for block_id in range(n_blocks[i]):
+
                 # Shared weights
                 if shared_weights and block_id > 0:
                     nbeats_block = block_list[-1]
@@ -377,6 +386,7 @@ class NBEATS(BaseWindows):
         return block_list
 
     def forward(self, windows_batch):
+
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
         insample_mask = windows_batch["insample_mask"]

@@ -74,6 +74,7 @@ class TimeSeriesLoader(DataLoader):
 
 # %% ../nbs/tsdataset.ipynb 7
 class TimeSeriesDataset(Dataset):
+
     def __init__(
         self,
         temporal,
@@ -191,9 +192,9 @@ class TimeSeriesDataset(Dataset):
             new_temporal[new_indptr[i] : new_indptr[i] + curr_size] = self.temporal[
                 curr_slice
             ]
-            new_temporal[
-                new_indptr[i] + curr_size : new_indptr[i + 1]
-            ] = futr_dataset.temporal[futr_slice]
+            new_temporal[new_indptr[i] + curr_size : new_indptr[i + 1]] = (
+                futr_dataset.temporal[futr_slice]
+            )
 
         # Define new dataset
         updated_dataset = TimeSeriesDataset(
@@ -342,6 +343,7 @@ class TimeSeriesDataset(Dataset):
 
 # %% ../nbs/tsdataset.ipynb 10
 class TimeSeriesDataModule(pl.LightningDataModule):
+
     def __init__(
         self,
         dataset: TimeSeriesDataset,
@@ -349,6 +351,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         valid_batch_size=1024,
         num_workers=0,
         drop_last=False,
+        shuffle_train=True,
     ):
         super().__init__()
         self.dataset = dataset
@@ -356,13 +359,14 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.valid_batch_size = valid_batch_size
         self.num_workers = num_workers
         self.drop_last = drop_last
+        self.shuffle_train = shuffle_train
 
     def train_dataloader(self):
         loader = TimeSeriesLoader(
             self.dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=True,
+            shuffle=self.shuffle_train,
             drop_last=self.drop_last,
         )
         return loader

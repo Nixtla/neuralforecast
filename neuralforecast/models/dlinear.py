@@ -58,7 +58,7 @@ class DLinear(BaseWindows):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `moving_avg_window`: int=25, window size for trend-seasonality decomposition.<br>
+    `moving_avg_window`: int=25, window size for trend-seasonality decomposition. Should be uneven.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
@@ -75,6 +75,8 @@ class DLinear(BaseWindows):
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
         *References*<br>
@@ -110,6 +112,8 @@ class DLinear(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
         **trainer_kwargs
     ):
         super(DLinear, self).__init__(
@@ -136,6 +140,8 @@ class DLinear(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
 
@@ -152,6 +158,9 @@ class DLinear(BaseWindows):
 
         if self.futr_input_size > 0:
             raise Exception("DLinear does not support future variables yet")
+
+        if moving_avg_window % 2 == 0:
+            raise Exception("moving_avg_window should be uneven")
 
         self.c_out = self.loss.outputsize_multiplier
         self.output_attention = False
