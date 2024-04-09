@@ -16,33 +16,35 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v3
+
       - name: Clone docs repo
         uses: actions/checkout@v3
         with:
           repository: Nixtla/docs
           ref: scripts
           path: docs-scripts
+
       - uses: actions/setup-python@v4
         with:
-          cache: "pip"
           python-version: '3.10'
           cache-dependency-path: settings.ini
+
+      - name: Install dependencies
+        run: pip install uv && uv pip install ".[dev]" --system
+
       - name: Build docs
         run: |
-          set -ux
-          python -m pip install --upgrade pip
-          pip install -Uq nbdev
-          pip install -e ".[dev]"
           mkdir nbs/_extensions
           cp -r docs-scripts/mintlify/ nbs/_extensions/
           python docs-scripts/update-quarto.py
           nbdev_docs
+
       - name: Apply final formats
         run: bash ./docs-scripts/docs-final-formatting.bash
+
       - name: Copy over necessary assets
-        run: |
-          cp nbs/mint.json _docs/mint.json
-          cp docs-scripts/imgs/* _docs/
+        run: cp nbs/mint.json _docs/mint.json && cp docs-scripts/imgs/* _docs/
+
       - name: Deploy to Mintlify Docs
         if: github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v3
@@ -52,6 +54,7 @@ jobs:
           publish_dir: ./_docs
           user_name: github-actions[bot]
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
+
       - name: Trigger mintlify workflow
         if: github.event_name == 'push'
         uses: actions/github-script@v7
@@ -64,8 +67,10 @@ jobs:
               workflow_id: 'mintlify-action.yml',
               ref: 'main',
             });
+
       - name: Configure redirects for gh-pages
         run: python docs-scripts/configure-redirects.py neuralforecast
+
       - name: Deploy to Github Pages
         if: github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@v3

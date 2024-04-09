@@ -53,6 +53,9 @@ from neuralforecast.models import (
     TimeLLM,
     TSMixer,
     TSMixerx,
+    MLPMultivariate,
+    iTransformer,
+    BiTCN,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -155,6 +158,12 @@ MODEL_FILENAME_DICT = {
     "autotsmixer": TSMixer,
     "tsmixerx": TSMixerx,
     "autotsmixerx": TSMixerx,
+    "mlpmultivariate": MLPMultivariate,
+    "automlpmultivariate": MLPMultivariate,
+    "itransformer": iTransformer,
+    "autoitransformer": iTransformer,
+    "bitcn": BiTCN,
+    "autobitcn": BiTCN,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -960,6 +969,12 @@ class NeuralForecast:
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
+        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
+            warnings.warn(
+                "Passing the id as index is deprecated, please provide it as a column instead.",
+                FutureWarning,
+            )
+            df = df.reset_index(id_col)
         if not refit:
             return self._no_refit_cross_validation(
                 df=df,
@@ -1078,14 +1093,21 @@ class NeuralForecast:
 
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
-        if test_size > 0:
+
+        # trim the forefront period to ensure `test_size - h` should be module `step_size
+        # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
+        series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
+        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
+
+        if test_size > 0 or forefront_offset > 0:
             trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=0
+                dataset=self.dataset, right_trim=test_size, left_trim=forefront_offset
             )
             new_idxs = np.hstack(
                 [
                     np.arange(
-                        self.dataset.indptr[i], self.dataset.indptr[i + 1] - test_size
+                        self.dataset.indptr[i] + forefront_offset,
+                        self.dataset.indptr[i + 1] - test_size,
                     )
                     for i in range(self.dataset.n_groups)
                 ]

@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -54,11 +53,19 @@ class BaseRecurrent(BaseModel):
         optimizer_kwargs=None,
         **trainer_kwargs,
     ):
-        super(BaseModel, self).__init__()
-
-        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
-        self.random_seed = random_seed
-        pl.seed_everything(self.random_seed, workers=True)
+        super().__init__(
+            random_seed=random_seed,
+            loss=loss,
+            valid_loss=valid_loss,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            max_steps=max_steps,
+            early_stop_patience_steps=early_stop_patience_steps,
+            **trainer_kwargs,
+        )
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
@@ -66,15 +73,6 @@ class BaseRecurrent(BaseModel):
         self.input_size = input_size
         self.inference_input_size = inference_input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
-
-        # Loss
-        self.loss = loss
-        if valid_loss is None:
-            self.valid_loss = loss
-        else:
-            self.valid_loss = valid_loss
-        self.train_trajectories = []
-        self.valid_trajectories = []
 
         if (
             str(type(self.loss))
@@ -101,18 +99,6 @@ class BaseRecurrent(BaseModel):
         )
         self.early_stop_patience_steps = early_stop_patience_steps
         self.val_check_steps = val_check_steps
-        # custom optimizer defined by user
-        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
-            raise TypeError(
-                "optimizer is not a valid subclass of torch.optim.Optimizer"
-            )
-        self.optimizer = optimizer
-        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
-
-        # Variables
-        self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
-        self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
-        self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
 
         # Scaler
         self.scaler = TemporalNorm(
@@ -124,35 +110,6 @@ class BaseRecurrent(BaseModel):
         # Fit arguments
         self.val_size = 0
         self.test_size = 0
-
-        ## Trainer arguments ##
-        # Max steps, validation steps and check_val_every_n_epoch
-        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
-
-        if "max_epochs" in trainer_kwargs.keys():
-            raise Exception("max_epochs is deprecated, use max_steps instead.")
-
-        # Callbacks
-        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
-            trainer_kwargs["callbacks"] = [
-                EarlyStopping(
-                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                )
-            ]
-
-        # Add GPU accelerator if available
-        if trainer_kwargs.get("accelerator", None) is None:
-            if torch.cuda.is_available():
-                trainer_kwargs["accelerator"] = "gpu"
-        if trainer_kwargs.get("devices", None) is None:
-            if torch.cuda.is_available():
-                trainer_kwargs["devices"] = -1
-
-        # Avoid saturating local memory, disabled fit model checkpoints
-        if trainer_kwargs.get("enable_checkpointing", None) is None:
-            trainer_kwargs["enable_checkpointing"] = False
-
-        self.trainer_kwargs = trainer_kwargs
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
