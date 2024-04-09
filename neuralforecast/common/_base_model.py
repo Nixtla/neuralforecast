@@ -7,12 +7,14 @@ __all__ = ['DistributedConfig', 'BaseModel']
 import inspect
 import random
 import warnings
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
 
 import fsspec
 import numpy as np
 import torch
+import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
@@ -30,6 +32,29 @@ class DistributedConfig:
     devices: int
 
 # %% ../../nbs/common.base_model.ipynb 4
+@contextmanager
+def _disable_torch_init():
+    def noop(*args, **kwargs):
+        return
+
+    kaiming_uniform = nn.init.kaiming_uniform_
+    kaiming_normal = nn.init.kaiming_normal_
+    xavier_uniform = nn.init.xavier_uniform_
+    xavier_normal = nn.init.xavier_normal_
+
+    nn.init.kaiming_uniform_ = noop
+    nn.init.kaiming_normal_ = noop
+    nn.init.xavier_uniform_ = noop
+    nn.init.xavier_normal_ = noop
+    try:
+        yield
+    finally:
+        nn.init.kaiming_uniform_ = kaiming_uniform
+        nn.init.kaiming_normal_ = kaiming_normal
+        nn.init.xavier_uniform_ = xavier_uniform
+        nn.init.xavier_normal_ = xavier_normal
+
+# %% ../../nbs/common.base_model.ipynb 5
 class BaseModel(pl.LightningModule):
     def __init__(
         self,
@@ -301,9 +326,10 @@ class BaseModel(pl.LightningModule):
             )
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path, **kwargs):
         with fsspec.open(path, "rb") as f:
-            content = torch.load(f)
-        model = cls(**content["hyper_parameters"])
-        model.load_state_dict(content["state_dict"])
+            content = torch.load(f, **kwargs)
+        with _disable_torch_init():
+            model = cls(**content["hyper_parameters"])
+        model.load_state_dict(content["state_dict"], strict=True, assign=True)
         return model

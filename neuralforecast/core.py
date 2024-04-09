@@ -315,8 +315,8 @@ class NeuralForecast:
 
     def fit(
         self,
-        df: Optional[DataFrame] = None,
-        static_df: Optional[DataFrame] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
         use_init_models: bool = False,
@@ -333,10 +333,10 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas or polars DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
-        static_df : pandas or polars DataFrame, optional (default=None)
+        static_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
@@ -352,6 +352,8 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        distributed_config : neuralforecast.DistributedConfig
+            Configuration to use for DDP training. Currently only spark is supported.
 
         Returns
         -------
@@ -519,9 +521,9 @@ class NeuralForecast:
 
     def predict(
         self,
-        df: Optional[DataFrame] = None,
-        static_df: Optional[DataFrame] = None,
-        futr_df: Optional[DataFrame] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         sort_df: bool = True,
         verbose: bool = False,
         engine=None,
@@ -533,12 +535,12 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas or polars DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
-        static_df : pandas or polars DataFrame, optional (default=None)
+        static_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
-        futr_df : pandas or polars DataFrame, optional (default=None)
+        futr_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
         sort_df : bool (default=True)
             Sort `df` before fitting.
