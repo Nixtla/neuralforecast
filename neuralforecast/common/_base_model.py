@@ -12,13 +12,83 @@ from copy import deepcopy
 import numpy as np
 import torch
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ..tsdataset import TimeSeriesDataModule
 
 # %% ../../nbs/common.base_model.ipynb 3
 class BaseModel(pl.LightningModule):
-    def __init__(self):
+    def __init__(
+        self,
+        random_seed,
+        loss,
+        valid_loss,
+        optimizer,
+        optimizer_kwargs,
+        futr_exog_list,
+        hist_exog_list,
+        stat_exog_list,
+        max_steps,
+        early_stop_patience_steps,
+        **trainer_kwargs,
+    ):
         super().__init__()
+        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+        self.random_seed = random_seed
+        pl.seed_everything(self.random_seed, workers=True)
+
+        # Loss
+        self.loss = loss
+        if valid_loss is None:
+            self.valid_loss = loss
+        else:
+            self.valid_loss = valid_loss
+        self.train_trajectories = []
+        self.valid_trajectories = []
+
+        # Optimization
+        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
+            raise TypeError(
+                "optimizer is not a valid subclass of torch.optim.Optimizer"
+            )
+        self.optimizer = optimizer
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
+
+        # Variables
+        self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
+        self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
+        self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
+
+        ## Trainer arguments ##
+        # Max steps, validation steps and check_val_every_n_epoch
+        trainer_kwargs = {**trainer_kwargs, "max_steps": max_steps}
+
+        if "max_epochs" in trainer_kwargs.keys():
+            raise Exception("max_epochs is deprecated, use max_steps instead.")
+
+        # Callbacks
+        if early_stop_patience_steps > 0:
+            if "callbacks" not in trainer_kwargs:
+                trainer_kwargs["callbacks"] = []
+            trainer_kwargs["callbacks"].append(
+                EarlyStopping(
+                    monitor="ptl/val_loss", patience=early_stop_patience_steps
+                )
+            )
+
+        # Add GPU accelerator if available
+        if trainer_kwargs.get("accelerator", None) is None:
+            if torch.cuda.is_available():
+                trainer_kwargs["accelerator"] = "gpu"
+        if trainer_kwargs.get("devices", None) is None:
+            if torch.cuda.is_available():
+                trainer_kwargs["devices"] = -1
+
+        # Avoid saturating local memory, disabled fit model checkpoints
+        if trainer_kwargs.get("enable_checkpointing", None) is None:
+            trainer_kwargs["enable_checkpointing"] = False
+
+        self.trainer_kwargs = trainer_kwargs
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias

@@ -463,6 +463,9 @@ class TFT(BaseWindows):
         super(TFT, self).__init__(
             h=h,
             input_size=input_size,
+            stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
+            futr_exog_list=futr_exog_list,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -485,11 +488,6 @@ class TFT(BaseWindows):
             **trainer_kwargs
         )
         self.example_length = input_size + h
-
-        # Parse lists hyperparameters
-        self.stat_exog_list = [] if stat_exog_list is None else stat_exog_list
-        self.hist_exog_list = [] if hist_exog_list is None else hist_exog_list
-        self.futr_exog_list = [] if futr_exog_list is None else futr_exog_list
 
         stat_input_size = len(self.stat_exog_list)
         futr_input_size = max(len(self.futr_exog_list), 1)

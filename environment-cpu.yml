@@ -4,6 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - coreforecast>=0.0.6
+  - cpuonly
   - fsspec
   - gitpython
   - hyperopt
@@ -15,10 +16,10 @@ dependencies:
   - pandas>=1.3.5
   - pyarrow
   - pytorch>=2.0.0
-  - cpuonly
   - pytorch-lightning>=2.0.0
   - pip
   - s3fs
+  - snappy<1.2.0
   - pip:
     - nbdev
     - black
