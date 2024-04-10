@@ -140,14 +140,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### BiTCN
 
 > ``` text
->  BiTCN (h:int, input_size:int, hidden_size:int=16, dropout:float=0.1,
+>  BiTCN (h:int, input_size:int, hidden_size:int=16, dropout:float=0.5,
 >         futr_exog_list=None, hist_exog_list=None, stat_exog_list=None,
 >         exclude_insample_y=False, loss=MAE(), valid_loss=None,
 >         max_steps:int=1000, learning_rate:float=0.001,
 >         num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
 >         val_check_steps:int=100, batch_size:int=32,
 >         valid_batch_size:Optional[int]=None, windows_batch_size=1024,
->         inference_windows_batch_size=-1, start_padding_enabled=False,
+>         inference_windows_batch_size=1024, start_padding_enabled=False,
 >         step_size:int=1, scaler_type:str='identity', random_seed:int=1,
 >         num_workers_loader:int=0, drop_last_loader:bool=False,
 >         optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
