@@ -14,7 +14,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L190"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L192"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -40,19 +40,22 @@ columns. The `y` column denotes the target time series variable.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L314"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L316"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
 
 > ``` text
 >  NeuralForecast.fit (df:Union[pandas.core.frame.DataFrame,polars.dataframe
->                      .frame.DataFrame,NoneType]=None, static_df:Union[pand
->                      as.core.frame.DataFrame,polars.dataframe.frame.DataFr
->                      ame,NoneType]=None, val_size:Optional[int]=0,
->                      sort_df:bool=True, use_init_models:bool=False,
->                      verbose:bool=False, id_col:str='unique_id',
->                      time_col:str='ds', target_col:str='y')
+>                      .frame.DataFrame,neuralforecast.compat.SparkDataFrame
+>                      ,NoneType]=None, static_df:Union[pandas.core.frame.Da
+>                      taFrame,polars.dataframe.frame.DataFrame,neuralforeca
+>                      st.compat.SparkDataFrame,NoneType]=None,
+>                      val_size:Optional[int]=0, sort_df:bool=True,
+>                      use_init_models:bool=False, verbose:bool=False,
+>                      id_col:str='unique_id', time_col:str='ds',
+>                      target_col:str='y', distributed_config:Optional[neura
+>                      lforecast.common._base_model.DistributedConfig]=None)
 > ```
 
 Fit the core.NeuralForecast.
@@ -60,35 +63,39 @@ Fit the core.NeuralForecast.
 Fit `models` to a large set of time series from DataFrame `df`. and
 store fitted models for later inspection.
 
-|                 | **Type**           | **Default** | **Details**                                                                                                                     |
+|                    | **Type**           | **Default** | **Details**                                                                                                                     |
 |------|------------------|-------------------------|-------------------------|
-| df              | Union              | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
-| static_df       | Union              | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
-| val_size        | Optional           | 0           | Size of validation set.                                                                                                         |
-| sort_df         | bool               | True        | Sort `df` before fitting.                                                                                                       |
-| use_init_models | bool               | False       | Use initial model passed when NeuralForecast object was instantiated.                                                           |
-| verbose         | bool               | False       | Print processing steps.                                                                                                         |
-| id_col          | str                | unique_id   | Column that identifies each serie.                                                                                              |
-| time_col        | str                | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                 |
-| target_col      | str                | y           | Column that contains the target.                                                                                                |
-| **Returns**     | **NeuralForecast** |             | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.**    |
+| df                 | Union              | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
+| static_df          | Union              | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
+| val_size           | Optional           | 0           | Size of validation set.                                                                                                         |
+| sort_df            | bool               | True        | Sort `df` before fitting.                                                                                                       |
+| use_init_models    | bool               | False       | Use initial model passed when NeuralForecast object was instantiated.                                                           |
+| verbose            | bool               | False       | Print processing steps.                                                                                                         |
+| id_col             | str                | unique_id   | Column that identifies each serie.                                                                                              |
+| time_col           | str                | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                 |
+| target_col         | str                | y           | Column that contains the target.                                                                                                |
+| distributed_config | Optional           | None        | Configuration to use for DDP training. Currently only spark is supported.                                                       |
+| **Returns**        | **NeuralForecast** |             | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.**    |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L454"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L522"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
 
 > ``` text
 >  NeuralForecast.predict (df:Union[pandas.core.frame.DataFrame,polars.dataf
->                          rame.frame.DataFrame,NoneType]=None, static_df:Un
->                          ion[pandas.core.frame.DataFrame,polars.dataframe.
->                          frame.DataFrame,NoneType]=None, futr_df:Union[pan
->                          das.core.frame.DataFrame,polars.dataframe.frame.D
->                          ataFrame,NoneType]=None, sort_df:bool=True,
->                          verbose:bool=False, **data_kwargs)
+>                          rame.frame.DataFrame,neuralforecast.compat.SparkD
+>                          ataFrame,NoneType]=None, static_df:Union[pandas.c
+>                          ore.frame.DataFrame,polars.dataframe.frame.DataFr
+>                          ame,neuralforecast.compat.SparkDataFrame,NoneType
+>                          ]=None, futr_df:Union[pandas.core.frame.DataFrame
+>                          ,polars.dataframe.frame.DataFrame,neuralforecast.
+>                          compat.SparkDataFrame,NoneType]=None,
+>                          sort_df:bool=True, verbose:bool=False,
+>                          engine=None, **data_kwargs)
 > ```
 
 Predict with core.NeuralForecast.
@@ -103,13 +110,14 @@ DataFrame `df`.
 | futr_df     | Union                          | None        | DataFrame with \[`unique_id`, `ds`\] columns and `df`’s future exogenous.                                                                 |
 | sort_df     | bool                           | True        | Sort `df` before fitting.                                                                                                                 |
 | verbose     | bool                           | False       | Print processing steps.                                                                                                                   |
+| engine      | NoneType                       | None        | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.                         |
 | data_kwargs | kwargs                         |             | Extra arguments to be passed to the dataset within each model.                                                                            |
 | **Returns** | **pandas or polars DataFrame** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **             |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L719"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L898"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -159,7 +167,7 @@ rolled manner.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L876"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1055"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -181,7 +189,7 @@ to predict historic values of a time series from the stored dataframe.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1001"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1180"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -218,7 +226,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1094"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1286"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load

@@ -9,13 +9,13 @@ You can install the *released version* of
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
 from the [Python package index](https://pypi.org) with:
 
-```python
+```shell
 pip install neuralforecast
 ```
 
 or
 
-```python
+```shell
 conda install -c conda-forge neuralforecast
 ```
 
@@ -34,6 +34,13 @@ conda install -c conda-forge neuralforecast
 > We recommend installing your libraries inside a python virtual or
 > [conda
 > environment](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html).
+
+## Extras
+
+You can use the following extras to add optional functionality:
+
+-   distributed training with spark: `pip install neuralforecast[spark]`
+-   saving and loading from S3: `pip install neuralforecast[aws]`
 
 #### User our env (optional)
 
