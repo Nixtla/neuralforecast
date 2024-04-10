@@ -266,11 +266,17 @@ class HINT:
         # Bootstrap Sample Reconciliation
         # Default output [mean, quantiles]
         samples = np.einsum("ij,jwhp->iwhp", self.SP, samples)
+
+        sample_mean = np.mean(samples, axis=-1)
+        sample_mean = sample_mean.transpose(0, 2, 1)
+        sample_mean = sample_mean.reshape(
+            sample_mean.shape[0] * sample_mean.shape[1], -1
+        )
+
         forecasts = np.quantile(samples, self.model.loss.quantiles, axis=-1)
         forecasts = forecasts.transpose(1, 2, 3, 0)  # [...,samples]
         forecasts = forecasts.reshape(-1, len(self.model.loss.quantiles))
 
-        sample_mean = np.mean(forecasts, axis=-1, keepdims=True)
         forecasts = np.concatenate([sample_mean, forecasts], axis=-1)
         return forecasts
 
