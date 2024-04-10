@@ -606,7 +606,14 @@ class BaseWindows(BaseModel):
         y_hat = torch.cat(y_hats, dim=0)
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -635,6 +642,7 @@ class BaseWindows(BaseModel):
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
     def predict(

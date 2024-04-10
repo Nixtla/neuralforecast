@@ -490,7 +490,14 @@ class BaseMultivariate(BaseModel):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -511,6 +518,10 @@ class BaseMultivariate(BaseModel):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
+        if distributed_config is not None:
+            raise ValueError(
+                "multivariate models cannot be trained using distributed data parallel."
+            )
         return self._fit(
             dataset=dataset,
             batch_size=self.n_series,
@@ -518,6 +529,7 @@ class BaseMultivariate(BaseModel):
             test_size=test_size,
             random_seed=random_seed,
             shuffle_train=False,
+            distributed_config=None,
         )
 
     def predict(

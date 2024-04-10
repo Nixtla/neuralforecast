@@ -25,6 +25,8 @@ statuses = [ '1 - Planning', '2 - Pre-Alpha', '3 - Alpha',
 py_versions = '3.6 3.7 3.8 3.9 3.10'.split()
 
 requirements = cfg.get('requirements','').split()
+aws_requirements = cfg['aws_requirements'].split()
+spark_requirements = cfg['spark_requirements'].split()
 if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').split()
 min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
@@ -42,7 +44,11 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     include_package_data = True,
     install_requires = requirements,
-    extras_require={'dev': dev_requirements},
+    extras_require={
+        'aws': aws_requirements,
+        'spark': spark_requirements,
+        'dev': dev_requirements,
+    },
     dependency_links = cfg.get('dep_links','').split(),
     python_requires  = '>=' + cfg['min_python'],
     long_description = open('README.md', encoding='utf8').read(),
