@@ -184,7 +184,14 @@ class HINT:
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """HINT.fit
 
         HINT trains on the entire hierarchical dataset, by minimizing a composite log likelihood objective.
@@ -200,17 +207,19 @@ class HINT:
         **Returns:**<br>
         `self`: A fitted base `NeuralForecast` model.<br>
         """
-        self.model.fit(
+        model = self.model.fit(
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
         # Added attributes for compatibility with NeuralForecast core
         self.futr_exog_list = self.model.futr_exog_list
         self.hist_exog_list = self.model.hist_exog_list
         self.stat_exog_list = self.model.stat_exog_list
+        return model
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """HINT.predict
@@ -291,4 +300,4 @@ class HINT:
         **Parameters:**<br>
         `path`: str, path to save the model.<br>
         """
-        self.model.trainer.save_checkpoint(path)
+        self.model.save(path)
