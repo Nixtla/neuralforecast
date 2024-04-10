@@ -1655,7 +1655,9 @@ class AutoHINT(BaseAuto):
             )
         self.S = S
 
-    def _fit_model(self, cls_model, config, dataset, val_size, test_size):
+    def _fit_model(
+        self, cls_model, config, dataset, val_size, test_size, distributed_config=None
+    ):
         # Overwrite _fit_model for HINT two-stage instantiation
         reconciliation = config.pop("reconciliation")
         base_model = cls_model(**config)
@@ -1663,8 +1665,13 @@ class AutoHINT(BaseAuto):
             h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
         )
         model.test_size = test_size
-        model.fit(dataset, val_size=val_size, test_size=test_size)
-        return model, None
+        model = model.fit(
+            dataset,
+            val_size=val_size,
+            test_size=test_size,
+            distributed_config=distributed_config,
+        )
+        return model
 
     @classmethod
     def get_default_config(cls, h, backend, n_series=None):
