@@ -34,6 +34,13 @@ class DistributedConfig:
 # %% ../../nbs/common.base_model.ipynb 4
 @contextmanager
 def _disable_torch_init():
+    """Context manager used to disable pytorch's weight initialization.
+
+    This is especially useful when loading saved models, since when initializing
+    a model the weights are also initialized following some method
+    (e.g. kaiming uniform), and that time is wasted since we'll override them with
+    the saved weights."""
+
     def noop(*args, **kwargs):
         return
 
