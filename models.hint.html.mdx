@@ -295,7 +295,6 @@ level = [80,90]
 nhits = NHITS(h=horizon,
               input_size=24,
               loss=GMM(n_components=10, level=level),
-              hist_exog_list=['month'],
               max_steps=2000,
               early_stop_patience_steps=10,
               val_check_steps=50,
@@ -309,6 +308,7 @@ model = HINT(h=horizon, S=S_df.values,
 # Fit and Predict
 nf = NeuralForecast(models=[model], freq='MS')
 Y_hat_df = nf.cross_validation(df=Y_df, val_size=12, n_windows=1)
+Y_hat_df = Y_hat_df.reset_index()
 ```
 
 
