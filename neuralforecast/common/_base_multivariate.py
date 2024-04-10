@@ -525,6 +525,7 @@ class BaseMultivariate(BaseModel):
         return self._fit(
             dataset=dataset,
             batch_size=self.n_series,
+            valid_batch_size=self.n_series,
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
@@ -556,7 +557,10 @@ class BaseMultivariate(BaseModel):
         self.predict_step_size = step_size
         self.decompose_forecast = False
         datamodule = TimeSeriesDataModule(
-            dataset=dataset, batch_size=self.n_series, **data_module_kwargs
+            dataset=dataset,
+            valid_batch_size=self.n_series,
+            batch_size=self.n_series,
+            **data_module_kwargs,
         )
 
         # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
