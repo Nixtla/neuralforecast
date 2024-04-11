@@ -274,6 +274,12 @@ class NBEATS(BaseWindows):
         **trainer_kwargs,
     ):
 
+        # Protect horizon collapsed seasonality and trend NBEATSx-i basis
+        if h == 1 and (("seasonality" in stack_types) or ("trend" in stack_types)):
+            raise Exception(
+                "Horizon `h=1` incompatible with `seasonality` or `trend` in stacks"
+            )
+
         # Inherit BaseWindows class
         super(NBEATS, self).__init__(
             h=h,
