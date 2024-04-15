@@ -56,6 +56,7 @@ from neuralforecast.models import (
     MLPMultivariate,
     iTransformer,
     BiTCN,
+    TiDE,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -164,6 +165,8 @@ MODEL_FILENAME_DICT = {
     "autoitransformer": iTransformer,
     "bitcn": BiTCN,
     "autobitcn": BiTCN,
+    "tide": TiDE,
+    "autotide": TiDE,
 }
 
 # %% ../nbs/core.ipynb 8
