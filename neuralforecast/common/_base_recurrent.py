@@ -343,9 +343,13 @@ class BaseRecurrent(BaseModel):
             raise Exception("Loss is NaN, training stopped.")
 
         self.log(
-            "train_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
+            "train_loss",
+            loss.item(),
+            batch_size=1,  # loss is a scalar
+            prog_bar=True,
+            on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -438,8 +442,8 @@ class BaseRecurrent(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss,
-            batch_size=self.batch_size,
+            valid_loss.item(),
+            batch_size=1,  # loss is a scalar
             prog_bar=True,
             on_epoch=True,
         )

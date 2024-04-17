@@ -437,11 +437,11 @@ class BaseWindows(BaseModel):
         self.log(
             "train_loss",
             loss.item(),
-            batch_size=1,  # we've already aggregated it
+            batch_size=1,  # loss is a scalar
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def _compute_valid_loss(
@@ -546,7 +546,7 @@ class BaseWindows(BaseModel):
         self.log(
             "valid_loss",
             valid_loss.item(),
-            batch_size=1,  # we've already aggregated it
+            batch_size=1,  # loss is a scalar
             prog_bar=True,
             on_epoch=True,
         )

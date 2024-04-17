@@ -325,7 +325,12 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         avg_loss = torch.stack(self.validation_step_outputs).mean().item()
-        self.log("ptl/val_loss", avg_loss, batch_size=1, sync_dist=True)
+        self.log(
+            "ptl/val_loss",
+            avg_loss,
+            batch_size=1,  # loss is a scalar
+            sync_dist=True,
+        )
         self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
