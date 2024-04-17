@@ -437,7 +437,7 @@ class BaseWindows(BaseModel):
         self.log(
             "train_loss",
             loss.item(),
-            batch_size=1,  # loss is a scalar
+            batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
@@ -537,8 +537,9 @@ class BaseWindows(BaseModel):
             batch_sizes.append(len(output_batch))
 
         valid_loss = torch.stack(valid_losses)
-        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
-        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
+        batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
+        batch_size = torch.sum(batch_sizes)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / batch_size
 
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
@@ -546,7 +547,7 @@ class BaseWindows(BaseModel):
         self.log(
             "valid_loss",
             valid_loss.item(),
-            batch_size=1,  # loss is a scalar
+            batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,
         )

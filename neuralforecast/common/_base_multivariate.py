@@ -386,7 +386,7 @@ class BaseMultivariate(BaseModel):
         self.log(
             "train_loss",
             loss.item(),
-            batch_size=1,  # loss is a scalar
+            batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
@@ -453,7 +453,7 @@ class BaseMultivariate(BaseModel):
         self.log(
             "valid_loss",
             valid_loss.item(),
-            batch_size=1,  # loss is a scalar
+            batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )

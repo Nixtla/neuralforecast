@@ -324,11 +324,12 @@ class BaseModel(pl.LightningModule):
     def on_validation_epoch_end(self):
         if self.val_size == 0:
             return
-        avg_loss = torch.stack(self.validation_step_outputs).mean().item()
+        losses = torch.stack(self.validation_step_outputs)
+        avg_loss = losses.mean().item()
         self.log(
             "ptl/val_loss",
             avg_loss,
-            batch_size=1,  # loss is a scalar
+            batch_size=losses.size(0),
             sync_dist=True,
         )
         self.valid_trajectories.append((self.global_step, avg_loss))
