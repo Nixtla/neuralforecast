@@ -78,7 +78,11 @@ class BaseModel(pl.LightningModule):
         **trainer_kwargs,
     ):
         super().__init__()
-        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+        with warnings.catch_warnings(record=False):
+            warnings.filterwarnings("ignore")
+            # the following line issues a warning about the loss attribute being saved
+            # but we do want to save it
+            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
 
@@ -202,8 +206,8 @@ class BaseModel(pl.LightningModule):
 
         if self.val_check_steps > self.max_steps:
             warnings.warn(
-                "val_check_steps is greater than max_steps, \
-                    setting val_check_steps to max_steps"
+                "val_check_steps is greater than max_steps, "
+                "setting val_check_steps to max_steps."
             )
         val_check_interval = min(self.val_check_steps, self.max_steps)
         self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
@@ -320,9 +324,9 @@ class BaseModel(pl.LightningModule):
     def on_validation_epoch_end(self):
         if self.val_size == 0:
             return
-        avg_loss = torch.stack(self.validation_step_outputs).mean()
-        self.log("ptl/val_loss", avg_loss, sync_dist=True)
-        self.valid_trajectories.append((self.global_step, float(avg_loss)))
+        avg_loss = torch.stack(self.validation_step_outputs).mean().item()
+        self.log("ptl/val_loss", avg_loss, batch_size=1, sync_dist=True)
+        self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def save(self, path):
