@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Union
 import fsspec
 import numpy as np
 import pandas as pd
+import pytorch_lightning as pl
 import torch
 import utilsforecast.processing as ufp
 from coreforecast.grouped_array import GroupedArray
@@ -60,6 +61,11 @@ from neuralforecast.models import (
 )
 
 # %% ../nbs/core.ipynb 5
+# this disables warnings about the number of workers in the dataloaders
+# which the user can't control
+pl.disable_possible_user_warnings()
+
+
 def _insample_times(
     times: np.ndarray,
     uids: Series,

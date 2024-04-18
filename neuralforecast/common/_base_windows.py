@@ -434,8 +434,14 @@ class BaseWindows(BaseModel):
             print("output", torch.isnan(output).sum())
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.log(
+            "train_loss",
+            loss.item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def _compute_valid_loss(
@@ -531,13 +537,20 @@ class BaseWindows(BaseModel):
             batch_sizes.append(len(output_batch))
 
         valid_loss = torch.stack(valid_losses)
-        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
-        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
+        batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
+        batch_size = torch.sum(batch_sizes)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / batch_size
 
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.log(
+            "valid_loss",
+            valid_loss.item(),
+            batch_size=batch_size,
+            prog_bar=True,
+            on_epoch=True,
+        )
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 

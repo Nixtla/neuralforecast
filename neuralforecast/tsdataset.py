@@ -6,7 +6,7 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -89,11 +89,11 @@ class TimeSeriesDataset(Dataset):
         sorted=False,
     ):
         super().__init__()
-        self.temporal = torch.tensor(temporal, dtype=torch.float)
+        self.temporal = self._as_torch_copy(temporal)
         self.temporal_cols = pd.Index(list(temporal_cols))
 
         if static is not None:
-            self.static = torch.tensor(static, dtype=torch.float)
+            self.static = self._as_torch_copy(static)
             self.static_cols = static_cols
         else:
             self.static = static
@@ -144,6 +144,15 @@ class TimeSeriesDataset(Dataset):
         return np.allclose(self.data, other.data) and np.array_equal(
             self.indptr, other.indptr
         )
+
+    def _as_torch_copy(
+        self,
+        x: Union[np.ndarray, torch.Tensor],
+        dtype: torch.dtype = torch.float32,
+    ) -> torch.Tensor:
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        return x.to(dtype, copy=False).clone()
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
@@ -256,7 +265,7 @@ class TimeSeriesDataset(Dataset):
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
             temporal_cols=dataset.temporal_cols.copy(),
-            indptr=np.array(new_indptr).astype(np.int32),
+            indptr=np.array(new_indptr, dtype=np.int32),
             max_size=new_max_size,
             min_size=new_min_size,
             y_idx=dataset.y_idx,
