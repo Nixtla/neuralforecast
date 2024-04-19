@@ -48,7 +48,7 @@ if __name__ == '__main__':
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]
     df_evaluation = pd.concat(evaluation)
-    df_evaluation = df_evaluation.loc[:, ['dataset', 'model', 'time', 'mae', 'smape']].copy()
+    df_evaluation = df_evaluation.loc[:, ['dataset', 'model', 'time', 'mae', 'smape']]
     df_evaluation['time'] /= 60 #minutes
     df_evaluation = df_evaluation.set_index(['dataset', 'model']).stack().reset_index()
     df_evaluation.columns = ['dataset', 'model', 'metric', 'val']
