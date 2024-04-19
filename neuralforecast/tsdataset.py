@@ -6,6 +6,7 @@ __all__ = ['TimeSeriesLoader', 'TimeSeriesDataset', 'TimeSeriesDataModule']
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -88,11 +89,11 @@ class TimeSeriesDataset(Dataset):
         sorted=False,
     ):
         super().__init__()
-        self.temporal = torch.tensor(temporal, dtype=torch.float)
+        self.temporal = self._as_torch_copy(temporal)
         self.temporal_cols = pd.Index(list(temporal_cols))
 
         if static is not None:
-            self.static = torch.tensor(static, dtype=torch.float)
+            self.static = self._as_torch_copy(static)
             self.static_cols = static_cols
         else:
             self.static = static
@@ -143,6 +144,15 @@ class TimeSeriesDataset(Dataset):
         return np.allclose(self.data, other.data) and np.array_equal(
             self.indptr, other.indptr
         )
+
+    def _as_torch_copy(
+        self,
+        x: Union[np.ndarray, torch.Tensor],
+        dtype: torch.dtype = torch.float32,
+    ) -> torch.Tensor:
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        return x.to(dtype, copy=False).clone()
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
@@ -255,7 +265,7 @@ class TimeSeriesDataset(Dataset):
         updated_dataset = TimeSeriesDataset(
             temporal=new_temporal,
             temporal_cols=dataset.temporal_cols.copy(),
-            indptr=np.array(new_indptr).astype(np.int32),
+            indptr=np.array(new_indptr, dtype=np.int32),
             max_size=new_max_size,
             min_size=new_min_size,
             y_idx=dataset.y_idx,
@@ -342,6 +352,26 @@ class TimeSeriesDataset(Dataset):
         return dataset, indices, dates, ds
 
 # %% ../nbs/tsdataset.ipynb 10
+class _FilesDataset:
+    def __init__(
+        self,
+        files: List[str],
+        temporal_cols: List[str],
+        static_cols: Optional[List[str]],
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        min_size: int,
+    ):
+        self.files = files
+        self.temporal_cols = pd.Index(temporal_cols)
+        self.static_cols = pd.Index(static_cols) if static_cols is not None else None
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.min_size = min_size
+
+# %% ../nbs/tsdataset.ipynb 11
 class TimeSeriesDataModule(pl.LightningDataModule):
 
     def __init__(
@@ -389,3 +419,44 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             shuffle=False,
         )
         return loader
+
+# %% ../nbs/tsdataset.ipynb 25
+class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
+    def __init__(
+        self,
+        dataset: _FilesDataset,
+        batch_size=32,
+        valid_batch_size=1024,
+        num_workers=0,
+        drop_last=False,
+        shuffle_train=True,
+    ):
+        super(TimeSeriesDataModule, self).__init__()
+        self.files_ds = dataset
+        self.batch_size = batch_size
+        self.valid_batch_size = valid_batch_size
+        self.num_workers = num_workers
+        self.drop_last = drop_last
+        self.shuffle_train = shuffle_train
+
+    def setup(self, stage):
+        import torch.distributed as dist
+
+        df = pd.read_parquet(self.files_ds.files[dist.get_rank()])
+        if self.files_ds.static_cols is not None:
+            static_df = (
+                df[[self.files_ds.id_col] + self.files_ds.static_cols.tolist()]
+                .groupby(self.files_ds.id_col, observed=True)
+                .head(1)
+            )
+            df = df.drop(columns=self.files_ds.static_cols)
+        else:
+            static_df = None
+        self.dataset, *_ = TimeSeriesDataset.from_df(
+            df=df,
+            static_df=static_df,
+            sort_df=True,
+            id_col=self.files_ds.id_col,
+            time_col=self.files_ds.time_col,
+            target_col=self.files_ds.target_col,
+        )

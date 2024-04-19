@@ -383,8 +383,14 @@ class BaseMultivariate(BaseModel):
             print("output", torch.isnan(output).sum())
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.log(
+            "train_loss",
+            loss.item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -444,7 +450,13 @@ class BaseMultivariate(BaseModel):
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.log(
+            "valid_loss",
+            valid_loss.item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
@@ -490,7 +502,14 @@ class BaseMultivariate(BaseModel):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -511,13 +530,19 @@ class BaseMultivariate(BaseModel):
         `val_size`: int, validation size for temporal cross-validation.<br>
         `test_size`: int, test size for temporal cross-validation.<br>
         """
+        if distributed_config is not None:
+            raise ValueError(
+                "multivariate models cannot be trained using distributed data parallel."
+            )
         return self._fit(
             dataset=dataset,
             batch_size=self.n_series,
+            valid_batch_size=self.n_series,
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
             shuffle_train=False,
+            distributed_config=None,
         )
 
     def predict(
@@ -544,7 +569,10 @@ class BaseMultivariate(BaseModel):
         self.predict_step_size = step_size
         self.decompose_forecast = False
         datamodule = TimeSeriesDataModule(
-            dataset=dataset, batch_size=self.n_series, **data_module_kwargs
+            dataset=dataset,
+            valid_batch_size=self.n_series,
+            batch_size=self.n_series,
+            **data_module_kwargs,
         )
 
         # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
