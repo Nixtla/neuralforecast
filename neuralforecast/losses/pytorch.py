@@ -13,7 +13,13 @@ import torch
 
 import torch.nn.functional as F
 from torch.distributions import Distribution
-from torch.distributions import Bernoulli, Normal, StudentT, Poisson, NegativeBinomial
+from torch.distributions import (
+    Bernoulli,
+    Normal,
+    StudentT,
+    Poisson,
+    NegativeBinomial,
+)
 
 from torch.distributions import constraints
 
@@ -1166,20 +1172,17 @@ class PMM(torch.nn.Module):
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
         if self.return_params:
-            lambda_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
-            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-            self.param_names = [i for j in zip(lambda_names, weight_names) for i in j]
+            self.param_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
             self.output_names = self.output_names + self.param_names
 
         # Add first output entry for the sample_mean
         self.output_names.insert(0, "")
 
-        self.outputsize_multiplier = 2 * n_components
+        self.outputsize_multiplier = n_components
         self.is_distribution_output = True
 
     def domain_map(self, output: torch.Tensor):
-        lambdas, weights = output.chunk(2, dim=-1)
-        return (lambdas, weights)
+        return (output,)  # , weights
 
     def scale_decouple(
         self,
@@ -1193,15 +1196,13 @@ class PMM(torch.nn.Module):
         variance and residual location based on anchoring `loc`, `scale`.
         Also adds domain protection to the distribution parameters.
         """
-        lambdas, weights = output
-        weights = F.softmax(weights, dim=-1)
-
+        lambdas = output[0]
         if (loc is not None) and (scale is not None):
             loc = loc.view(lambdas.size(dim=0), 1, -1)
             scale = scale.view(lambdas.size(dim=0), 1, -1)
             lambdas = (lambdas * scale) + loc
         lambdas = F.softplus(lambdas)
-        return (lambdas, weights)
+        return (lambdas,)
 
     def sample(self, distr_args, num_samples=None):
         """
@@ -1223,9 +1224,14 @@ class PMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        lambdas, weights = distr_args
+        lambdas = distr_args[0]
         B, H, K = lambdas.size()
         Q = len(self.quantiles)
+
+        # Sample K ~ Mult(weights)
+        # shared across B, H
+        # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1267,7 +1273,7 @@ class PMM(torch.nn.Module):
     def neglog_likelihood(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
         if mask is None:
@@ -1276,8 +1282,10 @@ class PMM(torch.nn.Module):
             mask = mask * ((y > 0) * 1)
 
         eps = 1e-10
-        lambdas, weights = distr_args
+        lambdas = distr_args[0]
         B, H, K = lambdas.size()
+
+        weights = (1 / K) * torch.ones_like(lambdas, device=lambdas.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1305,7 +1313,7 @@ class PMM(torch.nn.Module):
     def __call__(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
 
@@ -1367,22 +1375,18 @@ class GMM(torch.nn.Module):
         if self.return_params:
             mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
             std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
-            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-            self.param_names = [
-                i for j in zip(mu_names, std_names, weight_names) for i in j
-            ]
-            self.output_names = self.output_names + self.param_names
+            mu_std_names = [i for j in zip(mu_names, std_names) for i in j]
+            self.output_names = self.output_names + mu_std_names
 
         # Add first output entry for the sample_mean
         self.output_names.insert(0, "")
 
-        self.outputsize_multiplier = 3 * n_components
+        self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
     def domain_map(self, output: torch.Tensor):
-        means, stds, weights = output.chunk(3, dim=-1)
-
-        return (means, stds, weights)
+        means, stds = torch.tensor_split(output, 2, dim=-1)
+        return (means, stds)
 
     def scale_decouple(
         self,
@@ -1397,16 +1401,14 @@ class GMM(torch.nn.Module):
         variance and residual location based on anchoring `loc`, `scale`.
         Also adds domain protection to the distribution parameters.
         """
-        means, stds, weights = output
+        means, stds = output
         stds = F.softplus(stds)
-        weights = F.softmax(weights, dim=-1)
         if (loc is not None) and (scale is not None):
             loc = loc.view(means.size(dim=0), 1, -1)
             scale = scale.view(means.size(dim=0), 1, -1)
             means = (means * scale) + loc
             stds = (stds + eps) * scale
-
-        return (means, stds, weights)
+        return (means, stds)
 
     def sample(self, distr_args, num_samples=None):
         """
@@ -1428,10 +1430,16 @@ class GMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        means, stds, weights = distr_args
+        means, stds = distr_args
         B, H, K = means.size()
         Q = len(self.quantiles)
         assert means.shape == stds.shape
+
+        # Sample K ~ Mult(weights)
+        # shared across B, H
+        # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1473,15 +1481,17 @@ class GMM(torch.nn.Module):
     def neglog_likelihood(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
 
         if mask is None:
             mask = torch.ones_like(y)
 
-        means, stds, weights = distr_args
+        means, stds = distr_args
         B, H, K = means.size()
+
+        weights = (1 / K) * torch.ones_like(means, device=means.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1510,7 +1520,7 @@ class GMM(torch.nn.Module):
     def __call__(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
 
@@ -1568,29 +1578,25 @@ class NBMM(torch.nn.Module):
                 f"-total_count-{i}" for i in range(1, n_components + 1)
             ]
             probs_names = [f"-probs-{i}" for i in range(1, n_components + 1)]
-            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-            self.param_names = [
-                i for j in zip(total_count_names, probs_names, weight_names) for i in j
-            ]
-            self.output_names = self.output_names + self.param_names
+            param_names = [i for j in zip(total_count_names, probs_names) for i in j]
+            self.output_names = self.output_names + param_names
 
         # Add first output entry for the sample_mean
         self.output_names.insert(0, "")
 
-        self.outputsize_multiplier = 3 * n_components
+        self.outputsize_multiplier = 2 * n_components
         self.is_distribution_output = True
 
     def domain_map(self, output: torch.Tensor):
-        mu, alpha, weights = output.chunk(3, dim=-1)
-
-        return mu, alpha, weights
+        mu, alpha = torch.tensor_split(output, 2, dim=-1)
+        return (mu, alpha)
 
     def scale_decouple(
         self,
         output,
         loc: Optional[torch.Tensor] = None,
         scale: Optional[torch.Tensor] = None,
-        eps: float = 1e-6,
+        eps: float = 0.2,
     ):
         """Scale Decouple
 
@@ -1599,10 +1605,9 @@ class NBMM(torch.nn.Module):
         Also adds domain protection to the distribution parameters.
         """
         # Efficient NBinomial parametrization
-        mu, alpha, weights = output
-        mu = F.softplus(mu) + eps
-        alpha = F.softplus(alpha) + eps  # alpha = 1/total_counts
-        weights = F.softmax(weights, dim=-1)
+        mu, alpha = output
+        mu = F.softplus(mu) + 1e-8
+        alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
         if (loc is not None) and (scale is not None):
             loc = loc.view(mu.size(dim=0), 1, -1)
             mu *= loc
@@ -1612,9 +1617,8 @@ class NBMM(torch.nn.Module):
         # => probs = mu / (total_count + mu)
         # => probs = mu / [total_count * (1 + mu * (1/total_count))]
         total_count = 1.0 / alpha
-        probs = mu * alpha / (1.0 + mu * alpha)
-        probs = torch.clamp(probs, eps, 1 - eps)
-        return (total_count, probs, weights)
+        probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
+        return (total_count, probs)
 
     def sample(self, distr_args, num_samples=None):
         """
@@ -1636,10 +1640,16 @@ class NBMM(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        total_count, probs, weights = distr_args
+        total_count, probs = distr_args
         B, H, K = total_count.size()
         Q = len(self.quantiles)
         assert total_count.shape == probs.shape
+
+        # Sample K ~ Mult(weights)
+        # shared across B, H
+        # weights = torch.repeat_interleave(input=weights, repeats=H, dim=2)
+
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         # Avoid loop, vectorize
         weights = weights.reshape(-1, K)
@@ -1682,15 +1692,17 @@ class NBMM(torch.nn.Module):
     def neglog_likelihood(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
 
         if mask is None:
             mask = torch.ones_like(y)
 
-        total_count, probs, weights = distr_args
+        total_count, probs = distr_args
         B, H, K = total_count.size()
+
+        weights = (1 / K) * torch.ones_like(probs, device=probs.device)
 
         y = y[:, :, None]
         mask = mask[:, :, None]
@@ -1722,7 +1734,7 @@ class NBMM(torch.nn.Module):
     def __call__(
         self,
         y: torch.Tensor,
-        distr_args: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        distr_args: Tuple[torch.Tensor, torch.Tensor],
         mask: Union[torch.Tensor, None] = None,
     ):
 
