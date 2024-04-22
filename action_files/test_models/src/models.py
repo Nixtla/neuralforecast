@@ -40,7 +40,7 @@ from neuralforecast.auto import (
 from neuralforecast.losses.pytorch import SMAPE, MAE
 from ray import tune
 
-from data import get_data
+from src.data import get_data
 
 os.environ['NIXTLA_ID_AS_COL'] = '1'
 
