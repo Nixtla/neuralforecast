@@ -26,8 +26,6 @@ from neuralforecast.models.vanillatransformer import VanillaTransformer
 # from neuralforecast.models.autoformer import Autoformer
 # from neuralforecast.models.patchtst import PatchTST
 from neuralforecast.models.dlinear import DLinear
-from neuralforecast.models.tsmixer import TSMixer
-from neuralforecast.models.itransformer import iTransformer
 from neuralforecast.models.bitcn import BiTCN   
 from neuralforecast.models.tide import TiDE
 
@@ -66,7 +64,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
                    "val_check_steps": 100,
                    "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),}
 
-    n_series = train['unique_id'].nunique()
     models = [
         AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
         RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
@@ -79,8 +76,6 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         DeepAR(h=horizon, input_size=2 * horizon, scaler_type='minmax1', max_steps=1000),
         BiTCN(h=horizon, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         TiDE(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
-        TSMixer(h=horizon, input_size=2 * horizon, n_series=n_series, loss=MAE(), max_steps=1000, val_check_steps=500),
-        iTransformer(h=horizon, input_size=2 * horizon, n_series=n_series, loss=MAE(), max_steps=1000, val_check_steps=500),
     ]
 
     # Models
