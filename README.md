@@ -15,7 +15,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-11-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like RNNs to the latest transformers: `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TSMixer`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimesNet`.
+**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like RNNs to the latest transformers: `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `TimesNet`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TSMixer`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimeLLM`.
 </div>
 
 ## Installation
@@ -61,7 +61,7 @@ Unfortunately, available implementations and published research are yet to reali
 
 ## Features 
 
-* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TSMixer`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimesNet`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `TimesNet`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TSMixer`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimeLLM`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 * Support for exogenous variables and static covariates.
 * Interpretability methods for trend, seasonality and exogenous components.
 * Probabilistic Forecasting with adapters for quantile losses and parametric distributions.
@@ -121,6 +121,7 @@ The [documentation page](https://nixtla.github.io/neuralforecast/) contains all 
 |[Autoformer](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[FEDFormer](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[PatchTST](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html)| Transformer | windows |✅|✅||✅|
+|[Time-LLM](https://nixtlaverse.nixtla.io/neuralforecast/models.timellm.html)| Transformer | windows |✅|✅|||
 |[iTransformer](https://nixtlaverse.nixtla.io/neuralforecast/models.itransformer.html)| Transformer | multivariate |✅|✅||✅|
 |[StemGNN](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html)| GNN | multivariate |✅|||✅|
 
