@@ -875,11 +875,8 @@ class NeuralForecast:
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
         # we may have allocated more space than needed
-        # each serie can produce at most serie.size // self.h windows CV samples
-        effective_windows = np.minimum(
-            n_windows, np.diff(self.dataset.indptr) // self.h
-        )
-        effective_sizes = effective_windows * self.h
+        # each serie can produce at most (serie.size - 1) // self.h CV windows
+        effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
         needs_trim = effective_sizes.sum() != fcsts.shape[0]
         if self.scalers_ or needs_trim:
             indptr = np.arange(
