@@ -72,12 +72,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Decoder (in_features, out_features, hidden_size, hidden_layers)
 > ```
 
-Multi-Layer Perceptron Decoder
+\*Multi-Layer Perceptron Decoder
 
 **Parameters:**<br/> `in_features`: int, dimension of input.<br/>
 `out_features`: int, dimension of output.<br/> `hidden_size`: int,
 dimension of hidden layers.<br/> `num_layers`: int, number of hidden
-layers.<br/>
+layers.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -105,7 +105,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >          optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-DeepAR
+\*DeepAR
 
 **Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
 autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
@@ -161,7 +161,7 @@ autoregressive recurrent networks”. International Journal of
 Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)<br/> -
 [Alexander Alexandrov et. al (2020). “GluonTS: Probabilistic and Neural
 Time Series Modeling in Python”. Journal of Machine Learning
-Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>
+Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -172,7 +172,7 @@ Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>
 >              distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -195,7 +195,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -206,7 +206,7 @@ size for temporal cross-validation.<br/>
 >                  **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -220,7 +220,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 

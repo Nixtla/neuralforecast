@@ -54,7 +54,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-TSMixerx
+\*TSMixerx
 
 Time-Series Mixer exogenous
 ([`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx))
@@ -108,7 +108,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 
 **References:**<br/> - [Chen, Si-An, Chun-Liang Li, Nate Yoder, Sercan O.
 Arik, and Tomas Pfister (2023). “TSMixer: An All-MLP Architecture for
-Time Series Forecasting.”](http://arxiv.org/abs/2303.06053)
+Time Series Forecasting.”](http://arxiv.org/abs/2303.06053)\*
 
 ------------------------------------------------------------------------
 
@@ -119,7 +119,7 @@ Time Series Forecasting.”](http://arxiv.org/abs/2303.06053)
 >                distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -140,7 +140,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -151,7 +151,7 @@ see
 >                    **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -163,7 +163,7 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## 3. Usage Examples
 

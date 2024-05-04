@@ -31,12 +31,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  BasePointLoss (horizon_weight, outputsize_multiplier, output_names)
 > ```
 
-Base class for point loss functions.
+\*Base class for point loss functions.
 
 **Parameters:**<br/> `horizon_weight`: Tensor of size h, weight for each
 timestamp of the forecasting window. <br/> `outputsize_multiplier`:
 Multiplier for the output size. <br/> `output_names`: Names of the
-outputs. <br/>
+outputs. <br/>\*
 
 # 1. Scale-dependent Errors
 
@@ -56,7 +56,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MAE.__init__ (horizon_weight=None)
 > ```
 
-Mean Absolute Error
+\*Mean Absolute Error
 
 Calculates Mean Absolute Error between `y` and `y_hat`. MAE measures the
 relative prediction accuracy of a forecasting method by calculating the
@@ -66,7 +66,7 @@ averages these devations over the length of the series.
 $$ \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}| $$
 
 **Parameters:**<br/> `horizon_weight`: Tensor of size h, weight for each
-timestamp of the forecasting window. <br/>
+timestamp of the forecasting window. <br/>\*
 
 ------------------------------------------------------------------------
 
@@ -81,13 +81,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies datapoints to consider
 in loss.<br/>
 
 **Returns:**<br/>
 [`mae`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mae):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/mae_loss.png)
 
@@ -105,7 +105,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MSE.__init__ (horizon_weight=None)
 > ```
 
-Mean Squared Error
+\*Mean Squared Error
 
 Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the
 relative prediction accuracy of a forecasting method by calculating the
@@ -115,7 +115,7 @@ and averages these devations over the length of the series.
 $$ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} $$
 
 **Parameters:**<br/> `horizon_weight`: Tensor of size h, weight for each
-timestamp of the forecasting window. <br/>
+timestamp of the forecasting window. <br/>\*
 
 ------------------------------------------------------------------------
 
@@ -130,13 +130,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies datapoints to consider
 in loss.<br/>
 
 **Returns:**<br/>
 [`mse`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mse):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/mse_loss.png)
 
@@ -154,7 +154,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  RMSE.__init__ (horizon_weight=None)
 > ```
 
-Root Mean Squared Error
+\*Root Mean Squared Error
 
 Calculates Root Mean Squared Error between `y` and `y_hat`. RMSE
 measures the relative prediction accuracy of a forecasting method by
@@ -167,7 +167,7 @@ share a common scale. RMSE has a direct connection to the L2 norm.
 $$ \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}} $$
 
 **Parameters:**<br/> `horizon_weight`: Tensor of size h, weight for each
-timestamp of the forecasting window. <br/>
+timestamp of the forecasting window. <br/>\*
 
 ------------------------------------------------------------------------
 
@@ -182,13 +182,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies datapoints to consider
 in loss.<br/>
 
 **Returns:**<br/>
 [`rmse`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#rmse):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/rmse_loss.png)
 
@@ -210,7 +210,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MAPE.__init__ (horizon_weight=None)
 > ```
 
-Mean Absolute Percentage Error
+\*Mean Absolute Percentage Error
 
 Calculates Mean Absolute Percentage Error between `y` and `y_hat`. MAPE
 measures the relative prediction accuracy of a forecasting method by
@@ -226,7 +226,7 @@ timestamp of the forecasting window. <br/>
 
 **References:**<br/> [Makridakis S., “Accuracy measures: theoretical and
 practical
-concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)\*
 
 ------------------------------------------------------------------------
 
@@ -241,13 +241,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
 **Returns:**<br/>
 [`mape`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mape):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/mape_loss.png)
 
@@ -265,7 +265,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  SMAPE.__init__ (horizon_weight=None)
 > ```
 
-Symmetric Mean Absolute Percentage Error
+\*Symmetric Mean Absolute Percentage Error
 
 Calculates Symmetric Mean Absolute Percentage Error between `y` and
 `y_hat`. SMAPE measures the relative prediction accuracy of a
@@ -283,7 +283,7 @@ timestamp of the forecasting window. <br/>
 
 **References:**<br/> [Makridakis S., “Accuracy measures: theoretical and
 practical
-concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)\*
 
 ------------------------------------------------------------------------
 
@@ -298,13 +298,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                  mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
 **Returns:**<br/>
 [`smape`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#smape):
-tensor (single value).
+tensor (single value).\*
 
 # 3. Scale-independent Errors
 
@@ -324,7 +324,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MASE.__init__ (seasonality:int, horizon_weight=None)
 > ```
 
-Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error
+\*Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error
 between `y` and `y_hat`. MASE measures the relative prediction accuracy
 of a forecasting method by comparinng the mean absolute errors of the
 prediction and the observed value against the mean absolute errors of
@@ -343,7 +343,7 @@ measures of forecast
 accuracy”.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)<br/>
 [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, “The
 M4 Competition: 100,000 time series and 61 forecasting
-methods”.](https://www.sciencedirect.com/science/article/pii/s0169207019301128)
+methods”.](https://www.sciencedirect.com/science/article/pii/s0169207019301128)\*
 
 ------------------------------------------------------------------------
 
@@ -358,7 +358,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 y_insample:torch.Tensor, mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor (batch_size, output_size), Actual
+\***Parameters:**<br/> `y`: tensor (batch_size, output_size), Actual
 values.<br/> `y_hat`: tensor (batch_size, output_size)), Predicted
 values.<br/> `y_insample`: tensor (batch_size, input_size), Actual
 insample Seasonal Naive predictions.<br/> `mask`: tensor, Specifies date
@@ -366,7 +366,7 @@ stamps per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`mase`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mase):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/mase_loss.png)
 
@@ -384,7 +384,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  relMSE.__init__ (y_train, horizon_weight=None)
 > ```
 
-Relative Mean Squared Error Computes Relative Mean Squared Error
+\*Relative Mean Squared Error Computes Relative Mean Squared Error
 (relMSE), as proposed by Hyndman & Koehler (2006) as an alternative to
 percentage errors, to avoid measure unstability.
 $$
@@ -403,7 +403,7 @@ Forecasting, Volume 22, Issue
 [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao,
 Lee Dicker. “Probabilistic Hierarchical Forecasting with Deep Poisson
 Mixtures. Submitted to the International Journal Forecasting, Working
-paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 
 ------------------------------------------------------------------------
 
@@ -418,7 +418,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor (batch_size, output_size), Actual
+\***Parameters:**<br/> `y`: tensor (batch_size, output_size), Actual
 values.<br/> `y_hat`: tensor (batch_size, output_size)), Predicted
 values.<br/> `y_insample`: tensor (batch_size, input_size), Actual
 insample Seasonal Naive predictions.<br/> `mask`: tensor, Specifies date
@@ -426,7 +426,7 @@ stamps per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`relMSE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#relmse):
-tensor (single value).
+tensor (single value).\*
 
 # 4. Probabilistic Errors
 
@@ -456,7 +456,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  QuantileLoss.__init__ (q, horizon_weight=None)
 > ```
 
-Quantile Loss
+\*Quantile Loss
 
 Computes the quantile loss between `y` and `y_hat`. QL measures the
 deviation of a quantile forecast. By weighting the absolute deviation in
@@ -472,7 +472,7 @@ the conditional quantile level.<br/> `horizon_weight`: Tensor of size h,
 weight for each timestamp of the forecasting window. <br/>
 
 **References:**<br/> [Roger Koenker and Gilbert Bassett, Jr., “Regression
-Quantiles”.](https://www.jstor.org/stable/1913643)
+Quantiles”.](https://www.jstor.org/stable/1913643)\*
 
 ------------------------------------------------------------------------
 
@@ -487,13 +487,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                         mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies datapoints to consider
 in loss.<br/>
 
 **Returns:**<br/>
 [`quantile_loss`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#quantile_loss):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/q_loss.png)
 
@@ -511,7 +511,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MQLoss.__init__ (level=[80, 90], quantiles=None, horizon_weight=None)
 > ```
 
-Multi-Quantile loss
+\*Multi-Quantile loss
 
 Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`. MQL
 calculates the average multi-quantile Loss for a given set of quantiles,
@@ -538,7 +538,7 @@ forecasting window. <br/>
 **References:**<br/> [Roger Koenker and Gilbert Bassett, Jr., “Regression
 Quantiles”.](https://www.jstor.org/stable/1913643)<br/> [James E.
 Matheson and Robert L. Winkler, “Scoring Rules for Continuous
-Probability Distributions”.](https://www.jstor.org/stable/2629907)
+Probability Distributions”.](https://www.jstor.org/stable/2629907)\*
 
 ------------------------------------------------------------------------
 
@@ -553,13 +553,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
 **Returns:**<br/>
 [`mqloss`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mqloss):
-tensor (single value).
+tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/mq_loss.png)
 
@@ -579,7 +579,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                             **distribution_kwargs)
 > ```
 
-DistributionLoss
+\*DistributionLoss
 
 This PyTorch module wraps the `torch.distribution` classes allowing it
 to interact with NeuralForecast models modularly. It shares the negative
@@ -607,7 +607,7 @@ StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)<br/> -
 [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski
 (2020). “DeepAR: Probabilistic forecasting with autoregressive recurrent
 networks”. International Journal of
-Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)<br/>
+Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -622,7 +622,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                           num_samples:Optional[int]=None)
 > ```
 
-Construct the empirical quantiles from the estimated Distribution,
+\*Construct the empirical quantiles from the estimated Distribution,
 sampling from it `num_samples` independently.
 
 **Parameters**<br/> `distr_args`: Constructor arguments for the
@@ -634,7 +634,7 @@ batch_shape+event_shape of the resulting distribution.<br/>
 quantiles.<br/>
 
 **Returns**<br/> `samples`: tensor, shape \[B,H,`num_samples`\].<br/>
-`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>
+`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -649,8 +649,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                             mask:Optional[torch.Tensor]=None)
 > ```
 
-Computes the negative log-likelihood objective function. To estimate the
-following predictive distribution:
+\*Computes the negative log-likelihood objective function. To estimate
+the following predictive distribution:
 
 $$\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))$$
 
@@ -666,7 +666,7 @@ shape as the batch_shape+event_shape of the resulting distribution.<br/>
 `mask`: tensor, Specifies date stamps per serie to consider in loss.<br/>
 
 **Returns**<br/> `loss`: scalar, weighted loss function against which
-backpropagation will be performed.<br/>
+backpropagation will be performed.<br/>\*
 
 ## Poisson Mixture Mesh (PMM)
 
@@ -684,7 +684,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                batch_correlation=False, horizon_correlation=False)
 > ```
 
-Poisson Mixture Mesh
+\*Poisson Mixture Mesh
 
 This Poisson Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
@@ -710,7 +710,7 @@ correlations.<br/>
 Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting
 with Deep Poisson Mixtures. Submitted to the International Journal
 Forecasting, Working paper available at
-arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 
 ------------------------------------------------------------------------
 
@@ -724,7 +724,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  PMM.sample (distr_args, num_samples=None)
 > ```
 
-Construct the empirical quantiles from the estimated Distribution,
+\*Construct the empirical quantiles from the estimated Distribution,
 sampling from it `num_samples` independently.
 
 **Parameters**<br/> `distr_args`: Constructor arguments for the
@@ -736,7 +736,7 @@ batch_shape+event_shape of the resulting distribution.<br/>
 quantiles.<br/>
 
 **Returns**<br/> `samples`: tensor, shape \[B,H,`num_samples`\].<br/>
-`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>
+`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -751,7 +751,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                mask:Optional[torch.Tensor]=None)
 > ```
 
-Call self as a function.
+*Call self as a function.*
 
 ![](/neuralforecast/imgs_losses/pmm.png)
 
@@ -771,7 +771,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                batch_correlation=False, horizon_correlation=False)
 > ```
 
-Gaussian Mixture Mesh
+\*Gaussian Mixture Mesh
 
 This Gaussian Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
@@ -798,7 +798,7 @@ correlations.<br/><br/>
 Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting
 with Deep Poisson Mixtures. Submitted to the International Journal
 Forecasting, Working paper available at
-arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 
 ------------------------------------------------------------------------
 
@@ -812,7 +812,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  GMM.sample (distr_args, num_samples=None)
 > ```
 
-Construct the empirical quantiles from the estimated Distribution,
+\*Construct the empirical quantiles from the estimated Distribution,
 sampling from it `num_samples` independently.
 
 **Parameters**<br/> `distr_args`: Constructor arguments for the
@@ -824,7 +824,7 @@ batch_shape+event_shape of the resulting distribution.<br/>
 quantiles.<br/>
 
 **Returns**<br/> `samples`: tensor, shape \[B,H,`num_samples`\].<br/>
-`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>
+`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -840,7 +840,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                mask:Optional[torch.Tensor]=None)
 > ```
 
-Call self as a function.
+*Call self as a function.*
 
 ![](/neuralforecast/imgs_losses/gmm.png)
 
@@ -859,7 +859,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 num_samples=1000, return_params=False)
 > ```
 
-Negative Binomial Mixture Mesh
+\*Negative Binomial Mixture Mesh
 
 This N. Binomial Mixture statistical model assumes independence across
 groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships
@@ -883,7 +883,7 @@ or not return the Distribution parameters.<br/><br/>
 Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting
 with Deep Poisson Mixtures. Submitted to the International Journal
 Forecasting, Working paper available at
-arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 
 ------------------------------------------------------------------------
 
@@ -897,7 +897,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  NBMM.sample (distr_args, num_samples=None)
 > ```
 
-Construct the empirical quantiles from the estimated Distribution,
+\*Construct the empirical quantiles from the estimated Distribution,
 sampling from it `num_samples` independently.
 
 **Parameters**<br/> `distr_args`: Constructor arguments for the
@@ -909,7 +909,7 @@ batch_shape+event_shape of the resulting distribution.<br/>
 quantiles.<br/>
 
 **Returns**<br/> `samples`: tensor, shape \[B,H,`num_samples`\].<br/>
-`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>
+`quantiles`: tensor, empirical quantiles defined by `levels`.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -925,7 +925,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 mask:Optional[torch.Tensor]=None)
 > ```
 
-Call self as a function.
+*Call self as a function.*
 
 # 5. Robustified Errors
 
@@ -948,7 +948,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  HuberLoss.__init__ (delta:float=1.0, horizon_weight=None)
 > ```
 
-Huber Loss
+\*Huber Loss
 
 The Huber loss, employed in robust regression, is a loss function that
 exhibits reduced sensitivity to outliers in data when compared to the
@@ -976,7 +976,7 @@ of size h, weight for each timestamp of the forecasting window. <br/>
 
 **References:**<br/> [Huber Peter, J (1964). “Robust Estimation of a
 Location Parameter”. Annals of
-Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)
+Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)\*
 
 ------------------------------------------------------------------------
 
@@ -991,11 +991,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
-**Returns:**<br/> `huber_loss`: tensor (single value).
+**Returns:**<br/> `huber_loss`: tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/huber_loss.png)
 
@@ -1013,7 +1013,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TukeyLoss.__init__ (c:float=4.685, normalize:bool=True)
 > ```
 
-Tukey Loss
+\*Tukey Loss
 
 The Tukey loss function, also known as Tukey’s biweight function, is a
 robust statistical loss function used in robust statistics. Tukey’s loss
@@ -1044,7 +1044,7 @@ computation.<br/>
 
 **References:**<br/> [Beaton, A. E., and Tukey, J. W. (1974). “The
 Fitting of Power Series, Meaning Polynomials, Illustrated on
-Band-Spectroscopic Data.”](https://www.jstor.org/stable/1267936)
+Band-Spectroscopic Data.”](https://www.jstor.org/stable/1267936)\*
 
 ------------------------------------------------------------------------
 
@@ -1059,11 +1059,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
-**Returns:**<br/> `tukey_loss`: tensor (single value).
+**Returns:**<br/> `tukey_loss`: tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/tukey_loss.png)
 
@@ -1081,7 +1081,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  HuberQLoss.__init__ (q, delta:float=1.0, horizon_weight=None)
 > ```
 
-Huberized Quantile Loss
+\*Huberized Quantile Loss
 
 The Huberized quantile loss is a modified version of the quantile loss
 function that combines the advantages of the quantile loss and the Huber
@@ -1111,7 +1111,7 @@ forecasting window. <br/>
 Location Parameter”. Annals of
 Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)<br/>
 [Roger Koenker and Gilbert Bassett, Jr., “Regression
-Quantiles”.](https://www.jstor.org/stable/1913643)
+Quantiles”.](https://www.jstor.org/stable/1913643)\*
 
 ------------------------------------------------------------------------
 
@@ -1126,11 +1126,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                       mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies datapoints to consider
 in loss.<br/>
 
-**Returns:**<br/> `huber_qloss`: tensor (single value).
+**Returns:**<br/> `huber_qloss`: tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/huber_qloss.png)
 
@@ -1149,7 +1149,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        horizon_weight=None)
 > ```
 
-Huberized Multi-Quantile loss
+\*Huberized Multi-Quantile loss
 
 The Huberized Multi-Quantile loss (HuberMQL) is a modified version of
 the multi-quantile loss function that combines the advantages of the
@@ -1177,7 +1177,7 @@ forecasting window. <br/>
 Location Parameter”. Annals of
 Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)<br/>
 [Roger Koenker and Gilbert Bassett, Jr., “Regression
-Quantiles”.](https://www.jstor.org/stable/1913643)
+Quantiles”.](https://www.jstor.org/stable/1913643)\*
 
 ------------------------------------------------------------------------
 
@@ -1192,11 +1192,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
-**Returns:**<br/> `hmqloss`: tensor (single value).
+**Returns:**<br/> `hmqloss`: tensor (single value).\*
 
 ![](/neuralforecast/imgs_losses/hmq_loss.png)
 
@@ -1216,13 +1216,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Accuracy.__init__ ()
 > ```
 
-Accuracy
+\*Accuracy
 
 Computes the accuracy between categorical `y` and `y_hat`. This
 evaluation metric is only meant for evalution, as it is not
 differentiable.
 
-$$ \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\} $$
+$$ \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\} $$\*
 
 ------------------------------------------------------------------------
 
@@ -1237,11 +1237,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                     mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per serie to
 consider in loss.<br/>
 
-**Returns:**<br/> `accuracy`: tensor (single value).
+**Returns:**<br/> `accuracy`: tensor (single value).\*
 
 ## Scaled Continuous Ranked Probability Score (sCRPS)
 
@@ -1257,7 +1257,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  sCRPS.__init__ (level=[80, 90], quantiles=None)
 > ```
 
-Scaled Continues Ranked Probability Score
+\*Scaled Continues Ranked Probability Score
 
 Calculates a scaled variation of the CRPS, as proposed by Rangapuram
 (2021), to measure the accuracy of predicted quantiles `y_hat` compared
@@ -1291,7 +1291,7 @@ Forecasting.](https://www.sciencedirect.com/science/article/pii/s016920702100172
 Mercado, Jan Gasthaus, Tim Januschowski. (2021). “End-to-End Learning of
 Coherent Probabilistic Forecasts for Hierarchical Time Series”.
 Proceedings of the 38th International Conference on Machine Learning
-(ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+(ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)\*
 
 ------------------------------------------------------------------------
 
@@ -1306,9 +1306,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                  mask:Optional[torch.Tensor]=None)
 > ```
 
-**Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
+\***Parameters:**<br/> `y`: tensor, Actual values.<br/> `y_hat`: tensor,
 Predicted values.<br/> `mask`: tensor, Specifies date stamps per series
 to consider in loss.<br/>
 
-**Returns:**<br/> `scrps`: tensor (single value).
+**Returns:**<br/> `scrps`: tensor (single value).\*
 

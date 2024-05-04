@@ -50,7 +50,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-MLPMultivariate
+\*MLPMultivariate
 
 Simple Multi Layer Perceptron architecture (MLP) for multivariate
 forecasting. This deep neural network has constant units through its
@@ -93,7 +93,7 @@ the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
 of parameters used by the user specified `optimizer`.<br/>
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -104,7 +104,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 >                       distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -125,7 +125,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -136,7 +136,7 @@ see
 >                           random_seed=None, **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -148,7 +148,7 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 

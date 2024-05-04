@@ -21,13 +21,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       dropout)
 > ```
 
-Multi-Layer Perceptron Class
+\*Multi-Layer Perceptron Class
 
 **Parameters:**<br/> `in_features`: int, dimension of input.<br/>
 `out_features`: int, dimension of output.<br/> `activation`: str,
 activation function to use.<br/> `hidden_size`: int, dimension of hidden
 layers.<br/> `num_layers`: int, number of hidden layers.<br/> `dropout`:
-float, dropout rate.<br/>
+float, dropout rate.<br/>\*
 
 ## 2. Temporal Convolutions
 
@@ -55,13 +55,14 @@ https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)<br/>
 >  Chomp1d (horizon)
 > ```
 
-Chomp1d
+\*Chomp1d
 
 Receives `x` input of dim \[N,C,T\], and trims it so that only ‘time
 available’ information is used. Used by one dimensional causal
 convolutions `CausalConv1d`.
 
-**Parameters:**<br/> `horizon`: int, length of outsample values to skip.
+**Parameters:**<br/> `horizon`: int, length of outsample values to
+skip.\*
 
 ------------------------------------------------------------------------
 
@@ -72,7 +73,7 @@ convolutions `CausalConv1d`.
 >                activation, stride:int=1)
 > ```
 
-Causal Convolution 1d
+\*Causal Convolution 1d
 
 Receives `x` input of dim \[N,C_in,T\], and computes a causal
 convolution in the time dimension. Skipping the H steps of the forecast
@@ -95,7 +96,7 @@ padding used to the left.<br/> `kernel_size`: int, convolution’s kernel
 size.<br/> `dilation`: int, dilation skip connections.<br/>
 
 **Returns:**<br/> `x`: tensor, torch tensor of dim \[N,C_out,T\]
-activation(conv1d(inputs, kernel) + bias). <br/>
+activation(conv1d(inputs, kernel) + bias). <br/>\*
 
 ------------------------------------------------------------------------
 
@@ -106,7 +107,7 @@ activation(conv1d(inputs, kernel) + bias). <br/>
 >                              dilations, activation:str='ReLU')
 > ```
 
-Temporal Convolution Encoder
+\*Temporal Convolution Encoder
 
 Receives `x` input of dim \[N,T,C_in\], permutes it to \[N,C_in,T\]
 applies a deep stack of exponentially dilated causal convolutions. The
@@ -121,7 +122,7 @@ points.<br/> `activation`: str, identifying activations from PyTorch
 activations. select from ‘ReLU’,‘Softplus’,‘Tanh’,‘SELU’,
 ‘LeakyReLU’,‘PReLU’,‘Sigmoid’.<br/>
 
-**Returns:**<br/> `x`: tensor, torch tensor of dim \[N,T,C_out\].<br/>
+**Returns:**<br/> `x`: tensor, torch tensor of dim \[N,T,C_out\].<br/>\*
 
 ## 3. Transformers
 
@@ -139,7 +140,7 @@ Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)<br/>
 >  TransEncoder (attn_layers, conv_layers=None, norm_layer=None)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -168,7 +169,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -179,7 +180,7 @@ evaluation mode. :vartype training: bool
 >                     dropout=0.1, activation='relu')
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -208,7 +209,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -218,7 +219,7 @@ evaluation mode. :vartype training: bool
 >  TransDecoder (layers, norm_layer=None, projection=None)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -247,7 +248,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -258,7 +259,7 @@ evaluation mode. :vartype training: bool
 >                     conv_hidden_size=None, dropout=0.1, activation='relu')
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -287,7 +288,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -298,7 +299,7 @@ evaluation mode. :vartype training: bool
 >                  d_values=None)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -327,7 +328,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -338,7 +339,7 @@ evaluation mode. :vartype training: bool
 >                 dropout=0.1)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -367,7 +368,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -377,7 +378,7 @@ evaluation mode. :vartype training: bool
 >  TimeFeatureEmbedding (input_size, hidden_size)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -406,7 +407,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -420,7 +421,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TokenEmbedding (c_in, hidden_size)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -449,7 +450,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -459,7 +460,7 @@ evaluation mode. :vartype training: bool
 >  PositionalEmbedding (hidden_size, max_len=5000)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -488,5 +489,5 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 

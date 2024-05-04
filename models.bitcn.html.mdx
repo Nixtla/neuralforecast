@@ -54,7 +54,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           groups, dropout)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -83,7 +83,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -98,7 +98,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                dilation=1, mode='backward', groups=1)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -127,7 +127,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ## 2. BiTCN
 
@@ -153,7 +153,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >         optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-BiTCN
+\*BiTCN
 
 Bidirectional Temporal Convolutional Network (BiTCN) is a forecasting
 architecture based on two temporal convolutional networks (TCNs). The
@@ -203,7 +203,7 @@ the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
 of parameters used by the user specified `optimizer`.<br/>
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -214,7 +214,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 >             distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -237,7 +237,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -248,7 +248,7 @@ size for temporal cross-validation.<br/>
 >                 **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -262,7 +262,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 
@@ -281,7 +281,7 @@ Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
 Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
 
 dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
-model = BiTCN(h=12, input_size=24, max_steps=500, scaler_type='standard')
+model = BiTCN(h=12, input_size=24, max_steps=5, scaler_type='standard')
 model.fit(dataset=dataset)
 y_hat = model.predict(dataset=dataset)
 Y_test_df['BiTCN'] = y_hat
@@ -315,7 +315,7 @@ fcst = NeuralForecast(
             BiTCN(h=12,
                 input_size=24,
                 loss=GMM(n_components=7, return_params=True, level=[80,90]),
-                max_steps=500,
+                max_steps=5,
                 scaler_type='standard',
                 futr_exog_list=['y_[lag12]'],
                 hist_exog_list=None,

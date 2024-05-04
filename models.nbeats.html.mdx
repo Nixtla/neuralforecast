@@ -60,7 +60,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >          optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-NBEATS
+\*NBEATS
 
 The Neural Basis Expansion Analysis for Time Series (NBEATS), is a
 simple and yet effective architecture, it is built with a deep stack of
@@ -126,7 +126,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 **References:**<br/> -[Boris N. Oreshkin, Dmitri Carpov, Nicolas
 Chapados, Yoshua Bengio (2019). “N-BEATS: Neural basis expansion
 analysis for interpretable time series
-forecasting”.](https://arxiv.org/abs/1905.10437)
+forecasting”.](https://arxiv.org/abs/1905.10437)\*
 
 ------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ forecasting”.](https://arxiv.org/abs/1905.10437)
 >              distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -160,7 +160,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -171,7 +171,7 @@ size for temporal cross-validation.<br/>
 >                  **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -185,7 +185,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 

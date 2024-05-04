@@ -35,7 +35,7 @@ methods enable all the `neuralforecast.models` compatibility with the
 >                 optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-Base Recurrent
+\*Base Recurrent
 
 Base class for all recurrent-based models. The forecasts are produced
 sequentially between windows.
@@ -44,7 +44,7 @@ This class implements the basic functionality for all windows-based
 models, including: - PyTorch Lightning’s methods training_step,
 validation_step, predict_step. <br/> - fit and predict methods used by
 NeuralForecast.core class. <br/> - sampling and wrangling methods to
-sequential windows. <br/>
+sequential windows. <br/>\*
 
 ------------------------------------------------------------------------
 
@@ -55,7 +55,7 @@ sequential windows. <br/>
 >                     distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `batch_size`, …) and the
@@ -78,7 +78,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `test_size`: int, test size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
-generators, overwrites model.\_\_init\_\_’s.<br/>
+generators, overwrites model.\_\_init\_\_’s.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ generators, overwrites model.\_\_init\_\_’s.<br/>
 >                         **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -102,5 +102,5 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 

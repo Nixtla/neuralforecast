@@ -35,7 +35,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Mean Absolute Error
+\*Mean Absolute Error
 
 Calculates Mean Absolute Error between `y` and `y_hat`. MAE measures the
 relative prediction accuracy of a forecasting method by calculating the
@@ -50,7 +50,7 @@ per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`mae`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mae):
-numpy array, (single value).
+numpy array, (single value).\*
 
 ![](/neuralforecast/imgs_losses/mae_loss.png)
 
@@ -69,7 +69,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Mean Squared Error
+\*Mean Squared Error
 
 Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the
 relative prediction accuracy of a forecasting method by calculating the
@@ -84,7 +84,7 @@ per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`mse`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mse):
-numpy array, (single value).
+numpy array, (single value).\*
 
 ![](/neuralforecast/imgs_losses/mse_loss.png)
 
@@ -103,7 +103,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Root Mean Squared Error
+\*Root Mean Squared Error
 
 Calculates Root Mean Squared Error between `y` and `y_hat`. RMSE
 measures the relative prediction accuracy of a forecasting method by
@@ -121,7 +121,7 @@ per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`rmse`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#rmse):
-numpy array, (single value).
+numpy array, (single value).\*
 
 ![](/neuralforecast/imgs_losses/rmse_loss.png)
 
@@ -144,7 +144,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Mean Absolute Percentage Error
+\*Mean Absolute Percentage Error
 
 Calculates Mean Absolute Percentage Error between `y` and `y_hat`. MAPE
 measures the relative prediction accuracy of a forecasting method by
@@ -161,7 +161,7 @@ per serie to consider in loss.<br/>
 
 **Returns:**<br/>
 [`mape`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#mape):
-numpy array, (single value).
+numpy array, (single value).\*
 
 ![](/neuralforecast/imgs_losses/mape_loss.png)
 
@@ -180,7 +180,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >         weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Symmetric Mean Absolute Percentage Error
+\*Symmetric Mean Absolute Percentage Error
 
 Calculates Symmetric Mean Absolute Percentage Error between `y` and
 `y_hat`. SMAPE measures the relative prediction accuracy of a
@@ -203,7 +203,7 @@ numpy array, (single value).
 
 **References:**<br/> [Makridakis S., “Accuracy measures: theoretical and
 practical
-concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+concerns”.](https://www.sciencedirect.com/science/article/pii/0169207093900793)\*
 
 # 3. Scale-independent Errors
 
@@ -225,7 +225,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        axis:Optional[int]=None)
 > ```
 
-Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error
+\*Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error
 between `y` and `y_hat`. MASE measures the relative prediction accuracy
 of a forecasting method by comparinng the mean absolute errors of the
 prediction and the observed value against the mean absolute errors of
@@ -252,7 +252,7 @@ measures of forecast
 accuracy”.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)<br/>
 [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, “The
 M4 Competition: 100,000 time series and 61 forecasting
-methods”.](https://www.sciencedirect.com/science/article/pii/s0169207019301128)
+methods”.](https://www.sciencedirect.com/science/article/pii/s0169207019301128)\*
 
 ![](/neuralforecast/imgs_losses/mase_loss.png)
 
@@ -271,7 +271,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-RMAE
+\*RMAE
 
 Calculates Relative Mean Absolute Error (RMAE) between two sets of
 forecasts (from two different forecasting methods). A number smaller
@@ -293,7 +293,7 @@ numpy array or double.
 
 **References:**<br/> [Rob J. Hyndman, & Koehler, A. B. “Another look at
 measures of forecast
-accuracy”.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)
+accuracy”.](https://www.sciencedirect.com/science/article/pii/s0169207006000239)\*
 
 ![](/neuralforecast/imgs_losses/rmae_loss.png)
 
@@ -318,7 +318,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 axis:Optional[int]=None)
 > ```
 
-Quantile Loss
+\*Quantile Loss
 
 Computes the quantile loss between `y` and `y_hat`. QL measures the
 deviation of a quantile forecast. By weighting the absolute deviation in
@@ -339,7 +339,7 @@ Specifies date stamps per serie to consider in loss.<br/>
 numpy array, (single value).
 
 **References:**<br/> [Roger Koenker and Gilbert Bassett, Jr., “Regression
-Quantiles”.](https://www.jstor.org/stable/1913643)
+Quantiles”.](https://www.jstor.org/stable/1913643)\*
 
 ![](/neuralforecast/imgs_losses/q_loss.png)
 
@@ -358,7 +358,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >          weights:Optional[numpy.ndarray]=None, axis:Optional[int]=None)
 > ```
 
-Multi-Quantile loss
+\*Multi-Quantile loss
 
 Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`. MQL
 calculates the average multi-quantile Loss for a given set of quantiles,
@@ -388,7 +388,7 @@ numpy array, (single value).
 **References:**<br/> [Roger Koenker and Gilbert Bassett, Jr., “Regression
 Quantiles”.](https://www.jstor.org/stable/1913643)<br/> [James E.
 Matheson and Robert L. Winkler, “Scoring Rules for Continuous
-Probability Distributions”.](https://www.jstor.org/stable/2629907)
+Probability Distributions”.](https://www.jstor.org/stable/2629907)\*
 
 ![](/neuralforecast/imgs_losses/mq_loss.png)
 

@@ -66,7 +66,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  get_bottomup_P (S:numpy.ndarray)
 > ```
 
-BottomUp Reconciliation Matrix.
+\*BottomUp Reconciliation Matrix.
 
 Creates BottomUp hierarchical “projection” matrix is defined as:
 $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
@@ -78,7 +78,7 @@ $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathr
 
 **References:**<br/> - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968).
 “Data aggregation and information loss”. The American Economic Review,
-58 , 773(787)](http://www.jstor.org/stable/1815532).
+58 , 773(787)](http://www.jstor.org/stable/1815532).\*
 
 ------------------------------------------------------------------------
 
@@ -92,7 +92,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  get_mintrace_ols_P (S:numpy.ndarray)
 > ```
 
-MinTraceOLS Reconciliation Matrix.
+\*MinTraceOLS Reconciliation Matrix.
 
 Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya
 et al.
@@ -107,7 +107,7 @@ $$\mathbf{P}_{\text{MinTraceOLS}}=\left(\mathbf{S}^{\intercal}\mathbf{S}\right)^
 **References:**<br/> - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman,
 R.J. (2020). “Optimal non-negative forecast reconciliation”. Stat Comput
 30, 1167–1182,
-https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).\*
 
 ------------------------------------------------------------------------
 
@@ -121,7 +121,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  get_mintrace_wls_P (S:numpy.ndarray)
 > ```
 
-MinTraceOLS Reconciliation Matrix.
+\*MinTraceOLS Reconciliation Matrix.
 
 Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya
 et al. Depending on a weighted GLS estimator and an estimator of the
@@ -142,7 +142,7 @@ $$
 **References:**<br/> - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman,
 R.J. (2020). “Optimal non-negative forecast reconciliation”. Stat Comput
 30, 1167–1182,
-https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).\*
 
 ## HINT
 
@@ -159,7 +159,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        alias:Optional[str]=None)
 > ```
 
-HINT
+\*HINT
 
 The Hierarchical Mixture Networks (HINT) are a highly modular framework
 that combines SoTA neural forecast architectures with a task-specialized
@@ -186,7 +186,7 @@ HierarchicalForecast’s [aggregate
 method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br/>
 `reconciliation`: str, HINT’s reconciliation method from \[‘BottomUp’,
 ‘MinTraceOLS’, ‘MinTraceWLS’\].<br/> `alias`: str, optional, Custom name
-of the model.<br/>
+of the model.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -201,7 +201,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            distributed_config=None)
 > ```
 
-HINT.fit
+\*HINT.fit
 
 HINT trains on the entire hierarchical dataset, by minimizing a
 composite log likelihood objective. HINT framework integrates
@@ -219,7 +219,7 @@ int, random seed for the prediction.<br/>
 
 **Returns:**<br/> `self`: A fitted base
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
-model.<br/>
+model.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -234,7 +234,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                **data_module_kwargs)
 > ```
 
-HINT.predict
+\*HINT.predict
 
 After fitting a base model on the entire hierarchical dataset. HINT
 restores the hierarchical aggregation constraints using bootstrapped
@@ -250,7 +250,7 @@ additional parameters for the dataset module.<br/>
 
 **Returns:**<br/> `y_hat`: numpy predictions of the
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
-model.<br/>
+model.<br/>\*
 
 ## Usage Example
 

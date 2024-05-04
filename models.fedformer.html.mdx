@@ -46,7 +46,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                        d_values=None)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -75,7 +75,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  LayerNorm (channels)
 > ```
 
-Special designed layernorm for the seasonal part
+*Special designed layernorm for the seasonal part*
 
 ------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  SeriesDecomp (kernel_size)
 > ```
 
-Series decomposition block
+*Series decomposition block*
 
 ------------------------------------------------------------------------
 
@@ -117,7 +117,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MovingAvg (kernel_size, stride)
 > ```
 
-Moving average block to highlight the trend of time series
+*Moving average block to highlight the trend of time series*
 
 ------------------------------------------------------------------------
 
@@ -131,7 +131,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Decoder (layers, norm_layer=None, projection=None)
 > ```
 
-FEDformer decoder
+*FEDformer decoder*
 
 ------------------------------------------------------------------------
 
@@ -147,7 +147,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                activation='relu')
 > ```
 
-FEDformer decoder layer with the progressive decomposition architecture
+*FEDformer decoder layer with the progressive decomposition
+architecture*
 
 ------------------------------------------------------------------------
 
@@ -161,7 +162,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Encoder (attn_layers, conv_layers=None, norm_layer=None)
 > ```
 
-FEDformer encoder
+*FEDformer encoder*
 
 ------------------------------------------------------------------------
 
@@ -176,7 +177,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                MovingAvg=25, dropout=0.1, activation='relu')
 > ```
 
-FEDformer encoder layer with the progressive decomposition architecture
+*FEDformer encoder layer with the progressive decomposition
+architecture*
 
 ------------------------------------------------------------------------
 
@@ -192,7 +194,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                         activation='tanh', policy=0)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -221,7 +223,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -236,7 +238,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                mode_select_method='random')
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -265,7 +267,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -279,8 +281,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  get_frequency_modes (seq_len, modes=64, mode_select_method='random')
 > ```
 
-Get modes on frequency domain: ‘random’ for sampling randomly ‘else’ for
-sampling the lowest modes;
+*Get modes on frequency domain: ‘random’ for sampling randomly ‘else’
+for sampling the lowest modes;*
 
 ## 2. Model
 
@@ -312,7 +314,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-FEDformer
+\*FEDformer
 
 The FEDformer model tackles the challenge of finding reliable
 dependencies on intricate temporal patterns of long-horizon forecasting.
@@ -379,7 +381,7 @@ the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
 of parameters used by the user specified `optimizer`.<br/>
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>\*
 
 ```python
 import numpy as np

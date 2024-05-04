@@ -28,7 +28,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   seed:int=0)
 > ```
 
-Generate Synthetic Panel Series.
+\*Generate Synthetic Panel Series.
 
 Generates `n_series` of frequency `freq` of different lengths in the
 interval \[`min_length`, `max_length`\]. If `n_temporal_features > 0`,
@@ -49,7 +49,7 @@ the data, [panda’s available
 frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).<br/>
 
 **Returns:**<br/> `freq`: pandas.DataFrame, synthetic panel with columns
-\[`unique_id`, `ds`, `y`\] and exogenous.
+\[`unique_id`, `ds`, `y`\] and exogenous.\*
 
 ```python
 synthetic_panel = generate_series(n_series=2)
@@ -175,17 +175,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  augment_calendar_df (df, freq='H')
 > ```
 
-> -   Q - \[month\]
-> -   M - \[month\]
-> -   W - \[Day of month, week of year\]
-> -   D - \[Day of week, day of month, day of year\]
-> -   B - \[Day of week, day of month, day of year\]
-> -   H - \[Hour of day, day of week, day of month, day of year\]
-> -   T - \[Minute of hour\*, hour of day, day of week, day of month,
->     day of year\]
-> -   S - \[Second of minute, minute of hour, hour of day, day of week,
->     day of month, day of year\] \*minute returns a number from 0-3
->     corresponding to the 15 minute period it falls into.
+*\> * Q - \[month\] \> \* M - \[month\] \> \* W - \[Day of month, week
+of year\] \> \* D - \[Day of week, day of month, day of year\] \> \* B -
+\[Day of week, day of month, day of year\] \> \* H - \[Hour of day, day
+of week, day of month, day of year\] \> \* T - \[Minute of hour\*, hour
+of day, day of week, day of month, day of year\] \> \* S - \[Second of
+minute, minute of hour, hour of day, day of week, day of month, day of
+year\] *minute returns a number from 0-3 corresponding to the 15 minute
+period it falls into.*
 
 ------------------------------------------------------------------------
 
@@ -199,9 +196,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  time_features_from_frequency_str (freq_str:str)
 > ```
 
-Returns a list of time features that will be appropriate for the given
+*Returns a list of time features that will be appropriate for the given
 frequency string. Parameters ———- freq_str Frequency string of the form
-\[multiple\]\[granularity\] such as “12H”, “5min”, “1D” etc.
+\[multiple\]\[granularity\] such as “12H”, “5min”, “1D” etc.*
 
 ------------------------------------------------------------------------
 
@@ -215,7 +212,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  WeekOfYear ()
 > ```
 
-Week of year encoded as value between \[-0.5, 0.5\]
+*Week of year encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -229,7 +226,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MonthOfYear ()
 > ```
 
-Month of year encoded as value between \[-0.5, 0.5\]
+*Month of year encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -243,7 +240,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  DayOfYear ()
 > ```
 
-Day of year encoded as value between \[-0.5, 0.5\]
+*Day of year encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -257,7 +254,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  DayOfMonth ()
 > ```
 
-Day of month encoded as value between \[-0.5, 0.5\]
+*Day of month encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -271,7 +268,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  DayOfWeek ()
 > ```
 
-Hour of day encoded as value between \[-0.5, 0.5\]
+*Hour of day encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -285,7 +282,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  HourOfDay ()
 > ```
 
-Hour of day encoded as value between \[-0.5, 0.5\]
+*Hour of day encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -299,7 +296,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MinuteOfHour ()
 > ```
 
-Minute of hour encoded as value between \[-0.5, 0.5\]
+*Minute of hour encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -313,7 +310,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  SecondOfMinute ()
 > ```
 
-Minute of hour encoded as value between \[-0.5, 0.5\]
+*Minute of hour encoded as value between \[-0.5, 0.5\]*
 
 ------------------------------------------------------------------------
 
@@ -327,7 +324,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TimeFeature ()
 > ```
 
-Initialize self. See help(type(self)) for accurate signature.
+*Initialize self. See help(type(self)) for accurate signature.*
 
 ```python
 AirPassengerPanelCalendar, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')

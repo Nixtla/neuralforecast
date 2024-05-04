@@ -158,7 +158,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-TFT
+\*TFT
 
 The Temporal Fusion Transformer architecture (TFT) is an
 Sequence-to-Sequence model that combines static, historic and future
@@ -216,7 +216,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 **References:**<br/> - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas
 Pfister, “Temporal Fusion Transformers for interpretable multi-horizon
 time series
-forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)
+forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)\*
 
 ------------------------------------------------------------------------
 
@@ -227,7 +227,7 @@ forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000
 >           distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -250,7 +250,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -261,7 +261,7 @@ size for temporal cross-validation.<br/>
 >               **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -275,7 +275,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 

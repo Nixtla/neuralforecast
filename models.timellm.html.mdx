@@ -37,7 +37,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             subtract_last=False, non_norm=False)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -66,7 +66,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      attention_dropout=0.1)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -110,7 +110,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -124,7 +124,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  FlattenHead (n_vars, nf, target_window, head_dropout=0)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -153,7 +153,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  PatchEmbedding (d_model, patch_len, stride, dropout)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -196,7 +196,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -210,7 +210,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TokenEmbedding (c_in, d_model)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -239,7 +239,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -253,7 +253,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  ReplicationPad1d (padding)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -282,7 +282,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ## 2. Model
 
@@ -315,7 +315,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-TimeLLM
+\*TimeLLM
 
 Time-LLM is a reprogramming framework to repurpose an off-the-shelf LLM
 for time series forecasting.
@@ -385,7 +385,8 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 **References:**<br/> -[Ming Jin, Shiyu Wang, Lintao Ma, Zhixuan Chu,
 James Y. Zhang, Xiaoming Shi, Pin-Yu Chen, Yuxuan Liang, Yuan-Fang Li,
 Shirui Pan, Qingsong Wen. “Time-LLM: Time Series Forecasting by
-Reprogramming Large Language Models”](https://arxiv.org/abs/2310.01728)
+Reprogramming Large Language
+Models”](https://arxiv.org/abs/2310.01728)\*
 
 ------------------------------------------------------------------------
 
@@ -396,7 +397,7 @@ Reprogramming Large Language Models”](https://arxiv.org/abs/2310.01728)
 >               distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -419,7 +420,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -430,7 +431,7 @@ size for temporal cross-validation.<br/>
 >                   **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -444,7 +445,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage example
 

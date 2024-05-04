@@ -37,7 +37,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  SeriesDecomp (kernel_size)
 > ```
 
-Series decomposition block
+*Series decomposition block*
 
 ------------------------------------------------------------------------
 
@@ -51,7 +51,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  MovingAvg (kernel_size, stride)
 > ```
 
-Moving average block to highlight the trend of time series
+*Moving average block to highlight the trend of time series*
 
 ## 2. DLinear
 
@@ -77,7 +77,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >           optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-DLinear
+\*DLinear
 
 *Parameters:*<br/> `h`: int, forecast horizon.<br/> `input_size`: int,
 maximum sequence length for truncated train backpropagation. Default -1
@@ -120,7 +120,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 
 ``` text
 *References*<br/>
-- Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."
+- Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."*
 ```
 
 ------------------------------------------------------------------------
@@ -132,7 +132,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 >               distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -155,7 +155,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -166,7 +166,7 @@ size for temporal cross-validation.<br/>
 >                   **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -180,7 +180,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 

@@ -54,7 +54,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-iTransformer
+\*iTransformer
 
 **Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
 autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
@@ -98,7 +98,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 **References**<br/> - [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu
 Wang, Lintao Ma, Mingsheng Long. “iTransformer: Inverted Transformers
 Are Effective for Time Series
-Forecasting”](https://arxiv.org/abs/2310.06625)
+Forecasting”](https://arxiv.org/abs/2310.06625)\*
 
 ------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@ Forecasting”](https://arxiv.org/abs/2310.06625)
 >                    distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -130,7 +130,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -141,7 +141,7 @@ see
 >                        random_seed=None, **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -153,7 +153,7 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 # 3. Usage example
 

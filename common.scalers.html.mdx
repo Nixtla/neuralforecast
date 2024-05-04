@@ -48,7 +48,7 @@ compute the normalizing statistics.</figcaption>
 >  masked_median (x, mask, dim=-1, keepdim=True)
 > ```
 
-Masked Median
+\*Masked Median
 
 Compute the median of tensor `x` along dim, ignoring values where `mask`
 is False. `x` and `mask` need to be broadcastable.
@@ -61,7 +61,7 @@ division.<br/> `dim` (int, optional): Dimension to take median of.
 Defaults to -1.<br/> `keepdim` (bool, optional): Keep dimension of `x` or
 not. Defaults to True.<br/>
 
-**Returns:**<br/> `x_median`: torch.Tensor with normalized values.
+**Returns:**<br/> `x_median`: torch.Tensor with normalized values.\*
 
 ------------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ not. Defaults to True.<br/>
 >  masked_mean (x, mask, dim=-1, keepdim=True)
 > ```
 
-Masked Mean
+\*Masked Mean
 
 Compute the mean of tensor `x` along dimension, ignoring values where
 `mask` is False. `x` and `mask` need to be broadcastable.
@@ -84,7 +84,7 @@ division.<br/> `dim` (int, optional): Dimension to take mean of. Defaults
 to -1.<br/> `keepdim` (bool, optional): Keep dimension of `x` or not.
 Defaults to True.<br/>
 
-**Returns:**<br/> `x_mean`: torch.Tensor with normalized values.
+**Returns:**<br/> `x_mean`: torch.Tensor with normalized values.\*
 
 # 2. Scalers
 
@@ -96,7 +96,7 @@ Defaults to True.<br/>
 >  minmax_statistics (x, mask, eps=1e-06, dim=-1)
 > ```
 
-MinMax Scaler
+\*MinMax Scaler
 
 Standardizes temporal features by ensuring its range dweels between
 \[0,1\] range. This transformation is often used as an alternative to
@@ -117,7 +117,7 @@ column of dimension dim to avoid NaNs from zero division.<br/> `eps`
 1e-6.<br/> `dim` (int, optional): Dimension over to compute min and max.
 Defaults to -1.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -127,7 +127,7 @@ Defaults to -1.<br/>
 >  minmax1_statistics (x, mask, eps=1e-06, dim=-1)
 > ```
 
-MinMax1 Scaler
+\*MinMax1 Scaler
 
 Standardizes temporal features by ensuring its range dweels between
 \[-1,1\] range. This transformation is often used as an alternative to
@@ -144,7 +144,7 @@ column of dimension dim to avoid NaNs from zero division.<br/> `eps`
 1e-6.<br/> `dim` (int, optional): Dimension over to compute min and max.
 Defaults to -1.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -154,7 +154,7 @@ Defaults to -1.<br/>
 >  std_statistics (x, mask, dim=-1, eps=1e-06)
 > ```
 
-Standard Scaler
+\*Standard Scaler
 
 Standardizes features by removing the mean and scaling to unit variance
 along the `dim` dimension.
@@ -172,7 +172,7 @@ optional): Small value to avoid division by zero. Defaults to 1e-6.<br/>
 `dim` (int, optional): Dimension over to compute mean and std. Defaults
 to -1.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -182,7 +182,7 @@ to -1.<br/>
 >  robust_statistics (x, mask, dim=-1, eps=1e-06)
 > ```
 
-Robust Median Scaler
+\*Robust Median Scaler
 
 Standardizes features by removing the median and scaling with the mean
 absolute deviation (mad) a robust estimator of variance. This scaler is
@@ -205,7 +205,7 @@ column of dimension dim to avoid NaNs from zero division.<br/> `eps`
 1e-6.<br/> `dim` (int, optional): Dimension over to compute median and
 mad. Defaults to -1.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -215,7 +215,7 @@ mad. Defaults to -1.<br/>
 >  invariant_statistics (x, mask, dim=-1, eps=1e-06)
 > ```
 
-Invariant Median Scaler
+\*Invariant Median Scaler
 
 Standardizes features by removing the median and scaling with the mean
 absolute deviation (mad) a robust estimator of variance. Aditionally it
@@ -236,7 +236,7 @@ column of dimension dim to avoid NaNs from zero division.<br/> `eps`
 1e-6.<br/> `dim` (int, optional): Dimension over to compute median and
 mad. Defaults to -1.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -246,7 +246,7 @@ mad. Defaults to -1.<br/>
 >  identity_statistics (x, mask, dim=-1, eps=1e-06)
 > ```
 
-Identity Scaler
+\*Identity Scaler
 
 A placeholder identity scaler, that is argument insensitive.
 
@@ -258,7 +258,7 @@ column of dimension dim to avoid NaNs from zero division.<br/> `eps`
 1e-6.<br/> `dim` (int, optional): Dimension over to compute median and
 mad. Defaults to -1.<br/>
 
-**Returns:**<br/> `x`: original torch.Tensor `x`.
+**Returns:**<br/> `x`: original torch.Tensor `x`.\*
 
 # 3. TemporalNorm Module
 
@@ -270,7 +270,7 @@ mad. Defaults to -1.<br/>
 >  TemporalNorm (scaler_type='robust', dim=-1, eps=1e-06, num_features=None)
 > ```
 
-Temporal Normalization
+\*Temporal Normalization
 
 Standardization of the features is a common requirement for many machine
 learning estimators, and it is commonly achieved by removing the level
@@ -298,7 +298,7 @@ initialization.<br/>
 Stefania La Vattiata, Max Mergenthaler, Artur Dubrawski (2023). “HINT:
 Hierarchical Mixture Networks For Coherent Probabilistic Forecasting”.
 Neural Information Processing Systems, submitted. Working Paper version
-available at arxiv.](https://arxiv.org/abs/2305.07089)<br/>
+available at arxiv.](https://arxiv.org/abs/2305.07089)<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -308,7 +308,7 @@ available at arxiv.](https://arxiv.org/abs/2305.07089)<br/>
 >  TemporalNorm.transform (x, mask)
 > ```
 
-Center and scale the data.
+\*Center and scale the data.
 
 **Parameters:**<br/> `x`: torch.Tensor shape \[batch, time,
 channels\].<br/> `mask`: torch Tensor bool, shape \[batch, time\] where
@@ -316,7 +316,7 @@ channels\].<br/> `mask`: torch Tensor bool, shape \[batch, time\] where
 all False in any column of dimension dim to avoid NaNs from zero
 division.<br/>
 
-**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.
+**Returns:**<br/> `z`: torch.Tensor same shape as `x`, except scaled.\*
 
 ------------------------------------------------------------------------
 
@@ -326,12 +326,12 @@ division.<br/>
 >  TemporalNorm.inverse_transform (z, x_shift=None, x_scale=None)
 > ```
 
-Scale back the data to the original representation.
+\*Scale back the data to the original representation.
 
 **Parameters:**<br/> `z`: torch.Tensor shape \[batch, time, channels\],
 scaled.<br/>
 
-**Returns:**<br/> `x`: torch.Tensor original data.
+**Returns:**<br/> `x`: torch.Tensor original data.\*
 
 # Example
 

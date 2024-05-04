@@ -24,11 +24,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                  local_scaler_type:Optional[str]=None)
 > ```
 
-The `core.StatsForecast` class allows you to efficiently fit multiple
+*The `core.StatsForecast` class allows you to efficiently fit multiple
 [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
 models for large sets of time series. It operates with pandas DataFrame
 `df` that identifies series and datestamps with the `unique_id` and `ds`
-columns. The `y` column denotes the target time series variable.
+columns. The `y` column denotes the target time series variable.*
 
 |                   | **Type**           | **Default** | **Details**                                                                                                                                                      |
 |------|------------------|-------------------------|-------------------------|
@@ -58,10 +58,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      lforecast.common._base_model.DistributedConfig]=None)
 > ```
 
-Fit the core.NeuralForecast.
+\*Fit the core.NeuralForecast.
 
 Fit `models` to a large set of time series from DataFrame `df`. and
-store fitted models for later inspection.
+store fitted models for later inspection.\*
 
 |                    | **Type**           | **Default** | **Details**                                                                                                                     |
 |------|------------------|-------------------------|-------------------------|
@@ -98,10 +98,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          engine=None, **data_kwargs)
 > ```
 
-Predict with core.NeuralForecast.
+\*Predict with core.NeuralForecast.
 
 Use stored fitted `models` to predict large set of time series from
-DataFrame `df`.
+DataFrame `df`.\*
 
 |             | **Type**                       | **Default** | **Details**                                                                                                                               |
 |------|------------------|-------------------------|-------------------------|
@@ -117,7 +117,7 @@ DataFrame `df`.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L904"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L922"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -140,11 +140,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                   **data_kwargs)
 > ```
 
-Temporal Cross-Validation with core.NeuralForecast.
+\*Temporal Cross-Validation with core.NeuralForecast.
 
 `core.NeuralForecast`’s cross-validation efficiently fits a list of
 NeuralForecast models through multiple windows, in either chained or
-rolled manner.
+rolled manner.\*
 
 |                 | **Type**  | **Default** | **Details**                                                                                                                                                                                                    |
 |------|------------------|-------------------------|-------------------------|
@@ -167,7 +167,7 @@ rolled manner.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1061"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1079"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -176,10 +176,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  NeuralForecast.predict_insample (step_size:int=1)
 > ```
 
-Predict insample with core.NeuralForecast.
+\*Predict insample with core.NeuralForecast.
 
 `core.NeuralForecast`’s `predict_insample` uses stored fitted `models`
-to predict historic values of a time series from the stored dataframe.
+to predict historic values of a time series from the stored dataframe.\*
 
 |             | **Type**             | **Default** | **Details**                                                       |
 |------|------------------|-------------------------|-------------------------|
@@ -189,7 +189,7 @@ to predict historic values of a time series from the stored dataframe.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1186"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1204"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -199,13 +199,13 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                       save_dataset:bool=True, overwrite:bool=False)
 > ```
 
-Save NeuralForecast core class.
+\*Save NeuralForecast core class.
 
 `core.NeuralForecast`’s method to save current status of models,
 dataset, and configuration. Note that by default the `models` are not
 saving training checkpoints to save disk memory, to get them change the
 individual model `**trainer_kwargs` to include
-`enable_checkpointing=True`.
+`enable_checkpointing=True`.\*
 
 |              | **Type** | **Default** | **Details**                                                    |
 |------|------------------|-------------------------|-------------------------|
@@ -215,7 +215,7 @@ individual model `**trainer_kwargs` to include
 | overwrite    | bool     | False       | Whether to overwrite files or not.                             |
 
 ``` text
-/opt/hostedtoolcache/Python/3.10.14/x64/lib/python3.10/site-packages/fastcore/docscrape.py:225: UserWarning: potentially wrong underline length... 
+/opt/hostedtoolcache/Python/3.10.14/x64/lib/python3.10/site-packages/fastcore/docscrape.py:230: UserWarning: potentially wrong underline length... 
 Parameters 
 ----------- in 
 Load NeuralForecast
@@ -226,7 +226,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1292"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1310"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -235,9 +235,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  NeuralForecast.load (path, verbose=False, **kwargs)
 > ```
 
-Load NeuralForecast
+\*Load NeuralForecast
 
-`core.NeuralForecast`’s method to load checkpoint from path.
+`core.NeuralForecast`’s method to load checkpoint from path.\*
 
 |             | **Type**           | **Default** | **Details**                                                                                                  |
 |------|------------------|-------------------------|-------------------------|

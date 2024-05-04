@@ -46,7 +46,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  ConvLayer (c_in)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -75,7 +75,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -90,7 +90,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                 attention_dropout=0.1, output_attention=False)
 > ```
 
-Base class for all neural network modules.
+\*Base class for all neural network modules.
 
 Your models should also subclass this class.
 
@@ -119,7 +119,7 @@ parameters converted too when you call :meth:`to`, etc.
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool
+evaluation mode. :vartype training: bool\*
 
 ------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  ProbMask (B, H, L, index, scores, device='cpu')
 > ```
 
-Initialize self. See help(type(self)) for accurate signature.
+*Initialize self. See help(type(self)) for accurate signature.*
 
 ## 2. Informer
 
@@ -164,7 +164,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            optimizer=None, optimizer_kwargs=None, **trainer_kwargs)
 > ```
 
-Informer
+\*Informer
 
 ``` text
 The Informer model tackles the vanilla Transformer computational complexity challenges for long-horizon forecasting. 
@@ -231,7 +231,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 
 ``` text
 *References*<br/>
-- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)<br/>
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. "Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting"](https://arxiv.org/abs/2012.07436)<br/>*
 ```
 
 ------------------------------------------------------------------------
@@ -243,7 +243,7 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 >                distributed_config=None)
 > ```
 
-Fit.
+\*Fit.
 
 The `fit` method, optimizes the neural network’s weights using the
 initialization parameters (`learning_rate`, `windows_batch_size`, …) and
@@ -266,7 +266,7 @@ see
 `val_size`: int, validation size for temporal cross-validation.<br/>
 `random_seed`: int=None, random_seed for pytorch initializer and numpy
 generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
-size for temporal cross-validation.<br/>
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -277,7 +277,7 @@ size for temporal cross-validation.<br/>
 >                    **data_module_kwargs)
 > ```
 
-Predict.
+\*Predict.
 
 Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
@@ -291,7 +291,7 @@ see
 int=None, random_seed for pytorch initializer and numpy generators,
 overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
-[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
 
