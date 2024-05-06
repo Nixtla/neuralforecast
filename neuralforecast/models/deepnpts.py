@@ -83,7 +83,7 @@ class DeepNPTS(BaseWindows):
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
         windows_batch_size: int = 1024,
-        inference_windows_batch_size: int = -1,
+        inference_windows_batch_size: int = 1024,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "standard",
@@ -101,6 +101,11 @@ class DeepNPTS(BaseWindows):
         if not isinstance(loss, losses.BasePointLoss):
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as loss function."
+            )
+
+        if not isinstance(valid_loss, losses.BasePointLoss):
+            raise Exception(
+                "DeepNPTS only supports point loss functions (MAE, MSE, etc) as valid loss function."
             )
 
         # Inherit BaseWindows class
