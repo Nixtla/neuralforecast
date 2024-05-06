@@ -425,7 +425,7 @@ class BaseAuto(pl.LightningModule):
             cls_model=self.cls_model,
             config=best_config,
             dataset=dataset,
-            val_size=val_size * (1 - self.refit_with_val),
+            val_size=val_size * self.refit_with_val,
             test_size=test_size,
             distributed_config=distributed_config,
         )
