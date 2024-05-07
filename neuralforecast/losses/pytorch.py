@@ -13,7 +13,13 @@ import torch
 
 import torch.nn.functional as F
 from torch.distributions import Distribution
-from torch.distributions import Bernoulli, Normal, StudentT, Poisson, NegativeBinomial
+from torch.distributions import (
+    Bernoulli,
+    Normal,
+    StudentT,
+    Poisson,
+    NegativeBinomial,
+)
 
 from torch.distributions import constraints
 
