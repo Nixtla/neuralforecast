@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -58,16 +57,25 @@ class BaseWindows(BaseModel):
         optimizer_kwargs=None,
         **trainer_kwargs,
     ):
-        super(BaseModel, self).__init__()
-
-        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
-        self.random_seed = random_seed
-        pl.seed_everything(self.random_seed, workers=True)
+        super().__init__(
+            random_seed=random_seed,
+            loss=loss,
+            valid_loss=valid_loss,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            max_steps=max_steps,
+            early_stop_patience_steps=early_stop_patience_steps,
+            **trainer_kwargs,
+        )
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         self.h = h
         self.input_size = input_size
+        self.windows_batch_size = windows_batch_size
         self.start_padding_enabled = start_padding_enabled
         if start_padding_enabled:
             self.padder_train = nn.ConstantPad1d(
@@ -75,15 +83,6 @@ class BaseWindows(BaseModel):
             )
         else:
             self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
-
-        # Loss
-        self.loss = loss
-        if valid_loss is None:
-            self.valid_loss = loss
-        else:
-            self.valid_loss = valid_loss
-        self.train_trajectories = []
-        self.valid_trajectories = []
 
         # Batch sizes
         self.batch_size = batch_size
@@ -107,18 +106,7 @@ class BaseWindows(BaseModel):
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
-        # custom optimizer defined by user
-        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
-            raise TypeError(
-                "optimizer is not a valid subclass of torch.optim.Optimizer"
-            )
-        self.optimizer = optimizer
-        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
 
-        # Variables
-        self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
-        self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
-        self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
         self.exclude_insample_y = exclude_insample_y
 
         # Scaler
@@ -134,35 +122,6 @@ class BaseWindows(BaseModel):
 
         # Model state
         self.decompose_forecast = False
-
-        ## Trainer arguments ##
-        # Max steps, validation steps and check_val_every_n_epoch
-        trainer_kwargs = {**trainer_kwargs, **{"max_steps": max_steps}}
-
-        if "max_epochs" in trainer_kwargs.keys():
-            raise Exception("max_epochs is deprecated, use max_steps instead.")
-
-        # Callbacks
-        if "callbacks" not in trainer_kwargs and self.early_stop_patience_steps > 0:
-            trainer_kwargs["callbacks"] = [
-                EarlyStopping(
-                    monitor="ptl/val_loss", patience=self.early_stop_patience_steps
-                )
-            ]
-
-        # Add GPU accelerator if available
-        if trainer_kwargs.get("accelerator", None) is None:
-            if torch.cuda.is_available():
-                trainer_kwargs["accelerator"] = "gpu"
-        if trainer_kwargs.get("devices", None) is None:
-            if torch.cuda.is_available():
-                trainer_kwargs["devices"] = -1
-
-        # Avoid saturating local memory, disabled fit model checkpoints
-        if trainer_kwargs.get("enable_checkpointing", None) is None:
-            trainer_kwargs["enable_checkpointing"] = False
-
-        self.trainer_kwargs = trainer_kwargs
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
@@ -475,8 +434,14 @@ class BaseWindows(BaseModel):
             print("output", torch.isnan(output).sum())
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("train_loss", loss, prog_bar=True, on_epoch=True)
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.log(
+            "train_loss",
+            loss.item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def _compute_valid_loss(
@@ -572,13 +537,20 @@ class BaseWindows(BaseModel):
             batch_sizes.append(len(output_batch))
 
         valid_loss = torch.stack(valid_losses)
-        batch_sizes = torch.tensor(batch_sizes).to(valid_loss.device)
-        valid_loss = torch.sum(valid_loss * batch_sizes) / torch.sum(batch_sizes)
+        batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
+        batch_size = torch.sum(batch_sizes)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / batch_size
 
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
 
-        self.log("valid_loss", valid_loss, prog_bar=True, on_epoch=True)
+        self.log(
+            "valid_loss",
+            valid_loss.item(),
+            batch_size=batch_size,
+            prog_bar=True,
+            on_epoch=True,
+        )
         self.validation_step_outputs.append(valid_loss)
         return valid_loss
 
@@ -647,7 +619,14 @@ class BaseWindows(BaseModel):
         y_hat = torch.cat(y_hats, dim=0)
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -676,6 +655,7 @@ class BaseWindows(BaseModel):
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
     def predict(
