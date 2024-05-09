@@ -52,7 +52,7 @@ class RNN(BaseRecurrent):
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `alias`: str, optional,  Custom name of the model.<br>
 

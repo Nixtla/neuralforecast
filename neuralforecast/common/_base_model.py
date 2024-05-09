@@ -107,10 +107,10 @@ class BaseModel(pl.LightningModule):
 
         # lr scheduler
         if lr_scheduler is not None and not issubclass(
-            lr_scheduler, torch.optim.lr_scheduler
+            lr_scheduler, torch.optim.lr_scheduler.LRScheduler
         ):
             raise TypeError(
-                "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler"
+                "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler.LRScheduler"
             )
         self.lr_scheduler = lr_scheduler
         self.lr_scheduler_kwargs = lr_scheduler_kwargs if lr_scheduler_kwargs else {}
@@ -323,22 +323,14 @@ class BaseModel(pl.LightningModule):
         if self.lr_scheduler:
             lr_scheduler_signature = inspect.signature(self.lr_scheduler)
             lr_scheduler_kwargs = deepcopy(self.lr_scheduler_kwargs)
-            if "step_size" in lr_scheduler_signature:
-                if "step_size" in lr_scheduler_kwargs:
-                    warnings.warn(
-                        "ignoring step_size passed in lr_scheduler_kwargs, using the model's default learning rate decay setting"
-                    )
-                    del lr_scheduler_kwargs["step_size"]
-            if "optimizer" in lr_scheduler_signature:
+            if "optimizer" in lr_scheduler_signature.parameters:
                 if "optimizer" in lr_scheduler_kwargs:
                     warnings.warn(
                         "ignoring optimizer passed in lr_scheduler_kwargs, using the model's optimizer"
                     )
                     del lr_scheduler_kwargs["optimizer"]
             lr_scheduler["scheduler"] = self.lr_scheduler(
-                optimizer=optimizer,
-                step_size=self.lr_decay_steps,
-                **lr_scheduler_kwargs,
+                optimizer=optimizer, **lr_scheduler_kwargs
             )
         else:
             lr_scheduler["scheduler"] = torch.optim.lr_scheduler.StepLR(

@@ -178,7 +178,7 @@ class TimesNet(BaseWindows):
         User specified optimizer instead of the default choice (Adam).
     `optimizer_kwargs`: dict, optional (defualt=None)
         List of parameters used by the user specified `optimizer`.
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
