@@ -70,6 +70,8 @@ class BaseModel(pl.LightningModule):
         valid_loss,
         optimizer,
         optimizer_kwargs,
+        lr_scheduler,
+        lr_scheduler_kwargs,
         futr_exog_list,
         hist_exog_list,
         stat_exog_list,
@@ -102,6 +104,16 @@ class BaseModel(pl.LightningModule):
             )
         self.optimizer = optimizer
         self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
+
+        # lr scheduler
+        if lr_scheduler is not None and not issubclass(
+            lr_scheduler, torch.optim.lr_scheduler
+        ):
+            raise TypeError(
+                "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler"
+            )
+        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler_kwargs = lr_scheduler_kwargs if lr_scheduler_kwargs else {}
 
         # Variables
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
@@ -306,14 +318,33 @@ class BaseModel(pl.LightningModule):
             optimizer = self.optimizer(params=self.parameters(), **optimizer_kwargs)
         else:
             optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = {
-            "scheduler": torch.optim.lr_scheduler.StepLR(
+
+        lr_scheduler = {"frequency": 1, "interval": "step"}
+        if self.lr_scheduler:
+            lr_scheduler_signature = inspect.signature(self.lr_scheduler)
+            lr_scheduler_kwargs = deepcopy(self.lr_scheduler_kwargs)
+            if "step_size" in lr_scheduler_signature:
+                if "step_size" in lr_scheduler_kwargs:
+                    warnings.warn(
+                        "ignoring step_size passed in lr_scheduler_kwargs, using the model's default learning rate decay setting"
+                    )
+                    del lr_scheduler_kwargs["step_size"]
+            if "optimizer" in lr_scheduler_signature:
+                if "optimizer" in lr_scheduler_kwargs:
+                    warnings.warn(
+                        "ignoring optimizer passed in lr_scheduler_kwargs, using the model's optimizer"
+                    )
+                    del lr_scheduler_kwargs["optimizer"]
+            lr_scheduler["scheduler"] = self.lr_scheduler(
+                optimizer=optimizer,
+                step_size=self.lr_decay_steps,
+                **lr_scheduler_kwargs,
+            )
+        else:
+            lr_scheduler["scheduler"] = torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
-            ),
-            "frequency": 1,
-            "interval": "step",
-        }
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
+            )
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def get_test_size(self):
         return self.test_size
