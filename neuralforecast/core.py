@@ -58,6 +58,7 @@ from neuralforecast.models import (
     iTransformer,
     BiTCN,
     TiDE,
+    DeepNPTS,
     KAN,
 )
 
@@ -174,6 +175,8 @@ MODEL_FILENAME_DICT = {
     "autobitcn": BiTCN,
     "tide": TiDE,
     "autotide": TiDE,
+    "deepnpts": DeepNPTS,
+    "autodeepnpts": DeepNPTS,
     "kan": KAN,
 }
 
