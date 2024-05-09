@@ -265,6 +265,7 @@ class KAN(BaseWindows):
         enable_standalone_scale_spline: bool = True,
         grid_eps: float = 0.02,
         grid_range: list = [-1, 1],
+        hidden_size: int = 512,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -322,7 +323,8 @@ class KAN(BaseWindows):
         )
 
         # Architecture
-        self.hidden_layers = [self.input_size, 10, self.h]
+        self.hidden_size = hidden_size
+        self.hidden_layers = [self.input_size, self.hidden_size, self.h]
         self.grid_size = grid_size
         self.spline_order = spline_order
         self.scale_noise = scale_noise
