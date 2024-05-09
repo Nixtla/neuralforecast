@@ -359,7 +359,6 @@ class KAN(BaseWindows):
                 layer.update_grid(y_pred)
             y_pred = layer(y_pred)
 
-        # y_pred = y_pred.reshape(self.batch_size, self.h, self.loss.outputsize_multiplier)
         y_pred = self.loss.domain_map(y_pred)
 
         return y_pred
