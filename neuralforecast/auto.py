@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoBiTCN', 'AutoMLP', 'AutoNBEATS',
-           'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS', 'AutoTFT',
+           'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS', 'AutoKAN', 'AutoTFT',
            'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST',
            'AutoiTransformer', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer', 'AutoTSMixerx',
            'AutoMLPMultivariate']
@@ -42,6 +42,8 @@ from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
 from .models.timesnet import TimesNet
 from .models.itransformer import iTransformer
+
+from .models.kan import KAN
 
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
@@ -1104,7 +1106,74 @@ class AutoDeepNPTS(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 75
+# %% ../nbs/models.ipynb 74
+class AutoKAN(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([64, 128, 256, 512]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(lower=1, upper=20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend)
+
+        super(AutoKAN, self).__init__(
+            cls_model=KAN,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 79
 class AutoTFT(BaseAuto):
 
     default_config = {
@@ -1172,7 +1241,7 @@ class AutoTFT(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 79
+# %% ../nbs/models.ipynb 83
 class AutoVanillaTransformer(BaseAuto):
 
     default_config = {
@@ -1240,7 +1309,7 @@ class AutoVanillaTransformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 83
+# %% ../nbs/models.ipynb 87
 class AutoInformer(BaseAuto):
 
     default_config = {
@@ -1308,7 +1377,7 @@ class AutoInformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 87
+# %% ../nbs/models.ipynb 91
 class AutoAutoformer(BaseAuto):
 
     default_config = {
@@ -1376,7 +1445,7 @@ class AutoAutoformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 91
+# %% ../nbs/models.ipynb 95
 class AutoFEDformer(BaseAuto):
 
     default_config = {
@@ -1443,7 +1512,7 @@ class AutoFEDformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 95
+# %% ../nbs/models.ipynb 99
 class AutoPatchTST(BaseAuto):
 
     default_config = {
@@ -1513,7 +1582,7 @@ class AutoPatchTST(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 99
+# %% ../nbs/models.ipynb 103
 class AutoiTransformer(BaseAuto):
 
     default_config = {
@@ -1598,7 +1667,7 @@ class AutoiTransformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 104
+# %% ../nbs/models.ipynb 108
 class AutoTimesNet(BaseAuto):
 
     default_config = {
@@ -1666,7 +1735,7 @@ class AutoTimesNet(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 109
+# %% ../nbs/models.ipynb 113
 class AutoStemGNN(BaseAuto):
 
     default_config = {
@@ -1751,7 +1820,7 @@ class AutoStemGNN(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 113
+# %% ../nbs/models.ipynb 117
 class AutoHINT(BaseAuto):
 
     def __init__(
@@ -1823,7 +1892,7 @@ class AutoHINT(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         raise Exception("AutoHINT has no default configuration.")
 
-# %% ../nbs/models.ipynb 118
+# %% ../nbs/models.ipynb 122
 class AutoTSMixer(BaseAuto):
 
     default_config = {
@@ -1909,7 +1978,7 @@ class AutoTSMixer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 122
+# %% ../nbs/models.ipynb 126
 class AutoTSMixerx(BaseAuto):
 
     default_config = {
@@ -1995,7 +2064,7 @@ class AutoTSMixerx(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 126
+# %% ../nbs/models.ipynb 130
 class AutoMLPMultivariate(BaseAuto):
 
     default_config = {
