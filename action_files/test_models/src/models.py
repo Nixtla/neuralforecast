@@ -29,6 +29,7 @@ from neuralforecast.models.dlinear import DLinear
 from neuralforecast.models.bitcn import BiTCN   
 from neuralforecast.models.tide import TiDE
 from neuralforecast.models.deepnpts import DeepNPTS
+from neuralforecast.models.kan import KAN
 
 from neuralforecast.auto import (
     AutoMLP, 
@@ -78,6 +79,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         BiTCN(h=horizon, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         TiDE(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
         DeepNPTS(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
+        KAN(h=horizon, input_size= 2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500)
     ]
 
     # Models
