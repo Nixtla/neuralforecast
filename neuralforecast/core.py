@@ -178,6 +178,7 @@ MODEL_FILENAME_DICT = {
     "deepnpts": DeepNPTS,
     "autodeepnpts": DeepNPTS,
     "kan": KAN,
+    "autokan": KAN,
 }
 
 # %% ../nbs/core.ipynb 8
