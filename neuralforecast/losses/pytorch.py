@@ -624,6 +624,7 @@ class IQLoss(QuantileLoss):
     $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
 
     **Parameters:**<br>
+    `quantile_sampling`: str, default='uniform', sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. <br>
     `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
 
     **References:**<br>
