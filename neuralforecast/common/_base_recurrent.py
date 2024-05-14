@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+import neuralforecast.losses.pytorch as losses
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -304,6 +305,13 @@ class BaseRecurrent(BaseModel):
             stat_exog,
         ) = self._parse_windows(batch, windows)
 
+        # Implicit Quantile Loss
+        if isinstance(self.loss, losses.IQLoss):
+            self.loss.training_update_quantile(
+                batch_size=insample_y.shape[0], device=insample_y.device
+            )
+            stat_exog = self._update_stat_exog_iqloss(self.loss.q, stat_exog)
+
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
             insample_mask=insample_mask,  # [B, seq_len, 1]
@@ -373,6 +381,13 @@ class BaseRecurrent(BaseModel):
             futr_exog,
             stat_exog,
         ) = self._parse_windows(batch, windows)
+
+        # Implicit Quantile Loss
+        if isinstance(self.valid_loss, losses.IQLoss):
+            self.valid_loss.training_update_quantile(
+                batch_size=insample_y.shape[0], device=insample_y.device
+            )
+            stat_exog = self._update_stat_exog_iqloss(self.valid_loss.q, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
@@ -460,6 +475,16 @@ class BaseRecurrent(BaseModel):
         insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
             self._parse_windows(batch, windows)
         )
+
+        # Implicit Quantile Loss
+        if isinstance(self.loss, losses.IQLoss):
+            quantiles = torch.full(
+                size=(insample_y.shape[0], 1),
+                fill_value=self.quantile,
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
+            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
@@ -550,6 +575,7 @@ class BaseRecurrent(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")

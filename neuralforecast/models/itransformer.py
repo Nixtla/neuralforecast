@@ -10,7 +10,6 @@ import torch.nn.functional as F
 
 import numpy as np
 
-from typing import Optional
 from math import sqrt
 
 from ..losses.pytorch import MAE
@@ -133,6 +132,9 @@ class iTransformer(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -192,16 +194,6 @@ class iTransformer(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
-
-        # Asserts
-        if stat_exog_list is not None:
-            raise Exception("iTransformer does not support static exogenous variables")
-        if futr_exog_list is not None:
-            raise Exception("iTransformer does not support future exogenous variables")
-        if hist_exog_list is not None:
-            raise Exception(
-                "iTransformer does not support historical exogenous variables"
-            )
 
         self.enc_in = n_series
         self.dec_in = n_series

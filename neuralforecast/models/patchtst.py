@@ -880,6 +880,9 @@ class PatchTST(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -955,15 +958,6 @@ class PatchTST(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
-        # Asserts
-        if stat_exog_list is not None:
-            raise Exception("PatchTST does not yet support static exogenous variables")
-        if futr_exog_list is not None:
-            raise Exception("PatchTST does not yet support future exogenous variables")
-        if hist_exog_list is not None:
-            raise Exception(
-                "PatchTST does not yet support historical exogenous variables"
-            )
 
         # Enforce correct patch_len, regardless of user input
         patch_len = min(input_size + stride, patch_len)
