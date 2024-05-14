@@ -4,7 +4,7 @@
 __all__ = ['KANLinear', 'KAN']
 
 # %% ../../nbs/models.kan.ipynb 5
-from typing import Optional
+from typing import Optional, Union
 
 import math
 
@@ -237,6 +237,53 @@ class KANLinear(torch.nn.Module):
 
 # %% ../../nbs/models.kan.ipynb 7
 class KAN(BaseWindows):
+    """KAN
+
+    Simple Kolmogorov-Arnold Network (KAN).
+    This network uses the Kolmogorov-Arnold approximation theorem, where splines
+    are learned to approximate more complex functions. Unlike the MLP, the
+    non-linear function are learned at the edges, and the nodes simply sum
+    the different learned functions.
+
+    **Parameters:**<br>
+    `h`: int, forecast horizon.<br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `grid_size`: int, number of intervals used by the splines to approximate the function.<br>
+    `spline_order`: int, order of the B-splines.<br>
+    `scale_noise`: float, regularization coefficient for the splines.<br>
+    `scale_base`: float, scaling coefficient for the base function.<br>
+    `scale_spline`: float, scaling coefficient for the splines.<br>
+    `enable_standalone_scale_spline`: bool, whether each spline is scaled individually.<br>
+    `grid_eps`: float, used for numerical stability.<br>
+    `grid_range`: list, range of the grid used for spline approximation.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
+    `n_hidden_layers`: int, number of hidden layers for the KAN.<br>
+    `hidden_size`: int or list, number of units for each hidden layer of the KAN. If an integer, all hidden layers will have the same size. Use a list to specify the size of each hidden layer.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    """
 
     # Class attributes
     SAMPLING_TYPE = "windows"
@@ -253,7 +300,8 @@ class KAN(BaseWindows):
         enable_standalone_scale_spline: bool = True,
         grid_eps: float = 0.02,
         grid_range: list = [-1, 1],
-        hidden_size: int = 512,
+        n_hidden_layers: int = 1,
+        hidden_size: Union[int, list] = 512,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -310,9 +358,31 @@ class KAN(BaseWindows):
             **trainer_kwargs
         )
 
+        # Asserts
+        if stat_exog_list is not None:
+            raise Exception("KAN does not yet support static exogenous variables")
+        if futr_exog_list is not None:
+            raise Exception("KAN does not yet support future exogenous variables")
+        if hist_exog_list is not None:
+            raise Exception("KAN does not yet support historical exogenous variables")
+
         # Architecture
+        self.n_hidden_layers = n_hidden_layers
         self.hidden_size = hidden_size
-        self.hidden_layers = [self.input_size, self.hidden_size, self.h]
+
+        if isinstance(self.hidden_size, int):
+            self.hidden_layers = (
+                [self.input_size]
+                + [self.hidden_size for _ in range(self.n_hidden_layers)]
+                + [self.h]
+            )
+        elif isinstance(self.hidden_size, list):
+            if len(self.hidden_size) != self.n_hidden_layers:
+                raise Exception(
+                    "The number of elements in the list hidden_size must equal the number of n_hidden_layers"
+                )
+            self.hidden_layers = [self.input_size] + self.hidden_size + [self.h]
+
         self.grid_size = grid_size
         self.spline_order = spline_order
         self.scale_noise = scale_noise
