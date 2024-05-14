@@ -660,7 +660,8 @@ class IQLoss(QuantileLoss):
         if not self.has_sampled:
             self.init_sampling_distribution(device)
 
-        quantiles = self.sampling_distr.sample((batch_size,))
+        quantiles = self.sampling_distr.sample(batch_size)
+        quantiles = quantiles.squeeze(-1)
         self.has_sampled = True
 
         return quantiles

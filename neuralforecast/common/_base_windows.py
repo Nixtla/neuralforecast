@@ -409,7 +409,7 @@ class BaseWindows(BaseModel):
         # Implicit Quantile Loss
         if isinstance(self.loss, losses.IQLoss):
             self.loss.training_update_quantile(
-                batch_size=insample_y.shape[0], device=insample_y.device
+                batch_size=(insample_y.shape[0], 1), device=insample_y.device
             )
             stat_exog = self._update_stat_exog_iqloss(self.loss.q, stat_exog)
 
@@ -528,7 +528,7 @@ class BaseWindows(BaseModel):
             # Implicit Quantile Loss
             if isinstance(self.valid_loss, losses.IQLoss):
                 self.valid_loss.training_update_quantile(
-                    batch_size=insample_y.shape[0], device=insample_y.device
+                    batch_size=(insample_y.shape[0], 1), device=insample_y.device
                 )
                 stat_exog = self._update_stat_exog_iqloss(self.valid_loss.q, stat_exog)
 

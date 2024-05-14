@@ -308,9 +308,10 @@ class BaseRecurrent(BaseModel):
         # Implicit Quantile Loss
         if isinstance(self.loss, losses.IQLoss):
             self.loss.training_update_quantile(
-                batch_size=insample_y.shape[0], device=insample_y.device
+                batch_size=(insample_y.shape[0], 1, 1), device=insample_y.device
             )
-            stat_exog = self._update_stat_exog_iqloss(self.loss.q, stat_exog)
+            quantiles = self.loss.q.squeeze(-1)
+            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
@@ -385,9 +386,10 @@ class BaseRecurrent(BaseModel):
         # Implicit Quantile Loss
         if isinstance(self.valid_loss, losses.IQLoss):
             self.valid_loss.training_update_quantile(
-                batch_size=insample_y.shape[0], device=insample_y.device
+                batch_size=(insample_y.shape[0], 1, 1), device=insample_y.device
             )
-            stat_exog = self._update_stat_exog_iqloss(self.valid_loss.q, stat_exog)
+            quantiles = self.valid_loss.q.squeeze(-1)
+            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
