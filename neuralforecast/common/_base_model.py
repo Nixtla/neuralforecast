@@ -64,9 +64,9 @@ def _disable_torch_init():
 
 # %% ../../nbs/common.base_model.ipynb 5
 class BaseModel(pl.LightningModule):
-    EXOGENOUS_FUTR = False
-    EXOGENOUS_HIST = False
-    EXOGENOUS_STAT = False
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,

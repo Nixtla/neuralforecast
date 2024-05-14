@@ -492,7 +492,7 @@ class TFT(BaseWindows):
         )
         self.example_length = input_size + h
 
-        futr_exog_size = max(len(self.futr_exog_size), 1)
+        futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
 
         # ------------------------------- Encoders -----------------------------#
