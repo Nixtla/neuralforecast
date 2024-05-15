@@ -12,6 +12,7 @@ import math
 import numpy as np
 import torch
 
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Distribution
 from torch.distributions import (
@@ -632,21 +633,24 @@ class IQLoss(QuantileLoss):
     [Smyl, Slawek, Boris N. Oreshkin, Paweł Pełka, and Grzegorz Dudek. "Any-Quantile Probabilistic Forecasting of Short-Term Electricity Demand".](http://arxiv.org/abs/2404.17451)
     """
 
-    def __init__(self, quantile_sampling="uniform", horizon_weight=None):
-        self.predict_update_quantile()
+    def __init__(
+        self,
+        quantile_sampling="uniform",
+        hidden_size=32,
+        n_layers=2,
+        dropout=0.1,
+        horizon_weight=None,
+    ):
+        self.update_quantile()
         super(IQLoss, self).__init__(q=self.q, horizon_weight=horizon_weight)
         self.quantile_sampling = quantile_sampling
+        self.hidden_size = hidden_size
+        self.n_layers = n_layers
+        self.dropout = dropout
         self.has_sampled = False
+        self.has_predicted = False
 
-    def training_update_quantile(self, batch_size, device):
-        quantiles = self.sample_quantiles(batch_size=batch_size, device=device)
-        self.q = quantiles
-
-    def predict_update_quantile(self, q: float = 0.5):
-        self.q = q
-        self.output_names = [f"_ql{q}"]
-
-    def init_sampling_distribution(self, device):
+    def _init_sampling_distribution(self, device):
         if self.quantile_sampling == "uniform":
             lower_bound = torch.tensor([0.0], device=device)
             upper_bound = torch.tensor([1.0], device=device)
@@ -657,15 +661,68 @@ class IQLoss(QuantileLoss):
         else:
             raise NotImplementedError
 
-    def sample_quantiles(self, batch_size, device):
+    def _sample_quantiles(self, sample_size, device):
         if not self.has_sampled:
-            self.init_sampling_distribution(device)
+            self._init_sampling_distribution(device)
 
-        quantiles = self.sampling_distr.sample(batch_size)
+        quantiles = self.sampling_distr.sample(sample_size)
         quantiles = quantiles.squeeze(-1)
         self.has_sampled = True
+        self.has_predicted = False
 
         return quantiles
+
+    def init_network(self, h):
+        self.h = h
+        modules = []
+        for i in range(self.n_layers):
+            modules.append(nn.LayerNorm(2 * h if i == 0 else self.hidden_size))
+            modules.append(
+                nn.Linear(2 * h if i == 0 else self.hidden_size, self.hidden_size)
+            )
+            modules.append(nn.ReLU())
+            modules.append(nn.Dropout(self.dropout))
+
+        modules.append(nn.Linear(self.hidden_size, h))
+        self.quantile_net = nn.Sequential(*modules)
+
+    def update_quantile(self, q: float = 0.5):
+        self.q = q
+        self.output_names = [f"_ql{q}"]
+        self.has_predicted = True
+
+    def domain_map(self, y_hat):
+        """
+        Input shapes to this function:
+
+        base_windows: y_hat = [B, h, 1]
+        base_multivariate: y_hat = [B, h, n_series]
+        base_recurrent: y_hat = [B, seq_len, h, n_series]
+        """
+        assert self.h == y_hat.shape[-2]
+
+        if self.eval() and self.has_predicted:
+            quantiles = torch.full(
+                size=y_hat.shape,
+                fill_value=self.q,
+                device=y_hat.device,
+                dtype=y_hat.dtype,
+            )
+        else:
+            quantiles = self._sample_quantiles(
+                sample_size=y_hat.shape, device=y_hat.device
+            )
+
+        # Concatenate in the horizon dimension
+        x = torch.cat([y_hat, quantiles], dim=-2)
+        x = x.swapaxes(-1, -2)
+        # Run quantile network
+        h = self.quantile_net(x)
+        h = h.swapaxes(-1, -2)
+        # Domain map
+        y_hat = h.squeeze(-1)
+
+        return y_hat
 
 # %% ../../nbs/losses.pytorch.ipynb 64
 def weighted_average(

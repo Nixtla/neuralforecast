@@ -131,6 +131,10 @@ class BaseWindows(BaseModel):
         self.validation_step_outputs = []
         self.alias = alias
 
+        # Initialize IQLoss
+        if isinstance(self.loss, losses.IQLoss):
+            self.loss.init_network(h=h)
+
     def _create_windows(self, batch, step, w_idxs=None):
         # Parse common data
         window_size = self.input_size + self.h
@@ -407,11 +411,10 @@ class BaseWindows(BaseModel):
         ) = self._parse_windows(batch, windows)
 
         # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.training_update_quantile(
-                batch_size=(insample_y.shape[0], 1), device=insample_y.device
-            )
-            stat_exog = self._update_stat_exog_iqloss(self.loss.q, stat_exog)
+        # if isinstance(self.loss, losses.IQLoss):
+        #     self.loss.training_update_quantile(batch_size = (insample_y.shape[0], 1),
+        #                                        device = insample_y.device)
+        #     stat_exog = self._update_stat_exog_iqloss(self.loss.q, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L]
@@ -526,11 +529,10 @@ class BaseWindows(BaseModel):
             ) = self._parse_windows(batch, windows)
 
             # Implicit Quantile Loss
-            if isinstance(self.valid_loss, losses.IQLoss):
-                self.valid_loss.training_update_quantile(
-                    batch_size=(insample_y.shape[0], 1), device=insample_y.device
-                )
-                stat_exog = self._update_stat_exog_iqloss(self.valid_loss.q, stat_exog)
+            # if isinstance(self.valid_loss, losses.IQLoss):
+            #     self.valid_loss.training_update_quantile(batch_size = (insample_y.shape[0], 1),
+            #                                     device = insample_y.device)
+            #     stat_exog = self._update_stat_exog_iqloss(self.valid_loss.q, stat_exog)
 
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
@@ -598,14 +600,12 @@ class BaseWindows(BaseModel):
             )
 
             # Implicit Quantile Loss
-            if isinstance(self.loss, losses.IQLoss):
-                quantiles = torch.full(
-                    size=(insample_y.shape[0], 1),
-                    fill_value=self.quantile,
-                    device=insample_y.device,
-                    dtype=insample_y.dtype,
-                )
-                stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
+            # if isinstance(self.loss, losses.IQLoss):
+            #     quantiles = torch.full(size=(insample_y.shape[0], 1),
+            #                            fill_value=self.quantile,
+            #                            device=insample_y.device,
+            #                            dtype=insample_y.dtype)
+            #     stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]

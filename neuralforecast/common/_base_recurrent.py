@@ -119,6 +119,11 @@ class BaseRecurrent(BaseModel):
         self.validation_step_outputs = []
         self.alias = alias
 
+        # Initialize IQLoss
+        if isinstance(self.loss, losses.IQLoss):
+            self.loss.init_network(h=h)
+            self.valid_loss = self.loss
+
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T
         temporal_cols = batch["temporal_cols"].copy()
@@ -305,14 +310,6 @@ class BaseRecurrent(BaseModel):
             stat_exog,
         ) = self._parse_windows(batch, windows)
 
-        # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.training_update_quantile(
-                batch_size=(insample_y.shape[0], 1, 1), device=insample_y.device
-            )
-            quantiles = self.loss.q.squeeze(-1)
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
-
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
             insample_mask=insample_mask,  # [B, seq_len, 1]
@@ -382,14 +379,6 @@ class BaseRecurrent(BaseModel):
             futr_exog,
             stat_exog,
         ) = self._parse_windows(batch, windows)
-
-        # Implicit Quantile Loss
-        if isinstance(self.valid_loss, losses.IQLoss):
-            self.valid_loss.training_update_quantile(
-                batch_size=(insample_y.shape[0], 1, 1), device=insample_y.device
-            )
-            quantiles = self.valid_loss.q.squeeze(-1)
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]
@@ -477,16 +466,6 @@ class BaseRecurrent(BaseModel):
         insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
             self._parse_windows(batch, windows)
         )
-
-        # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            quantiles = torch.full(
-                size=(insample_y.shape[0], 1),
-                fill_value=self.quantile,
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [B, seq_len, 1]

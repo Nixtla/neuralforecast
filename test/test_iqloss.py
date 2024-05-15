@@ -85,7 +85,7 @@ Y_hat_df = forecasts.reset_index(drop=True).drop(columns=['unique_id', 'ds'])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])
 
-model = 'TSMixerx'
+model = 'LSTM'
 plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
 plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
 plt.plot(plot_df['ds'], plot_df[f'{model}_ql0.5'], c='blue', label='median')
@@ -95,3 +95,7 @@ plt.fill_between(x=plot_df['ds'][-12:],
                  alpha=0.4, label='level 90')
 plt.legend()
 plt.grid()
+#%%
+import torch
+x = torch.rand(10, 20, 30)
+quantile = torch.rand(10)

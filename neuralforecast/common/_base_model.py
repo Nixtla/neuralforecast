@@ -131,12 +131,9 @@ class BaseModel(pl.LightningModule):
             raise Exception(
                 f"{type(self).__name__} does not support static exogenous variables."
             )
-        if not self.EXOGENOUS_STAT and isinstance(self.loss, IQLoss):
-            raise Exception(f"{type(self).__name__} does not support IQLoss.")
 
         # Implicit Quantile Loss
         if isinstance(self.loss, IQLoss):
-            self.stat_exog_size += 1
             if not isinstance(self.valid_loss, IQLoss):
                 raise Exception(
                     "Please set valid_loss to IQLoss() when training with IQLoss"
@@ -219,20 +216,12 @@ class BaseModel(pl.LightningModule):
             else:
                 self.quantile = data_module_kwargs["quantile"]
                 data_module_kwargs.pop("quantile")
-                self.loss.predict_update_quantile(q=self.quantile)
+                self.loss.update_quantile(q=self.quantile)
         elif isinstance(self.loss, IQLoss):
             self.quantile = 0.5
-            self.loss.predict_update_quantile(q=self.quantile)
+            self.loss.update_quantile(q=self.quantile)
 
         return data_module_kwargs
-
-    def _update_stat_exog_iqloss(self, quantiles, stat_exog=None):
-        if stat_exog is not None:
-            stat_exog = torch.cat([stat_exog, quantiles], dim=-1)
-        else:
-            stat_exog = quantiles
-
-        return stat_exog
 
     def _fit(
         self,

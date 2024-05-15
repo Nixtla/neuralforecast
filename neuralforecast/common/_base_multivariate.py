@@ -126,6 +126,10 @@ class BaseMultivariate(BaseModel):
         self.validation_step_outputs = []
         self.alias = alias
 
+        # Initialize IQLoss
+        if isinstance(self.loss, losses.IQLoss):
+            self.loss.init_network(h=h)
+
     def _create_windows(self, batch, step):
         # Parse common data
         window_size = self.input_size + self.h
@@ -355,14 +359,6 @@ class BaseMultivariate(BaseModel):
             stat_exog,
         ) = self._parse_windows(batch, windows)
 
-        # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.training_update_quantile(
-                batch_size=(1, 1, insample_y.shape[2]), device=insample_y.device
-            )
-            quantiles = self.loss.q.squeeze(0).permute(1, 0)
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
-
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L, n_series]
             insample_mask=insample_mask,  # [Ws, L, n_series]
@@ -421,14 +417,6 @@ class BaseMultivariate(BaseModel):
             stat_exog,
         ) = self._parse_windows(batch, windows)
 
-        # Implicit Quantile Loss
-        if isinstance(self.valid_loss, losses.IQLoss):
-            self.valid_loss.training_update_quantile(
-                batch_size=(1, 1, insample_y.shape[2]), device=insample_y.device
-            )
-            quantiles = self.valid_loss.q.squeeze(0).permute(1, 0)
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
-
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L, n_series]
             insample_mask=insample_mask,  # [Ws, L, n_series]
@@ -486,16 +474,6 @@ class BaseMultivariate(BaseModel):
         insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
             self._parse_windows(batch, windows)
         )
-
-        # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            quantiles = torch.full(
-                size=(insample_y.shape[2], 1),
-                fill_value=self.quantile,
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
-            stat_exog = self._update_stat_exog_iqloss(quantiles, stat_exog)
 
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L, n_series]
