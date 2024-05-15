@@ -573,14 +573,14 @@ class FEDformer(BaseWindows):
         # Embedding
         self.enc_embedding = DataEmbedding(
             c_in=self.enc_in,
-            exog_input_size=self.hist_exog_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
-            exog_input_size=self.hist_exog_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
