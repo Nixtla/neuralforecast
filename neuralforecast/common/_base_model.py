@@ -103,7 +103,7 @@ class BaseModel(pl.LightningModule):
                 "optimizer is not a valid subclass of torch.optim.Optimizer"
             )
         self.optimizer = optimizer
-        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs else {}
+        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
 
         # lr scheduler
         if lr_scheduler is not None and not issubclass(
@@ -319,6 +319,10 @@ class BaseModel(pl.LightningModule):
                 optimizer_kwargs["lr"] = self.learning_rate
             optimizer = self.optimizer(params=self.parameters(), **optimizer_kwargs)
         else:
+            if self.optimizer_kwargs:
+                warnings.warn(
+                    "ignoring optimizer_kwargs as the optimizer is not specified"
+                )
             optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
         lr_scheduler = {"frequency": 1, "interval": "step"}
