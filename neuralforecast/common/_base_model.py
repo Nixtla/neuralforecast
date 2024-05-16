@@ -113,7 +113,9 @@ class BaseModel(pl.LightningModule):
                 "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler.LRScheduler"
             )
         self.lr_scheduler = lr_scheduler
-        self.lr_scheduler_kwargs = lr_scheduler_kwargs if lr_scheduler_kwargs else {}
+        self.lr_scheduler_kwargs = (
+            lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
+        )
 
         # Variables
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
@@ -333,6 +335,10 @@ class BaseModel(pl.LightningModule):
                 optimizer=optimizer, **lr_scheduler_kwargs
             )
         else:
+            if self.lr_scheduler_kwargs:
+                warnings.warn(
+                    "ignoring lr_scheduler_kwargs as the lr_scheduler is not specified"
+                )
             lr_scheduler["scheduler"] = torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
             )
