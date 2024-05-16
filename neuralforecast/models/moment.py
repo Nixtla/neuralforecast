@@ -432,27 +432,6 @@ class MOMENT(BaseMultivariate):
         **trainer_kwargs
     ):
 
-        SUPPORTED_HUGGINGFACE_MODELS = [
-            "google/flan-t5-small",
-            "google/flan-t5-base",
-            "google/flan-t5-large",
-            "google/flan-t5-xl",
-            "google/flan-t5-xxl",
-        ]
-
-        if d_model is None and transformer_backbone in SUPPORTED_HUGGINGFACE_MODELS:
-            if not IS_TRANSFORMERS_INSTALLED:
-                raise ImportError(
-                    "Please install `transformers` to use MOMENT with a"
-                    "HuggingFace model"
-                )
-            d_model = self.get_huggingface_model_dimensions(transformer_backbone)
-        elif d_model is None:
-            raise Exception(
-                "d_model must be specified if transformer backbone unless "
-                "transformer backbone is a Huggingface model."
-            )
-
         super(MOMENT, self).__init__(
             h=h,
             input_size=input_size,
@@ -477,6 +456,27 @@ class MOMENT(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
+
+        SUPPORTED_HUGGINGFACE_MODELS = [
+            "google/flan-t5-small",
+            "google/flan-t5-base",
+            "google/flan-t5-large",
+            "google/flan-t5-xl",
+            "google/flan-t5-xxl",
+        ]
+
+        if d_model is None and transformer_backbone in SUPPORTED_HUGGINGFACE_MODELS:
+            if not IS_TRANSFORMERS_INSTALLED:
+                raise ImportError(
+                    "Please install `transformers` to use MOMENT with a "
+                    "HuggingFace model"
+                )
+            d_model = self.get_huggingface_model_dimensions(transformer_backbone)
+        elif d_model is None:
+            raise Exception(
+                "d_model must be specified if transformer backbone unless "
+                "transformer backbone is a Huggingface model."
+            )
 
         # ----------------------------------- Parse dimensions -----------------------------------#
         self.futr_exog_size = len(self.futr_exog_list)
