@@ -283,6 +283,9 @@ class KAN(BaseWindows):
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References**<br>
+    - [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle, James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark. "KAN: Kolmogorov-Arnold Networks"](https://arxiv.org/abs/2404.19756)
     """
 
     # Class attributes
@@ -372,9 +375,7 @@ class KAN(BaseWindows):
 
         if isinstance(self.hidden_size, int):
             self.hidden_layers = (
-                [self.input_size]
-                + [self.hidden_size for _ in range(self.n_hidden_layers)]
-                + [self.h]
+                [self.input_size] + self.n_hidden_layer * [self.hidden_size] + [self.h]
             )
         elif isinstance(self.hidden_size, list):
             if len(self.hidden_size) != self.n_hidden_layers:
