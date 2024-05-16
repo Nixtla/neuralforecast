@@ -615,30 +615,32 @@ class MOMENT_module(nn.Module):
             raise NotImplementedError(f"Task {self.task_name} not implemented.")
 
 
-class MOMENTPipeline(MOMENT_module, PyTorchModelHubMixin):
-    def __init__(self, config: Union[Namespace, dict], **kwargs: dict):
-        self._validate_model_kwargs(**kwargs)
-        self.new_task_name = kwargs.get("model_kwargs", {}).pop(
-            "task_name", TASKS.RECONSTRUCTION
-        )
-        super().__init__(config, **kwargs)
+if IS_TRANSFORMERS_INSTALLED:
 
-    def _validate_model_kwargs(self, **kwargs: dict) -> None:
-        kwargs = deepcopy(kwargs)
-        kwargs.setdefault("model_kwargs", {"task_name": TASKS.RECONSTRUCTION})
-        kwargs["model_kwargs"].setdefault("task_name", TASKS.RECONSTRUCTION)
-        config = Namespace(**kwargs["model_kwargs"])
+    class MOMENTPipeline(MOMENT_module, PyTorchModelHubMixin):
+        def __init__(self, config: Union[Namespace, dict], **kwargs: dict):
+            self._validate_model_kwargs(**kwargs)
+            self.new_task_name = kwargs.get("model_kwargs", {}).pop(
+                "task_name", TASKS.RECONSTRUCTION
+            )
+            super().__init__(config, **kwargs)
 
-        if config.task_name == TASKS.FORECASTING:
-            if not hasattr(config, "forecast_horizon"):
-                raise ValueError(
-                    "forecast_horizon must be specified for long-horizon forecasting."
-                )
+        def _validate_model_kwargs(self, **kwargs: dict) -> None:
+            kwargs = deepcopy(kwargs)
+            kwargs.setdefault("model_kwargs", {"task_name": TASKS.RECONSTRUCTION})
+            kwargs["model_kwargs"].setdefault("task_name", TASKS.RECONSTRUCTION)
+            config = Namespace(**kwargs["model_kwargs"])
 
-    def init(self) -> None:
-        if self.new_task_name != TASKS.RECONSTRUCTION:
-            self.task_name = self.new_task_name
-            self.head = self._get_head(self.new_task_name)
+            if config.task_name == TASKS.FORECASTING:
+                if not hasattr(config, "forecast_horizon"):
+                    raise ValueError(
+                        "forecast_horizon must be specified for long-horizon forecasting."
+                    )
+
+        def init(self) -> None:
+            if self.new_task_name != TASKS.RECONSTRUCTION:
+                self.task_name = self.new_task_name
+                self.head = self._get_head(self.new_task_name)
 
 # %% ../../nbs/models.moment.ipynb 19
 class MOMENT(BaseMultivariate):
@@ -749,6 +751,8 @@ class MOMENT(BaseMultivariate):
             raise Exception("MOMENT does not support historical exogenous variables")
 
         # ---------------------------------- Instantiate Model -----------------------------------#
+        if not IS_TRANSFORMERS_INSTALLED:
+            raise ImportError("Please install `transformers` to use MOMENT")
 
         model = MOMENTPipeline.from_pretrained(
             "AutonLab/MOMENT-1-large",
