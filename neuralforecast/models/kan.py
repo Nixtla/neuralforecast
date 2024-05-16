@@ -375,7 +375,7 @@ class KAN(BaseWindows):
 
         if isinstance(self.hidden_size, int):
             self.hidden_layers = (
-                [self.input_size] + self.n_hidden_layer * [self.hidden_size] + [self.h]
+                [self.input_size] + self.n_hidden_layers * [self.hidden_size] + [self.h]
             )
         elif isinstance(self.hidden_size, list):
             if len(self.hidden_size) != self.n_hidden_layers:
