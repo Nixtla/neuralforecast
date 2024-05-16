@@ -10,12 +10,17 @@ import warnings
 import torch
 import torch.nn as nn
 import math
+import numpy.typing as npt
 
+from copy import deepcopy
+from dataclasses import dataclass
+from argparse import Namespace
 from ..losses.pytorch import MAE
 from ..common._base_multivariate import BaseMultivariate
 
 try:
     from transformers import T5Config, T5EncoderModel, T5Model
+    from huggingface_hub import PyTorchModelHubMixin
 
     IS_TRANSFORMERS_INSTALLED = True
 except:
@@ -321,12 +326,73 @@ class Masking:
         return self.convert_patch_to_seq_view(mask, self.patch_len).long()
 
 # %% ../../nbs/models.moment.ipynb 15
-class ForecastingHead(nn.Module):
+class NamespaceWithDefaults(Namespace):
+    @classmethod
+    def from_namespace(cls, namespace):
+        new_instance = cls()
+        for attr in dir(namespace):
+            if not attr.startswith("__"):
+                setattr(new_instance, attr, getattr(namespace, attr))
+        return new_instance
+
+    def getattr(self, key, default=None):
+        return getattr(self, key, default)
+
+
+@dataclass
+class TimeseriesOutputs:
+    forecast: npt.NDArray = None
+    anomaly_scores: npt.NDArray = None
+    logits: npt.NDArray = None
+    labels: Optional[str] = None
+    input_mask: npt.NDArray = None
+    pretrain_mask: npt.NDArray = None
+    reconstruction: npt.NDArray = None
+    embeddings: npt.NDArray = None
+    metadata: Optional[dict] = None
+    illegal_output: bool = False
+
+
+@dataclass
+class TASKS:
+    RECONSTRUCTION: str = "reconstruction"
+    FORECASTING: str = "forecasting"
+
+# %% ../../nbs/models.moment.ipynb 17
+SUPPORTED_HUGGINGFACE_MODELS = [
+    "google/flan-t5-small",
+    "google/flan-t5-base",
+    "google/flan-t5-large",
+    "google/flan-t5-xl",
+    "google/flan-t5-xxl",
+]
+
+
+class PretrainHead(nn.Module):
     def __init__(
         self,
-        head_nf: int = 768 * 64,
-        forecast_horizon: int = 96,
-        head_dropout: float = 0.0,
+        d_model: int = 768,
+        patch_len: int = 8,
+        head_dropout: float = 0.1,
+        orth_gain: float = 1.41,
+    ):
+        super().__init__()
+        self.dropout = nn.Dropout(head_dropout)
+        self.linear = nn.Linear(d_model, patch_len)
+
+        if orth_gain is not None:
+            torch.nn.init.orthogonal_(self.linear.weight, gain=orth_gain)
+            self.linear.bias.data.zero_()
+
+    def forward(self, x):
+        x = self.linear(self.dropout(x))
+        x = x.flatten(start_dim=2, end_dim=3)
+        return x
+
+
+class ForecastingHead(nn.Module):
+    def __init__(
+        self, head_nf: int = 768 * 64, forecast_horizon: int = 96, head_dropout: int = 0
     ):
         super().__init__()
         self.flatten = nn.Flatten(start_dim=-2)
@@ -339,7 +405,242 @@ class ForecastingHead(nn.Module):
         x = self.dropout(x)
         return x
 
-# %% ../../nbs/models.moment.ipynb 17
+
+class MOMENT_module(nn.Module):
+    def __init__(self, config: Namespace | dict, **kwargs: dict):
+        super().__init__()
+        config = self._update_inputs(config, **kwargs)
+        config = self._validate_inputs(config)
+        self.config = config
+        self.task_name = config.task_name
+        self.seq_len = config.seq_len
+        self.patch_len = config.patch_len
+
+        self.normalizer = RevIN(
+            num_features=1, affine=config.getattr("revin_affine", False)
+        )
+        self.tokenizer = Patching(
+            patch_len=config.patch_len, stride=config.patch_stride_len
+        )
+        self.patch_embedding = PatchEmbedding(
+            d_model=config.d_model,
+            seq_len=config.seq_len,
+            patch_len=config.patch_len,
+            stride=config.patch_stride_len,
+            dropout=config.getattr("dropout", 0.1),
+            add_positional_embedding=config.getattr("add_positional_embedding", True),
+            value_embedding_bias=config.getattr("value_embedding_bias", False),
+            orth_gain=config.getattr("orth_gain", 1.41),
+        )
+        self.mask_generator = Masking(mask_ratio=config.getattr("mask_ratio", 0.0))
+        self.encoder = self._get_transformer_backbone(config)
+        self.head = self._get_head(self.task_name)
+
+    def _update_inputs(
+        self, config: Namespace | dict, **kwargs: dict
+    ) -> NamespaceWithDefaults:
+        if isinstance(config, dict) and "model_kwargs" in kwargs:
+            return NamespaceWithDefaults(**{**config, **kwargs["model_kwargs"]})
+        else:
+            return NamespaceWithDefaults.from_namespace(config)
+
+    def _validate_inputs(self, config: NamespaceWithDefaults) -> NamespaceWithDefaults:
+        if (
+            config.d_model is None
+            and config.transformer_backbone in SUPPORTED_HUGGINGFACE_MODELS
+        ):
+            config.d_model = self.get_huggingface_model_dimensions(
+                config.transformer_backbone
+            )
+        elif config.d_model is None:
+            raise ValueError(
+                "d_model must be specified if transformer backbone "
+                "unless transformer backbone is a Huggingface model."
+            )
+
+        if config.transformer_type not in [
+            "encoder_only",
+            "decoder_only",
+            "encoder_decoder",
+        ]:
+            raise ValueError(
+                "transformer_type must be one of "
+                "['encoder_only', 'decoder_only', 'encoder_decoder']"
+            )
+
+        if config.patch_stride_len != config.patch_len:
+            warnings.warn("Patch stride length is not equal to patch length.")
+        return config
+
+    def _get_head(self, task_name: str) -> nn.Module:
+        if task_name == TASKS.RECONSTRUCTION:
+            return PretrainHead(
+                self.config.d_model,
+                self.config.patch_len,
+                self.config.getattr("dropout", 0.1),
+                self.config.getattr("orth_gain", 1.41),
+            )
+        elif task_name == TASKS.FORECASTING:
+            num_patches = (
+                max(self.config.seq_len, self.config.patch_len) - self.config.patch_len
+            ) // self.config.patch_stride_len + 1
+            self.head_nf = self.config.d_model * num_patches
+            return ForecastingHead(
+                self.head_nf,
+                self.config.forecast_horizon,
+                self.config.getattr("head_dropout", 0.1),
+            )
+        else:
+            raise NotImplementedError(f"Task {task_name} not implemented.")
+
+    def _get_transformer_backbone(self, config) -> nn.Module:
+        if config.getattr("randomly_initialize_backbone", False):
+            model_config = T5Config.from_pretrained(config.transformer_backbone)
+            transformer_backbone = T5Model(model_config)
+        else:
+            transformer_backbone = T5EncoderModel.from_pretrained(
+                config.transformer_backbone
+            )
+
+        transformer_backbone = transformer_backbone.get_encoder()
+        return transformer_backbone
+
+    def __call__(self, *args, **kwargs) -> TimeseriesOutputs:
+        return self.forward(*args, **kwargs)
+
+    @staticmethod
+    def get_huggingface_model_dimensions(model_name):
+        config = T5Config.from_pretrained(model_name)
+        return config.d_model
+
+    def reconstruction(
+        self,
+        x_enc: torch.Tensor,
+        input_mask: torch.Tensor = None,
+        mask: torch.Tensor = None,
+        **kwargs,
+    ) -> TimeseriesOutputs:
+        batch_size, n_channels, _ = x_enc.shape
+
+        if mask is None:
+            mask = self.mask_generator.generate_mask(x=x_enc, input_mask=input_mask)
+            mask = mask.to(x_enc.device)  # mask: [batch_size x seq_len]
+
+        x_enc = self.normalizer(x=x_enc, mask=mask * input_mask, mode="norm")
+        # Prevent too short time-series from causing NaNs
+        x_enc = torch.nan_to_num(x_enc, nan=0, posinf=0, neginf=0)
+
+        x_enc = self.tokenizer(x=x_enc)
+        enc_in = self.patch_embedding(x_enc, mask=mask)
+
+        n_patches = enc_in.shape[2]
+        enc_in = enc_in.reshape(
+            (batch_size * n_channels, n_patches, self.config.d_model)
+        )
+
+        patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len)
+        attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0)
+        if self.config.transformer_type == "encoder_decoder":
+            outputs = self.encoder(
+                inputs_embeds=enc_in,
+                decoder_inputs_embeds=enc_in,
+                attention_mask=attention_mask,
+            )
+        else:
+            outputs = self.encoder(inputs_embeds=enc_in, attention_mask=attention_mask)
+        enc_out = outputs.last_hidden_state
+
+        enc_out = enc_out.reshape((-1, n_channels, n_patches, self.config.d_model))
+
+        dec_out = self.head(enc_out)  # [batch_size x n_channels x seq_len]
+        dec_out = self.normalizer(x=dec_out, mode="denorm")
+
+        if self.config.getattr("debug", False):
+            illegal_output = self._check_model_weights_for_illegal_values()
+        else:
+            illegal_output = None
+
+        return TimeseriesOutputs(
+            input_mask=input_mask,
+            reconstruction=dec_out,
+            pretrain_mask=mask,
+            illegal_output=illegal_output,
+        )
+
+    def forecast(
+        self, x_enc: torch.Tensor, input_mask: torch.Tensor = None, **kwargs
+    ) -> TimeseriesOutputs:
+        batch_size, n_channels, seq_len = x_enc.shape
+
+        x_enc = self.normalizer(x=x_enc, mask=input_mask, mode="norm")
+        x_enc = torch.nan_to_num(x_enc, nan=0, posinf=0, neginf=0)
+
+        x_enc = self.tokenizer(x=x_enc)
+        enc_in = self.patch_embedding(x_enc, mask=torch.ones_like(input_mask))
+
+        n_patches = enc_in.shape[2]
+        enc_in = enc_in.reshape(
+            (batch_size * n_channels, n_patches, self.config.d_model)
+        )
+
+        patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len)
+        attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0)
+        outputs = self.encoder(inputs_embeds=enc_in, attention_mask=attention_mask)
+        enc_out = outputs.last_hidden_state
+        enc_out = enc_out.reshape((-1, n_channels, n_patches, self.config.d_model))
+        # [batch_size x n_channels x n_patches x d_model]
+
+        dec_out = self.head(enc_out)  # [batch_size x n_channels x forecast_horizon]
+        dec_out = self.normalizer(x=dec_out, mode="denorm")
+
+        return TimeseriesOutputs(input_mask=input_mask, forecast=dec_out)
+
+    def forward(
+        self,
+        x_enc: torch.Tensor,
+        mask: torch.Tensor = None,
+        input_mask: torch.Tensor = None,
+        **kwargs,
+    ) -> TimeseriesOutputs:
+        if input_mask is None:
+            input_mask = torch.ones_like(x_enc[:, 0, :])
+
+        if self.task_name == TASKS.RECONSTRUCTION:
+            return self.reconstruction(
+                x_enc=x_enc, mask=mask, input_mask=input_mask, **kwargs
+            )
+        elif self.task_name == TASKS.FORECASTING:
+            return self.forecast(x_enc=x_enc, input_mask=input_mask, **kwargs)
+        else:
+            raise NotImplementedError(f"Task {self.task_name} not implemented.")
+
+
+class MOMENTPipeline(MOMENT_module, PyTorchModelHubMixin):
+    def __init__(self, config: Namespace | dict, **kwargs: dict):
+        self._validate_model_kwargs(**kwargs)
+        self.new_task_name = kwargs.get("model_kwargs", {}).pop(
+            "task_name", TASKS.RECONSTRUCTION
+        )
+        super().__init__(config, **kwargs)
+
+    def _validate_model_kwargs(self, **kwargs: dict) -> None:
+        kwargs = deepcopy(kwargs)
+        kwargs.setdefault("model_kwargs", {"task_name": TASKS.RECONSTRUCTION})
+        kwargs["model_kwargs"].setdefault("task_name", TASKS.RECONSTRUCTION)
+        config = Namespace(**kwargs["model_kwargs"])
+
+        if config.task_name == TASKS.FORECASTING:
+            if not hasattr(config, "forecast_horizon"):
+                raise ValueError(
+                    "forecast_horizon must be specified for long-horizon forecasting."
+                )
+
+    def init(self) -> None:
+        if self.new_task_name != TASKS.RECONSTRUCTION:
+            self.task_name = self.new_task_name
+            self.head = self._get_head(self.new_task_name)
+
+# %% ../../nbs/models.moment.ipynb 19
 class MOMENT(BaseMultivariate):
     """MOMENT
 
@@ -349,18 +650,7 @@ class MOMENT(BaseMultivariate):
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
     `n_series`: int, number of time-series.<br>
-    `d_model`: int=16, dimension for the Transformer backbone if not using a pretrained model.<br>
-    `revin_affine`: bool=False, if True adds learnable parameters to RevIN normalization. <br>
-    `patch_len`: int=8, length of patches.<br>
-    `patch_stride_len`: int=8, stride between each patch.<br>
-    `dropout`: float=0.1, dropout rate used for the dropout layers in the encoder.<br>
-    `head_dropout`: float=0.1, dropout rate used for the dropout layers in the decoder.<br>
-    `add_positional_embedding`: bool=False, adds Positional Embeddings if True.<br>
-    `value_embedding_bias`: bool=False, adds bias term to Value Embedding if True.<br>
-    `orth_gain`: float=1.41, gain used for orthogonal initialization of Patch Embeddings.<br>
-    `mask_ratio`: float=0.0, fraction of patches masked.<br>
-    `randomly_initialize_backbone`: bool=False, if True this will load a randomly initialized Transformer. Otherwise, a pre-trained model is chosen.<br>
-    `transformer_backbone`: str='google/flan-t5-base', backbone model used. Choose from "google/flan-t5-small", "google/flan-t5-base", "google/flan-t5-large", "google/flan-t5-xl", "google/flan-t5-xxl".<br>
+    `model`: str="AutonLab/MOMENT-1-large", which model to use. If None, will train a model using HF T5 pretrained models.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
@@ -399,18 +689,7 @@ class MOMENT(BaseMultivariate):
         h: int,
         input_size: int,
         n_series: int,
-        d_model: Optional[int] = None,
-        revin_affine: bool = False,
-        patch_len: int = 8,
-        patch_stride_len: int = 8,
-        dropout: float = 0.1,
-        head_dropout: float = 0.1,
-        add_positional_embedding: bool = False,
-        value_embedding_bias: bool = False,
-        orth_gain: float = 1.41,
-        mask_ratio: float = 0.0,
-        randomly_initialize_backbone: bool = False,
-        transformer_backbone: str = "google/flan-t5-base",
+        model="AutonLab/MOMENT-1-large",
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -457,34 +736,10 @@ class MOMENT(BaseMultivariate):
             **trainer_kwargs
         )
 
-        SUPPORTED_HUGGINGFACE_MODELS = [
-            "google/flan-t5-small",
-            "google/flan-t5-base",
-            "google/flan-t5-large",
-            "google/flan-t5-xl",
-            "google/flan-t5-xxl",
-        ]
-
-        if d_model is None and transformer_backbone in SUPPORTED_HUGGINGFACE_MODELS:
-            if not IS_TRANSFORMERS_INSTALLED:
-                raise ImportError(
-                    "Please install `transformers` to use MOMENT with a "
-                    "HuggingFace model"
-                )
-            d_model = self.get_huggingface_model_dimensions(transformer_backbone)
-        elif d_model is None:
-            raise Exception(
-                "d_model must be specified if transformer backbone unless "
-                "transformer backbone is a Huggingface model."
-            )
-
         # ----------------------------------- Parse dimensions -----------------------------------#
         self.futr_exog_size = len(self.futr_exog_list)
         self.hist_exog_size = len(self.hist_exog_list)
         self.stat_exog_size = len(self.stat_exog_list)
-
-        self.d_model = d_model
-        self.patch_len = patch_len
 
         if stat_exog_list is not None:
             raise Exception("MOMENT does not support static exogenous variables")
@@ -495,88 +750,28 @@ class MOMENT(BaseMultivariate):
 
         # ---------------------------------- Instantiate Model -----------------------------------#
 
-        self.normalizer = RevIN(num_features=1, affine=revin_affine)
-
-        self.tokenizer = Patching(patch_len=patch_len, stride=patch_stride_len)
-        self.patch_embedding = PatchEmbedding(
-            d_model=d_model,
-            seq_len=input_size,
-            patch_len=patch_len,
-            stride=patch_stride_len,
-            dropout=dropout,
-            add_positional_embedding=add_positional_embedding,
-            value_embedding_bias=value_embedding_bias,
-            orth_gain=orth_gain,
+        model = MOMENTPipeline.from_pretrained(
+            "AutonLab/MOMENT-1-large",
+            model_kwargs={
+                "task_name": "forecasting",
+                "forecast_horizon": h,
+                "seq_len": input_size,
+            },
         )
-        self.mask_generator = Masking(mask_ratio=mask_ratio)
-        self.encoder = self._get_transformer_backbone(
-            transformer_backbone, randomly_initialize_backbone
-        )
-
-        num_patches = (max(input_size, patch_len) - patch_len) // patch_stride_len + 1
-        self.head_nf = d_model * num_patches
-
-        self.head = ForecastingHead(
-            head_nf=self.head_nf,
-            forecast_horizon=h,
-            head_dropout=head_dropout,
-        )
-
-    @staticmethod
-    def _get_transformer_backbone(
-        transformer_backbone, randomly_initialize_backbone=False
-    ) -> nn.Module:
-        if randomly_initialize_backbone:
-            model_config = T5Config.from_pretrained(transformer_backbone)
-            transformer_backbone = T5Model(model_config)
-        else:
-            transformer_backbone = T5EncoderModel.from_pretrained(transformer_backbone)
-        transformer_backbone = transformer_backbone.get_encoder()
-
-        return transformer_backbone
-
-    @staticmethod
-    def get_huggingface_model_dimensions(model_name: str = "google/flan-t5-base"):
-        config = T5Config.from_pretrained(model_name)
-        return config.d_model
+        model.init()
+        self.model = model
 
     def forward(self, windows_batch):
         # Parse windows_batch
         x = windows_batch["insample_y"]  #   [B, L, n_series (N)]
-
-        batch_size, seq_len = x.shape[:2]  #   B = batch_size, L = seq_len
-
         x_enc = x.permute(0, 2, 1)  #   [B, L, N] -> [B, N, L]
-        input_mask = torch.ones(
-            (batch_size, seq_len), device=x_enc.device, dtype=x_enc.dtype
-        )
 
-        n_channels = x_enc.shape[1]
-
-        x_enc = self.normalizer(x=x_enc, mask=input_mask, mode="norm")
-        x_enc = torch.nan_to_num(x_enc, nan=0, posinf=0, neginf=0)
-
-        x_enc = self.tokenizer(x=x_enc)
-        enc_in = self.patch_embedding(x_enc, mask=torch.ones_like(input_mask))
-
-        n_patches = enc_in.shape[2]
-        enc_in = enc_in.reshape((batch_size * n_channels, n_patches, self.d_model))
-
-        patch_view_mask = Masking.convert_seq_to_patch_view(input_mask, self.patch_len)
-        attention_mask = patch_view_mask.repeat_interleave(n_channels, dim=0)
-        outputs = self.encoder(inputs_embeds=enc_in, attention_mask=attention_mask)
-        enc_out = outputs.last_hidden_state
-        enc_out = enc_out.reshape(
-            (-1, n_channels, n_patches, self.d_model)
-        )  # [B, N, n_patches, d_model]
-
-        dec_out = self.head(enc_out)  # [B, N, h]
-        dec_out = self.normalizer(x=dec_out, mode="denorm")
-
-        dec_out = dec_out.permute(0, 2, 1)  # [B, N, h] -> [B, h, N]
+        #  Run MOMENT
+        output = self.model(x_enc)
 
         # Map to output domain
-        forecast = self.loss.domain_map(dec_out)
+        output = output.forecast.permute(0, 2, 1)  # [B, N, h] -> [B, h, N]
+        forecast = self.loss.domain_map(output)
 
         # domain_map might have squeezed the last dimension in case n_series == 1
         # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
