@@ -16,7 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from argparse import Namespace
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_windows import BaseWindows
 
 try:
     from transformers import T5Config, T5EncoderModel, T5Model
@@ -643,16 +643,15 @@ if IS_TRANSFORMERS_INSTALLED:
                 self.head = self._get_head(self.new_task_name)
 
 # %% ../../nbs/models.moment.ipynb 19
-class MOMENT(BaseMultivariate):
+class MOMENT(BaseWindows):
     """MOMENT
 
-    MOMENT is a family of open-source foundation models for time series forecasting. MOMENT uses a Transformer architecture, and works by learning embeddings of patches of time series and reconstructing the learned embeddings onto an output dimension to fulfil a set of time series tasks, such as forecasting, classification, anomaly detection and imputation. In this implementation, only the forecasting task is supported. This is a multivariate forecasting architecture.
+    MOMENT is a family of open-source foundation models for time series forecasting. MOMENT uses a Transformer architecture, and works by learning embeddings of patches of time series and reconstructing the learned embeddings onto an output dimension to fulfil a set of time series tasks, such as forecasting, classification, anomaly detection and imputation. In this implementation, only the forecasting task is supported. This is a univariate forecasting architecture.
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
-    `n_series`: int, number of time-series.<br>
-    `model`: str="AutonLab/MOMENT-1-large", which model to use. If None, will train a model using HF T5 pretrained models.<br>
+    `model_name`: str="AutonLab/MOMENT-1-large", which model to use. Supported models: ["AutonLab/MOMENT-1-large"] <br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
@@ -684,17 +683,17 @@ class MOMENT(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
+    SAMPLING_TYPE = "windows"
 
     def __init__(
         self,
         h: int,
         input_size: int,
-        n_series: int,
-        model="AutonLab/MOMENT-1-large",
+        model_name="AutonLab/MOMENT-1-large",
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5,
@@ -703,6 +702,10 @@ class MOMENT(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=1024,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -710,16 +713,16 @@ class MOMENT(BaseMultivariate):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
-        **trainer_kwargs
+        **trainer_kwargs,
     ):
 
         super(MOMENT, self).__init__(
             h=h,
             input_size=input_size,
-            n_series=n_series,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -728,6 +731,10 @@ class MOMENT(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -735,7 +742,7 @@ class MOMENT(BaseMultivariate):
             drop_last_loader=drop_last_loader,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
 
         # ----------------------------------- Parse dimensions -----------------------------------#
@@ -749,37 +756,47 @@ class MOMENT(BaseMultivariate):
             raise Exception("MOMENT does not support future exogenous variables")
         if hist_exog_list is not None:
             raise Exception("MOMENT does not support historical exogenous variables")
+        if self.loss.outputsize_multiplier != 1:
+            raise Exception(
+                f"MOMENT does not support {loss}. Please use a point loss (MAE, MSE, ...)."
+            )
+        if self.valid_loss.outputsize_multiplier != 1:
+            raise Exception(
+                f"MOMENT does not support {valid_loss}. Please use a point valid_loss (MAE, MSE, ...)."
+            )
+
+        SUPPORTED_MODELS = ["AutonLab/MOMENT-1-large"]
+        if model_name not in SUPPORTED_MODELS:
+            raise Exception(
+                f"model_name='{model_name}' not supported. Please use a "
+                f"model_name from this list: {SUPPORTED_MODELS}"
+            )
 
         # ---------------------------------- Instantiate Model -----------------------------------#
         if not IS_TRANSFORMERS_INSTALLED:
             raise ImportError("Please install `transformers` to use MOMENT")
 
-        model = MOMENTPipeline.from_pretrained(
-            "AutonLab/MOMENT-1-large",
+        moment = MOMENTPipeline.from_pretrained(
+            model_name,
             model_kwargs={
                 "task_name": "forecasting",
                 "forecast_horizon": h,
                 "seq_len": input_size,
             },
         )
-        model.init()
-        self.model = model
+        moment.init()
+        self.moment = moment
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"]  #   [B, L, n_series (N)]
-        x_enc = x.permute(0, 2, 1)  #   [B, L, N] -> [B, N, L]
+        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x_enc = x.permute(0, 2, 1)  #   [B, L, 1] -> [B, 1, L]
 
         #  Run MOMENT
-        output = self.model(x_enc)
+        output = self.moment(x_enc)
 
         # Map to output domain
-        output = output.forecast.permute(0, 2, 1)  # [B, N, h] -> [B, h, N]
+        output = output.forecast.permute(0, 2, 1)  # [B, 1, h] -> [B, h, 1]
         forecast = self.loss.domain_map(output)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast
