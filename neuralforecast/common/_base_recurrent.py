@@ -343,9 +343,13 @@ class BaseRecurrent(BaseModel):
             raise Exception("Loss is NaN, training stopped.")
 
         self.log(
-            "train_loss", loss, batch_size=self.batch_size, prog_bar=True, on_epoch=True
+            "train_loss",
+            loss.item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, float(loss)))
+        self.train_trajectories.append((self.global_step, loss.item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -438,8 +442,8 @@ class BaseRecurrent(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss,
-            batch_size=self.batch_size,
+            valid_loss.item(),
+            batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
@@ -494,7 +498,14 @@ class BaseRecurrent(BaseModel):
             )
         return y_hat
 
-    def fit(self, dataset, val_size=0, test_size=0, random_seed=None):
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
         """Fit.
 
         The `fit` method, optimizes the neural network's weights using the
@@ -523,6 +534,7 @@ class BaseRecurrent(BaseModel):
             val_size=val_size,
             test_size=test_size,
             random_seed=random_seed,
+            distributed_config=distributed_config,
         )
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
