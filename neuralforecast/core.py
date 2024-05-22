@@ -785,7 +785,9 @@ class NeuralForecast:
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        cols = self._get_model_names()  # Hack for IQLoss, think about better way
+        cols = (
+            self._get_model_names()
+        )  # Needed for IQLoss as column names may have changed during the call to .predict()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:

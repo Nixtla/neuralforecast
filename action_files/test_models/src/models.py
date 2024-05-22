@@ -18,7 +18,7 @@ from neuralforecast.models.tcn import TCN
 from neuralforecast.models.deepar import DeepAR
 # from neuralforecast.models.mlp import MLP
 from neuralforecast.models.nhits import NHITS
-# from neuralforecast.models.nbeats import NBEATS
+from neuralforecast.models.nbeats import NBEATS
 # from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.tft import TFT
 from neuralforecast.models.vanillatransformer import VanillaTransformer
@@ -38,7 +38,7 @@ from neuralforecast.auto import (
     # AutoTFT
 )
 
-from neuralforecast.losses.pytorch import SMAPE, MAE
+from neuralforecast.losses.pytorch import SMAPE, MAE, IQLoss
 from ray import tune
 
 from src.data import get_data
@@ -78,6 +78,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         BiTCN(h=horizon, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         TiDE(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
         DeepNPTS(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
+        NBEATS(h=horizon, input_size=2 * horizon, loss=IQLoss(), max_steps=2000, val_check_steps=500),
     ]
 
     # Models
