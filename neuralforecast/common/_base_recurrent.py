@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-import neuralforecast.losses.pytorch as losses
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -118,11 +117,6 @@ class BaseRecurrent(BaseModel):
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
         self.alias = alias
-
-        # Initialize IQLoss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.init_network(h=h)
-            self.valid_loss = self.loss
 
     def _normalization(self, batch, val_size=0, test_size=0):
         temporal = batch["temporal"]  # B, C, T

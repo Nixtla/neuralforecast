@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-import neuralforecast.losses.pytorch as losses
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -130,10 +129,6 @@ class BaseWindows(BaseModel):
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
         self.alias = alias
-
-        # Initialize IQLoss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.init_network(h=h)
 
     def _create_windows(self, batch, step, w_idxs=None):
         # Parse common data

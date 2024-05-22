@@ -126,10 +126,6 @@ class BaseMultivariate(BaseModel):
         self.validation_step_outputs = []
         self.alias = alias
 
-        # Initialize IQLoss
-        if isinstance(self.loss, losses.IQLoss):
-            self.loss.init_network(h=h)
-
     def _create_windows(self, batch, step):
         # Parse common data
         window_size = self.input_size + self.h
