@@ -85,6 +85,9 @@ class DLinear(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -146,19 +149,6 @@ class DLinear(BaseWindows):
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
-        if self.stat_input_size > 0:
-            raise Exception("DLinear does not support static variables yet")
-
-        if self.hist_input_size > 0:
-            raise Exception("DLinear does not support historical variables yet")
-
-        if self.futr_input_size > 0:
-            raise Exception("DLinear does not support future variables yet")
-
         if moving_avg_window % 2 == 0:
             raise Exception("moving_avg_window should be uneven")
 
