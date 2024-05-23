@@ -88,6 +88,9 @@ class TiDE(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -157,10 +160,6 @@ class TiDE(BaseWindows):
             **trainer_kwargs
         )
         self.h = h
-
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
 
         if self.hist_exog_size > 0 or self.futr_exog_size > 0:
             self.hist_exog_projection = MLPResidual(

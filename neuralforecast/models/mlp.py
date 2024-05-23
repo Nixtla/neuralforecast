@@ -56,6 +56,9 @@ class MLP(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -123,15 +126,11 @@ class MLP(BaseWindows):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
         input_size_first_layer = (
             input_size
-            + self.hist_input_size * input_size
-            + self.futr_input_size * (input_size + h)
-            + self.stat_input_size
+            + self.hist_exog_size * input_size
+            + self.futr_exog_size * (input_size + h)
+            + self.stat_exog_size
         )
 
         # MultiLayer Perceptron
@@ -158,17 +157,17 @@ class MLP(BaseWindows):
         # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
         # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
         batch_size = len(insample_y)
-        if self.hist_input_size > 0:
+        if self.hist_exog_size > 0:
             insample_y = torch.cat(
                 (insample_y, hist_exog.reshape(batch_size, -1)), dim=1
             )
 
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             insample_y = torch.cat(
                 (insample_y, futr_exog.reshape(batch_size, -1)), dim=1
             )
 
-        if self.stat_input_size > 0:
+        if self.stat_exog_size > 0:
             insample_y = torch.cat(
                 (insample_y, stat_exog.reshape(batch_size, -1)), dim=1
             )
