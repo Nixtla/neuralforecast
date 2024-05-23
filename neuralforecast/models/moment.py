@@ -775,10 +775,6 @@ class MOMENT(BaseWindows):
         )
 
         # ----------------------------------- Parse dimensions -----------------------------------#
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
-
         if self.loss.outputsize_multiplier != 1:
             raise Exception(
                 f"MOMENT does not support {loss}. Please use a point loss (MAE, MSE, ...)."
