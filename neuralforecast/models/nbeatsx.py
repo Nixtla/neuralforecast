@@ -320,6 +320,9 @@ class NBEATSx(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -395,16 +398,12 @@ class NBEATSx(BaseWindows):
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
         blocks = self.create_stack(
             h=h,
             input_size=input_size,
-            futr_input_size=self.futr_input_size,
-            hist_input_size=self.hist_input_size,
-            stat_input_size=self.stat_input_size,
+            futr_input_size=self.futr_exog_size,
+            hist_input_size=self.hist_exog_size,
+            stat_input_size=self.stat_exog_size,
             stack_types=stack_types,
             n_blocks=n_blocks,
             mlp_units=mlp_units,

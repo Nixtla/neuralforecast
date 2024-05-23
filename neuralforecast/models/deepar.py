@@ -99,6 +99,9 @@ class DeepAR(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -137,10 +140,6 @@ class DeepAR(BaseWindows):
         optimizer_kwargs=None,
         **trainer_kwargs
     ):
-
-        # DeepAR does not support historic exogenous variables
-        if hist_exog_list is not None:
-            raise Exception("DeepAR does not support historic exogenous variables.")
 
         if exclude_insample_y:
             raise Exception("DeepAR has no possibility for excluding y.")
@@ -195,10 +194,6 @@ class DeepAR(BaseWindows):
         self.encoder_n_layers = lstm_n_layers
         self.encoder_hidden_size = lstm_hidden_size
         self.encoder_dropout = lstm_dropout
-
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = 0
-        self.stat_exog_size = len(self.stat_exog_list)
 
         # LSTM input size (1 for target variable y)
         input_encoder = 1 + self.futr_exog_size + self.stat_exog_size

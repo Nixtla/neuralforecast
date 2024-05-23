@@ -188,6 +188,9 @@ class TimesNet(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -254,15 +257,6 @@ class TimesNet(BaseWindows):
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
-        if self.stat_input_size > 0:
-            raise Exception("TimesNet does not support static variables yet")
-        if self.hist_input_size > 0:
-            raise Exception("TimesNet does not support historical variables yet")
-
         self.c_out = self.loss.outputsize_multiplier
         self.enc_in = 1
         self.dec_in = 1
@@ -283,7 +277,7 @@ class TimesNet(BaseWindows):
 
         self.enc_embedding = DataEmbedding(
             c_in=self.enc_in,
-            exog_input_size=self.futr_input_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=True,  # Original implementation uses true
             dropout=dropout,
@@ -304,7 +298,7 @@ class TimesNet(BaseWindows):
 
         # Parse inputs
         insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
         else:
             x_mark_enc = None

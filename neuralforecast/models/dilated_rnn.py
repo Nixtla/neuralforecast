@@ -324,6 +324,9 @@ class DilatedRNN(BaseRecurrent):
 
     # Class attributes
     SAMPLING_TYPE = "recurrent"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -393,10 +396,6 @@ class DilatedRNN(BaseRecurrent):
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
         self.decoder_layers = decoder_layers
-
-        self.futr_exog_size = len(self.futr_exog_list)
-        self.hist_exog_size = len(self.hist_exog_list)
-        self.stat_exog_size = len(self.stat_exog_list)
 
         # RNN input size (1 for target variable y)
         input_encoder = 1 + self.hist_exog_size + self.stat_exog_size

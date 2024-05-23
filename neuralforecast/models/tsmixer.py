@@ -155,6 +155,9 @@ class TSMixer(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -211,19 +214,6 @@ class TSMixer(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
-        # Asserts
-        if stat_exog_list is not None:
-            raise Exception(
-                "TSMixer does not support static exogenous variables. Use TSMixerx if you want to use static exogenous variables."
-            )
-        if futr_exog_list is not None:
-            raise Exception(
-                "TSMixer does not support future exogenous variables. Use TSMixerx if you want to use future exogenous variables."
-            )
-        if hist_exog_list is not None:
-            raise Exception(
-                "TSMixer does not support historical exogenous variables. Use TSMixerx if you want to use historical exogenous variables."
-            )
 
         # Reversible InstanceNormalization layer
         self.revin = revin
