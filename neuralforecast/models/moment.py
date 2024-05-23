@@ -710,6 +710,9 @@ class MOMENT(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -776,12 +779,6 @@ class MOMENT(BaseWindows):
         self.hist_exog_size = len(self.hist_exog_list)
         self.stat_exog_size = len(self.stat_exog_list)
 
-        if stat_exog_list is not None:
-            raise Exception("MOMENT does not support static exogenous variables")
-        if futr_exog_list is not None:
-            raise Exception("MOMENT does not support future exogenous variables")
-        if hist_exog_list is not None:
-            raise Exception("MOMENT does not support historical exogenous variables")
         if self.loss.outputsize_multiplier != 1:
             raise Exception(
                 f"MOMENT does not support {loss}. Please use a point loss (MAE, MSE, ...)."
