@@ -50,6 +50,9 @@ class MLPMultivariate(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -109,15 +112,11 @@ class MLPMultivariate(BaseMultivariate):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
         input_size_first_layer = n_series * (
             input_size
-            + self.hist_input_size * input_size
-            + self.futr_input_size * (input_size + h)
-            + self.stat_input_size
+            + self.hist_exog_size * input_size
+            + self.futr_exog_size * (input_size + h)
+            + self.stat_exog_size
         )
 
         # MultiLayer Perceptron
@@ -148,13 +147,13 @@ class MLPMultivariate(BaseMultivariate):
         # Contatenate [ Y^1_t, ..., Y^N_t | X^1_{t-L},..., X^1_{t}, ..., X^N_{t} | F^1_{t-L},..., F^1_{t+H}, ...., F^N_{t+H} | S^1, ..., S^N ]
         batch_size = x.shape[0]
         x = x.reshape(batch_size, -1)
-        if self.hist_input_size > 0:
+        if self.hist_exog_size > 0:
             x = torch.cat((x, hist_exog.reshape(batch_size, -1)), dim=1)
 
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             x = torch.cat((x, futr_exog.reshape(batch_size, -1)), dim=1)
 
-        if self.stat_input_size > 0:
+        if self.stat_exog_size > 0:
             x = torch.cat((x, stat_exog.reshape(batch_size, -1)), dim=1)
 
         for layer in self.mlp:

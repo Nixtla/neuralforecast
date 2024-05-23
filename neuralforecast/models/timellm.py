@@ -276,6 +276,9 @@ class TimeLLM(BaseWindows):
     """
 
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -349,14 +352,6 @@ class TimeLLM(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs,
         )
-
-        # Asserts
-        if stat_exog_list is not None:
-            raise Exception("TimeLLM does not support static exogenous variables")
-        if futr_exog_list is not None:
-            raise Exception("TimeLLM does not support future exogenous variables")
-        if hist_exog_list is not None:
-            raise Exception("TimeLLM does not support historical exogenous variables")
 
         # Architecture
         self.patch_len = patch_len

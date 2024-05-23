@@ -168,6 +168,9 @@ class StemGNN(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -227,11 +230,6 @@ class StemGNN(BaseMultivariate):
         # Quick fix for now, fix the model later.
         if n_stacks != 2:
             raise Exception("StemGNN currently only supports n_stacks=2.")
-
-        # Exogenous variables
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
 
         self.unit = n_series
         self.stack_cnt = n_stacks

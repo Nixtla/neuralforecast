@@ -424,6 +424,9 @@ class TFT(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -489,28 +492,28 @@ class TFT(BaseWindows):
         )
         self.example_length = input_size + h
 
-        stat_input_size = len(self.stat_exog_list)
-        futr_input_size = max(len(self.futr_exog_list), 1)
-        hist_input_size = len(self.hist_exog_list)
-        num_historic_vars = futr_input_size + hist_input_size + tgt_size
+        futr_exog_size = max(self.futr_exog_size, 1)
+        num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
 
         # ------------------------------- Encoders -----------------------------#
         self.embedding = TFTEmbedding(
             hidden_size=hidden_size,
-            stat_input_size=stat_input_size,
-            futr_input_size=futr_input_size,
-            hist_input_size=hist_input_size,
+            stat_input_size=self.stat_exog_size,
+            futr_input_size=futr_exog_size,
+            hist_input_size=self.hist_exog_size,
             tgt_size=tgt_size,
         )
 
         self.static_encoder = StaticCovariateEncoder(
-            hidden_size=hidden_size, num_static_vars=stat_input_size, dropout=dropout
+            hidden_size=hidden_size,
+            num_static_vars=self.stat_exog_size,
+            dropout=dropout,
         )
 
         self.temporal_encoder = TemporalCovariateEncoder(
             hidden_size=hidden_size,
             num_historic_vars=num_historic_vars,
-            num_future_vars=futr_input_size,
+            num_future_vars=futr_exog_size,
             dropout=dropout,
         )
 

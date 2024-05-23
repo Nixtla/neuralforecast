@@ -23,6 +23,7 @@ from neuralforecast.tsdataset import (
     TimeSeriesDataset,
     _DistributedTimeSeriesDataModule,
 )
+from ..losses.pytorch import IQLoss
 
 # %% ../../nbs/common.base_model.ipynb 3
 @dataclass
@@ -63,6 +64,10 @@ def _disable_torch_init():
 
 # %% ../../nbs/common.base_model.ipynb 5
 class BaseModel(pl.LightningModule):
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
+
     def __init__(
         self,
         random_seed,
@@ -107,6 +112,34 @@ class BaseModel(pl.LightningModule):
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
         self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
         self.stat_exog_list = list(stat_exog_list) if stat_exog_list is not None else []
+
+        # Set data sizes
+        self.futr_exog_size = len(self.futr_exog_list)
+        self.hist_exog_size = len(self.hist_exog_list)
+        self.stat_exog_size = len(self.stat_exog_list)
+
+        # Check if model supports exogenous, otherwise raise Exception
+        if not self.EXOGENOUS_FUTR and self.futr_exog_size > 0:
+            raise Exception(
+                f"{type(self).__name__} does not support future exogenous variables."
+            )
+        if not self.EXOGENOUS_HIST and self.hist_exog_size > 0:
+            raise Exception(
+                f"{type(self).__name__} does not support historical exogenous variables."
+            )
+        if not self.EXOGENOUS_STAT and self.stat_exog_size > 0:
+            raise Exception(
+                f"{type(self).__name__} does not support static exogenous variables."
+            )
+
+        # Implicit Quantile Loss
+        if isinstance(self.loss, IQLoss):
+            if not isinstance(self.valid_loss, IQLoss):
+                raise Exception(
+                    "Please set valid_loss to IQLoss() when training with IQLoss"
+                )
+        if isinstance(self.valid_loss, IQLoss) and not isinstance(self.loss, IQLoss):
+            raise Exception("Please set loss to IQLoss() when validating with IQLoss")
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
@@ -173,6 +206,22 @@ class BaseModel(pl.LightningModule):
         return list(
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
+
+    def _set_quantile_for_iqloss(self, **data_module_kwargs):
+        if "quantile" in data_module_kwargs:
+            if not isinstance(self.loss, IQLoss):
+                raise Exception(
+                    "Please train with loss=IQLoss() to make use of the quantile argument."
+                )
+            else:
+                self.quantile = data_module_kwargs["quantile"]
+                data_module_kwargs.pop("quantile")
+                self.loss.update_quantile(q=self.quantile)
+        elif isinstance(self.loss, IQLoss):
+            self.quantile = 0.5
+            self.loss.update_quantile(q=self.quantile)
+
+        return data_module_kwargs
 
     def _fit(
         self,
