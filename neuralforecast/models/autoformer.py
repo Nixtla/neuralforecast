@@ -475,6 +475,8 @@ class Autoformer(BaseWindows):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
         *References*<br>
@@ -483,6 +485,9 @@ class Autoformer(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -521,6 +526,8 @@ class Autoformer(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super(Autoformer, self).__init__(
@@ -549,20 +556,12 @@ class Autoformer(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
-        if self.stat_input_size > 0:
-            raise Exception("Autoformer does not support static variables yet")
-
-        if self.hist_input_size > 0:
-            raise Exception("Autoformer does not support historical variables yet")
-
         self.label_len = int(np.ceil(input_size * decoder_input_size_multiplier))
         if (self.label_len >= input_size) or (self.label_len <= 0):
             raise Exception(
@@ -583,14 +582,14 @@ class Autoformer(BaseWindows):
         # Embedding
         self.enc_embedding = DataEmbedding(
             c_in=self.enc_in,
-            exog_input_size=self.hist_input_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
-            exog_input_size=self.hist_input_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
@@ -667,7 +666,7 @@ class Autoformer(BaseWindows):
 
         # Parse inputs
         insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
             x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
         else:
