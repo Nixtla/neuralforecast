@@ -1051,7 +1051,24 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
 
 
 class ISQF(TransformedDistribution):
-    # Distribution class for the case when loc/scale is not None
+    """
+    Distribution class for the Incremental (Spline) Quantile Function.
+
+    **Parameters:**<br>
+    `spline_knots`: Tensor parametrizing the x-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces)
+    `spline_heights`: Tensor parametrizing the y-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces)
+    `beta_l`: Tensor containing the non-negative learnable parameter of the left tail. Shape: (*batch_shape,)
+    `beta_r`: Tensor containing the non-negative learnable parameter of the right tail. Shape: (*batch_shape,)
+    `qk_y`: Tensor containing the increasing y-positions of the quantile knots. Shape: (*batch_shape, num_qk)
+    `qk_x`: Tensor containing the increasing x-positions of the quantile knots. Shape: (*batch_shape, num_qk)
+    `loc`: Tensor containing the location in case of a transformed random variable. Shape: (*batch_shape,)
+    `scale`: Tensor containing the scale in case of a transformed random variable. Shape: (*batch_shape,)
+
+    **References:**<br>
+    [Park, Youngsuk, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, and Yuyang Wang (2022). "Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting".](https://proceedings.mlr.press/v151/park22a.html)
+
+    """
+
     def __init__(
         self,
         spline_knots: torch.Tensor,
@@ -1088,15 +1105,15 @@ class ISQF(TransformedDistribution):
 
 class BaseISQF(Distribution):
     """
-    Distribution class for the Incremental (Spline) Quantile Function.
+    Base distribution class for the Incremental (Spline) Quantile Function.
 
     **Parameters:**<br>
     `spline_knots`: Tensor parametrizing the x-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces)
     `spline_heights`: Tensor parametrizing the y-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces)
-    `qk_x`: Tensor containing the increasing x-positions of the quantile knots. Shape: (*batch_shape, num_qk)
-    `qk_y`: Tensor containing the increasing y-positions of the quantile knots. Shape: (*batch_shape, num_qk)
     `beta_l`: Tensor containing the non-negative learnable parameter of the left tail. (*batch_shape,)
     `beta_r`: Tensor containing the non-negative learnable parameter of the right tail. (*batch_shape,)
+    `qk_y`: Tensor containing the increasing y-positions of the quantile knots. Shape: (*batch_shape, num_qk)
+    `qk_x`: Tensor containing the increasing x-positions of the quantile knots. Shape: (*batch_shape, num_qk)
 
     **References:**<br>
     [Park, Youngsuk, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, and Yuyang Wang (2022). "Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting".](https://proceedings.mlr.press/v151/park22a.html)
@@ -1742,6 +1759,9 @@ def isqf_domain_map(
 
     **Parameters:**<br>
     `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `tol`: float, tolerance.<br>
+    `quantiles`: tensor, quantiles used for ISQF (i.e. x-positions for the knots). <br>
+    `num_pieces`: int, num_pieces used for each quantile spline. <br>
 
     **Returns:**<br>
     `(spline_knots, spline_heights, beta_l, beta_r, qk_y, qk_x)`: tuple with tensors of ISQF distribution arguments.<br>
