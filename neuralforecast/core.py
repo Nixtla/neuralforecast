@@ -60,6 +60,7 @@ from neuralforecast.models import (
     TiDE,
     DeepNPTS,
     KAN,
+    KANHITS,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -179,6 +180,7 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "kan": KAN,
     "autokan": KAN,
+    "kanhits": KANHITS,
 }
 
 # %% ../nbs/core.ipynb 8
