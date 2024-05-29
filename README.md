@@ -15,7 +15,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-11-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
-**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like `RNN` to the latest transformers: `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `DLinear`, `NLinear`,`TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`,`StemGNN`, and `TimesNet`.
+**NeuralForecast** offers a large collection of neural forecasting models focusing on their performance, usability, and robustness. The models range from classic networks like RNNs to the latest transformers: `MLP`, `LSTM`, `GRU`, `RNN`, `TCN`, `TimesNet`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TiDE`, `DeepNPTS`, `TSMixer`, `TSMixerx`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimeLLM`.
 </div>
 
 ## Installation
@@ -61,7 +61,7 @@ Unfortunately, available implementations and published research are yet to reali
 
 ## Features 
 
-* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`,`RNN`,`TCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `DLinear`,`TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`,`StemGNN`, and `TimesNet`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`, `RNN`, `TCN`, `TimesNet`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TiDE`, `DeepNPTS`, `TSMixer`, `TSMixerx`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimeLLM`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
 * Support for exogenous variables and static covariates.
 * Interpretability methods for trend, seasonality and exogenous components.
 * Probabilistic Forecasting with adapters for quantile losses and parametric distributions.
@@ -105,17 +105,26 @@ The [documentation page](https://nixtla.github.io/neuralforecast/) contains all 
 |[DeepAR](https://nixtlaverse.nixtla.io/neuralforecast/models.deepar.html)| RNN | recurrent ||✅|✅|✅|
 |[TCN](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html)| CNN | recurrent |✅|✅|✅|✅|
 |[TimesNet](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html)| CNN | windows |✅|✅||✅|
+|[BiTCN](https://nixtlaverse.nixtla.io/neuralforecast/models.bitcn.html)| CNN | windows |✅|✅|✅|✅|
 |[DLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.dlinear.html)| Linear | windows |✅|✅||✅|
+|[NLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.nlinear.html)| Linear | windows |✅|✅||✅|
 |[MLP](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html)| MLP | windows |✅|✅|✅|✅|
 |[NBEATS](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html)| MLP | windows |✅|✅||✅|
 |[NBEATSx](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html)| MLP | windows |✅|✅|✅|✅|
 |[NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html)| MLP | windows |✅|✅|✅|✅|
+|[TiDE](https://nixtlaverse.nixtla.io/neuralforecast/models.tide.html)| MLP | windows |✅|✅|✅|✅|
+|[DeepNPTS](https://nixtlaverse.nixtla.io/neuralforecast/models.deepnpts.html)| MLP | windows |✅||✅|✅|
+|[TSMixer](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html)| MLP | multivariate |✅|||✅|
+|[TSMixerx](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html)| MLP | multivariate |✅||✅|✅|
+|[MLPMultivariate](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html)| MLP | multivariate |✅||✅|✅|
 |[TFT](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html)| Transformer | windows |✅|✅|✅|✅|
 |[Transformer](https://nixtlaverse.nixtla.io/neuralforecast/models.vanillatransformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[Informer](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html)| Transformer | windows |✅|✅|✅|✅|
 |[Autoformer](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[FEDFormer](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html)| Transformer | windows |✅|✅|✅|✅|
 |[PatchTST](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html)| Transformer | windows |✅|✅||✅|
+|[Time-LLM](https://nixtlaverse.nixtla.io/neuralforecast/models.timellm.html)| Transformer | windows |✅|✅|||
+|[iTransformer](https://nixtlaverse.nixtla.io/neuralforecast/models.itransformer.html)| Transformer | multivariate |✅|||✅|
 |[StemGNN](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html)| GNN | multivariate |✅|||✅|
 
 Missing a model? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
