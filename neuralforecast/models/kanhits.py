@@ -21,7 +21,7 @@ class KANLinear(torch.nn.Module):
         self,
         in_features,
         out_features,
-        grid_size=20,
+        grid_size=5,
         spline_order=3,
         scale_noise=0.1,
         scale_base=1.0,
@@ -345,9 +345,9 @@ class KANHITSBlock(nn.Module):
             kernel_size=n_pool_kernel_size, stride=n_pool_kernel_size, ceil_mode=True
         )
 
-        # Block MLPs
+        # Block KANs
         hidden_layers = [
-            nn.Linear(in_features=input_size, out_features=kan_units[0][0])
+            KANLinear(in_features=input_size, out_features=kan_units[0][0])
         ]
         for layer in kan_units:
             hidden_layers.append(KANLinear(in_features=layer[0], out_features=layer[1]))
