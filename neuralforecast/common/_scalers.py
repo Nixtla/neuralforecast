@@ -313,8 +313,8 @@ def identity_statistics(x, mask, dim=-1, eps=1e-6):
     shape = list(x.shape)
     shape[dim] = 1
 
-    x_shift = torch.zeros(shape)
-    x_scale = torch.ones(shape)
+    x_shift = torch.zeros(shape, device=x.device)
+    x_scale = torch.ones(shape, device=x.device)
 
     return x_shift, x_scale
 

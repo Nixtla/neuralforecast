@@ -51,6 +51,8 @@ class BaseRecurrent(BaseModel):
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -59,6 +61,8 @@ class BaseRecurrent(BaseModel):
             valid_loss=valid_loss,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -550,6 +554,7 @@ class BaseRecurrent(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")

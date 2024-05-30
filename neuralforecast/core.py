@@ -57,6 +57,8 @@ from neuralforecast.models import (
     MLPMultivariate,
     iTransformer,
     BiTCN,
+    TiDE,
+    DeepNPTS,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -170,6 +172,10 @@ MODEL_FILENAME_DICT = {
     "autoitransformer": iTransformer,
     "bitcn": BiTCN,
     "autobitcn": BiTCN,
+    "tide": TiDE,
+    "autotide": TiDE,
+    "deepnpts": DeepNPTS,
+    "autodeepnpts": DeepNPTS,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -779,6 +785,9 @@ class NeuralForecast:
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
+        cols = (
+            self._get_model_names()
+        )  # Needed for IQLoss as column names may have changed during the call to .predict()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -874,11 +883,29 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
-        if self.scalers_:
-            indptr = np.append(
-                0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
+        # we may have allocated more space than needed
+        # each serie can produce at most (serie.size - 1) // self.h CV windows
+        effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
+        needs_trim = effective_sizes.sum() != fcsts.shape[0]
+        if self.scalers_ or needs_trim:
+            indptr = np.arange(
+                0,
+                n_windows * self.h * (self.dataset.n_groups + 1),
+                n_windows * self.h,
+                dtype=np.int32,
             )
-            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+            if self.scalers_:
+                fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+            if needs_trim:
+                # we keep only the effective samples of each serie from the cv results
+                trimmed = np.empty_like(
+                    fcsts, shape=(effective_sizes.sum(), fcsts.shape[1])
+                )
+                cv_indptr = np.append(0, effective_sizes).cumsum(dtype=np.int32)
+                for i in range(fcsts.shape[1]):
+                    ga = GroupedArray(fcsts[:, i], indptr)
+                    trimmed[:, i] = ga._tails(cv_indptr)
+                fcsts = trimmed
 
         self._fitted = True
 
