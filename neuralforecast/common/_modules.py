@@ -345,8 +345,20 @@ class AttentionLayer(nn.Module):
 
 # %% ../../nbs/common.modules.ipynb 18
 class PositionalEmbedding(nn.Module):
-    def __init__(self, hidden_size, max_len=5000):
+    def __init__(self, hidden_size, max_len=5000, fixed_weight=False):
+        """
+        Parameters
+        ----------
+        hidden_size : int
+            Total units for embedding' hidden state size.
+        max_len : int (default=5000)
+            The supported total length of sequence
+        fixed_weights : bool
+            If True, the embedding weights are fixed.
+        """
         super(PositionalEmbedding, self).__init__()
+        self.fixed_weight = fixed_weight
+
         # Compute the positional encodings once in log space.
         pe = torch.zeros(max_len, hidden_size).float()
         pe.require_grad = False
@@ -359,11 +371,15 @@ class PositionalEmbedding(nn.Module):
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
 
-        pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
+        if self.fixed_weight:
+            self.emb = nn.Embedding(max_len, hidden_size)
+            self.emb.weight = nn.Parameter(pe, requires_grad=False)
+        else:
+            pe = pe.unsqueeze(0)
+            self.register_buffer("pe", pe)
 
     def forward(self, x):
-        return self.pe[:, : x.size(1)]
+        return self.emb(x).detach() if self.fixed_weight else self.pe[:, : x.size(1)]
 
 
 class TokenEmbedding(nn.Module):
