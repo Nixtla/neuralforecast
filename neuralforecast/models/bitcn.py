@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.bitcn.ipynb 8
 class CustomConv1d(nn.Module):
@@ -76,7 +76,7 @@ class TCNCell(nn.Module):
         return (h_prev + h_next, out_prev + out_next)
 
 # %% ../../nbs/models.bitcn.ipynb 10
-class BiTCN(BaseWindows):
+class BiTCN(BaseModel):
     """BiTCN
 
     Bidirectional Temporal Convolutional Network (BiTCN) is a forecasting architecture based on two temporal convolutional networks (TCNs). The first network ('forward') encodes future covariates of the time series, whereas the second network ('backward') encodes past observations and covariates. This is a univariate model.
@@ -117,10 +117,13 @@ class BiTCN(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -263,7 +266,7 @@ class BiTCN(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"]  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
@@ -334,9 +337,6 @@ class BiTCN(BaseWindows):
 
         # Output layer to create forecasts
         x = x.permute(0, 2, 1)  #   [B, 3 * hidden_size, h] -> [B, h, 3 * hidden_size]
-        x = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
-
-        # Map to output domain
-        forecast = self.loss.domain_map(x)
+        forecast = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
 
         return forecast

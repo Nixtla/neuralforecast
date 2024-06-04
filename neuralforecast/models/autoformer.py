@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..common._modules import DataEmbedding
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -425,7 +425,7 @@ class Decoder(nn.Module):
         return x, trend
 
 # %% ../../nbs/models.autoformer.ipynb 10
-class Autoformer(BaseWindows):
+class Autoformer(BaseModel):
     """Autoformer
 
     The Autoformer model tackles the challenge of finding reliable dependencies on intricate temporal patterns of long-horizon forecasting.
@@ -488,6 +488,10 @@ class Autoformer(BaseWindows):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -659,13 +663,9 @@ class Autoformer(BaseWindows):
     def forward(self, windows_batch):
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
         futr_exog = windows_batch["futr_exog"]
 
         # Parse inputs
-        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
             x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
@@ -698,5 +698,6 @@ class Autoformer(BaseWindows):
         # final
         dec_out = trend_part + seasonal_part
 
-        forecast = self.loss.domain_map(dec_out[:, -self.h :])
+        forecast = dec_out[:, -self.h :]
+
         return forecast

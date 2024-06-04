@@ -159,7 +159,6 @@ class TSMixer(BaseModel):
     """
 
     # Class attributes
-    # SAMPLING_TYPE = 'multivariate'
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
@@ -277,9 +276,4 @@ class TSMixer(BaseModel):
         )
         forecast = self.loss.domain_map(x)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast

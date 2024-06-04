@@ -68,7 +68,7 @@ class BasePointLoss(torch.nn.Module):
         Univariate loss operates in dimension [B,T,H]/[B,H]
         This changes the network's output from [B,H,1]->[B,H]
         """
-        return y_hat.squeeze(-1)
+        return y_hat
 
     def _compute_weights(self, y, mask):
         """
@@ -548,7 +548,7 @@ class MQLoss(BasePointLoss):
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Identity domain map [B,T,H,Q]/[B,H,Q]
+        Identity domain map [B, H, Q, N]
         """
         return y_hat
 
@@ -560,8 +560,6 @@ class MQLoss(BasePointLoss):
         """
         if mask is None:
             mask = torch.ones_like(y, device=y.device)
-        else:
-            mask = mask.unsqueeze(1)  # Add Q dimension.
 
         if self.horizon_weight is None:
             self.horizon_weight = torch.ones(mask.shape[-1])
@@ -589,23 +587,12 @@ class MQLoss(BasePointLoss):
         **Returns:**<br>
         `mqloss`: tensor (single value).
         """
-
-        error = y_hat - y.unsqueeze(-1)
+        error = y_hat - y
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
         losses = (1 / len(self.quantiles)) * (
             self.quantiles * sq + (1 - self.quantiles) * s1_q
         )
-
-        if y_hat.ndim == 3:  # BaseWindows
-            losses = losses.swapaxes(
-                -2, -1
-            )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
-        elif y_hat.ndim == 4:  # BaseRecurrent
-            losses = losses.swapaxes(-2, -1)
-            losses = losses.swapaxes(
-                -2, -3
-            )  # [B,seq_len,H,Q] -> [B,Q,seq_len,H] (needed for horizon weighting, H at the end)
 
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
         # NOTE: Weights do not have Q dimension.
@@ -772,12 +759,12 @@ def bernoulli_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
 
     **Returns:**<br>
     `(probs,)`: tuple with tensors of Poisson distribution arguments.<br>
     """
-    return (input.squeeze(-1),)
+    return (input,)
 
 
 def bernoulli_scale_decouple(output, loc=None, scale=None):
@@ -800,14 +787,14 @@ def student_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
     `eps`: float, helps the initialization of scale for easier optimization.<br>
 
     **Returns:**<br>
     `(df, loc, scale)`: tuple with tensors of StudentT distribution arguments.<br>
     """
-    df, loc, scale = torch.tensor_split(input, 3, dim=-1)
-    return df.squeeze(-1), loc.squeeze(-1), scale.squeeze(-1)
+    df, loc, scale = torch.tensor_split(input, 3, dim=2)
+    return df, loc, scale
 
 
 def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
@@ -832,14 +819,14 @@ def normal_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
     `eps`: float, helps the initialization of scale for easier optimization.<br>
 
     **Returns:**<br>
     `(mean, std)`: tuple with tensors of Normal distribution arguments.<br>
     """
-    mean, std = torch.tensor_split(input, 2, dim=-1)
-    return mean.squeeze(-1), std.squeeze(-1)
+    mean, std = torch.tensor_split(input, 2, dim=2)
+    return mean, std
 
 
 def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
@@ -863,12 +850,12 @@ def poisson_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
 
     **Returns:**<br>
     `(rate,)`: tuple with tensors of Poisson distribution arguments.<br>
     """
-    return (input.squeeze(-1),)
+    return (input,)
 
 
 def poisson_scale_decouple(output, loc=None, scale=None):
@@ -892,13 +879,13 @@ def nbinomial_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
 
     **Returns:**<br>
     `(total_count, alpha)`: tuple with tensors of N.Binomial distribution arguments.<br>
     """
-    mu, alpha = torch.tensor_split(input, 2, dim=-1)
-    return mu.squeeze(-1), alpha.squeeze(-1)
+    mu, alpha = torch.tensor_split(input, 2, dim=2)
+    return mu, alpha
 
 
 def nbinomial_scale_decouple(output, loc=None, scale=None):
@@ -1022,13 +1009,13 @@ def tweedie_domain_map(input: torch.Tensor):
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
 
     **Returns:**<br>
     `(log_mu,)`: tuple with tensors of Tweedie distribution arguments.<br>
     """
     # log_mu, probs = torch.tensor_split(input, 2, dim=-1)
-    return (input.squeeze(-1),)
+    return (input,)
 
 
 def tweedie_scale_decouple(output, loc=None, scale=None):
@@ -1164,8 +1151,8 @@ class DistributionLoss(torch.nn.Module):
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
-        # TransformedDistribution(distr, [AffineTransform(loc=loc, scale=scale)])
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
+        self.distr_mean = distr.mean
 
         if self.distribution == "Poisson":
             distr.support = constraints.nonnegative
@@ -1178,11 +1165,7 @@ class DistributionLoss(torch.nn.Module):
 
         **Parameters**<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
-        `num_samples`: int=500, overwrite number of samples for the empirical quantiles.<br>
+        `num_samples`: int, overwrite number of samples for the empirical quantiles.<br>
 
         **Returns**<br>
         `samples`: tensor, shape [B,H,`num_samples`].<br>
@@ -1191,26 +1174,19 @@ class DistributionLoss(torch.nn.Module):
         if num_samples is None:
             num_samples = self.num_samples
 
-        B, H = distr_args[0].size()
-        Q = len(self.quantiles)
-
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args, **self.distribution_kwargs)
         samples = distr.sample(sample_shape=(num_samples,))
-        samples = samples.permute(1, 2, 0)  # [samples,B,H] -> [B,H,samples]
-        samples = samples.to(distr_args[0].device)
-        samples = samples.view(B * H, num_samples)
-        sample_mean = torch.mean(samples, dim=-1)
+        samples = samples.permute(
+            1, 2, 3, 0
+        )  # [samples, B, H, N] -> [B, H, N, samples]
+
+        sample_mean = torch.mean(samples, dim=-1, keepdim=True)
 
         # Compute quantiles
         quantiles_device = self.quantiles.to(distr_args[0].device)
-        quants = torch.quantile(input=samples, q=quantiles_device, dim=1)
-        quants = quants.permute((1, 0))  # [Q, B*H] -> [B*H, Q]
-
-        # Final reshapes
-        samples = samples.view(B, H, num_samples)
-        sample_mean = sample_mean.view(B, H, 1)
-        quants = quants.view(B, H, Q)
+        quants = torch.quantile(input=samples, q=quantiles_device, dim=-1)
+        quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
 
         return samples, sample_mean, quants
 
@@ -1232,10 +1208,6 @@ class DistributionLoss(torch.nn.Module):
         **Parameters**<br>
         `y`: tensor, Actual values.<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
-        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
-               of the resulting distribution.<br>
-        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
 
         **Returns**<br>
@@ -1513,7 +1485,7 @@ class GMM(torch.nn.Module):
         self.is_distribution_output = True
 
     def domain_map(self, output: torch.Tensor):
-        means, stds = torch.tensor_split(output, 2, dim=-1)
+        means, stds = torch.tensor_split(output, 2, dim=2)
         return (means, stds)
 
     def scale_decouple(
@@ -1716,7 +1688,7 @@ class NBMM(torch.nn.Module):
         self.is_distribution_output = True
 
     def domain_map(self, output: torch.Tensor):
-        mu, alpha = torch.tensor_split(output, 2, dim=-1)
+        mu, alpha = torch.tensor_split(output, 2, dim=2)
         return (mu, alpha)
 
     def scale_decouple(
