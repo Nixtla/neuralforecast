@@ -10,10 +10,10 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.mlp.ipynb 6
-class MLP(BaseWindows):
+class MLP(BaseModel):
     """MLP
 
     Simple Multi Layer Perceptron architecture (MLP).
@@ -57,10 +57,13 @@ class MLP(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -155,7 +158,7 @@ class MLP(BaseWindows):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
+        insample_y = windows_batch["insample_y"].squeeze(-1)
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -184,5 +187,4 @@ class MLP(BaseWindows):
         y_pred = self.out(y_pred)
 
         y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        y_pred = self.loss.domain_map(y_pred)
         return y_pred

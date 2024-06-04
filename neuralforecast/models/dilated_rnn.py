@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_recurrent import BaseRecurrent
+from ..common._base_model import BaseModel
 from ..common._modules import MLP
 
 # %% ../../nbs/models.dilated_rnn.ipynb 7
@@ -286,7 +286,7 @@ class DRNN(nn.Module):
         return dilated_inputs
 
 # %% ../../nbs/models.dilated_rnn.ipynb 12
-class DilatedRNN(BaseRecurrent):
+class DilatedRNN(BaseModel):
     """DilatedRNN
 
     **Parameters:**<br>
@@ -329,6 +329,10 @@ class DilatedRNN(BaseRecurrent):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        True  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -490,6 +494,5 @@ class DilatedRNN(BaseRecurrent):
 
         # Final forecast
         output = self.mlp_decoder(context)
-        output = self.loss.domain_map(output)
 
         return output

@@ -10,7 +10,7 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from typing import Optional, List
 
 import fsspec
 import numpy as np
@@ -91,6 +91,7 @@ class BaseModel(pl.LightningModule):
         inference_windows_batch_size,
         start_padding_enabled,
         n_series: Optional[int] = None,
+        n_samples: Optional[int] = 100,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -111,16 +112,24 @@ class BaseModel(pl.LightningModule):
     ):
         super().__init__()
 
+        # Multivarariate checks
         if self.MULTIVARIATE and n_series is None:
             raise Exception(
                 f"{type(self).__name__} is a multivariate model. Please set n_series to the number of unique time series in your dataset."
             )
-        if not self.MULTIVARIATE and n_series is not None:
-            warnings.warn(
-                f"{type(self).__name__} is a univariate model. Parameter n_series is ignored."
-            )
-            n_series = None
+        if not self.MULTIVARIATE:
+            if n_series is not None:
+                warnings.warn(
+                    f"{type(self).__name__} is a univariate model. Parameter n_series is ignored."
+                )
+            n_series = 1
         self.n_series = n_series
+
+        # Recurrent
+        if self.RECURRENT:
+            self.maintain_state = False
+            self.horizon_backup = h
+            self.n_samples = n_samples
 
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
@@ -136,8 +145,8 @@ class BaseModel(pl.LightningModule):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
-        self.train_trajectories = List[Tuple[int, float]]
-        self.valid_trajectories = List[Tuple[int, float]]
+        self.train_trajectories: List = []
+        self.valid_trajectories: List = []
 
         # Optimization
         if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
@@ -282,7 +291,7 @@ class BaseModel(pl.LightningModule):
         self.num_workers_loader = num_workers_loader
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
-        self.validation_step_outputs = List[float]
+        self.validation_step_outputs: List = []
         self.alias = alias
 
     def __repr__(self):
@@ -569,29 +578,28 @@ class BaseModel(pl.LightningModule):
                 dimension=-1, size=window_size, step=self.step_size
             )
 
-            # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-            windows = windows.permute(2, 3, 1, 0)
-            sum_axes = (1, -1)
-
-            # If univariate: [Ws, L + h, C, n_series] -> [Ws * n_series, L + h, C]
-            if not self.MULTIVARIATE:
-                windows_per_serie = windows.shape[0]
-                windows = windows.permute(0, 3, 1, 2)
+            if self.MULTIVARIATE:
+                # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
+                windows = windows.permute(2, 3, 1, 0)
+            else:
+                # If univariate: [Ws, L + h, C, n_series] -> [Ws * n_series, L + h, C, 1]
+                windows_per_serie = windows.shape[2]
+                windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
-                sum_axes = 1
+                windows = windows.unsqueeze(-1)
 
             # Sample and Available conditions
             available_idx = temporal_cols.get_loc("available_mask")
             available_condition = windows[:, : self.input_size, available_idx]
             available_condition = torch.sum(
-                available_condition, axis=sum_axes
+                available_condition, axis=(1, -1)
             )  # Sum over time & series dimension
             final_condition = available_condition > 0
 
             if self.h > 0:
                 sample_condition = windows[:, self.input_size :, available_idx]
                 sample_condition = torch.sum(
-                    sample_condition, axis=sum_axes
+                    sample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
                 final_condition = (sample_condition > 0) & (available_condition > 0)
 
@@ -677,17 +685,18 @@ class BaseModel(pl.LightningModule):
                 dimension=-1, size=window_size, step=predict_step_size
             )
 
-            # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-            windows = windows.permute(2, 3, 1, 0)
-
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
 
-            # If univariate: [Ws, L + h, C, n_series] -> [Ws * n_series, L + h, C]
-            if not self.MULTIVARIATE:
-                windows_per_serie = windows.shape[0]
-                windows = windows.permute(0, 3, 1, 2)
+            if self.MULTIVARIATE:
+                # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
+                windows = windows.permute(2, 3, 1, 0)
+            else:
+                # If univariate: [n_series, C, Ws, L + h] -> [n_series * Ws, L + h, C, 1]
+                windows_per_serie = windows.shape[2]
+                windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
+                windows = windows.unsqueeze(-1)
                 if static is not None:
                     static = torch.repeat_interleave(
                         static, repeats=windows_per_serie, dim=0
@@ -712,10 +721,8 @@ class BaseModel(pl.LightningModule):
     def _normalization(self, windows, y_idx):
         # windows are already filtered by train/validation/test
         # from the `create_windows_method` nor leakage risk
-        temporal = windows["temporal"]  # [Ws, L + h, C, n_series] or [Ws, L + h, C]
-        temporal_cols = windows[
-            "temporal_cols"
-        ].copy()  # [Ws, L + h, C, n_series] or [Ws, L + h, C]
+        temporal = windows["temporal"]  # [Ws, L + h, C, n_series]
+        temporal_cols = windows["temporal_cols"].copy()  # [Ws, L + h, C, n_series]
 
         # To avoid leakage uses only the lags
         temporal_data_cols = self._get_temporal_exogenous_cols(
@@ -740,17 +747,16 @@ class BaseModel(pl.LightningModule):
 
         return windows
 
-    def _inv_normalization(self, y_hat, y_idx):
-        # Receives window predictions [Ws, h, output]
+    def _inv_normalization(self, y_hat, y_idx, add_sample_dim=False):
+        # Receives window predictions [Ws, h, output, n_series]
         # Broadcasts outputs and inverts normalization
-        y_scale = self.scaler.x_scale[:, :, y_idx]
-        y_loc = self.scaler.x_shift[:, :, y_idx]
+        y_loc, y_scale = self._get_loc_scale(y_idx, add_sample_dim=add_sample_dim)
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         return y_hat
 
     def _parse_windows(self, batch, windows):
-        # windows: [Ws, L + h, C, n_series] or [Ws, L + h, C]
+        # windows: [Ws, L + h, C, n_series]
 
         # Filter insample lags from outsample horizon
         y_idx = batch["y_idx"]
@@ -770,19 +776,38 @@ class BaseModel(pl.LightningModule):
             outsample_y = windows["temporal"][:, self.input_size :, y_idx]
             outsample_mask = windows["temporal"][:, self.input_size :, mask_idx]
 
+        # Recurrent models at t predict t+1, so we shift the input (insample_y) by one
+        if self.RECURRENT:
+            insample_y = torch.cat((insample_y, outsample_y[:, :-1]), dim=1)
+            insample_mask = torch.cat((insample_mask, outsample_mask[:, :-1]), dim=1)
+            self.maintain_state = False
+
         if len(self.hist_exog_list):
             hist_exog_idx = get_indexer_raise_missing(
                 windows["temporal_cols"], self.hist_exog_list
             )
-            hist_exog = windows["temporal"][:, : self.input_size, hist_exog_idx]
-            hist_exog = hist_exog.swapaxes(1, 2) if self.MULTIVARIATE else hist_exog
+            if self.RECURRENT:
+                hist_exog = windows["temporal"][:, :, hist_exog_idx]
+                hist_exog[:, self.input_size :] = 0.0
+                hist_exog = hist_exog[:, 1:]
+            else:
+                hist_exog = windows["temporal"][:, : self.input_size, hist_exog_idx]
+            if not self.MULTIVARIATE:
+                hist_exog = hist_exog.squeeze(-1)
+            else:
+                hist_exog = hist_exog.swapaxes(1, 2)
 
         if len(self.futr_exog_list):
             futr_exog_idx = get_indexer_raise_missing(
                 windows["temporal_cols"], self.futr_exog_list
             )
             futr_exog = windows["temporal"][:, :, futr_exog_idx]
-            futr_exog = futr_exog.swapaxes(1, 2) if self.MULTIVARIATE else futr_exog
+            if self.RECURRENT:
+                futr_exog = futr_exog[:, 1:]
+            if not self.MULTIVARIATE:
+                futr_exog = futr_exog.squeeze(-1)
+            else:
+                futr_exog = futr_exog.swapaxes(1, 2)
 
         if len(self.stat_exog_list):
             static_idx = get_indexer_raise_missing(
@@ -803,6 +828,198 @@ class BaseModel(pl.LightningModule):
             futr_exog,
             stat_exog,
         )
+
+    def _get_loc_scale(self, y_idx, add_sample_dim=False):
+        # [B, L, C, n_series] -> [B, L, n_series]
+        y_scale = self.scaler.x_scale[:, :, y_idx]
+        y_loc = self.scaler.x_shift[:, :, y_idx]
+
+        # [B, L, n_series] -> [B, L, n_series, 1]
+        if add_sample_dim:
+            y_scale = y_scale.unsqueeze(2)
+            y_loc = y_loc.unsqueeze(2)
+
+        return y_loc, y_scale
+
+    def _compute_valid_loss(self, outsample_y, output, outsample_mask, y_idx):
+        add_sample_dim = False
+        if self.loss.is_distribution_output:
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            if isinstance(self.valid_loss, (losses.sCRPS, losses.MQLoss)):
+                _, _, quants = self.loss.sample(distr_args=distr_args)
+                output = quants
+                add_sample_dim = True
+                distr = self.loss.get_distribution(distr_args=distr_args)
+            elif isinstance(self.valid_loss, losses.BasePointLoss):
+                distr = self.loss.get_distribution(distr_args=distr_args)
+                output = distr.mean
+
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
+        else:
+            output = self._inv_normalization(
+                y_hat=output, y_idx=y_idx, add_sample_dim=add_sample_dim
+            )
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=output, mask=outsample_mask
+            )
+        return valid_loss
+
+    def _predict_step_recurrent_batch(
+        self, insample_y, insample_mask, futr_exog, hist_exog, stat_exog, y_idx
+    ):
+        # Remember state in network and set horizon to 1
+        self.maintain_state = True
+        self.h = 1
+
+        # Initialize results array
+        n_outputs = 1
+        if self.loss.is_distribution_output:
+            n_outputs += len(self.loss.quantiles)
+
+        y_hat = torch.zeros(
+            (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
+            device=insample_y.device,
+            dtype=insample_y.dtype,
+        )
+
+        # First step prediction
+        tau = 0
+
+        # Set exogenous
+        hist_exog_current = None
+        if self.hist_exog_size > 0:
+            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+
+        futr_exog_current = None
+        if self.futr_exog_size > 0:
+            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+
+        # First forecast step
+        y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+            insample_y=insample_y[:, : self.input_size + tau - 1],
+            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            hist_exog=hist_exog_current,
+            futr_exog=futr_exog_current,
+            stat_exog=stat_exog,
+            y_idx=y_idx,
+        )
+
+        # Horizon prediction recursively
+        for tau in range(self.horizon_backup):
+            # Set exogenous
+            if self.hist_exog_size > 0:
+                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            if self.futr_exog_size > 0:
+                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+                insample_y=insample_y,
+                insample_mask=None,
+                hist_exog=hist_exog_current,
+                futr_exog=futr_exog_current,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+            )
+
+        # Reset state and horizon
+        self.maintain_state = False
+        self.h = self.horizon_backup
+
+        return y_hat
+
+    def _predict_step_recurrent_single(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        # Input sequence
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch = self(windows_batch)
+        output_batch = self._loss_domain_map(output_batch)
+
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            # Sample distribution
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            _, sample_mean, quants = self.loss.sample(
+                distr_args=distr_args, num_samples=self.n_samples
+            )
+
+            # Scale back to feed back as input
+            insample_y = self.scaler.scaler(sample_mean.squeeze(-1), y_loc, y_scale)
+
+            # Save predictions
+            y_hat = torch.concat((sample_mean, quants), axis=-1)
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                distr_args = torch.reshape(distr_args, (y_hat.shape[0], self.h, -1))
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
+            y_hat = y_hat.squeeze(1)  # [B, 1, N, 1 + Q] -> [B, N, 1 + Q]
+        else:
+            # Save input for next prediction
+            insample_y = output_batch
+            # Save prediction
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+
+        return y_hat, insample_y
+
+    def _predict_step_direct_batch(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch = self(windows_batch)
+        output_batch = self._loss_domain_map(output_batch)
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=-1)
+
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                distr_args = torch.reshape(distr_args, (y_hat.shape[0], self.h, -1))
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
+        else:
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+
+        return y_hat
+
+    def _loss_domain_map(self, output):
+        if self.RECURRENT:
+            # [B, L + h, n_outputs (, 1)] -> [B, h, n_outputs (, 1)]
+            output = output[:, -self.h :]
+
+        output = self.loss.domain_map(output)
+
+        return output
 
     def training_step(self, batch, batch_idx):
         # windows: [Ws, L + h, C, n_series] or [Ws, L + h, C]
@@ -826,18 +1043,19 @@ class BaseModel(pl.LightningModule):
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
-            insample_y=insample_y,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-            insample_mask=insample_mask,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-            futr_exog=futr_exog,  # univariate: [Ws, L + h, F]; multivariate: [Ws, F, L + h, n_series]
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
             hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
             stat_exog=stat_exog,
         )  # univariate: [Ws, S]; multivariate: [n_series, S]
 
         # Model Predictions
         output = self(windows_batch)
+        output = self._loss_domain_map(output)
+
         if self.loss.is_distribution_output:
-            y_scale = self.scaler.x_scale[:, :, y_idx]
-            y_loc = self.scaler.x_shift[:, :, y_idx]
+            y_loc, y_scale = self._get_loc_scale(y_idx)
             outsample_y = original_outsample_y
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
@@ -861,32 +1079,6 @@ class BaseModel(pl.LightningModule):
         )
         self.train_trajectories.append((self.global_step, loss.item()))
         return loss
-
-    def _compute_valid_loss(self, outsample_y, output, outsample_mask, y_idx):
-        if self.loss.is_distribution_output:
-            y_scale = self.scaler.x_scale[:, :, y_idx]
-            y_loc = self.scaler.x_shift[:, :, y_idx]
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-
-            if isinstance(self.valid_loss, [losses.sCRPS, losses.MQLoss]):
-                output = quants
-            elif isinstance(self.valid_loss, [losses.relMSE]):
-                output = torch.unsqueeze(sample_mean, dim=-1)  # [N,H,1] -> [N,H]
-
-        # Validation Loss evaluation
-        if self.valid_loss.is_distribution_output:
-            valid_loss = self.valid_loss(
-                y=outsample_y, distr_args=distr_args, mask=outsample_mask
-            )
-        else:
-            output = self._inv_normalization(y_hat=output, y_idx=y_idx)
-            valid_loss = self.valid_loss(
-                y=outsample_y, y_hat=output, mask=outsample_mask
-            )
-        return valid_loss
 
     def validation_step(self, batch, batch_idx):
         if self.val_size == 0:
@@ -929,15 +1121,16 @@ class BaseModel(pl.LightningModule):
             ) = self._parse_windows(batch, windows)
 
             windows_batch = dict(
-                insample_y=insample_y,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-                insample_mask=insample_mask,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-                futr_exog=futr_exog,  # univariate: [Ws, L + h, F]; multivariate: [Ws, F, L + h, n_series]
+                insample_y=insample_y,  # [Ws, L, n_series]
+                insample_mask=insample_mask,  # [Ws, L, n_series]
+                futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
                 hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
                 stat_exog=stat_exog,
             )  # univariate: [Ws, S]; multivariate: [n_series, S]
 
             # Model Predictions
             output_batch = self(windows_batch)
+            output_batch = self._loss_domain_map(output_batch)
 
             valid_loss_batch = self._compute_valid_loss(
                 outsample_y=original_outsample_y,
@@ -992,32 +1185,24 @@ class BaseModel(pl.LightningModule):
                 self._parse_windows(batch, windows)
             )
 
-            windows_batch = dict(
-                insample_y=insample_y,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-                insample_mask=insample_mask,  # univariate: [Ws, L]; multivariate: [Ws, L, n_series]
-                futr_exog=futr_exog,  # univariate: [Ws, L + h, F]; multivariate: [Ws, F, L + h, n_series]
-                hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
-                stat_exog=stat_exog,
-            )  # univariate: [Ws, S]; multivariate: [n_series, S]
-
-            # Model Predictions
-            output_batch = self(windows_batch)
-            # Inverse normalization and sampling
-            if self.loss.is_distribution_output:
-                y_scale = self.scaler.x_scale[:, :, y_idx]
-                y_loc = self.scaler.x_shift[:, :, y_idx]
-                distr_args = self.loss.scale_decouple(
-                    output=output_batch, loc=y_loc, scale=y_scale
+            if self.RECURRENT:
+                y_hat = self._predict_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
                 )
-                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-                y_hat = torch.concat((sample_mean, quants), axis=2)
-
-                if self.loss.return_params:
-                    distr_args = torch.stack(distr_args, dim=-1)
-                    distr_args = torch.reshape(distr_args, (y_hat.shape[0], self.h, -1))
-                    y_hat = torch.concat((y_hat, distr_args), axis=2)
             else:
-                y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+                y_hat = self._predict_step_direct_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)
         return y_hat
@@ -1089,7 +1274,6 @@ class BaseModel(pl.LightningModule):
         datamodule = TimeSeriesDataModule(
             dataset=dataset,
             valid_batch_size=self.valid_batch_size,
-            batch_size=self.batch_size,
             **data_module_kwargs,
         )
 
@@ -1102,13 +1286,14 @@ class BaseModel(pl.LightningModule):
 
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
+        fcsts = torch.vstack(fcsts)
 
-        fcsts = torch.vstack(fcsts).numpy()
         if self.MULTIVARIATE:
-            fcsts = np.transpose(fcsts, (2, 0, 1))
+            # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
+            fcsts = fcsts.swapaxes(0, 2)
+            fcsts = fcsts.swapaxes(1, 2)
 
-        fcsts = fcsts.flatten()
-
+        fcsts = fcsts.numpy().flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 

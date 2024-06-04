@@ -428,24 +428,16 @@ class TSMixerx(BaseModel):
             x = self.mixing_block(x)  #   [B, h, ff_dim] -> [B, h, ff_dim]
 
         # Fully connected output layer
-        x = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
+        forecast = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
 
         # Reverse Instance Normalization on output
         if self.revin:
-            x = x.reshape(
+            forecast = forecast.reshape(
                 batch_size, self.h, self.loss.outputsize_multiplier, -1
             )  #   [B, h, N * n_outputs] -> [B, h, n_outputs, N]
-            x = self.norm.reverse(x)
-            x = x.reshape(
+            forecast = self.norm.reverse(forecast)
+            forecast = forecast.reshape(
                 batch_size, self.h, -1
             )  #   [B, h, n_outputs, N] -> [B, h, n_outputs * N]
 
-        # Map to loss domain
-        forecast = self.loss.domain_map(x)
-
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast
