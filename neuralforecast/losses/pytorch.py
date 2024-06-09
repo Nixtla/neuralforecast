@@ -68,8 +68,11 @@ class BasePointLoss(torch.nn.Module):
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Univariate loss operates in dimension [B,T,H]/[B,H]
-        This changes the network's output from [B,H,1]->[B,H]
+        Input:
+        Univariate: [B, H, 1]
+        Multivariate: [B, H, N]
+
+        Output: [B, H, N]
         """
         return y_hat
 
@@ -83,14 +86,15 @@ class BasePointLoss(torch.nn.Module):
             mask = torch.ones_like(y, device=y.device)
 
         if self.horizon_weight is None:
-            self.horizon_weight = torch.ones(mask.shape[-1])
+            self.horizon_weight = torch.ones(mask.shape[1])
         else:
-            assert mask.shape[-1] == len(
+            assert mask.shape[1] == len(
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
         weights = self.horizon_weight.clone()
-        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
+        weights = weights[None, :, None].to(mask.device)
+        weights = torch.ones_like(mask, device=mask.device) * weights
         return weights * mask
 
 # %% ../../nbs/losses.pytorch.ipynb 11
@@ -368,7 +372,7 @@ class MASE(BasePointLoss):
             ),
             axis=1,
         )
-        losses = _divide_no_nan(delta_y, scale[:, None])
+        losses = _divide_no_nan(delta_y, scale[:, None, None])
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
@@ -416,7 +420,7 @@ class relMSE(BasePointLoss):
         **Returns:**<br>
         `relMSE`: tensor (single value).
         """
-        horizon = y.shape[-1]
+        horizon = y.shape[1]
         last_col = self.y_train[:, -1].unsqueeze(1)
         y_naive = last_col.repeat(1, horizon)
 
@@ -502,7 +506,7 @@ def quantiles_to_outputs(quantiles):
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../../nbs/losses.pytorch.ipynb 53
+# %% ../../nbs/losses.pytorch.ipynb 54
 class MQLoss(BasePointLoss):
     """Multi-Quantile loss
 
@@ -551,9 +555,17 @@ class MQLoss(BasePointLoss):
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Identity domain map [B, H, Q, N]
+        Input:
+        Univariate: [B, H, 1 * Q]
+        Multivariate: [B, H, N * Q]
+
+        Output: [B, H, N, Q]
         """
-        return y_hat
+        output = y_hat.reshape(
+            y_hat.shape[0], y_hat.shape[1], -1, self.outputsize_multiplier
+        )
+
+        return output
 
     def _compute_weights(self, y, mask):
         """
@@ -561,18 +573,17 @@ class MQLoss(BasePointLoss):
         Set horizon_weight to a ones[H] tensor if not set.
         If set, check that it has the same length as the horizon in x.
         """
-        if mask is None:
-            mask = torch.ones_like(y, device=y.device)
 
         if self.horizon_weight is None:
-            self.horizon_weight = torch.ones(mask.shape[-1])
+            self.horizon_weight = torch.ones(mask.shape[1])
         else:
-            assert mask.shape[-1] == len(
+            assert mask.shape[1] == len(
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
         weights = self.horizon_weight.clone()
-        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
+        weights = weights[None, :, None, None].to(mask.device)
+        weights = torch.ones_like(mask, device=mask.device) * weights
         return weights * mask
 
     def __call__(
@@ -590,19 +601,26 @@ class MQLoss(BasePointLoss):
         **Returns:**<br>
         `mqloss`: tensor (single value).
         """
+        y = y.unsqueeze(-1)
+        if mask is not None:
+            mask = mask.unsqueeze(-1)
+        else:
+            mask = torch.ones_like(y, device=y.device)
+
         error = y_hat - y
+
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
-        losses = (1 / len(self.quantiles)) * (
-            self.quantiles * sq + (1 - self.quantiles) * s1_q
-        )
 
+        quantiles = self.quantiles[None, None, None, :]
+        print(quantiles.shape)
+        print(sq.shape)
+        losses = (1 / len(quantiles)) * (quantiles * sq + (1 - quantiles) * s1_q)
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
-        # NOTE: Weights do not have Q dimension.
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 59
+# %% ../../nbs/losses.pytorch.ipynb 60
 class QuantileLayer(nn.Module):
     r"""
     Implicit Quantile Layer from the paper ``IQN for Distributional
@@ -700,9 +718,8 @@ class IQLoss(QuantileLoss):
 
         Input shapes to this function:
 
-        base_windows: y_hat = [B, h, 1]
-        base_multivariate: y_hat = [B, h, n_series]
-        base_recurrent: y_hat = [B, seq_len, h, n_series]
+        Univariate: y_hat = [B, h, 1]
+        Multivariate: y_hat = [B, h, N]
         """
         if self.eval() and self.has_predicted:
             quantiles = torch.full(
@@ -727,7 +744,7 @@ class IQLoss(QuantileLoss):
 
         return y_hat
 
-# %% ../../nbs/losses.pytorch.ipynb 64
+# %% ../../nbs/losses.pytorch.ipynb 65
 def weighted_average(
     x: torch.Tensor, weights: Optional[torch.Tensor] = None, dim=None
 ) -> torch.Tensor:
@@ -755,21 +772,7 @@ def weighted_average(
     else:
         return x.mean(dim=dim)
 
-# %% ../../nbs/losses.pytorch.ipynb 65
-def bernoulli_domain_map(input: torch.Tensor):
-    """Bernoulli Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-
-    **Returns:**<br>
-    `(probs,)`: tuple with tensors of Poisson distribution arguments.<br>
-    """
-    return (input,)
-
-
+# %% ../../nbs/losses.pytorch.ipynb 66
 def bernoulli_scale_decouple(output, loc=None, scale=None):
     """Bernoulli Scale Decouple
 
@@ -784,22 +787,6 @@ def bernoulli_scale_decouple(output, loc=None, scale=None):
     return (probs,)
 
 
-def student_domain_map(input: torch.Tensor):
-    """Student T Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-    `eps`: float, helps the initialization of scale for easier optimization.<br>
-
-    **Returns:**<br>
-    `(df, loc, scale)`: tuple with tensors of StudentT distribution arguments.<br>
-    """
-    df, loc, scale = torch.tensor_split(input, 3, dim=2)
-    return df, loc, scale
-
-
 def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
     """Normal Scale Decouple
 
@@ -812,24 +799,8 @@ def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
         tscale = (tscale + eps) * scale
-    df = 2.0 + F.softplus(df)
+    df = 3.0 + F.softplus(df)
     return (df, mean, tscale)
-
-
-def normal_domain_map(input: torch.Tensor):
-    """Normal Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-    `eps`: float, helps the initialization of scale for easier optimization.<br>
-
-    **Returns:**<br>
-    `(mean, std)`: tuple with tensors of Normal distribution arguments.<br>
-    """
-    mean, std = torch.tensor_split(input, 2, dim=2)
-    return mean, std
 
 
 def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
@@ -847,20 +818,6 @@ def normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2):
     return (mean, std)
 
 
-def poisson_domain_map(input: torch.Tensor):
-    """Poisson Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-
-    **Returns:**<br>
-    `(rate,)`: tuple with tensors of Poisson distribution arguments.<br>
-    """
-    return (input,)
-
-
 def poisson_scale_decouple(output, loc=None, scale=None):
     """Poisson Scale Decouple
 
@@ -874,21 +831,6 @@ def poisson_scale_decouple(output, loc=None, scale=None):
         rate = (rate * scale) + loc
     rate = F.softplus(rate) + eps
     return (rate,)
-
-
-def nbinomial_domain_map(input: torch.Tensor):
-    """Negative Binomial Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-
-    **Returns:**<br>
-    `(total_count, alpha)`: tuple with tensors of N.Binomial distribution arguments.<br>
-    """
-    mu, alpha = torch.tensor_split(input, 2, dim=2)
-    return mu, alpha
 
 
 def nbinomial_scale_decouple(output, loc=None, scale=None):
@@ -912,7 +854,7 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
     return (total_count, probs)
 
-# %% ../../nbs/losses.pytorch.ipynb 66
+# %% ../../nbs/losses.pytorch.ipynb 67
 def est_lambda(mu, rho):
     return mu ** (2 - rho) / (2 - rho)
 
@@ -1004,21 +946,6 @@ class Tweedie(Distribution):
         b = torch.exp((2 - rho) * y_pred) / (2 - rho)
 
         return a - b
-
-
-def tweedie_domain_map(input: torch.Tensor):
-    """Tweedie Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B, h, n_outputs, 1].<br>
-
-    **Returns:**<br>
-    `(log_mu,)`: tuple with tensors of Tweedie distribution arguments.<br>
-    """
-    # log_mu, probs = torch.tensor_split(input, 2, dim=-1)
-    return (input,)
 
 
 def tweedie_scale_decouple(output, loc=None, scale=None):
@@ -1929,7 +1856,6 @@ class DistributionLoss(torch.nn.Module):
         ), f"{distribution} not available"
         self.distribution = distribution
         self._base_distribution = available_distributions[distribution]
-        self.domain_map = domain_maps[distribution]
         self.scale_decouple = scale_decouples[distribution]
         self.distribution_kwargs = distribution_kwargs
         self.num_samples = num_samples
@@ -1945,6 +1871,11 @@ class DistributionLoss(torch.nn.Module):
 
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
+
+    def domain_map(self, input: torch.Tensor):
+        output = torch.tensor_split(input, self.outputsize_multiplier, dim=2)
+
+        return output
 
     def get_distribution(self, distr_args, **distribution_kwargs) -> Distribution:
         """
@@ -2739,10 +2670,14 @@ class TukeyLoss(torch.nn.Module):
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Univariate loss operates in dimension [B,T,H]/[B,H]
-        This changes the network's output from [B,H,1]->[B,H]
+        Input:
+        Univariate: [B, H, 1]
+        Multivariate: [B, H, N]
+
+        Output: [B, H, N]
         """
-        return y_hat.squeeze(-1)
+
+        return y_hat
 
     def masked_mean(self, x, mask, dim):
         x_nan = x.masked_fill(mask < 1, float("nan"))
@@ -2836,6 +2771,8 @@ class HuberQLoss(BasePointLoss):
         **Returns:**<br>
         `huber_qloss`: tensor (single value).
         """
+        y = y.unsqueeze(-1)
+
         error = y_hat - y
         zero_error = torch.zeros_like(error)
         sq = torch.maximum(-error, zero_error)
@@ -2895,9 +2832,17 @@ class HuberMQLoss(BasePointLoss):
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Identity domain map [B,T,H,Q]/[B,H,Q]
+        Input:
+        Univariate: [B, H, 1 * Q]
+        Multivariate: [B, H, N * Q]
+
+        Output: [B, H, N, Q]
         """
-        return y_hat
+        output = y_hat.reshape(
+            y_hat.shape[0], y_hat.shape[1], -1, self.outputsize_multiplier
+        )
+
+        return output
 
     def _compute_weights(self, y, mask):
         """
@@ -2905,20 +2850,17 @@ class HuberMQLoss(BasePointLoss):
         Set horizon_weight to a ones[H] tensor if not set.
         If set, check that it has the same length as the horizon in x.
         """
-        if mask is None:
-            mask = torch.ones_like(y, device=y.device)
-        else:
-            mask = mask.unsqueeze(1)  # Add Q dimension.
 
         if self.horizon_weight is None:
-            self.horizon_weight = torch.ones(mask.shape[-1])
+            self.horizon_weight = torch.ones(mask.shape[1])
         else:
-            assert mask.shape[-1] == len(
+            assert mask.shape[1] == len(
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
 
         weights = self.horizon_weight.clone()
-        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
+        weights = weights[None, :, None, None].to(mask.device)
+        weights = torch.ones_like(mask, device=mask.device) * weights
         return weights * mask
 
     def __call__(
@@ -2936,30 +2878,28 @@ class HuberMQLoss(BasePointLoss):
         **Returns:**<br>
         `hmqloss`: tensor (single value).
         """
+        y = y.unsqueeze(-1)
 
-        error = y_hat - y.unsqueeze(-1)
+        if mask is not None:
+            mask = mask.unsqueeze(-1)
+        else:
+            mask = torch.ones_like(y, device=y.device)
+
+        error = y_hat - y
+
         zero_error = torch.zeros_like(error)
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
+
+        quantiles = self.quantiles[None, None, None, :]
         losses = F.huber_loss(
-            self.quantiles * sq, zero_error, reduction="none", delta=self.delta
+            quantiles * sq, zero_error, reduction="none", delta=self.delta
         ) + F.huber_loss(
-            (1 - self.quantiles) * s1_q, zero_error, reduction="none", delta=self.delta
+            (1 - quantiles) * s1_q, zero_error, reduction="none", delta=self.delta
         )
-        losses = (1 / len(self.quantiles)) * losses
+        losses = (1 / len(quantiles)) * losses
 
-        if y_hat.ndim == 3:  # BaseWindows
-            losses = losses.swapaxes(
-                -2, -1
-            )  # [B,H,Q] -> [B,Q,H] (needed for horizon weighting, H at the end)
-        elif y_hat.ndim == 4:  # BaseRecurrent
-            losses = losses.swapaxes(-2, -1)
-            losses = losses.swapaxes(
-                -2, -3
-            )  # [B,seq_len,H,Q] -> [B,Q,seq_len,H] (needed for horizon weighting, H at the end)
-
-        weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
-        # NOTE: Weights do not have Q dimension.
+        weights = self._compute_weights(y=losses, mask=mask)
 
         return _weighted_mean(losses=losses, weights=weights)
 
@@ -2980,13 +2920,18 @@ class Accuracy(torch.nn.Module):
     ):
         super(Accuracy, self).__init__()
         self.is_distribution_output = False
+        self.outputsize_multiplier = 1
 
     def domain_map(self, y_hat: torch.Tensor):
         """
-        Univariate loss operates in dimension [B,T,H]/[B,H]
-        This changes the network's output from [B,H,1]->[B,H]
+        Input:
+        Univariate: [B, H, 1]
+        Multivariate: [B, H, N]
+
+        Output: [B, H, N]
         """
-        return y_hat.squeeze(-1)
+
+        return y_hat
 
     def __call__(
         self,
@@ -3003,10 +2948,11 @@ class Accuracy(torch.nn.Module):
         **Returns:**<br>
         `accuracy`: tensor (single value).
         """
+
         if mask is None:
             mask = torch.ones_like(y_hat)
 
-        measure = (y.unsqueeze(-1) == y_hat) * mask.unsqueeze(-1)
+        measure = (y == y_hat) * mask
         accuracy = torch.mean(measure)
         return accuracy
 

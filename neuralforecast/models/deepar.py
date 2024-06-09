@@ -217,8 +217,6 @@ class DeepAR(BaseModel):
 
         _, input_size = encoder_input.shape[:2]
         if self.futr_exog_size > 0:
-            # print(encoder_input.shape)
-            # print(futr_exog.shape)
             encoder_input = torch.cat((encoder_input, futr_exog), dim=2)
 
         if self.stat_exog_size > 0:
@@ -243,4 +241,5 @@ class DeepAR(BaseModel):
         # Decoder forward
         output = self.decoder(hidden_state)  # [B, input_size-1, output_size]
 
-        return output
+        # Return only horizon part
+        return output[:, -self.h :]
