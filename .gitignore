@@ -25,3 +25,7 @@ debug_run
 
 longhorizon/
 _old/
+data
+mlruns
+checkpoints
+nbs/_extensions/mintlify
