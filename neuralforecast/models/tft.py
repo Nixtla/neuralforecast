@@ -13,7 +13,7 @@ from torch import Tensor
 from torch.nn import LayerNorm
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.tft.ipynb 10
 class MaybeLayerNorm(nn.Module):
@@ -374,7 +374,7 @@ class TemporalFusionDecoder(nn.Module):
         return x
 
 # %% ../../nbs/models.tft.ipynb 24
-class TFT(BaseWindows):
+class TFT(BaseModel):
     """TFT
 
     The Temporal Fusion Transformer architecture (TFT) is an Sequence-to-Sequence
@@ -425,10 +425,13 @@ class TFT(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -541,7 +544,7 @@ class TFT(BaseWindows):
     def forward(self, windows_batch):
 
         # Parsiw windows_batch
-        y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
+        y_insample = windows_batch["insample_y"]
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -603,6 +606,5 @@ class TFT(BaseWindows):
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
-        y_hat = self.loss.domain_map(y_hat)
 
         return y_hat
