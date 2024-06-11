@@ -10,7 +10,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -217,7 +217,7 @@ class Normalize(nn.Module):
         return x
 
 # %% ../../nbs/models.timellm.ipynb 11
-class TimeLLM(BaseWindows):
+class TimeLLM(BaseModel):
     """TimeLLM
 
     Time-LLM is a reprogramming framework to repurpose an off-the-shelf LLM for time series forecasting.
@@ -277,10 +277,13 @@ class TimeLLM(BaseWindows):
 
     """
 
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -504,12 +507,8 @@ class TimeLLM(BaseWindows):
         return lags
 
     def forward(self, windows_batch):
-        insample_y = windows_batch["insample_y"]
-
-        x = insample_y.unsqueeze(-1)
+        x = windows_batch["insample_y"]
 
         y_pred = self.forecast(x)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
-
         return y_pred

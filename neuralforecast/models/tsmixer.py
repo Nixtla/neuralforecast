@@ -10,8 +10,6 @@ import torch.nn.functional as F
 
 from typing import Optional
 from ..losses.pytorch import MAE
-
-# from neuralforecast.common._base_multivariate import BaseMultivariate
 from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.tsmixer.ipynb 8

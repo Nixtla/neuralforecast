@@ -57,12 +57,19 @@ class BasePointLoss(torch.nn.Module):
     `output_names`: Names of the outputs. <br>
     """
 
-    def __init__(self, horizon_weight, outputsize_multiplier, output_names):
+    def __init__(
+        self,
+        horizon_weight,
+        outputsize_multiplier,
+        output_names,
+        inputsize_multiplier=1,
+    ):
         super(BasePointLoss, self).__init__()
         if horizon_weight is not None:
             horizon_weight = torch.Tensor(horizon_weight.flatten())
         self.horizon_weight = horizon_weight
         self.outputsize_multiplier = outputsize_multiplier
+        self.inputsize_multiplier = inputsize_multiplier
         self.output_names = output_names
         self.is_distribution_output = False
 
@@ -572,6 +579,9 @@ class MQLoss(BasePointLoss):
         Compute final weights for each datapoint (based on all weights and all masks)
         Set horizon_weight to a ones[H] tensor if not set.
         If set, check that it has the same length as the horizon in x.
+
+        y: [B, h, N, 1]
+        mask: [B, h, N, 1]
         """
 
         if self.horizon_weight is None:
@@ -582,7 +592,8 @@ class MQLoss(BasePointLoss):
             ), "horizon_weight must have same length as Y"
 
         weights = self.horizon_weight.clone()
-        weights = weights[None, :, None, None].to(mask.device)
+        weights = weights[None, :, None, None]
+        weights = weights.to(mask.device)
         weights = torch.ones_like(mask, device=mask.device) * weights
         return weights * mask
 
@@ -601,6 +612,7 @@ class MQLoss(BasePointLoss):
         **Returns:**<br>
         `mqloss`: tensor (single value).
         """
+        # [B, h, N] -> [B, h, N, 1]
         y = y.unsqueeze(-1)
         if mask is not None:
             mask = mask.unsqueeze(-1)
@@ -613,8 +625,6 @@ class MQLoss(BasePointLoss):
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
         quantiles = self.quantiles[None, None, None, :]
-        print(quantiles.shape)
-        print(sq.shape)
         losses = (1 / len(quantiles)) * (quantiles * sq + (1 - quantiles) * s1_q)
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
 

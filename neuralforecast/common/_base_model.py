@@ -10,7 +10,7 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import List, Dict, Union
 
 import fsspec
 import numpy as np
@@ -20,6 +20,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 import neuralforecast.losses.pytorch as losses
 
+from ..losses.pytorch import BasePointLoss, DistributionLoss
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
@@ -78,38 +79,38 @@ class BaseModel(pl.LightningModule):
 
     def __init__(
         self,
-        h,
-        input_size,
-        loss,
-        valid_loss,
-        learning_rate,
-        max_steps,
-        val_check_steps,
-        batch_size,
-        valid_batch_size,
-        windows_batch_size,
-        inference_windows_batch_size,
-        start_padding_enabled,
-        n_series: Optional[int] = None,
-        n_samples: Optional[int] = 100,
-        h_train: Optional[int] = 1,
-        inference_input_size=None,
-        step_size=1,
-        num_lr_decays=0,
-        early_stop_patience_steps=-1,
-        scaler_type="identity",
-        futr_exog_list=None,
-        hist_exog_list=None,
-        stat_exog_list=None,
-        exclude_insample_y=False,
-        num_workers_loader=0,
-        drop_last_loader=False,
-        random_seed=1,
-        alias=None,
-        optimizer=None,
-        optimizer_kwargs=None,
-        lr_scheduler=None,
-        lr_scheduler_kwargs=None,
+        h: int,
+        input_size: int,
+        loss: Union[BasePointLoss, DistributionLoss, nn.Module],
+        valid_loss: Union[BasePointLoss, DistributionLoss, nn.Module],
+        learning_rate: float,
+        max_steps: int,
+        val_check_steps: int,
+        batch_size: int,
+        valid_batch_size: Union[int, None],
+        windows_batch_size: int,
+        inference_windows_batch_size: Union[int, None],
+        start_padding_enabled: bool,
+        n_series: Union[int, None] = None,
+        n_samples: Union[int, None] = 100,
+        h_train: int = 1,
+        inference_input_size: Union[int, None] = None,
+        step_size: int = 1,
+        num_lr_decays: int = 0,
+        early_stop_patience_steps: int = -1,
+        scaler_type: str = "identity",
+        futr_exog_list: Union[List, None] = None,
+        hist_exog_list: Union[List, None] = None,
+        stat_exog_list: Union[List, None] = None,
+        exclude_insample_y: Union[bool, None] = False,
+        num_workers_loader: Union[int, None] = 0,
+        drop_last_loader: Union[bool, None] = False,
+        random_seed: Union[int, None] = 1,
+        alias: Union[str, None] = None,
+        optimizer: Union[torch.optim.Optimizer, None] = None,
+        optimizer_kwargs: Union[Dict, None] = None,
+        lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
+        lr_scheduler_kwargs: Union[Dict, None] = None,
         **trainer_kwargs,
     ):
         super().__init__()
@@ -134,18 +135,20 @@ class BaseModel(pl.LightningModule):
                 f"Input size too small. Automatically setting input size to 3 * horizon = {input_size}"
             )
 
-        if inference_input_size < 1:
+        if inference_input_size is None:
+            inference_input_size = input_size
+        elif inference_input_size is not None and inference_input_size < 1:
             inference_input_size = input_size
             warnings.warn(
                 f"Inference input size too small. Automatically setting inference input size to input_size = {input_size}"
             )
 
-        # For recurrent models we need on additional input as we need to shift insample_y to use it as input
+        # For recurrent models we need one additional input as we need to shift insample_y to use it as input
         if self.RECURRENT:
             input_size += 1
             inference_input_size += 1
 
-        # Recurrent
+        # Attributes needed for recurrent models
         self.horizon_backup = h
         self.input_size_backup = input_size
         self.maintain_state = False
@@ -213,6 +216,8 @@ class BaseModel(pl.LightningModule):
             raise Exception(
                 f"{type(self).__name__} does not support static exogenous variables."
             )
+
+        # Protections for loss functions
 
         # Implicit Quantile Loss
         if isinstance(self.loss, losses.IQLoss):
@@ -604,7 +609,7 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # If univariate: [Ws, L + h, C, n_series] -> [Ws * n_series, L + h, C, 1]
+                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
@@ -714,7 +719,7 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # If univariate: [n_series, C, Ws, L + h] -> [n_series * Ws, L + h, C, 1]
+                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
@@ -769,10 +774,11 @@ class BaseModel(pl.LightningModule):
 
         return windows
 
-    def _inv_normalization(self, y_hat, y_idx, add_sample_dim=False):
+    def _inv_normalization(self, y_hat, y_idx):
         # Receives window predictions [Ws, h, output, n_series]
         # Broadcasts scale if necessary and inverts normalization
-        y_loc, y_scale = self._get_loc_scale(y_idx, add_sample_dim=add_sample_dim)
+        add_channel_dim = y_hat.ndim > 3
+        y_loc, y_scale = self._get_loc_scale(y_idx, add_channel_dim=add_channel_dim)
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         return y_hat
@@ -851,20 +857,19 @@ class BaseModel(pl.LightningModule):
             stat_exog,
         )
 
-    def _get_loc_scale(self, y_idx, add_sample_dim=False):
+    def _get_loc_scale(self, y_idx, add_channel_dim=False):
         # [B, L, C, n_series] -> [B, L, n_series]
         y_scale = self.scaler.x_scale[:, :, y_idx]
         y_loc = self.scaler.x_shift[:, :, y_idx]
 
-        # [B, L, n_series] -> [B, L, n_series, 1]
-        if add_sample_dim:
+        # [B, L, n_series] -> [B, L, 1, n_series]
+        if add_channel_dim:
             y_scale = y_scale.unsqueeze(2)
             y_loc = y_loc.unsqueeze(2)
 
         return y_loc, y_scale
 
     def _compute_valid_loss(self, outsample_y, output, outsample_mask, y_idx):
-        add_sample_dim = False
         if self.loss.is_distribution_output:
             y_loc, y_scale = self._get_loc_scale(y_idx)
             distr_args = self.loss.scale_decouple(
@@ -875,8 +880,6 @@ class BaseModel(pl.LightningModule):
             ):
                 _, _, quants = self.loss.sample(distr_args=distr_args)
                 output = quants
-                add_sample_dim = True
-                distr = self.loss.get_distribution(distr_args=distr_args)
             elif isinstance(self.valid_loss, losses.BasePointLoss):
                 distr = self.loss.get_distribution(distr_args=distr_args)
                 output = distr.mean
@@ -887,9 +890,7 @@ class BaseModel(pl.LightningModule):
                 y=outsample_y, distr_args=distr_args, mask=outsample_mask
             )
         else:
-            output = self._inv_normalization(
-                y_hat=output, y_idx=y_idx, add_sample_dim=add_sample_dim
-            )
+            output = self._inv_normalization(y_hat=output, y_idx=y_idx)
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, mask=outsample_mask
             )
@@ -1006,14 +1007,14 @@ class BaseModel(pl.LightningModule):
                 output=output_batch, loc=y_loc, scale=y_scale
             )
             if validate_only:
-                # When validating, the output is the mean of the distribution which is a property
+                # When validating, the output is the mean of the distribution which is an attribute
                 distr = self.loss.get_distribution(distr_args=distr_args)
                 y_hat = distr.mean
 
                 # Scale back to feed back as input
                 insample_y = self.scaler.scaler(y_hat, y_loc, y_scale)
             else:
-                # When predicting, we need to sample to get the quantiles
+                # When predicting, we need to sample to get the quantiles. The mean is an attribute.
                 _, _, quants = self.loss.sample(
                     distr_args=distr_args, num_samples=self.n_samples
                 )
@@ -1030,10 +1031,17 @@ class BaseModel(pl.LightningModule):
 
                 if self.loss.return_params:
                     distr_args = torch.stack(distr_args, dim=-1)
+                    if not self.MULTIVARIATE:
+                        distr_args = distr_args.squeeze(2)
                     y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
             # Save input for next prediction
             insample_y = output_batch
+            # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
+            # contains a set of predictions for the target (e.g. multiple quantiles), for which we use the
+            # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
+            # insample input size of the recurrent network by the number of outputs so that each output
+            # can be fed back to a specific input channel.
             if output_batch.ndim == 4:
                 output_batch = output_batch.mean(dim=-1)
                 insample_y = output_batch
@@ -1074,12 +1082,7 @@ class BaseModel(pl.LightningModule):
                 distr_args = torch.stack(distr_args, dim=-1)
                 y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
-            add_sample_dim = False
-            if isinstance(self.loss, (losses.sCRPS, losses.MQLoss, losses.HuberMQLoss)):
-                add_sample_dim = True
-            y_hat = self._inv_normalization(
-                y_hat=output_batch, y_idx=y_idx, add_sample_dim=add_sample_dim
-            )
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
 
         return y_hat
 
@@ -1210,8 +1213,8 @@ class BaseModel(pl.LightningModule):
 
                 # Model Predictions
                 output_batch = self(windows_batch)
-                output_batch = self.loss.domain_map(output_batch)
 
+            output_batch = self.loss.domain_map(output_batch)
             valid_loss_batch = self._compute_valid_loss(
                 outsample_y=original_outsample_y,
                 output=output_batch,
