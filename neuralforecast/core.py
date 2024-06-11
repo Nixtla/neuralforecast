@@ -59,6 +59,7 @@ from neuralforecast.models import (
     BiTCN,
     TiDE,
     DeepNPTS,
+    VCformer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -176,6 +177,7 @@ MODEL_FILENAME_DICT = {
     "autotide": TiDE,
     "deepnpts": DeepNPTS,
     "autodeepnpts": DeepNPTS,
+    "vcformer": VCformer,
 }
 
 # %% ../nbs/core.ipynb 8
