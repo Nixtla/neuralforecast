@@ -866,13 +866,13 @@ class NeuralForecast:
         # the cv_times is sorted by window and then id
         fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.dataset.n_groups * self.h * n_windows, len(cols)),
-            np.nan,
-            dtype=np.float32,
-        )
+        # allocate output array
+        max_windows_per_serie = (np.diff(self.dataset.indptr) - 1) // self.h
+        windows_per_serie = np.minimum(max_windows_per_serie, n_windows)
+        samples_per_serie = windows_per_serie * self.h
+        fcsts = np.empty((samples_per_serie.sum(), len(cols)), dtype=np.float32)
 
+        col_idx = 0
         for model in self.models:
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
@@ -883,29 +883,10 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
-        # we may have allocated more space than needed
-        # each serie can produce at most (serie.size - 1) // self.h CV windows
-        effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
-        needs_trim = effective_sizes.sum() != fcsts.shape[0]
-        if self.scalers_ or needs_trim:
-            indptr = np.arange(
-                0,
-                n_windows * self.h * (self.dataset.n_groups + 1),
-                n_windows * self.h,
-                dtype=np.int32,
-            )
-            if self.scalers_:
-                fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
-            if needs_trim:
-                # we keep only the effective samples of each serie from the cv results
-                trimmed = np.empty_like(
-                    fcsts, shape=(effective_sizes.sum(), fcsts.shape[1])
-                )
-                cv_indptr = np.append(0, effective_sizes).cumsum(dtype=np.int32)
-                for i in range(fcsts.shape[1]):
-                    ga = GroupedArray(fcsts[:, i], indptr)
-                    trimmed[:, i] = ga._tails(cv_indptr)
-                fcsts = trimmed
+
+        if self.scalers_:
+            indptr = np.append(0, samples_per_serie.cumsum()).astype(np.int32)
+            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         self._fitted = True
 
