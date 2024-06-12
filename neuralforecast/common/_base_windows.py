@@ -597,7 +597,6 @@ class BaseWindows(BaseModel):
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
             windows["temporal"] = windows["temporal"][w_idxs]
-            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
