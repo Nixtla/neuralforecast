@@ -1,0 +1,10 @@
+name: kan_benchmark
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - utilsforecast
+  - pip
+  - pip:
+    - "git+https://github.com/Nixtla/datasetsforecast.git"
+    - "git+https://github.com/Nixtla/neuralforecast.git"
