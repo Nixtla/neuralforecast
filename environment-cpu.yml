@@ -20,6 +20,7 @@ dependencies:
   - pip
   - s3fs
   - snappy<1.2.0
+  - einops
   - pip:
     - nbdev
     - black

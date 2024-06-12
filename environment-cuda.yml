@@ -20,6 +20,7 @@ dependencies:
   - pytorch-lightning>=2.0.0
   - pip
   - s3fs
+  - einops
   - pip:
     - nbdev
     - black
