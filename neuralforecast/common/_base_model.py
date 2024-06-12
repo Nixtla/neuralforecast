@@ -430,8 +430,5 @@ class BaseModel(pl.LightningModule):
             content = torch.load(f, **kwargs)
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])
-        if "assign" in inspect.signature(model.load_state_dict).parameters:
-            model.load_state_dict(content["state_dict"], strict=True, assign=True)
-        else:  # pytorch<2.1
-            model.load_state_dict(content["state_dict"], strict=True)
+        model.load_state_dict(content["state_dict"], strict=True, assign=True)
         return model

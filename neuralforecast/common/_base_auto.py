@@ -166,7 +166,7 @@ class BaseAuto(pl.LightningModule):
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
-        self.refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+        self.refit_with_val = refit_with_val
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
