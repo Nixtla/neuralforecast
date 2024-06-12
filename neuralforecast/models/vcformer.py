@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['VCformer']
 
-# %% ../../nbs/models.vcformer.ipynb 5
+# %% ../../nbs/models.vcformer.ipynb 6
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,10 +12,12 @@ from math import sqrt
 
 from einops import rearrange
 
+from ..common._modules import MLP, TransEncoder
+
 from ..losses.pytorch import MAE
 from ..common._base_multivariate import BaseMultivariate
 
-# %% ../../nbs/models.vcformer.ipynb 7
+# %% ../../nbs/models.vcformer.ipynb 8
 class DataEmbedding_inverted(nn.Module):
     def __init__(self, c_in, d_model, dropout=0.1):
         super(DataEmbedding_inverted, self).__init__()
@@ -34,56 +36,7 @@ class DataEmbedding_inverted(nn.Module):
         # x: [Batch Variate d_model]
         return self.dropout(x)
 
-# %% ../../nbs/models.vcformer.ipynb 9
-class MLP(nn.Module):
-    """
-    Multilayer perceptron to encode/decode high dimension representation of sequential data
-    """
-
-    def __init__(
-        self,
-        f_in,
-        f_out,
-        hidden_dim=128,
-        hidden_layers=2,
-        dropout=0.05,
-        activation="tanh",
-    ):
-        super(MLP, self).__init__()
-        self.f_in = f_in
-        self.f_out = f_out
-        self.hidden_dim = hidden_dim
-        self.hidden_layers = hidden_layers
-        self.dropout = dropout
-        if activation == "relu":
-            self.activation = nn.ReLU()
-        elif activation == "tanh":
-            self.activation = nn.Tanh()
-        else:
-            raise NotImplementedError
-
-        layers = [
-            nn.Linear(self.f_in, self.hidden_dim),
-            self.activation,
-            nn.Dropout(self.dropout),
-        ]
-        for i in range(self.hidden_layers - 2):
-            layers += [
-                nn.Linear(self.hidden_dim, self.hidden_dim),
-                self.activation,
-                nn.Dropout(dropout),
-            ]
-
-        layers += [nn.Linear(hidden_dim, f_out)]
-        self.layers = nn.Sequential(*layers)
-
-    def forward(self, x):
-        # x:     B x S x f_in
-        # y:     B x S x f_out
-        y = self.layers(x)
-        return y
-
-
+# %% ../../nbs/models.vcformer.ipynb 10
 class KPLayerApprox(nn.Module):
     def __init__(self):
         super(KPLayerApprox, self).__init__()
@@ -131,16 +84,20 @@ class KTDlayer(nn.Module):
         self.snap_size = snap_size
         self.dynamics = KPLayerApprox()
         self.encoder = MLP(
-            f_in=snap_size,
-            f_out=proj_dim,
-            hidden_dim=hidden_dim,
-            hidden_layers=hidden_layers,
+            in_features=snap_size,
+            out_features=proj_dim,
+            activation="Tanh",
+            hidden_size=hidden_dim,
+            num_layers=hidden_layers,
+            dropout=0.05,
         )
         self.decoder = MLP(
-            f_in=proj_dim,
-            f_out=snap_size,
-            hidden_dim=hidden_dim,
-            hidden_layers=hidden_layers,
+            in_features=proj_dim,
+            out_features=snap_size,
+            activation="Tanh",
+            hidden_size=hidden_dim,
+            num_layers=hidden_layers,
+            dropout=0.05,
         )
         self.padding_len = (
             snap_size - (enc_in % snap_size) if enc_in % snap_size != 0 else 0
@@ -165,7 +122,7 @@ class KTDlayer(nn.Module):
 
         return x_pred
 
-# %% ../../nbs/models.vcformer.ipynb 11
+# %% ../../nbs/models.vcformer.ipynb 12
 class EncoderLayer(nn.Module):
     def __init__(
         self, attention, ktd, d_model, d_ff=None, dropout=0.1, activation="relu"
@@ -196,40 +153,7 @@ class EncoderLayer(nn.Module):
 
         return self.norm2(x_ktd + y), attn
 
-
-class Encoder(nn.Module):
-    def __init__(self, attn_layers, conv_layers=None, norm_layer=None):
-        super(Encoder, self).__init__()
-        self.attn_layers = nn.ModuleList(attn_layers)
-        self.conv_layers = (
-            nn.ModuleList(conv_layers) if conv_layers is not None else None
-        )
-        self.norm = norm_layer
-
-    def forward(self, x, attn_mask=None, tau=None, delta=None):
-        # x [B, L, D]
-        attns = []
-        if self.conv_layers is not None:
-            for i, (attn_layer, conv_layer) in enumerate(
-                zip(self.attn_layers, self.conv_layers)
-            ):
-                delta = delta if i == 0 else None
-                x, attn = attn_layer(x, attn_mask=attn_mask, tau=tau, delta=delta)
-                x = conv_layer(x)
-                attns.append(attn)
-            x, attn = self.attn_layers[-1](x, tau=tau, delta=None)
-            attns.append(attn)
-        else:
-            for attn_layer in self.attn_layers:
-                x, attn = attn_layer(x, attn_mask=attn_mask, tau=tau, delta=delta)
-                attns.append(attn)
-
-        if self.norm is not None:
-            x = self.norm(x)
-
-        return x, attns
-
-# %% ../../nbs/models.vcformer.ipynb 13
+# %% ../../nbs/models.vcformer.ipynb 14
 class TriangularCausalMask:
     def __init__(self, B, L, device="cpu"):
         mask_shape = [B, 1, L, L]
@@ -356,11 +280,9 @@ class VarCorAttentionLayer(nn.Module):
 
         return self.out_projection(out), attn
 
-# %% ../../nbs/models.vcformer.ipynb 15
+# %% ../../nbs/models.vcformer.ipynb 16
 class VCformer(BaseMultivariate):
     """VCformer
-
-    TODO: Write docstring
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
@@ -369,6 +291,37 @@ class VCformer(BaseMultivariate):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `hidden_size`: int, dimension of the model.<br>
+    `n_heads`: int, number of heads.<br>
+    `e_layers`: int, number of encoder layers.<br>
+    `d_ff`: int, dimension of fully-connected layer.<br>
+    `snap_size`: int, snapshot size for Koopman Temporal Detector<br>
+    `projection_dim`: int, projection dimension of Koopman space<br>
+    `hidden_enc_dim`: int, hidden dimension of Koopman encoder<br>
+    `hidden_ktd_layers`: number of hidden layers of Koopman Temporal Detector<br>
+    `factor`: int, attention factor.<br>
+    `dropout`: float, dropout rate.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    **References**
+    - [Yingnan Yang, Qingling Zhu, Jianyong Chen. "VCformer: Variable Correlation Transformer with Inherent Lagged Correlation for Multivariate Time Series Forecasting"](https://arxiv.org/abs/2405.11470)
     """
 
     # Class attributes
@@ -396,7 +349,6 @@ class VCformer(BaseMultivariate):
         hidden_ktd_layers: int = 1,
         factor: int = 1,
         dropout: float = 0.1,
-        # Base args
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -445,7 +397,6 @@ class VCformer(BaseMultivariate):
         )
 
         self.h = h
-        print(self.h)
         self.enc_in = n_series
         self.hidden_size = hidden_size
         self.dropout = dropout
@@ -463,7 +414,7 @@ class VCformer(BaseMultivariate):
             input_size, hidden_size, self.dropout
         )
 
-        self.encoder = Encoder(
+        self.encoder = TransEncoder(
             [
                 EncoderLayer(
                     VarCorAttentionLayer(
