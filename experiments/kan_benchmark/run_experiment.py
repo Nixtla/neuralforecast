@@ -72,7 +72,7 @@ if __name__ == "__main__":
     test_df = Y_df.groupby('unique_id').tail(horizon)
     train_df = Y_df.drop(test_df.index).reset_index(drop=True)
 
-    kan_model = KAN(input_size=2*horizon, h=horizon, scaler_type='robust', max_steps=1000, early_stop_patience_steps=3)
+    kan_model = KAN(input_size=2*horizon, h=horizon, scaler_type='robust', early_stop_patience_steps=3)
     mlp_model = MLP(input_size=2*horizon, h=horizon, scaler_type='robust', max_steps=1000, early_stop_patience_steps=3)
     nbeats_model = NBEATS(input_size=2*horizon, h=horizon, scaler_type='robust', max_steps=1000, early_stop_patience_steps=3)
     nhits_model = NHITS(input_size=2*horizon, h=horizon, scaler_type='robust', max_steps=1000, early_stop_patience_steps=3)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         evaluation = evaluate(
             test_df,
             metrics=[mae, smape],
-            models=["KAN", "MLP", "NBEATS"],
+            models=[f"{MODEL_NAMES[i]}"],
             target_col="y",
         )
 
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
     results_df = pd.DataFrame(data=results, columns=['dataset', 'model', 'mae', 'smape', 'time'])
     os.makedirs('./results', exist_ok=True)
-    results_df.to_csv(f'./results/{dataset}_results.csv', header=True, index=False)
+    results_df.to_csv(f'./results/{dataset}_results_KANtuned.csv', header=True, index=False)
 
 
 
