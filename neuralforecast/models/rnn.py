@@ -160,7 +160,6 @@ class RNN(BaseModel):
         )
 
         # Instantiate model
-        self.rnn_state = None
         self.hist_encoder = nn.RNN(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,
@@ -224,6 +223,7 @@ class RNN(BaseModel):
         hidden_state, rnn_state = self.hist_encoder(
             encoder_input, rnn_state
         )  # [B, seq_len, rnn_hidden_state]
+
         if self.maintain_state:
             self.rnn_state = rnn_state
 
