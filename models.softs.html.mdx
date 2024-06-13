@@ -1,0 +1,333 @@
+---
+output-file: models.softs.html
+title: SOFTS
+---
+
+
+## 1. Auxiliary functions
+
+### 1.1 Embedding
+
+### 1.2 STAD (STar Aggregate Dispatch)
+
+## 2. Model
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L77"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### SOFTS
+
+> ``` text
+>  SOFTS (h, input_size, n_series, futr_exog_list=None, hist_exog_list=None,
+>         stat_exog_list=None, hidden_size:int=512, d_core:int=512,
+>         e_layers:int=2, d_ff:int=2048, dropout:float=0.1,
+>         use_norm:bool=True, loss=MAE(), valid_loss=None,
+>         max_steps:int=1000, learning_rate:float=0.001,
+>         num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>         val_check_steps:int=100, batch_size:int=32, step_size:int=1,
+>         scaler_type:str='identity', random_seed:int=1,
+>         num_workers_loader:int=0, drop_last_loader:bool=False,
+>         optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
+>         lr_scheduler_kwargs=None, **trainer_kwargs)
+> ```
+
+\*SOFTS
+
+**Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
+autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
+y\_\[t-2:t\]=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
+`futr_exog_list`: str list, future exogenous columns.<br/>
+`hist_exog_list`: str list, historic exogenous columns.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/> `hidden_size`:
+int, dimension of the model.<br/> `d_core`: int, dimension of core in
+STAD.<br/> `e_layers`: int, number of encoder layers.<br/> `d_ff`: int,
+dimension of fully-connected layer.<br/> `dropout`: float, dropout
+rate.<br/> `use_norm`: bool, whether to normalize or not.<br/> `loss`:
+PyTorch module, instantiated train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `step_size`: int=1, step size between each
+window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+scaler for temporal inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `optimizer`: Subclass of
+‘torch.optim.Optimizer’, optional, user specified optimizer instead of
+the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
+of parameters used by the user specified `optimizer`.<br/>
+`lr_scheduler`: Subclass of ‘torch.optim.lr_scheduler.LRScheduler’,
+optional, user specified lr_scheduler instead of the default choice
+(StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
+used by the user specified `lr_scheduler`.<br/> `**trainer_kwargs`: int,
+keyword trainer arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+
+**References**<br/> [Lu Han, Xu-Yang Chen, Han-Jia Ye, De-Chuan Zhan.
+“SOFTS: Efficient Multivariate Time Series Forecasting with Series-Core
+Fusion”](https://arxiv.org/pdf/2404.14197)\*
+
+------------------------------------------------------------------------
+
+### SOFTS.fit
+
+> ``` text
+>  SOFTS.fit (dataset, val_size=0, test_size=0, random_seed=None,
+>             distributed_config=None)
+> ```
+
+\*Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>\*
+
+------------------------------------------------------------------------
+
+### SOFTS.predict
+
+> ``` text
+>  SOFTS.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                 **data_module_kwargs)
+> ```
+
+\*Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
+
+## 3. Usage example
+
+```python
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+from neuralforecast.losses.pytorch import MSE
+```
+
+
+```python
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = SOFTS(h=12,
+              input_size=24,
+              n_series=2,
+              hidden_size=256,
+              d_core=256,
+              e_layers=2,
+              d_ff=64,
+              dropout=0.1,
+              use_norm=True,
+              loss=MSE(),
+              valid_loss=MAE(),
+              early_stop_patience_steps=3,
+              batch_size=32)
+
+fcst = NeuralForecast(models=[model], freq='M')
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+```
+
+``` text
+Seed set to 1
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+
+  | Name          | Type                   | Params
+---------------------------------------------------------
+0 | loss          | MSE                    | 0     
+1 | valid_loss    | MAE                    | 0     
+2 | padder        | ConstantPad1d          | 0     
+3 | scaler        | TemporalNorm           | 0     
+4 | enc_embedding | DataEmbedding_inverted | 6.4 K 
+5 | encoder       | TransEncoder           | 725 K 
+6 | projection    | Linear                 | 3.1 K 
+---------------------------------------------------------
+735 K     Trainable params
+0         Non-trainable params
+735 K     Total params
+2.940     Total estimated model params size (MB)
+Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/neuralforecast/core.py:201: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
+  warnings.warn(
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+```python
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['SOFTS'], c='blue', label='Forecast')
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Year', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+![](/neuralforecast/models.softs_files/figure-markdown_strict/cell-7-output-1.png)
+
+```python
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = SOFTS(h=12,
+              input_size=24,
+              n_series=1,
+              hidden_size=256,
+              d_core=256,
+              e_layers=2,
+              d_ff=64,
+              dropout=0.1,
+              use_norm=True,
+              loss=MSE(),
+              valid_loss=MAE(),
+              early_stop_patience_steps=3,
+              batch_size=32)
+
+fcst = NeuralForecast(models=[model], freq='M')
+fcst.fit(df=Y_train_df, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+```
+
+``` text
+Seed set to 1
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+
+  | Name          | Type                   | Params
+---------------------------------------------------------
+0 | loss          | MSE                    | 0     
+1 | valid_loss    | MAE                    | 0     
+2 | padder        | ConstantPad1d          | 0     
+3 | scaler        | TemporalNorm           | 0     
+4 | enc_embedding | DataEmbedding_inverted | 6.4 K 
+5 | encoder       | TransEncoder           | 725 K 
+6 | projection    | Linear                 | 3.1 K 
+---------------------------------------------------------
+735 K     Trainable params
+0         Non-trainable params
+735 K     Total params
+2.940     Total estimated model params size (MB)
+Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
+GPU available: True (mps), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/neuralforecast/core.py:201: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
+  warnings.warn(
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
