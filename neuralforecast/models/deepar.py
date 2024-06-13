@@ -98,7 +98,6 @@ class DeepAR(BaseModel):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = True
@@ -191,7 +190,6 @@ class DeepAR(BaseModel):
         input_encoder = 1 + self.futr_exog_size + self.stat_exog_size
 
         # Instantiate model
-        self.rnn_state = None
         self.hist_encoder = nn.LSTM(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,

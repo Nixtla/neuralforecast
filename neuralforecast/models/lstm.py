@@ -58,7 +58,6 @@ class LSTM(BaseModel):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "recurrent"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True

@@ -69,6 +69,7 @@ def _disable_torch_init():
 
 # %% ../../nbs/common.base_model.ipynb 5
 class BaseModel(pl.LightningModule):
+    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
     EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
@@ -151,10 +152,12 @@ class BaseModel(pl.LightningModule):
         # Attributes needed for recurrent models
         self.horizon_backup = h
         self.input_size_backup = input_size
-        self.maintain_state = False
         self.n_samples = n_samples
-        self.h_train = h_train
-        self.inference_input_size = inference_input_size
+        if self.RECURRENT:
+            self.h_train = h_train
+            self.inference_input_size = inference_input_size
+            self.rnn_state = None
+            self.maintain_state = False
 
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
@@ -896,37 +899,127 @@ class BaseModel(pl.LightningModule):
             )
         return valid_loss
 
-    def _predict_step_recurrent_batch(
-        self,
-        insample_y,
-        insample_mask,
-        futr_exog,
-        hist_exog,
-        stat_exog,
-        y_idx,
-        validate_only=False,
+    def _validate_step_recurrent_batch(
+        self, insample_y, insample_mask, futr_exog, hist_exog, stat_exog, y_idx
     ):
         # Remember state in network and set horizon to 1
+        self.rnn_state = None
+        self.maintain_state = True
+        self.h = 1
+
+        # Initialize results array
+        n_outputs = self.loss.outputsize_multiplier
+        y_hat = torch.zeros(
+            (insample_y.shape[0], self.horizon_backup, self.n_series * n_outputs),
+            device=insample_y.device,
+            dtype=insample_y.dtype,
+        )
+
+        # First step prediction
+        tau = 0
+
+        # Set exogenous
+        hist_exog_current = None
+        if self.hist_exog_size > 0:
+            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+
+        futr_exog_current = None
+        if self.futr_exog_size > 0:
+            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+
+        # First forecast step
+        y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+            insample_y=insample_y[:, : self.input_size + tau - 1],
+            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            hist_exog=hist_exog_current,
+            futr_exog=futr_exog_current,
+            stat_exog=stat_exog,
+            y_idx=y_idx,
+        )
+
+        # Horizon prediction recursively
+        for tau in range(self.horizon_backup):
+            # Set exogenous
+            if self.hist_exog_size > 0:
+                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            if self.futr_exog_size > 0:
+                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+                insample_y=insample_y,
+                insample_mask=None,
+                hist_exog=hist_exog_current,
+                futr_exog=futr_exog_current,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+            )
+
+        # Reset state and horizon
+        self.maintain_state = False
+        self.rnn_state = None
+        self.h = self.horizon_backup
+
+        return y_hat
+
+    def _validate_step_recurrent_single(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        # Input sequence
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch_unmapped = self(windows_batch)
+        output_batch = self.loss.domain_map(output_batch_unmapped)
+
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            # Sample distribution
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            # When validating, the output is the mean of the distribution which is an attribute
+            distr = self.loss.get_distribution(distr_args=distr_args)
+
+            # Scale back to feed back as input
+            insample_y = self.scaler.scaler(distr.mean, y_loc, y_scale)
+        else:
+            # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
+            # contains a set of predictions for the target (e.g. MQLoss multiple quantiles), for which we use the
+            # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
+            # insample input size of the recurrent network by the number of outputs so that each output
+            # can be fed back to a specific input channel.
+            if output_batch.ndim == 4:
+                output_batch = output_batch.mean(dim=-1)
+
+            insample_y = output_batch
+
+        # Remove horizon dim: [B, 1, N * n_outputs] -> [B, N * n_outputs]
+        y_hat = output_batch_unmapped.squeeze(1)
+        return y_hat, insample_y
+
+    def _predict_step_recurrent_batch(
+        self, insample_y, insample_mask, futr_exog, hist_exog, stat_exog, y_idx
+    ):
+        # Remember state in network and set horizon to 1
+        self.rnn_state = None
         self.maintain_state = True
         self.h = 1
 
         # Initialize results array
         n_outputs = len(self.loss.output_names)
-        if self.loss.is_distribution_output and validate_only:
-            n_outputs = 1
-
-        if self.MULTIVARIATE:
-            y_hat = torch.zeros(
-                (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
-        else:
-            y_hat = torch.zeros(
-                (insample_y.shape[0], self.horizon_backup, n_outputs),
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
+        y_hat = torch.zeros(
+            (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
+            device=insample_y.device,
+            dtype=insample_y.dtype,
+        )
 
         # First step prediction
         tau = 0
@@ -948,7 +1041,6 @@ class BaseModel(pl.LightningModule):
             futr_exog=futr_exog_current,
             stat_exog=stat_exog,
             y_idx=y_idx,
-            validate_only=validate_only,
         )
 
         # Horizon prediction recursively
@@ -967,24 +1059,21 @@ class BaseModel(pl.LightningModule):
                 futr_exog=futr_exog_current,
                 stat_exog=stat_exog,
                 y_idx=y_idx,
-                validate_only=validate_only,
             )
 
         # Reset state and horizon
         self.maintain_state = False
+        self.rnn_state = None
         self.h = self.horizon_backup
+
+        # Squeeze for univariate case
+        if not self.MULTIVARIATE:
+            y_hat = y_hat.squeeze(2)
 
         return y_hat
 
     def _predict_step_recurrent_single(
-        self,
-        insample_y,
-        insample_mask,
-        hist_exog,
-        futr_exog,
-        stat_exog,
-        y_idx,
-        validate_only=False,
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
     ):
         # Input sequence
         windows_batch = dict(
@@ -996,8 +1085,8 @@ class BaseModel(pl.LightningModule):
         )  # univariate: [Ws, S]; multivariate: [n_series, S]
 
         # Model Predictions
-        output_batch = self(windows_batch)
-        output_batch = self.loss.domain_map(output_batch)
+        output_batch_unmapped = self(windows_batch)
+        output_batch = self.loss.domain_map(output_batch_unmapped)
 
         # Inverse normalization and sampling
         if self.loss.is_distribution_output:
@@ -1006,49 +1095,33 @@ class BaseModel(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output_batch, loc=y_loc, scale=y_scale
             )
-            if validate_only:
-                # When validating, the output is the mean of the distribution which is an attribute
-                distr = self.loss.get_distribution(distr_args=distr_args)
-                y_hat = distr.mean
+            # When predicting, we need to sample to get the quantiles. The mean is an attribute.
+            _, _, quants = self.loss.sample(
+                distr_args=distr_args, num_samples=self.n_samples
+            )
+            mean = self.loss.distr_mean
 
-                # Scale back to feed back as input
-                insample_y = self.scaler.scaler(y_hat, y_loc, y_scale)
-            else:
-                # When predicting, we need to sample to get the quantiles. The mean is an attribute.
-                _, _, quants = self.loss.sample(
-                    distr_args=distr_args, num_samples=self.n_samples
-                )
-                mean = self.loss.distr_mean
+            # Scale back to feed back as input
+            insample_y = self.scaler.scaler(mean, y_loc, y_scale)
 
-                # Scale back to feed back as input
-                insample_y = self.scaler.scaler(mean, y_loc, y_scale)
+            # Save predictions
+            y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
 
-                # Save predictions
-                if not self.MULTIVARIATE:
-                    quants = quants.squeeze(2)
-
-                y_hat = torch.concat((mean, quants), axis=-1)
-
-                if self.loss.return_params:
-                    distr_args = torch.stack(distr_args, dim=-1)
-                    if not self.MULTIVARIATE:
-                        distr_args = distr_args.squeeze(2)
-                    y_hat = torch.concat((y_hat, distr_args), axis=-1)
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
-            # Save input for next prediction
-            insample_y = output_batch
             # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
-            # contains a set of predictions for the target (e.g. multiple quantiles), for which we use the
+            # contains a set of predictions for the target (e.g. MQLoss multiple quantiles), for which we use the
             # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
             # insample input size of the recurrent network by the number of outputs so that each output
             # can be fed back to a specific input channel.
             if output_batch.ndim == 4:
                 output_batch = output_batch.mean(dim=-1)
-                insample_y = output_batch
-            if validate_only:
-                y_hat = output_batch
-            else:
-                y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+
+            insample_y = output_batch
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+            y_hat = y_hat.unsqueeze(-1)
 
         # Remove horizon dim: [B, 1, N, n_outputs] -> [B, N, n_outputs]
         y_hat = y_hat.squeeze(1)
@@ -1080,6 +1153,8 @@ class BaseModel(pl.LightningModule):
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
+                if distr_args.ndim > 4:
+                    distr_args = distr_args.flatten(-2, -1)
                 y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
@@ -1193,14 +1268,13 @@ class BaseModel(pl.LightningModule):
             ) = self._parse_windows(batch, windows)
 
             if self.RECURRENT:
-                output_batch = self._predict_step_recurrent_batch(
+                output_batch = self._validate_step_recurrent_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
                     futr_exog=futr_exog,
                     hist_exog=hist_exog,
                     stat_exog=stat_exog,
                     y_idx=y_idx,
-                    validate_only=True,
                 )
             else:
                 windows_batch = dict(

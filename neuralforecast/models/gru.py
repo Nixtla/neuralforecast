@@ -59,7 +59,6 @@ class GRU(BaseModel):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "recurrent"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
@@ -237,4 +236,4 @@ class GRU(BaseModel):
             context
         )  # [B, seq_len, context_size * h + F] -> [B, seq_len, n_output]
 
-        return output
+        return output[:, -self.h :]
