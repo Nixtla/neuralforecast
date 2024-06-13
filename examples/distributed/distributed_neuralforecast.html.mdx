@@ -19,6 +19,7 @@ This notebook was ran in databricks using the following configuration:
 ## Load libraries
 
 ```python
+import logging
 import os
 
 import numpy as np
@@ -33,15 +34,16 @@ from utilsforecast.plotting import plot_series
 ```
 
 ``` text
-2024-03-19 21:49:49.663591: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2024-03-19 21:49:50.496182: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
-2024-03-19 21:49:50.496228: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
-2024-03-19 21:49:50.501058: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
-2024-03-19 21:49:50.898254: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+2024-06-12 21:29:32.857491: I tensorflow/core/util/port.cc:111] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2024-06-12 21:29:32.901906: E tensorflow/compiler/xla/stream_executor/cuda/cuda_dnn.cc:9342] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+2024-06-12 21:29:32.901946: E tensorflow/compiler/xla/stream_executor/cuda/cuda_fft.cc:609] Unable to register cuFFT factory: Attempting to register factory for plugin cuFFT when one has already been registered
+2024-06-12 21:29:32.901973: E tensorflow/compiler/xla/stream_executor/cuda/cuda_blas.cc:1518] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+2024-06-12 21:29:32.909956: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
 To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
 ```
 
 ```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```
 
@@ -50,7 +52,7 @@ os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```python
 df = pd.read_parquet('https://datasets-nixtla.s3.amazonaws.com/m4-hourly.parquet')
 df['exog_0'] = np.random.rand(df.shape[0])
-static = df.groupby('unique_id').head(1)
+static = df.groupby('unique_id').head(1).copy()
 static['stat_0'] = static['unique_id'].astype('category').cat.codes
 static = static[['unique_id', 'stat_0']]
 valid = df.groupby('unique_id').tail(24)
@@ -96,7 +98,7 @@ def config(trial):
     return dict(
         input_size=48,
         max_steps=2_000,
-        learning_rate=trial.suggest_loguniform('learning_rate', 1e-4, 1e-1),
+        learning_rate=trial.suggest_float('learning_rate', 1e-4, 1e-1, log=True),
         **exogs,
         **distributed_kwargs
     )
@@ -118,38 +120,176 @@ nf.fit(spark_train, static_df=spark_static, distributed_config=dist_cfg, val_siz
 
 ``` text
 [rank: 0] Seed set to 1
+/local_disk0/.ephemeral_nfs/cluster_libraries/python/lib/python3.10/site-packages/pytorch_lightning/utilities/parsing.py:199: Attribute 'loss' is an instance of `nn.Module` and is already saved during checkpointing. It is recommended to ignore them using `self.save_hyperparameters(ignore=['loss'])`.
 [rank: 0] Seed set to 1
-INFO:TorchDistributor:Started distributed training with 1 executor processes
+INFO:TorchDistributor:Started distributed training with 2 executor processes
+[rank: 1] Seed set to 1
 [rank: 0] Seed set to 1
+[rank: 1] Seed set to 1
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/2
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
 [rank: 0] Seed set to 1
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
-INFO:TorchDistributor:Finished distributed training with 1 executor processes
-[I 2024-03-19 21:51:51,679] A new study created in memory with name: no-name-0e3b07d6-e2f1-418c-9c24-889a287d679e
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/2
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 2 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name         | Type          | Params
+-----------------------------------------------
+0 | loss         | MAE           | 0
+1 | padder_train | ConstantPad1d | 0
+2 | scaler       | TemporalNorm  | 0
+3 | blocks       | ModuleList    | 2.6 M
+-----------------------------------------------
+2.6 M     Trainable params
+0         Non-trainable params
+2.6 M     Total params
+10.341    Total estimated model params size (MB)
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:TorchDistributor:Finished distributed training with 2 executor processes
+[I 2024-06-12 21:31:09,627] A new study created in memory with name: no-name-849c3a84-28d7-417b-a48d-f0feac64cbc3
 [rank: 0] Seed set to 1
-INFO:TorchDistributor:Started distributed training with 1 executor processes
+INFO:TorchDistributor:Started distributed training with 2 executor processes
+[rank: 1] Seed set to 1
 [rank: 0] Seed set to 1
+[rank: 1] Seed set to 1
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/2
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
 [rank: 0] Seed set to 1
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
-INFO:TorchDistributor:Finished distributed training with 1 executor processes
-[I 2024-03-19 21:52:42,142] Trial 0 finished with value: 200.87734985351562 and parameters: {'learning_rate': 0.0050113816229826035}. Best is trial 0 with value: 200.87734985351562.
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/2
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 2 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name         | Type          | Params
+-----------------------------------------------
+0 | loss         | MAE           | 0
+1 | padder_train | ConstantPad1d | 0
+2 | scaler       | TemporalNorm  | 0
+3 | blocks       | ModuleList    | 2.6 M
+-----------------------------------------------
+2.6 M     Trainable params
+0         Non-trainable params
+2.6 M     Total params
+10.341    Total estimated model params size (MB)
+`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:TorchDistributor:Finished distributed training with 2 executor processes
+[I 2024-06-12 21:32:26,716] Trial 0 finished with value: 240.63693237304688 and parameters: {'learning_rate': 0.0008137359313625077}. Best is trial 0 with value: 240.63693237304688.
 [rank: 0] Seed set to 1
-INFO:TorchDistributor:Started distributed training with 1 executor processes
+INFO:TorchDistributor:Started distributed training with 2 executor processes
+[rank: 1] Seed set to 1
 [rank: 0] Seed set to 1
+[rank: 1] Seed set to 1
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/2
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
 [rank: 0] Seed set to 1
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
-INFO:TorchDistributor:Finished distributed training with 1 executor processes
-[I 2024-03-19 21:53:32,596] Trial 1 finished with value: 6035.89013671875 and parameters: {'learning_rate': 0.029045971633350463}. Best is trial 0 with value: 200.87734985351562.
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/2
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 2 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name         | Type          | Params
+-----------------------------------------------
+0 | loss         | MAE           | 0
+1 | padder_train | ConstantPad1d | 0
+2 | scaler       | TemporalNorm  | 0
+3 | blocks       | ModuleList    | 2.6 M
+-----------------------------------------------
+2.6 M     Trainable params
+0         Non-trainable params
+2.6 M     Total params
+10.341    Total estimated model params size (MB)
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:TorchDistributor:Finished distributed training with 2 executor processes
+[I 2024-06-12 21:33:43,744] Trial 1 finished with value: 269.3470153808594 and parameters: {'learning_rate': 0.0007824692588634985}. Best is trial 0 with value: 240.63693237304688.
 [rank: 0] Seed set to 1
-INFO:TorchDistributor:Started distributed training with 1 executor processes
+INFO:TorchDistributor:Started distributed training with 2 executor processes
+[rank: 1] Seed set to 1
 [rank: 0] Seed set to 1
+[rank: 1] Seed set to 1
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/2
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
 [rank: 0] Seed set to 1
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
-INFO:TorchDistributor:Finished distributed training with 1 executor processes
-INFO:TorchDistributor:Started distributed training with 1 executor processes
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/2
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 2 processes
+----------------------------------------------------------------------------------------------------
+
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name         | Type          | Params
+-----------------------------------------------
+0 | loss         | MAE           | 0
+1 | padder_train | ConstantPad1d | 0
+2 | scaler       | TemporalNorm  | 0
+3 | blocks       | ModuleList    | 2.6 M
+-----------------------------------------------
+2.6 M     Trainable params
+0         Non-trainable params
+2.6 M     Total params
+10.341    Total estimated model params size (MB)
+`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:TorchDistributor:Finished distributed training with 2 executor processes
+INFO:TorchDistributor:Started distributed training with 2 executor processes
 [rank: 0] Seed set to 1
+[rank: 1] Seed set to 1
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
 [rank: 0] Seed set to 1
-Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
-INFO:TorchDistributor:Finished distributed training with 1 executor processes
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/2
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 2 processes
+----------------------------------------------------------------------------------------------------
+
+[rank: 1] Seed set to 1
+Initializing distributed: GLOBAL_RANK: 1, MEMBER: 2/2
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name            | Type          | Params
+--------------------------------------------------
+0 | loss            | MAE           | 0
+1 | padder          | ConstantPad1d | 0
+2 | scaler          | TemporalNorm  | 0
+3 | hist_encoder    | LSTM          | 484 K
+4 | context_adapter | Linear        | 54.0 K
+5 | mlp_decoder     | MLP           | 2.6 K
+--------------------------------------------------
+541 K     Trainable params
+0         Non-trainable params
+541 K     Total params
+2.166     Total estimated model params size (MB)
+`Trainer.fit` stopped: `max_steps=2000` reached.
+INFO:TorchDistributor:Finished distributed training with 2 executor processes
 ```
 
 ## Forecasting
@@ -230,9 +370,9 @@ pd.testing.assert_frame_equal(preds, preds2)
 |        | NHITS      | tuned_nhits | LSTM       |
 |--------|------------|-------------|------------|
 | metric |            |             |            |
-| mae    | 227.071153 | 253.825765  | 355.299010 |
-| rmse   | 301.308733 | 333.500271  | 446.966529 |
-| smape  | 0.068701   | 0.090785    | 0.073389   |
+| mae    | 417.075336 | 322.751522  | 270.423775 |
+| rmse   | 485.304941 | 410.998659  | 330.579283 |
+| smape  | 0.063995   | 0.066046    | 0.063975   |
 
 ## Plotting a sample
 
