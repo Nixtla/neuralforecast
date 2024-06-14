@@ -747,7 +747,7 @@ class IQLoss(QuantileLoss):
         emb_outputs = self.output_layer(emb_inputs)
 
         # Domain map
-        y_hat = emb_outputs.squeeze(-1).squeeze(-1)
+        y_hat = emb_outputs.squeeze(-1)
 
         return y_hat
 
@@ -1022,6 +1022,14 @@ class ISQF(TransformedDistribution):
         scale *= t.scale
         p = self.base_dist.crps(z)
         return p * scale
+
+    @property
+    def mean(self):
+        """
+        Function used to compute the empirical mean
+        """
+        samples = self.sample([1000])
+        return samples.mean(dim=0)
 
 
 class BaseISQF(Distribution):
@@ -1679,7 +1687,7 @@ def isqf_domain_map(
     last dimension is of matching `distr_args` length.
 
     **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
+    `input`: tensor, of dimensions [B, H, N * n_outputs].<br>
     `tol`: float, tolerance.<br>
     `quantiles`: tensor, quantiles used for ISQF (i.e. x-positions for the knots). <br>
     `num_pieces`: int, num_pieces used for each quantile spline. <br>
@@ -1694,6 +1702,10 @@ def isqf_domain_map(
     # Because in this case the spline knots could be squeezed together
     # and cause overflow in spline CRPS computation
     num_qk = len(quantiles)
+    n_outputs = 2 * (num_qk - 1) * num_pieces + 2 + num_qk
+
+    # Reshape: [B, h, N * n_outputs] -> [B, h, N, n_outputs]
+    input = input.reshape(input.shape[0], input.shape[1], -1, n_outputs)
     start_index = 0
     spline_knots = input[..., start_index : start_index + (num_qk - 1) * num_pieces]
     start_index += (num_qk - 1) * num_pieces
