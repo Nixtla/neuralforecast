@@ -6,7 +6,7 @@ __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relM
            'Accuracy', 'sCRPS']
 
 # %% ../../nbs/losses.pytorch.ipynb 4
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 import numpy as np
 import torch
@@ -21,10 +21,10 @@ from torch.distributions import (
     Poisson,
     NegativeBinomial,
     Beta,
-    AffineTransform,
-    TransformedDistribution,
     MixtureSameFamily,
     Categorical,
+    AffineTransform,
+    TransformedDistribution,
 )
 
 from torch.distributions import constraints
@@ -507,7 +507,7 @@ def quantiles_to_outputs(quantiles):
             output_names.append("-median")
     return quantiles, output_names
 
-# %% ../../nbs/losses.pytorch.ipynb 54
+# %% ../../nbs/losses.pytorch.ipynb 53
 class MQLoss(BasePointLoss):
     """Multi-Quantile loss
 
@@ -627,7 +627,7 @@ class MQLoss(BasePointLoss):
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 60
+# %% ../../nbs/losses.pytorch.ipynb 59
 class QuantileLayer(nn.Module):
     r"""
     Implicit Quantile Layer from the paper ``IQN for Distributional
@@ -751,7 +751,7 @@ class IQLoss(QuantileLoss):
 
         return y_hat
 
-# %% ../../nbs/losses.pytorch.ipynb 65
+# %% ../../nbs/losses.pytorch.ipynb 64
 def weighted_average(
     x: torch.Tensor, weights: Optional[torch.Tensor] = None, dim=None
 ) -> torch.Tensor:
@@ -779,7 +779,7 @@ def weighted_average(
     else:
         return x.mean(dim=dim)
 
-# %% ../../nbs/losses.pytorch.ipynb 66
+# %% ../../nbs/losses.pytorch.ipynb 65
 def bernoulli_scale_decouple(output, loc=None, scale=None):
     """Bernoulli Scale Decouple
 
@@ -861,7 +861,7 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
     return (total_count, probs)
 
-# %% ../../nbs/losses.pytorch.ipynb 67
+# %% ../../nbs/losses.pytorch.ipynb 66
 def est_lambda(mu, rho):
     return mu ** (2 - rho) / (2 - rho)
 
@@ -1828,15 +1828,6 @@ class DistributionLoss(torch.nn.Module):
             Tweedie=Tweedie,
             ISQF=ISQF,
         )
-        domain_maps = dict(
-            Bernoulli=bernoulli_domain_map,
-            Normal=normal_domain_map,
-            Poisson=poisson_domain_map,
-            StudentT=student_domain_map,
-            NegativeBinomial=nbinomial_domain_map,
-            Tweedie=tweedie_domain_map,
-            ISQF=partial(isqf_domain_map, quantiles=qs, num_pieces=num_pieces),
-        )
         scale_decouples = dict(
             Bernoulli=bernoulli_scale_decouple,
             Normal=normal_scale_decouple,
@@ -1861,6 +1852,13 @@ class DistributionLoss(torch.nn.Module):
         assert (
             distribution in available_distributions.keys()
         ), f"{distribution} not available"
+        if distribution == "ISQF":
+            self.domain_map = partial(
+                isqf_domain_map, quantiles=qs, num_pieces=num_pieces
+            )
+        else:
+            self.domain_map = self._domain_map
+
         self.distribution = distribution
         self._base_distribution = available_distributions[distribution]
         self.scale_decouple = scale_decouples[distribution]
@@ -1879,7 +1877,7 @@ class DistributionLoss(torch.nn.Module):
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
 
-    def domain_map(self, input: torch.Tensor):
+    def _domain_map(self, input: torch.Tensor):
         """
         Maps output of neural network to domain of distribution loss
 
