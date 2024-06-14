@@ -2079,8 +2079,8 @@ class PMM(torch.nn.Module):
 
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
-                loc = loc.unsqueeze(2)
-                scale = scale.unsqueeze(2)
+                loc = loc.unsqueeze(-1)
+                scale = scale.unsqueeze(-1)
             lambdas = (lambdas * scale) + loc
 
         lambdas = F.softplus(lambdas)
@@ -2286,11 +2286,8 @@ class GMM(torch.nn.Module):
         stds = F.softplus(stds)
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
-                loc = loc.unsqueeze(2)
-                scale = scale.unsqueeze(2)
-            print(means.shape)
-            print(scale.shape)
-            print(loc.shape)
+                loc = loc.unsqueeze(-1)
+                scale = scale.unsqueeze(-1)
             means = (means * scale) + loc
             stds = (stds + eps) * scale
 
@@ -2496,8 +2493,8 @@ class NBMM(torch.nn.Module):
         alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
-                loc = loc.unsqueeze(2)
-                scale = scale.unsqueeze(2)
+                loc = loc.unsqueeze(-1)
+                scale = scale.unsqueeze(-1)
             mu *= loc
             alpha /= loc + 1.0
 
