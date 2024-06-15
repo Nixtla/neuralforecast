@@ -359,11 +359,12 @@ class BaseModel(pl.LightningModule):
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
 
-    def _set_quantile_for_iqloss(self, **data_module_kwargs):
+    def _set_quantile(self, **data_module_kwargs):
         if "quantile" in data_module_kwargs:
-            if not isinstance(self.loss, losses.IQLoss):
+            supported_losses = (losses.IQLoss, losses.DistributionLoss)
+            if not isinstance(self.loss, supported_losses):
                 raise Exception(
-                    "Please train with loss=IQLoss() to make use of the quantile argument."
+                    f"Please train with loss={supported_losses} to make use of the quantile argument."
                 )
             else:
                 self.quantile = data_module_kwargs["quantile"]
@@ -1105,7 +1106,10 @@ class BaseModel(pl.LightningModule):
             insample_y = self.scaler.scaler(mean, y_loc, y_scale)
 
             # Save predictions
-            y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
+            if self.loss.predict_single_quantile:
+                y_hat = quants
+            else:
+                y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
@@ -1148,8 +1152,12 @@ class BaseModel(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output_batch, loc=y_loc, scale=y_scale
             )
-            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-            y_hat = torch.concat((sample_mean, quants), axis=-1)
+            if self.loss.predict_single_quantile:
+                _, _, quant = self.loss.sample(distr_args=distr_args)
+                y_hat = quant
+            else:
+                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+                y_hat = torch.concat((sample_mean, quants), axis=-1)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
@@ -1428,7 +1436,7 @@ class BaseModel(pl.LightningModule):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
-        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
+        data_module_kwargs = self._set_quantile(**data_module_kwargs)
 
         self.predict_step_size = step_size
         self.decompose_forecast = False
@@ -1473,7 +1481,7 @@ class BaseModel(pl.LightningModule):
         if random_seed is None:
             random_seed = self.random_seed
         torch.manual_seed(random_seed)
-        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
+        data_module_kwargs = self._set_quantile(**data_module_kwargs)
 
         self.predict_step_size = step_size
         self.decompose_forecast = True

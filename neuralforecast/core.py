@@ -758,8 +758,6 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
-        cols = self._get_model_names()
-
         # Placeholder dataframe for predictions with unique_id and ds
         fcsts_df = ufp.make_future_dataframe(
             uids=uids,
@@ -802,27 +800,22 @@ class NeuralForecast:
         self._scalers_transform(futr_dataset)
         dataset = dataset.append(futr_dataset)
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.h * len(uids), len(cols)), fill_value=np.nan, dtype=np.float32
-        )
+        fcsts_list: List = []
         for model in self.models:
             old_test_size = model.get_test_size()
             model.set_test_size(self.h)  # To predict h steps ahead
             model_fcsts = model.predict(dataset=dataset, **data_kwargs)
             # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : col_idx + output_length] = model_fcsts
-            col_idx += output_length
+            fcsts_list.append(model_fcsts)
             model.set_test_size(old_test_size)  # Set back to original value
+        fcsts = np.concatenate(fcsts_list, axis=-1)
+
         if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        cols = (
-            self._get_model_names()
-        )  # Needed for IQLoss as column names may have changed during the call to .predict()
+        cols = self._get_model_names()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -879,15 +872,6 @@ class NeuralForecast:
                     "Validation and test sets are larger than the shorter time-series."
                 )
 
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
-
         fcsts_df = ufp.cv_times(
             times=self.ds,
             uids=self.uids,
@@ -901,13 +885,7 @@ class NeuralForecast:
         # the cv_times is sorted by window and then id
         fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.dataset.n_groups * self.h * n_windows, len(cols)),
-            np.nan,
-            dtype=np.float32,
-        )
-
+        fcsts_list: List = []
         for model in self.models:
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
@@ -915,9 +893,9 @@ class NeuralForecast:
             )
 
             # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
+            fcsts_list.append(model_fcsts)
+
+        fcsts = np.concatenate(fcsts_list, axis=-1)
         # we may have allocated more space than needed
         # each serie can produce at most (serie.size - 1) // self.h CV windows
         effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
@@ -945,6 +923,7 @@ class NeuralForecast:
         self._fitted = True
 
         # Add predictions to forecasts DataFrame
+        cols = self._get_model_names()
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -1120,7 +1099,7 @@ class NeuralForecast:
             out = out.set_index(id_col)
         return out
 
-    def predict_insample(self, step_size: int = 1):
+    def predict_insample(self, step_size: int = 1, **data_kwargs):
         """Predict insample with core.NeuralForecast.
 
         `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
@@ -1151,15 +1130,6 @@ class NeuralForecast:
                     f"WARNING: Predict insample might not provide accurate predictions for \
                       recurrent model {repr(model)} class yet due to scaling."
                 )
-
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
 
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
@@ -1199,9 +1169,7 @@ class NeuralForecast:
             time_col=self.time_col,
         )
 
-        col_idx = 0
-        fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
-
+        fcsts_list: List = []
         for model in self.models:
             # Test size is the number of periods to forecast (full size of trimmed dataset)
             model.set_test_size(test_size=trimmed_dataset.max_size)
@@ -1209,10 +1177,9 @@ class NeuralForecast:
             # Predict
             model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
             # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
+            fcsts_list.append(model_fcsts)
             model.set_test_size(test_size=test_size)  # Set original test_size
+        fcsts = np.concatenate(fcsts_list, axis=-1)
 
         # original y
         original_y = {
@@ -1222,6 +1189,7 @@ class NeuralForecast:
         }
 
         # Add predictions to forecasts DataFrame
+        cols = self._get_model_names()
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)

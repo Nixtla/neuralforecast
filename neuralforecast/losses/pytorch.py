@@ -1715,26 +1715,19 @@ def isqf_domain_map(
     start_index += 1
     beta_r = input[..., start_index : start_index + 1]
     start_index += 1
-    quantile_knots = input[..., start_index : start_index + num_qk]
+    quantile_knots = F.softplus(input[..., start_index : start_index + num_qk]) + tol
 
-    qk_y = torch.cat(
-        [
-            quantile_knots[..., 0:1],
-            torch.abs(quantile_knots[..., 1:]) + tol,
-        ],
-        dim=-1,
-    )
-    qk_y = torch.cumsum(qk_y, dim=-1)
+    qk_y = torch.cumsum(quantile_knots, dim=-1)
 
     # Prevent overflow when we compute 1/beta
-    beta_l = torch.abs(beta_l.squeeze(-1)) + tol
-    beta_r = torch.abs(beta_r.squeeze(-1)) + tol
+    beta_l = F.softplus(beta_l.squeeze(-1)) + tol
+    beta_r = F.softplus(beta_r.squeeze(-1)) + tol
 
     # Reshape spline arguments
     batch_shape = spline_knots.shape[:-1]
 
     # repeat qk_x from (num_qk,) to (*batch_shape, num_qk)
-    qk_x_repeat = torch.sort(quantiles).values.repeat(*batch_shape, 1).to(input.device)
+    qk_x_repeat = quantiles.repeat(*batch_shape, 1).to(input.device)
 
     # knots and heights have shape (*batch_shape, (num_qk-1)*num_pieces)
     # reshape them to (*batch_shape, (num_qk-1), num_pieces)
@@ -1823,7 +1816,7 @@ class DistributionLoss(torch.nn.Module):
             quantiles = sorted(quantiles)
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
         num_qk = len(self.quantiles)
 
         if "num_pieces" not in distribution_kwargs:
@@ -1865,8 +1858,9 @@ class DistributionLoss(torch.nn.Module):
             distribution in available_distributions.keys()
         ), f"{distribution} not available"
         if distribution == "ISQF":
+            quantiles = torch.sort(qs).values
             self.domain_map = partial(
-                isqf_domain_map, quantiles=qs, num_pieces=num_pieces
+                isqf_domain_map, quantiles=quantiles, num_pieces=num_pieces
             )
         else:
             self.domain_map = self._domain_map
@@ -1947,6 +1941,11 @@ class DistributionLoss(torch.nn.Module):
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
 
         return samples, sample_mean, quants
+
+    def update_quantile(self, q: float = 0.5):
+        self.predict_single_quantile = True
+        self.quantiles = torch.tensor([q])
+        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
     def __call__(
         self,
