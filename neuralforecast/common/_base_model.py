@@ -361,10 +361,16 @@ class BaseModel(pl.LightningModule):
 
     def _set_quantile(self, **data_module_kwargs):
         if "quantile" in data_module_kwargs:
-            supported_losses = (losses.IQLoss, losses.DistributionLoss)
+            supported_losses = (
+                losses.IQLoss,
+                losses.DistributionLoss,
+                losses.GMM,
+                losses.PMM,
+                losses.NBMM,
+            )
             if not isinstance(self.loss, supported_losses):
                 raise Exception(
-                    f"Please train with loss={supported_losses} to make use of the quantile argument."
+                    f"Please train with one of {supported_losses} to make use of the quantile argument."
                 )
             else:
                 self.quantile = data_module_kwargs["quantile"]

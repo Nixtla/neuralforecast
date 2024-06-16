@@ -1882,6 +1882,7 @@ class DistributionLoss(torch.nn.Module):
 
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
+        self.predict_single_quantile = False
 
     def _domain_map(self, input: torch.Tensor):
         """
@@ -2049,6 +2050,7 @@ class PMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
+        self.predict_single_quantile = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2141,6 +2143,11 @@ class PMM(torch.nn.Module):
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
 
         return samples, sample_mean, quants
+
+    def update_quantile(self, q: float = 0.5):
+        self.predict_single_quantile = True
+        self.quantiles = torch.tensor([q])
+        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2254,6 +2261,7 @@ class GMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
+        self.predict_single_quantile = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2347,6 +2355,11 @@ class GMM(torch.nn.Module):
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
 
         return samples, sample_mean, quants
+
+    def update_quantile(self, q: float = 0.5):
+        self.predict_single_quantile = True
+        self.quantiles = torch.tensor([q])
+        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2459,6 +2472,7 @@ class NBMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
+        self.predict_single_quantile = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2559,6 +2573,11 @@ class NBMM(torch.nn.Module):
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
 
         return samples, sample_mean, quants
+
+    def update_quantile(self, q: float = 0.5):
+        self.predict_single_quantile = True
+        self.quantiles = torch.tensor([q])
+        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
     def __call__(
         self,
