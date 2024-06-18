@@ -19,7 +19,7 @@ from neuralforecast.common._modules import (
     DataEmbedding,
     AttentionLayer,
 )
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -69,7 +69,7 @@ class FullAttention(nn.Module):
             return (V.contiguous(), None)
 
 # %% ../../nbs/models.vanillatransformer.ipynb 10
-class VanillaTransformer(BaseWindows):
+class VanillaTransformer(BaseModel):
     """VanillaTransformer
 
     Vanilla Transformer, following implementation of the Informer paper, used as baseline.
@@ -124,10 +124,13 @@ class VanillaTransformer(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -286,13 +289,7 @@ class VanillaTransformer(BaseWindows):
     def forward(self, windows_batch):
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-
         futr_exog = windows_batch["futr_exog"]
-
-        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
 
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
@@ -310,5 +307,5 @@ class VanillaTransformer(BaseWindows):
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
         dec_out = self.decoder(dec_out, enc_out, x_mask=None, cross_mask=None)
 
-        forecast = self.loss.domain_map(dec_out[:, -self.h :])
+        forecast = dec_out[:, -self.h :]
         return forecast

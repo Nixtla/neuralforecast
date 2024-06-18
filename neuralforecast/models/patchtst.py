@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -819,7 +819,7 @@ class _ScaledDotProductAttention(nn.Module):
             return output, attn_weights
 
 # %% ../../nbs/models.patchtst.ipynb 17
-class PatchTST(BaseWindows):
+class PatchTST(BaseModel):
     """PatchTST
 
     The PatchTST model is an efficient Transformer-based model for multivariate time series forecasting.
@@ -881,10 +881,13 @@ class PatchTST(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -1026,20 +1029,10 @@ class PatchTST(BaseWindows):
     def forward(self, windows_batch):  # x: [batch, input_size]
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-        # futr_exog     = windows_batch['futr_exog']
-
-        # Add dimension for channel
-        x = insample_y.unsqueeze(-1)  # [Ws,L,1]
+        x = windows_batch["insample_y"]
 
         x = x.permute(0, 2, 1)  # x: [Batch, 1, input_size]
         x = self.model(x)
-        x = x.reshape(x.shape[0], self.h, -1)  # x: [Batch, h, c_out]
-
-        # Domain map
-        forecast = self.loss.domain_map(x)
+        forecast = x.reshape(x.shape[0], self.h, -1)  # x: [Batch, h, c_out]
 
         return forecast
