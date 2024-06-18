@@ -221,17 +221,40 @@ class BaseModel(pl.LightningModule):
             )
 
         # Protections for loss functions
-
-        # Implicit Quantile Loss
-        if isinstance(self.loss, losses.IQLoss):
-            if not isinstance(self.valid_loss, losses.IQLoss):
+        if isinstance(self.loss, (losses.IQLoss, losses.MQLoss, losses.HuberMQLoss)):
+            loss_type = type(self.loss)
+            if not isinstance(self.valid_loss, loss_type):
                 raise Exception(
-                    "Please set valid_loss to IQLoss() when training with IQLoss"
+                    f"Please set valid_loss={type(self.loss).__name__}() when training with {type(self.loss).__name__}"
                 )
-        if isinstance(self.valid_loss, losses.IQLoss) and not isinstance(
-            self.loss, losses.IQLoss
+        if isinstance(self.valid_loss, losses.IQLoss):
+            valid_loss_type = type(self.valid_loss)
+            if not isinstance(self.loss, valid_loss_type):
+                raise Exception(
+                    f"Please set loss={type(self.valid_loss).__name__}() when validating with {type(self.valid_loss).__name__}"
+                )
+
+        # Deny impossible loss / valid_loss combinations
+        if (
+            isinstance(self.loss, losses.BasePointLoss)
+            and self.valid_loss.is_distribution_output
         ):
-            raise Exception("Please set loss to IQLoss() when validating with IQLoss")
+            raise Exception(
+                f"Validation with distribution loss {type(self.valid_loss).__name__} is not possible when using loss={type(self.loss).__name__}. Please use a point valid_loss (MAE, MSE, ...)"
+            )
+        elif self.valid_loss.is_distribution_output and self.valid_loss is not loss:
+            # Maybe we should raise a Warning or an Exception here, but meh for now.
+            self.valid_loss = loss
+
+        if isinstance(self.loss, (losses.relMSE)):
+            raise Exception(
+                f"{type(self.loss).__name__} cannot be used for training. Please use another point loss (MAE, MSE, ...)"
+            )
+
+        if isinstance(self.valid_loss, (losses.relMSE)):
+            raise Exception(
+                f"{type(self.valid_loss).__name__} cannot be used for validation. Please use another point valid_loss (MAE, MSE, ...)"
+            )
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
@@ -300,6 +323,14 @@ class BaseModel(pl.LightningModule):
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
+
+        # If the model does not support exogenous, it can't support exclude_insample_y
+        if exclude_insample_y and not (
+            self.EXOGENOUS_FUTR or self.EXOGENOUS_HIST or self.EXOGENOUS_STAT
+        ):
+            raise Exception(
+                f"{type(self).__name__} does not support `exclude_insample_y=True`. Please set `exclude_insample_y=False`"
+            )
 
         self.exclude_insample_y = exclude_insample_y
 
@@ -879,7 +910,9 @@ class BaseModel(pl.LightningModule):
 
         return y_loc, y_scale
 
-    def _compute_valid_loss(self, outsample_y, output, outsample_mask, y_idx):
+    def _compute_valid_loss(
+        self, insample_y, outsample_y, output, outsample_mask, y_idx
+    ):
         if self.loss.is_distribution_output:
             y_loc, y_scale = self._get_loc_scale(y_idx)
             distr_args = self.loss.scale_decouple(
@@ -902,7 +935,7 @@ class BaseModel(pl.LightningModule):
         else:
             output = self._inv_normalization(y_hat=output, y_idx=y_idx)
             valid_loss = self.valid_loss(
-                y=outsample_y, y_hat=output, mask=outsample_mask
+                y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
             )
         return valid_loss
 
@@ -1220,7 +1253,9 @@ class BaseModel(pl.LightningModule):
             )
             loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
         else:
-            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+            loss = self.loss(
+                y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
+            )
 
         if torch.isnan(loss):
             print("Model Parameters", self.hparams)
@@ -1304,6 +1339,7 @@ class BaseModel(pl.LightningModule):
 
             output_batch = self.loss.domain_map(output_batch)
             valid_loss_batch = self._compute_valid_loss(
+                insample_y=insample_y,
                 outsample_y=original_outsample_y,
                 output=output_batch,
                 outsample_mask=outsample_mask,

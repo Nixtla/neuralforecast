@@ -180,7 +180,6 @@ class MLPMultivariate(BaseModel):
             x = torch.relu(layer(x))
         x = self.out(x)
 
-        x = x.reshape(batch_size, self.h, -1)
-        forecast = self.loss.domain_map(x)
+        forecast = x.reshape(batch_size, self.h, -1)
 
         return forecast

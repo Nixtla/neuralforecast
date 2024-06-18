@@ -58,7 +58,9 @@ class BasePointLoss(torch.nn.Module):
     `output_names`: Names of the outputs. <br>
     """
 
-    def __init__(self, horizon_weight, outputsize_multiplier, output_names):
+    def __init__(
+        self, horizon_weight=None, outputsize_multiplier=None, output_names=None
+    ):
         super(BasePointLoss, self).__init__()
         if horizon_weight is not None:
             horizon_weight = torch.Tensor(horizon_weight.flatten())
@@ -98,6 +100,9 @@ class BasePointLoss(torch.nn.Module):
 
         return weights * mask
 
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
 # %% ../../nbs/losses.pytorch.ipynb 11
 class MAE(BasePointLoss):
     """Mean Absolute Error
@@ -125,6 +130,8 @@ class MAE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
+        *args,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -165,7 +172,9 @@ class MSE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -209,7 +218,9 @@ class RMSE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -255,7 +266,9 @@ class MAPE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -304,7 +317,9 @@ class SMAPE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -354,13 +369,15 @@ class MASE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         y_insample: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
         `y_hat`: tensor (batch_size, output_size)), Predicted values.<br>
-        `y_insample`: tensor (batch_size, input_size), Actual insample Seasonal Naive predictions.<br>
+        `y_insample`: tensor (batch_size, input_size), Actual insample values.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
 
         **Returns:**<br>
@@ -382,11 +399,11 @@ class relMSE(BasePointLoss):
     """Relative Mean Squared Error
     Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006)
     as an alternative to percentage errors, to avoid measure unstability.
-    $$ \mathrm{relMSE}(\\mathbf{y}, \\mathbf{\hat{y}}, \\mathbf{\hat{y}}^{naive1}) =
-    \\frac{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}})}{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}}^{naive1})} $$
+    $$ \mathrm{relMSE}(\\mathbf{y}, \\mathbf{\hat{y}}, \\mathbf{\hat{y}}^{benchmark}) =
+    \\frac{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}})}{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}}^{benchmark})} $$
 
     **Parameters:**<br>
-    `y_train`: numpy array, Training values.<br>
+    `y_train`: numpy array, deprecated.<br>
     `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
 
     **References:**<br>
@@ -398,34 +415,34 @@ class relMSE(BasePointLoss):
        Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
 
-    def __init__(self, y_train, horizon_weight=None):
+    def __init__(self, y_train=None, horizon_weight=None):
         super(relMSE, self).__init__(
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
-        self.y_train = y_train
+        if y_train is not None:
+            raise DeprecationWarning("y_train will be deprecated in a future release.")
         self.mse = MSE(horizon_weight=horizon_weight)
 
     def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_benchmark: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
         `y_hat`: tensor (batch_size, output_size)), Predicted values.<br>
-        `y_insample`: tensor (batch_size, input_size), Actual insample Seasonal Naive predictions.<br>
+        `y_benchmark`: tensor (batch_size, output_size), Benchmark predicted values.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
 
         **Returns:**<br>
         `relMSE`: tensor (single value).
         """
-        horizon = y.shape[1]
-        last_col = self.y_train[:, -1].unsqueeze(1)
-        y_naive = last_col.repeat(1, horizon)
-
-        norm = self.mse(y=y, y_hat=y_naive, mask=mask)  # Already weighted
+        norm = self.mse(y=y, y_hat=y_benchmark, mask=mask)  # Already weighted
         norm = norm + 1e-5  # Numerical stability
         loss = self.mse(y=y, y_hat=y_hat, mask=mask)  # Already weighted
         loss = _divide_no_nan(loss, norm)
@@ -463,7 +480,9 @@ class QuantileLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs,
     ):
         """
         **Parameters:**<br>
@@ -595,7 +614,9 @@ class MQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -2646,7 +2667,9 @@ class HuberLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -2662,7 +2685,7 @@ class HuberLoss(BasePointLoss):
         return _weighted_mean(losses=losses, weights=weights)
 
 # %% ../../nbs/losses.pytorch.ipynb 102
-class TukeyLoss(torch.nn.Module):
+class TukeyLoss(BasePointLoss):
     """ Tukey Loss
 
     The Tukey loss function, also known as Tukey's biweight function, is a 
@@ -2721,7 +2744,9 @@ class TukeyLoss(torch.nn.Module):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -2792,7 +2817,9 @@ class HuberQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs,
     ):
         """
         **Parameters:**<br>
@@ -2899,7 +2926,9 @@ class HuberMQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -2936,7 +2965,7 @@ class HuberMQLoss(BasePointLoss):
         return _weighted_mean(losses=losses, weights=weights)
 
 # %% ../../nbs/losses.pytorch.ipynb 118
-class Accuracy(torch.nn.Module):
+class Accuracy(BasePointLoss):
     """Accuracy
 
     Computes the accuracy between categorical `y` and `y_hat`.
@@ -2969,7 +2998,9 @@ class Accuracy(torch.nn.Module):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
@@ -2989,7 +3020,7 @@ class Accuracy(torch.nn.Module):
         return accuracy
 
 # %% ../../nbs/losses.pytorch.ipynb 122
-class sCRPS(torch.nn.Module):
+class sCRPS(BasePointLoss):
     """Scaled Continues Ranked Probability Score
 
     Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021),
@@ -3029,7 +3060,9 @@ class sCRPS(torch.nn.Module):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        *args,
         mask: Union[torch.Tensor, None] = None,
+        **kwargs
     ):
         """
         **Parameters:**<br>
