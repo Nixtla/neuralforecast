@@ -29,7 +29,11 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .tsdataset import _FilesDataset, TimeSeriesDataset
+from neuralforecast.tsdataset import (
+    _FilesDataset,
+    TimeSeriesDataset,
+    IterativeTimeSeriesDataset,
+)
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -380,9 +384,33 @@ class NeuralForecast:
             min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
         )
 
+    def _prepare_iterative_fit(
+        self, df, static_df, sort_df, id_col, time_col, target_col
+    ):
+        if self.local_scaler_type is not None:
+            raise ValueError(
+                "Historic scaling isn't supported in distributed. "
+                "Please open an issue if this would be valuable to you."
+            )
+
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.scalers_ = {}
+        self.sort_df = sort_df
+
+        return IterativeTimeSeriesDataset.from_data_directory(
+            files=df,
+            static_df=static_df,
+            sort_df=sort_df,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
     def fit(
         self,
-        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame, List[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
@@ -464,12 +492,27 @@ class NeuralForecast:
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
+        elif isinstance(df, List):
+            if not all(isinstance(val, str) for val in df):
+                raise ValueError(
+                    "All entries in the list of files must be of type string"
+                )
+            self.dataset = self._prepare_iterative_fit(
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.uids = self.dataset.uids
+            self.last_dates = self.dataset.last_dates
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`df` must be a list of parquet files, or a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
             )
 
         if val_size is not None:
@@ -731,6 +774,9 @@ class NeuralForecast:
         # distributed df or NeuralForecast instance was trained with a distributed input and no df is provided
         # we assume the user wants to perform distributed inference as well
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
+        is_iterative_dataset = isinstance(
+            getattr(self, "dataset", None), IterativeTimeSeriesDataset
+        )
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
             return self._predict_distributed(
                 df=df,
@@ -738,9 +784,12 @@ class NeuralForecast:
                 futr_df=futr_df,
                 engine=engine,
             )
-
+        elif is_iterative_dataset and df is None:
+            raise ValueError(
+                "When the model has been trained on a distributed dataset, you must pass in a specific dataframe for prediciton."
+            )
         # Process new dataset but does not store it.
-        if df is not None:
+        elif df is not None:
             validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
