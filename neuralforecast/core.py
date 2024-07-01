@@ -516,10 +516,16 @@ class NeuralForecast:
             )
 
         if val_size is not None:
-            if self.dataset.files_ds.min_size < val_size:
-                warnings.warn(
-                    "Validation set size is larger than the shorter time-series."
-                )
+            if isinstance(self.dataset, IterativeTimeSeriesDataset):
+                if self.dataset.files_ds.min_size < val_size:
+                    warnings.warn(
+                        "Validation set size is larger than the shorter time-series."
+                    )
+            else:
+                if self.dataset.min_size < val_size:
+                    warnings.warn(
+                        "Validation set size is larger than the shorter time-series."
+                    )
 
         # Recover initial model if use_init_models
         if use_init_models:
