@@ -191,7 +191,11 @@ class BaseModel(pl.LightningModule):
         return type(self).__name__ if self.alias is None else self.alias
 
     def _check_exog(self, dataset):
-        temporal_cols = set(dataset.temporal_cols.tolist())
+        if isinstance(dataset, IterativeTimeSeriesDataset):
+            temporal_cols = set(dataset.files_ds.temporal_cols.tolist())
+        else:
+            temporal_cols = set(dataset.temporal_cols.tolist())
+
         static_cols = set(
             dataset.static_cols.tolist() if dataset.static_cols is not None else []
         )

@@ -505,8 +505,8 @@ class NeuralForecast:
                 time_col=time_col,
                 target_col=target_col,
             )
-            self.uids = self.dataset.uids
-            self.last_dates = self.dataset.last_dates
+            self.uids = self.dataset.indices
+            self.last_dates = self.dataset.last_times
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
@@ -516,7 +516,7 @@ class NeuralForecast:
             )
 
         if val_size is not None:
-            if self.dataset.min_size < val_size:
+            if self.dataset.files_ds.min_size < val_size:
                 warnings.warn(
                     "Validation set size is larger than the shorter time-series."
                 )

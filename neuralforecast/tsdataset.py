@@ -357,12 +357,12 @@ class _FilesDataset:
         self,
         files: List[str],
         temporal_cols: List[str],
-        static_cols: Optional[List[str]],
         id_col: str,
         time_col: str,
         target_col: str,
         min_size: int,
         max_size: Optional[int] = None,
+        static_cols: Optional[List[str]] = None,
     ):
         self.files = files
         self.temporal_cols = pd.Index(temporal_cols)
@@ -491,7 +491,7 @@ class IterativeTimeSeriesDataset(Dataset):
         max_size = 0
         min_size = float("inf")
         temporal_cols = pd.Index([])
-        last_times = np.array([])
+        last_times = np.array([], dtype=np.datetime64)
         indices = pd.Series([])
 
         for file in files:
