@@ -191,8 +191,9 @@ class TimeSeriesDataset(Dataset):
         len_temporal, col_temporal = self.temporal.shape
         len_futr = futr_dataset.temporal.shape[0]
         new_temporal = torch.empty(size=(len_temporal + len_futr, col_temporal))
-        new_sizes = np.diff(self.indptr) + np.diff(futr_dataset.indptr)
-        new_indptr = np.append(0, new_sizes.cumsum()).astype(np.int32)
+        new_indptr = self.indptr + futr_dataset.indptr
+        new_sizes = np.diff(new_indptr)
+        new_min_size = np.min(new_sizes)
         new_max_size = np.max(new_sizes)
 
         for i in range(self.n_groups):
@@ -207,19 +208,17 @@ class TimeSeriesDataset(Dataset):
             )
 
         # Define new dataset
-        updated_dataset = TimeSeriesDataset(
+        return TimeSeriesDataset(
             temporal=new_temporal,
             temporal_cols=self.temporal_cols.copy(),
             indptr=new_indptr,
             max_size=new_max_size,
-            min_size=self.min_size,
+            min_size=new_min_size,
             static=self.static,
             y_idx=self.y_idx,
             static_cols=self.static_cols,
             sorted=self.sorted,
         )
-
-        return updated_dataset
 
     @staticmethod
     def update_dataset(
