@@ -563,10 +563,16 @@ class BaseWindows(BaseModel):
 
         # TODO: Hack to compute number of windows
         windows = self._create_windows(batch, step="predict")
-        n_windows = len(windows["temporal"])
-        y_idx = batch["y_idx"]
+
+        # remove empty windows to not waste compute
+        mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        insample_mask = windows["temporal"][:, : self.input_size, mask_idx]
+        empty_windows = insample_mask.max(axis=1).values == 0
+        windows["temporal"] = windows["temporal"][~empty_windows]
 
         # Number of windows in batch
+        n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
         windows_batch_size = self.inference_windows_batch_size
         if windows_batch_size < 0:
             windows_batch_size = n_windows
@@ -578,13 +584,15 @@ class BaseWindows(BaseModel):
             w_idxs = np.arange(
                 i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
             )
-            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
+            windows["temporal"] = windows["temporal"][w_idxs]
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
             # Parse windows
             insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
                 self._parse_windows(batch, windows)
             )
+            if stat_exog is not None:
+                stat_exog = stat_exog[w_idxs]
 
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
