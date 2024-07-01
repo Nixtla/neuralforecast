@@ -30,12 +30,12 @@ models for large sets of time series. It operates with pandas DataFrame
 `df` that identifies series and datestamps with the `unique_id` and `ds`
 columns. The `y` column denotes the target time series variable.*
 
-|                   | **Type**           | **Default** | **Details**                                                                                                                                                      |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| models            | List               |             | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html).                                             |
-| freq              | Union              |             | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.                                                                             |
-| local_scaler_type | Optional           | None        | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’, ‘minmax’ or ‘boxcox’ |
-| **Returns**       | **NeuralForecast** |             | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.**                                             |
+| models | List |  | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html). |
+| freq | Union |  | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. |
+| local_scaler_type | Optional | None | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’, ‘minmax’ or ‘boxcox’ |
+| **Returns** | **NeuralForecast** |  | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ------------------------------------------------------------------------
 
@@ -63,19 +63,19 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 Fit `models` to a large set of time series from DataFrame `df`. and
 store fitted models for later inspection.\*
 
-|                    | **Type**           | **Default** | **Details**                                                                                                                     |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| df                 | Union              | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
-| static_df          | Union              | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                    |
-| val_size           | Optional           | 0           | Size of validation set.                                                                                                         |
-| sort_df            | bool               | True        | Sort `df` before fitting.                                                                                                       |
-| use_init_models    | bool               | False       | Use initial model passed when NeuralForecast object was instantiated.                                                           |
-| verbose            | bool               | False       | Print processing steps.                                                                                                         |
-| id_col             | str                | unique_id   | Column that identifies each serie.                                                                                              |
-| time_col           | str                | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                 |
-| target_col         | str                | y           | Column that contains the target.                                                                                                |
-| distributed_config | Optional           | None        | Configuration to use for DDP training. Currently only spark is supported.                                                       |
-| **Returns**        | **NeuralForecast** |             | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.**    |
+| df | Union | None | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
+| static_df | Union | None | DataFrame with columns \[`unique_id`\] and static exogenous. |
+| val_size | Optional | 0 | Size of validation set. |
+| sort_df | bool | True | Sort `df` before fitting. |
+| use_init_models | bool | False | Use initial model passed when NeuralForecast object was instantiated. |
+| verbose | bool | False | Print processing steps. |
+| id_col | str | unique_id | Column that identifies each serie. |
+| time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
+| target_col | str | y | Column that contains the target. |
+| distributed_config | Optional | None | Configuration to use for DDP training. Currently only spark is supported. |
+| **Returns** | **NeuralForecast** |  | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.** |
 
 ------------------------------------------------------------------------
 
@@ -103,16 +103,16 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 Use stored fitted `models` to predict large set of time series from
 DataFrame `df`.\*
 
-|             | **Type**                       | **Default** | **Details**                                                                                                                               |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| df          | Union                          | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If a DataFrame is passed, it is used to generate forecasts. |
-| static_df   | Union                          | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                              |
-| futr_df     | Union                          | None        | DataFrame with \[`unique_id`, `ds`\] columns and `df`’s future exogenous.                                                                 |
-| sort_df     | bool                           | True        | Sort `df` before fitting.                                                                                                                 |
-| verbose     | bool                           | False       | Print processing steps.                                                                                                                   |
-| engine      | NoneType                       | None        | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.                         |
-| data_kwargs | kwargs                         |             | Extra arguments to be passed to the dataset within each model.                                                                            |
-| **Returns** | **pandas or polars DataFrame** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **             |
+| df | Union | None | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If a DataFrame is passed, it is used to generate forecasts. |
+| static_df | Union | None | DataFrame with columns \[`unique_id`\] and static exogenous. |
+| futr_df | Union | None | DataFrame with \[`unique_id`, `ds`\] columns and `df`’s future exogenous. |
+| sort_df | bool | True | Sort `df` before fitting. |
+| verbose | bool | False | Print processing steps. |
+| engine | NoneType | None | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. |
+| data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
+| **Returns** | **pandas or polars DataFrame** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
@@ -146,23 +146,23 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 NeuralForecast models through multiple windows, in either chained or
 rolled manner.\*
 
-|                 | **Type**  | **Default** | **Details**                                                                                                                                                                                                    |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| df              | Union     | None        | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required.                                                                                |
-| static_df       | Union     | None        | DataFrame with columns \[`unique_id`\] and static exogenous.                                                                                                                                                   |
-| n_windows       | int       | 1           | Number of windows used for cross validation.                                                                                                                                                                   |
-| step_size       | int       | 1           | Step size between each window.                                                                                                                                                                                 |
-| val_size        | Optional  | 0           | Length of validation size. If passed, set `n_windows=None`.                                                                                                                                                    |
-| test_size       | Optional  | None        | Length of test size. If passed, set `n_windows=None`.                                                                                                                                                          |
-| sort_df         | bool      | True        | Sort `df` before fitting.                                                                                                                                                                                      |
-| use_init_models | bool      | False       | Use initial model passed when object was instantiated.                                                                                                                                                         |
-| verbose         | bool      | False       | Print processing steps.                                                                                                                                                                                        |
-| refit           | Union     | False       | Retrain model for each cross validation window.<br/>If False, the models are trained at the beginning and then used to predict each window.<br/>If positive int, the models are retrained every `refit` windows. |
-| id_col          | str       | unique_id   | Column that identifies each serie.                                                                                                                                                                             |
-| time_col        | str       | ds          | Column that identifies each timestep, its values can be timestamps or integers.                                                                                                                                |
-| target_col      | str       | y           | Column that contains the target.                                                                                                                                                                               |
-| data_kwargs     | kwargs    |             | Extra arguments to be passed to the dataset within each model.                                                                                                                                                 |
-| **Returns**     | **Union** |             | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. **                                                                                  |
+| df | Union | None | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
+| static_df | Union | None | DataFrame with columns \[`unique_id`\] and static exogenous. |
+| n_windows | int | 1 | Number of windows used for cross validation. |
+| step_size | int | 1 | Step size between each window. |
+| val_size | Optional | 0 | Length of validation size. If passed, set `n_windows=None`. |
+| test_size | Optional | None | Length of test size. If passed, set `n_windows=None`. |
+| sort_df | bool | True | Sort `df` before fitting. |
+| use_init_models | bool | False | Use initial model passed when object was instantiated. |
+| verbose | bool | False | Print processing steps. |
+| refit | Union | False | Retrain model for each cross validation window.<br/>If False, the models are trained at the beginning and then used to predict each window.<br/>If positive int, the models are retrained every `refit` windows. |
+| id_col | str | unique_id | Column that identifies each serie. |
+| time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
+| target_col | str | y | Column that contains the target. |
+| data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
+| **Returns** | **Union** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
@@ -181,10 +181,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 `core.NeuralForecast`’s `predict_insample` uses stored fitted `models`
 to predict historic values of a time series from the stored dataframe.\*
 
-|             | **Type**             | **Default** | **Details**                                                       |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| step_size   | int                  | 1           | Step size between each window.                                    |
-| **Returns** | **pandas.DataFrame** |             | **DataFrame with insample predictions for all fitted `models`. ** |
+| step_size | int | 1 | Step size between each window. |
+| **Returns** | **pandas.DataFrame** |  | **DataFrame with insample predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
@@ -207,12 +207,12 @@ saving training checkpoints to save disk memory, to get them change the
 individual model `**trainer_kwargs` to include
 `enable_checkpointing=True`.\*
 
-|              | **Type** | **Default** | **Details**                                                    |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| path         | str      |             | Directory to save current status.                              |
-| model_index  | Optional | None        | List to specify which models from list of self.models to save. |
-| save_dataset | bool     | True        | Whether to save dataset or not.                                |
-| overwrite    | bool     | False       | Whether to overwrite files or not.                             |
+| path | str |  | Directory to save current status. |
+| model_index | Optional | None | List to specify which models from list of self.models to save. |
+| save_dataset | bool | True | Whether to save dataset or not. |
+| overwrite | bool | False | Whether to overwrite files or not. |
 
 ``` text
 /opt/hostedtoolcache/Python/3.10.14/x64/lib/python3.10/site-packages/fastcore/docscrape.py:230: UserWarning: potentially wrong underline length... 
@@ -239,12 +239,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 `core.NeuralForecast`’s method to load checkpoint from path.\*
 
-|             | **Type**           | **Default** | **Details**                                                                                                  |
+|  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
-| path        | str                |             | Directory with stored artifacts.                                                                             |
-| verbose     | bool               | False       |                                                                                                              |
-| kwargs      |                    |             | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`.                         |
-| **Returns** | **NeuralForecast** |             | **Instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
+| path | str |  | Directory with stored artifacts. |
+| verbose | bool | False |  |
+| kwargs |  |  | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`. |
+| **Returns** | **NeuralForecast** |  | **Instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ```python
 os.environ['NIXTLA_ID_AS_COL'] = '1'
@@ -309,7 +309,7 @@ for step_size, test_size in [(7, 0), (9, 0), (7, 5), (9, 5)]:
     np.testing.assert_array_equal(expected_cutoffs, actual_cutoffs, err_msg=f"{step_size=},{expected_cutoffs=},{actual_cutoffs=}")
 
     # check forecast-points count per series
-    cutoffs_by_series = forecasts.groupby(['uid', 'cutoff']).count()
+    cutoffs_by_series = forecasts.group_by(['uid', 'cutoff']).count()
     assert_frame_equal(cutoffs_by_series.filter(polars.col('uid') == "Airline1").select(['cutoff', 'count']), cutoffs_by_series.filter(polars.col('uid') == "Airline2").select(['cutoff', 'count'] ), check_row_order=False)
 ```
 

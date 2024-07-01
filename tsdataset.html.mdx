@@ -116,6 +116,10 @@ class MyDataModule(L.LightningDataModule):
     def test_dataloader(self):
         return data.DataLoader(self.test)
 
+    def on_exception(self, exception):
+        # clean up state after the trainer faced an exception
+        ...
+
     def teardown(self):
         # clean up state after the trainer stops, delete files...
         # called on every process in DDP
