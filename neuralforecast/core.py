@@ -389,7 +389,7 @@ class NeuralForecast:
     ):
         if self.local_scaler_type is not None:
             raise ValueError(
-                "Historic scaling isn't supported in distributed. "
+                "Historic scaling isn't supported when the dataset is split between files. "
                 "Please open an issue if this would be valuable to you."
             )
 
@@ -516,16 +516,10 @@ class NeuralForecast:
             )
 
         if val_size is not None:
-            if isinstance(self.dataset, IterativeTimeSeriesDataset):
-                if self.dataset.files_ds.min_size < val_size:
-                    warnings.warn(
-                        "Validation set size is larger than the shorter time-series."
-                    )
-            else:
-                if self.dataset.min_size < val_size:
-                    warnings.warn(
-                        "Validation set size is larger than the shorter time-series."
-                    )
+            if self.dataset.min_size < val_size:
+                warnings.warn(
+                    "Validation set size is larger than the shorter time-series."
+                )
 
         # Recover initial model if use_init_models
         if use_init_models:
@@ -792,7 +786,7 @@ class NeuralForecast:
             )
         elif is_iterative_dataset and df is None:
             raise ValueError(
-                "When the model has been trained on a distributed dataset, you must pass in a specific dataframe for prediciton."
+                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
             )
         # Process new dataset but does not store it.
         elif df is not None:
