@@ -4,6 +4,7 @@
 __all__ = ['BaseAuto']
 
 # %% ../../nbs/common.base_auto.ipynb 5
+import warnings
 from copy import deepcopy
 from os import cpu_count
 
@@ -101,7 +102,11 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
     ):
         super(BaseAuto, self).__init__()
-        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+        with warnings.catch_warnings(record=False):
+            warnings.filterwarnings("ignore")
+            # the following line issues a warning about the loss attribute being saved
+            # but we do want to save it
+            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
         if backend == "ray":
             if not isinstance(config, dict):
