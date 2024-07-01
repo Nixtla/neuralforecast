@@ -61,7 +61,8 @@
         "examples/temporal_classifiers.html",
         "examples/predictive_maintenance.html",
         "examples/multivariate_with_tsmixer.html",
-        "examples/statsmlneuralmethods.html"
+        "examples/statsmlneuralmethods.html",
+        "examples/distributed/distributed_neuralforecast.html"
       ]
     },
     {
