@@ -237,6 +237,81 @@ class BaseModel(pl.LightningModule):
 
         return data_module_kwargs
 
+    def _fit_distributed(
+        self,
+        distributed_config,
+        datamodule,
+        val_size,
+        test_size,
+    ):
+        assert distributed_config is not None
+        from pyspark.ml.torch.distributor import TorchDistributor
+
+        def train_fn(
+            model_cls,
+            model_params,
+            datamodule,
+            trainer_kwargs,
+            num_tasks,
+            num_proc_per_task,
+            val_size,
+            test_size,
+        ):
+            import pytorch_lightning as pl
+
+            # we instantiate here to avoid pickling large tensors (weights)
+            model = model_cls(**model_params)
+            model.val_size = val_size
+            model.test_size = test_size
+            for arg in ("devices", "num_nodes"):
+                trainer_kwargs.pop(arg, None)
+            trainer = pl.Trainer(
+                strategy="ddp",
+                use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
+                num_nodes=num_tasks,
+                devices=num_proc_per_task,
+                **trainer_kwargs,
+            )
+            trainer.fit(model=model, datamodule=datamodule)
+            model.metrics = trainer.callback_metrics
+            model.__dict__.pop("_trainer", None)
+            return model
+
+        def is_gpu_accelerator(accelerator):
+            from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+            return (
+                accelerator == "gpu"
+                or isinstance(accelerator, CUDAAccelerator)
+                or (accelerator == "auto" and CUDAAccelerator.is_available())
+            )
+
+        local_mode = distributed_config.num_nodes == 1
+        if local_mode:
+            num_tasks = 1
+            num_proc_per_task = distributed_config.devices
+        else:
+            num_tasks = distributed_config.num_nodes * distributed_config.devices
+            num_proc_per_task = 1  # number of GPUs per task
+        num_proc = num_tasks * num_proc_per_task
+        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        model = TorchDistributor(
+            num_processes=num_proc,
+            local_mode=local_mode,
+            use_gpu=use_gpu,
+        ).run(
+            train_fn,
+            model_cls=type(self),
+            model_params=self.hparams,
+            datamodule=datamodule,
+            trainer_kwargs=self.trainer_kwargs,
+            num_tasks=num_tasks,
+            num_proc_per_task=num_proc_per_task,
+            val_size=val_size,
+            test_size=test_size,
+        )
+        return model
+
     def _fit(
         self,
         dataset,
@@ -283,71 +358,11 @@ class BaseModel(pl.LightningModule):
             model.metrics = trainer.callback_metrics
             model.__dict__.pop("_trainer", None)
         else:
-            assert distributed_config is not None
-            from pyspark.ml.torch.distributor import TorchDistributor
-
-            def train_fn(
-                model_cls,
-                model_params,
+            model = self._fit_distributed(
+                distributed_config,
                 datamodule,
-                trainer_kwargs,
-                num_tasks,
-                num_proc_per_task,
                 val_size,
                 test_size,
-            ):
-                import pytorch_lightning as pl
-
-                # we instantiate here to avoid pickling large tensors (weights)
-                model = model_cls(**model_params)
-                model.val_size = val_size
-                model.test_size = test_size
-                for arg in ("devices", "num_nodes"):
-                    trainer_kwargs.pop(arg, None)
-                trainer = pl.Trainer(
-                    strategy="ddp",
-                    use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
-                    num_nodes=num_tasks,
-                    devices=num_proc_per_task,
-                    **trainer_kwargs,
-                )
-                trainer.fit(model=model, datamodule=datamodule)
-                model.metrics = trainer.callback_metrics
-                model.__dict__.pop("_trainer", None)
-                return model
-
-            def is_gpu_accelerator(accelerator):
-                from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-                return (
-                    accelerator == "gpu"
-                    or isinstance(accelerator, CUDAAccelerator)
-                    or (accelerator == "auto" and CUDAAccelerator.is_available())
-                )
-
-            local_mode = distributed_config.num_nodes == 1
-            if local_mode:
-                num_tasks = 1
-                num_proc_per_task = distributed_config.devices
-            else:
-                num_tasks = distributed_config.devices * distributed_config.devices
-                num_proc_per_task = 1  # number of GPUs per task
-            num_proc = num_tasks * num_proc_per_task
-            use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
-            model = TorchDistributor(
-                num_processes=num_proc,
-                local_mode=local_mode,
-                use_gpu=use_gpu,
-            ).run(
-                train_fn,
-                model_cls=type(self),
-                model_params=self.hparams,
-                datamodule=datamodule,
-                trainer_kwargs=self.trainer_kwargs,
-                num_tasks=num_tasks,
-                num_proc_per_task=num_proc_per_task,
-                val_size=val_size,
-                test_size=test_size,
             )
         return model
 
