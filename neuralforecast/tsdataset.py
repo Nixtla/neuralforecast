@@ -478,7 +478,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         """We expect files to have one parquet file per timeseries, where each timeseries is represented as a pandas or polars DataFrame ,
         and static df to also be a pandas or polars DataFrame"""
 
-        # Define indexes if not given
+        # Define indexes if not given and then extract static features
         if static_df is not None:
             if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
                 warnings.warn(
@@ -488,8 +488,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             if sort_df:
                 static_df = ufp.sort(static_df, by=id_col)
 
-        # Static features
-        if static_df is not None:
             static_cols = [col for col in static_df.columns if col != id_col]
             static = ufp.to_numpy(static_df[static_cols])
             static_cols = pd.Index(static_cols)

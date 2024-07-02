@@ -389,7 +389,7 @@ class NeuralForecast:
 
     def _prepare_fit_for_local_files(
         self,
-        files_list,
+        files_list: Sequence[str],
         static_df: Optional[DataFrame],
         sort_df: bool,
         id_col: str,
