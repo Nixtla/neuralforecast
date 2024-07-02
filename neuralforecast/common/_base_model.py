@@ -20,7 +20,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
-    TimeSeriesDataset,
+    BaseTimeSeriesDataset,
     _DistributedTimeSeriesDataModule,
 )
 from ..losses.pytorch import IQLoss
@@ -191,6 +191,7 @@ class BaseModel(pl.LightningModule):
 
     def _check_exog(self, dataset):
         temporal_cols = set(dataset.temporal_cols.tolist())
+
         static_cols = set(
             dataset.static_cols.tolist() if dataset.static_cols is not None else []
         )
@@ -328,7 +329,7 @@ class BaseModel(pl.LightningModule):
 
         self.val_size = val_size
         self.test_size = test_size
-        is_local = isinstance(dataset, TimeSeriesDataset)
+        is_local = isinstance(dataset, BaseTimeSeriesDataset)
         if is_local:
             datamodule_constructor = TimeSeriesDataModule
         else:
