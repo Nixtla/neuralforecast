@@ -32,7 +32,7 @@ from .compat import SparkDataFrame
 from neuralforecast.tsdataset import (
     _FilesDataset,
     TimeSeriesDataset,
-    IterativeTimeSeriesDataset,
+    LocalFilesTimeSeriesDataset,
 )
 from neuralforecast.models import (
     GRU,
@@ -208,6 +208,9 @@ def _warn_id_as_idx():
     )
 
 # %% ../nbs/core.ipynb 10
+from typing import Sequence
+
+
 class NeuralForecast:
 
     def __init__(
@@ -384,8 +387,14 @@ class NeuralForecast:
             min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
         )
 
-    def _prepare_iterative_fit(
-        self, df, static_df, sort_df, id_col, time_col, target_col
+    def _prepare_fit_for_local_files(
+        self,
+        files_list,
+        static_df: Optional[DataFrame],
+        sort_df: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
     ):
         if self.local_scaler_type is not None:
             raise ValueError(
@@ -399,8 +408,8 @@ class NeuralForecast:
         self.scalers_ = {}
         self.sort_df = sort_df
 
-        return IterativeTimeSeriesDataset.from_data_directory(
-            files=df,
+        return LocalFilesTimeSeriesDataset.from_data_directory(
+            files=files_list,
             static_df=static_df,
             sort_df=sort_df,
             id_col=id_col,
@@ -410,7 +419,9 @@ class NeuralForecast:
 
     def fit(
         self,
-        df: Optional[Union[DataFrame, SparkDataFrame, List[str]]] = None,
+        dataframe_or_files_list: Optional[
+            Union[DataFrame, SparkDataFrame, Sequence[str]]
+        ] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
@@ -428,7 +439,7 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas, polars or spark DataFrame, optional (default=None)
+        dataframe_or_files_list : pandas, polars or spark DataFrame, or a list of files containing the DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas, polars or spark DataFrame, optional (default=None)
@@ -455,7 +466,7 @@ class NeuralForecast:
         self : NeuralForecast
             Returns `NeuralForecast` class with fitted `models`.
         """
-        if (df is None) and not (hasattr(self, "dataset")):
+        if (dataframe_or_files_list is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
         # Model and datasets interactions protections
@@ -466,10 +477,10 @@ class NeuralForecast:
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
         # Process and save new dataset (in self)
-        if isinstance(df, (pd.DataFrame, pl_DataFrame)):
-            validate_freq(df[time_col], self.freq)
+        if isinstance(dataframe_or_files_list, (pd.DataFrame, pl_DataFrame)):
+            validate_freq(dataframe_or_files_list[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df,
+                df=dataframe_or_files_list,
                 static_df=static_df,
                 sort_df=sort_df,
                 predict_only=False,
@@ -478,13 +489,13 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
-        elif isinstance(df, SparkDataFrame):
+        elif isinstance(dataframe_or_files_list, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):
                 raise ValueError(
                     "`static_df` must be a spark dataframe when `df` is a spark dataframe."
                 )
             self.dataset = self._prepare_fit_distributed(
-                df=df,
+                df=dataframe_or_files_list,
                 static_df=static_df,
                 sort_df=sort_df,
                 id_col=id_col,
@@ -492,13 +503,13 @@ class NeuralForecast:
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
-        elif isinstance(df, List):
-            if not all(isinstance(val, str) for val in df):
+        elif isinstance(dataframe_or_files_list, Sequence):
+            if not all(isinstance(val, str) for val in dataframe_or_files_list):
                 raise ValueError(
                     "All entries in the list of files must be of type string"
                 )
-            self.dataset = self._prepare_iterative_fit(
-                df=df,
+            self.dataset = self._prepare_fit_for_local_files(
+                files_list=dataframe_or_files_list,
                 static_df=static_df,
                 sort_df=sort_df,
                 id_col=id_col,
@@ -507,12 +518,12 @@ class NeuralForecast:
             )
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
-        elif df is None:
+        elif dataframe_or_files_list is None:
             if verbose:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a list of parquet files, or a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`dataframe_or_files_list` must be a list of parquet files, or a pandas, polars or spark DataFrame or `None`, got: {type(dataframe_or_files_list)}"
             )
 
         if val_size is not None:
@@ -774,8 +785,8 @@ class NeuralForecast:
         # distributed df or NeuralForecast instance was trained with a distributed input and no df is provided
         # we assume the user wants to perform distributed inference as well
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
-        is_iterative_dataset = isinstance(
-            getattr(self, "dataset", None), IterativeTimeSeriesDataset
+        is_dataset_local_files = isinstance(
+            getattr(self, "dataset", None), LocalFilesTimeSeriesDataset
         )
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
             return self._predict_distributed(
@@ -784,7 +795,7 @@ class NeuralForecast:
                 futr_df=futr_df,
                 engine=engine,
             )
-        elif is_iterative_dataset and df is None:
+        elif is_dataset_local_files and df is None:
             raise ValueError(
                 "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
             )
@@ -1127,7 +1138,7 @@ class NeuralForecast:
             should_fit = i_window == 0 or (refit > 0 and i_window % refit == 0)
             if should_fit:
                 self.fit(
-                    df=train,
+                    dataframe_or_files_list=train,
                     static_df=static_df,
                     val_size=val_size,
                     sort_df=sort_df,
