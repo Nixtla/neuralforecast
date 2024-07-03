@@ -7,11 +7,12 @@ __all__ = ['TimeSeriesLoader', 'BaseTimeSeriesDataset', 'TimeSeriesDataset', 'Lo
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
-from typing import List, Sequence, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import pyarrow as pa
 import torch
 import utilsforecast.processing as ufp
 from torch.utils.data import Dataset, DataLoader
@@ -428,24 +429,18 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
     def __getitem__(self, idx):
         if isinstance(idx, int):
-            df = pd.read_parquet(self.files_ds.files[idx])
-
-            _, _, data, _, _ = ufp.process_df(
-                df,
-                self.files_ds.id_col,
-                self.files_ds.time_col,
-                self.files_ds.target_col,
-            )
-
             temporal_cols = self.files_ds.temporal_cols
+            data = pd.read_parquet(
+                self.files_ds.files[idx], columns=self.files_ds.temporal_cols
+            ).to_numpy()
+
             # Add Available mask efficiently (without adding column to df)
-            if "available_mask" not in df.columns:
+            if "available_mask" not in temporal_cols:
                 available_mask = np.ones((len(data), 1), dtype=np.float32)
                 data = np.append(data, available_mask, axis=1)
                 temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
 
             data = self._as_torch_copy(data)
-
             # Pad the temporal data to the left
             temporal = torch.zeros(
                 size=(len(temporal_cols), self.max_size), dtype=torch.float32
@@ -471,12 +466,14 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         files,
         static_df=None,
         sort_df=False,
+        temporal_cols=[],
         id_col="unique_id",
         time_col="ds",
         target_col="y",
     ):
-        """We expect files to have one parquet file per timeseries, where each timeseries is represented as a pandas or polars DataFrame ,
-        and static df to also be a pandas or polars DataFrame"""
+        """We expect files to have one parquet file per timeseries, where each timeseries is represented as a pandas or polars DataFrame
+        which is sorted by time, and static df to also be a pandas or polars DataFrame
+        """
 
         # Define indexes if not given and then extract static features
         if static_df is not None:
@@ -497,39 +494,38 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
         max_size = 0
         min_size = float("inf")
-        temporal_cols = pd.Index([])
         last_times = np.array([], dtype=np.datetime64)
-        indices = pd.Series([])
+        ids = np.array([])
 
         for file in files:
-            df = pd.read_parquet(file)
-            length = len(df)
-            max_size = max(length, max_size)
-            min_size = min(length, min_size)
+            meta = pa.parquet.read_metadata(file)
 
-            # processor sets y as the first column
-            temporal_cols_temp = pd.Index(
-                [target_col]
-                + [c for c in df.columns if c not in (id_col, time_col, target_col)]
-            )
-            # check all the timeseries have the same temporal cols
-            if len(temporal_cols) == 0:
-                temporal_cols = temporal_cols_temp
+            rg = meta.row_group(0)
+            col2pos = {rg.column(i).path_in_schema: i for i in range(rg.num_columns)}
+            uid = rg.column(col2pos[id_col]).statistics.min
 
-            if not temporal_cols_temp.equals(temporal_cols):
-                warnings.warn(
-                    "All the timeseries should have the same temporal columns.",
-                    FutureWarning,
-                )
+            # Check all the temporal columns are present
+            for col in temporal_cols:
+                if col not in col2pos:
+                    raise ValueError(
+                        f"Temporal column '{col}' not found in the Parquet file."
+                    )
 
-            ids, times, *_ = ufp.process_df(df, id_col, time_col, target_col)
-            last_times = np.concatenate([last_times, times])
-            if isinstance(ids, pl_Series):
-                indices = pd.concat([indices, ids.to_pandas()])
-            else:
-                indices = pd.concat([indices, ids])
+            total_rows = rg.num_rows
+            last_time = rg.column(col2pos[time_col]).statistics.max
+            for i in range(1, meta.num_row_groups):
+                rg = meta.row_group(i)
+                last_time = max(last_time, rg.column(col2pos[time_col]).statistics.max)
+                total_rows += rg.num_rows
+
+            max_size = max(total_rows, max_size)
+            min_size = min(total_rows, min_size)
+            ids = np.append(ids, uid)
+            last_times = np.append(last_times, np.datetime64(last_time))
 
         last_times = pd.Index(last_times, name=time_col)
+        ids = pd.Series(ids)
+        temporal_cols = pd.Index([target_col] + temporal_cols)
 
         files_ds = _FilesDataset(
             files=files,
@@ -544,7 +540,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             files_ds=files_ds,
             temporal_cols=temporal_cols,
             last_times=last_times,
-            indices=indices,
+            indices=ids,
             min_size=min_size,
             max_size=max_size,
             y_idx=0,

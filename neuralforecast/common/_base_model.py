@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
     BaseTimeSeriesDataset,
