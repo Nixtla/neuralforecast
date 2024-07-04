@@ -380,7 +380,7 @@ class _FilesDataset:
     def __init__(
         self,
         files: Sequence[str],
-        temporal_cols: Sequence[str],
+        temporal_cols,
         id_col: str,
         time_col: str,
         target_col: str,
@@ -430,7 +430,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         if isinstance(idx, int):
             temporal_cols = self.files_ds.temporal_cols
             data = pd.read_parquet(
-                self.files_ds.files[idx], columns=self.files_ds.temporal_cols
+                self.files_ds.files[idx], columns=self.files_ds.temporal_cols.to_list()
             ).to_numpy()
 
             # Add Available mask efficiently (without adding column to df)
@@ -492,7 +492,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             static_cols = None
 
         max_size = 0
-        min_size = float("inf")
+        min_size = int("inf")
         last_times = np.array([], dtype=np.datetime64)
         ids = np.array([])
 
