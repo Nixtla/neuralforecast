@@ -15,6 +15,7 @@ import pytorch_lightning as pl
 import pyarrow as pa
 import torch
 import utilsforecast.processing as ufp
+from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 from utilsforecast.compat import DataFrame, pl_Series
 
@@ -502,7 +503,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
             rg = meta.row_group(0)
             col2pos = {rg.column(i).path_in_schema: i for i in range(rg.num_columns)}
-            uid = rg.column(col2pos[id_col]).statistics.min
+            uid = Path(file).stem
             last_time = (
                 meta.row_group(meta.num_row_groups - 1)
                 .column(col2pos[time_col])
