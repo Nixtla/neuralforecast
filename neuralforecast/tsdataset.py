@@ -492,9 +492,10 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             static_cols = None
 
         max_size = 0
-        min_size = int("inf")
-        last_times = np.array([], dtype=np.datetime64)
-        ids = np.array([])
+        min_size = float("inf")
+        last_times = []
+        ids = []
+        temporal_cols = set(temporal_cols)
 
         for file in files:
             meta = pa.parquet.read_metadata(file)
@@ -502,29 +503,30 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             rg = meta.row_group(0)
             col2pos = {rg.column(i).path_in_schema: i for i in range(rg.num_columns)}
             uid = rg.column(col2pos[id_col]).statistics.min
+            last_time = (
+                meta.row_group(meta.num_row_groups - 1)
+                .column(col2pos[time_col])
+                .statistics.max
+            )
+            total_rows = sum(
+                meta.row_group(i).num_rows for i in range(meta.num_row_groups)
+            )
 
             # Check all the temporal columns are present
-            for col in temporal_cols:
-                if col not in col2pos:
-                    raise ValueError(
-                        f"Temporal column '{col}' not found in the Parquet file."
-                    )
-
-            total_rows = rg.num_rows
-            last_time = rg.column(col2pos[time_col]).statistics.max
-            for i in range(1, meta.num_row_groups):
-                rg = meta.row_group(i)
-                last_time = max(last_time, rg.column(col2pos[time_col]).statistics.max)
-                total_rows += rg.num_rows
+            missing_cols = temporal_cols - col2pos.keys()
+            if missing_cols:
+                raise ValueError(
+                    f"Temporal columns: {missing_cols} not found in the file: {file}."
+                )
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
-            ids = np.append(ids, uid)
-            last_times = np.append(last_times, np.datetime64(last_time))
+            ids = ids + [uid]
+            last_times = last_times + [last_time]
 
         last_times = pd.Index(last_times, name=time_col)
         ids = pd.Series(ids)
-        temporal_cols = pd.Index([target_col] + temporal_cols)
+        temporal_cols = pd.Index([target_col] + list(temporal_cols))
 
         files_ds = _FilesDataset(
             files=files,
@@ -549,7 +551,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         )
         return dataset
 
-# %% ../nbs/tsdataset.ipynb 13
+# %% ../nbs/tsdataset.ipynb 14
 class TimeSeriesDataModule(pl.LightningDataModule):
 
     def __init__(
@@ -598,7 +600,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         )
         return loader
 
-# %% ../nbs/tsdataset.ipynb 27
+# %% ../nbs/tsdataset.ipynb 28
 class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
     def __init__(
         self,
