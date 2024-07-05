@@ -7,15 +7,14 @@ __all__ = ['TimeSeriesLoader', 'BaseTimeSeriesDataset', 'TimeSeriesDataset', 'Lo
 # %% ../nbs/tsdataset.ipynb 4
 import warnings
 from collections.abc import Mapping
+from pathlib import Path
 from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
-import pyarrow as pa
 import torch
 import utilsforecast.processing as ufp
-from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 from utilsforecast.compat import DataFrame, pl_Series
 
@@ -118,6 +117,33 @@ class BaseTimeSeriesDataset(Dataset):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
         return x.to(dtype, copy=False).clone()
+
+    @staticmethod
+    def _add_available_mask(data: np.ndarray, temporal_cols):
+        if "available_mask" not in temporal_cols:
+            available_mask = np.ones((len(data), 1), dtype=np.float32)
+            temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
+            data = np.append(data, available_mask, axis=1)
+        return data, temporal_cols
+
+    @staticmethod
+    def _extract_static_features(static_df, sort_df, id_col):
+        if static_df is not None:
+            if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
+                warnings.warn(
+                    "Passing the id as index is deprecated, please provide it as a column instead.",
+                    FutureWarning,
+                )
+            if sort_df:
+                static_df = ufp.sort(static_df, by=id_col)
+
+            static_cols = [col for col in static_df.columns if col != id_col]
+            static = ufp.to_numpy(static_df[static_cols])
+            static_cols = pd.Index(static_cols)
+        else:
+            static = None
+            static_cols = None
+        return static, static_cols
 
 # %% ../nbs/tsdataset.ipynb 8
 class TimeSeriesDataset(BaseTimeSeriesDataset):
@@ -317,15 +343,11 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
                 FutureWarning,
             )
             df = df.reset_index(id_col)
-        # Define indexes if not given
-        if static_df is not None:
-            if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
-                warnings.warn(
-                    "Passing the id as index is deprecated, please provide it as a column instead.",
-                    FutureWarning,
-                )
-            if sort_df:
-                static_df = ufp.sort(static_df, by=id_col)
+
+        # Define indices if not given and then extract static features
+        static, static_cols = TimeSeriesDataset._extract_static_features(
+            static_df, sort_df, id_col
+        )
 
         ids, times, data, indptr, sort_idxs = ufp.process_df(
             df, id_col, time_col, target_col
@@ -346,19 +368,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         min_size = min(sizes)
 
         # Add Available mask efficiently (without adding column to df)
-        if "available_mask" not in df.columns:
-            available_mask = np.ones((len(temporal), 1), dtype=np.float32)
-            temporal = np.append(temporal, available_mask, axis=1)
-            temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
-
-        # Static features
-        if static_df is not None:
-            static_cols = [col for col in static_df.columns if col != id_col]
-            static = ufp.to_numpy(static_df[static_cols])
-            static_cols = pd.Index(static_cols)
-        else:
-            static = None
-            static_cols = None
+        temporal, temporal_cols = TimeSeriesDataset._add_available_mask(
+            data, temporal_cols
+        )
 
         dataset = TimeSeriesDataset(
             temporal=temporal,
@@ -428,42 +440,41 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         self.n_groups = len(files_ds.files)
 
     def __getitem__(self, idx):
-        if isinstance(idx, int):
-            temporal_cols = self.files_ds.temporal_cols
-            data = pd.read_parquet(
-                self.files_ds.files[idx], columns=self.files_ds.temporal_cols.to_list()
-            ).to_numpy()
+        if not isinstance(idx, int):
+            raise ValueError(f"idx must be int, got {type(idx)}")
 
-            # Add Available mask efficiently (without adding column to df)
-            if "available_mask" not in temporal_cols:
-                available_mask = np.ones((len(data), 1), dtype=np.float32)
-                data = np.append(data, available_mask, axis=1)
-                temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
+        df = pd.read_parquet(self.files_ds.files[idx])
+        _, _, data, _, _ = ufp.process_df(
+            df, self.files_ds.id_col, self.files_ds.time_col, self.files_ds.target_col
+        )
 
-            data = self._as_torch_copy(data)
-            # Pad the temporal data to the left
-            temporal = torch.zeros(
-                size=(len(temporal_cols), self.max_size), dtype=torch.float32
-            )
-            temporal[: len(temporal_cols), -len(data) :] = data.permute(1, 0)
+        # Add Available mask efficiently (without adding column to df)
+        data, temporal_cols = TimeSeriesDataset._add_available_mask(
+            data, self.files_ds.temporal_cols
+        )
+        data = self._as_torch_copy(data)
+        # Pad the temporal data to the left
+        temporal = torch.zeros(
+            size=(len(temporal_cols), self.max_size), dtype=torch.float32
+        )
+        temporal[: len(temporal_cols), -len(data) :] = data.permute(1, 0)
 
-            # Add static data if available
-            static = None if self.static is None else self.static[idx, :]
+        # Add static data if available
+        static = None if self.static is None else self.static[idx, :]
 
-            item = dict(
-                temporal=temporal,
-                temporal_cols=temporal_cols,
-                static=static,
-                static_cols=self.static_cols,
-                y_idx=self.y_idx,
-            )
+        item = dict(
+            temporal=temporal,
+            temporal_cols=temporal_cols,
+            static=static,
+            static_cols=self.static_cols,
+            y_idx=self.y_idx,
+        )
 
-            return item
-        raise ValueError(f"idx must be int, got {type(idx)}")
+        return item
 
     @staticmethod
-    def from_data_directory(
-        files,
+    def from_data_directories(
+        directories,
         static_df=None,
         sort_df=False,
         temporal_cols=[],
@@ -471,26 +482,15 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         time_col="ds",
         target_col="y",
     ):
-        """We expect files to have one parquet file per timeseries, where each timeseries is represented as a pandas or polars DataFrame
-        which is sorted by time, and static df to also be a pandas or polars DataFrame
-        """
+        """We expect directories to be a list of directories of the form [unique_id=id_0, unique_id=id_1, ...]. Each directory should contain the timeseries corresponding to that unqiue_id,
+        represented as a pandas or polars DataFrame. The timeseries can be entirely contained in one parquet file or split between multiple, but within each parquet files the timeseries should be sorted by time.
+        Static df should also be a pandas or polars DataFrame"""
+        import pyarrow as pa
 
-        # Define indexes if not given and then extract static features
-        if static_df is not None:
-            if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
-                warnings.warn(
-                    "Passing the id as index is deprecated, please provide it as a column instead.",
-                    FutureWarning,
-                )
-            if sort_df:
-                static_df = ufp.sort(static_df, by=id_col)
-
-            static_cols = [col for col in static_df.columns if col != id_col]
-            static = ufp.to_numpy(static_df[static_cols])
-            static_cols = pd.Index(static_cols)
-        else:
-            static = None
-            static_cols = None
+        # Define indices if not given and then extract static features
+        static, static_cols = TimeSeriesDataset._extract_static_features(
+            static_df, sort_df, id_col
+        )
 
         max_size = 0
         min_size = float("inf")
@@ -498,39 +498,52 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         ids = []
         temporal_cols = set(temporal_cols)
 
-        for file in files:
-            meta = pa.parquet.read_metadata(file)
+        for dir in directories:
+            dir_path = Path(dir)
+            if not dir_path.is_dir():
+                raise ValueError(f"paths must be directories, {dir} is not.")
+            uid = dir_path.name.split("=")[-1]
+            total_rows = 0
+            last_time = None
+            for file in dir_path.iterdir():
+                meta = pa.parquet.read_metadata(file)
+                rg = meta.row_group(0)
+                col2pos = {
+                    rg.column(i).path_in_schema: i for i in range(rg.num_columns)
+                }
 
-            rg = meta.row_group(0)
-            col2pos = {rg.column(i).path_in_schema: i for i in range(rg.num_columns)}
-            uid = Path(file).stem
-            last_time = (
-                meta.row_group(meta.num_row_groups - 1)
-                .column(col2pos[time_col])
-                .statistics.max
-            )
-            total_rows = sum(
-                meta.row_group(i).num_rows for i in range(meta.num_row_groups)
-            )
-
-            # Check all the temporal columns are present
-            missing_cols = temporal_cols - col2pos.keys()
-            if missing_cols:
-                raise ValueError(
-                    f"Temporal columns: {missing_cols} not found in the file: {file}."
+                last_time_file = (
+                    meta.row_group(meta.num_row_groups - 1)
+                    .column(col2pos[time_col])
+                    .statistics.max
                 )
+                last_time = (
+                    max(last_time, last_time_file)
+                    if last_time is not None
+                    else last_time_file
+                )
+                total_rows += sum(
+                    meta.row_group(i).num_rows for i in range(meta.num_row_groups)
+                )
+
+                # Check all the temporal columns are present
+                missing_cols = temporal_cols - col2pos.keys()
+                if missing_cols:
+                    raise ValueError(
+                        f"Temporal columns: {missing_cols} not found in the file: {file}."
+                    )
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
-            ids = ids + [uid]
-            last_times = last_times + [last_time]
+            ids.append(uid)
+            last_times.append(last_time)
 
         last_times = pd.Index(last_times, name=time_col)
-        ids = pd.Series(ids)
+        ids = pd.Series(ids, name=id_col)
         temporal_cols = pd.Index([target_col] + list(temporal_cols))
 
         files_ds = _FilesDataset(
-            files=files,
+            files=directories,
             temporal_cols=temporal_cols,
             id_col=id_col,
             time_col=time_col,

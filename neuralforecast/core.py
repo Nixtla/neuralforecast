@@ -389,7 +389,6 @@ class NeuralForecast:
         files_list: Sequence[str],
         static_df: Optional[DataFrame],
         sort_df: bool,
-        temporal_cols: List[str],
         id_col: str,
         time_col: str,
         target_col: str,
@@ -406,8 +405,9 @@ class NeuralForecast:
         self.scalers_ = {}
         self.sort_df = sort_df
 
-        return LocalFilesTimeSeriesDataset.from_data_directory(
-            files=files_list,
+        temporal_cols = self._get_needed_temporal_cols()
+        return LocalFilesTimeSeriesDataset.from_data_directories(
+            directories=files_list,
             static_df=static_df,
             sort_df=sort_df,
             temporal_cols=temporal_cols,
@@ -424,7 +424,6 @@ class NeuralForecast:
         sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
-        temporal_cols: List[str] = [],
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
@@ -437,7 +436,7 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas, polars or spark DataFrame, or a list of files containing the DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, or a list of parquet files containing the series, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas, polars or spark DataFrame, optional (default=None)
@@ -510,7 +509,6 @@ class NeuralForecast:
                 files_list=df,
                 static_df=static_df,
                 sort_df=sort_df,
-                temporal_cols=temporal_cols,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
@@ -522,7 +520,7 @@ class NeuralForecast:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a list of parquet files, or a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`df` must be a pandas, polars or spark DataFrame, or a list of parquet files containing the series, or `None`, got: {type(df)}"
             )
 
         if val_size is not None:
@@ -596,6 +594,13 @@ class NeuralForecast:
         return set(
             chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
         )
+
+    def _get_needed_temporal_cols(self):
+        futr_exog = self._get_needed_futr_exog()
+        hist_exog = set(
+            chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)
+        )
+        return futr_exog | hist_exog
 
     def _get_model_names(self) -> List[str]:
         names: List[str] = []
@@ -794,12 +799,14 @@ class NeuralForecast:
                 futr_df=futr_df,
                 engine=engine,
             )
-        elif is_dataset_local_files and df is None:
+
+        if is_dataset_local_files and df is None:
             raise ValueError(
                 "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
             )
+
         # Process new dataset but does not store it.
-        elif df is not None:
+        if df is not None:
             validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
