@@ -190,7 +190,6 @@ class BaseModel(pl.LightningModule):
 
     def _check_exog(self, dataset):
         temporal_cols = set(dataset.temporal_cols.tolist())
-
         static_cols = set(
             dataset.static_cols.tolist() if dataset.static_cols is not None else []
         )

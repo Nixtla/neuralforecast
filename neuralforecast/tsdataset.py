@@ -565,7 +565,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         )
         return dataset
 
-# %% ../nbs/tsdataset.ipynb 14
+# %% ../nbs/tsdataset.ipynb 13
 class TimeSeriesDataModule(pl.LightningDataModule):
 
     def __init__(
@@ -614,7 +614,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         )
         return loader
 
-# %% ../nbs/tsdataset.ipynb 28
+# %% ../nbs/tsdataset.ipynb 27
 class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
     def __init__(
         self,
