@@ -64,6 +64,7 @@ website:
               - models.tsmixer.ipynb
               - models.tsmixerx.ipynb
             - section: II. Graph-based
+              contents:
               - models.stemgnn.ipynb
             - section: III. Transformer-based
               contents:
