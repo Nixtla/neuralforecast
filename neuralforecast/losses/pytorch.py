@@ -21,6 +21,7 @@ from torch.distributions import (
     Poisson,
     NegativeBinomial,
     Beta,
+    Gamma,
     MixtureSameFamily,
     Categorical,
     AffineTransform,
@@ -923,10 +924,12 @@ class Tweedie(Distribution):
        Series B (Methodological), 49(2), 127–162. http://www.jstor.org/stable/2345415](http://www.jstor.org/stable/2345415)<br>
     """
 
+    arg_constraints = {"log_mu": constraints.real}
+    support = constraints.nonnegative
+
     def __init__(self, log_mu, rho, validate_args=None):
         # TODO: add sigma2 dispersion
         # TODO add constraints
-        # arg_constraints = {'log_mu': constraints.real, 'rho': constraints.positive}
         # support = constraints.real
         self.log_mu = log_mu
         self.rho = rho
@@ -959,8 +962,8 @@ class Tweedie(Distribution):
             alpha = alpha.expand(shape)
             beta = beta.expand(shape)
 
-            N = torch.poisson(rate)
-            gamma = torch.distributions.gamma.Gamma(N * alpha, beta)
+            N = torch.poisson(rate) + 1e-3
+            gamma = Gamma(N * alpha, beta)
             samples = gamma.sample()
             samples[N == 0] = 0
 
@@ -976,6 +979,14 @@ class Tweedie(Distribution):
         return a - b
 
 
+def tweedie_domain_map(input: torch.Tensor, rho: float = 1.5):
+    """
+    Maps output of neural network to domain of distribution loss
+
+    """
+    return (input, rho)
+
+
 def tweedie_scale_decouple(output, loc=None, scale=None):
     """Tweedie Scale Decouple
 
@@ -983,10 +994,17 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
     count and logits based on anchoring `loc`, `scale`.
     Also adds Tweedie domain protection to the distribution parameters.
     """
-    log_mu = output[0]
+    log_mu, rho = output
+    log_mu = F.softplus(log_mu)
+    log_mu = torch.clamp(log_mu, 1e-9, 37)
     if (loc is not None) and (scale is not None):
-        log_mu += torch.log(loc)  # TODO : rho scaling
-    return (log_mu,)
+        # log_mu += torch.log(loc) # TODO : rho scaling
+        mu = (torch.exp(log_mu) * scale) + loc
+        mu = F.softplus(mu)
+        log_mu = torch.log(mu)
+
+    log_mu = torch.clamp(log_mu, 1e-9, 37)
+    return (log_mu, rho)
 
 # %% ../../nbs/losses.pytorch.ipynb 67
 # Code adapted from: https://github.com/awslabs/gluonts/blob/61133ef6e2d88177b32ace4afc6843ab9a7bc8cd/src/gluonts/torch/distributions/isqf.py
@@ -1883,6 +1901,9 @@ class DistributionLoss(torch.nn.Module):
             self.domain_map = partial(
                 isqf_domain_map, quantiles=quantiles, num_pieces=num_pieces
             )
+        elif distribution == "Tweedie":
+            rho = distribution_kwargs.pop("rho")
+            self.domain_map = partial(tweedie_domain_map, rho=rho)
         else:
             self.domain_map = self._domain_map
 
@@ -1928,7 +1949,7 @@ class DistributionLoss(torch.nn.Module):
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
         self.distr_mean = distr.mean
 
-        if self.distribution == "Poisson":
+        if self.distribution in ("Poisson", "NegativeBinomial"):
             distr.support = constraints.nonnegative
         return distr
 
@@ -2105,7 +2126,7 @@ class PMM(torch.nn.Module):
                 scale = scale.unsqueeze(-1)
             lambdas = (lambdas * scale) + loc
 
-        lambdas = F.softplus(lambdas)
+        lambdas = F.softplus(lambdas) + 1e-3
 
         return (lambdas, weights)
 
@@ -2125,6 +2146,7 @@ class PMM(torch.nn.Module):
 
         mix = Categorical(weights)
         components = Poisson(rate=lambdas)
+        components.support = constraints.nonnegative
         distr = MixtureSameFamily(
             mixture_distribution=mix, component_distribution=components
         )
@@ -2555,6 +2577,7 @@ class NBMM(torch.nn.Module):
 
         mix = Categorical(weights)
         components = NegativeBinomial(total_count, probs)
+        components.support = constraints.nonnegative
         distr = MixtureSameFamily(
             mixture_distribution=mix, component_distribution=components
         )
@@ -2830,7 +2853,6 @@ class HuberQLoss(BasePointLoss):
         **Returns:**<br>
         `huber_qloss`: tensor (single value).
         """
-        y = y.unsqueeze(-1)
 
         error = y_hat - y
         zero_error = torch.zeros_like(error)

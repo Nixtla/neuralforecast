@@ -174,7 +174,11 @@ class MLPMultivariate(BaseModel):
             x = torch.cat((x, futr_exog.reshape(batch_size, -1)), dim=1)
 
         if self.stat_exog_size > 0:
-            x = torch.cat((x, stat_exog.reshape(batch_size, -1)), dim=1)
+            stat_exog = stat_exog.reshape(-1)  #   [N, S] -> [N * S]
+            stat_exog = stat_exog.unsqueeze(0).repeat(
+                batch_size, 1
+            )  #   [N * S] -> [B, N * S]
+            x = torch.cat((x, stat_exog), dim=1)
 
         for layer in self.mlp:
             x = torch.relu(layer(x))

@@ -293,6 +293,5 @@ class iTransformer(BaseModel):
 
         y_pred = self.forecast(insample_y)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
 
         return y_pred

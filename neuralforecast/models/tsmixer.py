@@ -272,6 +272,5 @@ class TSMixer(BaseModel):
         x = x.reshape(
             batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
         )
-        forecast = self.loss.domain_map(x)
 
-        return forecast
+        return x

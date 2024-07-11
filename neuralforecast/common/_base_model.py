@@ -246,14 +246,14 @@ class BaseModel(pl.LightningModule):
             # Maybe we should raise a Warning or an Exception here, but meh for now.
             self.valid_loss = loss
 
-        if isinstance(self.loss, (losses.relMSE)):
+        if isinstance(self.loss, (losses.relMSE, losses.Accuracy, losses.sCRPS)):
             raise Exception(
-                f"{type(self.loss).__name__} cannot be used for training. Please use another point loss (MAE, MSE, ...)"
+                f"{type(self.loss).__name__} cannot be used for training. Please use another loss function (MAE, MSE, ...)"
             )
 
         if isinstance(self.valid_loss, (losses.relMSE)):
             raise Exception(
-                f"{type(self.valid_loss).__name__} cannot be used for validation. Please use another point valid_loss (MAE, MSE, ...)"
+                f"{type(self.valid_loss).__name__} cannot be used for validation. Please use another valid_loss (MAE, MSE, ...)"
             )
 
         ## Trainer arguments ##
