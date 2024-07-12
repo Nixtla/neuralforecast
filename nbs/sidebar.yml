@@ -18,8 +18,7 @@ website:
         contents: 
         - docs/api-reference/01_neuralforecast_map.ipynb
         - core.ipynb
-        - models.ipynb
-        - section: Univariate Models
+        - section: Models
           contents:
           - models.autoformer.ipynb
           - models.bitcn.ipynb
@@ -29,30 +28,29 @@ website:
           - models.dlinear.ipynb
           - models.fedformer.ipynb
           - models.gru.ipynb
+          - models.hint.ipynb
           - models.informer.ipynb
+          - models.itransformer.ipynb
           - models.lstm.ipynb
           - models.mlp.ipynb
+          - models.mlpmultivariate.ipynb
           - models.nbeats.ipynb
           - models.nbeatsx.ipynb
           - models.nhits.ipynb
           - models.nlinear.ipynb
           - models.patchtst.ipynb
           - models.rnn.ipynb
+          - models.softs.ipynb
+          - models.stemgnn.ipynb
           - models.tcn.ipynb
           - models.tft.ipynb
           - models.tide.ipynb
           - models.timellm.ipynb
           - models.timesnet.ipynb
-          - models.vanillatransformer.ipynb
-        - section: Multivariate Models
-          contents:
-          - models.hint.ipynb
-          - models.itransformer.ipynb
-          - models.mlpmultivariate.ipynb
-          - models.softs.ipynb
-          - models.stemgnn.ipynb
           - models.tsmixer.ipynb
           - models.tsmixerx.ipynb
+          - models.vanillatransformer.ipynb
+        - models.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb

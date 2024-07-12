@@ -80,9 +80,8 @@
       "pages": [
         "docs/tutorials/neuralforecasting_map.html",
         "core.html",
-        "models.html",
         {
-          "group": "Univariate Models",
+          "group": "Models",
           "pages": [
             "models.autoformer.html",
             "models.bitcn.html",
@@ -91,9 +90,12 @@
             "models.dlinear.html",
             "models.fedformer.html",
             "models.gru.html",
+            "models.hint.html",
             "models.informer.html",
+            "models.itransformer.html",
             "models.lstm.html",
             "models.mlp.html",
+            "models.mlpmultivariate.html",
             "models.nbeats.html",
             "models.nbeatsx.html",
             "models.nhits.html",
@@ -101,26 +103,19 @@
             "models.patchtst.html",
             "models.rnn.html",
             "models.deepnpts.html",
+            "models.softs.html",
+            "models.stemgnn.html",
             "models.tcn.html",
             "models.tft.html",
             "models.tide.html",
             "models.timellm.html",
             "models.timesnet.html",
+            "models.tsmixer.html",
+            "models.tsmixerx.html",
             "models.vanillatransformer.html"
             ]
         },
-        {
-          "group": "Multivariate Models",
-          "pages": [
-            "models.mlpmultivariate.html",
-            "models.softs.html",
-            "models.tsmixer.html",
-            "models.tsmixerx.html",
-            "models.stemgnn.html",
-            "models.itransformer.html",
-            "models.hint.html"
-            ]
-        },
+        "models.html",
         {
           "group": "Train/Evaluation",
           "pages": [
