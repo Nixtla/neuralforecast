@@ -249,7 +249,9 @@ class iTransformer(BaseModel):
             norm_layer=torch.nn.LayerNorm(self.hidden_size),
         )
 
-        self.projector = nn.Linear(self.hidden_size, h, bias=True)
+        self.projector = nn.Linear(
+            self.hidden_size, h * self.loss.outputsize_multiplier, bias=True
+        )
 
     def forecast(self, x_enc):
         if self.use_norm:
@@ -283,8 +285,16 @@ class iTransformer(BaseModel):
 
         if self.use_norm:
             # De-Normalization from Non-stationary Transformer
-            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
-            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
+            dec_out = dec_out * (
+                stdev[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
+            dec_out = dec_out + (
+                means[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
 
         return dec_out
 
@@ -292,6 +302,6 @@ class iTransformer(BaseModel):
         insample_y = windows_batch["insample_y"]
 
         y_pred = self.forecast(insample_y)
-        y_pred = y_pred[:, -self.h :, :]
+        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
 
         return y_pred

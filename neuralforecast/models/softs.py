@@ -216,7 +216,9 @@ class SOFTS(BaseModel):
             ]
         )
 
-        self.projection = nn.Linear(hidden_size, self.h, bias=True)
+        self.projection = nn.Linear(
+            hidden_size, self.h * self.loss.outputsize_multiplier, bias=True
+        )
 
     def forecast(self, x_enc):
         # Normalization from Non-stationary Transformer
@@ -235,14 +237,22 @@ class SOFTS(BaseModel):
 
         # De-Normalization from Non-stationary Transformer
         if self.use_norm:
-            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
-            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
+            dec_out = dec_out * (
+                stdev[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
+            dec_out = dec_out + (
+                means[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
         return dec_out
 
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]
 
         y_pred = self.forecast(insample_y)
-        y_pred = y_pred[:, -self.h :, :]
+        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
 
         return y_pred

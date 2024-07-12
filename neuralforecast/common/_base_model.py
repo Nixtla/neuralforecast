@@ -903,10 +903,10 @@ class BaseModel(pl.LightningModule):
         y_scale = self.scaler.x_scale[:, :, y_idx]
         y_loc = self.scaler.x_shift[:, :, y_idx]
 
-        # [B, L, n_series] -> [B, L, 1, n_series]
+        # [B, L, n_series] -> [B, L, n_series, 1]
         if add_channel_dim:
-            y_scale = y_scale.unsqueeze(2)
-            y_loc = y_loc.unsqueeze(2)
+            y_scale = y_scale.unsqueeze(-1)
+            y_loc = y_loc.unsqueeze(-1)
 
         return y_loc, y_scale
 
