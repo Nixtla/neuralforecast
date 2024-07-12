@@ -6,72 +6,53 @@ website:
       - text: "--"
       - section: "Getting Started"
         contents: docs/getting-started/*
-      # - section: "Capabilities"
-      #   contents: docs/capabilities/*
+      - section: "Capabilities"
+        contents: docs/capabilities/*
       # - section: "Deployment"
       #   contents: docs/deployment/*
       - section: "Tutorials"
         contents: docs/tutorials/*
-      # - section: "Use cases"
-      #   contents: docs/use-cases/*
+      - section: "Use cases"
+        contents: docs/use-cases/*
       - section: "API Reference"
-        contents:
+        contents: 
+        - docs/api-reference/01_neuralforecast_map.ipynb
         - core.ipynb
         - models.ipynb
-        - section: Models' Documentation
+        - section: Univariate Models
           contents:
-          - section: A. Univariate
-            contents:
-            - section: I. RNN-based
-              contents:
-              - models.deepar.ipynb
-              - models.dilated_rnn.ipynb
-              - models.gru.ipynb
-              - models.lstm.ipynb
-              - models.rnn.ipynb
-            - section: II. MLP-based
-              contents:
-              - models.deepnpts.ipynb
-              - models.dlinear.ipynb
-              - models.mlp.ipynb
-              - models.nbeats.ipynb
-              - models.nbeatsx.ipynb
-              - models.nhits.ipynb
-              - models.nlinear.ipynb
-              - models.tide.ipynb
-            - section: III. CNN-based
-              contents:
-              - models.bitcn.ipynb
-              - models.tcn.ipynb
-              - models.timesnet.ipynb
-            - section: IV. Transformer-based
-              contents:
-              - models.autoformer.ipynb
-              - models.fedformer.ipynb
-              - models.informer.ipynb
-              - models.patchtst.ipynb
-              - models.tft.ipynb
-              - models.vanillatransformer.ipynb
-            - section: V. LLM-based
-              contents:
-              - models.timellm.ipynb
-          - section: B. Multivariate
-            contents:
-            - section: I. MLP-based
-              contents:
-              - models.mlpmultivariate.ipynb
-              - models.softs.ipynb
-              - models.tsmixer.ipynb
-              - models.tsmixerx.ipynb
-            - section: II. Graph-based
-              contents:
-              - models.stemgnn.ipynb
-            - section: III. Transformer-based
-              contents:
-              - models.itransformer.ipynb
-          - section: C. Other
-            contents:
-            - models.hint.ipynb
+          - models.autoformer.ipynb
+          - models.bitcn.ipynb
+          - models.deepar.ipynb
+          - models.deepnpts.ipynb
+          - models.dilated_rnn.ipynb
+          - models.dlinear.ipynb
+          - models.fedformer.ipynb
+          - models.gru.ipynb
+          - models.informer.ipynb
+          - models.lstm.ipynb
+          - models.mlp.ipynb
+          - models.nbeats.ipynb
+          - models.nbeatsx.ipynb
+          - models.nhits.ipynb
+          - models.nlinear.ipynb
+          - models.patchtst.ipynb
+          - models.rnn.ipynb
+          - models.tcn.ipynb
+          - models.tft.ipynb
+          - models.tide.ipynb
+          - models.timellm.ipynb
+          - models.timesnet.ipynb
+          - models.vanillatransformer.ipynb
+        - section: Multivariate Models
+          contents:
+          - models.hint.ipynb
+          - models.itransformer.ipynb
+          - models.mlpmultivariate.ipynb
+          - models.softs.ipynb
+          - models.stemgnn.ipynb
+          - models.tsmixer.ipynb
+          - models.tsmixerx.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb

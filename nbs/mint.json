@@ -27,138 +27,106 @@
     {
       "group": "Getting Started",
       "pages": [
+        "docs/getting-started/introduction.html",
+        "docs/getting-started/quickstart.html",
         "docs/getting-started/installation.html",
-        "docs/getting-started/getting_started.html",
-        "docs/getting-started/models_intro",
-        "docs/getting-started/data_format.html",
-        "docs/getting-started/exogenous_variables.html",
-        "docs/getting-started/time_series_scaling.html",
-        "docs/getting-started/automatic_hyperparameter_tuning.html",
-        "docs/getting-started/cross_validation_tutorial.html",
-        "docs/getting-started/predictinsample.html",
-        "docs/getting-started/save_load_models.html",
-        "docs/getting-started/getting_started_complete.html",
-        "docs/getting-started/neuralforecast_map.html",
-        "docs/getting-started/how_to_add_models.html",
-        "docs/getting-started/mlflow_and_neuralforecast.html"
+        "docs/getting-started/datarequirements.html"
+      ]
+    },
+    {
+      "group": "Capabilities",
+      "pages": [
+        "docs/capabilities/overview.html",
+        "docs/capabilities/objectives.html",
+        "docs/capabilities/exogenous_variables.html",
+        "docs/capabilities/hyperparameter_tuning.html",
+        "docs/capabilities/predictinsample.html",
+        "docs/capabilities/save_load_models.html",
+        "docs/capabilities/time_series_scaling.html"
       ]
     },
     {
       "group": "Tutorials",
       "pages": [
-        "docs/tutorials/signal_decomposition.html",
-        "docs/tutorials/uncertaintyintervals.html",
+        "docs/tutorials/getting_started_complete.html",
+        "docs/tutorials/cross_validation_tutorial.html",
+        "docs/tutorials/uncertainty_quantification.html",
+        "docs/tutorials/longhorizon_nhits.html",
+        "docs/tutorials/longhorizon_transformers.html",
         "docs/tutorials/longhorizon_probabilistic.html",
-        "docs/tutorials/longhorizon_with_transformers.html",
-        "docs/tutorials/intermittentdata.html",
-        "docs/tutorials/robust_regression.html",
-        "docs/tutorials/electricitypeakforecasting.html",
-        "docs/tutorials/hierarchicalnetworks.html",
+        "docs/tutorials/forecasting_tft.html",
+        "docs/tutorials/multivariate_tsmixer.html",
+        "docs/tutorials/hierarchical_forecasting.html",
+        "docs/tutorials/distributed_neuralforecast.html",
+        "docs/tutorials/intermittent_data.html",
+        "docs/tutorials/using_mlflow.html",
+        "docs/tutorials/robust_forecasting.html",
+        "docs/tutorials/interpretable_decompositions.html",
+        "docs/tutorials/comparing_methods.html",
+        "docs/tutorials/temporal_classification.html",
         "docs/tutorials/transfer_learning.html",
-        "docs/tutorials/temporal_classifiers.html",
-        "docs/tutorials/predictive_maintenance.html",
-        "docs/tutorials/multivariate_with_tsmixer.html",
-        "docs/tutorials/statsmlneuralmethods.html",
-        "docs/tutorials/distributed/distributed_neuralforecast.html"
+        "docs/tutorials/adding_models.html"
       ]
     },
     {
+      "group": "Use cases",
+      "pages": [
+        "docs/use-cases/electricity_peak_forecasting.html",
+        "docs/use-cases/predictive_maintenance.html"
+      ]
+    },    
+    {
       "group": "API Reference",
       "pages": [
+        "docs/tutorials/neuralforecasting_map.html",
         "core.html",
         "models.html",
         {
-          "group": "Models' Documentation",
+          "group": "Univariate Models",
           "pages": [
-            {
-              "group": "A. Univariate",
-              "pages": [
-                {
-                  "group": "I. RNN-based",
-                  "pages": [
-                    "models.deepar.html",
-                    "models.dilated_rnn.html",
-                    "models.gru.html",
-                    "models.lstm.html",
-                    "models.rnn.html"
-                  ]
-                },
-                {
-                  "group": "II. MLP-based",
-                  "pages": [
-                    "models.deepnpts.html",
-                    "models.dlinear.html",
-                    "models.mlp.html",
-                    "models.nbeats.html",
-                    "models.nbeatsx.html",
-                    "models.nhits.html",
-                    "models.nlinear.html",
-                    "models.tide.html"
-                  ]
-                },
-                {
-                  "group": "III. CNN-based",
-                  "pages": [
-                    "models.bitcn.html",
-                    "models.tcn.html",
-                    "models.timesnet.html"
-                ]
-                },
-                {
-                  "group": "IV. Transformer-based",
-                  "pages": [
-                    "models.autoformer.html",
-                    "models.fedformer.html",
-                    "models.informer.html",
-                    "models.patchtst.html",
-                    "models.tft.html",
-                    "models.vanillatransformer.html"
-                  ]
-                },
-                {
-                  "group": "V. LLM-based",
-                  "pages": [
-                    "models.timellm.html"
-                ]
-                }
-              ]
-            },
-            {
-              "group": "B. Multivariate",
-              "pages": [
-                {
-                  "group": "I. MLP-based",
-                  "pages": [
-                    "models.mlpmultivariate.html",
-                    "models.softs.html",
-                    "models.tsmixer.html",
-                    "models.tsmixerx.html"
-                ]
-                },                  
-                {
-                  "group": "II. Graph-based",
-                  "pages": [
-                    "models.stemgnn.html"
-                ]
-                },
-                {
-                  "group": "III. Transformer-based",
-                  "pages": [
-                    "models.itransformer.html"
-                ]
-                }              
-
-              ]
-            },
-            {
-              "group": "C. Other",
-              "pages": ["models.hint.html"]
-            }
-          ]
+            "models.autoformer.html",
+            "models.bitcn.html",
+            "models.deepar.html",
+            "models.dilated_rnn.html",
+            "models.dlinear.html",
+            "models.fedformer.html",
+            "models.gru.html",
+            "models.informer.html",
+            "models.lstm.html",
+            "models.mlp.html",
+            "models.nbeats.html",
+            "models.nbeatsx.html",
+            "models.nhits.html",
+            "models.nlinear.html",
+            "models.patchtst.html",
+            "models.rnn.html",
+            "models.deepnpts.html",
+            "models.tcn.html",
+            "models.tft.html",
+            "models.tide.html",
+            "models.timellm.html",
+            "models.timesnet.html",
+            "models.vanillatransformer.html"
+            ]
+        },
+        {
+          "group": "Multivariate Models",
+          "pages": [
+            "models.mlpmultivariate.html",
+            "models.softs.html",
+            "models.tsmixer.html",
+            "models.tsmixerx.html",
+            "models.stemgnn.html",
+            "models.itransformer.html",
+            "models.hint.html"
+            ]
         },
         {
           "group": "Train/Evaluation",
-          "pages": ["losses.pytorch.html", "losses.numpy.html"]
+          "pages": [
+            "losses.pytorch.html", 
+            "losses.numpy.html"
+          ]
         },
         {
           "group": "Common Components",
@@ -172,7 +140,10 @@
         },
         {
           "group": "Utils",
-          "pages": ["tsdataset.html", "utils.html"]
+          "pages": [
+            "tsdataset.html", 
+            "utils.html"
+          ]
         }
       ]
     }
