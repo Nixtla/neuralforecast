@@ -444,6 +444,16 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         df = pd.read_parquet(self.files_ds.files[idx])
+        if "available_mask" in df.columns:
+            temporal_cols = self.files_ds.temporal_cols.append(
+                pd.Index(["available_mask"])
+            )
+        # filter df to only include the required columns
+        required_cols = temporal_cols.append(
+            pd.Index([self.files_ds.id_col, self.files_ds.time_col])
+        )
+        df = df[required_cols]
+
         _, _, data, _, _ = ufp.process_df(
             df, self.files_ds.id_col, self.files_ds.time_col, self.files_ds.target_col
         )
