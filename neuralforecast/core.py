@@ -59,8 +59,8 @@ from neuralforecast.models import (
     BiTCN,
     TiDE,
     DeepNPTS,
-    MOMENT,
     SOFTS,
+    MOMENT,
 )
 
 # %% ../nbs/core.ipynb 5
