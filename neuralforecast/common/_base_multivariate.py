@@ -487,7 +487,13 @@ class BaseMultivariate(BaseModel):
         output = self(windows_batch)
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"], y_idx=y_idx
+                y_hat=torch.empty(
+                    size=(insample_y.shape[0], self.h, self.n_series),
+                    dtype=output[0].dtype,
+                    device=output[0].device,
+                ),
+                temporal_cols=batch["temporal_cols"],
+                y_idx=y_idx,
             )
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
