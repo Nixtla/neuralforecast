@@ -405,12 +405,12 @@ class NeuralForecast:
         self.scalers_ = {}
         self.sort_df = sort_df
 
-        temporal_cols = self._get_needed_temporal_cols()
+        exogs = self._get_needed_exog()
         return LocalFilesTimeSeriesDataset.from_data_directories(
             directories=files_list,
             static_df=static_df,
             sort_df=sort_df,
-            temporal_cols=temporal_cols,
+            exogs=exogs,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
@@ -595,7 +595,7 @@ class NeuralForecast:
             chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
         )
 
-    def _get_needed_temporal_cols(self):
+    def _get_needed_exog(self):
         futr_exog = self._get_needed_futr_exog()
         hist_exog = set(
             chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)

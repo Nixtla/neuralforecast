@@ -119,7 +119,7 @@ class BaseTimeSeriesDataset(Dataset):
         return x.to(dtype, copy=False).clone()
 
     @staticmethod
-    def _add_available_mask(data: np.ndarray, temporal_cols):
+    def _ensure_available_mask(data: np.ndarray, temporal_cols):
         if "available_mask" not in temporal_cols:
             available_mask = np.ones((len(data), 1), dtype=np.float32)
             temporal_cols = temporal_cols.append(pd.Index(["available_mask"]))
@@ -368,7 +368,7 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         min_size = min(sizes)
 
         # Add Available mask efficiently (without adding column to df)
-        temporal, temporal_cols = TimeSeriesDataset._add_available_mask(
+        temporal, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
 
@@ -413,8 +413,11 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
     def __init__(
         self,
-        files_ds: _FilesDataset,
+        files_ds: List[str],
         temporal_cols,
+        id_col: str,
+        time_col: str,
+        target_col: str,
         last_times,
         indices,
         max_size: int,
@@ -434,35 +437,25 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             sorted=sorted,
         )
         self.files_ds = files_ds
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
         # array with the last time for each timeseries
         self.last_times = last_times
         self.indices = indices
-        self.n_groups = len(files_ds.files)
+        self.n_groups = len(files_ds)
 
     def __getitem__(self, idx):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
-        df = pd.read_parquet(self.files_ds.files[idx])
-        if "available_mask" in df.columns:
-            temporal_cols = self.files_ds.temporal_cols.append(
-                pd.Index(["available_mask"])
-            )
-        # filter df to only include the required columns
-        required_cols = temporal_cols.append(
-            pd.Index([self.files_ds.id_col, self.files_ds.time_col])
-        )
-        df = df[required_cols]
-
-        _, _, data, _, _ = ufp.process_df(
-            df, self.files_ds.id_col, self.files_ds.time_col, self.files_ds.target_col
-        )
-
-        # Add Available mask efficiently (without adding column to df)
-        data, temporal_cols = TimeSeriesDataset._add_available_mask(
-            data, self.files_ds.temporal_cols
+        temporal_cols = self.temporal_cols
+        data = pd.read_parquet(self.files_ds[idx], columns=temporal_cols).to_numpy()
+        data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
+            data, temporal_cols
         )
         data = self._as_torch_copy(data)
+
         # Pad the temporal data to the left
         temporal = torch.zeros(
             size=(len(temporal_cols), self.max_size), dtype=torch.float32
@@ -487,7 +480,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         directories,
         static_df=None,
         sort_df=False,
-        temporal_cols=[],
+        exogs=[],
         id_col="unique_id",
         time_col="ds",
         target_col="y",
@@ -506,7 +499,9 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         min_size = float("inf")
         last_times = []
         ids = []
-        temporal_cols = set(temporal_cols)
+        exogs = set(exogs)
+        # Check if available_mask is present in all the directories
+        available_mask_seen = False
 
         for dir in directories:
             dir_path = Path(dir)
@@ -515,7 +510,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             uid = dir_path.name.split("=")[-1]
             total_rows = 0
             last_time = None
-            for file in dir_path.iterdir():
+            for file in dir_path.glob("*.parquet"):
                 meta = pa.parquet.read_metadata(file)
                 rg = meta.row_group(0)
                 col2pos = {
@@ -537,11 +532,18 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
                 )
 
                 # Check all the temporal columns are present
-                missing_cols = temporal_cols - col2pos.keys()
+                missing_cols = exogs - col2pos.keys()
                 if missing_cols:
                     raise ValueError(
                         f"Temporal columns: {missing_cols} not found in the file: {file}."
                     )
+
+                if available_mask_seen and ("available_mask" not in col2pos.keys()):
+                    raise ValueError(
+                        f"available_mask column not found in the file: {file}, but found in previous files"
+                    )
+                elif "available_mask" in col2pos.keys():
+                    available_mask_seen = True
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
@@ -550,20 +552,17 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
         last_times = pd.Index(last_times, name=time_col)
         ids = pd.Series(ids, name=id_col)
-        temporal_cols = pd.Index([target_col] + list(temporal_cols))
 
-        files_ds = _FilesDataset(
-            files=directories,
+        if available_mask_seen:
+            exogs.add("available_mask")
+        temporal_cols = pd.Index([target_col] + list(exogs))
+
+        dataset = LocalFilesTimeSeriesDataset(
+            files_ds=directories,
             temporal_cols=temporal_cols,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
-            min_size=min_size,
-        )
-
-        dataset = LocalFilesTimeSeriesDataset(
-            files_ds=files_ds,
-            temporal_cols=temporal_cols,
             last_times=last_times,
             indices=ids,
             min_size=min_size,
