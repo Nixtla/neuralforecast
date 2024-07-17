@@ -449,7 +449,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
-        temporal_cols = self.temporal_cols
+        temporal_cols = self.temporal_cols.copy()
         data = pd.read_parquet(self.files_ds[idx], columns=temporal_cols).to_numpy()
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
@@ -499,9 +499,8 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         min_size = float("inf")
         last_times = []
         ids = []
-        exogs = set(exogs)
-        # Check if available_mask is present in all the directories
-        available_mask_seen = False
+        expected_temporal = {target_col, *exogs}
+        available_mask_seen = True
 
         for dir in directories:
             dir_path = Path(dir)
@@ -532,18 +531,21 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
                 )
 
                 # Check all the temporal columns are present
-                missing_cols = exogs - col2pos.keys()
+                missing_cols = expected_temporal - col2pos.keys()
                 if missing_cols:
                     raise ValueError(
                         f"Temporal columns: {missing_cols} not found in the file: {file}."
                     )
 
-                if available_mask_seen and ("available_mask" not in col2pos.keys()):
+                if "available_mask" not in col2pos.keys():
+                    available_mask_seen = False
+                elif not available_mask_seen:
+                    # If this is triggered the available_mask column is present in this file but has been missing from previous files.
                     raise ValueError(
-                        f"available_mask column not found in the file: {file}, but found in previous files"
+                        "The available_mask column is present in some files but is missing in others."
                     )
-                elif "available_mask" in col2pos.keys():
-                    available_mask_seen = True
+                else:
+                    expected_temporal.add("available_mask")
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
@@ -553,9 +555,9 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         last_times = pd.Index(last_times, name=time_col)
         ids = pd.Series(ids, name=id_col)
 
-        if available_mask_seen:
-            exogs.add("available_mask")
-        temporal_cols = pd.Index([target_col] + list(exogs))
+        if "available_mask" in expected_temporal:
+            exogs = ["available_mask", *exogs]
+        temporal_cols = pd.Index([target_col, *exogs])
 
         dataset = LocalFilesTimeSeriesDataset(
             files_ds=directories,
