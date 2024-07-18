@@ -450,7 +450,9 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         temporal_cols = self.temporal_cols.copy()
-        data = pd.read_parquet(self.files_ds[idx], columns=temporal_cols).to_numpy()
+        data = pd.read_parquet(
+            self.files_ds[idx], columns=temporal_cols.tolist()
+        ).to_numpy()
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
