@@ -5,6 +5,8 @@ __all__ = ['Normalize', 'DataEmbedding_wo_pos', 'DFT_series_decomp', 'MultiScale
            'PastDecomposableMixing', 'TimeMixer']
 
 # %% ../../nbs/models.timemixer.ipynb 3
+import numpy as np
+
 import torch
 import torch.nn as nn
 
@@ -333,6 +335,7 @@ class TimeMixer(BaseMultivariate):
     `down_sampling_window`: int, size of downsampling window.<br>
     `down_sampling_method`: str, down sampling method [avg, max, conv].<br>
     `use_norm`: bool, whether to normalize or not.<br>
+        `decoder_input_size_multiplier`: float = 0.5.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -359,7 +362,7 @@ class TimeMixer(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
-    EXOGENOUS_FUTR = False
+    EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
 
@@ -383,6 +386,7 @@ class TimeMixer(BaseMultivariate):
         down_sampling_window: int = 1,
         down_sampling_method: str = "avg",
         use_norm: bool = True,
+        decoder_input_size_multiplier: float = 0.5,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -400,7 +404,7 @@ class TimeMixer(BaseMultivariate):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        **trainer_kwargs
+        **trainer_kwargs,
     ):
 
         super(TimeMixer, self).__init__(
@@ -427,8 +431,14 @@ class TimeMixer(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
+
+        self.label_len = int(np.ceil(input_size * decoder_input_size_multiplier))
+        if (self.label_len >= input_size) or (self.label_len <= 0):
+            raise Exception(
+                f"Check decoder_input_size_multiplier={decoder_input_size_multiplier}, range (0,1)"
+            )
 
         self.h = h
         self.input_size = input_size
@@ -547,7 +557,7 @@ class TimeMixer(BaseMultivariate):
                 out2_list.append(x_2)
             return (out1_list, out2_list)
 
-    def __multi_scale_process_inputs(self, x_enc, x_mark_enc=None):
+    def __multi_scale_process_inputs(self, x_enc, x_mark_enc):
         if self.down_sampling_method == "max":
             down_pool = torch.nn.MaxPool1d(
                 self.down_sampling_window, return_indices=False
@@ -600,7 +610,7 @@ class TimeMixer(BaseMultivariate):
 
         return x_enc, x_mark_enc
 
-    def forecast(self, x_enc, x_mark_enc=None, x_mark_dec=None):
+    def forecast(self, x_enc, x_mark_enc, x_mark_dec):
 
         if self.use_future_temporal_feature:
             if self.channel_independence == 1:
@@ -691,8 +701,16 @@ class TimeMixer(BaseMultivariate):
 
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]
+        futr_exog = windows_batch["futr_exog"]
 
-        y_pred = self.forecast(insample_y)
+        if self.futr_exog_size > 0:
+            x_mark_enc = futr_exog[:, : self.input_size, :]
+            x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
+        else:
+            x_mark_enc = None
+            x_mark_dec = None
+
+        y_pred = self.forecast(insample_y, x_mark_enc, x_mark_dec)
         y_pred = y_pred[:, -self.h :, :]
         y_pred = self.loss.domain_map(y_pred)
 
