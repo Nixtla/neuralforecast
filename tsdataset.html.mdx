@@ -8,7 +8,7 @@ title: PyTorch Dataset/Loader
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L20"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L22"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesLoader
@@ -39,7 +39,73 @@ specified.<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L77"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L79"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### BaseTimeSeriesDataset
+
+> ``` text
+>  BaseTimeSeriesDataset (temporal_cols, max_size:int, min_size:int,
+>                         y_idx:int, static=None, static_cols=None,
+>                         sorted=False)
+> ```
+
+\*An abstract class representing a :class:`Dataset`.
+
+All datasets that represent a map from keys to data samples should
+subclass it. All subclasses should overwrite :meth:`__getitem__`,
+supporting fetching a data sample for a given key. Subclasses could also
+optionally overwrite :meth:`__len__`, which is expected to return the
+size of the dataset by many :class:`~torch.utils.data.Sampler`
+implementations and the default options of
+:class:`~torch.utils.data.DataLoader`. Subclasses could also optionally
+implement :meth:`__getitems__`, for speedup batched samples loading.
+This method accepts list of indices of samples of batch and returns list
+of samples.
+
+.. note:: :class:`~torch.utils.data.DataLoader` by default constructs an
+index sampler that yields integral indices. To make it work with a
+map-style dataset with non-integral indices/keys, a custom sampler must
+be provided.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L412"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### LocalFilesTimeSeriesDataset
+
+> ``` text
+>  LocalFilesTimeSeriesDataset (files_ds:List[str], temporal_cols,
+>                               id_col:str, time_col:str, target_col:str,
+>                               last_times, indices, max_size:int,
+>                               min_size:int, y_idx:int, static=None,
+>                               static_cols=None, sorted=False)
+> ```
+
+\*An abstract class representing a :class:`Dataset`.
+
+All datasets that represent a map from keys to data samples should
+subclass it. All subclasses should overwrite :meth:`__getitem__`,
+supporting fetching a data sample for a given key. Subclasses could also
+optionally overwrite :meth:`__len__`, which is expected to return the
+size of the dataset by many :class:`~torch.utils.data.Sampler`
+implementations and the default options of
+:class:`~torch.utils.data.DataLoader`. Subclasses could also optionally
+implement :meth:`__getitems__`, for speedup batched samples loading.
+This method accepts list of indices of samples of batch and returns list
+of samples.
+
+.. note:: :class:`~torch.utils.data.DataLoader` by default constructs an
+index sampler that yields integral indices. To make it work with a
+map-style dataset with non-integral indices/keys, a custom sampler must
+be provided.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L149"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesDataset
@@ -71,15 +137,15 @@ be provided.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L374"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L582"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesDataModule
 
 > ``` text
->  TimeSeriesDataModule (dataset:__main__.TimeSeriesDataset, batch_size=32,
->                        valid_batch_size=1024, num_workers=0,
->                        drop_last=False, shuffle_train=True)
+>  TimeSeriesDataModule (dataset:__main__.BaseTimeSeriesDataset,
+>                        batch_size=32, valid_batch_size=1024,
+>                        num_workers=0, drop_last=False, shuffle_train=True)
 > ```
 
 \*A DataModule standardizes the training, val, test splits, data
