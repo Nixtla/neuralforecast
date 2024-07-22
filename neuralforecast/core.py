@@ -185,6 +185,7 @@ MODEL_FILENAME_DICT = {
     "softs": SOFTS,
     "autosofts": SOFTS,
     "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
 }
 
 # %% ../nbs/core.ipynb 8
