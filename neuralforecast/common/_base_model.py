@@ -24,7 +24,7 @@ from ..losses.pytorch import BasePointLoss, DistributionLoss
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
-    TimeSeriesDataset,
+    BaseTimeSeriesDataset,
     _DistributedTimeSeriesDataModule,
 )
 from ._scalers import TemporalNorm
@@ -504,7 +504,7 @@ class BaseModel(pl.LightningModule):
 
         self.val_size = val_size
         self.test_size = test_size
-        is_local = isinstance(dataset, TimeSeriesDataset)
+        is_local = isinstance(dataset, BaseTimeSeriesDataset)
         if is_local:
             datamodule_constructor = TimeSeriesDataModule
         else:
