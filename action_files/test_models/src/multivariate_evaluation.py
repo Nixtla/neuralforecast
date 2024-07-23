@@ -40,11 +40,16 @@ def evaluate(model: str, dataset: str, group: str):
 
 
 if __name__ == '__main__':
+
     groups = ['ETTm2']
-    models = ['AutoiTransformer', 
-              'SOFTS',
-              'TSMixer', 
-              'iTransformer']
+    
+    models = ['SOFTS',
+              'TSMixer',
+              'TSMixerx', 
+              'iTransformer',
+              'StemGNN',
+              'MLPMultivariate']
+    
     datasets = ['multivariate']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
     evaluation = [eval_ for eval_ in evaluation if eval_ is not None]

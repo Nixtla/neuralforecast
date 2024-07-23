@@ -8,14 +8,12 @@ from neuralforecast.core import NeuralForecast
 
 from neuralforecast.models.softs import SOFTS
 from neuralforecast.models.tsmixer import TSMixer
+from neuralforecast.models.tsmixerx import TSMixerx
 from neuralforecast.models.itransformer import iTransformer
-
-from neuralforecast.auto import (
-    AutoiTransformer, 
-)
+from neuralforecast.models.stemgnn import StemGNN
+from neuralforecast.models.mlpmultivariate import MLPMultivariate
 
 from neuralforecast.losses.pytorch import MAE
-from ray import tune
 
 from src.data import get_data
 
@@ -26,20 +24,13 @@ def main(dataset: str = 'multivariate', group: str = 'ETTm2') -> None:
     train, horizon, freq = get_data('data/', dataset, group)
     train['ds'] = pd.to_datetime(train['ds'])
 
-    itransformer_config = {
-        "hidden_size": tune.choice([256, 512]),
-        "input_size": tune.choice([2 * horizon]),
-        "max_steps": 100,
-        "val_check_steps": 300,
-        "scaler_type": "identity",
-        "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
-    }
-
     models = [
-        AutoiTransformer(h=horizon, n_series=7, loss=MAE(), config=itransformer_config, num_samples=2, cpus=1),
         SOFTS(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         TSMixer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
-        iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=100),
+        TSMixerx(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
+        iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
+        StemGNN(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout_rate=0.0, max_steps=1000, val_check_steps=500),
+        MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=500)
     ]
 
     # Models
