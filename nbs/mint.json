@@ -62,7 +62,8 @@
         "examples/predictive_maintenance.html",
         "examples/multivariate_with_tsmixer.html",
         "examples/statsmlneuralmethods.html",
-        "examples/distributed/distributed_neuralforecast.html"
+        "examples/distributed/distributed_neuralforecast.html",
+        "examples/large_datasets_tutorial.html"
       ]
     },
     {
