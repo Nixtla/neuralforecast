@@ -437,6 +437,7 @@ class TemporalEmbedding(nn.Module):
         self.month_embed = Embed(month_size, d_model)
 
     def forward(self, x):
+        x = x.long()
         minute_x = (
             self.minute_embed(x[:, :, 4]) if hasattr(self, "minute_embed") else 0.0
         )

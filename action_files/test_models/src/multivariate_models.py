@@ -12,6 +12,7 @@ from neuralforecast.models.tsmixerx import TSMixerx
 from neuralforecast.models.itransformer import iTransformer
 from neuralforecast.models.stemgnn import StemGNN
 from neuralforecast.models.mlpmultivariate import MLPMultivariate
+from neuralforecast.models.timemixer import TimeMixer
 
 from neuralforecast.losses.pytorch import MAE
 
@@ -30,7 +31,8 @@ def main(dataset: str = 'multivariate', group: str = 'ETTm2') -> None:
         TSMixerx(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         StemGNN(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout_rate=0.0, max_steps=1000, val_check_steps=500),
-        MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=500)
+        MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
+        TimeMixer(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500)
     ]
 
     # Models
