@@ -402,10 +402,8 @@ class FixedEmbedding(nn.Module):
     def __init__(self, c_in, d_model):
         super(FixedEmbedding, self).__init__()
 
-        w = torch.zeros(c_in, d_model).float()
-        w.require_grad = False
-
-        position = torch.arange(0, c_in).float().unsqueeze(1)
+        w = torch.zeros(c_in, d_model, dtype=torch.float32, requires_grad=False)
+        position = torch.arange(0, c_in, dtype=torch.float32).unsqueeze(1)
         div_term = (
             torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
         ).exp()
@@ -439,7 +437,6 @@ class TemporalEmbedding(nn.Module):
         self.month_embed = Embed(month_size, d_model)
 
     def forward(self, x):
-        x = x.long()
         minute_x = (
             self.minute_embed(x[:, :, 4]) if hasattr(self, "minute_embed") else 0.0
         )
