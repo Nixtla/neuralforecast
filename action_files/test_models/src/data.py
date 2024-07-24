@@ -1,10 +1,10 @@
 import fire
-import pandas as pd
 from datasetsforecast.m3 import M3, M3Info
-
+from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
 
 dict_datasets = {
     'M3': (M3, M3Info),
+    'multivariate': (LongHorizon, LongHorizonInfo)
 }
 
 def get_data(directory: str, dataset: str, group: str, train: bool = True):
@@ -17,16 +17,24 @@ def get_data(directory: str, dataset: str, group: str, train: bool = True):
 
     Y_df, *_ = dataclass.load(directory, group)
 
-    horizon = datainfo[group].horizon
+    if dataset == 'multivariate':
+        horizon = datainfo[group].horizons[0]
+    else:
+        horizon = datainfo[group].horizon
+        seasonality = datainfo[group].seasonality
     freq = datainfo[group].freq
-    seasonality = datainfo[group].seasonality
     Y_df_test = Y_df.groupby('unique_id').tail(horizon)
     Y_df = Y_df.drop(Y_df_test.index)
 
     if train:
-        return Y_df, horizon, freq, seasonality
-
-    return Y_df_test, horizon, freq, seasonality
+        if dataset == 'multivariate':
+            return Y_df, horizon, freq
+        else:
+            return Y_df, horizon, freq, seasonality
+    if dataset == 'multivariate':
+        return Y_df_test, horizon, freq
+    else:
+        return Y_df_test, horizon, freq, seasonality
 
 def save_data(dataset: str, group: str, train: bool = True):
     df, *_ = get_data('data', dataset, group, train)
