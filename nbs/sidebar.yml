@@ -37,6 +37,7 @@ website:
         - examples/Temporal_Classifiers.ipynb
         - examples/Predictive_Maintenance.ipynb
         - examples/StatsMlNeuralMethods.ipynb
+        - examples/Large_Datasets_Tutorial.ipynb
       - examples/models_intro.qmd
       - section: API Reference
         contents:
