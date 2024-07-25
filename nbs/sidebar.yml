@@ -34,6 +34,7 @@ website:
           - models.lstm.ipynb
           - models.mlp.ipynb
           - models.mlpmultivariate.ipynb
+          - models.moment.ipynb
           - models.nbeats.ipynb
           - models.nbeatsx.ipynb
           - models.nhits.ipynb
@@ -46,6 +47,7 @@ website:
           - models.tft.ipynb
           - models.tide.ipynb
           - models.timellm.ipynb
+          - models.timemixer.ipynb
           - models.timesnet.ipynb
           - models.tsmixer.ipynb
           - models.tsmixerx.ipynb
