@@ -1114,6 +1114,8 @@ class AutoKAN(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
+        "grid_size": tune.choice([5, 10, 15]),
+        "spline_order": tune.choice([2, 3, 4]),
         "hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
