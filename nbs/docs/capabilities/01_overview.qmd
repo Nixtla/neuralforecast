@@ -17,6 +17,7 @@ NeuralForecast currently offers the following models.
 |[`Informer`](../../models.informer.html) | [`AutoInformer`](../../models.html#autoitransformer) | Transformer | Multivariate | Direct  | F | 
 |[`iTransformer`](../../models.itransformer.html) | [`AutoiTransformer`](../../models.html#autoinformer) | Transformer | Multivariate | Direct  | - | 
 |[`LSTM`](../../models.lstm.html) | [`AutoLSTM`](../../models.html#autolstm) | RNN | Univariate | Recursive | F/H/S | 
+|[`MOMENT`](../../models.moment.html) | - | LLM | Univariate | Direct | - | 
 |[`MLP`](../../models.mlp.html) | [`AutoMLP`](../../models.html#automlp) | MLP | Univariate | Direct | F/H/S | 
 |[`MLPMultivariate`](../../models.mlpmultivariate.html) | [`AutoMLPMultivariate`](../../models.html#automlpmultivariate) | MLP | Multivariate | Direct  | F/H/S | 
 |[`NBEATS`](../../models.nbeats.html) | [`AutoNBEATS`](../../models.html#autonbeats) | MLP | Univariate | Direct  | - | 
@@ -31,6 +32,7 @@ NeuralForecast currently offers the following models.
 |[`TFT`](../../models.tft.html) | [`AutoTFT`](../../models.html#autotft) | Transformer | Univariate | Direct  | F/H/S | 
 |[`TiDE`](../../models.tide.html) | [`AutoTiDE`](../../models.html#autotide) | MLP | Univariate | Direct  | F/H/S | 
 |[`TimeLLM`](../../models.timellm.html) | - | LLM | Univariate | Direct  | - | 
+|[`TimeMixer`](../../models.timemixer.html) | [`AutoTimeMixer`](../../models.html#autotimemixer) | MLP | Multivariate | Direct  | F | 
 |[`TimesNet`](../../models.timesnet.html) | [`AutoTimesNet`](../../models.html#autotimesnet) | CNN | Univariate | Direct  | F | 
 |[`TSMixer`](../../models.tsmixer.html) | [`AutoTSMixer`](../../models.html#autotsmixer) | MLP | Multivariate | Direct  | - | 
 |[`TSMixerx`](../../models.tsmixerx.html) | [`AutoTSMixerx`](../../models.html#autotsmixerx) | MLP | Multivariate | Direct  | F/H/S | 

@@ -65,6 +65,7 @@ from neuralforecast.models import (
     DeepNPTS,
     SOFTS,
     TimeMixer,
+    MOMENT,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -184,6 +185,7 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "moment": MOMENT,
     "timemixer": TimeMixer,
     "autotimemixer": TimeMixer,
 }
