@@ -183,9 +183,9 @@ MODEL_FILENAME_DICT = {
     "autotide": TiDE,
     "deepnpts": DeepNPTS,
     "autodeepnpts": DeepNPTS,
-    "moment": MOMENT,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "moment": MOMENT,
     "timemixer": TimeMixer,
     "autotimemixer": TimeMixer,
 }
