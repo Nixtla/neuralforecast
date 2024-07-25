@@ -64,6 +64,7 @@ from neuralforecast.models import (
     TiDE,
     DeepNPTS,
     SOFTS,
+    TimeMixer,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -183,6 +184,8 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
 }
 
 # %% ../nbs/core.ipynb 8
