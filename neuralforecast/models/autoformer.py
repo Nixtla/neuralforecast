@@ -179,6 +179,10 @@ class AutoCorrelation(nn.Module):
 
 
 class AutoCorrelationLayer(nn.Module):
+    """
+    Auto Correlation Layer
+    """
+
     def __init__(self, correlation, hidden_size, n_head, d_keys=None, d_values=None):
         super(AutoCorrelationLayer, self).__init__()
 

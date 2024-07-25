@@ -48,25 +48,40 @@
     {
       "group": "Tutorials",
       "pages": [
-        "docs/tutorials/getting_started_complete.html",
-        "docs/tutorials/cross_validation_tutorial.html",
-        "docs/tutorials/uncertainty_quantification.html",
-        "docs/tutorials/longhorizon_nhits.html",
-        "docs/tutorials/longhorizon_transformers.html",
-        "docs/tutorials/longhorizon_probabilistic.html",
-        "docs/tutorials/forecasting_tft.html",
-        "docs/tutorials/multivariate_tsmixer.html",
-        "docs/tutorials/hierarchical_forecasting.html",
-        "docs/tutorials/distributed_neuralforecast.html",
-        "docs/tutorials/intermittent_data.html",
-        "docs/tutorials/using_mlflow.html",
-        "docs/tutorials/robust_forecasting.html",
-        "docs/tutorials/interpretable_decompositions.html",
-        "docs/tutorials/comparing_methods.html",
-        "docs/tutorials/temporal_classification.html",
-        "docs/tutorials/transfer_learning.html",
-        "docs/tutorials/adding_models.html",
-        "docs/tutorials/large_datasets_tutorial.html"
+        {
+          "group":"Forecasting",
+          "pages":[
+            "docs/tutorials/getting_started_complete.html",
+            "docs/tutorials/cross_validation_tutorial.html",
+            "docs/tutorials/longhorizon_nhits.html",
+            "docs/tutorials/longhorizon_transformers.html",
+            "docs/tutorials/forecasting_tft.html",
+            "docs/tutorials/multivariate_tsmixer.html"   
+          ]
+        },        
+        {
+          "group":"Probabilistic Forecasting",
+          "pages":[
+            "docs/tutorials/uncertainty_quantification.html",
+            "docs/tutorials/longhorizon_probabilistic.html"
+          ]
+        },   
+        {
+          "group":"Special Topics",
+          "pages":[
+            "docs/tutorials/hierarchical_forecasting.html",
+            "docs/tutorials/distributed_neuralforecast.html",
+            "docs/tutorials/intermittent_data.html",
+            "docs/tutorials/using_mlflow.html",
+            "docs/tutorials/robust_forecasting.html",
+            "docs/tutorials/interpretable_decompositions.html",
+            "docs/tutorials/comparing_methods.html",
+            "docs/tutorials/temporal_classification.html",
+            "docs/tutorials/transfer_learning.html",
+            "docs/tutorials/adding_models.html",
+            "docs/tutorials/large_datasets_tutorial.html"    
+          ]
+        }               
       ]
     },
     {
@@ -87,6 +102,7 @@
             "models.autoformer.html",
             "models.bitcn.html",
             "models.deepar.html",
+            "models.deepnpts.html",
             "models.dilated_rnn.html",
             "models.dlinear.html",
             "models.fedformer.html",
@@ -103,13 +119,13 @@
             "models.nlinear.html",
             "models.patchtst.html",
             "models.rnn.html",
-            "models.deepnpts.html",
             "models.softs.html",
             "models.stemgnn.html",
             "models.tcn.html",
             "models.tft.html",
             "models.tide.html",
             "models.timellm.html",
+            "models.timemixer.html",
             "models.timesnet.html",
             "models.tsmixer.html",
             "models.tsmixerx.html",
