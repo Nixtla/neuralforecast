@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['KANLinear', 'KAN']
 
-# %% ../../nbs/models.kan.ipynb 5
+# %% ../../nbs/models.kan.ipynb 7
 from typing import Optional, Union
 
 import math
@@ -14,8 +14,12 @@ import torch.nn.functional as F
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.kan.ipynb 6
+# %% ../../nbs/models.kan.ipynb 8
 class KANLinear(torch.nn.Module):
+    """
+    KANLinear
+    """
+
     def __init__(
         self,
         in_features,
@@ -235,7 +239,7 @@ class KANLinear(torch.nn.Module):
             + regularize_entropy * regularization_loss_entropy
         )
 
-# %% ../../nbs/models.kan.ipynb 7
+# %% ../../nbs/models.kan.ipynb 9
 class KAN(BaseWindows):
     """KAN
 
@@ -290,6 +294,9 @@ class KAN(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -360,14 +367,6 @@ class KAN(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             **trainer_kwargs
         )
-
-        # Asserts
-        if stat_exog_list is not None:
-            raise Exception("KAN does not yet support static exogenous variables")
-        if futr_exog_list is not None:
-            raise Exception("KAN does not yet support future exogenous variables")
-        if hist_exog_list is not None:
-            raise Exception("KAN does not yet support historical exogenous variables")
 
         # Architecture
         self.n_hidden_layers = n_hidden_layers
