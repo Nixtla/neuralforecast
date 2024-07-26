@@ -8,8 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from typing import Optional
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.tsmixer.ipynb 8
 class TemporalMixing(nn.Module):
@@ -130,7 +131,7 @@ class ReversibleInstanceNorm1d(nn.Module):
         return x
 
 # %% ../../nbs/models.tsmixer.ipynb 12
-class TSMixer(BaseMultivariate):
+class TSMixer(BaseModel):
     """TSMixer
 
     Time-Series Mixer (`TSMixer`) is a MLP-based multivariate time-series forecasting model. `TSMixer` jointly learns temporal and cross-sectional representations of the time-series by repeatedly combining time- and feature information using stacked mixing layers. A mixing layer consists of a sequential time- and feature Multi Layer Perceptron (`MLP`).
@@ -172,10 +173,13 @@ class TSMixer(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -185,6 +189,7 @@ class TSMixer(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         n_block=2,
         ff_dim=64,
         dropout=0.9,
@@ -197,6 +202,10 @@ class TSMixer(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=1024,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -217,6 +226,7 @@ class TSMixer(BaseMultivariate):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -225,6 +235,10 @@ class TSMixer(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -274,11 +288,5 @@ class TSMixer(BaseMultivariate):
         x = x.reshape(
             batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
         )
-        forecast = self.loss.domain_map(x)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return x
