@@ -5,7 +5,7 @@ website:
     collapse-below: lg
     left:
       - text: "Get Started"
-        href: examples/Getting_Started.ipynb
+        href: docs/getting-started/02_quickstart.ipynb
       - text: "Help"
         menu:
           - text: "Report an Issue"
