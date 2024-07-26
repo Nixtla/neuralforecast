@@ -14,6 +14,10 @@ from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.stemgnn.ipynb 7
 class GLU(nn.Module):
+    """
+    GLU
+    """
+
     def __init__(self, input_channel, output_channel):
         super(GLU, self).__init__()
         self.linear_left = nn.Linear(input_channel, output_channel)
@@ -24,6 +28,10 @@ class GLU(nn.Module):
 
 # %% ../../nbs/models.stemgnn.ipynb 8
 class StockBlockLayer(nn.Module):
+    """
+    StockBlockLayer
+    """
+
     def __init__(self, time_step, unit, multi_layer, stack_cnt=0):
         super(StockBlockLayer, self).__init__()
         self.time_step = time_step

@@ -11,11 +11,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from ..losses.pytorch import MAE
-from ..common._base_model import BaseModel
+from neuralforecast.losses.pytorch import MAE
+from neuralforecast.common._base_windows import BaseWindows
 
 # %% ../../nbs/models.bitcn.ipynb 8
 class CustomConv1d(nn.Module):
+    """
+    Forward- and backward looking Conv1D
+    """
+
     def __init__(
         self,
         in_channels,
@@ -51,6 +55,10 @@ class CustomConv1d(nn.Module):
 
 
 class TCNCell(nn.Module):
+    """
+    Temporal Convolutional Network Cell, consisting of CustomConv1D modules.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -113,6 +121,9 @@ class BiTCN(BaseModel):
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References**<br>
+    - [Olivier Sprangers, Sebastian Schelter, Maarten de Rijke (2023). Parameter-Efficient Deep Probabilistic Forecasting. International Journal of Forecasting 39, no. 1 (1 January 2023): 332–45. URL: https://doi.org/10.1016/j.ijforecast.2021.11.011.](https://doi.org/10.1016/j.ijforecast.2021.11.011)<br>
 
     """
 

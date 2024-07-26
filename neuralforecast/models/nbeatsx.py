@@ -250,7 +250,13 @@ class NBEATSBlock(nn.Module):
 
         if isinstance(self.basis, ExogenousBasis):
             if self.futr_input_size > 0 and self.stat_input_size > 0:
-                futr_exog = torch.cat((futr_exog, stat_exog), dim=2)
+                futr_exog = torch.cat(
+                    (
+                        futr_exog,
+                        stat_exog.unsqueeze(1).expand(-1, futr_exog.shape[1], -1),
+                    ),
+                    dim=2,
+                )
             elif self.futr_input_size > 0:
                 futr_exog = futr_exog
             elif self.stat_input_size > 0:
