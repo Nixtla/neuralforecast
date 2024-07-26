@@ -20,6 +20,10 @@ from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.patchtst.ipynb 9
 class Transpose(nn.Module):
+    """
+    Transpose
+    """
+
     def __init__(self, *dims, contiguous=False):
         super().__init__()
         self.dims, self.contiguous = dims, contiguous
@@ -135,6 +139,10 @@ def positional_encoding(pe, learn_pe, q_len, hidden_size):
 
 # %% ../../nbs/models.patchtst.ipynb 13
 class RevIN(nn.Module):
+    """
+    RevIN
+    """
+
     def __init__(self, num_features: int, eps=1e-5, affine=True, subtract_last=False):
         """
         :param num_features: the number of features or channels
@@ -198,6 +206,10 @@ class RevIN(nn.Module):
 
 # %% ../../nbs/models.patchtst.ipynb 15
 class PatchTST_backbone(nn.Module):
+    """
+    PatchTST_backbone
+    """
+
     def __init__(
         self,
         c_in: int,
@@ -330,6 +342,10 @@ class PatchTST_backbone(nn.Module):
 
 
 class Flatten_Head(nn.Module):
+    """
+    Flatten_Head
+    """
+
     def __init__(self, individual, n_vars, nf, h, c_out, head_dropout=0):
         super().__init__()
 
@@ -367,6 +383,10 @@ class Flatten_Head(nn.Module):
 
 
 class TSTiEncoder(nn.Module):  # i means channel-independent
+    """
+    TSTiEncoder
+    """
+
     def __init__(
         self,
         c_in,
@@ -452,6 +472,10 @@ class TSTiEncoder(nn.Module):  # i means channel-independent
 
 
 class TSTEncoder(nn.Module):
+    """
+    TSTEncoder
+    """
+
     def __init__(
         self,
         q_len,
@@ -519,6 +543,10 @@ class TSTEncoder(nn.Module):
 
 
 class TSTEncoderLayer(nn.Module):
+    """
+    TSTEncoderLayer
+    """
+
     def __init__(
         self,
         q_len,
@@ -637,6 +665,10 @@ class TSTEncoderLayer(nn.Module):
 
 
 class _MultiheadAttention(nn.Module):
+    """
+    _MultiheadAttention
+    """
+
     def __init__(
         self,
         hidden_size,

@@ -45,6 +45,7 @@ website:
           - models.tcn.ipynb
           - models.tft.ipynb
           - models.tide.ipynb
+          - models.timemixer.ipynb
           - models.timellm.ipynb
           - models.timesnet.ipynb
           - models.tsmixer.ipynb
