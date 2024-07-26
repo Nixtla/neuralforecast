@@ -3,76 +3,54 @@ website:
   sidebar:
     collapse-level: 1
     contents:
-      - index.ipynb
       - text: "--"
       - section: "Getting Started"
-        contents:
-        - examples/Installation.ipynb
-        - examples/Getting_Started.ipynb
-        - examples/Data_Format.ipynb
-        - examples/Exogenous_Variables.ipynb
-        - examples/Time_Series_Scaling.ipynb
-        - examples/Automatic_Hyperparameter_Tuning.ipynb
-        - examples/Cross_Validation_Tutorial.ipynb
-        - examples/PredictInsample.ipynb
-        - examples/Save_Load_models.ipynb
-        - examples/Getting_Started_complete.ipynb
-        - examples/Neuralforecast_Map.ipynb
-        - examples/How_to_add_models.ipynb
-        - examples/MLflow_and_neuralforecast.ipynb
+        contents: docs/getting-started/*
+      - section: "Capabilities"
+        contents: docs/capabilities/*
+      # - section: "Deployment"
+      #   contents: docs/deployment/*
       - section: "Tutorials"
-        contents:
-        - examples/Signal_Decomposition.ipynb
-        - examples/UncertaintyIntervals.ipynb
-        - examples/LongHorizon_with_NHITS.ipynb
-        - examples/Forecasting_TFT.ipynb
-        - examples/LongHorizon_Probabilistic.ipynb
-        - examples/LongHorizon_with_Transformers.ipynb
-        - examples/LongHorizon_with_TSMixer.ipynb
-        - examples/IntermittentData.ipynb
-        - examples/Robust_Regression.ipynb
-        - examples/ElectricityPeakForecasting.ipynb
-        - examples/HierarchicalNetworks.ipynb
-        - examples/Transfer_Learning.ipynb
-        - examples/Temporal_Classifiers.ipynb
-        - examples/Predictive_Maintenance.ipynb
-        - examples/StatsMlNeuralMethods.ipynb
-      - examples/models_intro.qmd
-      - section: API Reference
-        contents:
+        contents: docs/tutorials/*
+      - section: "Use cases"
+        contents: docs/use-cases/*
+      - section: "API Reference"
+        contents: 
+        - docs/api-reference/01_neuralforecast_map.ipynb
         - core.ipynb
-        - models.ipynb
-        - section: Models' Documentation
+        - section: Models
           contents:
-          - section: A. RNN-Based
-            contents:
-            - models.rnn.ipynb
-            - models.gru.ipynb
-            - models.lstm.ipynb
-            - models.dilated_rnn.ipynb
-            - models.tcn.ipynb
-            - models.deepar.ipynb
-          - section: B. MLP-Based
-            contents:
-            - models.mlp.ipynb
-            - models.nhits.ipynb
-            - models.nbeats.ipynb
-            - models.nbeatsx.ipynb
-          - section: C. Transformer-Based
-            contents:
-            - models.tft.ipynb
-            - models.vanillatransformer.ipynb
-            - models.informer.ipynb
-            - models.autoformer.ipynb
-            - models.patchtst.ipynb
-          - section: D. CNN-Based
-            contents:
-            - models.timesnet.ipynb
-          - section: E. Multivariate
-            contents:
-            - models.hint.ipynb
-            - models.stemgnn.ipynb
-            - models.tsmixer.ipynb
+          - models.autoformer.ipynb
+          - models.bitcn.ipynb
+          - models.deepar.ipynb
+          - models.deepnpts.ipynb
+          - models.dilated_rnn.ipynb
+          - models.dlinear.ipynb
+          - models.fedformer.ipynb
+          - models.gru.ipynb
+          - models.hint.ipynb
+          - models.informer.ipynb
+          - models.itransformer.ipynb
+          - models.lstm.ipynb
+          - models.mlp.ipynb
+          - models.mlpmultivariate.ipynb
+          - models.nbeats.ipynb
+          - models.nbeatsx.ipynb
+          - models.nhits.ipynb
+          - models.nlinear.ipynb
+          - models.patchtst.ipynb
+          - models.rnn.ipynb
+          - models.softs.ipynb
+          - models.stemgnn.ipynb
+          - models.tcn.ipynb
+          - models.tft.ipynb
+          - models.tide.ipynb
+          - models.timellm.ipynb
+          - models.timesnet.ipynb
+          - models.tsmixer.ipynb
+          - models.tsmixerx.ipynb
+          - models.vanillatransformer.ipynb
+        - models.ipynb
         - section: Train/Evaluation
           contents:
           - losses.pytorch.ipynb

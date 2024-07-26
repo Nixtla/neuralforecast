@@ -64,12 +64,13 @@ from neuralforecast.models import (
     TiDE,
     DeepNPTS,
     SOFTS,
+    TimeMixer,
 )
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
-pl.disable_possible_user_warnings()
+warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
 
 
 def _insample_times(
@@ -183,6 +184,8 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
 }
 
 # %% ../nbs/core.ipynb 8
