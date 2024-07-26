@@ -12,7 +12,7 @@ from ..common._base_windows import BaseWindows
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.nlinear.ipynb 8
+# %% ../../nbs/models.nlinear.ipynb 7
 class NLinear(BaseWindows):
     """NLinear
 

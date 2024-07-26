@@ -33,6 +33,10 @@ except ImportError:
 
 # %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
+    """
+    ReplicationPad1d
+    """
+
     def __init__(self, padding):
         super(ReplicationPad1d, self).__init__()
         self.padding = padding
@@ -44,6 +48,10 @@ class ReplicationPad1d(nn.Module):
 
 
 class TokenEmbedding(nn.Module):
+    """
+    TokenEmbedding
+    """
+
     def __init__(self, c_in, d_model):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= "1.5.0" else 2
@@ -67,6 +75,10 @@ class TokenEmbedding(nn.Module):
 
 
 class PatchEmbedding(nn.Module):
+    """
+    PatchEmbedding
+    """
+
     def __init__(self, d_model, patch_len, stride, dropout):
         super(PatchEmbedding, self).__init__()
         # Patching
@@ -95,6 +107,10 @@ class PatchEmbedding(nn.Module):
 
 
 class FlattenHead(nn.Module):
+    """
+    FlattenHead
+    """
+
     def __init__(self, n_vars, nf, target_window, head_dropout=0):
         super().__init__()
         self.n_vars = n_vars
@@ -110,6 +126,10 @@ class FlattenHead(nn.Module):
 
 
 class ReprogrammingLayer(nn.Module):
+    """
+    ReprogrammingLayer
+    """
+
     def __init__(
         self, d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1
     ):
@@ -153,6 +173,10 @@ class ReprogrammingLayer(nn.Module):
 
 
 class Normalize(nn.Module):
+    """
+    Normalize
+    """
+
     def __init__(
         self,
         num_features: int,
