@@ -29,7 +29,7 @@ Transformers”](https://arxiv.org/pdf/2211.14730.pdf)<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L34"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L38"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### get_activation_fn
@@ -50,43 +50,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Transpose (*dims, contiguous=False)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*Transpose*
 
 ### Positional Encoding
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L97"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L101"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### positional_encoding
@@ -98,7 +69,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L86"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L90"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Coord1dPosEncoding
@@ -110,7 +81,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L63"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L67"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Coord2dPosEncoding
@@ -123,7 +94,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L46"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L50"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PositionalEncoding
@@ -137,7 +108,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L137"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L141"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### RevIN
@@ -146,43 +117,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  RevIN (num_features:int, eps=1e-05, affine=True, subtract_last=False)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*RevIN*
 
 ### Encoder
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L521"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L545"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TSTEncoderLayer
@@ -195,41 +137,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                   pre_norm=False)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*TSTEncoderLayer*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L454"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L474"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TSTEncoder
@@ -241,41 +154,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >              n_layers=1, pre_norm=False, store_attn=False)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*TSTEncoder*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L369"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L385"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TSTiEncoder
@@ -290,41 +174,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >               learn_pe=True)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*TSTiEncoder*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L332"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L344"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Flatten_Head
@@ -333,41 +188,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  Flatten_Head (individual, n_vars, nf, h, c_out, head_dropout=0)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*Flatten_Head*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L200"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L208"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PatchTST_backbone
@@ -392,43 +218,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                     subtract_last=False)
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*PatchTST_backbone*
 
 ## 2. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L822"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/patchtst.py#L854"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PatchTST

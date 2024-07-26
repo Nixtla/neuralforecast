@@ -8,14 +8,42 @@ title: SOFTS
 
 ### 1.1 Embedding
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L16"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### DataEmbedding_inverted
+
+> ``` text
+>  DataEmbedding_inverted (c_in, d_model, dropout=0.1)
+> ```
+
+*Data Embedding*
+
 ### 1.2 STAD (STar Aggregate Dispatch)
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L38"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### STAD
+
+> ``` text
+>  STAD (d_series, d_core)
+> ```
+
+*STar Aggregate Dispatch Module*
 
 ## 2. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L77"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L82"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### SOFTS
@@ -173,69 +201,6 @@ fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 ```
 
-``` text
-Seed set to 1
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-
-  | Name          | Type                   | Params
----------------------------------------------------------
-0 | loss          | MSE                    | 0     
-1 | valid_loss    | MAE                    | 0     
-2 | padder        | ConstantPad1d          | 0     
-3 | scaler        | TemporalNorm           | 0     
-4 | enc_embedding | DataEmbedding_inverted | 6.4 K 
-5 | encoder       | TransEncoder           | 725 K 
-6 | projection    | Linear                 | 3.1 K 
----------------------------------------------------------
-735 K     Trainable params
-0         Non-trainable params
-735 K     Total params
-2.940     Total estimated model params size (MB)
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/neuralforecast/core.py:201: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
-  warnings.warn(
-```
 
 ```python
 # Plot predictions
@@ -254,7 +219,6 @@ ax.legend(prop={'size': 15})
 ax.grid()
 ```
 
-![](/neuralforecast/models.softs_files/figure-markdown_strict/cell-7-output-1.png)
 
 ```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
@@ -277,69 +241,5 @@ model = SOFTS(h=12,
 fcst = NeuralForecast(models=[model], freq='M')
 fcst.fit(df=Y_train_df, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
-```
-
-``` text
-Seed set to 1
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-
-  | Name          | Type                   | Params
----------------------------------------------------------
-0 | loss          | MSE                    | 0     
-1 | valid_loss    | MAE                    | 0     
-2 | padder        | ConstantPad1d          | 0     
-3 | scaler        | TemporalNorm           | 0     
-4 | enc_embedding | DataEmbedding_inverted | 6.4 K 
-5 | encoder       | TransEncoder           | 725 K 
-6 | projection    | Linear                 | 3.1 K 
----------------------------------------------------------
-735 K     Trainable params
-0         Non-trainable params
-735 K     Total params
-2.940     Total estimated model params size (MB)
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-/Users/marcopeix/miniconda3/envs/neuralforecast/lib/python3.10/site-packages/neuralforecast/core.py:201: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
-  warnings.warn(
 ```
 

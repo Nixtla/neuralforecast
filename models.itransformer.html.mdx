@@ -27,14 +27,57 @@ iTransformer.</figcaption>
 
 ## 1.1 Attention
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/vanillatransformer.py#L40"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FullAttention
+
+> ``` text
+>  FullAttention (mask_flag=True, factor=5, scale=None,
+>                 attention_dropout=0.1, output_attention=False)
+> ```
+
+*FullAttention*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/vanillatransformer.py#L27"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TriangularCausalMask
+
+> ``` text
+>  TriangularCausalMask (B, L, device='cpu')
+> ```
+
+*TriangularCausalMask*
+
 ## 1.2 Inverted embedding
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L16"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### DataEmbedding_inverted
+
+> ``` text
+>  DataEmbedding_inverted (c_in, hidden_size, dropout=0.1)
+> ```
+
+*DataEmbedding_inverted*
 
 # 2. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/itransformer.py#L93"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/itransformer.py#L105"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### iTransformer

@@ -27,18 +27,74 @@ A mixing layer consists of a sequential time- and feature Multi Layer
 Perceptron
 ([`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)).
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L66"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### MixingLayer
+
+> ``` text
+>  MixingLayer (n_series, input_size, dropout, ff_dim)
+> ```
+
+*MixingLayer*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L35"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### FeatureMixing
+
+> ``` text
+>  FeatureMixing (n_series, input_size, dropout, ff_dim)
+> ```
+
+*FeatureMixing*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L15"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TemporalMixing
+
+> ``` text
+>  TemporalMixing (n_series, input_size, dropout)
+> ```
+
+*TemporalMixing*
+
 ## 1.2 Reversible InstanceNormalization
 
 An Instance Normalization Layer that is reversible, based on [this
 reference
 implementation](https://github.com/google-research/google-research/blob/master/tsmixer/tsmixer_basic/models/rev_in.py).<br/>
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L129"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### ReversibleInstanceNorm1d
+
+> ``` text
+>  ReversibleInstanceNorm1d (n_series, eps=1e-05)
+> ```
+
+*ReversibleInstanceNorm1d*
+
 ### 2. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixer.py#L117"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixer.py#L133"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TSMixer
