@@ -31,7 +31,7 @@ or
 ```python
 conda install -c conda-forge neuralforecast
 ``` 
-Vist our [Installation Guide](https://nixtla.github.io/neuralforecast/examples/installation.html) for further details.
+Vist our [Installation Guide](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/installation.html) for further details.
 
 ## Quick Start
 
@@ -51,7 +51,7 @@ nf.fit(df=AirPassengersDF)
 nf.predict()
 ```
 
-**Get Started with this [quick guide](https://nixtla.github.io/neuralforecast/getting-started/01_introduction.html).**
+**Get Started with this [quick guide](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/quickstart.html).**
 
 ## Why? 
 
@@ -61,7 +61,7 @@ Unfortunately, available implementations and published research are yet to reali
 
 ## Features 
 
-* Fast and accurate implementations of more than 30 state-of-the-art models. See the entire [collection here](https://nixtla.github.io/neuralforecast/capabilities/01_overview.html).
+* Fast and accurate implementations of more than 30 state-of-the-art models. See the entire [collection here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html).
 * Support for exogenous variables and static covariates.
 * Interpretability methods for trend, seasonality and exogenous components.
 * Probabilistic Forecasting with adapters for quantile losses and parametric distributions.
@@ -82,21 +82,21 @@ Missing something? Please open an issue or write us in [![Slack](https://img.shi
 
 ## Examples and Guides
 
-The [documentation page](https://nixtla.github.io/neuralforecast/) contains all the examples and tutorials.
+The [documentation page](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/introduction.html) contains all the examples and tutorials.
 
-📈 [Automatic Hyperparameter Optimization](https://nixtla.github.io/neuralforecast/examples/automatic_hyperparameter_tuning.html): Easy and Scalable Automatic Hyperparameter Optimization with `Auto` models on `Ray` or `Optuna`.
+📈 [Automatic Hyperparameter Optimization](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/hyperparameter_tuning.html): Easy and Scalable Automatic Hyperparameter Optimization with `Auto` models on `Ray` or `Optuna`.
 
-🌡️ [Exogenous Regressors](https://nixtla.github.io/neuralforecast/examples/exogenous_variables.html): How to incorporate static or temporal exogenous covariates like weather or prices.
+🌡️ [Exogenous Regressors](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/exogenous_variables.html): How to incorporate static or temporal exogenous covariates like weather or prices.
 
-🔌 [Transformer Models](https://nixtla.github.io/neuralforecast/examples/longhorizon_with_transformers.html): Learn how to forecast with many state-of-the-art Transformers models.
+🔌 [Transformer Models](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/longhorizon_transformers.html): Learn how to forecast with many state-of-the-art Transformers models.
 
-👑 [Hierarchical Forecasting](https://nixtla.github.io/neuralforecast/examples/hierarchicalnetworks.html): forecast series with very few non-zero observations. 
+👑 [Hierarchical Forecasting](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/hierarchical_forecasting.html): forecast series with very few non-zero observations. 
 
-👩‍🔬 [Add Your Own Model](https://nixtla.github.io/neuralforecast/examples/how_to_add_models.html): Learn how to add a new model to the library.
+👩‍🔬 [Add Your Own Model](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/adding_models.html): Learn how to add a new model to the library.
 
 ## Models
 
-See the entire [collection here](https://nixtla.github.io/neuralforecast/capabilities/01_overview.html).
+See the entire [collection here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html).
 
 Missing a model? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 

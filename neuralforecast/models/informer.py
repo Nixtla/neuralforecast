@@ -25,6 +25,10 @@ from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.informer.ipynb 8
 class ConvLayer(nn.Module):
+    """
+    ConvLayer
+    """
+
     def __init__(self, c_in):
         super(ConvLayer, self).__init__()
         self.downConv = nn.Conv1d(
@@ -48,6 +52,10 @@ class ConvLayer(nn.Module):
 
 # %% ../../nbs/models.informer.ipynb 9
 class ProbMask:
+    """
+    ProbMask
+    """
+
     def __init__(self, B, H, L, index, scores, device="cpu"):
         _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool, device=device).triu(1)
         _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
@@ -62,6 +70,10 @@ class ProbMask:
 
 
 class ProbAttention(nn.Module):
+    """
+    ProbAttention
+    """
+
     def __init__(
         self,
         mask_flag=True,
