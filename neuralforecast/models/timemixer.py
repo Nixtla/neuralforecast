@@ -22,6 +22,10 @@ from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.timemixer.ipynb 6
 class Normalize(nn.Module):
+    """
+    Normalize
+    """
+
     def __init__(
         self,
         num_features: int,
@@ -97,6 +101,10 @@ class Normalize(nn.Module):
 
 # %% ../../nbs/models.timemixer.ipynb 8
 class DataEmbedding_wo_pos(nn.Module):
+    """
+    DataEmbedding_wo_pos
+    """
+
     def __init__(self, c_in, d_model, dropout=0.1, embed_type="fixed", freq="h"):
         super(DataEmbedding_wo_pos, self).__init__()
 
@@ -227,6 +235,10 @@ class MultiScaleTrendMixing(nn.Module):
 
 
 class PastDecomposableMixing(nn.Module):
+    """
+    DataEmbedding_wo_pos
+    """
+
     def __init__(
         self,
         seq_len,
@@ -313,7 +325,7 @@ class PastDecomposableMixing(nn.Module):
             out_list.append(out[:, :length, :])
         return out_list
 
-# %% ../../nbs/models.timemixer.ipynb 13
+# %% ../../nbs/models.timemixer.ipynb 14
 class TimeMixer(BaseMultivariate):
     """TimeMixer
     **Parameters**<br>
