@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from neuralforecast.losses.pytorch import MAE
-from neuralforecast.common._base_windows import BaseWindows
+from neuralforecast.common._base_model import BaseModel
 
 # %% ../../nbs/models.bitcn.ipynb 8
 class CustomConv1d(nn.Module):

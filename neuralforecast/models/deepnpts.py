@@ -14,7 +14,7 @@ from typing import Optional
 from ..common._base_model import BaseModel
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.deepnpts.ipynb 7
+# %% ../../nbs/models.deepnpts.ipynb 6
 class DeepNPTS(BaseModel):
     """DeepNPTS
 

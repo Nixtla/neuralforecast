@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..common._modules import DataEmbedding, SeriesDecomp
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
