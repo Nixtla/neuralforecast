@@ -21,6 +21,8 @@ try:
 except ImportError:
     IS_TRANSFORMERS_INSTALLED = False
 
+import warnings
+
 # %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
     """
@@ -395,25 +397,38 @@ class TimeLLM(BaseWindows):
         self.enc_in = enc_in
         self.dec_in = dec_in
 
+        DEFAULT_MODEL = "openai-community/gpt2"
+
+        if llm is None:
+            if not IS_TRANSFORMERS_INSTALLED:
+                raise ImportError(
+                    "Please install `transformers` to use the default LLM."
+                )
+
+            print(f"Using {DEFAULT_MODEL} as default.")
+            model_name = DEFAULT_MODEL
+        else:
+            model_name = llm
+
+        if llm_config is not None or llm_tokenizer is not None:
+            warnings.warn(
+                "'llm_config' and 'llm_tokenizer' parameters are deprecated and will be ignored. "
+                "The config and tokenizer will be automatically loaded from the specified model.",
+                DeprecationWarning,
+            )
+
         try:
-            self.llm_config = AutoConfig.from_pretrained(llm)
-            self.llm = AutoModel.from_pretrained(
-                llm, config=self.llm_config, trust_remote_code=True
-            )
-            self.llm_tokenizer = AutoTokenizer.from_pretrained(
-                llm, trust_remote_code=True
-            )
+            self.llm_config = AutoConfig.from_pretrained(model_name)
+            self.llm = AutoModel.from_pretrained(model_name, config=self.llm_config)
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            print(f"Successfully loaded model: {model_name}")
         except EnvironmentError:
             print(
-                f"Local files for {llm} not found. Attempting to download default model (openai-community/gpt2)..."
+                f"Failed to load {model_name}. Loading the default model ({DEFAULT_MODEL})..."
             )
-            self.llm_config = AutoConfig.from_pretrained("openai-community/gpt2")
-            self.llm = AutoModel.from_pretrained(
-                "openai-community/gpt2", config=self.llm_config, trust_remote_code=True
-            )
-            self.llm_tokenizer = AutoTokenizer.from_pretrained(
-                "openai-community/gpt2", trust_remote_code=True
-            )
+            self.llm_config = AutoConfig.from_pretrained(DEFAULT_MODEL)
+            self.llm = AutoModel.from_pretrained(DEFAULT_MODEL, config=self.llm_config)
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
 
         self.llm_num_hidden_layers = llm_num_hidden_layers
         self.llm_output_attention = llm_output_attention
