@@ -38,6 +38,10 @@ class TriangularCausalMask:
 
 
 class FullAttention(nn.Module):
+    """
+    FullAttention
+    """
+
     def __init__(
         self, mask_flag=True, scale=None, attention_dropout=0.1, output_attention=False
     ):

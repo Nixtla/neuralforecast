@@ -9,7 +9,7 @@ import pickle
 import warnings
 from copy import deepcopy
 from itertools import chain
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import fsspec
 import numpy as np
@@ -29,7 +29,11 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .tsdataset import _FilesDataset, TimeSeriesDataset
+from neuralforecast.tsdataset import (
+    _FilesDataset,
+    TimeSeriesDataset,
+    LocalFilesTimeSeriesDataset,
+)
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -60,12 +64,14 @@ from neuralforecast.models import (
     TiDE,
     DeepNPTS,
     SOFTS,
+    TimeMixer,
+    KAN,
 )
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
-pl.disable_possible_user_warnings()
+warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
 
 
 def _insample_times(
@@ -179,6 +185,10 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
+    "kan": KAN,
+    "autokan": KAN,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -380,9 +390,41 @@ class NeuralForecast:
             min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
         )
 
+    def _prepare_fit_for_local_files(
+        self,
+        files_list: Sequence[str],
+        static_df: Optional[DataFrame],
+        sort_df: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+    ):
+        if self.local_scaler_type is not None:
+            raise ValueError(
+                "Historic scaling isn't supported when the dataset is split between files. "
+                "Please open an issue if this would be valuable to you."
+            )
+
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.scalers_ = {}
+        self.sort_df = sort_df
+
+        exogs = self._get_needed_exog()
+        return LocalFilesTimeSeriesDataset.from_data_directories(
+            directories=files_list,
+            static_df=static_df,
+            sort_df=sort_df,
+            exogs=exogs,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
     def fit(
         self,
-        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
@@ -400,7 +442,7 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas, polars or spark DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, or a list of parquet files containing the series, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas, polars or spark DataFrame, optional (default=None)
@@ -464,12 +506,27 @@ class NeuralForecast:
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
+        elif isinstance(df, Sequence):
+            if not all(isinstance(val, str) for val in df):
+                raise ValueError(
+                    "All entries in the list of files must be of type string"
+                )
+            self.dataset = self._prepare_fit_for_local_files(
+                files_list=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.uids = self.dataset.indices
+            self.last_dates = self.dataset.last_times
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`df` must be a pandas, polars or spark DataFrame, or a list of parquet files containing the series, or `None`, got: {type(df)}"
             )
 
         if val_size is not None:
@@ -543,6 +600,13 @@ class NeuralForecast:
         return set(
             chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
         )
+
+    def _get_needed_exog(self):
+        futr_exog = self._get_needed_futr_exog()
+        hist_exog = set(
+            chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)
+        )
+        return futr_exog | hist_exog
 
     def _get_model_names(self) -> List[str]:
         names: List[str] = []
@@ -731,12 +795,20 @@ class NeuralForecast:
         # distributed df or NeuralForecast instance was trained with a distributed input and no df is provided
         # we assume the user wants to perform distributed inference as well
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
+        is_dataset_local_files = isinstance(
+            getattr(self, "dataset", None), LocalFilesTimeSeriesDataset
+        )
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
             return self._predict_distributed(
                 df=df,
                 static_df=static_df,
                 futr_df=futr_df,
                 engine=engine,
+            )
+
+        if is_dataset_local_files and df is None:
+            raise ValueError(
+                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
             )
 
         # Process new dataset but does not store it.
