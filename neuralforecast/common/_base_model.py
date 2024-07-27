@@ -89,7 +89,9 @@ class BaseModel(pl.LightningModule):
             warnings.filterwarnings("ignore")
             # the following line issues a warning about the loss attribute being saved
             # but we do want to save it
-            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+            self.save_hyperparameters(
+                ignore=["llm"]
+            )  # Allows instantiation from a checkpoint from class
         self.random_seed = random_seed
         pl.seed_everything(self.random_seed, workers=True)
 
