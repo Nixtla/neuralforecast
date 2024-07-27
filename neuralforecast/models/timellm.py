@@ -15,17 +15,7 @@ from ..common._base_windows import BaseWindows
 from ..losses.pytorch import MAE
 
 try:
-    from transformers import (
-        LlamaConfig,
-        LlamaModel,
-        LlamaTokenizer,
-        GPT2Config,
-        GPT2Model,
-        GPT2Tokenizer,
-        BertConfig,
-        BertModel,
-        BertTokenizer,
-    )
+    from transformers import AutoModel, AutoTokenizer, AutoConfig
 
     IS_TRANSFORMERS_INSTALLED = True
 except ImportError:
@@ -271,7 +261,9 @@ class TimeLLM(BaseWindows):
     `n_heads`: int=8, number of heads in attention layer.<br>
     `enc_in`: int=7, encoder input size.<br>
     `dec_in`: int=7, decoder input size.<br>
-    `llm_model` = GPT2, LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br> # LLAMA, GPT2, BERT
+    `llm` = None, Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_config` = Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_tokenizer` = Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
     `llm_num_hidden_layers` = 32, hidden layers in LLM
     `llm_output_attention`: bool = True, whether to output attention in encoder.<br>
     `llm_output_hidden_states`: bool = True, whether to output hidden states.<br>
@@ -327,7 +319,9 @@ class TimeLLM(BaseWindows):
         n_heads: int = 8,
         enc_in: int = 7,
         dec_in: int = 7,
-        llm_model: str = "GPT2",
+        llm=None,
+        llm_config=None,
+        llm_tokenizer=None,
         llm_num_hidden_layers=32,
         llm_output_attention: bool = True,
         llm_output_hidden_states: bool = True,
@@ -401,122 +395,29 @@ class TimeLLM(BaseWindows):
         self.enc_in = enc_in
         self.dec_in = dec_in
 
-        self.llm_model = llm_model
+        try:
+            self.llm_config = AutoConfig.from_pretrained(llm)
+            self.llm = AutoModel.from_pretrained(
+                llm, config=self.llm_config, trust_remote_code=True
+            )
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(
+                llm, trust_remote_code=True
+            )
+        except EnvironmentError:  # 로드 실패 시 기본 모델 로드
+            print(
+                f"Local files for {llm} not found. Attempting to download default model (openai-community/gpt2)..."
+            )
+            self.llm_config = AutoConfig.from_pretrained("openai-community/gpt2")
+            self.llm = AutoModel.from_pretrained(
+                "openai-community/gpt2", config=self.llm_config, trust_remote_code=True
+            )
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(
+                "openai-community/gpt2", trust_remote_code=True
+            )
+
         self.llm_num_hidden_layers = llm_num_hidden_layers
         self.llm_output_attention = llm_output_attention
         self.llm_output_hidden_states = llm_output_hidden_states
-
-        if self.llm_model == "LLAMA":
-            self.llm_config = LlamaConfig.from_pretrained("huggyllama/llama-7b")
-            try:
-                self.llm = LlamaModel.from_pretrained(
-                    "huggyllama/llama-7b",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.llm_config,
-                    # load_in_4bit=True
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm = LlamaModel.from_pretrained(
-                    "huggyllama/llama-7b",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.llm_config,
-                    # load_in_4bit=True
-                )
-            try:
-                self.llm_tokenizer = LlamaTokenizer.from_pretrained(
-                    "huggyllama/llama-7b", trust_remote_code=True, local_files_only=True
-                )
-            except (
-                EnvironmentError
-            ):  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.llm_tokenizer = LlamaTokenizer.from_pretrained(
-                    "huggyllama/llama-7b",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                )
-        elif self.llm_model == "GPT2":
-            self.llm_config = GPT2Config.from_pretrained("openai-community/gpt2")
-
-            self.llm_config.num_hidden_layers = self.llm_num_hidden_layers
-            self.llm_config.output_attentions = True
-            self.llm_config.output_hidden_states = True
-            try:
-                self.llm = GPT2Model.from_pretrained(
-                    "openai-community/gpt2",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.llm_config,
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm = GPT2Model.from_pretrained(
-                    "openai-community/gpt2",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.llm_config,
-                )
-
-            try:
-                self.llm_tokenizer = GPT2Tokenizer.from_pretrained(
-                    "openai-community/gpt2",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                )
-            except (
-                EnvironmentError
-            ):  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.llm_tokenizer = GPT2Tokenizer.from_pretrained(
-                    "openai-community/gpt2",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                )
-        elif self.llm_model == "BERT":
-            self.llm_config = BertConfig.from_pretrained(
-                "google-bert/bert-base-uncased"
-            )
-
-            self.llm_config.num_hidden_layers = self.llm_num_hidden_layers
-            self.llm_config.output_attentions = True
-            self.llm_config.output_hidden_states = True
-            try:
-                self.llm = BertModel.from_pretrained(
-                    "google-bert/bert-base-uncased",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                    config=self.llm_config,
-                )
-            except EnvironmentError:  # downloads model from HF is not already done
-                print("Local model files not found. Attempting to download...")
-                self.llm = BertModel.from_pretrained(
-                    "google-bert/bert-base-uncased",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                    config=self.llm_config,
-                )
-
-            try:
-                self.llm_tokenizer = BertTokenizer.from_pretrained(
-                    "google-bert/bert-base-uncased",
-                    trust_remote_code=True,
-                    local_files_only=True,
-                )
-            except (
-                EnvironmentError
-            ):  # downloads the tokenizer from HF if not already done
-                print("Local tokenizer files not found. Atempting to download them..")
-                self.llm_tokenizer = BertTokenizer.from_pretrained(
-                    "google-bert/bert-base-uncased",
-                    trust_remote_code=True,
-                    local_files_only=False,
-                )
-        else:
-            raise Exception("LLM model is not defined")
-
         self.prompt_prefix = prompt_prefix
 
         if self.llm_tokenizer.eos_token:
