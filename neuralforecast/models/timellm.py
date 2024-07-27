@@ -403,7 +403,7 @@ class TimeLLM(BaseWindows):
             self.llm_tokenizer = AutoTokenizer.from_pretrained(
                 llm, trust_remote_code=True
             )
-        except EnvironmentError:  # 로드 실패 시 기본 모델 로드
+        except EnvironmentError:
             print(
                 f"Local files for {llm} not found. Attempting to download default model (openai-community/gpt2)..."
             )
