@@ -35,6 +35,10 @@ class LayerNorm(nn.Module):
 
 
 class AutoCorrelationLayer(nn.Module):
+    """
+    Auto Correlation Layer
+    """
+
     def __init__(self, correlation, hidden_size, n_head, d_keys=None, d_values=None):
         super(AutoCorrelationLayer, self).__init__()
 
@@ -249,13 +253,14 @@ def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
 
 
 class FourierBlock(nn.Module):
+    """
+    Fourier block
+    """
+
     def __init__(
         self, in_channels, out_channels, seq_len, modes=0, mode_select_method="random"
     ):
         super(FourierBlock, self).__init__()
-        """
-        Fourier block
-        """
         # get modes on frequency domain
         self.index = get_frequency_modes(
             seq_len, modes=modes, mode_select_method=mode_select_method
@@ -297,6 +302,10 @@ class FourierBlock(nn.Module):
 
 
 class FourierCrossAttention(nn.Module):
+    """
+    Fourier Cross Attention layer
+    """
+
     def __init__(
         self,
         in_channels,
@@ -309,9 +318,6 @@ class FourierCrossAttention(nn.Module):
         policy=0,
     ):
         super(FourierCrossAttention, self).__init__()
-        """
-        Fourier Cross Attention layer
-        """
         self.activation = activation
         self.in_channels = in_channels
         self.out_channels = out_channels
