@@ -31,6 +31,7 @@ website:
           - models.hint.ipynb
           - models.informer.ipynb
           - models.itransformer.ipynb
+          - models.kan.ipynb
           - models.lstm.ipynb
           - models.mlp.ipynb
           - models.mlpmultivariate.ipynb
