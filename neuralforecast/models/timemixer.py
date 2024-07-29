@@ -696,7 +696,7 @@ class TimeMixer(BaseMultivariate):
 
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, :, : self.input_size]
-            x_mark_dec = futr_exog[:, -(self.h) :, :]
+            x_mark_dec = futr_exog[:, :, -(self.h) :]
         else:
             x_mark_enc = None
             x_mark_dec = None
