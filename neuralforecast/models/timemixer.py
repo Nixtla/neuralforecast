@@ -11,12 +11,12 @@ import torch.nn as nn
 
 from ..common._base_multivariate import BaseMultivariate
 from neuralforecast.common._modules import (
-    RevIN,
     PositionalEmbedding,
     TokenEmbedding,
     TemporalEmbedding,
     SeriesDecomp,
 )
+from ..common._scalers import RevIN
 
 from ..losses.pytorch import MAE
 
