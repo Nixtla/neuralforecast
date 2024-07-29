@@ -5,8 +5,6 @@ __all__ = ['Normalize', 'DataEmbedding_wo_pos', 'DFT_series_decomp', 'MultiScale
            'PastDecomposableMixing', 'TimeMixer']
 
 # %% ../../nbs/models.timemixer.ipynb 3
-import numpy as np
-
 import torch
 import torch.nn as nn
 
@@ -386,7 +384,6 @@ class TimeMixer(BaseMultivariate):
         down_sampling_window: int = 2,
         down_sampling_method: str = "avg",
         use_norm: bool = True,
-        decoder_input_size_multiplier: float = 0.5,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -404,7 +401,7 @@ class TimeMixer(BaseMultivariate):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        **trainer_kwargs,
+        **trainer_kwargs
     ):
 
         super(TimeMixer, self).__init__(
@@ -431,14 +428,8 @@ class TimeMixer(BaseMultivariate):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            **trainer_kwargs,
+            **trainer_kwargs
         )
-
-        self.label_len = int(np.ceil(input_size * decoder_input_size_multiplier))
-        if (self.label_len >= input_size) or (self.label_len <= 0):
-            raise Exception(
-                f"Check decoder_input_size_multiplier={decoder_input_size_multiplier}, range (0,1)"
-            )
 
         self.h = h
         self.input_size = input_size
@@ -618,7 +609,7 @@ class TimeMixer(BaseMultivariate):
                 x_mark_dec = x_mark_dec.repeat(N, 1, 1)
                 self.x_mark_dec = self.enc_embedding(None, x_mark_dec)
             else:
-                self.x_mark_dec = self.enc_embedding(None, x_mark_dec)
+                self.x_mark_dec = self.enc_embedding(x_enc, x_mark_dec)  # MODIFIED
 
         x_enc, x_mark_enc = self.__multi_scale_process_inputs(x_enc, x_mark_enc)
 
@@ -704,8 +695,8 @@ class TimeMixer(BaseMultivariate):
         futr_exog = windows_batch["futr_exog"]
 
         if self.futr_exog_size > 0:
-            x_mark_enc = futr_exog[:, : self.input_size, :]
-            x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
+            x_mark_enc = futr_exog[:, :, : self.input_size]
+            x_mark_dec = futr_exog[:, -(self.h) :, :]
         else:
             x_mark_enc = None
             x_mark_dec = None
