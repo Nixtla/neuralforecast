@@ -294,9 +294,9 @@ class KAN(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
-    EXOGENOUS_FUTR = False
-    EXOGENOUS_HIST = False
-    EXOGENOUS_STAT = False
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -372,16 +372,29 @@ class KAN(BaseWindows):
         self.n_hidden_layers = n_hidden_layers
         self.hidden_size = hidden_size
 
+        input_size_first_layer = (
+            input_size
+            + self.hist_exog_size * input_size
+            + self.futr_exog_size * (input_size + h)
+            + self.stat_exog_size
+        )
+
         if isinstance(self.hidden_size, int):
             self.hidden_layers = (
-                [self.input_size] + self.n_hidden_layers * [self.hidden_size] + [self.h]
+                [input_size_first_layer]
+                + self.n_hidden_layers * [self.hidden_size]
+                + [self.h * self.loss.outputsize_multiplier]
             )
         elif isinstance(self.hidden_size, list):
             if len(self.hidden_size) != self.n_hidden_layers:
                 raise Exception(
                     "The number of elements in the list hidden_size must equal the number of n_hidden_layers"
                 )
-            self.hidden_layers = [self.input_size] + self.hidden_size + [self.h]
+            self.hidden_layers = (
+                [input_size_first_layer]
+                + self.hidden_size
+                + [self.h * self.loss.outputsize_multiplier]
+            )
 
         self.grid_size = grid_size
         self.spline_order = spline_order
@@ -421,14 +434,34 @@ class KAN(BaseWindows):
     def forward(self, windows_batch, update_grid=False):
 
         insample_y = windows_batch["insample_y"]
+        futr_exog = windows_batch["futr_exog"]
+        hist_exog = windows_batch["hist_exog"]
+        stat_exog = windows_batch["stat_exog"]
+
+        # Flatten MLP inputs [B, L+H, C] -> [B, (L+H)*C]
+        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | F_{t-L},..., F_{t+H} | S ]
+        batch_size = len(insample_y)
+        if self.hist_exog_size > 0:
+            insample_y = torch.cat(
+                (insample_y, hist_exog.reshape(batch_size, -1)), dim=1
+            )
+
+        if self.futr_exog_size > 0:
+            insample_y = torch.cat(
+                (insample_y, futr_exog.reshape(batch_size, -1)), dim=1
+            )
+
+        if self.stat_exog_size > 0:
+            insample_y = torch.cat(
+                (insample_y, stat_exog.reshape(batch_size, -1)), dim=1
+            )
 
         y_pred = insample_y.clone()
-
         for layer in self.layers:
             if update_grid:
                 layer.update_grid(y_pred)
             y_pred = layer(y_pred)
 
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
         y_pred = self.loss.domain_map(y_pred)
-
         return y_pred
