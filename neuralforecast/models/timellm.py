@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_windows import BaseWindows
-from ..common._modules import Normalize
+from ..common._modules import RevIN
 
 from ..losses.pytorch import MAE
 
@@ -512,7 +512,7 @@ class TimeLLM(BaseWindows):
             self.enc_in, self.head_nf, self.h, head_dropout=self.dropout
         )
 
-        self.normalize_layers = Normalize(self.enc_in, affine=False)
+        self.normalize_layers = RevIN(self.enc_in, affine=False)
 
     def forecast(self, x_enc):
 
