@@ -4,6 +4,19 @@ title: KAN
 ---
 
 
+Kolmogorov-Arnold Networks (KANs) are an alternative to Multi-Layer
+Perceptrons (MLPs). This model uses KANs similarly as our MLP model.
+
+**References** - [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle,
+James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark. “KAN:
+Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
+
+<figure>
+<img src="imgs_models/kan.png" alt="Figure 1. KAN compared to MLP." />
+<figcaption aria-hidden="true">Figure 1. KAN compared to
+MLP.</figcaption>
+</figure>
+
 ------------------------------------------------------------------------
 
 <a
@@ -20,41 +33,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >             grid_range=[-1, 1])
 > ```
 
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
+*KANLinear*
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/kan.py#L239"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/kan.py#L243"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### KAN
@@ -143,6 +127,67 @@ trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightnin
 Ruehle, James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark.
 “KAN: Kolmogorov-Arnold Networks”](https://arxiv.org/abs/2404.19756)\*
 
+------------------------------------------------------------------------
+
+### KAN.fit
+
+> ``` text
+>  KAN.fit (dataset, val_size=0, test_size=0, random_seed=None,
+>           distributed_config=None)
+> ```
+
+\*Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>\*
+
+------------------------------------------------------------------------
+
+### KAN.predict
+
+> ``` text
+>  KAN.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>               **data_module_kwargs)
+> ```
+
+\*Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
+TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
+
+## Usage Example
+
 ```python
 import numpy as np
 import pandas as pd
@@ -151,43 +196,43 @@ import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import KAN
-from neuralforecast.losses.pytorch import MAE
-from neuralforecast.utils import AirPassengersPanel
-```
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
 
-```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
-model = KAN(h=12, input_size=24,
-            loss=MAE(),
-            scaler_type='robust',
-            learning_rate=1e-3,
-            max_steps=200,
-            val_check_steps=10,
-            early_stop_patience_steps=2)
-
 fcst = NeuralForecast(
-    models=[model],
+    models=[
+            KAN(h=12,
+                input_size=24,
+                loss = DistributionLoss(distribution="Normal"),
+                max_steps=100,
+                scaler_type='standard',
+                futr_exog_list=['y_[lag12]'],
+                hist_exog_list=None,
+                stat_exog_list=['airline1'],
+                ),     
+    ],
     freq='M'
 )
-
-fcst.fit(df=Y_train_df, val_size=12)
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic)
 forecasts = fcst.predict(futr_df=Y_test_df)
-```
 
-
-```python
+# Plot quantile predictions
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])
 
 plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
 plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['KAN'], c='blue', label='median')
-plt.grid()
+plt.plot(plot_df['ds'], plot_df['KAN-median'], c='blue', label='median')
+plt.fill_between(x=plot_df['ds'][-12:], 
+                 y1=plot_df['KAN-lo-90'][-12:].values,
+                 y2=plot_df['KAN-hi-90'][-12:].values,
+                 alpha=0.4, label='level 90')
 plt.legend()
-plt.plot()
+plt.grid()
 ```
 

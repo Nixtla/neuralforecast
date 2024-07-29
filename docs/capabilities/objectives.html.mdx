@@ -11,7 +11,7 @@ or probability outputs as defined by their optimization objectives.
 ## Point losses
 
 | Scale-Dependent | Percentage-Errors | Scale-Independent | Robust |
-|:-----------------|:-----------------|:-----------------|:-----------------|
+|:-----------------|:-------------------|:-----------------|:---------------|
 | [\[`MAE`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae)](../../losses.pytorch.html#mean-absolute-error-mae) | [\[`MAPE`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mape)](../../losses.pytorch.html#mean-absolute-percentage-error-mape) | [\[`MASE`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mase)](../../losses.pytorch.html#mean-absolute-scaled-error-mase) | [`Huber`](../losses.pytorch.html#huber-loss) |
 | [\[`MSE`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mse)](../../losses.pytorch.html#mean-squared-error-mse) | [`sMAPE`](../../losses.pytorch.html#symmetric-mape-smape) |  | [`Tukey`](../../losses.pytorch.html#tukey-loss) |
 | [\[`RMSE`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#rmse)](../../losses.pytorch.html#root-mean-squared-error-rmse) |  |  | [\[`HuberMQLoss`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#hubermqloss)](../../losses.pytorch.html#huberized-mqloss) |
@@ -19,7 +19,7 @@ or probability outputs as defined by their optimization objectives.
 ## Probabilistic losses
 
 | Parametric Probabilities | Non-Parametric Probabilities |
-|:------------------|:------------------|
+|:-----------------------------------|:-----------------------------------|
 | [`Normal`](../../losses.pytorch.html#distributionloss) | [\[`QuantileLoss`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#quantileloss)](../../losses.pytorch.html#quantile-loss) |
 | [`StudenT`](../../losses.pytorch.html#distributionloss) | [\[`MQLoss`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)](../../losses.pytorch.html#multi-quantile-loss-mqloss) |
 | [`Poisson`](../../losses.pytorch.html#distributionloss) | [\[`HuberQLoss`\](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#huberqloss)](../../losses.pytorch.html#huberized-quantile-loss) |

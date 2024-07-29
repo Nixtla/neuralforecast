@@ -110,6 +110,7 @@
             "models.hint.html",
             "models.informer.html",
             "models.itransformer.html",
+            "models.kan.html",
             "models.lstm.html",
             "models.mlp.html",
             "models.mlpmultivariate.html",
