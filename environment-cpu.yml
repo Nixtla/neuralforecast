@@ -21,7 +21,7 @@ dependencies:
   - s3fs
   - snappy<1.2.0
   - pip:
-    - nbdev
+    - nbdev==2.3.25
     - black
     - polars
     - ray[tune]>=2.2.0
