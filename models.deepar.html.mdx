@@ -229,25 +229,14 @@ TimeSeriesDataModule args, see
 ## Usage Example
 
 ```python
-from neuralforecast import NeuralForecast
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, GMM, PMM
-from neuralforecast.tsdataset import TimeSeriesDataset
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
-```
-
-
-```python
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
-#from neuralforecast.models import DeepAR
-from neuralforecast.losses.pytorch import DistributionLoss, HuberMQLoss
-from neuralforecast.tsdataset import TimeSeriesDataset
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
+from neuralforecast.models import DeepAR
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
-#AirPassengersPanel['y'] = AirPassengersPanel['y'] + 10
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
@@ -278,7 +267,6 @@ plot_df = pd.concat([Y_train_df, plot_df])
 
 plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
 plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-#plt.plot(plot_df['ds'], plot_df['DeepAR'], c='purple', label='mean')
 plt.plot(plot_df['ds'], plot_df['DeepAR-median'], c='blue', label='median')
 plt.fill_between(x=plot_df['ds'][-12:], 
                  y1=plot_df['DeepAR-lo-90'][-12:].values, 

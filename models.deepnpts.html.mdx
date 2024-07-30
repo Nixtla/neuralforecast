@@ -178,11 +178,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
+from neuralforecast.models import DeepNPTS
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-```
 
-
-```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 

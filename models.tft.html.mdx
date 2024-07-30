@@ -284,33 +284,20 @@ TimeSeriesDataModule args, see
 ## Usage Example
 
 ```python
-from neuralforecast import NeuralForecast
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, GMM, PMM
-from neuralforecast.tsdataset import TimeSeriesDataset
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
-```
-
-
-```python
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
-#from neuralforecast.models import TFT
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, GMM, PMM
-from neuralforecast.tsdataset import TimeSeriesDataset
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic
+from neuralforecast.models import TFT
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
-#AirPassengersPanel['y'] = AirPassengersPanel['y'] + 10
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
 nf = NeuralForecast(
     models=[TFT(h=12, input_size=48,
                 hidden_size=20,
-                #loss=DistributionLoss(distribution='Poisson', level=[80, 90]),
-                #loss=DistributionLoss(distribution='Normal', level=[80, 90]),
                 loss=DistributionLoss(distribution='StudentT', level=[80, 90]),
                 learning_rate=0.005,
                 stat_exog_list=['airline1'],

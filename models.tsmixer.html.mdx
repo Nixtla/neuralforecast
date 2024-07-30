@@ -231,12 +231,11 @@ see
 Train model and forecast future values with `predict` method.
 
 ```python
-import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
+from neuralforecast.models import TSMixer
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 from neuralforecast.losses.pytorch import MAE
 
@@ -251,7 +250,7 @@ model = TSMixer(h=12,
                 dropout=0,
                 revin=True,
                 scaler_type='standard',
-                max_steps=200,
+                max_steps=500,
                 early_stop_patience_steps=-1,
                 val_check_steps=5,
                 learning_rate=1e-3,
@@ -263,10 +262,7 @@ model = TSMixer(h=12,
 fcst = NeuralForecast(models=[model], freq='M')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
-```
 
-
-```python
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
@@ -288,10 +284,7 @@ Using `cross_validation` to forecast multiple historic values.
 ```python
 fcst = NeuralForecast(models=[model], freq='M')
 forecasts = fcst.cross_validation(df=AirPassengersPanel, static_df=AirPassengersStatic, n_windows=2, step_size=12)
-```
 
-
-```python
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.loc['Airline1']

@@ -257,11 +257,8 @@ import matplotlib.pyplot as plt
 from neuralforecast import NeuralForecast
 from neuralforecast.models import TimeMixer
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-from neuralforecast.losses.pytorch import MAE, DistributionLoss
-```
+from neuralforecast.losses.pytorch import MAE
 
-
-```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
@@ -269,7 +266,7 @@ model = TimeMixer(h=12,
                 input_size=24,
                 n_series=2,
                 scaler_type='standard',
-                max_steps=100,
+                max_steps=500,
                 early_stop_patience_steps=-1,
                 val_check_steps=5,
                 learning_rate=1e-3,
@@ -281,10 +278,7 @@ model = TimeMixer(h=12,
 fcst = NeuralForecast(models=[model], freq='M')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
-```
 
-
-```python
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
@@ -306,10 +300,7 @@ Using `cross_validation` to forecast multiple historic values.
 ```python
 fcst = NeuralForecast(models=[model], freq='M')
 forecasts = fcst.cross_validation(df=AirPassengersPanel, static_df=AirPassengersStatic, n_windows=2, step_size=12)
-```
 
-
-```python
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.loc['Airline1']

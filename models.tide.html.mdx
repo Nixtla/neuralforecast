@@ -180,51 +180,15 @@ TimeSeriesDataModule args, see
 
 ## 3. Usage Examples
 
-Train model and forecast future values with `predict` method.
-
 ```python
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
-from neuralforecast.utils import AirPassengersDF as Y_df
-from neuralforecast.tsdataset import TimeSeriesDataset
-```
-
-
-```python
-Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
-Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
-
-dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
-model = TiDE(h=12, input_size=24, max_steps=500, scaler_type='standard')
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-Y_test_df['TiDE'] = y_hat
-
-#test we recover the same forecast
-y_hat2 = model.predict(dataset=dataset)
-test_eq(y_hat, y_hat2)
-
-pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plot()
-```
-
-Creating probabilistic forecasts
-
-```python
-import numpy as np
-import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
+from neuralforecast.models import TiDE
 from neuralforecast.losses.pytorch import GMM, DistributionLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-```
 
-
-```python
-# Plot predictions
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 

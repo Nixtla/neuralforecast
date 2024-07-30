@@ -202,14 +202,12 @@ TimeSeriesDataModule args, see
 ## Usage Example
 
 ```python
-import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic, augment_calendar_df
 
 AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
 
@@ -220,8 +218,6 @@ model = TimesNet(h=12,
                  input_size=24,
                  hidden_size = 16,
                  conv_hidden_size = 32,
-                 #loss=MAE(),
-                 #loss=MQLoss(quantiles=[0.2, 0.5, 0.8]),
                  loss=DistributionLoss(distribution='Normal', level=[80, 90]),
                  futr_exog_list=calendar_cols,
                  scaler_type='standard',

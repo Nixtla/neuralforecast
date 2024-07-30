@@ -205,18 +205,14 @@ see
 # 3. Usage example
 
 ```python
-import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
+from neuralforecast.models import iTransformer
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 from neuralforecast.losses.pytorch import MSE
-```
 
-
-```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
@@ -239,10 +235,7 @@ model = iTransformer(h=12,
 fcst = NeuralForecast(models=[model], freq='M')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
-```
 
-
-```python
 # Plot predictions
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
@@ -257,43 +250,5 @@ ax.set_ylabel('Monthly Passengers', fontsize=20)
 ax.set_xlabel('Year', fontsize=20)
 ax.legend(prop={'size': 15})
 ax.grid()
-```
-
-
-```python
-import numpy as np
-import pandas as pd
-import pytorch_lightning as pl
-import matplotlib.pyplot as plt
-
-from neuralforecast import NeuralForecast
-from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-from neuralforecast.losses.pytorch import MSE
-```
-
-
-```python
-Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
-Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
-
-model = iTransformer(h=12,
-                     input_size=24,
-                     n_series=1,
-                     hidden_size=128,
-                     n_heads=2,
-                     e_layers=2,
-                     d_layers=1,
-                     d_ff=4,
-                     factor=1,
-                     dropout=0.1,
-                     use_norm=True,
-                     loss=MSE(),
-                     valid_loss=MAE(),
-                     early_stop_patience_steps=3,
-                     batch_size=32)
-
-fcst = NeuralForecast(models=[model], freq='M')
-fcst.fit(df=Y_train_df, val_size=12)
-forecasts = fcst.predict(futr_df=Y_test_df)
 ```
 

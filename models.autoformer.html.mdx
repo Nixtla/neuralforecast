@@ -309,16 +309,12 @@ TimeSeriesDataModule args, see
 ## Usage Example
 
 ```python
-import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import MLP
-from neuralforecast.losses.pytorch import MQLoss, DistributionLoss
-from neuralforecast.tsdataset import TimeSeriesDataset
-from neuralforecast.utils import AirPassengers, AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+from neuralforecast.models import Autoformer
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic, augment_calendar_df
 
 AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
 
