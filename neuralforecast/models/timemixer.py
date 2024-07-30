@@ -20,8 +20,12 @@ from ..common._scalers import RevIN
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.timemixer.ipynb 7
+# %% ../../nbs/models.timemixer.ipynb 6
 class DataEmbedding_wo_pos(nn.Module):
+    """
+    DataEmbedding_wo_pos
+    """
+
     def __init__(self, c_in, d_model, dropout=0.1, embed_type="fixed", freq="h"):
         super(DataEmbedding_wo_pos, self).__init__()
 
@@ -41,7 +45,7 @@ class DataEmbedding_wo_pos(nn.Module):
             x = self.value_embedding(x) + self.temporal_embedding(x_mark)
         return self.dropout(x)
 
-# %% ../../nbs/models.timemixer.ipynb 9
+# %% ../../nbs/models.timemixer.ipynb 8
 class DFT_series_decomp(nn.Module):
     """
     Series decomposition block
@@ -110,7 +114,7 @@ class TimeMixer(BaseMultivariate):
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
-    EXOGENOUS_FUTR = True
+    EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
 
@@ -159,9 +163,9 @@ class TimeMixer(BaseMultivariate):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=None,
-            futr_exog_list=None,
-            hist_exog_list=None,
+            stat_exog_list=stat_exog_list,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -198,10 +202,9 @@ class TimeMixer(BaseMultivariate):
 
         self.use_norm = use_norm
 
+        self.use_future_temporal_feature = 0
         if futr_exog_list is not None:
             self.use_future_temporal_feature = 1
-        else:
-            self.use_future_temporal_feature = 0
 
         self.decomp_method = decomp_method
         self.moving_avg = moving_avg
@@ -452,8 +455,8 @@ class TimeMixer(BaseMultivariate):
         futr_exog = windows_batch["futr_exog"]
 
         if self.futr_exog_size > 0:
-            x_mark_enc = futr_exog[:, : self.input_size, :]
-            x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
+            x_mark_enc = futr_exog[:, :, : self.input_size, :]
+            x_mark_dec = futr_exog[:, :, -(self.label_len + self.h) :, :]
         else:
             x_mark_enc = None
             x_mark_dec = None
