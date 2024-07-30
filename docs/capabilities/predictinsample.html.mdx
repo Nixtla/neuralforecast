@@ -8,7 +8,7 @@ title: Predict Insample
 This tutorial provides and example on how to use the `predict_insample`
 function of the `core` class to produce forecasts of the train and
 validation sets. In this example we will train the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 model on the AirPassengers data, and show how to recover the insample
 predictions after model is fitted.
 
@@ -64,7 +64,7 @@ Y_df.head()
 ## 3. Model Training
 
 First, we train the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 models on the AirPassengers data. We will use the `fit` method of the
 `core` class to train the models.
 
@@ -93,7 +93,7 @@ nf.fit(df=Y_df, val_size=horizon)
 ## 4. Predict Insample
 
 Using the
-[`NeuralForecast.predict_insample`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.predict_insample)
+[`NeuralForecast.predict_insample`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.predict_insample)
 method you can obtain the forecasts for the train and validation sets
 after the models are fitted. The function will always take the last
 dataset used for training in either the `fit` or `cross_validation`
@@ -123,7 +123,7 @@ series. \* `ds`: the datestamp of the forecast for each row. \*
 `cutoff`: the datestamp at which the forecast was made. \* `y`: the
 actual value of the target variable. \* `model_name`: the forecasted
 values for the models. In this case,
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits).
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits).
 
 ```python
 Y_hat_insample.head()
@@ -172,7 +172,7 @@ plt.legend()
 > forecast in the validation set (last 12 timetamps), are less precise.
 > This is because the model was trained on the train set, and deep
 > learning models such as the
-> [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+> [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 > can easily overfit the train set.
 
 ## References

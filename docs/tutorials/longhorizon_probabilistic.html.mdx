@@ -9,16 +9,16 @@ the predictions and the *computational complexity*. To solve this
 problem we created the [NHITS](https://arxiv.org/abs/2201.12886) model
 and made the code available [NeuralForecast
 library](https://nixtla.github.io/neuralforecast/models.nhits.html).
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 specializes its partial outputs in the different frequencies of the time
 series through hierarchical interpolation and multi-rate input
 processing. We model the target time-series with Student’s
 t-distribution. The
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 will output the distribution parameters for each timestamp.
 
 In this notebook we show how to use
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 on the [ETTm2](https://github.com/zhouhaoyi/etdataset) benchmark dataset
 for probabilistic forecasting. This data set includes data points for 2
 Electricity Transformers at 2 stations, including load, oil temperature.
@@ -131,7 +131,7 @@ plt.close()
 ## 3. Hyperparameter selection and forecasting
 
 The
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 class will automatically perform hyperparamter tunning using [Tune
 library](https://docs.ray.io/en/latest/tune/index.html), exploring a
 user-defined or default search space. Models are selected based on the
@@ -186,15 +186,15 @@ nhits_config = {
 > continous intervals.m
 
 To instantiate
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 you need to define:
 
 -   `h`: forecasting horizon
 -   `loss`: training loss. Use the
-    [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
+    [`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss)
     to produce probabilistic forecasts.
 -   `config`: hyperparameter search space. If `None`, the
-    [`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+    [`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
@@ -206,7 +206,7 @@ models = [AutoNHITS(h=horizon,
 ```
 
 Fit the model by instantiating a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models.

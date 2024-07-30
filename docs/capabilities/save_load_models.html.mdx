@@ -14,13 +14,13 @@ outstanding 🚀 achievements in Machine Learning 🧠 and has many
 practical applications.
 
 In this notebook we show an example on how to save and load
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 models.
 
 The two methods to consider are:<br/> 1.
-[`NeuralForecast.save`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.save):
+[`NeuralForecast.save`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.save):
 Saves models into disk, allows save dataset and config.<br/> 2.
-[`NeuralForecast.load`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.load):
+[`NeuralForecast.load`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.load):
 Loads models from a given path.<br/>
 
 > **Important**
@@ -61,10 +61,10 @@ Y_df.head()
 ## 3. Model Training
 
 Next, we instantiate and train three models:
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats),
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
 and
-[`AutoMLP`](https://Nixtla.github.io/neuralforecast/models.html#automlp).
+[`AutoMLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#automlp).
 The models with their hyperparameters are defined in the `models` list.
 
 ```python
@@ -116,7 +116,7 @@ Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 
 | 4   | 1.0       | 1961-05-31 | 495.973541 | 518.612610 | 531.347900 |
 
 We plot the forecasts for each model. Note how the two
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
 models are differentiated with a numerical suffix.
 
 ```python
@@ -154,7 +154,7 @@ The `save` method has the following inputs:
 -   `path`: directory where models will be saved.
 -   `model_index`: optional list to specify which models to save. For
     example, to only save the
-    [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+    [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
     model use `model_index=[2]`.
 -   `overwrite`: boolean to overwrite existing files in `path`. When
     True, the method will only overwrite models with conflicting names.
@@ -182,9 +182,9 @@ of each class. In this example the names will be `automlp_0`,
 > **Important**
 >
 > The `Auto` models will be stored as their base model. For example, the
-> [`AutoMLP`](https://Nixtla.github.io/neuralforecast/models.html#automlp)
+> [`AutoMLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#automlp)
 > trained above is stored as an
-> [`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+> [`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 > model, with the best hyparparameters found during tuning.
 
 ## 5. Load models

@@ -115,16 +115,17 @@ Y_df
 ### Fit the models
 
 Using the
-[`NeuralForecast.fit`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.fit)
+[`NeuralForecast.fit`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.fit)
 method you can train a set of models to your dataset. You can define the
 forecasting `horizon` (12 in this example), and modify the
 hyperparameters of the model. For example, for the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 we changed the default hidden size for both encoder and decoders.
 
 See the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
-and [`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
+and
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 [model
 documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 
@@ -133,11 +134,11 @@ documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 > For the moment Recurrent-based model family is not available to
 > operate with Bernoulli distribution output. This affects the following
 > methods
-> [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
-> [`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
-> [`DilatedRNN`](https://Nixtla.github.io/neuralforecast/models.dilated_rnn.html#dilatedrnn),
+> [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm),
+> [`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru),
+> [`DilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html#dilatedrnn),
 > and
-> [`TCN`](https://Nixtla.github.io/neuralforecast/models.tcn.html#tcn).
+> [`TCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html#tcn).
 > This feature is work in progress.
 
 ```python
@@ -229,8 +230,9 @@ Y_hat_df
 
 Finally, we plot the forecasts of both models againts the real values.
 And evaluate the accuracy of the
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp) and
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
+and
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 temporal classifiers.
 
 ```python

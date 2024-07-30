@@ -47,11 +47,11 @@ PyTorch model from scratch. You only need to write the forward method.
 
 We will present the tutorial following an example on how to add a
 simplified version of the current
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 model, which does not include exogenous covariates.
 
 At a given timestamp $t$, the
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 model will forecast the next $h$ values of the univariate target time,
 $Y_{t+1:t+h}$, using as inputs the last $L$ historical values, given by
 $Y_{t-L:t}$. The following figure presents a diagram of the model.
@@ -83,11 +83,11 @@ The library contains **three** types of base models: `BaseWindows`,
 `BaseRecurrent`, and `BaseMultivariate`. In this tutorial, we will focus
 on the `BaseWindows` class, which is the most common type of model in
 the library, with models such as
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats),
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
-[`TFT`](https://Nixtla.github.io/neuralforecast/models.tft.html#tft),
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
+[`TFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html#tft),
 and
-[`PatchTST`](https://Nixtla.github.io/neuralforecast/models.patchtst.html#patchtst).
+[`PatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html#patchtst).
 The main difference between the three types is the sampling procedure
 and input batch for the `forward` method, which determines the type of
 model.
@@ -101,7 +101,7 @@ model.
 
 During training, the base class receives a sample of time series of the
 dataset from the
-[`TimeSeriesLoader`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesloader)
+[`TimeSeriesLoader`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesloader)
 module. The `BaseWindows` models will sample individual windows of size
 `input_size+h`, starting from random timestamps.
 
@@ -165,7 +165,7 @@ preventing code duplication. The most important methods of the class
 are:
 
 -   `_create_windows`: parses the time series from the
-    [`TimeSeriesLoader`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesloader)
+    [`TimeSeriesLoader`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesloader)
     into individual windows of size `input_size+h`.
 -   `_normalization`: normalizes each window based on the `scaler` type.
 -   `_inv_normalization`: inverse normalization of the forecasts.
@@ -233,7 +233,7 @@ from neuralforecast.common._base_windows import BaseWindows
 
 Next, create the class with the `init` and `forward` methods. The
 following example shows the example for the simplified
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 model. We explain important details after the code.
 
 ```python
@@ -292,7 +292,7 @@ class MLP(BaseWindows): # <<---- Inherits from BaseWindows
         # Parse windows_batch
         insample_y = windows_batch['insample_y'].clone()
         # MLP
-        y_pred = self.mlp(y_pred)
+        y_pred = self.mlp(insample_y)
         # Reshape and map to loss domain
         y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
         y_pred = self.loss.domain_map(y_pred)
@@ -318,14 +318,14 @@ The `reshape` method at the end of the `forward` step is used to adjust
 the output shape. The `loss` class contains an `outputsize_multiplier`
 attribute to automatically adjust the output size of the forecast
 depending on the `loss`. For example, for the Multi-quantile loss
-([`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)),
+([`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)),
 the model needs to output each quantile for each horizon.
 
 **Finally, always include `y_pred = self.loss.domain_map(y_pred)` at the
 end of the `forward`**. This is necessary to map the output to the
 domain (and shape) of the loss function. For example, if the loss
 function is the
-[`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae),
+[`MAE`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mae),
 it maps the output of shape `(batch_size, h, 1)` to `(batch_size, h)`.
 
 ### b. Tests and documentation

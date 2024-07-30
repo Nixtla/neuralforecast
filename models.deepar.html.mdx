@@ -38,14 +38,14 @@ Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>
 > **Exogenous Variables, Losses, and Parameters Availability**
 >
 > Given the sampling procedure during inference, DeepAR only supports
-> [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
+> [`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss)
 > as training loss.
 >
 > Note that DeepAR generates a non-parametric forecast distribution
 > using Monte Carlo. We use this sampling procedure also during
 > validation to make it closer to the inference procedure. Therefore,
 > only the
-> [`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)
+> [`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)
 > is available for validation.
 >
 > Aditionally, Monte Carlo implies that historic exogenous variables are
@@ -193,7 +193,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -216,7 +216,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>

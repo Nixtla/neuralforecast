@@ -25,7 +25,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ```
 
 *The `core.StatsForecast` class allows you to efficiently fit multiple
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 models for large sets of time series. It operates with pandas DataFrame
 `df` that identifies series and datestamps with the `unique_id` and `ds`
 columns. The `y` column denotes the target time series variable.*
@@ -35,7 +35,7 @@ columns. The `y` column denotes the target time series variable.*
 | models | List |  | Instantiated `neuralforecast.models` <br/>see [collection here](https://nixtla.github.io/neuralforecast/models.html). |
 | freq | Union |  | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. |
 | local_scaler_type | Optional | None | Scaler to apply per-serie to all features before fitting, which is inverted after predicting.<br/>Can be ‘standard’, ‘robust’, ‘robust-iqr’, ‘minmax’ or ‘boxcox’ |
-| **Returns** | **NeuralForecast** |  | **Returns instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
+| **Returns** | **NeuralForecast** |  | **Returns instantiated [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ store fitted models for later inspection.\*
 | time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
 | target_col | str | y | Column that contains the target. |
 | distributed_config | Optional | None | Configuration to use for DDP training. Currently only spark is supported. |
-| **Returns** | **NeuralForecast** |  | **Returns [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.** |
+| **Returns** | **NeuralForecast** |  | **Returns [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.** |
 
 ------------------------------------------------------------------------
 
@@ -244,7 +244,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 | path | str |  | Directory with stored artifacts. |
 | verbose | bool | False |  |
 | kwargs |  |  | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`. |
-| **Returns** | **NeuralForecast** |  | **Instantiated [`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) class.** |
+| **Returns** | **NeuralForecast** |  | **Instantiated [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ```python
 os.environ['NIXTLA_ID_AS_COL'] = '1'

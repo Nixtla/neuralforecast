@@ -24,13 +24,13 @@ recent studies proposed a variety of Transformer-based models.
 
 The Neuralforecast library includes implementations of the following
 popular recent models:
-[`Informer`](https://Nixtla.github.io/neuralforecast/models.informer.html#informer)
+[`Informer`](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html#informer)
 (Zhou, H. et al. 2021),
-[`Autoformer`](https://Nixtla.github.io/neuralforecast/models.autoformer.html#autoformer)
+[`Autoformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html#autoformer)
 (Wu et al. 2021),
-[`FEDformer`](https://Nixtla.github.io/neuralforecast/models.fedformer.html#fedformer)
+[`FEDformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html#fedformer)
 (Zhou, T. et al. 2022), and
-[`PatchTST`](https://Nixtla.github.io/neuralforecast/models.patchtst.html#patchtst)
+[`PatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html#patchtst)
 (Nie et al. 2023).
 
 Our implementation of all these models are univariate, meaning that only
@@ -121,7 +121,7 @@ First, instantiate each model in the `models` list, specifying the
 `horizon`, `input_size`, and training iterations.
 
 (NOTE: The
-[`FEDformer`](https://Nixtla.github.io/neuralforecast/models.fedformer.html#fedformer)
+[`FEDformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html#fedformer)
 model was excluded due to extremely long training times.)
 
 ```python
@@ -165,7 +165,7 @@ INFO:lightning_fabric.utilities.seed:Global seed set to 1
 > Check our `auto` models for automatic hyperparameter optimization.
 
 Instantiate a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models.
@@ -269,12 +269,12 @@ self-reported performance in their respective papers.
 ## Next steps
 
 We proposed an alternative model for long-horizon forecasting, the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
 based on feed-forward networks in (Challu et al. 2023). It achieves on
 par performance with
-[`PatchTST`](https://Nixtla.github.io/neuralforecast/models.patchtst.html#patchtst),
+[`PatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html#patchtst),
 with a fraction of the computational cost. The
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 tutorial is available
 [here](https://nixtla.github.io/neuralforecast/examples/longhorizon_with_nhits.html).
 

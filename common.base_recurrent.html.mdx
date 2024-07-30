@@ -8,10 +8,10 @@ title: BaseRecurrent
 > recurrent neural networks; these models possess the ability to process
 > variable-length sequences of inputs through their internal memory
 > states. The class is represented by
-> [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
-> [`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru),
+> [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm),
+> [`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru),
 > and
-> [`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn),
+> [`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn),
 > along with other more sophisticated architectures like `MQCNN`.
 
 The standard methods include `TemporalNorm` preprocessing, optimization
@@ -73,7 +73,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -96,7 +96,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:

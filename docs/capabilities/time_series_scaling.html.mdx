@@ -109,7 +109,7 @@ forecasts.
 ### 3.a. Instantiate model and `Neuralforecast` class
 
 In this example we will use the
-[`TimesNet`](https://Nixtla.github.io/neuralforecast/models.timesnet.html#timesnet)
+[`TimesNet`](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html#timesnet)
 model, recently proposed in [Wu, Haixu, et
 al. (2022)](https://arxiv.org/abs/2210.02186). First instantiate the
 model with the desired parameters.
@@ -142,7 +142,7 @@ Global seed set to 1
 ```
 
 Fit the model by instantiating a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object and using the `fit` method. The `local_scaler_type` parameter is
 used to specify the type of scaling to be used. In this case, we will
 use `standard`, which scales the data to have zero mean and unit
@@ -222,12 +222,12 @@ https://nixtla.github.io/neuralforecast/common.scalers.html.
 
 Temporal normalization is specified by the `scaler_type` argument.
 Currently, it is only supported for Windows-based models
-([`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats),
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp),
-[`TimesNet`](https://Nixtla.github.io/neuralforecast/models.timesnet.html#timesnet),
+([`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp),
+[`TimesNet`](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html#timesnet),
 and all Transformers). In this example, we use the
-[`TimesNet`](https://Nixtla.github.io/neuralforecast/models.timesnet.html#timesnet)
+[`TimesNet`](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html#timesnet)
 model and `robust` scaler, recently proposed by Wu, Haixu, et
 al. (2022). First instantiate the model with the desired parameters.
 
@@ -253,7 +253,7 @@ Global seed set to 1
 ```
 
 Fit the model by instantiating a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object and using the `fit` method. Note that `local_scaler_type` has
 `None` as default to avoid scaling the data before training.
 

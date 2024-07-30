@@ -12,7 +12,7 @@ underlying patterns, trends-cycles, and seasonal effects, enabling
 improved understanding and forecasting accuracy.
 
 This notebook will show how to use the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)/[`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)/[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)
 to extract these series’ components. We will:<br/> - Installing
 NeuralForecast.<br/> - Simulate a Harmonic Signal.<br/> - NHITS’ forecast
 decomposition.<br/> - NBEATSx’ forecast decomposition.<br/>
@@ -96,10 +96,10 @@ Y_test_df
 ## 3. NHITS decomposition
 
 We will employ
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 stack-specialization to recover the latent harmonic functions.
 
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
 a Wavelet-inspired algorithm, allows for breaking down a time series
 into various scales or resolutions, aiding in the identification of
 localized patterns or features. The expressivity ratios for each layer
@@ -169,17 +169,17 @@ plt.show()
 ## 4. NBEATSx decomposition
 
 Here we will employ
-[`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx)
+[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)
 interpretable basis projection to recover the latent harmonic functions.
 
-[`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx),
+[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx),
 this network in its interpretable variant sequentially projects the
 signal into polynomials and harmonic basis to learn trend $T$ and
 seasonality $S$ components:
 $$\hat{y}_{[t+1:t+H]} = \theta_{1} T + \theta_{2} S$$
 
 In contrast to
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)’
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)’
 wavelet-like projections the basis heavily determine the behavior of the
 projections. And the Fourier projections are not capable of being
 immediately decomposed into individual frequencies.

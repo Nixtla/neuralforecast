@@ -22,7 +22,7 @@ The following graph showcases how time series cross-validation works.
 ![](https://raw.githubusercontent.com/Nixtla/statsforecast/main/nbs/imgs/ChainedWindows.gif)
 
 In this tutorial we’ll explain how to perform cross-validation in
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast).
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast).
 
 **Outline:** 1. Install NeuralForecast
 
@@ -110,7 +110,7 @@ plot_series(Y_df)
 We’ll train different models from `neuralforecast` using the
 `cross-validation` method to decide which one perfoms best on the
 historical data. To do this, we need to import the
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class and the models that we want to compare.
 
 ```python
@@ -126,7 +126,7 @@ and
 models.
 
 First, we need to create a list of models and then instantiate the
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class. For each model, we’ll define the following hyperparameters:
 
 -   `h`: The forecast horizon. Here, we will use the same horizon as in
@@ -243,7 +243,7 @@ Squared Error (RMSE), defined as the square root of the mean of the
 squared differences between the actual and the predicted values.
 
 For convenience, we’ll use the `evaluate` and the
-[`rmse`](https://Nixtla.github.io/neuralforecast/losses.numpy.html#rmse)
+[`rmse`](https://nixtlaverse.nixtla.io/neuralforecast/losses.numpy.html#rmse)
 functions from `utilsforecast`.
 
 ```python

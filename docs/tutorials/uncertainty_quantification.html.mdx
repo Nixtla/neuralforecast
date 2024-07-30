@@ -12,7 +12,7 @@ following conditional predictive distribution:
 $$\mathbb{P}(\mathbf{y}_{t+1:t+H} \;|\; \mathbf{y}_{:t})$$
 
 We will show you how to tackle the task with
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 by combining a classic Long Short Term Memory Network
 [(LSTM)](https://arxiv.org/abs/2201.12886) and the Neural Hierarchical
 Interpolation [(NHITS)](https://arxiv.org/abs/2201.12886) with the multi
@@ -129,14 +129,14 @@ plot_grid(Y_train_df, Y_test_df)
 
 The `core.NeuralForecast` provides a high-level interface with our
 collection of PyTorch models.
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 is instantiated with a list of `models=[LSTM(...), NHITS(...)]`,
 configured for the forecasting task.
 
 -   The `horizon` parameter controls the number of steps ahead of the
     predictions, in this example 48 hours ahead (2 days).
 -   The
-    [`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)
+    [`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)
     with `levels=[80,90]` specializes the network’s output into the 80%
     and 90% prediction intervals.
 -   The `max_steps=2000`, controls the duration of the network’s
@@ -206,14 +206,14 @@ Y_test_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds'])
 
 Here we finalize our analysis by plotting the prediction intervals and
 verifying that both the
-[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
+[`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
 and
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 are giving excellent results.
 
 Consider the output `[NHITS-lo-90.0`, `NHITS-hi-90.0]`, that represents
 the 80% prediction interval of the
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 network; its lower limit gives the 5th percentile (or 0.05 quantile)
 while its upper limit gives the 95th percentile (or 0.95 quantile). For
 well-trained models we expect that the target values lie within the

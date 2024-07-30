@@ -5,18 +5,18 @@ title: NBEATS
 
 
 The Neural Basis Expansion Analysis
-([`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats))
+([`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats))
 is an
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)-based
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)-based
 deep neural architecture with backward and forward residual links. The
 network has two variants: (1) in its interpretable configuration,
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
 sequentially projects the signal into polynomials and harmonic basis to
 learn trend and seasonality components; (2) in its generic
 configuration, it substitutes the polynomial and harmonic basis for
 identity basis and larger network’s depth. The Neural Basis Expansion
 Analysis with Exogenous
-([`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx)),
+([`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)),
 incorporates projections to exogenous temporal variables available at
 the time of the prediction.
 
@@ -158,7 +158,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -181,7 +181,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>

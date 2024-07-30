@@ -59,9 +59,9 @@ purpose.
 *[NeuralForecast](https://github.com/Nixtla/neuralforecast)*
 
 Deep Learning: DL models, such as Transformers
-([`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft))
+([`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft))
 and Neural Networks
-([`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)),
+([`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)),
 allow us to handle complex non-linear dependencies in time series data.
 We’ll utilize the NeuralForecast library for these models.
 
@@ -475,7 +475,7 @@ fcst_mlf_df.head()
 
 ## NeuralForecast
 
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 is a robust collection of neural forecasting models that focuses on
 usability and performance. It includes a variety of model architectures,
 from classic networks such as Multilayer Perceptrons (MLP) and Recurrent
@@ -483,7 +483,7 @@ Neural Networks (RNN) to novel contributions like N-BEATS, N-HITS,
 Temporal Fusion Transformers (TFT), and more.
 
 Key features of
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 include:
 
 -   A broad collection of global models. Out of the box implementation
@@ -553,7 +553,7 @@ sf.plot(Y_df, fcst_df, max_insample_length=28 * 3,
 # Validate Model’s Performance
 
 The three libraries - `StatsForecast`, `MLForecast`, and
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast) -
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) -
 offer out-of-the-box cross-validation capabilities specifically designed
 for time series. This allows us to evaluate the model’s performance
 using historical data to obtain an unbiased assessment of how well each
@@ -979,8 +979,8 @@ sf.plot(Y_df, fcst_df, max_insample_length=28 * 3)
 -   Train the statistical models in the full dataset.
 -   Increase the number of `num_samples` in the neural auto models.
 -   Include other models such as `Theta`, `ARIMA`,
-    [`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn),
-    [`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm),
+    [`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn),
+    [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm),
     …
 
 # Further materials

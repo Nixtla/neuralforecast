@@ -70,7 +70,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -93,7 +93,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>
@@ -116,13 +116,13 @@ TimeSeriesDataModule args, see
 
 Decompose the predictions through the network’s layers. Available
 methods are `ESRNN`,
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits),
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats),
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
 and
-[`NBEATSx`](https://Nixtla.github.io/neuralforecast/models.nbeatsx.html#nbeatsx).
+[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx).
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see [documentation
 here](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `step_size`: int=1, step size between each window of temporal data.<br/>

@@ -25,7 +25,7 @@ series forecasting.</figcaption>
 
 A mixing layer consists of a sequential time- and feature Multi Layer
 Perceptron
-([`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)).
+([`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)).
 
 ------------------------------------------------------------------------
 
@@ -115,14 +115,14 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*TSMixer
 
 Time-Series Mixer
-([`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer))
+([`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer))
 is a MLP-based multivariate time-series forecasting model.
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer)
 jointly learns temporal and cross-sectional representations of the
 time-series by repeatedly combining time- and feature information using
 stacked mixing layers. A mixing layer consists of a sequential time- and
 feature Multi Layer Perceptron
-([`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)).
+([`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)).
 
 **Parameters:**<br/> `h`: int, forecast horizon.<br/> `input_size`: int,
 considered autorregresive inputs (lags), y=\[1,2,3,4\] input_size=2 -\>
@@ -197,7 +197,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -218,7 +218,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>

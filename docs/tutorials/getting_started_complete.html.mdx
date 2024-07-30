@@ -16,8 +16,8 @@ production-ready forecasting pipeline for multiple time series.
 
 During this guide you will gain familiary with the core
 `NueralForecast`class and some relevant methods like
-[`NeuralForecast.fit`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.fit),
-[`NeuralForecast.predict`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast.predict),
+[`NeuralForecast.fit`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.fit),
+[`NeuralForecast.predict`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.predict),
 and `StatsForecast.cross_validation.`
 
 We will use a classical benchmarking dataset from the M4 competition.
@@ -67,7 +67,7 @@ scalability, which makes it ideal for this task.
 ## 1. Install libraries
 
 We assume you have
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 already installed. Check this guide for instructions on [how to install
 NeuralForecast](../getting-started/installation.html).
 
@@ -94,7 +94,7 @@ file for efficiency. You can use ordinary pandas operations to read your
 data in other formats likes `.csv`.
 
 The input to
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 is always a data frame in [long
 format](https://www.theanalysisfactor.com/wide-and-long-data/) with
 three columns: `unique_id`, `ds` and `y`:
@@ -172,7 +172,7 @@ StatsForecast.plot(Y_df, engine='matplotlib')
 
 ## 4. Train multiple models for many series
 
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 can train many models on many time series globally and efficiently.
 
 ```python
@@ -188,9 +188,9 @@ tested on multiple large-scale datasets. Additionally, users can define
 specific search spaces tailored for particular datasets and tasks.
 
 First, we create a custom search space for the
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 and
-[`AutoLSTM`](https://Nixtla.github.io/neuralforecast/models.html#autolstm)
+[`AutoLSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autolstm)
 models. Search spaces are specified with dictionaries, where keys
 corresponds to the model’s hyperparameter and the value is a `Tune`
 function to specify how the hyperparameter will be sampled. For example,
@@ -241,7 +241,7 @@ To instantiate an `Auto` model you need to define:
 -   `num_samples`: number of configurations explored.
 
 In this example we set horizon `h` as 48, use the
-[`MQLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mqloss)
+[`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)
 distribution loss for training and validation, and use the default
 search algorithm.
 
@@ -350,7 +350,7 @@ The following graph depicts such a Cross Validation Strategy:
 > serving as the testing set.
 
 The `cross_validation` method from the
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class takes the following arguments.
 
 -   `df`: training data frame

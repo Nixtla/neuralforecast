@@ -86,9 +86,9 @@ Y_df.head()
 ## 3. Model training and forecast
 
 First, instantiate the
-[`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft)
+[`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft)
 model. The
-[`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft)
+[`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft)
 class will automatically perform hyperparamter tunning using [Tune
 library](https://docs.ray.io/en/latest/tune/index.html), exploring a
 user-defined or default search space. Models are selected based on the
@@ -96,13 +96,13 @@ error on a validation set and the best model is then stored and used
 during inference.
 
 To instantiate
-[`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft)
+[`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft)
 you need to define:
 
 -   `h`: forecasting horizon
 -   `loss`: training loss
 -   `config`: hyperparameter search space. If `None`, the
-    [`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft)
+    [`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft)
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
@@ -138,7 +138,7 @@ models = [AutoTFT(h=horizon,
 > All our models can be used for both point and probabilistic
 > forecasting. For producing probabilistic outputs, simply modify the
 > loss to one of our
-> [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss).
+> [`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss).
 > The complete list of losses is available in [this
 > link](https://nixtla.github.io/neuralforecast/losses.pytorch.html)
 
@@ -166,10 +166,10 @@ models = [AutoTFT(h=horizon,
 > ```
 
 The
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class has built-in methods to simplify the forecasting pipelines, such
 as `fit`, `predit`, and `cross_validation`. Instantiate a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models.
@@ -179,7 +179,7 @@ object with the following required parameters:
     frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).)
 
 Then, use the `fit` method to train the
-[`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft)
+[`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft)
 model on the ERCOT data. The total training time will depend on the
 hardware and the explored configurations, it should take between 10 and
 30 minutes.

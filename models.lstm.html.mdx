@@ -5,14 +5,14 @@ title: LSTM
 
 
 The Long Short-Term Memory Recurrent Neural Network
-([`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)),
+([`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)),
 uses a multilayer
-[`LSTM`](https://Nixtla.github.io/neuralforecast/models.lstm.html#lstm)
+[`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
 encoder and an
-[`MLP`](https://Nixtla.github.io/neuralforecast/models.mlp.html#mlp)
+[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 decoder. It builds upon the LSTM-cell that improves the exploding and
 vanishing gradients of classic
-[`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn)’s.
+[`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn)’s.
 This network has been extensively used in sequential prediction tasks
 like language modeling, phonetic labeling, and forecasting. The
 predictions are obtained by transforming the hidden states into contexts
@@ -143,7 +143,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -166,7 +166,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:

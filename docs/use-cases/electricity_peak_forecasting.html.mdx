@@ -25,7 +25,7 @@ therefore save on electricity bills by reducing the coincident peak
 demand.
 
 In this example we will train an
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 model on historic load data to forecast day-ahead peaks on September
 2022. Multiple seasonality is traditionally present in low sampled
 electricity data. Demand exhibits daily and weekly seasonality, with
@@ -101,7 +101,7 @@ Y_df.plot(x='ds', y='y', figsize=(20, 7))
 ## Fit and Forecast with NHITS
 
 Import the
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class and the models you need.
 
 ```python
@@ -115,16 +115,16 @@ from neuralforecast.auto import AutoNHITS
 ```
 
 First, instantiate the model and define the parameters. To instantiate
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 you need to define:
 
 -   `h`: forecasting horizon
 -   `loss`: training loss. Use the
-    [`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
+    [`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss)
     to produce probabilistic forecasts. Default:
-    [`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae).
+    [`MAE`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mae).
 -   `config`: hyperparameter search space. If `None`, the
-    [`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+    [`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
@@ -137,7 +137,7 @@ models = [AutoNHITS(h=24,
 ```
 
 We fit the model by instantiating a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models. Select the models you want from
@@ -246,7 +246,7 @@ plt.legend()
 > **Important**
 >
 > In this example we only include September. However,
-> [`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+> [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 > can correctly predict the peaks for the 4 months of 2022. You can try
 > this by increasing the `nwindows` parameter of `cross_validation` or
 > filtering the `Y_df` dataset. The complete run for all months take

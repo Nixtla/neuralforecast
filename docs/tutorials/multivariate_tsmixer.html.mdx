@@ -18,21 +18,21 @@ methods are commonly less well suited for large-scale problems
 
 In this notebook, we will demonstrate the performance of a
 state-of-the-art multivariate forecasting architecture
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer)
 /
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 when compared to a univariate forecasting method
-([`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits))
+([`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits))
 and a simple MLP-based multivariate method
-([`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)).
+([`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)).
 
 We will show how to: \* Load the
 [ETTm2](https://github.com/zhouhaoyi/etdataset) benchmark dataset, used
 in the academic literature. \* Train a
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer),
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 and
-[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+[`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
 model \* Forecast the test set \* Optimize the hyperparameters
 
 You can run these experiments using GPU with Google Colab.
@@ -56,13 +56,13 @@ contains static features for each time-series (none for ETTm2). For this
 example we will use `Y_df` and `X_df`.
 
 In
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx),
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx),
 we can make use of the additional exogenous features contained in
 `X_df`. In
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer),
 there is *no* support for exogenous features. Hence, if you want to use
 exogenous features, you should use
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx).
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx).
 
 If you want to use your own data just replace `Y_df` and `X_df`. Be sure
 to use a long format and make sure to have a similar structure as our
@@ -122,9 +122,9 @@ forecasts for the test set.
 First, instantiate each model in the `models` list, specifying the
 `horizon`, `input_size`, and training iterations. In this notebook, we
 compare against the univariate
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 and multivariate
-[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+[`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
 models.
 
 ```python
@@ -197,7 +197,7 @@ INFO:lightning_fabric.utilities.seed:Seed set to 12345678
 > see the end of this tutorial for an example of hyperparameter tuning.
 
 Instantiate a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models.
@@ -278,19 +278,19 @@ NHITS horizon 96 - MSE: 0.179
 
 For reference, we can check the performance when compared to
 self-reported performance in the paper. We find that
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer)
 provides better results than the *univariate* method
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits).
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits).
 Also, our implementation of
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer)
 very closely tracks the results of the original paper. Finally, it seems
 that there is little benefit of using the additional exogenous variables
 contained in the dataframe `X_df` as
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 performs worse than
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer),
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer),
 especially on longer horizons. Note also that
-[`MLPMultivariate`](https://Nixtla.github.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
+[`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
 clearly underperforms as compared to the other methods, which can be
 somewhat expected given its relative simplicity.
 
@@ -319,9 +319,9 @@ hyperparameters for each horizon.
 ## 5. Tuning the hyperparameters
 
 The
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer)
 /
-[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
+[`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx)
 class will automatically perform hyperparamter tunning using the [Tune
 library](https://docs.ray.io/en/latest/tune/index.html), exploring a
 user-defined or default search space. Models are selected based on the
@@ -360,9 +360,9 @@ tsmixerx_config['futr_exog_list'] = ['ex_1', 'ex_2', 'ex_3', 'ex_4']
 ```
 
 To instantiate
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer)
 and
-[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
+[`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx)
 you need to define:
 
 -   `h`: forecasting horizon
@@ -371,12 +371,12 @@ you need to define:
 
 In addition, we define the following parameters (if these are not given,
 the
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx)
 class will use a pre-defined value): \* `loss`: training loss. Use the
-[`DistributionLoss`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#distributionloss)
+[`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss)
 to produce probabilistic forecasts. \* `config`: hyperparameter search
 space. If `None`, the
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer)
 class will use a pre-defined suggested hyperparameter space. \*
 `num_samples`: number of configurations explored. For this example, we
 only use a limited amount of `10`. \* `search_alg`: type of search
@@ -406,7 +406,7 @@ modelx = AutoTSMixerx(h=horizon,
 ```
 
 Now, we fit the model by instantiating a
-[`NeuralForecast`](https://Nixtla.github.io/neuralforecast/core.html#neuralforecast)
+[`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
 
 -   `models`: a list of models.
@@ -468,13 +468,13 @@ INFO:lightning_fabric.utilities.seed:Seed set to 1
 ## 6. Evaluate Results
 
 The
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx)
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer)/[`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx)
 class contains a `results` attribute that stores information of each
 configuration explored. It contains the validation loss and best
 validation hyperparameter. The result dataframe `Y_hat_df` that we
 obtained in the previous step is based on the best config of the
 hyperparameter search. For
-[`AutoTSMixer`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixer),
+[`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer),
 the best config is:
 
 ```python
@@ -498,7 +498,7 @@ nf.models[0].results.get_best_result().config
 ```
 
 and for
-[`AutoTSMixerx`](https://Nixtla.github.io/neuralforecast/models.html#autotsmixerx):
+[`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx):
 
 ```python
 nf.models[1].results.get_best_result().config
@@ -549,14 +549,14 @@ MSE TSMixerx: 0.178
 We can compare the error metrics for our optimized setting to the
 earlier setting in which we used the default hyperparameters. In this
 case, for a horizon of 96, we got slightly improved results for
-[`TSMixer`](https://Nixtla.github.io/neuralforecast/models.tsmixer.html#tsmixer)
+[`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer)
 on
-[`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae).
+[`MAE`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mae).
 Interestingly, we did not improve for
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 as compared to the default settings. For this dataset, it seems there is
 limited value in using exogenous features with the
-[`TSMixerx`](https://Nixtla.github.io/neuralforecast/models.tsmixerx.html#tsmixerx)
+[`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx)
 architecture for a horizon of 96.
 
 | Metric | TSMixer<br/> (optimized) | TSMixer <br/>(default) | TSMixer <br/>(paper) | TSMixerx<br/> (optimized) | TSMixerx <br/>(default) |

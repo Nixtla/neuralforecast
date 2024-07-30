@@ -8,15 +8,15 @@ Long-horizon forecasting is challenging because of the *volatility* of
 the predictions and the *computational complexity*. To solve this
 problem we created the Neural Hierarchical Interpolation for Time Series
 (NHITS).
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 builds upon
-[`NBEATS`](https://Nixtla.github.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
 and specializes its partial outputs in the different frequencies of the
 time series through hierarchical interpolation and multi-rate input
 processing. On the long-horizon forecasting task
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 improved accuracy by 25% on AAAI’s best paper award the
-[`Informer`](https://Nixtla.github.io/neuralforecast/models.informer.html#informer),
+[`Informer`](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html#informer),
 while being 50x faster.
 
 The model is composed of several MLPs with ReLU non-linearities. Blocks
@@ -183,7 +183,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -206,7 +206,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>

@@ -5,11 +5,11 @@ title: GRU
 
 
 Cho et. al proposed the Gated Recurrent Unit
-([`GRU`](https://Nixtla.github.io/neuralforecast/models.gru.html#gru))
+([`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru))
 to improve on LSTM and Elman cells. The predictions at each time are
 given by a MLP decoder. This architecture follows closely the original
 Multi Layer Elman
-[`RNN`](https://Nixtla.github.io/neuralforecast/models.rnn.html#rnn)
+[`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn)
 with the main difference being its use of the GRU cells. The predictions
 are obtained by transforming the hidden states into contexts
 $\mathbf{c}_{[t+1:t+H]}$, that are decoded and adapted into
@@ -145,7 +145,7 @@ disk memory, to get them change `enable_checkpointing=True` in
 `__init__`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
@@ -168,7 +168,7 @@ Neural network prediction with PL’s `Trainer` execution of
 `predict_step`.
 
 **Parameters:**<br/> `dataset`: NeuralForecast’s
-[`TimeSeriesDataset`](https://Nixtla.github.io/neuralforecast/tsdataset.html#timeseriesdataset),
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:

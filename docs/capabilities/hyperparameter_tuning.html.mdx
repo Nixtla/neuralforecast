@@ -23,8 +23,8 @@ The main steps of hyperparameter tuning are:
 With `Neuralforecast`, we automatize and simplify the hyperparameter
 tuning process with the `Auto` models. Every model in the library has an
 `Auto` version (for example,
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits),
-[`AutoTFT`](https://Nixtla.github.io/neuralforecast/models.html#autotft))
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits),
+[`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft))
 which can perform automatic hyperparameter selection on default or
 user-defined search space.
 
@@ -33,7 +33,7 @@ and `Optuna`, with a user-friendly and simplified API, with most of
 their capabilities.
 
 In this tutorial, we show in detail how to instantiate and train an
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 model with a custom search space with both `Tune` and `Optuna` backends,
 install and use `HYPEROPT` search algorithm, and use the model with
 optimal hyperparameters to forecast.
@@ -119,7 +119,7 @@ for particular datasets and tasks, by fully specifying a hyperparameter
 search space dictionary.
 
 In the following example we are optimizing the `learning_rate` and two
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 specific hyperparameters: `n_pool_kernel_size` and `n_freq_downsample`.
 Additionaly, we use the search space to modify default hyperparameters,
 such as `max_steps` and `val_check_steps`.
@@ -161,7 +161,7 @@ To instantiate an `Auto` model you need to define:
 -   `num_samples`: number of configurations explored.
 
 In this example we set horizon `h` as 12, use the
-[`MAE`](https://Nixtla.github.io/neuralforecast/losses.pytorch.html#mae)
+[`MAE`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mae)
 loss for training and validation, and use the `HYPEROPT` search
 algorithm.
 
@@ -312,7 +312,7 @@ for particular datasets and tasks, by fully specifying a hyperparameter
 search space function.
 
 In the following example we are optimizing the `learning_rate` and two
-[`NHITS`](https://Nixtla.github.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 specific hyperparameters: `n_pool_kernel_size` and `n_freq_downsample`.
 Additionaly, we use the search space to modify default hyperparameters,
 such as `max_steps` and `val_check_steps`.
@@ -433,7 +433,7 @@ Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 
 ## 5. Plots
 
 Finally, we compare the forecasts produced by the
-[`AutoNHITS`](https://Nixtla.github.io/neuralforecast/models.html#autonhits)
+[`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 model with both backends.
 
 ```python
