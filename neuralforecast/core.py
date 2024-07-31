@@ -597,16 +597,23 @@ class NeuralForecast:
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def _get_needed_futr_exog(self):
-        return set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        futr_exogs = []
+        for m in self.models:
+            futr_exogs += getattr(m, "futr_exog_list", [])
+            if len(getattr(m, "config", {})):
+                futr_exogs += m.config.get("futr_exog_list", [])
+        return set(futr_exogs)
 
     def _get_needed_exog(self):
         futr_exog = self._get_needed_futr_exog()
-        hist_exog = set(
-            chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)
-        )
-        return futr_exog | hist_exog
+
+        hist_exog = []
+        for m in self.models:
+            hist_exog += getattr(m, "hist_exog_list", [])
+            if len(getattr(m, "config", {})):
+                hist_exog += m.config.get("hist_exog_list", [])
+
+        return futr_exog | set(hist_exog)
 
     def _get_model_names(self) -> List[str]:
         names: List[str] = []
