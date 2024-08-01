@@ -2,7 +2,7 @@
 
 d = { 'settings': { 'branch': 'main',
                 'doc_baseurl': '/neuralforecast/',
-                'doc_host': 'https://Nixtla.github.io',
+                'doc_host': 'https://nixtlaverse.nixtla.io',
                 'git_url': 'https://github.com/Nixtla/neuralforecast/',
                 'lib_path': 'neuralforecast'},
   'syms': { 'neuralforecast.auto': { 'neuralforecast.auto.AutoAutoformer': ('models.html#autoautoformer', 'neuralforecast/auto.py'),
