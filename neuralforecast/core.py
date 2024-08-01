@@ -947,9 +947,10 @@ class NeuralForecast:
 
         if val_size is not None:
             if self.dataset.min_size < (val_size + test_size):
-                warnings.warn(
+                raise Exception(
                     "Validation and test sets are larger than the shorter time-series."
                 )
+                # warnings.warn('Validation and test sets are larger than the shorter time-series.')
 
         cols = []
         count_names = {"model": 0}
