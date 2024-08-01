@@ -950,7 +950,6 @@ class NeuralForecast:
                 raise Exception(
                     "Validation and test sets are larger than the shorter time-series."
                 )
-                # warnings.warn('Validation and test sets are larger than the shorter time-series.')
 
         cols = []
         count_names = {"model": 0}
