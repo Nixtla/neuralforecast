@@ -470,7 +470,7 @@ class TemporalNorm(nn.Module):
 
 # %% ../../nbs/common.scalers.ipynb 38
 class RevIN(nn.Module):
-    """This also serves as RevIN (Reversible-Instance-Normalization)"""
+    """RevIN (Reversible-Instance-Normalization)"""
 
     def __init__(
         self,

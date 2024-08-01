@@ -486,7 +486,7 @@ class DataEmbedding(nn.Module):
 
         return self.dropout(x)
 
-# %% ../../nbs/common.modules.ipynb 20
+# %% ../../nbs/common.modules.ipynb 19
 class MovingAvg(nn.Module):
     """
     Moving average block to highlight the trend of time series
