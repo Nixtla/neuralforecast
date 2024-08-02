@@ -30,17 +30,17 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NIXTLA_TMP }}
     steps:
       - name: Clone repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822 # v1.9.0
         with:
           environment-file: environment-cpu.yml
           create-args: python=${{ matrix.python-version }}
           cache-environment: true
-      
+
       - name: Install pip requirements
-        run: pip install ./ 
-      
+        run: pip install ./
+
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars

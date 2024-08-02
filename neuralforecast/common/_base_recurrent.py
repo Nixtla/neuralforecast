@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+import neuralforecast.losses.pytorch as losses
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -51,6 +52,8 @@ class BaseRecurrent(BaseModel):
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -59,6 +62,8 @@ class BaseRecurrent(BaseModel):
             valid_loss=valid_loss,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -74,13 +79,13 @@ class BaseRecurrent(BaseModel):
         self.inference_input_size = inference_input_size
         self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
 
+        unsupported_distributions = ["Bernoulli", "ISQF"]
         if (
-            str(type(self.loss))
-            == "<class 'neuralforecast.losses.pytorch.DistributionLoss'>"
-            and self.loss.distribution == "Bernoulli"
+            isinstance(self.loss, losses.DistributionLoss)
+            and self.loss.distribution in unsupported_distributions
         ):
             raise Exception(
-                "Temporal Classification not yet available for Recurrent-based models"
+                f"Distribution {self.loss.distribution} not available for Recurrent-based models. Please choose another distribution."
             )
 
         # Valid batch_size

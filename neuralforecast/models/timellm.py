@@ -23,6 +23,10 @@ except ImportError:
 
 # %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
+    """
+    ReplicationPad1d
+    """
+
     def __init__(self, padding):
         super(ReplicationPad1d, self).__init__()
         self.padding = padding
@@ -34,6 +38,10 @@ class ReplicationPad1d(nn.Module):
 
 
 class TokenEmbedding(nn.Module):
+    """
+    TokenEmbedding
+    """
+
     def __init__(self, c_in, d_model):
         super(TokenEmbedding, self).__init__()
         padding = 1 if torch.__version__ >= "1.5.0" else 2
@@ -57,6 +65,10 @@ class TokenEmbedding(nn.Module):
 
 
 class PatchEmbedding(nn.Module):
+    """
+    PatchEmbedding
+    """
+
     def __init__(self, d_model, patch_len, stride, dropout):
         super(PatchEmbedding, self).__init__()
         # Patching
@@ -85,6 +97,10 @@ class PatchEmbedding(nn.Module):
 
 
 class FlattenHead(nn.Module):
+    """
+    FlattenHead
+    """
+
     def __init__(self, n_vars, nf, target_window, head_dropout=0):
         super().__init__()
         self.n_vars = n_vars
@@ -100,6 +116,10 @@ class FlattenHead(nn.Module):
 
 
 class ReprogrammingLayer(nn.Module):
+    """
+    ReprogrammingLayer
+    """
+
     def __init__(
         self, d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1
     ):
@@ -143,6 +163,10 @@ class ReprogrammingLayer(nn.Module):
 
 
 class Normalize(nn.Module):
+    """
+    Normalize
+    """
+
     def __init__(
         self,
         num_features: int,
@@ -268,6 +292,8 @@ class TimeLLM(BaseWindows):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -323,6 +349,8 @@ class TimeLLM(BaseWindows):
         random_seed: int = 1,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super(TimeLLM, self).__init__(
@@ -350,6 +378,8 @@ class TimeLLM(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
 

@@ -25,6 +25,10 @@ from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.informer.ipynb 8
 class ConvLayer(nn.Module):
+    """
+    ConvLayer
+    """
+
     def __init__(self, c_in):
         super(ConvLayer, self).__init__()
         self.downConv = nn.Conv1d(
@@ -48,6 +52,10 @@ class ConvLayer(nn.Module):
 
 # %% ../../nbs/models.informer.ipynb 9
 class ProbMask:
+    """
+    ProbMask
+    """
+
     def __init__(self, B, H, L, index, scores, device="cpu"):
         _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool, device=device).triu(1)
         _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
@@ -62,6 +70,10 @@ class ProbMask:
 
 
 class ProbAttention(nn.Module):
+    """
+    ProbAttention
+    """
+
     def __init__(
         self,
         mask_flag=True,
@@ -216,6 +228,8 @@ class Informer(BaseWindows):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
         *References*<br>
@@ -265,6 +279,8 @@ class Informer(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super(Informer, self).__init__(
@@ -293,6 +309,8 @@ class Informer(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
 

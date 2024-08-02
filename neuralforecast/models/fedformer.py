@@ -69,6 +69,10 @@ class LayerNorm(nn.Module):
 
 
 class AutoCorrelationLayer(nn.Module):
+    """
+    Auto Correlation Layer
+    """
+
     def __init__(self, correlation, hidden_size, n_head, d_keys=None, d_values=None):
         super(AutoCorrelationLayer, self).__init__()
 
@@ -283,13 +287,14 @@ def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
 
 
 class FourierBlock(nn.Module):
+    """
+    Fourier block
+    """
+
     def __init__(
         self, in_channels, out_channels, seq_len, modes=0, mode_select_method="random"
     ):
         super(FourierBlock, self).__init__()
-        """
-        Fourier block
-        """
         # get modes on frequency domain
         self.index = get_frequency_modes(
             seq_len, modes=modes, mode_select_method=mode_select_method
@@ -331,6 +336,10 @@ class FourierBlock(nn.Module):
 
 
 class FourierCrossAttention(nn.Module):
+    """
+    Fourier Cross Attention layer
+    """
+
     def __init__(
         self,
         in_channels,
@@ -343,9 +352,6 @@ class FourierCrossAttention(nn.Module):
         policy=0,
     ):
         super(FourierCrossAttention, self).__init__()
-        """
-        Fourier Cross Attention layer
-        """
         self.activation = activation
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -470,6 +476,8 @@ class FEDformer(BaseWindows):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     """
@@ -518,6 +526,8 @@ class FEDformer(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super(FEDformer, self).__init__(
@@ -545,6 +555,8 @@ class FEDformer(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
         # Architecture

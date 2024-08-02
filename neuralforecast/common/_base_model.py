@@ -17,10 +17,9 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
-    TimeSeriesDataset,
+    BaseTimeSeriesDataset,
     _DistributedTimeSeriesDataModule,
 )
 from ..losses.pytorch import IQLoss
@@ -75,6 +74,8 @@ class BaseModel(pl.LightningModule):
         valid_loss,
         optimizer,
         optimizer_kwargs,
+        lr_scheduler,
+        lr_scheduler_kwargs,
         futr_exog_list,
         hist_exog_list,
         stat_exog_list,
@@ -107,6 +108,18 @@ class BaseModel(pl.LightningModule):
             )
         self.optimizer = optimizer
         self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
+
+        # lr scheduler
+        if lr_scheduler is not None and not issubclass(
+            lr_scheduler, torch.optim.lr_scheduler.LRScheduler
+        ):
+            raise TypeError(
+                "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler.LRScheduler"
+            )
+        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler_kwargs = (
+            lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
+        )
 
         # customized by set_configure_optimizers()
         self.config_optimizers = None
@@ -226,6 +239,81 @@ class BaseModel(pl.LightningModule):
 
         return data_module_kwargs
 
+    def _fit_distributed(
+        self,
+        distributed_config,
+        datamodule,
+        val_size,
+        test_size,
+    ):
+        assert distributed_config is not None
+        from pyspark.ml.torch.distributor import TorchDistributor
+
+        def train_fn(
+            model_cls,
+            model_params,
+            datamodule,
+            trainer_kwargs,
+            num_tasks,
+            num_proc_per_task,
+            val_size,
+            test_size,
+        ):
+            import pytorch_lightning as pl
+
+            # we instantiate here to avoid pickling large tensors (weights)
+            model = model_cls(**model_params)
+            model.val_size = val_size
+            model.test_size = test_size
+            for arg in ("devices", "num_nodes"):
+                trainer_kwargs.pop(arg, None)
+            trainer = pl.Trainer(
+                strategy="ddp",
+                use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
+                num_nodes=num_tasks,
+                devices=num_proc_per_task,
+                **trainer_kwargs,
+            )
+            trainer.fit(model=model, datamodule=datamodule)
+            model.metrics = trainer.callback_metrics
+            model.__dict__.pop("_trainer", None)
+            return model
+
+        def is_gpu_accelerator(accelerator):
+            from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+            return (
+                accelerator == "gpu"
+                or isinstance(accelerator, CUDAAccelerator)
+                or (accelerator == "auto" and CUDAAccelerator.is_available())
+            )
+
+        local_mode = distributed_config.num_nodes == 1
+        if local_mode:
+            num_tasks = 1
+            num_proc_per_task = distributed_config.devices
+        else:
+            num_tasks = distributed_config.num_nodes * distributed_config.devices
+            num_proc_per_task = 1  # number of GPUs per task
+        num_proc = num_tasks * num_proc_per_task
+        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        model = TorchDistributor(
+            num_processes=num_proc,
+            local_mode=local_mode,
+            use_gpu=use_gpu,
+        ).run(
+            train_fn,
+            model_cls=type(self),
+            model_params=self.hparams,
+            datamodule=datamodule,
+            trainer_kwargs=self.trainer_kwargs,
+            num_tasks=num_tasks,
+            num_proc_per_task=num_proc_per_task,
+            val_size=val_size,
+            test_size=test_size,
+        )
+        return model
+
     def _fit(
         self,
         dataset,
@@ -242,7 +330,7 @@ class BaseModel(pl.LightningModule):
 
         self.val_size = val_size
         self.test_size = test_size
-        is_local = isinstance(dataset, TimeSeriesDataset)
+        is_local = isinstance(dataset, BaseTimeSeriesDataset)
         if is_local:
             datamodule_constructor = TimeSeriesDataModule
         else:
@@ -272,71 +360,11 @@ class BaseModel(pl.LightningModule):
             model.metrics = trainer.callback_metrics
             model.__dict__.pop("_trainer", None)
         else:
-            assert distributed_config is not None
-            from pyspark.ml.torch.distributor import TorchDistributor
-
-            def train_fn(
-                model_cls,
-                model_params,
+            model = self._fit_distributed(
+                distributed_config,
                 datamodule,
-                trainer_kwargs,
-                num_tasks,
-                num_proc_per_task,
                 val_size,
                 test_size,
-            ):
-                import pytorch_lightning as pl
-
-                # we instantiate here to avoid pickling large tensors (weights)
-                model = model_cls(**model_params)
-                model.val_size = val_size
-                model.test_size = test_size
-                for arg in ("devices", "num_nodes"):
-                    trainer_kwargs.pop(arg, None)
-                trainer = pl.Trainer(
-                    strategy="ddp",
-                    use_distributed_sampler=False,  # to ensure our dataloaders are used as-is
-                    num_nodes=num_tasks,
-                    devices=num_proc_per_task,
-                    **trainer_kwargs,
-                )
-                trainer.fit(model=model, datamodule=datamodule)
-                model.metrics = trainer.callback_metrics
-                model.__dict__.pop("_trainer", None)
-                return model
-
-            def is_gpu_accelerator(accelerator):
-                from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-                return (
-                    accelerator == "gpu"
-                    or isinstance(accelerator, CUDAAccelerator)
-                    or (accelerator == "auto" and CUDAAccelerator.is_available())
-                )
-
-            local_mode = distributed_config.num_nodes == 1
-            if local_mode:
-                num_tasks = 1
-                num_proc_per_task = distributed_config.devices
-            else:
-                num_tasks = distributed_config.devices * distributed_config.devices
-                num_proc_per_task = 1  # number of GPUs per task
-            num_proc = num_tasks * num_proc_per_task
-            use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
-            model = TorchDistributor(
-                num_processes=num_proc,
-                local_mode=local_mode,
-                use_gpu=use_gpu,
-            ).run(
-                train_fn,
-                model_cls=type(self),
-                model_params=self.hparams,
-                datamodule=datamodule,
-                trainer_kwargs=self.trainer_kwargs,
-                num_tasks=num_tasks,
-                num_proc_per_task=num_proc_per_task,
-                val_size=val_size,
-                test_size=test_size,
             )
         return model
 
@@ -365,14 +393,29 @@ class BaseModel(pl.LightningModule):
                     "ignoring optimizer_kwargs as the optimizer is not specified"
                 )
             optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = {
-            "scheduler": torch.optim.lr_scheduler.StepLR(
+
+        lr_scheduler = {"frequency": 1, "interval": "step"}
+        if self.lr_scheduler:
+            lr_scheduler_signature = inspect.signature(self.lr_scheduler)
+            lr_scheduler_kwargs = deepcopy(self.lr_scheduler_kwargs)
+            if "optimizer" in lr_scheduler_signature.parameters:
+                if "optimizer" in lr_scheduler_kwargs:
+                    warnings.warn(
+                        "ignoring optimizer passed in lr_scheduler_kwargs, using the model's optimizer"
+                    )
+                    del lr_scheduler_kwargs["optimizer"]
+            lr_scheduler["scheduler"] = self.lr_scheduler(
+                optimizer=optimizer, **lr_scheduler_kwargs
+            )
+        else:
+            if self.lr_scheduler_kwargs:
+                warnings.warn(
+                    "ignoring lr_scheduler_kwargs as the lr_scheduler is not specified"
+                )
+            lr_scheduler["scheduler"] = torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
-            ),
-            "frequency": 1,
-            "interval": "step",
-        }
-        return {"optimizer": optimizer, "lr_scheduler": scheduler}
+            )
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def set_configure_optimizers(
         self,
@@ -399,6 +442,7 @@ class BaseModel(pl.LightningModule):
             "strict": strict,
             "name": name,
         }
+
         if scheduler is not None and optimizer is not None:
             if not isinstance(scheduler, torch.optim.lr_scheduler.LRScheduler):
                 raise TypeError(
@@ -451,5 +495,8 @@ class BaseModel(pl.LightningModule):
             content = torch.load(f, **kwargs)
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])
-        model.load_state_dict(content["state_dict"], strict=True, assign=True)
+        if "assign" in inspect.signature(model.load_state_dict).parameters:
+            model.load_state_dict(content["state_dict"], strict=True, assign=True)
+        else:  # pytorch<2.1
+            model.load_state_dict(content["state_dict"], strict=True)
         return model
