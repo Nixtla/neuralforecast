@@ -67,6 +67,7 @@ from neuralforecast.models import (
     TimeMixer,
     KAN,
 )
+from .common._base_auto import BaseAuto, MockTrial
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -599,9 +600,20 @@ class NeuralForecast:
     def _get_needed_futr_exog(self):
         futr_exogs = []
         for m in self.models:
-            futr_exogs += getattr(m, "futr_exog_list", [])
-            if len(getattr(m, "config", {})):
-                futr_exogs += m.config.get("futr_exog_list", [])
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("futr_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("futr_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "futr_exog_list", [])
+
+            futr_exogs += exogs
+
         return set(futr_exogs)
 
     def _get_needed_exog(self):
@@ -609,9 +621,19 @@ class NeuralForecast:
 
         hist_exog = []
         for m in self.models:
-            hist_exog += getattr(m, "hist_exog_list", [])
-            if len(getattr(m, "config", {})):
-                hist_exog += m.config.get("hist_exog_list", [])
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("hist_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("hist_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "hist_exog_list", [])
+
+            hist_exog += exogs
 
         return futr_exog | set(hist_exog)
 
