@@ -11,9 +11,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LayerNorm
-
+import pandas as pd
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+import numpy as np
+import plotly.express as px
+import plotly.graph_objs as go
 
 # %% ../../nbs/models.tft.ipynb 10
 class MaybeLayerNorm(nn.Module):
@@ -245,7 +248,7 @@ class InterpretableMultiHeadAttention(nn.Module):
         out = self.out_proj(m_attn_vec)
         out = self.out_dropout(out)
 
-        return out, attn_vec
+        return out, attn_prob
 
 # %% ../../nbs/models.tft.ipynb 18
 class StaticCovariateEncoder(nn.Module):
@@ -269,9 +272,9 @@ class StaticCovariateEncoder(nn.Module):
         # enrichment context
         # state_c context
         # state_h context
-        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)
+        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)  # type: ignore
 
-        return cs, ce, ch, cc
+        return cs, ce, ch, cc, sparse_weights  # type: ignore
 
 # %% ../../nbs/models.tft.ipynb 20
 class TemporalCovariateEncoder(nn.Module):
@@ -298,10 +301,12 @@ class TemporalCovariateEncoder(nn.Module):
 
     def forward(self, historical_inputs, future_inputs, cs, ch, cc):
         # [N,X_in,L] -> [N,hidden_size,L]
-        historical_features, _ = self.history_vsn(historical_inputs, cs)
+        historical_features, history_vsn_sparse_weights = self.history_vsn(
+            historical_inputs, cs
+        )
         history, state = self.history_encoder(historical_features, (ch, cc))
 
-        future_features, _ = self.future_vsn(future_inputs, cs)
+        future_features, future_vsn_sparse_weights = self.future_vsn(future_inputs, cs)
         future, _ = self.future_encoder(future_features, state)
         # torch.cuda.synchronize() # this call gives prf boost for unknown reasons
 
@@ -310,7 +315,7 @@ class TemporalCovariateEncoder(nn.Module):
         temporal_features = self.input_gate(temporal_features)
         temporal_features = temporal_features + input_embedding
         temporal_features = self.input_gate_ln(temporal_features)
-        return temporal_features
+        return temporal_features, history_vsn_sparse_weights, future_vsn_sparse_weights
 
 # %% ../../nbs/models.tft.ipynb 22
 class TemporalFusionDecoder(nn.Module):
@@ -351,7 +356,7 @@ class TemporalFusionDecoder(nn.Module):
         enriched = self.enrichment_grn(temporal_features, c=ce)
 
         # Temporal self attention
-        x, _ = self.attention(enriched, mask_future_timesteps=True)
+        x, atten_vect = self.attention(enriched, mask_future_timesteps=True)
 
         # Don't compute historical quantiles
         x = x[:, self.encoder_length :, :]
@@ -371,9 +376,9 @@ class TemporalFusionDecoder(nn.Module):
         x = x + temporal_features
         x = self.decoder_ln(x)
 
-        return x
+        return x, atten_vect
 
-# %% ../../nbs/models.tft.ipynb 24
+# %% ../../nbs/models.tft.ipynb 23
 class TFT(BaseWindows):
     """TFT
 
@@ -463,7 +468,7 @@ class TFT(BaseWindows):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        **trainer_kwargs
+        **trainer_kwargs,
     ):
 
         # Inherit BaseWindows class
@@ -494,10 +499,11 @@ class TFT(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
         self.example_length = input_size + h
-
+        self.interpretability_params = dict([])  # type: ignore
+        self.tgt_size = tgt_size
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
 
@@ -560,7 +566,7 @@ class TFT(BaseWindows):
         # -------------------------------- Inputs ------------------------------#
         # Static context
         if s_inp is not None:
-            cs, ce, ch, cc = self.static_encoder(s_inp)
+            cs, ce, ch, cc, static_encoder_sparse_weights = self.static_encoder(s_inp)
             ch, cc = ch.unsqueeze(0), cc.unsqueeze(0)  # LSTM initial states
         else:
             # If None add zeros
@@ -573,6 +579,7 @@ class TFT(BaseWindows):
             cc = torch.zeros(
                 size=(1, batch_size, hidden_size), device=y_insample.device
             )
+            static_encoder_sparse_weights = []
 
         # Historical inputs
         _historical_inputs = [
@@ -588,7 +595,7 @@ class TFT(BaseWindows):
 
         # ---------------------------- Encode/Decode ---------------------------#
         # Embeddings + VSN + LSTM encoders
-        temporal_features = self.temporal_encoder(
+        temporal_features, history_vsn_wgts, future_vsn_wgts = self.temporal_encoder(
             historical_inputs=historical_inputs,
             future_inputs=future_inputs,
             cs=cs,
@@ -597,12 +604,381 @@ class TFT(BaseWindows):
         )
 
         # Static enrichment, Attention and decoders
-        temporal_features = self.temporal_fusion_decoder(
+        temporal_features, attn_wts = self.temporal_fusion_decoder(
             temporal_features=temporal_features, ce=ce
         )
+
+        # Store params
+        self.interpretability_params = {
+            "history_vsn_wgts": history_vsn_wgts,
+            "future_vsn_wgts": future_vsn_wgts,
+            "static_encoder_sparse_weights": static_encoder_sparse_weights,
+            "attn_wts": attn_wts,
+        }
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
         y_hat = self.loss.domain_map(y_hat)
 
         return y_hat
+
+    def mean_on_batch(self, tensor):
+        batch_size = tensor.size(0)
+        if batch_size > 1:
+            return tensor.mean(dim=0)
+        else:
+            return tensor.squeeze(0)
+
+    def feature_importances(self):
+        """
+        Compute the feature importances for historical, future, and static features.
+
+        Returns:
+            dict: A dictionary containing the feature importances for each feature type.
+                The keys are 'hist_vsn', 'future_vsn', and 'static_vsn', and the values
+                are pandas DataFrames with the corresponding feature importances.
+        """
+        if not self.interpretability_params:
+            raise ValueError(
+                "No interpretability_params. Make a prediction using the model to generate them."
+            )
+
+        importances = {}
+
+        # Historical feature importances
+        hist_vsn_wgts = self.interpretability_params.get("history_vsn_wgts")
+        hist_exog_list = list(self.hist_exog_list) + list(self.futr_exog_list)
+        hist_exog_list += (
+            [f"observed_target_{i+1}" for i in range(self.tgt_size)]
+            if self.tgt_size > 1
+            else ["observed_target"]
+        )
+
+        hist_vsn_imp = pd.DataFrame(
+            self.mean_on_batch(hist_vsn_wgts).cpu().numpy(), columns=hist_exog_list
+        )
+        importances["Past covariates"] = hist_vsn_imp
+
+        # Future feature importances
+        if len(self.futr_exog_list) > 0:
+            future_vsn_wgts = self.interpretability_params.get("future_vsn_wgts")
+            future_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(future_vsn_wgts).cpu().numpy(),
+                columns=self.futr_exog_list,
+            )
+            importances["Future covariates"] = future_vsn_imp
+
+        # Static feature importances
+        if len(self.stat_exog_list) > 0:
+            static_encoder_sparse_weights = self.interpretability_params.get(
+                "static_encoder_sparse_weights"
+            )
+
+            static_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(static_encoder_sparse_weights).cpu().numpy(),
+                index=self.stat_exog_list,
+                columns=["importance"],
+            )
+            importances["Static covariates"] = static_vsn_imp.sort_values(
+                by="importance"
+            )
+
+        return importances
+
+    def plot_feature_importances(
+        self,
+        output: str = "plot",
+        log: bool = False,
+        width: int = 800,
+        height: int = 400,
+    ):
+        """
+        Plot the feature importances for historical, future, and static features.
+
+        Parameters:
+        - output (str, optional): The type of output to generate. Can be one of the following:
+            - 'plot': Display the plots directly.
+            - 'figure': Return the plots as a dictionary of figure objects.
+        - log (bool, optional): Whether to apply logarithmic scaling to the feature importances. Default is False.
+        - width (int, optional): Width of the plot. Default is 800.
+        - height (int, optional): Height of the plot. Default is 400.
+
+        Returns:
+        - dict: A dictionary containing the plot figures if `output` is 'figure'.
+
+        Raises:
+        - ValueError: If `output` is not one of the expected values.
+        """
+
+        importances = self.feature_importances()
+        figures = {}
+        for k, df in importances.items():
+            df *= 100
+            if df.shape[1] > 1:
+                mean_df = df.mean(axis=0).sort_values()
+                mean_df = mean_df.apply(np.log) if log else mean_df
+                fig = px.bar(mean_df, orientation="h", width=width, height=height)
+                fig.update_layout(
+                    title=k + " importances",
+                    xaxis_title="Variable importance in %",
+                    yaxis_title="Variable",
+                    showlegend=False,
+                )
+                figures[k] = fig
+
+            else:
+                df = df.apply(np.log) if log else df
+                fig = px.bar(df, orientation="h", width=width, height=height)
+                fig.update_layout(
+                    title=k,
+                    xaxis_title=" Importance",
+                    yaxis_title="Variable",
+                    showlegend=False,
+                )
+                figures[k] = fig
+
+        if output == "plot":
+            for fig in figures.values():
+                fig.show()
+        elif output == "figure":
+            return figures
+        else:
+            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
+
+    def plot_attention(
+        self,
+        plot: str = "time",
+        output: str = "plot",
+        width: int = 800,
+        height: int = 400,
+    ):
+        """
+        Plot the attention weights.
+
+        Args:
+            plot (str, optional): The type of plot to generate. Can be one of the following:
+                - 'time': Display the mean attention weights over time.
+                - 'all': Display the attention weights for each horizon.
+                - 'heatmap': Display the attention weights as a heatmap.
+                - An integer in the range [1, model.h) to display the attention weights for a specific horizon.
+            output (str, optional): The type of output to generate. Can be one of the following:
+                - 'plot': Display the plot directly.
+                - 'figure': Return the plot as a figure object.
+            width (int, optional): Width of the plot. Default is 800.
+            height (int, optional): Height of the plot. Default is 400.
+
+        Returns:
+            plotly.graph_objs.Figure: If `output` is 'figure', the function returns the plot as a figure object.
+        """
+
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )
+
+        if plot == "time":
+            attention = attention[self.input_size :, :].mean(axis=0)
+            fig = px.line(x=np.arange(-self.input_size, self.h), y=attention)
+            fig.add_vline(
+                x=0,
+                line_width=3,
+                line_dash="dash",
+                line_color="black",
+                name="prediction start",
+            )
+            fig.update_layout(
+                title="Mean Attention",
+                yaxis_title="Attention",
+                xaxis_title="time",
+                width=width,
+                height=height,
+            )
+
+        elif plot == "all":
+            fig = go.Figure()
+            for i in range(self.input_size, attention.shape[0]):
+                fig.add_trace(
+                    go.Scatter(
+                        x=np.arange(-self.input_size, self.h),
+                        y=attention[i, :],
+                        name=f"horizon {i-self.input_size+1}",
+                    )
+                )
+            fig.add_vline(
+                x=0,
+                line_width=3,
+                line_dash="dash",
+                line_color="black",
+                name="prediction start",
+            )
+            fig.update_layout(
+                title="Attention per horizon",
+                yaxis_title="Attention",
+                xaxis_title="time",
+                width=width,
+                height=height,
+            )
+
+        elif plot == "heatmap":
+            fig = go.Figure(
+                data=go.Heatmap(
+                    z=attention,
+                    x=np.arange(-self.input_size, self.h),
+                    y=np.arange(-self.input_size, self.h),
+                    colorscale="Viridis",
+                )
+            )
+            fig.update_layout(
+                title="Attention Heatmap",
+                yaxis_title="Attention (previous time step)",
+                xaxis_title="Attention (current time step)",
+                width=width,
+                height=height,
+            )
+
+        elif isinstance(plot, int) and (plot in np.arange(1, self.h + 1)):
+            i = self.input_size + plot - 1
+            fig = go.Figure()
+            fig.add_trace(
+                go.Scatter(
+                    x=np.arange(-self.input_size, self.h),
+                    y=attention[i, :],
+                    name=f"horizon {plot}",
+                )
+            )
+            fig.add_vline(
+                x=0,
+                line_width=3,
+                line_dash="dash",
+                line_color="black",
+                name="prediction start",
+            )
+            fig.update_layout(
+                title=f"Attention weight for horizon {plot}",
+                yaxis_title="Attention",
+                xaxis_title="time",
+                width=width,
+                height=height,
+            )
+        else:
+            raise ValueError(
+                'plot has to be in ["time","all","heatmap"] or integer in range(1,model.h)'
+            )
+        if output == "plot":
+            fig.show()
+        elif output == "figure":
+            return fig
+        else:
+            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
+
+    def feature_importance_correlations(self):
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )[self.input_size :, :].mean(axis=0)
+        p_c = self.feature_importances()["Past covariates"]
+        p_c["Correlation with Mean Attention"] = attention[: self.input_size]
+        return p_c.corr(method="spearman").round(2)
+
+    def plot_variable_importance_over_time(
+        self, output: str = "plot", width: int = 800, height: int = 400
+    ):
+        """
+        Plot the past variable importance over time and the past variable importance ponderated by attention.
+
+        Parameters:
+        - output (str, optional): The type of output to generate. Can be one of the following:
+            - 'plot': Display the plot directly.
+            - 'figure': Return the plot as a figure object.
+        - width (int, optional): Width of the plot. Default is 800.
+        - height (int, optional): Height of the plot. Default is 400.
+
+        Returns:
+        - If `output` is 'plot', the function displays the plots directly.
+        - If `output` is 'figure', the function returns a dictionary containing the plot figures.
+
+        Raises:
+        - ValueError: If `output` is not one of the expected values.
+        """
+
+        figures = {}
+
+        # Past variable importance over time
+        df = self.feature_importances()["Past covariates"]
+        df = df.set_index(np.arange(-len(df), 0))
+        fig = px.bar(df, width=width, height=height)
+        fig.update_layout(
+            title="Past variable importance over time",
+            yaxis_title=" Importance in %",
+            xaxis_title="time",
+        )
+        figures["Past variable importance over time"] = fig
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )[self.input_size :, :].mean(axis=0)
+
+        # Past variable importance ponderated by attention
+        df = df.multiply(attention[: self.input_size], axis=0)
+        fig = px.bar(df, width=width, height=height)
+        fig.update_layout(
+            yaxis_title=" Importance in %",
+            xaxis_title="time",
+            title="Past variable importance ponderated by attention",
+        )
+        figures["Past variable importance ponderated by attention"] = fig
+
+        # Future variable importance
+        df = self.feature_importances()["Future covariates"]
+        fig = px.bar(df, width=width, height=height)
+        fig.update_layout(
+            title="Future variable importance",
+            yaxis_title="Importance in %",
+            xaxis_title="Variable",
+        )
+        figures["Future variable importance"] = fig
+
+        if output == "plot":
+            for fig in figures.values():
+                fig.show()
+        elif output == "figure":
+            return figures
+        else:
+            raise ValueError('Invalid output type. Choose between "plot" or "figures".')
+
+    def interpretability_plots(self, output: str = "plot"):
+        """
+        Generate and display interpretability plots for the TFT model.
+
+        Parameters:
+        - output (str, optional): The type of output to generate. Can be one of the following:
+            - 'plot': Display the plots directly.
+            - 'figure': Return the plots as a dictionary of figure objects.
+
+        Returns:
+        - dict: A dictionary containing the plot figures if `output` is 'figure'.
+
+        Raises:
+        - ValueError: If `output` is not one of the expected values.
+        """
+        figures = {}
+        figures["Mean Attention"] = self.plot_attention(plot="time", output="figure")
+        figures["Attention per horizeon"] = self.plot_attention(
+            plot="all", output="figure"
+        )
+        figures.update(self.plot_feature_importances(output="figure"))
+        figures.update(self.plot_variable_importance_over_time(output="figure"))
+
+        if output == "plot":
+            for fig in figures.values():
+                fig.show()
+        elif output == "figure":
+            return figures
+        else:
+            raise ValueError('Invalid output type. Choose between "plot" or "figure".')
