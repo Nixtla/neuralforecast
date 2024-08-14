@@ -612,7 +612,11 @@ class NeuralForecast:
             else:  # regular model, extract them directly
                 exogs = getattr(m, "futr_exog_list", [])
 
-            futr_exogs += exogs
+            for exog in exogs:
+                if isinstance(exog, str):
+                    futr_exogs.append(exog)
+                else:
+                    futr_exogs.extend(exog)
 
         return set(futr_exogs)
 
@@ -633,7 +637,11 @@ class NeuralForecast:
             else:  # regular model, extract them directly
                 exogs = getattr(m, "hist_exog_list", [])
 
-            hist_exog += exogs
+            for exog in exogs:
+                if isinstance(exog, str):
+                    hist_exog.append(exog)
+                else:
+                    hist_exog.extend(exog)
 
         return futr_exog | set(hist_exog)
 
