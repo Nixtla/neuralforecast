@@ -14,7 +14,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L217"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L218"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -40,7 +40,7 @@ columns. The `y` column denotes the target time series variable.*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L425"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L426"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -80,7 +80,7 @@ store fitted models for later inspection.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L737"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L774"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -117,7 +117,7 @@ DataFrame `df`.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1038"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1075"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -167,7 +167,7 @@ rolled manner.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1195"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1232"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -189,7 +189,7 @@ to predict historic values of a time series from the stored dataframe.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1320"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1357"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -226,7 +226,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1426"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1463"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -276,6 +276,22 @@ for step_size, test_size in [(7, 0), (9, 0), (7, 5), (9, 5)]:
     # check forecast-points count per series
     cutoffs_by_series = forecasts.groupby(['unique_id', 'cutoff']).size().unstack('unique_id')
     pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
+```
+
+
+```python
+def config_optuna(trial):
+    return {"input_size": trial.suggest_categorical('input_size', [12, 24]),
+        "hist_exog_list": trial.suggest_categorical('hist_exog_list', [['trend'], ['y_[lag12]'], ['trend', 'y_[lag12]']]),
+        "futr_exog_list": ['trend'],
+        "max_steps": 10,
+        "val_check_steps": 5}
+
+config_ray = {'input_size': tune.choice([12, 24]), 
+          'hist_exog_list': tune.choice([['trend'], ['y_[lag12]'], ['trend', 'y_[lag12]']]),
+          'futr_exog_list': ['trend'],
+          'max_steps': 10,
+          'val_check_steps': 5}
 ```
 
 
