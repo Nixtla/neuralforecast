@@ -510,11 +510,12 @@ class TFT(BaseWindows):
             tgt_size=tgt_size,
         )
 
-        self.static_encoder = StaticCovariateEncoder(
-            hidden_size=hidden_size,
-            num_static_vars=self.stat_exog_size,
-            dropout=dropout,
-        )
+        if self.stat_exog_size > 0:
+            self.static_encoder = StaticCovariateEncoder(
+                hidden_size=hidden_size,
+                num_static_vars=self.stat_exog_size,
+                dropout=dropout,
+            )
 
         self.temporal_encoder = TemporalCovariateEncoder(
             hidden_size=hidden_size,
