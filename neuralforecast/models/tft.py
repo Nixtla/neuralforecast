@@ -14,9 +14,6 @@ from torch.nn import LayerNorm
 import pandas as pd
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
-import numpy as np
-import plotly.express as px
-import plotly.graph_objs as go
 
 # %% ../../nbs/models.tft.ipynb 10
 class MaybeLayerNorm(nn.Module):
@@ -657,7 +654,8 @@ class TFT(BaseWindows):
         hist_vsn_imp = pd.DataFrame(
             self.mean_on_batch(hist_vsn_wgts).cpu().numpy(), columns=hist_exog_list
         )
-        importances["Past covariates"] = hist_vsn_imp
+        importances["Past variable importance over time"] = hist_vsn_imp
+        #  importances["Past variable importance"] = hist_vsn_imp.mean(axis=0).sort_values()
 
         # Future feature importances
         if len(self.futr_exog_list) > 0:
@@ -666,7 +664,8 @@ class TFT(BaseWindows):
                 self.mean_on_batch(future_vsn_wgts).cpu().numpy(),
                 columns=self.futr_exog_list,
             )
-            importances["Future covariates"] = future_vsn_imp
+            importances["Future variable importance over time"] = future_vsn_imp
+        #   importances["Future variable importance"] = future_vsn_imp.mean(axis=0).sort_values()
 
         # Static feature importances
         if len(self.stat_exog_list) > 0:
@@ -685,90 +684,13 @@ class TFT(BaseWindows):
 
         return importances
 
-    def plot_feature_importances(
-        self,
-        output: str = "plot",
-        log: bool = False,
-        width: int = 800,
-        height: int = 400,
-    ):
+    def attention_weights(self):
         """
-        Plot the feature importances for historical, future, and static features.
-
-        Parameters:
-        - output (str, optional): The type of output to generate. Can be one of the following:
-            - 'plot': Display the plots directly.
-            - 'figure': Return the plots as a dictionary of figure objects.
-        - log (bool, optional): Whether to apply logarithmic scaling to the feature importances. Default is False.
-        - width (int, optional): Width of the plot. Default is 800.
-        - height (int, optional): Height of the plot. Default is 400.
+        Batch average attention weights
 
         Returns:
-        - dict: A dictionary containing the plot figures if `output` is 'figure'.
+        np.ndarray: A 1D array containing the attention weights for each time step.
 
-        Raises:
-        - ValueError: If `output` is not one of the expected values.
-        """
-
-        importances = self.feature_importances()
-        figures = {}
-        for k, df in importances.items():
-            df *= 100
-            if df.shape[1] > 1:
-                mean_df = df.mean(axis=0).sort_values()
-                mean_df = mean_df.apply(np.log) if log else mean_df
-                fig = px.bar(mean_df, orientation="h", width=width, height=height)
-                fig.update_layout(
-                    title=k + " importances",
-                    xaxis_title="Variable importance in %",
-                    yaxis_title="Variable",
-                    showlegend=False,
-                )
-                figures[k] = fig
-
-            else:
-                df = df.apply(np.log) if log else df
-                fig = px.bar(df, orientation="h", width=width, height=height)
-                fig.update_layout(
-                    title=k,
-                    xaxis_title=" Importance",
-                    yaxis_title="Variable",
-                    showlegend=False,
-                )
-                figures[k] = fig
-
-        if output == "plot":
-            for fig in figures.values():
-                fig.show()
-        elif output == "figure":
-            return figures
-        else:
-            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
-
-    def plot_attention(
-        self,
-        plot: str = "time",
-        output: str = "plot",
-        width: int = 800,
-        height: int = 400,
-    ):
-        """
-        Plot the attention weights.
-
-        Args:
-            plot (str, optional): The type of plot to generate. Can be one of the following:
-                - 'time': Display the mean attention weights over time.
-                - 'all': Display the attention weights for each horizon.
-                - 'heatmap': Display the attention weights as a heatmap.
-                - An integer in the range [1, model.h) to display the attention weights for a specific horizon.
-            output (str, optional): The type of output to generate. Can be one of the following:
-                - 'plot': Display the plot directly.
-                - 'figure': Return the plot as a figure object.
-            width (int, optional): Width of the plot. Default is 800.
-            height (int, optional): Height of the plot. Default is 400.
-
-        Returns:
-            plotly.graph_objs.Figure: If `output` is 'figure', the function returns the plot as a figure object.
         """
 
         attention = (
@@ -778,207 +700,16 @@ class TFT(BaseWindows):
             .numpy()
         )
 
-        if plot == "time":
-            attention = attention[self.input_size :, :].mean(axis=0)
-            fig = px.line(x=np.arange(-self.input_size, self.h), y=attention)
-            fig.add_vline(
-                x=0,
-                line_width=3,
-                line_dash="dash",
-                line_color="black",
-                name="prediction start",
-            )
-            fig.update_layout(
-                title="Mean Attention",
-                yaxis_title="Attention",
-                xaxis_title="time",
-                width=width,
-                height=height,
-            )
+        return attention
 
-        elif plot == "all":
-            fig = go.Figure()
-            for i in range(self.input_size, attention.shape[0]):
-                fig.add_trace(
-                    go.Scatter(
-                        x=np.arange(-self.input_size, self.h),
-                        y=attention[i, :],
-                        name=f"horizon {i-self.input_size+1}",
-                    )
-                )
-            fig.add_vline(
-                x=0,
-                line_width=3,
-                line_dash="dash",
-                line_color="black",
-                name="prediction start",
-            )
-            fig.update_layout(
-                title="Attention per horizon",
-                yaxis_title="Attention",
-                xaxis_title="time",
-                width=width,
-                height=height,
-            )
+    def feature_importance_correlations(self) -> pd.DataFrame:
+        """
+        Compute the correlation between the past and future feature importances and the mean attention weights.
 
-        elif plot == "heatmap":
-            fig = go.Figure(
-                data=go.Heatmap(
-                    z=attention,
-                    x=np.arange(-self.input_size, self.h),
-                    y=np.arange(-self.input_size, self.h),
-                    colorscale="Viridis",
-                )
-            )
-            fig.update_layout(
-                title="Attention Heatmap",
-                yaxis_title="Attention (previous time step)",
-                xaxis_title="Attention (current time step)",
-                width=width,
-                height=height,
-            )
-
-        elif isinstance(plot, int) and (plot in np.arange(1, self.h + 1)):
-            i = self.input_size + plot - 1
-            fig = go.Figure()
-            fig.add_trace(
-                go.Scatter(
-                    x=np.arange(-self.input_size, self.h),
-                    y=attention[i, :],
-                    name=f"horizon {plot}",
-                )
-            )
-            fig.add_vline(
-                x=0,
-                line_width=3,
-                line_dash="dash",
-                line_color="black",
-                name="prediction start",
-            )
-            fig.update_layout(
-                title=f"Attention weight for horizon {plot}",
-                yaxis_title="Attention",
-                xaxis_title="time",
-                width=width,
-                height=height,
-            )
-        else:
-            raise ValueError(
-                'plot has to be in ["time","all","heatmap"] or integer in range(1,model.h)'
-            )
-        if output == "plot":
-            fig.show()
-        elif output == "figure":
-            return fig
-        else:
-            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
-
-    def feature_importance_correlations(self):
-        attention = (
-            self.mean_on_batch(self.interpretability_params["attn_wts"])
-            .mean(dim=0)
-            .cpu()
-            .numpy()
-        )[self.input_size :, :].mean(axis=0)
-        p_c = self.feature_importances()["Past covariates"]
+        Returns:
+        pd.DataFrame: A DataFrame containing the correlation coefficients between the past feature importances and the mean attention weights.
+        """
+        attention = self.attention_weights()[self.input_size :, :].mean(axis=0)
+        p_c = self.feature_importances()["Past variable importance over time"]
         p_c["Correlation with Mean Attention"] = attention[: self.input_size]
         return p_c.corr(method="spearman").round(2)
-
-    def plot_variable_importance_over_time(
-        self, output: str = "plot", width: int = 800, height: int = 400
-    ):
-        """
-        Plot the past variable importance over time and the past variable importance ponderated by attention.
-
-        Parameters:
-        - output (str, optional): The type of output to generate. Can be one of the following:
-            - 'plot': Display the plot directly.
-            - 'figure': Return the plot as a figure object.
-        - width (int, optional): Width of the plot. Default is 800.
-        - height (int, optional): Height of the plot. Default is 400.
-
-        Returns:
-        - If `output` is 'plot', the function displays the plots directly.
-        - If `output` is 'figure', the function returns a dictionary containing the plot figures.
-
-        Raises:
-        - ValueError: If `output` is not one of the expected values.
-        """
-
-        figures = {}
-
-        # Past variable importance over time
-        df = self.feature_importances()["Past covariates"]
-        df = df.set_index(np.arange(-len(df), 0))
-        fig = px.bar(df, width=width, height=height)
-        fig.update_layout(
-            title="Past variable importance over time",
-            yaxis_title=" Importance in %",
-            xaxis_title="time",
-        )
-        figures["Past variable importance over time"] = fig
-        attention = (
-            self.mean_on_batch(self.interpretability_params["attn_wts"])
-            .mean(dim=0)
-            .cpu()
-            .numpy()
-        )[self.input_size :, :].mean(axis=0)
-
-        # Past variable importance ponderated by attention
-        df = df.multiply(attention[: self.input_size], axis=0)
-        fig = px.bar(df, width=width, height=height)
-        fig.update_layout(
-            yaxis_title=" Importance in %",
-            xaxis_title="time",
-            title="Past variable importance ponderated by attention",
-        )
-        figures["Past variable importance ponderated by attention"] = fig
-
-        # Future variable importance
-        df = self.feature_importances()["Future covariates"]
-        fig = px.bar(df, width=width, height=height)
-        fig.update_layout(
-            title="Future variable importance",
-            yaxis_title="Importance in %",
-            xaxis_title="Variable",
-        )
-        figures["Future variable importance"] = fig
-
-        if output == "plot":
-            for fig in figures.values():
-                fig.show()
-        elif output == "figure":
-            return figures
-        else:
-            raise ValueError('Invalid output type. Choose between "plot" or "figures".')
-
-    def interpretability_plots(self, output: str = "plot"):
-        """
-        Generate and display interpretability plots for the TFT model.
-
-        Parameters:
-        - output (str, optional): The type of output to generate. Can be one of the following:
-            - 'plot': Display the plots directly.
-            - 'figure': Return the plots as a dictionary of figure objects.
-
-        Returns:
-        - dict: A dictionary containing the plot figures if `output` is 'figure'.
-
-        Raises:
-        - ValueError: If `output` is not one of the expected values.
-        """
-        figures = {}
-        figures["Mean Attention"] = self.plot_attention(plot="time", output="figure")
-        figures["Attention per horizeon"] = self.plot_attention(
-            plot="all", output="figure"
-        )
-        figures.update(self.plot_feature_importances(output="figure"))
-        figures.update(self.plot_variable_importance_over_time(output="figure"))
-
-        if output == "plot":
-            for fig in figures.values():
-                fig.show()
-        elif output == "figure":
-            return figures
-        else:
-            raise ValueError('Invalid output type. Choose between "plot" or "figure".')
