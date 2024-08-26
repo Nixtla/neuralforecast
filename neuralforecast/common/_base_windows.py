@@ -41,6 +41,7 @@ class BaseWindows(BaseModel):
         windows_batch_size,
         inference_windows_batch_size,
         start_padding_enabled,
+        data_availability_threshold=0.0,
         step_size=1,
         num_lr_decays=0,
         early_stop_patience_steps=-1,
@@ -87,6 +88,7 @@ class BaseWindows(BaseModel):
             )
         else:
             self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.data_availability_threshold = data_availability_threshold
 
         # Batch sizes
         self.batch_size = batch_size
@@ -164,15 +166,22 @@ class BaseWindows(BaseModel):
             available_idx = temporal_cols.get_loc("available_mask")
             available_condition = windows[:, : self.input_size, available_idx]
             available_condition = torch.sum(available_condition, axis=1)
-            final_condition = available_condition > 0
+            final_condition = (
+                available_condition > self.data_availability_threshold * self.input_size
+            )
             if self.h > 0:
                 sample_condition = windows[:, self.input_size :, available_idx]
                 sample_condition = torch.sum(sample_condition, axis=1)
-                final_condition = (sample_condition > 0) & (available_condition > 0)
+                final_condition = (
+                    sample_condition > self.data_availability_threshold * self.h
+                ) & (
+                    available_condition
+                    > self.data_availability_threshold * self.input_size
+                )
             windows = windows[final_condition]
 
             # Parse Static data to match windows
-            # [B, S_in] -> [B, Ws, S_in] -> [B*Ws, S_in]
+            # [B, S_in] -> [B, Ws, S_in] -> self.data_availability_threshold * self.h) & (available_condition > self.data_availability_threshold * self.input_size[B*Ws, S_in]
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
             if static is not None:
