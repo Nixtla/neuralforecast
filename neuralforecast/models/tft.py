@@ -513,11 +513,12 @@ class TFT(BaseWindows):
             tgt_size=tgt_size,
         )
 
-        self.static_encoder = StaticCovariateEncoder(
-            hidden_size=hidden_size,
-            num_static_vars=self.stat_exog_size,
-            dropout=dropout,
-        )
+        if self.stat_exog_size > 0:
+            self.static_encoder = StaticCovariateEncoder(
+                hidden_size=hidden_size,
+                num_static_vars=self.stat_exog_size,
+                dropout=dropout,
+            )
 
         self.temporal_encoder = TemporalCovariateEncoder(
             hidden_size=hidden_size,
@@ -658,7 +659,7 @@ class TFT(BaseWindows):
         #  importances["Past variable importance"] = hist_vsn_imp.mean(axis=0).sort_values()
 
         # Future feature importances
-        if len(self.futr_exog_list) > 0:
+        if self.futr_exog_size > 0:
             future_vsn_wgts = self.interpretability_params.get("future_vsn_wgts")
             future_vsn_imp = pd.DataFrame(
                 self.mean_on_batch(future_vsn_wgts).cpu().numpy(),
@@ -668,7 +669,7 @@ class TFT(BaseWindows):
         #   importances["Future variable importance"] = future_vsn_imp.mean(axis=0).sort_values()
 
         # Static feature importances
-        if len(self.stat_exog_list) > 0:
+        if self.stat_exog_size > 0:
             static_encoder_sparse_weights = self.interpretability_params.get(
                 "static_encoder_sparse_weights"
             )
