@@ -134,12 +134,10 @@ information.
 The TemporalFusionDecoder enriches the LSTM’s outputs with $c_{e}$ and
 then uses an attention layer, and multi-step adapter.
 
-## 3. TFT methods
-
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L377"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L379"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT
@@ -222,6 +220,8 @@ Pfister, “Temporal Fusion Transformers for interpretable multi-horizon
 time series
 forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)\*
 
+## 3. TFT methods
+
 ------------------------------------------------------------------------
 
 ### TFT.fit
@@ -281,17 +281,91 @@ overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
 TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L630"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TFT.feature_importances,
+
+> ``` text
+>  TFT.feature_importances, ()
+> ```
+
+\*Compute the feature importances for historical, future, and static
+features.
+
+Returns: dict: A dictionary containing the feature importances for each
+feature type. The keys are ‘hist_vsn’, ‘future_vsn’, and ‘static_vsn’,
+and the values are pandas DataFrames with the corresponding feature
+importances.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L688"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TFT.attention_weights
+
+> ``` text
+>  TFT.attention_weights ()
+> ```
+
+\*Batch average attention weights
+
+Returns: np.ndarray: A 1D array containing the attention weights for
+each time step.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L688"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TFT.attention_weights
+
+> ``` text
+>  TFT.attention_weights ()
+> ```
+
+\*Batch average attention weights
+
+Returns: np.ndarray: A 1D array containing the attention weights for
+each time step.\*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L706"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TFT.feature_importance_correlations
+
+> ``` text
+>  TFT.feature_importance_correlations ()
+> ```
+
+\*Compute the correlation between the past and future feature
+importances and the mean attention weights.
+
+Returns: pd.DataFrame: A DataFrame containing the correlation
+coefficients between the past feature importances and the mean attention
+weights.\*
+
 ## Usage Example
 
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import numpy as np
 from neuralforecast import NeuralForecast
-from neuralforecast.models import TFT
+#from neuralforecast.models import TFT
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
+AirPassengersPanel['month']=AirPassengersPanel.ds.dt.month
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
@@ -301,9 +375,9 @@ nf = NeuralForecast(
                 loss=DistributionLoss(distribution='StudentT', level=[80, 90]),
                 learning_rate=0.005,
                 stat_exog_list=['airline1'],
-                #futr_exog_list=['y_[lag12]'],
+                futr_exog_list=['y_[lag12]','month'],
                 hist_exog_list=['trend'],
-                max_steps=500,
+                max_steps=300,
                 val_check_steps=10,
                 early_stop_patience_steps=10,
                 scaler_type='robust',
@@ -332,4 +406,331 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
+
+``` text
+Seed set to 1
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-9-output-22.png)
+
+# Interpretability
+
+## 1. Attention Weights
+
+```python
+attention = nf.models[0].attention_weights()
+```
+
+
+```python
+def plot_attention(self, plot:str="time", output:str='plot', width:int=800, height:int=400):
+        """
+        Plot the attention weights.
+
+        Args:
+            plot (str, optional): The type of plot to generate. Can be one of the following:
+                - 'time': Display the mean attention weights over time.
+                - 'all': Display the attention weights for each horizon.
+                - 'heatmap': Display the attention weights as a heatmap.
+                - An integer in the range [1, model.h) to display the attention weights for a specific horizon.
+            output (str, optional): The type of output to generate. Can be one of the following:
+                - 'plot': Display the plot directly.
+                - 'figure': Return the plot as a figure object.
+            width (int, optional): Width of the plot in pixels. Default is 800.
+            height (int, optional): Height of the plot in pixels. Default is 400.
+
+        Returns:
+            matplotlib.figure.Figure: If `output` is 'figure', the function returns the plot as a figure object.
+        """
+
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )
+
+        fig, ax = plt.subplots(figsize=(width / 100, height / 100))
+
+        if plot == "time":
+            attention = attention[self.input_size:, :].mean(axis=0)
+            ax.plot(np.arange(-self.input_size, self.h), attention)
+            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
+            ax.set_title("Mean Attention")
+            ax.set_xlabel("time")
+            ax.set_ylabel("Attention")
+            ax.legend()
+
+        elif plot == "all":
+            for i in range(self.input_size, attention.shape[0]):
+                ax.plot(np.arange(-self.input_size, self.h), attention[i, :], label=f"horizon {i-self.input_size+1}")
+            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
+            ax.set_title("Attention per horizon")
+            ax.set_xlabel("time")
+            ax.set_ylabel("Attention")
+            ax.legend()
+
+        elif plot == "heatmap":
+            cax = ax.imshow(attention, aspect='auto', cmap='viridis',
+                            extent=[-self.input_size, self.h, -self.input_size, self.h])
+            fig.colorbar(cax)
+            ax.set_title("Attention Heatmap")
+            ax.set_xlabel("Attention (current time step)")
+            ax.set_ylabel("Attention (previous time step)")
+
+        elif isinstance(plot, int) and (plot in np.arange(1, self.h + 1)):
+            i = self.input_size + plot - 1
+            ax.plot(np.arange(-self.input_size, self.h), attention[i, :], label=f"horizon {plot}")
+            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
+            ax.set_title(f"Attention weight for horizon {plot}")
+            ax.set_xlabel("time")
+            ax.set_ylabel("Attention")
+            ax.legend()
+
+        else:
+            raise ValueError('plot has to be in ["time","all","heatmap"] or integer in range(1,model.h)')
+
+        plt.tight_layout()
+
+        if output == 'plot':
+            plt.show()
+        elif output == 'figure':
+            return fig
+        else:
+            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
+```
+
+#### 1.1 Mean attention
+
+```python
+plot_attention(nf.models[0], plot="time")
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-12-output-1.png)
+
+#### 1.2 Attention of all future time steps
+
+```python
+plot_attention(nf.models[0], plot="all")
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-13-output-1.png)
+
+#### 1.3 Attention of a specific future time step
+
+```python
+plot_attention(nf.models[0], plot=8)
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-14-output-1.png)
+
+## 2. Feature Importance
+
+### 2.1 Global feature importance
+
+```python
+feature_importances = nf.models[0].feature_importances()
+feature_importances.keys()
+```
+
+``` text
+dict_keys(['Past variable importance over time', 'Future variable importance over time', 'Static covariates'])
+```
+
+#### Static variable importances
+
+```python
+feature_importances['Static covariates'].sort_values(by='importance').plot(kind='barh')
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-16-output-1.png)
+
+#### Past variable importances
+
+```python
+feature_importances['Past variable importance over time'].mean().sort_values().plot(kind='barh')
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-17-output-1.png)
+
+#### Future variable importances
+
+```python
+feature_importances['Future variable importance over time'].mean().sort_values().plot(kind='barh')
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-18-output-1.png)
+
+### 2.2 Variable importances over time
+
+#### Future variable importance over time
+
+Importance of each future covariate at each future time step
+
+```python
+df=feature_importances['Future variable importance over time']
+
+
+fig, ax = plt.subplots(figsize=(20, 10))
+bottom = np.zeros(len(df.index))
+for col in df.columns:
+    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    bottom += df[col]
+ax.set_title('Future variable importance over time ponderated by attention')
+ax.set_ylabel("Importance")
+ax.set_xlabel("Time")
+ax.grid(True)
+ax.legend()
+plt.show()
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-19-output-1.png)
+
+2.3
+
+#### Past variable importance over time
+
+```python
+df= feature_importances['Past variable importance over time']
+
+fig, ax = plt.subplots(figsize=(20, 10))
+bottom = np.zeros(len(df.index))
+
+for col in df.columns:
+    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    bottom += df[col]
+ax.set_title('Past variable importance over time')
+ax.set_ylabel("Importance")
+ax.set_xlabel("Time")
+ax.legend()
+ax.grid(True)
+
+plt.show()
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-20-output-1.png)
+
+#### Past variable importance over time ponderated by attention
+
+Decomposition of the importance of each time step based on importance of
+each variable at that time step
+
+```python
+df= feature_importances['Past variable importance over time']
+mean_attention = nf.models[0].attention_weights()[nf.models[0].input_size:,:].mean(axis=0)[:nf.models[0].input_size]
+df = df.multiply(mean_attention, axis=0)
+
+fig, ax = plt.subplots(figsize=(20, 10))
+bottom = np.zeros(len(df.index))
+
+for col in df.columns:
+    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    bottom += df[col]
+ax.set_title('Past variable importance over time ponderated by attention')
+ax.set_ylabel("Importance")
+ax.set_xlabel("Time")
+ax.legend()
+ax.grid(True)
+plt.plot(np.arange(-len(df),0), mean_attention, color='black', marker='o', linestyle='-', linewidth=2, label='mean_attention')
+plt.legend()
+plt.show()
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-21-output-1.png)
+
+### 3. Variable importance correlations over time
+
+Variables which gain and lose importance at same moments
+
+```python
+nf.models[0].feature_importance_correlations()
+```
+
+|  | trend | y\_\[lag12\] | month | observed_target | Correlation with Mean Attention |
+|----|----|----|----|----|----|
+| trend | 1.00 | -0.39 | -0.93 | 0.27 | 0.60 |
+| y\_\[lag12\] | -0.39 | 1.00 | 0.37 | -0.93 | -0.76 |
+| month | -0.93 | 0.37 | 1.00 | -0.37 | -0.66 |
+| observed_target | 0.27 | -0.93 | -0.37 | 1.00 | 0.77 |
+| Correlation with Mean Attention | 0.60 | -0.76 | -0.66 | 0.77 | 1.00 |
 
