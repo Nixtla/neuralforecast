@@ -446,3 +446,51 @@ def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
     if missing:
         raise ValueError(f"The following values are missing from the index: {missing}")
     return idxs
+
+
+def calculate_output_length_1d(
+    input_length: int, kernel_size: int, padding: int, stride: int, dilation: int = 1
+) -> int:
+    """
+    Calculate the output length of a 1D convolutional or pooling layer.
+
+    This function can be used for both nn.Conv1d and 1D pooling layers (nn.MaxPool1d, nn.AvgPool1d).
+
+    Parameters:
+    -----------
+    input_length : int
+        The length of the input sequence.
+
+    kernel_size : int
+        The size of the kernel (for convolution) or pooling window.
+
+    padding : int
+        The amount of padding added to both sides of the input.
+
+    stride : int
+        The stride of the operation.
+
+    dilation : int, optional (default=1)
+        The spacing between kernel elements. For pooling layers, this is typically 1.
+
+    Returns:
+    --------
+    int
+        The length of the output sequence after the operation.
+
+    Formula:
+    --------
+    The output length is calculated using the formula:
+
+    Output Length = floor((Input Length + 2 * Padding - Dilation * (Kernel Size - 1) - 1) / Stride + 1)
+
+    Example:
+    --------
+    >>> input_length = 100
+    >>> kernel_size = 3
+    >>> padding = 1
+    >>> stride = 2
+    >>> calculate_output_length_1d(input_length, kernel_size, padding, stride)
+    50
+    """
+    return (input_length + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
