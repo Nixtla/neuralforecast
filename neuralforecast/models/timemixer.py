@@ -5,6 +5,7 @@ __all__ = ['Normalize', 'DataEmbedding_wo_pos', 'DFT_series_decomp', 'MultiScale
            'PastDecomposableMixing', 'TimeMixer']
 
 # %% ../../nbs/models.timemixer.ipynb 3
+import math
 import numpy as np
 
 import torch
@@ -157,13 +158,13 @@ class MultiScaleSeasonMixing(nn.Module):
             [
                 nn.Sequential(
                     torch.nn.Linear(
-                        seq_len // (down_sampling_window**i),
-                        seq_len // (down_sampling_window ** (i + 1)),
+                        math.ceil(seq_len // (down_sampling_window**i)),
+                        math.ceil(seq_len // (down_sampling_window ** (i + 1))),
                     ),
                     nn.GELU(),
                     torch.nn.Linear(
-                        seq_len // (down_sampling_window ** (i + 1)),
-                        seq_len // (down_sampling_window ** (i + 1)),
+                        math.ceil(seq_len // (down_sampling_window ** (i + 1))),
+                        math.ceil(seq_len // (down_sampling_window ** (i + 1))),
                     ),
                 )
                 for i in range(down_sampling_layers)
@@ -200,13 +201,13 @@ class MultiScaleTrendMixing(nn.Module):
             [
                 nn.Sequential(
                     torch.nn.Linear(
-                        seq_len // (down_sampling_window ** (i + 1)),
-                        seq_len // (down_sampling_window**i),
+                        math.ceil(seq_len / (down_sampling_window ** (i + 1))),
+                        math.ceil(seq_len / (down_sampling_window**i)),
                     ),
                     nn.GELU(),
                     torch.nn.Linear(
-                        seq_len // (down_sampling_window**i),
-                        seq_len // (down_sampling_window**i),
+                        math.ceil(seq_len // (down_sampling_window**i)),
+                        math.ceil(seq_len // (down_sampling_window**i)),
                     ),
                 )
                 for i in reversed(range(down_sampling_layers))
@@ -516,7 +517,7 @@ class TimeMixer(BaseMultivariate):
         self.predict_layers = torch.nn.ModuleList(
             [
                 torch.nn.Linear(
-                    self.input_size // (self.down_sampling_window**i),
+                    math.ceil(self.input_size // (self.down_sampling_window**i)),
                     self.h,
                 )
                 for i in range(self.down_sampling_layers + 1)
