@@ -692,9 +692,7 @@ class TimeMixer(BaseMultivariate):
                 else:
                     dec_out = self.projection_layer(dec_out)
                 dec_out = (
-                    dec_out.reshape(B, self.c_out, self.pred_len)
-                    .permute(0, 2, 1)
-                    .contiguous()
+                    dec_out.reshape(B, self.c_out, self.h).permute(0, 2, 1).contiguous()
                 )
                 dec_out_list.append(dec_out)
 
