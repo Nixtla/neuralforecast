@@ -165,7 +165,7 @@ optional, user specified lr_scheduler instead of the default choice
 used by the user specified `lr_scheduler`.<br/>  
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
 
 **References:**<br/> - [Chen, Si-An, Chun-Liang Li, Nate Yoder, Sercan O.
 Arik, and Tomas Pfister (2023). “TSMixer: An All-MLP Architecture for
@@ -187,7 +187,7 @@ initialization parameters (`learning_rate`, `windows_batch_size`, …) and
 the `loss` function as defined during the initialization. Within `fit`
 we use a PyTorch Lightning `Trainer` that inherits the initialization’s
 `self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
-arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
 The method is designed to be compatible with SKLearn-like classes and in
 particular to be compatible with the StatsForecast library.

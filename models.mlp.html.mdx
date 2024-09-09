@@ -12,9 +12,9 @@ description: >-
   probabilistic model for information storage and organization in the
   brain."](https://psycnet.apa.org/record/1959-09865-001)<br/>-[Fukushima, K.
   (1975). "Cognitron: A self-organizing multilayered neural
-  network."](https://pascal-francis.inist.fr/vibad/index.php?action=getrecorddetail&idt=pascal7750396723)<br/>-[Vinod
+  network."](https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=PASCAL7750396723)<br/>-[Vinod
   Nair, Geoffrey E. Hinton (2010). "Rectified Linear Units Improve Restricted
-  Boltzmann Machines"](https://www.cs.toronto.edu/~fritz/absps/reluicml.pdf)<br/>
+  Boltzmann Machines"](https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf)<br/>
 output-file: models.mlp.html
 title: MLP
 ---
@@ -105,7 +105,7 @@ optional, user specified lr_scheduler instead of the default choice
 used by the user specified `lr_scheduler`.<br/>  
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>\*
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ initialization parameters (`learning_rate`, `windows_batch_size`, …) and
 the `loss` function as defined during the initialization. Within `fit`
 we use a PyTorch Lightning `Trainer` that inherits the initialization’s
 `self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
-arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
 The method is designed to be compatible with SKLearn-like classes and in
 particular to be compatible with the StatsForecast library.

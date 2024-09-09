@@ -17,10 +17,10 @@ probability:$$\mathbb{P}(\mathbf{y}_{[t+1:t+H]}|\;\mathbf{y}_{[:t]},\; \mathbf{x
 
 **References**<br/> - [Jan Golda, Krzysztof Kudrynski. “NVIDIA, Deep
 Learning Forecasting
-Examples”](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Forecasting/tft)<br/> -
+Examples”](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Forecasting/TFT)<br/> -
 [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister, “Temporal
 Fusion Transformers for interpretable multi-horizon time series
-forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)<br/>
+forecasting”](https://www.sciencedirect.com/science/article/pii/S0169207021000637)<br/>
 
 <figure>
 <img src="imgs_models/tft_architecture.png"
@@ -213,12 +213,12 @@ optional, user specified lr_scheduler instead of the default choice
 (StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
 used by the user specified `lr_scheduler`.<br/> `**trainer_kwargs`: int,
 keyword trainer arguments inherited from [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
 
 **References:**<br/> - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas
 Pfister, “Temporal Fusion Transformers for interpretable multi-horizon
 time series
-forecasting”](https://www.sciencedirect.com/science/article/pii/s0169207021000637)\*
+forecasting”](https://www.sciencedirect.com/science/article/pii/S0169207021000637)\*
 
 ## 3. TFT methods
 
@@ -238,7 +238,7 @@ initialization parameters (`learning_rate`, `windows_batch_size`, …) and
 the `loss` function as defined during the initialization. Within `fit`
 we use a PyTorch Lightning `Trainer` that inherits the initialization’s
 `self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
-arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
 The method is designed to be compatible with SKLearn-like classes and in
 particular to be compatible with the StatsForecast library.

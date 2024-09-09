@@ -30,7 +30,7 @@ $$
 **References**<br/> - [David Salinas, Valentin Flunkert, Jan Gasthaus,
 Tim Januschowski (2020). “DeepAR: Probabilistic forecasting with
 autoregressive recurrent networks”. International Journal of
-Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)<br/> -
+Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br/> -
 [Alexander Alexandrov et. al (2020). “GluonTS: Probabilistic and Neural
 Time Series Modeling in Python”. Journal of Machine Learning
 Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>
@@ -157,12 +157,12 @@ optional, user specified lr_scheduler instead of the default choice
 (StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
 used by the user specified `lr_scheduler`.<br/> `**trainer_kwargs`: int,
 keyword trainer arguments inherited from [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
 
 **References**<br/> - [David Salinas, Valentin Flunkert, Jan Gasthaus,
 Tim Januschowski (2020). “DeepAR: Probabilistic forecasting with
 autoregressive recurrent networks”. International Journal of
-Forecasting.](https://www.sciencedirect.com/science/article/pii/s0169207019301888)<br/> -
+Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)<br/> -
 [Alexander Alexandrov et. al (2020). “GluonTS: Probabilistic and Neural
 Time Series Modeling in Python”. Journal of Machine Learning
 Research.](https://www.jmlr.org/papers/v21/19-820.html)<br/>\*
@@ -183,7 +183,7 @@ initialization parameters (`learning_rate`, `windows_batch_size`, …) and
 the `loss` function as defined during the initialization. Within `fit`
 we use a PyTorch Lightning `Trainer` that inherits the initialization’s
 `self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
-arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
 The method is designed to be compatible with SKLearn-like classes and in
 particular to be compatible with the StatsForecast library.

@@ -27,7 +27,7 @@ $\mathbf{x}^{(f)}_{[:t+H]}$ are future exogenous available at the time
 of the prediction.
 
 **References**<br/>-[Jeffrey L. Elman (1990). “Finding Structure in
-Time”.](https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1)<br/>-[Haşim
+Time”.](https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1402_1)<br/>-[Haşim
 Sak, Andrew Senior, Françoise Beaufays (2014). “Long Short-Term Memory
 Based Recurrent Neural Network Architectures for Large Vocabulary Speech
 Recognition.”](https://arxiv.org/abs/1402.1128)<br/>
@@ -115,7 +115,7 @@ optional, user specified lr_scheduler instead of the default choice
 used by the user specified `lr_scheduler`.<br/>  
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
-trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).<br/>\*
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -133,7 +133,7 @@ initialization parameters (`learning_rate`, `batch_size`, …) and the
 `loss` function as defined during the initialization. Within `fit` we
 use a PyTorch Lightning `Trainer` that inherits the initialization’s
 `self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
-arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.trainer.html?highlight=trainer).
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
 The method is designed to be compatible with SKLearn-like classes and in
 particular to be compatible with the StatsForecast library.
