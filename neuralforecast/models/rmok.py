@@ -334,7 +334,9 @@ class RMoK(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
-        num_experts: int = 4,
+        taylor_order: int = 3,
+        jacobi_degree: int = 6,
+        wavelet_function: str = "mexican_hat",
         dropout: float = 0.1,
         revine_affine: bool = True,
         loss=MAE(),
@@ -387,20 +389,29 @@ class RMoK(BaseMultivariate):
         self.input_size = input_size
         self.h = h
         self.n_series = n_series
-        self.num_experts = num_experts
         self.dropout = nn.Dropout(dropout)
         self.revin_affine = revine_affine
 
-        self.gate = nn.Linear(self.input_size, self.num_experts)
-        self.softmax = nn.Softmax(dim=-1)
+        self.taylor_order = taylor_order
+        self.jacobi_degree = jacobi_degree
+        self.wavelet_function = wavelet_function
+
         self.experts = nn.ModuleList(
             [
-                TaylorKANLayer(self.input_size, self.h, order=3, addbias=True),
-                JacobiKANLayer(self.input_size, self.h, degree=6),
-                WaveKANLayer(self.input_size, self.h, wavelet_type="mexican_hat"),
+                TaylorKANLayer(
+                    self.input_size, self.h, order=self.taylor_order, addbias=True
+                ),
+                JacobiKANLayer(self.input_size, self.h, degree=self.jacobi_degree),
+                WaveKANLayer(
+                    self.input_size, self.h, wavelet_type=self.wavelet_function
+                ),
                 nn.Linear(self.input_size, self.h),
             ]
         )
+
+        self.num_experts = len(self.experts)
+        self.gate = nn.Linear(self.input_size, self.num_experts)
+        self.softmax = nn.Softmax(dim=-1)
         self.rev = RevIN(self.n_series, affine=self.revin_affine)
 
     def forward(self, windows_batch):
