@@ -42,7 +42,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L118"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L120"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ReprogrammingLayer
@@ -57,7 +57,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L99"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L101"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### FlattenHead
@@ -71,7 +71,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L67"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L69"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PatchEmbedding
@@ -85,7 +85,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L40"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L42"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TokenEmbedding
@@ -99,7 +99,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L25"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L27"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### ReplicationPad1d
@@ -115,7 +115,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L244"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timellm.py#L246"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeLLM
@@ -156,16 +156,17 @@ autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
 y\_\[t-2:t\]=\[1,2\].<br/> `patch_len`: int=16, length of patch.<br/>
 `stride`: int=8, stride of patch.<br/> `d_ff`: int=128, dimension of
 fcn.<br/> `top_k`: int=5, top tokens to consider.<br/> `d_llm`: int=768,
-hidden dimension of LLM.<br/> `d_model`: int=32, dimension of model.<br/>
-`n_heads`: int=8, number of heads in attention layer.<br/> `enc_in`:
-int=7, encoder input size.<br/> `dec_in`: int=7, decoder input size.<br/>
-`llm` = None, LLM model to use. If not specified, it will use GPT-2 from
-https://huggingface.co/openai-community/gpt2”<br/> `llm_config` = None,
-configuration of LLM. If not specified, it will use the configuration of
-GPT-2 from https://huggingface.co/openai-community/gpt2”<br/>
-`llm_tokenizer` = None, tokenizer of LLM. If not specified, it will use
-the GPT-2 tokenizer from
-https://huggingface.co/openai-community/gpt2”<br/>
+hidden dimension of LLM.<br/> \# LLama7b:4096; GPT2-small:768;
+BERT-base:768 `d_model`: int=32, dimension of model.<br/> `n_heads`:
+int=8, number of heads in attention layer.<br/> `enc_in`: int=7, encoder
+input size.<br/> `dec_in`: int=7, decoder input size.<br/> `llm` = None,
+Path to pretrained LLM model to use. If not specified, it will use GPT-2
+from https://huggingface.co/openai-community/gpt2”<br/> `llm_config` =
+Deprecated, configuration of LLM. If not specified, it will use the
+configuration of GPT-2 from
+https://huggingface.co/openai-community/gpt2”<br/> `llm_tokenizer` =
+Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2
+tokenizer from https://huggingface.co/openai-community/gpt2”<br/>
 `llm_num_hidden_layers` = 32, hidden layers in LLM
 `llm_output_attention`: bool = True, whether to output attention in
 encoder.<br/> `llm_output_hidden_states`: bool = True, whether to output
@@ -284,27 +285,20 @@ from neuralforecast import NeuralForecast
 from neuralforecast.models import TimeLLM
 from neuralforecast.utils import AirPassengersPanel, augment_calendar_df
 
-from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
-
 AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
-gpt2_config = GPT2Config.from_pretrained('openai-community/gpt2')
-gpt2 = GPT2Model.from_pretrained('openai-community/gpt2', config=gpt2_config)
-gpt2_tokenizer = GPT2Tokenizer.from_pretrained('openai-community/gpt2')
-
 prompt_prefix = "The dataset contains data on monthly air passengers. There is a yearly seasonality"
 
 timellm = TimeLLM(h=12,
                  input_size=36,
-                 llm=gpt2,
-                 llm_config=gpt2_config,
-                 llm_tokenizer=gpt2_tokenizer,
+                 llm='openai-community/gpt2',
                  prompt_prefix=prompt_prefix,
-                 batch_size=24,
-                 windows_batch_size=24)
+                 batch_size=16,
+                 valid_batch_size=16,
+                 windows_batch_size=16)
 
 nf = NeuralForecast(
     models=[timellm],
