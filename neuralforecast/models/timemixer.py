@@ -206,8 +206,8 @@ class MultiScaleTrendMixing(nn.Module):
                     ),
                     nn.GELU(),
                     torch.nn.Linear(
-                        math.ceil(seq_len // (down_sampling_window**i)),
-                        math.ceil(seq_len // (down_sampling_window**i)),
+                        math.ceil(seq_len / (down_sampling_window**i)),
+                        math.ceil(seq_len / (down_sampling_window**i)),
                     ),
                 )
                 for i in reversed(range(down_sampling_layers))
