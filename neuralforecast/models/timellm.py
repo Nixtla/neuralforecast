@@ -15,11 +15,13 @@ from ..common._base_windows import BaseWindows
 from ..losses.pytorch import MAE
 
 try:
-    from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
+    from transformers import AutoModel, AutoTokenizer, AutoConfig
 
     IS_TRANSFORMERS_INSTALLED = True
 except ImportError:
     IS_TRANSFORMERS_INSTALLED = False
+
+import warnings
 
 # %% ../../nbs/models.timellm.ipynb 9
 class ReplicationPad1d(nn.Module):
@@ -256,14 +258,14 @@ class TimeLLM(BaseWindows):
     `stride`: int=8, stride of patch.<br>
     `d_ff`: int=128, dimension of fcn.<br>
     `top_k`: int=5, top tokens to consider.<br>
-    `d_llm`: int=768, hidden dimension of LLM.<br>
+    `d_llm`: int=768, hidden dimension of LLM.<br> # LLama7b:4096; GPT2-small:768; BERT-base:768
     `d_model`: int=32, dimension of model.<br>
     `n_heads`: int=8, number of heads in attention layer.<br>
     `enc_in`: int=7, encoder input size.<br>
     `dec_in`: int=7, decoder input size.<br>
-    `llm` = None, LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-    `llm_config` = None, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-    `llm_tokenizer` = None, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
+    `llm` = None, Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_config` = Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+    `llm_tokenizer` = Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
     `llm_num_hidden_layers` = 32, hidden layers in LLM
     `llm_output_attention`: bool = True, whether to output attention in encoder.<br>
     `llm_output_hidden_states`: bool = True, whether to output hidden states.<br>
@@ -395,25 +397,38 @@ class TimeLLM(BaseWindows):
         self.enc_in = enc_in
         self.dec_in = dec_in
 
-        self.llm_config = llm_config
-        self.llm = llm
-        self.llm_tokenizer = llm_tokenizer
+        DEFAULT_MODEL = "openai-community/gpt2"
 
-        if self.llm is None:
+        if llm is None:
             if not IS_TRANSFORMERS_INSTALLED:
                 raise ImportError(
-                    "Please install `transformers` to use the default LLM"
+                    "Please install `transformers` to use the default LLM."
                 )
 
-            print(
-                "Using GPT2 model as default and ignoring `llm_config` and `llm_tokenizer`"
+            print(f"Using {DEFAULT_MODEL} as default.")
+            model_name = DEFAULT_MODEL
+        else:
+            model_name = llm
+
+        if llm_config is not None or llm_tokenizer is not None:
+            warnings.warn(
+                "'llm_config' and 'llm_tokenizer' parameters are deprecated and will be ignored. "
+                "The config and tokenizer will be automatically loaded from the specified model.",
+                DeprecationWarning,
             )
 
-            self.llm_confg = GPT2Config.from_pretrained("openai-community/gpt2")
-            self.llm = GPT2Model.from_pretrained(
-                "openai-community/gpt2", config=self.llm_confg
+        try:
+            self.llm_config = AutoConfig.from_pretrained(model_name)
+            self.llm = AutoModel.from_pretrained(model_name, config=self.llm_config)
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            print(f"Successfully loaded model: {model_name}")
+        except EnvironmentError:
+            print(
+                f"Failed to load {model_name}. Loading the default model ({DEFAULT_MODEL})..."
             )
-            self.llm_tokenizer = GPT2Tokenizer.from_pretrained("openai-community/gpt2")
+            self.llm_config = AutoConfig.from_pretrained(DEFAULT_MODEL)
+            self.llm = AutoModel.from_pretrained(DEFAULT_MODEL, config=self.llm_config)
+            self.llm_tokenizer = AutoTokenizer.from_pretrained(DEFAULT_MODEL)
 
         self.llm_num_hidden_layers = llm_num_hidden_layers
         self.llm_output_attention = llm_output_attention
