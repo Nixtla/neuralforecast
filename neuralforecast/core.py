@@ -1193,6 +1193,9 @@ class NeuralForecast:
                     sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
                 )
                 predict_df: Optional[DataFrame] = None
             else:
