@@ -317,7 +317,40 @@ class RevIN(nn.Module):
 # %% ../../nbs/models.rmok.ipynb 16
 class RMoK(BaseMultivariate):
     """Reversible Mixture of KAN
-    TODO: docstring
+    **Parameters**<br>
+    `h`: int, Forecast horizon. <br>
+    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `n_series`: int, number of time-series.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `stat_exog_list`: str list, static exogenous columns.<br>
+    `taylor_order`: int, order of the Taylor polynomial.<br>
+    `jacobi_degree`: int, degree of the Jacobi polynomial.<br>
+    `wavelet_function`: str, wavelet function to use in the WaveKAN. Choose from ["mexican_hat", "morlet", "dog", "meyer", "shannon"]<br>
+    `dropout`: float, dropout rate.<br>
+    `revin_affine`: bool=False, bool to use affine in RevIn.<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `max_steps`: int=1000, maximum number of training steps.<br>
+    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
+    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
+    `batch_size`: int=32, number of different series in each batch.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
+    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    Reference<br>
+    [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe Wu."KAN4TSF: Are KAN and KAN-based models Effective for Time Series Forecasting?"](https://arxiv.org/abs/2408.11306)
     """
 
     # Class attributes
