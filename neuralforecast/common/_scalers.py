@@ -26,7 +26,7 @@ def masked_median(x, mask, dim=-1, keepdim=True):
     **Returns:**<br>
     `x_median`: torch.Tensor with normalized values.
     """
-    x_nan = x.float().masked_fill(mask < 1, float("nan"))
+    x_nan = x.masked_fill(mask < 1, float("nan"))
     x_median, _ = x_nan.nanmedian(dim=dim, keepdim=keepdim)
     x_median = torch.nan_to_num(x_median, nan=0.0)
     return x_median
@@ -49,7 +49,7 @@ def masked_mean(x, mask, dim=-1, keepdim=True):
     **Returns:**<br>
     `x_mean`: torch.Tensor with normalized values.
     """
-    x_nan = x.float().masked_fill(mask < 1, float("nan"))
+    x_nan = x.masked_fill(mask < 1, float("nan"))
     x_mean = x_nan.nanmean(dim=dim, keepdim=keepdim)
     x_mean = torch.nan_to_num(x_mean, nan=0.0)
     return x_mean
