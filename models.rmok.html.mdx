@@ -1,0 +1,287 @@
+---
+output-file: models.rmok.html
+title: Reversible Mixture of KAN - RMoK
+---
+
+
+<figure>
+<img src="imgs_models/rmok.png" alt="Figure 1. Architecture of RMoK." />
+<figcaption aria-hidden="true">Figure 1. Architecture of
+RMoK.</figcaption>
+</figure>
+
+## 1. Auxiliary functions
+
+### 1.1 WaveKAN
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L17"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### WaveKANLayer
+
+> ``` text
+>  WaveKANLayer (in_features, out_features, wavelet_type='mexican_hat',
+>                with_bn=True, device='cpu')
+> ```
+
+\*This is a sample code for the simulations of the paper: Bozorgasl,
+Zavareh and Chen, Hao, Wav-KAN: Wavelet Kolmogorov-Arnold Networks (May,
+2024)
+
+https://arxiv.org/abs/2405.12832 and also available at:
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4835325 We used
+efficient KAN notation and some part of the code:+\*
+
+### 1.2 TaylorKAN
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L161"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### TaylorKANLayer
+
+> ``` text
+>  TaylorKANLayer (input_dim, out_dim, order, addbias=True)
+> ```
+
+*https://github.com/Muyuzhierchengse/TaylorKAN/*
+
+### 1.3. JacobiKAN
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L196"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### JacobiKANLayer
+
+> ``` text
+>  JacobiKANLayer (input_dim, output_dim, degree, a=1.0, b=1.0)
+> ```
+
+*https://github.com/SpaceLearner/JacobiKAN/blob/main/JacobiKANLayer.py*
+
+### 1.4 RevIN
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L258"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### RevIN
+
+> ``` text
+>  RevIN (num_features:int, eps=1e-05, affine=True)
+> ```
+
+\*Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing to nest them in a tree
+structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will have their
+parameters converted too when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool\*
+
+## 2. Model
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L318"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### RMoK
+
+> ``` text
+>  RMoK (h, input_size, n_series, futr_exog_list=None, hist_exog_list=None,
+>        stat_exog_list=None, taylor_order:int=3, jacobi_degree:int=6,
+>        wavelet_function:str='mexican_hat', dropout:float=0.1,
+>        revine_affine:bool=True, loss=MAE(), valid_loss=None,
+>        max_steps:int=1000, learning_rate:float=0.001,
+>        num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>        val_check_steps:int=100, batch_size:int=32, step_size:int=1,
+>        scaler_type:str='identity', random_seed:int=1,
+>        num_workers_loader:int=0, drop_last_loader:bool=False,
+>        optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
+>        lr_scheduler_kwargs=None, **trainer_kwargs)
+> ```
+
+\*Reversible Mixture of KAN **Parameters**<br/> `h`: int, Forecast
+horizon. <br/> `input_size`: int, autorregresive inputs size,
+y=\[1,2,3,4\] input_size=2 -\> y\_\[t-2:t\]=\[1,2\].<br/> `n_series`:
+int, number of time-series.<br/> `futr_exog_list`: str list, future
+exogenous columns.<br/> `hist_exog_list`: str list, historic exogenous
+columns.<br/> `stat_exog_list`: str list, static exogenous columns.<br/>
+`taylor_order`: int, order of the Taylor polynomial.<br/>
+`jacobi_degree`: int, degree of the Jacobi polynomial.<br/>
+`wavelet_function`: str, wavelet function to use in the WaveKAN. Choose
+from \[“mexican_hat”, “morlet”, “dog”, “meyer”, “shannon”\]<br/>
+`dropout`: float, dropout rate.<br/> `revin_affine`: bool=False, bool to
+use affine in RevIn.<br/> `loss`: PyTorch module, instantiated train loss
+class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
+[losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int=1000, maximum number of training steps.<br/>
+`learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
+`num_lr_decays`: int=-1, Number of learning rate decays, evenly
+distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
+Number of validation iterations before early stopping.<br/>
+`val_check_steps`: int=100, Number of training steps between every
+validation loss check.<br/> `batch_size`: int=32, number of different
+series in each batch.<br/> `step_size`: int=1, step size between each
+window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+scaler for temporal inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed`: int=1, random_seed for pytorch initializer and numpy
+generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
+used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
+True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+optional, Custom name of the model.<br/> `optimizer`: Subclass of
+‘torch.optim.Optimizer’, optional, user specified optimizer instead of
+the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
+of parameters used by the user specified `optimizer`.<br/>
+`lr_scheduler`: Subclass of ‘torch.optim.lr_scheduler.LRScheduler’,
+optional, user specified lr_scheduler instead of the default choice
+(StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
+used by the user specified `lr_scheduler`.<br/> `**trainer_kwargs`: int,
+keyword trainer arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
+
+Reference<br/> [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe
+Wu.”KAN4TSF: Are KAN and KAN-based models Effective for Time Series
+Forecasting?”](https://arxiv.org/abs/2408.11306)\*
+
+------------------------------------------------------------------------
+
+### RMoK.fit
+
+> ``` text
+>  RMoK.fit (dataset, val_size=0, test_size=0, random_seed=None,
+>            distributed_config=None)
+> ```
+
+\*Fit.
+
+The `fit` method, optimizes the neural network’s weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, …) and
+the `loss` function as defined during the initialization. Within `fit`
+we use a PyTorch Lightning `Trainer` that inherits the initialization’s
+`self.trainer_kwargs`, to customize its inputs, see [PL’s trainer
+arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes and in
+particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in
+`__init__`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`val_size`: int, validation size for temporal cross-validation.<br/>
+`test_size`: int, test size for temporal cross-validation.<br/>\*
+
+------------------------------------------------------------------------
+
+### RMoK.predict
+
+> ``` text
+>  RMoK.predict (dataset, test_size=None, step_size=1, random_seed=None,
+>                **data_module_kwargs)
+> ```
+
+\*Predict.
+
+Neural network prediction with PL’s `Trainer` execution of
+`predict_step`.
+
+**Parameters:**<br/> `dataset`: NeuralForecast’s
+[`TimeSeriesDataset`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesdataset),
+see
+[documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
+`test_size`: int=None, test size for temporal cross-validation.<br/>
+`step_size`: int=1, Step size between each window.<br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
+[documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
+
+## 3. Usage example
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import RMoK
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+from neuralforecast.losses.pytorch import MSE
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = RMoK(h=12,
+             input_size=24,
+             n_series=2,
+             taylor_order=3,
+             jacobi_degree=6,
+             wavelet_function='mexican_hat',
+             dropout=0.1,
+             revine_affine=True,
+             loss=MSE(),
+             valid_loss=MAE(),
+             early_stop_patience_steps=3,
+             batch_size=32)
+
+fcst = NeuralForecast(models=[model], freq='M')
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+
+# Plot predictions
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['RMoK'], c='blue', label='Forecast')
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Year', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
