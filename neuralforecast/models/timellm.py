@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_windows import BaseWindows
-from ..common._scalers import RevIN
+from ..common._modules import RevIN
 
 from ..losses.pytorch import MAE
 

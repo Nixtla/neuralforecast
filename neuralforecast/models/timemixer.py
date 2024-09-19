@@ -17,8 +17,8 @@ from neuralforecast.common._modules import (
     TokenEmbedding,
     TemporalEmbedding,
     SeriesDecomp,
+    RevIN,
 )
-from ..common._scalers import RevIN
 
 from ..losses.pytorch import MAE
 
