@@ -17,7 +17,7 @@ RMoK.</figcaption>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L17"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L18"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### WaveKANLayer
@@ -40,7 +40,7 @@ efficient KAN notation and some part of the code:+\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L161"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L162"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TaylorKANLayer
@@ -56,7 +56,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L196"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L197"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### JacobiKANLayer
@@ -67,57 +67,12 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 *https://github.com/SpaceLearner/JacobiKAN/blob/main/JacobiKANLayer.py*
 
-### 1.4 RevIN
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L258"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### RevIN
-
-> ``` text
->  RevIN (num_features:int, eps=1e-05, affine=True)
-> ```
-
-\*Base class for all neural network modules.
-
-Your models should also subclass this class.
-
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
-
-``` text
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Model(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5)
-        self.conv2 = nn.Conv2d(20, 20, 5)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        return F.relu(self.conv2(x))
-```
-
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
-
-.. note:: As per the example above, an `__init__()` call to the parent
-class must be made before assignment on the child.
-
-:ivar training: Boolean represents whether this module is in training or
-evaluation mode. :vartype training: bool\*
-
 ## 2. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L318"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/rmok.py#L259"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### RMoK

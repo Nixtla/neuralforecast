@@ -36,7 +36,7 @@ Architecture.</figcaption>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L71"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L37"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### AutoCorrelationLayer
@@ -51,7 +51,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L56"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L22"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### LayerNorm
@@ -65,35 +65,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L41"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### SeriesDecomp
-
-> ``` text
->  SeriesDecomp (kernel_size)
-> ```
-
-*Series decomposition block*
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L21"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### MovingAvg
-
-> ``` text
->  MovingAvg (kernel_size, stride)
-> ```
-
-*Moving average block to highlight the trend of time series*
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L248"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L214"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Decoder
@@ -107,7 +79,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L182"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L148"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DecoderLayer
@@ -124,7 +96,7 @@ architecture*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L149"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L115"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Encoder
@@ -138,7 +110,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L104"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L70"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### EncoderLayer
@@ -154,7 +126,7 @@ architecture*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L338"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L304"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### FourierCrossAttention
@@ -170,7 +142,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L289"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L255"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### FourierBlock
@@ -185,7 +157,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L272"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L238"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### get_frequency_modes
@@ -202,7 +174,7 @@ for sampling the lowest modes;*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L428"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L394"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### FEDformer
@@ -312,7 +284,6 @@ AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, f
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
-
 model = FEDformer(h=12,
                  input_size=24,
                  modes=64,
