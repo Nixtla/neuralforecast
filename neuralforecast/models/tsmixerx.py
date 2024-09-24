@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from typing import Optional
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
+from ..common._modules import RevINMultivariate
 
 # %% ../../nbs/models.tsmixerx.ipynb 8
 class TemporalMixing(nn.Module):
@@ -201,7 +202,6 @@ class TSMixerx(BaseModel):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
@@ -282,7 +282,7 @@ class TSMixerx(BaseModel):
         # Reversible InstanceNormalization layer
         self.revin = revin
         if self.revin:
-            self.norm = ReversibleInstanceNorm1d(n_series=n_series)
+            self.norm = RevINMultivariate(num_features=n_series, affine=True)
 
         # Forecast horizon
         self.h = h
@@ -370,12 +370,12 @@ class TSMixerx(BaseModel):
         stat_exog = windows_batch["stat_exog"]  #   [N, stat_exog_size (S)]
         batch_size, input_size = x.shape[:2]
 
-        # Add channel dimension to x
-        x = x.unsqueeze(1)  #   [B, L, N] -> [B, 1, L, N]
-
         # Apply revin to x
         if self.revin:
-            x = self.norm(x)  #   [B, 1, L, N] -> [B, 1, L, N]
+            x = self.norm(x, mode="norm")  #   [B, L, N] -> [B, L, N]
+
+        # Add channel dimension to x
+        x = x.unsqueeze(1)  #   [B, L, N] -> [B, 1, L, N]
 
         # Concatenate x with historical exogenous
         if self.hist_exog_size > 0:
@@ -447,11 +447,11 @@ class TSMixerx(BaseModel):
         # Reverse Instance Normalization on output
         if self.revin:
             forecast = forecast.reshape(
-                batch_size, self.h, self.loss.outputsize_multiplier, -1
-            )  #   [B, h, N * n_outputs] -> [B, h, n_outputs, N]
-            forecast = self.norm.reverse(forecast)
+                batch_size, self.h * self.loss.outputsize_multiplier, -1
+            )  #   [B, h, N * n_outputs] -> [B, h * n_outputs, N]
+            forecast = self.norm(forecast, "denorm")
             forecast = forecast.reshape(
                 batch_size, self.h, -1
-            )  #   [B, h, n_outputs, N] -> [B, h, n_outputs * N]
+            )  #   [B, h * n_outputs, N] -> [B, h, n_outputs * N]
 
         return forecast

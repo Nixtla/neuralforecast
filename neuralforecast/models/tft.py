@@ -427,7 +427,6 @@ class TFT(BaseModel):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
@@ -549,7 +548,7 @@ class TFT(BaseModel):
     def forward(self, windows_batch):
 
         # Parsiw windows_batch
-        y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
+        y_insample = windows_batch["insample_y"]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]

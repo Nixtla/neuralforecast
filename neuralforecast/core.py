@@ -1232,17 +1232,6 @@ class NeuralForecast:
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
 
-        for model in self.models:
-            if model.SAMPLING_TYPE == "recurrent":
-                warnings.warn(
-                    f"Predict insample might not provide accurate predictions for \
-                       recurrent model {repr(model)} class yet due to scaling."
-                )
-                print(
-                    f"WARNING: Predict insample might not provide accurate predictions for \
-                      recurrent model {repr(model)} class yet due to scaling."
-                )
-
         # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
 

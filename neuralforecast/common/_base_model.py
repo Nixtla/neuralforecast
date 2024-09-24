@@ -69,7 +69,6 @@ def _disable_torch_init():
 
 # %% ../../nbs/common.base_model.ipynb 5
 class BaseModel(pl.LightningModule):
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
     EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
@@ -1155,6 +1154,8 @@ class BaseModel(pl.LightningModule):
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
+                if distr_args.ndim > 4:
+                    distr_args = distr_args.flatten(-2, -1)
                 y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
             # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension

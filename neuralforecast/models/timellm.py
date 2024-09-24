@@ -7,12 +7,12 @@ __all__ = ['ReplicationPad1d', 'TokenEmbedding', 'PatchEmbedding', 'FlattenHead'
 import math
 from typing import Optional
 
+import neuralforecast.losses.pytorch as losses
 import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
 from ..common._modules import RevIN
-
 from ..losses.pytorch import MAE
 
 try:
@@ -309,6 +309,15 @@ class TimeLLM(BaseModel):
             lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
+        if not isinstance(loss, losses.BasePointLoss):
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as loss function."
+            )
+
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as valid loss function."
+            )
 
         # Architecture
         self.patch_len = patch_len
@@ -472,6 +481,5 @@ class TimeLLM(BaseModel):
 
         y_pred = self.forecast(x)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
 
         return y_pred

@@ -2118,7 +2118,6 @@ class PMM(torch.nn.Module):
             weights = F.softmax(weights, dim=-1)
         else:
             lambdas = output[0]
-            weights = torch.full_like(lambdas, fill_value=1 / self.n_components)
 
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
@@ -2128,7 +2127,10 @@ class PMM(torch.nn.Module):
 
         lambdas = F.softplus(lambdas) + 1e-3
 
-        return (lambdas, weights)
+        if self.weighted:
+            return (lambdas, weights)
+        else:
+            return (lambdas,)
 
     def get_distribution(self, distr_args) -> Distribution:
         """
@@ -2141,8 +2143,11 @@ class PMM(torch.nn.Module):
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
-
-        lambdas, weights = distr_args
+        if self.weighted:
+            lambdas, weights = distr_args
+        else:
+            lambdas = distr_args[0]
+            weights = torch.full_like(lambdas, fill_value=1 / self.n_components)
 
         mix = Categorical(weights)
         components = Poisson(rate=lambdas)
@@ -2331,7 +2336,6 @@ class GMM(torch.nn.Module):
             weights = F.softmax(weights, dim=-1)
         else:
             means, stds = output
-            weights = torch.full_like(means, fill_value=1 / self.n_components)
 
         stds = F.softplus(stds)
         if (loc is not None) and (scale is not None):
@@ -2341,7 +2345,10 @@ class GMM(torch.nn.Module):
             means = (means * scale) + loc
             stds = (stds + eps) * scale
 
-        return (means, stds, weights)
+        if self.weighted:
+            return (means, stds, weights)
+        else:
+            return (means, stds)
 
     def get_distribution(self, distr_args) -> Distribution:
         """
@@ -2354,8 +2361,11 @@ class GMM(torch.nn.Module):
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
-
-        means, stds, weights = distr_args
+        if self.weighted:
+            means, stds, weights = distr_args
+        else:
+            means, stds = distr_args
+            weights = torch.full_like(means, fill_value=1 / self.n_components)
 
         mix = Categorical(weights)
         components = Normal(loc=means, scale=stds)
@@ -2543,7 +2553,6 @@ class NBMM(torch.nn.Module):
             weights = F.softmax(weights, dim=-1)
         else:
             mu, alpha = output
-            weights = torch.full_like(mu, fill_value=1 / self.n_components)
 
         mu = F.softplus(mu) + 1e-8
         alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
@@ -2559,7 +2568,10 @@ class NBMM(torch.nn.Module):
         # => probs = mu / [total_count * (1 + mu * (1/total_count))]
         total_count = 1.0 / alpha
         probs = (mu * alpha / (1.0 + mu * alpha)) + 1e-8
-        return (total_count, probs, weights)
+        if self.weighted:
+            return (total_count, probs, weights)
+        else:
+            return (total_count, probs)
 
     def get_distribution(self, distr_args) -> Distribution:
         """
@@ -2572,8 +2584,11 @@ class NBMM(torch.nn.Module):
         **Returns**<br>
         `Distribution`: AffineTransformed distribution.<br>
         """
-
-        total_count, probs, weights = distr_args
+        if self.weighted:
+            total_count, probs, weights = distr_args
+        else:
+            total_count, probs = distr_args
+            weights = torch.full_like(total_count, fill_value=1 / self.n_components)
 
         mix = Categorical(weights)
         components = NegativeBinomial(total_count, probs)

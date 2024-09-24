@@ -11,8 +11,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
-from ..common._modules import RevIN
+from ..common._base_model import BaseModel
+from ..common._modules import RevINMultivariate
+from typing import Optional
 
 # %% ../../nbs/models.rmok.ipynb 8
 class WaveKANLayer(nn.Module):
@@ -256,9 +257,11 @@ class JacobiKANLayer(nn.Module):
         return y
 
 # %% ../../nbs/models.rmok.ipynb 14
-class RMoK(BaseMultivariate):
+class RMoK(BaseModel):
     """Reversible Mixture of KAN
-    **Parameters**<br>
+
+
+    **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
     `n_series`: int, number of time-series.<br>
@@ -290,15 +293,18 @@ class RMoK(BaseMultivariate):
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
-    Reference<br>
-    [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe Wu."KAN4TSF: Are KAN and KAN-based models Effective for Time Series Forecasting?"](https://arxiv.org/abs/2408.11306)
+    **References**<br>
+    - [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe Wu."KAN4TSF: Are KAN and KAN-based models Effective for Time Series Forecasting?". arXiv.](https://arxiv.org/abs/2408.11306)<br>
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -321,6 +327,10 @@ class RMoK(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=1024,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -348,6 +358,10 @@ class RMoK(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -373,20 +387,29 @@ class RMoK(BaseMultivariate):
         self.experts = nn.ModuleList(
             [
                 TaylorKANLayer(
-                    self.input_size, self.h, order=self.taylor_order, addbias=True
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    order=self.taylor_order,
+                    addbias=True,
                 ),
-                JacobiKANLayer(self.input_size, self.h, degree=self.jacobi_degree),
+                JacobiKANLayer(
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    degree=self.jacobi_degree,
+                ),
                 WaveKANLayer(
-                    self.input_size, self.h, wavelet_type=self.wavelet_function
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    wavelet_type=self.wavelet_function,
                 ),
-                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h * self.loss.outputsize_multiplier),
             ]
         )
 
         self.num_experts = len(self.experts)
         self.gate = nn.Linear(self.input_size, self.num_experts)
         self.softmax = nn.Softmax(dim=-1)
-        self.rev = RevIN(self.n_series, affine=self.revin_affine)
+        self.rev = RevINMultivariate(self.n_series, affine=self.revin_affine)
 
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]
@@ -400,15 +423,11 @@ class RMoK(BaseMultivariate):
         )
 
         y_pred = (
-            torch.einsum("BLE,BE->BL", expert_outputs, score)
-            .reshape(B, N, -1)
+            torch.einsum("BLE, BE -> BL", expert_outputs, score)
+            .reshape(B, N, self.h * self.loss.outputsize_multiplier)
             .permute(0, 2, 1)
         )
         y_pred = self.rev(y_pred, "denorm")
-        y_pred = self.loss.domain_map(y_pred)
+        y_pred = y_pred.reshape(B, self.h, -1)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        if y_pred.ndim == 2:
-            return y_pred.unsqueeze(-1)
-        else:
-            return y_pred
+        return y_pred
