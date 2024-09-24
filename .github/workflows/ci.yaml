@@ -40,7 +40,7 @@ jobs:
           cache-environment: true
 
       - name: Install pip requirements
-        run: pip install ./
+        run: pip install ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars

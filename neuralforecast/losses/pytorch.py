@@ -1901,9 +1901,13 @@ class DistributionLoss(torch.nn.Module):
             self.domain_map = partial(
                 isqf_domain_map, quantiles=quantiles, num_pieces=num_pieces
             )
+            if return_params:
+                raise Exception("ISQF does not support 'return_params=True'")
         elif distribution == "Tweedie":
             rho = distribution_kwargs.pop("rho")
             self.domain_map = partial(tweedie_domain_map, rho=rho)
+            if return_params:
+                raise Exception("Tweedie does not support 'return_params=True'")
         else:
             self.domain_map = self._domain_map
 
