@@ -4,12 +4,12 @@
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
            'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
-           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing']
+           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing', 'ConformalIntervals']
 
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -446,3 +446,39 @@ def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
     if missing:
         raise ValueError(f"The following values are missing from the index: {missing}")
     return idxs
+
+# %% ../nbs/utils.ipynb 30
+class ConformalIntervals:
+    """Class for storing conformal intervals metadata information."""
+
+    def __init__(
+        self,
+        n_windows: int = 2,
+        method: str = "conformal_distribution",
+        level: List[Union[int, float]] | None = None,
+    ):
+        """
+        n_windows : int
+            Number of windows to evaluate.
+        method : str, default is conformal_distribution
+            One of the supported methods for the computation of conformal prediction:
+            conformal_error or conformal_distribution
+        level : list of ints or floats
+            Confidence levels between 0 and 100 for conformal prediction intervals.
+        """
+        if level is None:
+            raise ValueError("level is not specified for ConformalPrediction class")
+
+        if n_windows < 2:
+            raise ValueError(
+                "You need at least two windows to compute conformal intervals"
+            )
+        allowed_methods = ["conformal_error", "conformal_distribution"]
+        if method not in allowed_methods:
+            raise ValueError(f"method must be one of {allowed_methods}")
+        self.n_windows = n_windows
+        self.method = method
+        self.level = level
+
+    def __repr__(self):
+        return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}', level={self.level})"
