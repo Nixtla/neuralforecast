@@ -67,6 +67,7 @@ from neuralforecast.models import (
     TimeMixer,
     KAN,
 )
+from .common._base_auto import BaseAuto, MockTrial
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -597,16 +598,52 @@ class NeuralForecast:
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def _get_needed_futr_exog(self):
-        return set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        futr_exogs = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("futr_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("futr_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "futr_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    futr_exogs.append(exog)
+                else:
+                    futr_exogs.extend(exog)
+
+        return set(futr_exogs)
 
     def _get_needed_exog(self):
         futr_exog = self._get_needed_futr_exog()
-        hist_exog = set(
-            chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)
-        )
-        return futr_exog | hist_exog
+
+        hist_exog = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("hist_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("hist_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "hist_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    hist_exog.append(exog)
+                else:
+                    hist_exog.extend(exog)
+
+        return futr_exog | set(hist_exog)
 
     def _get_model_names(self) -> List[str]:
         names: List[str] = []
@@ -1135,6 +1172,9 @@ class NeuralForecast:
                     sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
                 )
                 predict_df: Optional[DataFrame] = None
             else:

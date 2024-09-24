@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LayerNorm
-
+import pandas as pd
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
 
@@ -245,7 +245,7 @@ class InterpretableMultiHeadAttention(nn.Module):
         out = self.out_proj(m_attn_vec)
         out = self.out_dropout(out)
 
-        return out, attn_vec
+        return out, attn_prob
 
 # %% ../../nbs/models.tft.ipynb 18
 class StaticCovariateEncoder(nn.Module):
@@ -269,9 +269,9 @@ class StaticCovariateEncoder(nn.Module):
         # enrichment context
         # state_c context
         # state_h context
-        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)
+        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)  # type: ignore
 
-        return cs, ce, ch, cc
+        return cs, ce, ch, cc, sparse_weights  # type: ignore
 
 # %% ../../nbs/models.tft.ipynb 20
 class TemporalCovariateEncoder(nn.Module):
@@ -298,10 +298,12 @@ class TemporalCovariateEncoder(nn.Module):
 
     def forward(self, historical_inputs, future_inputs, cs, ch, cc):
         # [N,X_in,L] -> [N,hidden_size,L]
-        historical_features, _ = self.history_vsn(historical_inputs, cs)
+        historical_features, history_vsn_sparse_weights = self.history_vsn(
+            historical_inputs, cs
+        )
         history, state = self.history_encoder(historical_features, (ch, cc))
 
-        future_features, _ = self.future_vsn(future_inputs, cs)
+        future_features, future_vsn_sparse_weights = self.future_vsn(future_inputs, cs)
         future, _ = self.future_encoder(future_features, state)
         # torch.cuda.synchronize() # this call gives prf boost for unknown reasons
 
@@ -310,7 +312,7 @@ class TemporalCovariateEncoder(nn.Module):
         temporal_features = self.input_gate(temporal_features)
         temporal_features = temporal_features + input_embedding
         temporal_features = self.input_gate_ln(temporal_features)
-        return temporal_features
+        return temporal_features, history_vsn_sparse_weights, future_vsn_sparse_weights
 
 # %% ../../nbs/models.tft.ipynb 22
 class TemporalFusionDecoder(nn.Module):
@@ -351,7 +353,7 @@ class TemporalFusionDecoder(nn.Module):
         enriched = self.enrichment_grn(temporal_features, c=ce)
 
         # Temporal self attention
-        x, _ = self.attention(enriched, mask_future_timesteps=True)
+        x, atten_vect = self.attention(enriched, mask_future_timesteps=True)
 
         # Don't compute historical quantiles
         x = x[:, self.encoder_length :, :]
@@ -371,9 +373,9 @@ class TemporalFusionDecoder(nn.Module):
         x = x + temporal_features
         x = self.decoder_ln(x)
 
-        return x
+        return x, atten_vect
 
-# %% ../../nbs/models.tft.ipynb 24
+# %% ../../nbs/models.tft.ipynb 23
 class TFT(BaseModel):
     """TFT
 
@@ -425,6 +427,7 @@ class TFT(BaseModel):
     """
 
     # Class attributes
+    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
@@ -466,7 +469,7 @@ class TFT(BaseModel):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        **trainer_kwargs
+        **trainer_kwargs,
     ):
 
         # Inherit BaseWindows class
@@ -497,10 +500,11 @@ class TFT(BaseModel):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
         self.example_length = input_size + h
-
+        self.interpretability_params = dict([])  # type: ignore
+        self.tgt_size = tgt_size
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
 
@@ -513,11 +517,12 @@ class TFT(BaseModel):
             tgt_size=tgt_size,
         )
 
-        self.static_encoder = StaticCovariateEncoder(
-            hidden_size=hidden_size,
-            num_static_vars=self.stat_exog_size,
-            dropout=dropout,
-        )
+        if self.stat_exog_size > 0:
+            self.static_encoder = StaticCovariateEncoder(
+                hidden_size=hidden_size,
+                num_static_vars=self.stat_exog_size,
+                dropout=dropout,
+            )
 
         self.temporal_encoder = TemporalCovariateEncoder(
             hidden_size=hidden_size,
@@ -544,7 +549,7 @@ class TFT(BaseModel):
     def forward(self, windows_batch):
 
         # Parsiw windows_batch
-        y_insample = windows_batch["insample_y"]
+        y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -563,7 +568,7 @@ class TFT(BaseModel):
         # -------------------------------- Inputs ------------------------------#
         # Static context
         if s_inp is not None:
-            cs, ce, ch, cc = self.static_encoder(s_inp)
+            cs, ce, ch, cc, static_encoder_sparse_weights = self.static_encoder(s_inp)
             ch, cc = ch.unsqueeze(0), cc.unsqueeze(0)  # LSTM initial states
         else:
             # If None add zeros
@@ -576,6 +581,7 @@ class TFT(BaseModel):
             cc = torch.zeros(
                 size=(1, batch_size, hidden_size), device=y_insample.device
             )
+            static_encoder_sparse_weights = []
 
         # Historical inputs
         _historical_inputs = [
@@ -591,7 +597,7 @@ class TFT(BaseModel):
 
         # ---------------------------- Encode/Decode ---------------------------#
         # Embeddings + VSN + LSTM encoders
-        temporal_features = self.temporal_encoder(
+        temporal_features, history_vsn_wgts, future_vsn_wgts = self.temporal_encoder(
             historical_inputs=historical_inputs,
             future_inputs=future_inputs,
             cs=cs,
@@ -600,11 +606,114 @@ class TFT(BaseModel):
         )
 
         # Static enrichment, Attention and decoders
-        temporal_features = self.temporal_fusion_decoder(
+        temporal_features, attn_wts = self.temporal_fusion_decoder(
             temporal_features=temporal_features, ce=ce
         )
+
+        # Store params
+        self.interpretability_params = {
+            "history_vsn_wgts": history_vsn_wgts,
+            "future_vsn_wgts": future_vsn_wgts,
+            "static_encoder_sparse_weights": static_encoder_sparse_weights,
+            "attn_wts": attn_wts,
+        }
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
 
         return y_hat
+
+    def mean_on_batch(self, tensor):
+        batch_size = tensor.size(0)
+        if batch_size > 1:
+            return tensor.mean(dim=0)
+        else:
+            return tensor.squeeze(0)
+
+    def feature_importances(self):
+        """
+        Compute the feature importances for historical, future, and static features.
+
+        Returns:
+            dict: A dictionary containing the feature importances for each feature type.
+                The keys are 'hist_vsn', 'future_vsn', and 'static_vsn', and the values
+                are pandas DataFrames with the corresponding feature importances.
+        """
+        if not self.interpretability_params:
+            raise ValueError(
+                "No interpretability_params. Make a prediction using the model to generate them."
+            )
+
+        importances = {}
+
+        # Historical feature importances
+        hist_vsn_wgts = self.interpretability_params.get("history_vsn_wgts")
+        hist_exog_list = list(self.hist_exog_list) + list(self.futr_exog_list)
+        hist_exog_list += (
+            [f"observed_target_{i+1}" for i in range(self.tgt_size)]
+            if self.tgt_size > 1
+            else ["observed_target"]
+        )
+
+        hist_vsn_imp = pd.DataFrame(
+            self.mean_on_batch(hist_vsn_wgts).cpu().numpy(), columns=hist_exog_list
+        )
+        importances["Past variable importance over time"] = hist_vsn_imp
+        #  importances["Past variable importance"] = hist_vsn_imp.mean(axis=0).sort_values()
+
+        # Future feature importances
+        if self.futr_exog_size > 0:
+            future_vsn_wgts = self.interpretability_params.get("future_vsn_wgts")
+            future_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(future_vsn_wgts).cpu().numpy(),
+                columns=self.futr_exog_list,
+            )
+            importances["Future variable importance over time"] = future_vsn_imp
+        #   importances["Future variable importance"] = future_vsn_imp.mean(axis=0).sort_values()
+
+        # Static feature importances
+        if self.stat_exog_size > 0:
+            static_encoder_sparse_weights = self.interpretability_params.get(
+                "static_encoder_sparse_weights"
+            )
+
+            static_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(static_encoder_sparse_weights).cpu().numpy(),
+                index=self.stat_exog_list,
+                columns=["importance"],
+            )
+            importances["Static covariates"] = static_vsn_imp.sort_values(
+                by="importance"
+            )
+
+        return importances
+
+    def attention_weights(self):
+        """
+        Batch average attention weights
+
+        Returns:
+        np.ndarray: A 1D array containing the attention weights for each time step.
+
+        """
+
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )
+
+        return attention
+
+    def feature_importance_correlations(self) -> pd.DataFrame:
+        """
+        Compute the correlation between the past and future feature importances and the mean attention weights.
+
+        Returns:
+        pd.DataFrame: A DataFrame containing the correlation coefficients between the past feature importances and the mean attention weights.
+        """
+        attention = self.attention_weights()[self.input_size :, :].mean(axis=0)
+        p_c = self.feature_importances()["Past variable importance over time"]
+        p_c["Correlation with Mean Attention"] = attention[: self.input_size]
+        return p_c.corr(method="spearman").round(2)
