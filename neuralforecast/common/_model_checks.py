@@ -213,9 +213,10 @@ def check_airpassengers(model_class):
     fcst = NeuralForecast(models=[model_class(**config)], freq="M")
     fcst.fit(df=Y_train_df, static_df=AirPassengersStatic)
     forecasts = fcst.predict(futr_df=Y_test_df)
+    forecasts = forecasts.reset_index()
     assert forecasts.shape == (
         24,
-        2,
+        3,
     ), f"Forecast does not have the right shape: {forecasts.shape}"
 
     # Cross-validation
