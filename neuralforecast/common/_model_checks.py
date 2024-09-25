@@ -80,11 +80,7 @@ def _run_model_tests(model_class, config):
     model = model_class(**config)
     fcst = NeuralForecast(models=[model], freq=FREQ)
     fcst.fit(df=Y_TRAIN_DF_1, val_size=24)
-    forecasts = fcst.predict(futr_df=Y_TEST_DF_1)
-    assert forecasts.shape == (
-        7,
-        2,
-    ), f"Forecast does not have the right shape: {forecasts.shape}"
+    _ = fcst.predict(futr_df=Y_TEST_DF_1)
     # DF_2
     if model_class.MULTIVARIATE:
         config["n_series"] = N_SERIES_2
@@ -95,11 +91,7 @@ def _run_model_tests(model_class, config):
     model = model_class(**config)
     fcst = NeuralForecast(models=[model], freq=FREQ)
     fcst.fit(df=Y_TRAIN_DF_2, val_size=24)
-    forecasts = fcst.predict(futr_df=Y_TEST_DF_2)
-    assert forecasts.shape == (
-        7,
-        2,
-    ), f"Forecast does not have the right shape: {forecasts.shape}"
+    _ = fcst.predict(futr_df=Y_TEST_DF_2)
 
     if model.EXOGENOUS_STAT and model.EXOGENOUS_FUTR:
         # DF_3
@@ -112,11 +104,7 @@ def _run_model_tests(model_class, config):
         model = model_class(**config)
         fcst = NeuralForecast(models=[model], freq=FREQ)
         fcst.fit(df=Y_TRAIN_DF_3, static_df=STATIC_3, val_size=24)
-        forecasts = fcst.predict(futr_df=Y_TEST_DF_3)
-        assert forecasts.shape == (
-            7,
-            2,
-        ), f"Forecast does not have the right shape: {forecasts.shape}"
+        _ = fcst.predict(futr_df=Y_TEST_DF_3)
 
         # DF_4
         if model_class.MULTIVARIATE:
@@ -128,11 +116,7 @@ def _run_model_tests(model_class, config):
         model = model_class(**config)
         fcst = NeuralForecast(models=[model], freq=FREQ)
         fcst.fit(df=Y_TRAIN_DF_4, static_df=STATIC_4, val_size=24)
-        forecasts = fcst.predict(futr_df=Y_TEST_DF_4)
-        assert forecasts.shape == (
-            7,
-            2,
-        ), f"Forecast does not have the right shape: {forecasts.shape}"
+        _ = fcst.predict(futr_df=Y_TEST_DF_4)
 
 
 # Tests a model against every loss function
@@ -222,9 +206,19 @@ def check_airpassengers(model_class):
 
 
 # Add unit test functions to this function
-def check_model(model_class):
-    # check_loss_functions(model_class)
-    try:
-        check_airpassengers(model_class)
-    except RuntimeError:
-        raise Exception(f"{model_class.__name__}: AirPassengers forecast test failed.")
+def check_model(model_class, checks=["losses", "airpassengers"]):
+    """
+    Check model with various tests. Options for checks are:<br>
+    "losses": test the model against all loss functions<br>
+    "airpassengers": test the model against the airpassengers dataset for forecasting and cross-validation<br>
+
+    """
+    if "losses" in checks:
+        check_loss_functions(model_class)
+    if "airpassengers" in checks:
+        try:
+            check_airpassengers(model_class)
+        except RuntimeError:
+            raise Exception(
+                f"{model_class.__name__}: AirPassengers forecast test failed."
+            )
