@@ -58,7 +58,7 @@ class STAD(nn.Module):
 
         # stochastic pooling
         if self.training:
-            ratio = F.softmax(combined_mean, dim=1)
+            ratio = F.softmax(torch.nan_to_num(combined_mean), dim=1)
             ratio = ratio.permute(0, 2, 1)
             ratio = ratio.reshape(-1, channels)
             indices = torch.multinomial(ratio, 1)

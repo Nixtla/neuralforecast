@@ -108,12 +108,12 @@ class DeepNPTS(BaseModel):
         if exclude_insample_y:
             raise Exception("DeepNPTS has no possibility for excluding y.")
 
-        if not isinstance(loss, losses.BasePointLoss):
+        if loss.outputsize_multiplier > 1:
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as loss function."
             )
 
-        if not isinstance(valid_loss, losses.BasePointLoss):
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as valid loss function."
             )

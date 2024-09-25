@@ -309,7 +309,7 @@ class TimeLLM(BaseModel):
             lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
-        if not isinstance(loss, losses.BasePointLoss):
+        if loss.outputsize_multiplier > 1:
             raise Exception(
                 "TimeLLM only supports point loss functions (MAE, MSE, etc) as loss function."
             )

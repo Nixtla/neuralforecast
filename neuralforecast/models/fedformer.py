@@ -4,7 +4,7 @@
 __all__ = ['LayerNorm', 'AutoCorrelationLayer', 'EncoderLayer', 'Encoder', 'DecoderLayer', 'Decoder', 'get_frequency_modes',
            'FourierBlock', 'FourierCrossAttention', 'FEDformer']
 
-# %% ../../nbs/models.fedformer.ipynb 5
+# %% ../../nbs/models.fedformer.ipynb 6
 import numpy as np
 from typing import Optional
 
@@ -18,7 +18,7 @@ from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.fedformer.ipynb 7
+# %% ../../nbs/models.fedformer.ipynb 8
 class LayerNorm(nn.Module):
     """
     Special designed layernorm for the seasonal part
@@ -66,7 +66,7 @@ class AutoCorrelationLayer(nn.Module):
 
         return self.out_projection(out), attn
 
-# %% ../../nbs/models.fedformer.ipynb 8
+# %% ../../nbs/models.fedformer.ipynb 9
 class EncoderLayer(nn.Module):
     """
     FEDformer encoder layer with the progressive decomposition architecture
@@ -234,7 +234,7 @@ class Decoder(nn.Module):
             x = self.projection(x)
         return x, trend
 
-# %% ../../nbs/models.fedformer.ipynb 9
+# %% ../../nbs/models.fedformer.ipynb 10
 def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
     """
     Get modes on frequency domain:
@@ -390,7 +390,7 @@ class FourierCrossAttention(nn.Module):
         )
         return (out, None)
 
-# %% ../../nbs/models.fedformer.ipynb 11
+# %% ../../nbs/models.fedformer.ipynb 12
 class FEDformer(BaseModel):
     """FEDformer
 
