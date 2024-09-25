@@ -654,7 +654,7 @@ class BaseModel(pl.LightningModule):
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
+                windows = windows.permute(0, 2, 3, 1).contiguous()
                 windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
 
@@ -704,7 +704,7 @@ class BaseModel(pl.LightningModule):
                     static = static[w_idxs]
 
             windows_batch = dict(
-                temporal=windows.contiguous(),
+                temporal=windows,
                 temporal_cols=temporal_cols,
                 static=static,
                 static_cols=static_cols,
@@ -764,7 +764,7 @@ class BaseModel(pl.LightningModule):
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
+                windows = windows.permute(0, 2, 3, 1).contiguous()
                 windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
                 if static is not None:
@@ -779,7 +779,7 @@ class BaseModel(pl.LightningModule):
                     static = static[w_idxs]
 
             windows_batch = dict(
-                temporal=windows.contiguous(),
+                temporal=windows,
                 temporal_cols=temporal_cols,
                 static=static,
                 static_cols=static_cols,
