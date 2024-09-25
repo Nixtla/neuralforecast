@@ -706,7 +706,7 @@ class BaseModel(pl.LightningModule):
             windows_batch = dict(
                 temporal=windows.contiguous(),
                 temporal_cols=temporal_cols,
-                static=static.contiguous(),
+                static=static,
                 static_cols=static_cols,
             )
             return windows_batch
@@ -779,7 +779,7 @@ class BaseModel(pl.LightningModule):
                     static = static[w_idxs]
 
             windows_batch = dict(
-                temporal=windows,
+                temporal=windows.contiguous(),
                 temporal_cols=temporal_cols,
                 static=static,
                 static_cols=static_cols,
