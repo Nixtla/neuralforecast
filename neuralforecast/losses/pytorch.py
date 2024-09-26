@@ -37,9 +37,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     Auxiliary funtion to handle divide by 0
     """
     div = a / b
-    div[div != div] = 0.0
-    div[div == float("inf")] = 0.0
-    return div
+    return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
 
 # %% ../../nbs/losses.pytorch.ipynb 7
 def _weighted_mean(losses, weights):

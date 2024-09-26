@@ -295,10 +295,10 @@ class BaseModel(pl.LightningModule):
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
         if start_padding_enabled:
             self.padder_train = nn.ConstantPad1d(
-                padding=(self.input_size - 1, self.h), value=0
+                padding=(self.input_size - 1, self.h), value=0.0
             )
         else:
-            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
+            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Batch sizes
         self.batch_size = batch_size
@@ -597,7 +597,7 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         losses = torch.stack(self.validation_step_outputs)
-        avg_loss = losses.mean().item()
+        avg_loss = losses.mean().detach()
         self.log(
             "ptl/val_loss",
             avg_loss,
@@ -1269,12 +1269,12 @@ class BaseModel(pl.LightningModule):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach()))
 
         self.h = self.horizon_backup
 
@@ -1362,7 +1362,7 @@ class BaseModel(pl.LightningModule):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach(),
             batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,
