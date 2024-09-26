@@ -440,12 +440,12 @@ class BaseWindows(BaseModel):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach()))
         return loss
 
     def _compute_valid_loss(
@@ -551,7 +551,7 @@ class BaseWindows(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach(),
             batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,

@@ -421,7 +421,7 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         losses = torch.stack(self.validation_step_outputs)
-        avg_loss = losses.mean().item()
+        avg_loss = losses.mean().detach()
         self.log(
             "ptl/val_loss",
             avg_loss,
