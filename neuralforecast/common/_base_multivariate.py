@@ -389,12 +389,12 @@ class BaseMultivariate(BaseModel):
 
         self.log(
             "train_loss",
-            loss.detach(),
+            loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.detach()))
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -456,7 +456,7 @@ class BaseMultivariate(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.detach(),
+            valid_loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
