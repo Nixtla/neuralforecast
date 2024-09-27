@@ -83,6 +83,8 @@ class GRU(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
+        recurrent=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -106,10 +108,16 @@ class GRU(BaseModel):
         lr_scheduler_kwargs=None,
         **trainer_kwargs
     ):
+
+        self.RECURRENT = recurrent
+
         super(GRU, self).__init__(
             h=h,
             input_size=input_size,
-            # inference_input_size=inference_input_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -124,12 +132,9 @@ class GRU(BaseModel):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
-            stat_exog_list=stat_exog_list,
+            random_seed=random_seed,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
-            random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -157,6 +162,7 @@ class GRU(BaseModel):
 
         # Instantiate model
         self.rnn_state = None
+        self.maintain_state = False
         self.hist_encoder = nn.GRU(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,
@@ -205,7 +211,7 @@ class GRU(BaseModel):
 
         if self.futr_exog_size > 0:
             encoder_input = torch.cat(
-                (encoder_input, futr_exog), dim=2
+                (encoder_input, futr_exog[:, :seq_len]), dim=2
             )  # [B, seq_len, 1 + X + S] + [B, seq_len, F] -> [B, seq_len, 1 + X + S + F]
 
         # RNN forward
@@ -228,7 +234,7 @@ class GRU(BaseModel):
         # Residual connection with futr_exog
         if self.futr_exog_size > 0:
             context = torch.cat(
-                (context, futr_exog), dim=-1
+                (context, futr_exog[:, :seq_len]), dim=-1
             )  # [B, seq_len, context_size * h] + [B, seq_len, F] = [B, seq_len, context_size * h + F]
 
         # Final forecast

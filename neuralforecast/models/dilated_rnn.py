@@ -336,7 +336,7 @@ class DilatedRNN(BaseModel):
     def __init__(
         self,
         h: int,
-        input_size: int = -1,
+        input_size: int,
         inference_input_size: int = -1,
         cell_type: str = "LSTM",
         dilations: List[List[int]] = [[1, 2], [4, 8]],
@@ -347,6 +347,7 @@ class DilatedRNN(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -373,7 +374,10 @@ class DilatedRNN(BaseModel):
         super(DilatedRNN, self).__init__(
             h=h,
             input_size=input_size,
-            inference_input_size=inference_input_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -388,12 +392,9 @@ class DilatedRNN(BaseModel):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
-            stat_exog_list=stat_exog_list,
+            random_seed=random_seed,
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
-            random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -435,11 +436,13 @@ class DilatedRNN(BaseModel):
         self.rnn_stack = nn.Sequential(*layers)
 
         # Context adapter
-        self.context_adapter = nn.Linear(in_features=self.input_size, out_features=h)
+        self.context_adapter = nn.Linear(
+            in_features=self.encoder_hidden_size, out_features=self.context_size * h
+        )
 
         # Decoder MLP
         self.mlp_decoder = MLP(
-            in_features=self.encoder_hidden_size + self.futr_exog_size,
+            in_features=self.context_size * h + self.futr_exog_size,
             out_features=self.loss.outputsize_multiplier,
             hidden_size=self.decoder_hidden_size,
             num_layers=self.decoder_layers,
@@ -456,7 +459,7 @@ class DilatedRNN(BaseModel):
         stat_exog = windows_batch["stat_exog"]  # [B, S]
 
         # Concatenate y, historic and static inputs
-        batch_size, input_size = encoder_input.shape[:2]
+        batch_size, seq_len = encoder_input.shape[:2]
         if self.hist_exog_size > 0:
             encoder_input = torch.cat(
                 (encoder_input, hist_exog), dim=2
@@ -464,7 +467,7 @@ class DilatedRNN(BaseModel):
 
         if self.stat_exog_size > 0:
             stat_exog = stat_exog.unsqueeze(1).repeat(
-                1, input_size, 1
+                1, seq_len, 1
             )  # [B, S] -> [B, L, S]
             encoder_input = torch.cat(
                 (encoder_input, stat_exog), dim=2
@@ -472,7 +475,7 @@ class DilatedRNN(BaseModel):
 
         if self.futr_exog_size > 0:
             encoder_input = torch.cat(
-                (encoder_input, futr_exog[:, :input_size]), dim=2
+                (encoder_input, futr_exog[:, :seq_len]), dim=2
             )  # [B, L, 1 + X + S] + [B, L, F] -> [B, L, 1 + X + S + F]
 
         # DilatedRNN forward
@@ -484,21 +487,17 @@ class DilatedRNN(BaseModel):
             encoder_input = output
 
         # Context adapter
-        output = output.permute(0, 2, 1)  # [B, L, C] -> [B, C, L]
-        context = self.context_adapter(output)  # [B, C, L] -> [B, C, h]
+        context = self.context_adapter(output)  # [B, L, C] -> [B, L, context_size * h]
 
         # Residual connection with futr_exog
         if self.futr_exog_size > 0:
-            futr_exog_futr = futr_exog[:, input_size:].swapaxes(
-                1, 2
-            )  # [B, L + h, F] -> [B, F, h]
             context = torch.cat(
-                (context, futr_exog_futr), dim=1
-            )  # [B, C, h] + [B, F, h] = [B, C + F, h]
-
-        context = context.swapaxes(1, 2)  # [B, C + F, h] -> [B, h, C + F]
+                (context, futr_exog[:, :seq_len]), dim=-1
+            )  # [B, L, context_size * h] + [B, L, F] = [B, L, context_size * h + F]
 
         # Final forecast
-        output = self.mlp_decoder(context)  # [B, h, C + F] -> [B, h, n_output]
+        output = self.mlp_decoder(
+            context
+        )  # [B, L, context_size * h + F] -> [B, L, n_output]
 
-        return output
+        return output[:, -self.h :]

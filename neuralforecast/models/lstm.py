@@ -81,6 +81,7 @@ class LSTM(BaseModel):
         hist_exog_list=None,
         stat_exog_list=None,
         exclude_insample_y=False,
+        recurrent=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -104,6 +105,9 @@ class LSTM(BaseModel):
         lr_scheduler_kwargs=None,
         **trainer_kwargs
     ):
+
+        self.RECURRENT = recurrent
+
         super(LSTM, self).__init__(
             h=h,
             input_size=input_size,
@@ -155,6 +159,7 @@ class LSTM(BaseModel):
 
         # Instantiate model
         self.rnn_state = None
+        self.maintain_state = False
         self.hist_encoder = nn.LSTM(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,
@@ -205,7 +210,7 @@ class LSTM(BaseModel):
 
         if self.futr_exog_size > 0:
             encoder_input = torch.cat(
-                (encoder_input, futr_exog), dim=2
+                (encoder_input, futr_exog[:, :seq_len]), dim=2
             )  # [B, seq_len, 1 + X + S] + [B, seq_len, F] -> [B, seq_len, 1 + X + S + F]
 
         # RNN forward
@@ -228,7 +233,7 @@ class LSTM(BaseModel):
         # Residual connection with futr_exog
         if self.futr_exog_size > 0:
             context = torch.cat(
-                (context, futr_exog), dim=-1
+                (context, futr_exog[:, :seq_len]), dim=-1
             )  # [B, seq_len, context_size * h] + [B, seq_len, F] = [B, seq_len, context_size * h + F]
 
         # Final forecast

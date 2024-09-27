@@ -190,6 +190,8 @@ class DeepAR(BaseModel):
         input_encoder = 1 + self.futr_exog_size + self.stat_exog_size
 
         # Instantiate model
+        self.rnn_state = None
+        self.maintain_state = False
         self.hist_encoder = nn.LSTM(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,
