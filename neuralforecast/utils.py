@@ -9,7 +9,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -455,7 +455,6 @@ class ConformalIntervals:
         self,
         n_windows: int = 2,
         method: str = "conformal_distribution",
-        level: List[Union[int, float]] | None = None,
     ):
         """
         n_windows : int
@@ -463,12 +462,7 @@ class ConformalIntervals:
         method : str, default is conformal_distribution
             One of the supported methods for the computation of conformal prediction:
             conformal_error or conformal_distribution
-        level : list of ints or floats
-            Confidence levels between 0 and 100 for conformal prediction intervals.
         """
-        if level is None:
-            raise ValueError("level is not specified for ConformalPrediction class")
-
         if n_windows < 2:
             raise ValueError(
                 "You need at least two windows to compute conformal intervals"
@@ -478,7 +472,6 @@ class ConformalIntervals:
             raise ValueError(f"method must be one of {allowed_methods}")
         self.n_windows = n_windows
         self.method = method
-        self.level = level
 
     def __repr__(self):
-        return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}', level={self.level})"
+        return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}')"
