@@ -77,7 +77,7 @@ class BaseRecurrent(BaseModel):
         self.h = h
         self.input_size = input_size
         self.inference_input_size = inference_input_size
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         unsupported_distributions = ["Bernoulli", "ISQF"]
         if (
@@ -210,7 +210,7 @@ class BaseRecurrent(BaseModel):
 
             # Test size covers all data, pad left one timestep with zeros
             if temporal.shape[-1] == self.test_size:
-                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
+                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0.0)
                 temporal = padder_left(temporal)
 
         # Parse batch

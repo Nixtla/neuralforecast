@@ -77,7 +77,7 @@ class BaseMultivariate(BaseModel):
         self.h = h
         self.input_size = input_size
         self.n_series = n_series
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Multivariate models do not support these loss functions yet.
         unsupported_losses = (
