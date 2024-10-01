@@ -66,6 +66,7 @@ from neuralforecast.models import (
     SOFTS,
     TimeMixer,
     KAN,
+    RMoK,
 )
 from .common._base_auto import BaseAuto, MockTrial
 
@@ -190,6 +191,8 @@ MODEL_FILENAME_DICT = {
     "autotimemixer": TimeMixer,
     "kan": KAN,
     "autokan": KAN,
+    "rmok": RMoK,
+    "autormok": RMoK,
 }
 
 # %% ../nbs/core.ipynb 8
