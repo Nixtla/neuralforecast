@@ -35,9 +35,7 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     Auxiliary funtion to handle divide by 0
     """
     div = a / b
-    div[div != div] = 0.0
-    div[div == float("inf")] = 0.0
-    return div
+    return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
 
 # %% ../../nbs/losses.pytorch.ipynb 7
 def _weighted_mean(losses, weights):
@@ -825,7 +823,7 @@ def student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1):
     if (loc is not None) and (scale is not None):
         mean = (mean * scale) + loc
         tscale = (tscale + eps) * scale
-    df = 2.0 + F.softplus(df)
+    df = 3.0 + F.softplus(df)
     return (df, mean, tscale)
 
 
