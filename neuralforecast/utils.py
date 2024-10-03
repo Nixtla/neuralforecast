@@ -4,15 +4,18 @@
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
            'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
-           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing', 'ConformalIntervals']
+           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing', 'ConformalIntervals',
+           'add_conformal_distribution_intervals', 'add_conformal_error_intervals', 'get_conformal_method']
 
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
-from typing import List
+from typing import List, Union
+from utilsforecast.compat import DataFrame
 
 import numpy as np
 import pandas as pd
+import utilsforecast.processing as ufp
 
 # %% ../nbs/utils.ipynb 6
 def generate_series(
@@ -95,7 +98,7 @@ def generate_series(
 
     return temporal_df
 
-# %% ../nbs/utils.ipynb 11
+# %% ../nbs/utils.ipynb 12
 AirPassengers = np.array(
     [
         112.0,
@@ -246,7 +249,7 @@ AirPassengers = np.array(
     dtype=np.float32,
 )
 
-# %% ../nbs/utils.ipynb 12
+# %% ../nbs/utils.ipynb 13
 AirPassengersDF = pd.DataFrame(
     {
         "unique_id": np.ones(len(AirPassengers)),
@@ -257,7 +260,7 @@ AirPassengersDF = pd.DataFrame(
     }
 )
 
-# %% ../nbs/utils.ipynb 19
+# %% ../nbs/utils.ipynb 20
 # Declare Panel Data
 unique_id = np.concatenate(
     [["Airline1"] * len(AirPassengers), ["Airline2"] * len(AirPassengers)]
@@ -292,7 +295,7 @@ AirPassengersStatic = pd.DataFrame(
 
 AirPassengersPanel.groupby("unique_id").tail(4)
 
-# %% ../nbs/utils.ipynb 25
+# %% ../nbs/utils.ipynb 26
 class TimeFeature:
     def __init__(self):
         pass
@@ -439,7 +442,7 @@ def augment_calendar_df(df, freq="H"):
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
 
-# %% ../nbs/utils.ipynb 28
+# %% ../nbs/utils.ipynb 29
 def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
     idxs = idx.get_indexer(vals)
     missing = [v for i, v in zip(idxs, vals) if i == -1]
@@ -447,7 +450,7 @@ def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
         raise ValueError(f"The following values are missing from the index: {missing}")
     return idxs
 
-# %% ../nbs/utils.ipynb 30
+# %% ../nbs/utils.ipynb 31
 class ConformalIntervals:
     """Class for storing conformal intervals metadata information."""
 
@@ -475,3 +478,88 @@ class ConformalIntervals:
 
     def __repr__(self):
         return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}')"
+
+# %% ../nbs/utils.ipynb 32
+def add_conformal_distribution_intervals(
+    fcst_df: DataFrame,
+    cs_df: DataFrame,
+    model_names: List[str],
+    level: List[Union[int, float]],
+    cs_n_windows: int,
+    n_series: int,
+    horizon: int,
+) -> DataFrame:
+    """
+    Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
+    `level` should be already sorted. This strategy creates forecasts paths
+    based on errors and calculate quantiles using those paths.
+    """
+    fcst_df = ufp.copy_if_pandas(fcst_df, deep=False)
+    alphas = [100 - lv for lv in level]
+    cuts = [alpha / 200 for alpha in reversed(alphas)]
+    cuts.extend(1 - alpha / 200 for alpha in alphas)
+    for model in model_names:
+        scores = cs_df[model].to_numpy().reshape(cs_n_windows, n_series, horizon)
+        # restrict scores to horizon
+        scores = scores[:, :, :horizon]
+        mean = fcst_df[model].to_numpy().reshape(1, n_series, -1)
+        scores = np.vstack([mean - scores, mean + scores])
+        quantiles = np.quantile(
+            scores,
+            cuts,
+            axis=0,
+        )
+        quantiles = quantiles.reshape(len(cuts), -1).T
+        lo_cols = [f"{model}-conformal-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-conformal-hi-{lv}" for lv in level]
+        out_cols = lo_cols + hi_cols
+        fcst_df = ufp.assign_columns(fcst_df, out_cols, quantiles)
+    return fcst_df
+
+# %% ../nbs/utils.ipynb 33
+def add_conformal_error_intervals(
+    fcst_df: DataFrame,
+    cs_df: DataFrame,
+    model_names: List[str],
+    level: List[Union[int, float]],
+    cs_n_windows: int,
+    n_series: int,
+    horizon: int,
+) -> DataFrame:
+    """
+    Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
+    `level` should be already sorted. This startegy creates prediction intervals
+    based on the absolute errors.
+    """
+    fcst_df = ufp.copy_if_pandas(fcst_df, deep=False)
+    cuts = [lv / 100 for lv in level]
+    for model in model_names:
+        mean = fcst_df[model].to_numpy().ravel()
+        scores = cs_df[model].to_numpy().reshape(cs_n_windows, n_series, horizon)
+        # restrict scores to horizon
+        scores = scores[:, :, :horizon]
+        quantiles = np.quantile(
+            scores,
+            cuts,
+            axis=0,
+        )
+        quantiles = quantiles.reshape(len(cuts), -1)
+        lo_cols = [f"{model}-conformal-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-conformal-hi-{lv}" for lv in level]
+        quantiles = np.vstack([mean - quantiles[::-1], mean + quantiles]).T
+        columns = lo_cols + hi_cols
+        fcst_df = ufp.assign_columns(fcst_df, columns, quantiles)
+    return fcst_df
+
+# %% ../nbs/utils.ipynb 34
+def get_conformal_method(method: str):
+    available_methods = {
+        "conformal_distribution": add_conformal_distribution_intervals,
+        "conformal_error": add_conformal_error_intervals,
+    }
+    if method not in available_methods.keys():
+        raise ValueError(
+            f"prediction intervals method {method} not supported "
+            f'please choose one of {", ".join(available_methods.keys())}'
+        )
+    return available_methods[method]
