@@ -3097,6 +3097,7 @@ UNSUPPORTED_LOSSES_CONFORMAL = (
     PMM,
     GMM,
     NBMM,
+    HuberQLoss,
     HuberMQLoss,
     QuantileLoss,
     IQLoss,
