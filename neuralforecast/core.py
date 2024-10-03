@@ -1498,8 +1498,9 @@ class NeuralForecast:
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
-            # conformity scores for conformal prediction
-            "_cs_df": self._cs_df,
+            # conformal prediction
+            "conformal_intervals": self.conformal_intervals,
+            "_cs_df": self._cs_df,  # conformity score
         }
         if save_dataset:
             config_dict.update(
@@ -1597,7 +1598,7 @@ class NeuralForecast:
         for attr in ["id_col", "time_col", "target_col"]:
             setattr(neuralforecast, attr, config_dict[attr])
         # only restore attribute if available
-        for attr in ["_cs_df"]:
+        for attr in ["conformal_intervals", "_cs_df"]:
             if attr in config_dict.keys():
                 setattr(neuralforecast, attr, config_dict[attr])
 
