@@ -489,6 +489,7 @@ class NeuralForecast:
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
         self._cs_df: Optional[DataFrame] = None
+        self.conformal_intervals: Optional[ConformalIntervals] = None
 
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
@@ -971,8 +972,8 @@ class NeuralForecast:
 
         # perform conformal predictions
         if conformal_level is not None:
-            if self._cs_df is None:
-                warn_msg = "Please rerun the `fit` method passing a valid confrmal_interval settings to compute conformity scores"
+            if self._cs_df is None or self.conformal_intervals is None:
+                warn_msg = "Please rerun the `fit` method passing a valid conformal_interval settings to compute conformity scores"
                 warnings.warn(warn_msg, UserWarning)
             else:
                 level_ = sorted(conformal_level)
@@ -1642,6 +1643,11 @@ class NeuralForecast:
         target_col: str = 'y',
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         """
+        if self.conformal_intervals is None:
+            raise AttributeError(
+                "Please rerun the `fit` method passing a valid conformal_interval settings to compute conformity scores"
+            )
+
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
         min_samples = self.h * self.conformal_intervals.n_windows + 1
         if min_size < min_samples:
