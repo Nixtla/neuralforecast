@@ -11,7 +11,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 import random
 from itertools import chain
 from typing import List, Union
-from utilsforecast.compat import DataFrame
+from utilsforecast.compat import DFType
 
 import numpy as np
 import pandas as pd
@@ -481,14 +481,14 @@ class ConformalIntervals:
 
 # %% ../nbs/utils.ipynb 32
 def add_conformal_distribution_intervals(
-    fcst_df: DataFrame,
-    cs_df: DataFrame,
+    fcst_df: DFType,
+    cs_df: DFType,
     model_names: List[str],
     level: List[Union[int, float]],
     cs_n_windows: int,
     n_series: int,
     horizon: int,
-) -> DataFrame:
+) -> DFType:
     """
     Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
     `level` should be already sorted. This strategy creates forecasts paths
@@ -518,14 +518,14 @@ def add_conformal_distribution_intervals(
 
 # %% ../nbs/utils.ipynb 33
 def add_conformal_error_intervals(
-    fcst_df: DataFrame,
-    cs_df: DataFrame,
+    fcst_df: DFType,
+    cs_df: DFType,
     model_names: List[str],
     level: List[Union[int, float]],
     cs_n_windows: int,
     n_series: int,
     horizon: int,
-) -> DataFrame:
+) -> DFType:
     """
     Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
     `level` should be already sorted. This startegy creates prediction intervals
