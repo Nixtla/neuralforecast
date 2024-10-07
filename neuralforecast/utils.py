@@ -458,7 +458,7 @@ class ConformalIntervals:
         self,
         n_windows: int = 2,
         method: str = "conformal_distribution",
-        conformalize_quantiles: bool = False,
+        enable_quantiles: bool = False,
     ):
         """
         n_windows : int
@@ -466,8 +466,8 @@ class ConformalIntervals:
         method : str, default is conformal_distribution
             One of the supported methods for the computation of conformal prediction:
             conformal_error or conformal_distribution
-        conformalize_quantiles : bool, default is False
-            If set to True, we shall conformalize quantiled outputs, e.g. prediction made
+        enable_quantiles : bool, default is False
+            If set to True, we create prediction intervals on top of quantiled outputs, e.g. prediction made
             with MQLoss(level=[80]) will be conformalized with the respective conformal
             levels (prediction columns having 'model-lo/hi-80-conformal-lo/hi-#').
         """
@@ -480,7 +480,7 @@ class ConformalIntervals:
             raise ValueError(f"method must be one of {allowed_methods}")
         self.n_windows = n_windows
         self.method = method
-        self.conformalize_quantiles = conformalize_quantiles
+        self.enable_quantiles = enable_quantiles
 
     def __repr__(self):
         return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}')"

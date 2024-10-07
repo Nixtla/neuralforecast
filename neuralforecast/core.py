@@ -666,18 +666,16 @@ class NeuralForecast:
 
         return futr_exog | set(hist_exog)
 
-    def _get_model_names(
-        self, conformal=False, conformalize_quantiles=False
-    ) -> List[str]:
+    def _get_model_names(self, conformal=False, enable_quantiles=False) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
             if (
                 conformal
-                and not conformalize_quantiles
+                and not enable_quantiles
                 and model.loss.outputsize_multiplier > 1
             ):
-                # skip conformalize quantile outputs
+                # skip prediction intervals on quantile outputs
                 continue
 
             model_name = repr(model)
@@ -984,7 +982,7 @@ class NeuralForecast:
                 level_ = sorted(conformal_level)
                 model_names = self._get_model_names(
                     conformal=True,
-                    conformalize_quantiles=self.conformal_intervals.conformalize_quantiles,
+                    enable_quantiles=self.conformal_intervals.enable_quantiles,
                 )
                 conformal_method = get_conformal_method(self.conformal_intervals.method)
 
@@ -1677,8 +1675,7 @@ class NeuralForecast:
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
         for model in self._get_model_names(
-            conformal=True,
-            conformalize_quantiles=self.conformal_intervals.conformalize_quantiles,
+            conformal=True, enable_quantiles=self.conformal_intervals.enable_quantiles
         ):
             kept.append(model)
 
