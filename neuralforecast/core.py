@@ -24,7 +24,7 @@ from coreforecast.scalers import (
     LocalRobustScaler,
     LocalStandardScaler,
 )
-from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
+from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
@@ -487,7 +487,7 @@ class NeuralForecast:
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
-        self._cs_df: Optional[DataFrame] = None
+        self._cs_df: Optional[DFType] = None
         self.conformal_intervals: Optional[ConformalIntervals] = None
 
         # Process and save new dataset (in self)
