@@ -70,7 +70,6 @@ from neuralforecast.models import (
 )
 from .common._base_auto import BaseAuto, MockTrial
 from .utils import ConformalIntervals, get_conformal_method
-from .losses.pytorch import UNSUPPORTED_LOSSES_CONFORMAL
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -667,12 +666,18 @@ class NeuralForecast:
 
         return futr_exog | set(hist_exog)
 
-    def _get_model_names(self, use_conformal=False) -> List[str]:
+    def _get_model_names(
+        self, conformal=False, conformalize_quantiles=False
+    ) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
-            # skip model for consideration of conformal prediction
-            if use_conformal and isinstance(model.loss, UNSUPPORTED_LOSSES_CONFORMAL):
+            if (
+                conformal
+                and not conformalize_quantiles
+                and model.loss.outputsize_multiplier > 1
+            ):
+                # skip conformalize quantile outputs
                 continue
 
             model_name = repr(model)
@@ -977,7 +982,10 @@ class NeuralForecast:
                 warnings.warn(warn_msg, UserWarning)
             else:
                 level_ = sorted(conformal_level)
-                model_names = self._get_model_names(use_conformal=True)
+                model_names = self._get_model_names(
+                    conformal=True,
+                    conformalize_quantiles=self.conformal_intervals.conformalize_quantiles,
+                )
                 conformal_method = get_conformal_method(self.conformal_intervals.method)
 
                 fcsts_df = conformal_method(
@@ -1668,7 +1676,10 @@ class NeuralForecast:
 
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
-        for model in self._get_model_names(use_conformal=True):
+        for model in self._get_model_names(
+            conformal=True,
+            conformalize_quantiles=self.conformal_intervals.conformalize_quantiles,
+        ):
             kept.append(model)
 
             # compute absolute error for each model
