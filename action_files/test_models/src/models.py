@@ -64,7 +64,8 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
                    'encoder_hidden_size': tune.choice([124]),
                    "max_steps": 300,
                    "val_check_steps": 100,
-                   "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),}
+                   "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+                   "scaler_type": "minmax1"}
 
     models = [
         AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
