@@ -61,7 +61,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
     }
     config_drnn = {'input_size': tune.choice([2 * horizon]),
-                   'encoder_hidden_size': tune.choice([124]),
+                   'encoder_hidden_size': tune.choice([16]),
                    "max_steps": 300,
                    "val_check_steps": 100,
                    "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
@@ -69,7 +69,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
 
     models = [
         AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
-        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
+        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=25, max_steps=300),
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=300),
         NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=MAE(), max_steps=1000, val_check_steps=500),
         AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, cpus=1),
