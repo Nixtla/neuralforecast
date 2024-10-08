@@ -650,13 +650,13 @@ class BaseModel(pl.LightningModule):
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-                windows = windows.permute(2, 3, 1, 0)
+                windows = windows.permute(2, 3, 1, 0).contiguous()
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
+                windows = windows.unsqueeze(-1).contiguous()
 
             # Sample and Available conditions
             available_idx = temporal_cols.get_loc("available_mask")
@@ -760,13 +760,13 @@ class BaseModel(pl.LightningModule):
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-                windows = windows.permute(2, 3, 1, 0)
+                windows = windows.permute(2, 3, 1, 0).contiguous()
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
                 windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
+                windows = windows.unsqueeze(-1).contiguous()
                 if static is not None:
                     static = torch.repeat_interleave(
                         static, repeats=windows_per_serie, dim=0
