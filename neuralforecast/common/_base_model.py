@@ -67,7 +67,7 @@ def _disable_torch_init():
         nn.init.xavier_uniform_ = xavier_uniform
         nn.init.xavier_normal_ = xavier_normal
 
-# %% ../../nbs/common.base_model.ipynb 5
+# %% ../../nbs/common.base_model.ipynb 6
 class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
@@ -597,6 +597,7 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         losses = torch.stack(self.validation_step_outputs)
+        avg_loss = losses.mean().detach().item()
         avg_loss = losses.mean().detach()
         self.log(
             "ptl/val_loss",
