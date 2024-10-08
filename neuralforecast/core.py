@@ -69,7 +69,7 @@ from neuralforecast.models import (
     RMoK,
 )
 from .common._base_auto import BaseAuto, MockTrial
-from .utils import ConformalIntervals, get_conformal_method
+from .utils import PredictionIntervals, get_prediction_interval_method
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -439,7 +439,7 @@ class NeuralForecast:
         time_col: str = "ds",
         target_col: str = "y",
         distributed_config: Optional[DistributedConfig] = None,
-        conformal_intervals: Optional[ConformalIntervals] = None,
+        prediction_intervals: Optional[PredictionIntervals] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -469,7 +469,7 @@ class NeuralForecast:
             Column that contains the target.
         distributed_config : neuralforecast.DistributedConfig
             Configuration to use for DDP training. Currently only spark is supported.
-        conformal_intervals : ConformalIntervals, optional (default=None)
+        prediction_intervals : PredictionIntervals, optional (default=None)
             Configuration to calibrate prediction intervals (Conformal Prediction).
 
         Returns
@@ -488,7 +488,7 @@ class NeuralForecast:
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
         self._cs_df: Optional[DFType] = None
-        self.conformal_intervals: Optional[ConformalIntervals] = None
+        self.prediction_intervals: Optional[PredictionIntervals] = None
 
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
@@ -546,9 +546,8 @@ class NeuralForecast:
                     "Validation set size is larger than the shorter time-series."
                 )
 
-        if conformal_intervals is not None:
-            # conformal prediction
-            self.conformal_intervals = conformal_intervals
+        if prediction_intervals is not None:
+            self.prediction_intervals = prediction_intervals
             self._cs_df = self._conformity_scores(
                 df=df,
                 id_col=id_col,
@@ -666,16 +665,11 @@ class NeuralForecast:
 
         return futr_exog | set(hist_exog)
 
-    def _get_model_names(self, conformal=False, enable_quantiles=False) -> List[str]:
+    def _get_model_names(self, add_level=False) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
-            if (
-                conformal
-                and not enable_quantiles
-                and model.loss.outputsize_multiplier > 1
-            ):
-                # skip prediction intervals on quantile outputs
+            if add_level and model.loss.outputsize_multiplier > 1:
                 continue
 
             model_name = repr(model)
@@ -808,7 +802,7 @@ class NeuralForecast:
         sort_df: bool = True,
         verbose: bool = False,
         engine=None,
-        conformal_level: Optional[List[Union[int, float]]] = None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -830,8 +824,8 @@ class NeuralForecast:
             Print processing steps.
         engine : spark session
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
-        conformal_level : list of ints or floats, optional (default=None)
-            Confidence levels between 0 and 100 for conformal intervals.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -973,25 +967,25 @@ class NeuralForecast:
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
 
-        # perform conformal predictions
-        if conformal_level is not None:
-            if self._cs_df is None or self.conformal_intervals is None:
-                warn_msg = "Please rerun the `fit` method passing a valid conformal_interval settings to compute conformity scores"
-                warnings.warn(warn_msg, UserWarning)
-            else:
-                level_ = sorted(conformal_level)
-                model_names = self._get_model_names(
-                    conformal=True,
-                    enable_quantiles=self.conformal_intervals.enable_quantiles,
+        # add prediction intervals
+        if level is not None:
+            if self._cs_df is None or self.prediction_intervals is None:
+                raise Exception(
+                    "You must fit the model with prediction_intervals to use level."
                 )
-                conformal_method = get_conformal_method(self.conformal_intervals.method)
+            else:
+                level_ = sorted(level)
+                model_names = self._get_model_names(add_level=True)
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
 
-                fcsts_df = conformal_method(
+                fcsts_df = prediction_interval_method(
                     fcsts_df,
                     self._cs_df,
                     model_names=list(model_names),
                     level=level_,
-                    cs_n_windows=self.conformal_intervals.n_windows,
+                    cs_n_windows=self.prediction_intervals.n_windows,
                     n_series=len(uids),
                     horizon=self.h,
                 )
@@ -1505,8 +1499,7 @@ class NeuralForecast:
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
-            # conformal prediction
-            "conformal_intervals": self.conformal_intervals,
+            "prediction_intervals": self.prediction_intervals,
             "_cs_df": self._cs_df,  # conformity score
         }
         if save_dataset:
@@ -1605,7 +1598,7 @@ class NeuralForecast:
         for attr in ["id_col", "time_col", "target_col"]:
             setattr(neuralforecast, attr, config_dict[attr])
         # only restore attribute if available
-        for attr in ["conformal_intervals", "_cs_df"]:
+        for attr in ["prediction_intervals", "_cs_df"]:
             if attr in config_dict.keys():
                 setattr(neuralforecast, attr, config_dict[attr])
 
@@ -1639,9 +1632,9 @@ class NeuralForecast:
         """Compute conformity scores.
 
         We need at least two cross validation errors to compute
-        quantiles for prediction intervals (`n_windows=2`, specified by self.conformal_intervals).
+        quantiles for prediction intervals (`n_windows=2`, specified by self.prediction_intervals).
 
-        The exception is raised by the ConformalIntervals data class.
+        The exception is raised by the PredictionIntervals data class.
 
         df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         id_col: str = 'unique_id',
@@ -1649,13 +1642,13 @@ class NeuralForecast:
         target_col: str = 'y',
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         """
-        if self.conformal_intervals is None:
+        if self.prediction_intervals is None:
             raise AttributeError(
-                "Please rerun the `fit` method passing a valid conformal_interval settings to compute conformity scores"
+                "Please rerun the `fit` method passing a valid prediction_interval setting to compute conformity scores"
             )
 
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
-        min_samples = self.h * self.conformal_intervals.n_windows + 1
+        min_samples = self.h * self.prediction_intervals.n_windows + 1
         if min_size < min_samples:
             raise ValueError(
                 "Minimum required samples in each serie for the prediction intervals "
@@ -1666,7 +1659,7 @@ class NeuralForecast:
         cv_results = self.cross_validation(
             df=df,
             static_df=static_df,
-            n_windows=self.conformal_intervals.n_windows,
+            n_windows=self.prediction_intervals.n_windows,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
@@ -1674,9 +1667,7 @@ class NeuralForecast:
 
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
-        for model in self._get_model_names(
-            conformal=True, enable_quantiles=self.conformal_intervals.enable_quantiles
-        ):
+        for model in self._get_model_names(add_level=True):
             kept.append(model)
 
             # compute absolute error for each model

@@ -4,8 +4,9 @@
 __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPassengersPanel', 'snaive', 'airline1_dummy',
            'airline2_dummy', 'AirPassengersStatic', 'generate_series', 'TimeFeature', 'SecondOfMinute', 'MinuteOfHour',
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
-           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing', 'ConformalIntervals',
-           'add_conformal_distribution_intervals', 'add_conformal_error_intervals', 'get_conformal_method']
+           'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing',
+           'PredictionIntervals', 'add_conformal_distribution_intervals', 'add_conformal_error_intervals',
+           'get_prediction_interval_method']
 
 # %% ../nbs/utils.ipynb 3
 import random
@@ -451,25 +452,20 @@ def get_indexer_raise_missing(idx: pd.Index, vals: List[str]) -> List[int]:
     return idxs
 
 # %% ../nbs/utils.ipynb 31
-class ConformalIntervals:
-    """Class for storing conformal intervals metadata information."""
+class PredictionIntervals:
+    """Class for storing prediction intervals metadata information."""
 
     def __init__(
         self,
         n_windows: int = 2,
         method: str = "conformal_distribution",
-        enable_quantiles: bool = False,
     ):
         """
         n_windows : int
             Number of windows to evaluate.
         method : str, default is conformal_distribution
-            One of the supported methods for the computation of conformal prediction:
+            One of the supported methods for the computation of prediction intervals:
             conformal_error or conformal_distribution
-        enable_quantiles : bool, default is False
-            If set to True, we create prediction intervals on top of quantiled outputs, e.g. prediction made
-            with MQLoss(level=[80]) will be conformalized with the respective conformal
-            levels (prediction columns having 'model-lo/hi-80-conformal-lo/hi-#').
         """
         if n_windows < 2:
             raise ValueError(
@@ -480,10 +476,11 @@ class ConformalIntervals:
             raise ValueError(f"method must be one of {allowed_methods}")
         self.n_windows = n_windows
         self.method = method
-        self.enable_quantiles = enable_quantiles
 
     def __repr__(self):
-        return f"ConformalIntervals(n_windows={self.n_windows}, method='{self.method}')"
+        return (
+            f"PredictionIntervals(n_windows={self.n_windows}, method='{self.method}')"
+        )
 
 # %% ../nbs/utils.ipynb 32
 def add_conformal_distribution_intervals(
@@ -516,8 +513,8 @@ def add_conformal_distribution_intervals(
             axis=0,
         )
         quantiles = quantiles.reshape(len(cuts), -1).T
-        lo_cols = [f"{model}-conformal-lo-{lv}" for lv in reversed(level)]
-        hi_cols = [f"{model}-conformal-hi-{lv}" for lv in level]
+        lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-hi-{lv}" for lv in level]
         out_cols = lo_cols + hi_cols
         fcst_df = ufp.assign_columns(fcst_df, out_cols, quantiles)
     return fcst_df
@@ -550,15 +547,15 @@ def add_conformal_error_intervals(
             axis=0,
         )
         quantiles = quantiles.reshape(len(cuts), -1)
-        lo_cols = [f"{model}-conformal-lo-{lv}" for lv in reversed(level)]
-        hi_cols = [f"{model}-conformal-hi-{lv}" for lv in level]
+        lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-hi-{lv}" for lv in level]
         quantiles = np.vstack([mean - quantiles[::-1], mean + quantiles]).T
         columns = lo_cols + hi_cols
         fcst_df = ufp.assign_columns(fcst_df, columns, quantiles)
     return fcst_df
 
 # %% ../nbs/utils.ipynb 34
-def get_conformal_method(method: str):
+def get_prediction_interval_method(method: str):
     available_methods = {
         "conformal_distribution": add_conformal_distribution_intervals,
         "conformal_error": add_conformal_error_intervals,
