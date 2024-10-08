@@ -39,7 +39,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install pip requirements
-        run: uv pip install ".[dev]"
+        run: uv pip install --system ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars
