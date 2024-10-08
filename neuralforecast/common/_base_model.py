@@ -597,7 +597,6 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         losses = torch.stack(self.validation_step_outputs)
-        avg_loss = losses.mean().detach().item()
         avg_loss = losses.mean().detach()
         self.log(
             "ptl/val_loss",
@@ -1268,14 +1267,15 @@ class BaseModel(pl.LightningModule):
             print("outsample_y", torch.isnan(outsample_y).sum())
             raise Exception("Loss is NaN, training stopped.")
 
+        train_loss_log = loss.detach().item()
         self.log(
             "train_loss",
-            loss.detach(),
+            train_loss_log,
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.detach()))
+        self.train_trajectories.append((self.global_step, train_loss_log))
 
         self.h = self.horizon_backup
 
@@ -1361,9 +1361,10 @@ class BaseModel(pl.LightningModule):
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
 
+        valid_loss_log = valid_loss.detach()
         self.log(
             "valid_loss",
-            valid_loss.detach(),
+            valid_loss_log.item(),
             batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,
