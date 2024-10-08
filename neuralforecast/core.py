@@ -1137,6 +1137,8 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        prediction_intervals: Optional[PredictionIntervals] = None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1175,6 +1177,10 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1246,6 +1252,7 @@ class NeuralForecast:
                     id_col=id_col,
                     time_col=time_col,
                     target_col=target_col,
+                    prediction_intervals=prediction_intervals,
                 )
                 predict_df: Optional[DataFrame] = None
             else:
@@ -1261,6 +1268,7 @@ class NeuralForecast:
                 futr_df=futr_df,
                 sort_df=sort_df,
                 verbose=verbose,
+                level=level,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
