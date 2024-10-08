@@ -256,8 +256,8 @@ class DRNN(nn.Module):
             for i in range(rate)
         ]
 
-        interleaved = torch.stack((blocks)).transpose(1, 0).contiguous()
-        interleaved = interleaved.view(
+        interleaved = torch.stack((blocks)).transpose(1, 0)
+        interleaved = interleaved.reshape(
             dilated_outputs.size(0) * rate, batchsize, dilated_outputs.size(2)
         )
         return interleaved
