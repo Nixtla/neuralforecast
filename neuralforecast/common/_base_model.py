@@ -650,7 +650,7 @@ class BaseModel(pl.LightningModule):
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-                windows = windows.permute(2, 3, 1, 0).contiguous()
+                windows = windows.permute(2, 3, 1, 0)
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
@@ -760,7 +760,7 @@ class BaseModel(pl.LightningModule):
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
-                windows = windows.permute(2, 3, 1, 0).contiguous()
+                windows = windows.permute(2, 3, 1, 0)
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
