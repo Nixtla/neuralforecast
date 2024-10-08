@@ -436,13 +436,11 @@ class DilatedRNN(BaseModel):
         self.rnn_stack = nn.Sequential(*layers)
 
         # Context adapter
-        self.context_adapter = nn.Linear(
-            in_features=self.encoder_hidden_size, out_features=self.context_size * h
-        )
+        self.context_adapter = nn.Linear(in_features=self.input_size, out_features=h)
 
         # Decoder MLP
         self.mlp_decoder = MLP(
-            in_features=self.context_size * h + self.futr_exog_size,
+            in_features=self.encoder_hidden_size + self.futr_exog_size,
             out_features=self.loss.outputsize_multiplier,
             hidden_size=self.decoder_hidden_size,
             num_layers=self.decoder_layers,
@@ -487,17 +485,20 @@ class DilatedRNN(BaseModel):
             encoder_input = output
 
         # Context adapter
-        context = self.context_adapter(output)  # [B, L, C] -> [B, L, context_size * h]
+        output = output.permute(0, 2, 1)  # [B, L, C] -> [B, C, L]
+        context = self.context_adapter(output)  # [B, C, L] -> [B, C, h]
 
         # Residual connection with futr_exog
         if self.futr_exog_size > 0:
+            futr_exog_futr = futr_exog[:, seq_len:].permute(
+                0, 2, 1
+            )  # [B, h, F] -> [B, F, h]
             context = torch.cat(
-                (context, futr_exog[:, :seq_len]), dim=-1
-            )  # [B, L, context_size * h] + [B, L, F] = [B, L, context_size * h + F]
+                (context, futr_exog_futr), dim=1
+            )  # [B, C, h] + [B, F, h] = [B, C + F, h]
 
         # Final forecast
-        output = self.mlp_decoder(
-            context
-        )  # [B, L, context_size * h + F] -> [B, L, n_output]
+        context = context.permute(0, 2, 1)  # [B, C + F, h] -> [B, h, C + F]
+        output = self.mlp_decoder(context)  # [B, h, C + F] -> [B, h, n_output]
 
-        return output[:, -self.h :]
+        return output
