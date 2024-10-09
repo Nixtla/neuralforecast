@@ -1321,7 +1321,16 @@ class BaseModel(pl.LightningModule):
                 stat_exog,
             ) = self._parse_windows(batch, windows)
 
-            if not self.RECURRENT:
+            if self.RECURRENT:
+                output_batch = self._validate_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            else:
                 windows_batch = dict(
                     insample_y=insample_y,  # [Ws, L, n_series]
                     insample_mask=insample_mask,  # [Ws, L, n_series]
@@ -1332,15 +1341,6 @@ class BaseModel(pl.LightningModule):
 
                 # Model Predictions
                 output_batch = self(windows_batch)
-            else:
-                output_batch = self._validate_step_recurrent_batch(
-                    insample_y=insample_y,
-                    insample_mask=insample_mask,
-                    futr_exog=futr_exog,
-                    hist_exog=hist_exog,
-                    stat_exog=stat_exog,
-                    y_idx=y_idx,
-                )
 
             output_batch = self.loss.domain_map(output_batch)
             valid_loss_batch = self._compute_valid_loss(
@@ -1400,8 +1400,8 @@ class BaseModel(pl.LightningModule):
                 self._parse_windows(batch, windows)
             )
 
-            if not self.RECURRENT:
-                y_hat = self._predict_step_direct_batch(
+            if self.RECURRENT:
+                y_hat = self._predict_step_recurrent_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
                     futr_exog=futr_exog,
@@ -1410,7 +1410,7 @@ class BaseModel(pl.LightningModule):
                     y_idx=y_idx,
                 )
             else:
-                y_hat = self._predict_step_recurrent_batch(
+                y_hat = self._predict_step_direct_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
                     futr_exog=futr_exog,
