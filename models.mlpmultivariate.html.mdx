@@ -171,6 +171,8 @@ Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].v
 model = MLPMultivariate(h=12, 
             input_size=24,
             n_series=2,
+            stat_exog_list=['airline1'],
+            futr_exog_list=['trend'],            
             loss = MAE(),
             scaler_type='robust',
             learning_rate=1e-3,
