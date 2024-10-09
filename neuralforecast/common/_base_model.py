@@ -597,7 +597,7 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return
         losses = torch.stack(self.validation_step_outputs)
-        avg_loss = losses.mean().detach()
+        avg_loss = losses.mean().detach().item()
         self.log(
             "ptl/val_loss",
             avg_loss,
@@ -1321,16 +1321,7 @@ class BaseModel(pl.LightningModule):
                 stat_exog,
             ) = self._parse_windows(batch, windows)
 
-            if self.RECURRENT:
-                output_batch = self._validate_step_recurrent_batch(
-                    insample_y=insample_y,
-                    insample_mask=insample_mask,
-                    futr_exog=futr_exog,
-                    hist_exog=hist_exog,
-                    stat_exog=stat_exog,
-                    y_idx=y_idx,
-                )
-            else:
+            if not self.RECURRENT:
                 windows_batch = dict(
                     insample_y=insample_y,  # [Ws, L, n_series]
                     insample_mask=insample_mask,  # [Ws, L, n_series]
@@ -1341,6 +1332,15 @@ class BaseModel(pl.LightningModule):
 
                 # Model Predictions
                 output_batch = self(windows_batch)
+            else:
+                output_batch = self._validate_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
 
             output_batch = self.loss.domain_map(output_batch)
             valid_loss_batch = self._compute_valid_loss(
@@ -1369,7 +1369,7 @@ class BaseModel(pl.LightningModule):
             prog_bar=True,
             on_epoch=True,
         )
-        self.validation_step_outputs.append(valid_loss)
+        self.validation_step_outputs.append(valid_loss_log)
         return valid_loss
 
     def predict_step(self, batch, batch_idx):
@@ -1400,16 +1400,7 @@ class BaseModel(pl.LightningModule):
                 self._parse_windows(batch, windows)
             )
 
-            if self.RECURRENT:
-                y_hat = self._predict_step_recurrent_batch(
-                    insample_y=insample_y,
-                    insample_mask=insample_mask,
-                    futr_exog=futr_exog,
-                    hist_exog=hist_exog,
-                    stat_exog=stat_exog,
-                    y_idx=y_idx,
-                )
-            else:
+            if not self.RECURRENT:
                 y_hat = self._predict_step_direct_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
@@ -1418,6 +1409,16 @@ class BaseModel(pl.LightningModule):
                     stat_exog=stat_exog,
                     y_idx=y_idx,
                 )
+            else:
+                y_hat = self._predict_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)
         self.input_size = self.input_size_backup
