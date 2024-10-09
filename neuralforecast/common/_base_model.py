@@ -655,8 +655,8 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1).contiguous()
+                windows = windows.flatten(0, 1).contiguous()
+                windows = windows.unsqueeze(-1)
 
             # Sample and Available conditions
             available_idx = temporal_cols.get_loc("available_mask")
@@ -722,7 +722,7 @@ class BaseModel(pl.LightningModule):
                         temporal,
                         pad=(self.input_size - initial_input, 0),
                         mode="constant",
-                        value=0,
+                        value=0.0,
                     )
                 predict_step_size = self.predict_step_size
                 cutoff = -self.input_size - self.test_size
@@ -741,7 +741,7 @@ class BaseModel(pl.LightningModule):
                         temporal,
                         pad=(self.input_size - initial_input, 0),
                         mode="constant",
-                        value=0,
+                        value=0.0,
                     )
 
             if (
@@ -749,7 +749,7 @@ class BaseModel(pl.LightningModule):
                 and (self.test_size == 0)
                 and (len(self.futr_exog_list) == 0)
             ):
-                temporal = F.pad(temporal, pad=(0, self.h), mode="constant", value=0)
+                temporal = F.pad(temporal, pad=(0, self.h), mode="constant", value=0.0)
 
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=predict_step_size
@@ -765,8 +765,8 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1).contiguous()
+                windows = windows.flatten(0, 1).contiguous()
+                windows = windows.unsqueeze(-1)
                 if static is not None:
                     static = torch.repeat_interleave(
                         static, repeats=windows_per_serie, dim=0
