@@ -119,6 +119,7 @@
             "models.nhits.html",
             "models.nlinear.html",
             "models.patchtst.html",
+            "models.rmok.html",
             "models.rnn.html",
             "models.softs.html",
             "models.stemgnn.html",
