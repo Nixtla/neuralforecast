@@ -62,7 +62,6 @@ class GRN(nn.Module):
         context_hidden_size=None,
         dropout=0,
         activation="ELU",
-        glu_activation="GLU",
     ):
         super().__init__()
         self.layer_norm = MaybeLayerNorm(output_size, hidden_size, eps=1e-3)
