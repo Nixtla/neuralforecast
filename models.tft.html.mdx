@@ -284,7 +284,7 @@ TimeSeriesDataModule args, see
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L630"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L629"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importances,
@@ -408,10 +408,6 @@ plt.plot()
 ```
 
 ``` text
-Seed set to 1
-```
-
-``` text
 Sanity Checking: |          | 0/? [00:00<?, ?it/s]
 ```
 
@@ -488,10 +484,18 @@ Validation: |          | 0/? [00:00<?, ?it/s]
 ```
 
 ``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
 Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-9-output-22.png)
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-9-output-23.png)
 
 # Interpretability
 
@@ -728,9 +732,9 @@ nf.models[0].feature_importance_correlations()
 
 |  | trend | y\_\[lag12\] | month | observed_target | Correlation with Mean Attention |
 |----|----|----|----|----|----|
-| trend | 1.00 | -0.39 | -0.93 | 0.27 | 0.60 |
-| y\_\[lag12\] | -0.39 | 1.00 | 0.37 | -0.93 | -0.76 |
-| month | -0.93 | 0.37 | 1.00 | -0.37 | -0.66 |
-| observed_target | 0.27 | -0.93 | -0.37 | 1.00 | 0.77 |
-| Correlation with Mean Attention | 0.60 | -0.76 | -0.66 | 0.77 | 1.00 |
+| trend | 1.00 | 0.52 | -0.80 | 0.38 | 0.48 |
+| y\_\[lag12\] | 0.52 | 1.00 | -0.72 | 0.07 | 0.02 |
+| month | -0.80 | -0.72 | 1.00 | -0.62 | -0.45 |
+| observed_target | 0.38 | 0.07 | -0.62 | 1.00 | 0.73 |
+| Correlation with Mean Attention | 0.48 | 0.02 | -0.45 | 0.73 | 1.00 |
 
