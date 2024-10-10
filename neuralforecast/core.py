@@ -503,6 +503,16 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
+            if prediction_intervals is not None:
+                self.prediction_intervals = prediction_intervals
+                self._cs_df = self._conformity_scores(
+                    df=df,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    static_df=static_df,
+                )
+
         elif isinstance(df, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):
                 raise ValueError(
@@ -517,6 +527,12 @@ class NeuralForecast:
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for distributed training."
+                )
+
         elif isinstance(df, Sequence):
             if not all(isinstance(val, str) for val in df):
                 raise ValueError(
@@ -532,6 +548,12 @@ class NeuralForecast:
             )
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for local files."
+                )
+
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
@@ -545,16 +567,6 @@ class NeuralForecast:
                 warnings.warn(
                     "Validation set size is larger than the shorter time-series."
                 )
-
-        if prediction_intervals is not None:
-            self.prediction_intervals = prediction_intervals
-            self._cs_df = self._conformity_scores(
-                df=df,
-                id_col=id_col,
-                time_col=time_col,
-                target_col=target_col,
-                static_df=static_df,
-            )
 
         # Recover initial model if use_init_models
         if use_init_models:
@@ -1177,10 +1189,10 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
-        level : list of ints or floats, optional (default=None)
-            Confidence levels between 0 and 100.
         prediction_intervals : PredictionIntervals, optional (default=None)
             Configuration to calibrate prediction intervals (Conformal Prediction).
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100. Use with prediction_intervals.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1201,6 +1213,7 @@ class NeuralForecast:
             n_windows = int((test_size - h) / step_size) + 1
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
+
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
@@ -1210,7 +1223,21 @@ class NeuralForecast:
                 FutureWarning,
             )
             df = df.reset_index(id_col)
+
+        # Checks for prediction intervals
+        if prediction_intervals is not None or level is not None:
+            if level is None:
+                warnings.warn("Level not provided, using level=[90].")
+                level = [90]
+            if prediction_intervals is None:
+                raise Exception("You must set prediction_intervals to use level.")
+            if not refit:
+                raise Exception(
+                    "Passing prediction_intervals and/or level is only supported with refit=True."
+                )
+
         if not refit:
+
             return self._no_refit_cross_validation(
                 df=df,
                 static_df=static_df,
@@ -1635,7 +1662,7 @@ class NeuralForecast:
         id_col: str,
         time_col: str,
         target_col: str,
-        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[DataFrame],
     ) -> DataFrame:
         """Compute conformity scores.
 
@@ -1644,11 +1671,11 @@ class NeuralForecast:
 
         The exception is raised by the PredictionIntervals data class.
 
-        df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
-        id_col: str = 'unique_id',
-        time_col: str = 'ds',
-        target_col: str = 'y',
-        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
         """
         if self.prediction_intervals is None:
             raise AttributeError(
