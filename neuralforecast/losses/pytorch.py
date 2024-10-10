@@ -1000,7 +1000,7 @@ class Tweedie(Distribution):
             alpha = alpha.expand(shape)
             beta = beta.expand(shape)
 
-            N = torch.poisson(rate)
+            N = torch.poisson(rate) + 1e-5
             gamma = torch.distributions.gamma.Gamma(N * alpha, beta)
             samples = gamma.sample()
             samples[N == 0] = 0
@@ -1018,17 +1018,10 @@ class Tweedie(Distribution):
 
 
 def tweedie_domain_map(input: torch.Tensor):
-    """Tweedie Domain Map
-    Maps input into distribution constraints, by construction input's
-    last dimension is of matching `distr_args` length.
-
-    **Parameters:**<br>
-    `input`: tensor, of dimensions [B,T,H,theta] or [B,H,theta].<br>
-
-    **Returns:**<br>
-    `(log_mu,)`: tuple with tensors of Tweedie distribution arguments.<br>
     """
-    # log_mu, probs = torch.tensor_split(input, 2, dim=-1)
+    Maps output of neural network to domain of distribution loss
+
+    """
     return (input.squeeze(-1),)
 
 
@@ -1040,8 +1033,12 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
     Also adds Tweedie domain protection to the distribution parameters.
     """
     log_mu = output[0]
+    log_mu = F.softplus(log_mu)
+    log_mu = torch.clamp(log_mu, 1e-9, 37)
     if (loc is not None) and (scale is not None):
-        log_mu += torch.log(loc)  # TODO : rho scaling
+        log_mu += torch.log(loc)
+
+    log_mu = torch.clamp(log_mu, 1e-9, 37)
     return (log_mu,)
 
 # %% ../../nbs/losses.pytorch.ipynb 67
