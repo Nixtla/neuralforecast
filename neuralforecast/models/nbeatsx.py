@@ -430,12 +430,6 @@ class NBEATSx(BaseModel):
         )
         self.blocks = torch.nn.ModuleList(blocks)
 
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(
-                in_features=h, out_features=h * self.loss.outputsize_multiplier
-            )
-
     def create_stack(
         self,
         h,

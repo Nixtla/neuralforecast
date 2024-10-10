@@ -960,7 +960,7 @@ class Tweedie(Distribution):
             alpha = alpha.expand(shape)
             beta = beta.expand(shape)
 
-            N = torch.poisson(rate) + 1e-3
+            N = torch.poisson(rate) + 1e-5
             gamma = Gamma(N * alpha, beta)
             samples = gamma.sample()
             samples[N == 0] = 0
@@ -984,7 +984,6 @@ def tweedie_domain_map(input: torch.Tensor, rho: float = 1.5):
     """
     return (input, rho)
 
-
 def tweedie_scale_decouple(output, loc=None, scale=None):
     """Tweedie Scale Decouple
 
@@ -996,10 +995,7 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
     log_mu = F.softplus(log_mu)
     log_mu = torch.clamp(log_mu, 1e-9, 37)
     if (loc is not None) and (scale is not None):
-        # log_mu += torch.log(loc) # TODO : rho scaling
-        mu = (torch.exp(log_mu) * scale) + loc
-        mu = F.softplus(mu)
-        log_mu = torch.log(mu)
+        log_mu += torch.log(loc)
 
     log_mu = torch.clamp(log_mu, 1e-9, 37)
     return (log_mu, rho)
