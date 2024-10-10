@@ -8,6 +8,7 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+import warnings
 
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
@@ -30,7 +31,7 @@ class LSTM(BaseModel):
     `encoder_hidden_size`: int=200, units for the LSTM's hidden state size.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within LSTM units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to LSTM outputs.<br>
-    `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
+    `context_size`: deprecated.<br>
     `decoder_hidden_size`: int=200, size of hidden layer for the MLP decoder.<br>
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
@@ -71,11 +72,11 @@ class LSTM(BaseModel):
         h: int,
         input_size: int,
         encoder_n_layers: int = 2,
-        encoder_hidden_size: int = 32,
+        encoder_hidden_size: int = 128,
         encoder_bias: bool = True,
         encoder_dropout: float = 0.0,
-        context_size: int = 10,
-        decoder_hidden_size: int = 32,
+        context_size: Optional[int] = None,
+        decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
         futr_exog_list=None,
         hist_exog_list=None,
@@ -91,7 +92,7 @@ class LSTM(BaseModel):
         val_check_steps: int = 100,
         batch_size=32,
         valid_batch_size: Optional[int] = None,
-        windows_batch_size=1024,
+        windows_batch_size=128,
         inference_windows_batch_size=1024,
         start_padding_enabled=False,
         step_size: int = 1,
@@ -146,7 +147,10 @@ class LSTM(BaseModel):
         self.encoder_dropout = encoder_dropout
 
         # Context adapter
-        self.context_size = context_size
+        if context_size is not None:
+            warnings.warn(
+                "context_size is deprecated and will be removed in future versions."
+            )
 
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
@@ -167,22 +171,19 @@ class LSTM(BaseModel):
             bias=self.encoder_bias,
             dropout=self.encoder_dropout,
             batch_first=True,
-        )
-
-        # Context adapter
-        self.context_adapter = nn.Linear(
-            in_features=self.encoder_hidden_size, out_features=self.context_size * h
+            proj_size=self.loss.outputsize_multiplier if self.RECURRENT else 0,
         )
 
         # Decoder MLP
-        self.mlp_decoder = MLP(
-            in_features=self.context_size * h + self.futr_exog_size,
-            out_features=self.loss.outputsize_multiplier,
-            hidden_size=self.decoder_hidden_size,
-            num_layers=self.decoder_layers,
-            activation="ReLU",
-            dropout=0.0,
-        )
+        if not self.RECURRENT:
+            self.mlp_decoder = MLP(
+                in_features=self.encoder_hidden_size + self.futr_exog_size,
+                out_features=self.loss.outputsize_multiplier,
+                hidden_size=self.decoder_hidden_size,
+                num_layers=self.decoder_layers,
+                activation="ReLU",
+                dropout=0.0,
+            )
 
     def forward(self, windows_batch):
 
@@ -213,32 +214,33 @@ class LSTM(BaseModel):
                 (encoder_input, futr_exog[:, :seq_len]), dim=2
             )  # [B, seq_len, 1 + X + S] + [B, seq_len, F] -> [B, seq_len, 1 + X + S + F]
 
-        # RNN forward
-        if self.maintain_state:
-            rnn_state = self.rnn_state
+        if self.RECURRENT:
+            if self.maintain_state:
+                rnn_state = self.rnn_state
+            else:
+                rnn_state = None
+
+            output, rnn_state = self.hist_encoder(
+                encoder_input, rnn_state
+            )  # [B, seq_len, n_output]
+            if self.maintain_state:
+                self.rnn_state = rnn_state
         else:
-            rnn_state = None
+            hidden_state, _ = self.hist_encoder(
+                encoder_input, None
+            )  # [B, seq_len, rnn_hidden_state]
+            hidden_state = hidden_state[
+                :, -self.h :
+            ]  # [B, seq_len, rnn_hidden_state] -> [B, h, rnn_hidden_state]
 
-        hidden_state, rnn_state = self.hist_encoder(
-            encoder_input, rnn_state
-        )  # [B, seq_len, rnn_hidden_state]
-        if self.maintain_state:
-            self.rnn_state = rnn_state
+            if self.futr_exog_size > 0:
+                futr_exog_futr = futr_exog[:, -self.h :]  # [B, h, F]
+                hidden_state = torch.cat(
+                    (hidden_state, futr_exog_futr), dim=-1
+                )  # [B, h, rnn_hidden_state] + [B, h, F] -> [B, h, rnn_hidden_state + F]
 
-        # Context adapter
-        context = self.context_adapter(
-            hidden_state
-        )  # [B, seq_len, rnn_hidden_state] -> [B, seq_len, context_size * h]
-
-        # Residual connection with futr_exog
-        if self.futr_exog_size > 0:
-            context = torch.cat(
-                (context, futr_exog[:, :seq_len]), dim=-1
-            )  # [B, seq_len, context_size * h] + [B, seq_len, F] = [B, seq_len, context_size * h + F]
-
-        # Final forecast
-        output = self.mlp_decoder(
-            context
-        )  # [B, seq_len, context_size * h + F] -> [B, seq_len, n_output]
+            output = self.mlp_decoder(
+                hidden_state
+            )  # [B, h, rnn_hidden_state + F] -> [B, seq_len, n_output]
 
         return output[:, -self.h :]

@@ -24,7 +24,7 @@ from neuralforecast.models.nbeatsx import NBEATSx
 # from neuralforecast.models.vanillatransformer import VanillaTransformer
 # from neuralforecast.models.informer import Informer
 # from neuralforecast.models.autoformer import Autoformer
-from neuralforecast.models.patchtst import PatchTST
+# from neuralforecast.models.patchtst import PatchTST
 
 from neuralforecast.auto import (
     # AutoMLP, 
@@ -54,17 +54,17 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
     }
     models = [
-        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
-        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=16, max_steps=300),
-        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
+        LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
+        DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
+        GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         AutoNBEATS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoNHITS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000),
-        PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=MAE(), scaler_type='minmax1', windows_batch_size=512, max_steps=1000, val_check_steps=500),
+        # PatchTST(h=horizon, input_size=2 * horizon, patch_len=4, stride=4, loss=MAE(), scaler_type='minmax1', windows_batch_size=512, max_steps=1000, val_check_steps=500),
     ]
 
     # Models
-    for model in models[:-1]:
+    for model in models:
         model_name = type(model).__name__
         print(50*'-', model_name, 50*'-')
         start = time.time()

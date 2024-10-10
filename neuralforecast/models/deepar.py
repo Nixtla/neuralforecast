@@ -211,7 +211,7 @@ class DeepAR(BaseModel):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        encoder_input = windows_batch["insample_y"]  # <- [B,T,1]
+        encoder_input = windows_batch["insample_y"]  # <- [B, T, 1]
         futr_exog = windows_batch["futr_exog"]
         stat_exog = windows_batch["stat_exog"]
 
