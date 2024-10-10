@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 from neuralforecast.common._modules import (
     PositionalEmbedding,
     TokenEmbedding,
@@ -19,8 +19,8 @@ from neuralforecast.common._modules import (
     SeriesDecomp,
     RevIN,
 )
-
 from ..losses.pytorch import MAE
+from typing import Optional
 
 # %% ../../nbs/models.timemixer.ipynb 6
 class DataEmbedding_wo_pos(nn.Module):
@@ -249,7 +249,7 @@ class PastDecomposableMixing(nn.Module):
         return out_list
 
 # %% ../../nbs/models.timemixer.ipynb 12
-class TimeMixer(BaseMultivariate):
+class TimeMixer(BaseModel):
     """TimeMixer
     **Parameters**<br>
     `h`: int, Forecast horizon. <br>
@@ -279,6 +279,10 @@ class TimeMixer(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=256, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -292,14 +296,17 @@ class TimeMixer(BaseMultivariate):
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References**<br>
-    [Shiyu Wang, Haixu Wu, Xiaoming Shi, Tengge Hu, Huakun Luo, Lintao Ma, James Y. Zhang, Jun Zhou."TimeMixer: Decomposable Multiscale Mixing For Time Series Forecasting"](https://openreview.net/pdf?id=7oLshfEIC2)
+    [Shiyu Wang, Haixu Wu, Xiaoming Shi, Tengge Hu, Huakun Luo, Lintao Ma, James Y. Zhang, Jun Zhou."TimeMixer: Decomposable Multiscale Mixing For Time Series Forecasting"](https://openreview.net/pdf?id=7oLshfEIC2)<br>
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -330,6 +337,10 @@ class TimeMixer(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=256,
+        inference_windows_batch_size=256,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -357,6 +368,10 @@ class TimeMixer(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -469,6 +484,11 @@ class TimeMixer(BaseMultivariate):
                     )
                     for i in range(self.down_sampling_layers + 1)
                 ]
+            )
+
+        if self.loss.outputsize_multiplier > 1:
+            self.distr_output = nn.Linear(
+                self.n_series, self.n_series * self.loss.outputsize_multiplier
             )
 
     def out_projection(self, dec_out, i, out_res):
@@ -644,10 +664,7 @@ class TimeMixer(BaseMultivariate):
 
         y_pred = self.forecast(insample_y, x_mark_enc, x_mark_dec)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
+        if self.loss.outputsize_multiplier > 1:
+            y_pred = self.distr_output(y_pred)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        if y_pred.ndim == 2:
-            return y_pred.unsqueeze(-1)
-        else:
-            return y_pred
+        return y_pred
