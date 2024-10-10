@@ -984,6 +984,7 @@ def tweedie_domain_map(input: torch.Tensor, rho: float = 1.5):
     """
     return (input, rho)
 
+
 def tweedie_scale_decouple(output, loc=None, scale=None):
     """Tweedie Scale Decouple
 
