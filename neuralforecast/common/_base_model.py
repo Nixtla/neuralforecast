@@ -655,7 +655,7 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1).contiguous()
+                windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
 
             # Sample and Available conditions
@@ -765,7 +765,7 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
                 windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1).contiguous()
+                windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
                 if static is not None:
                     static = torch.repeat_interleave(
