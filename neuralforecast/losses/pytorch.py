@@ -121,7 +121,7 @@ class MAE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -163,7 +163,7 @@ class MSE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -208,7 +208,7 @@ class RMSE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -255,7 +255,7 @@ class MAPE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -305,7 +305,7 @@ class SMAPE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -355,7 +355,7 @@ class MASE(BasePointLoss):
         )
         self.seasonality = seasonality
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -412,7 +412,7 @@ class relMSE(BasePointLoss):
             raise DeprecationWarning("y_train will be deprecated in a future release.")
         self.mse = MSE(horizon_weight=horizon_weight)
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -463,7 +463,7 @@ class QuantileLoss(BasePointLoss):
         )
         self.q = q
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -596,7 +596,7 @@ class MQLoss(BasePointLoss):
 
         return weights * mask
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -1975,7 +1975,7 @@ class DistributionLoss(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2182,7 +2182,7 @@ class PMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2399,7 +2399,7 @@ class GMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2623,7 +2623,7 @@ class NBMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2686,7 +2686,7 @@ class HuberLoss(BasePointLoss):
         )
         self.delta = delta
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -2762,7 +2762,7 @@ class TukeyLoss(BasePointLoss):
         x_mean = torch.nan_to_num(x_mean, nan=0.0)
         return x_mean
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -2834,7 +2834,7 @@ class HuberQLoss(BasePointLoss):
         self.q = q
         self.delta = delta
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -2941,7 +2941,7 @@ class HuberMQLoss(BasePointLoss):
 
         return weights * mask
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -3012,7 +3012,7 @@ class Accuracy(BasePointLoss):
 
         return y_hat
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
@@ -3073,7 +3073,7 @@ class sCRPS(BasePointLoss):
         self.mql = MQLoss(level=level, quantiles=quantiles)
         self.is_distribution_output = False
 
-    def forward(
+    def __call__(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
