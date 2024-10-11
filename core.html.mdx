@@ -14,7 +14,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L221"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L222"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -40,7 +40,7 @@ columns. The `y` column denotes the target time series variable.*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L429"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L430"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -55,7 +55,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      use_init_models:bool=False, verbose:bool=False,
 >                      id_col:str='unique_id', time_col:str='ds',
 >                      target_col:str='y', distributed_config:Optional[neura
->                      lforecast.common._base_model.DistributedConfig]=None)
+>                      lforecast.common._base_model.DistributedConfig]=None,
+>                      prediction_intervals:Optional[neuralforecast.utils.Pr
+>                      edictionIntervals]=None)
 > ```
 
 \*Fit the core.NeuralForecast.
@@ -75,12 +77,13 @@ store fitted models for later inspection.\*
 | time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
 | target_col | str | y | Column that contains the target. |
 | distributed_config | Optional | None | Configuration to use for DDP training. Currently only spark is supported. |
+| prediction_intervals | Optional | None | Configuration to calibrate prediction intervals (Conformal Prediction). |
 | **Returns** | **NeuralForecast** |  | **Returns [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class with fitted `models`.** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L777"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L809"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -95,7 +98,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          ,polars.dataframe.frame.DataFrame,neuralforecast.
 >                          compat.SparkDataFrame,NoneType]=None,
 >                          sort_df:bool=True, verbose:bool=False,
->                          engine=None, **data_kwargs)
+>                          engine=None,
+>                          level:Optional[List[Union[int,float]]]=None,
+>                          **data_kwargs)
 > ```
 
 \*Predict with core.NeuralForecast.
@@ -111,13 +116,14 @@ DataFrame `df`.\*
 | sort_df | bool | True | Sort `df` before fitting. |
 | verbose | bool | False | Print processing steps. |
 | engine | NoneType | None | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. |
+| level | Optional | None | Confidence levels between 0 and 100. |
 | data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
 | **Returns** | **pandas or polars DataFrame** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1078"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1137"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -136,8 +142,11 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                   verbose:bool=False,
 >                                   refit:Union[bool,int]=False,
 >                                   id_col:str='unique_id',
->                                   time_col:str='ds', target_col:str='y',
->                                   **data_kwargs)
+>                                   time_col:str='ds', target_col:str='y', p
+>                                   rediction_intervals:Optional[neuralforec
+>                                   ast.utils.PredictionIntervals]=None, lev
+>                                   el:Optional[List[Union[int,float]]]=None
+>                                   , **data_kwargs)
 > ```
 
 \*Temporal Cross-Validation with core.NeuralForecast.
@@ -161,13 +170,15 @@ rolled manner.\*
 | id_col | str | unique_id | Column that identifies each serie. |
 | time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
 | target_col | str | y | Column that contains the target. |
+| prediction_intervals | Optional | None | Configuration to calibrate prediction intervals (Conformal Prediction). |
+| level | Optional | None | Confidence levels between 0 and 100. Use with prediction_intervals. |
 | data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
 | **Returns** | **Union** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1238"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1320"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -189,7 +200,7 @@ to predict historic values of a time series from the stored dataframe.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1363"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1445"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -226,7 +237,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1469"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1553"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
