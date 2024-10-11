@@ -39,6 +39,7 @@
         "docs/capabilities/overview.html",
         "docs/capabilities/objectives.html",
         "docs/capabilities/exogenous_variables.html",
+        "docs/capabilities/cross_validation.html",
         "docs/capabilities/hyperparameter_tuning.html",
         "docs/capabilities/predictinsample.html",
         "docs/capabilities/save_load_models.html",
