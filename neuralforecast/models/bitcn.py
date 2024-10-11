@@ -277,7 +277,7 @@ class BiTCN(BaseModel):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"]  #   [B, L, 1]
+        x = windows_batch["insample_y"].contiguous()  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]

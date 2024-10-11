@@ -398,8 +398,8 @@ class NHITS(BaseModel):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"].squeeze(-1)
-        insample_mask = windows_batch["insample_mask"].squeeze(-1)
+        insample_y = windows_batch["insample_y"].squeeze(-1).contiguous()
+        insample_mask = windows_batch["insample_mask"].squeeze(-1).contiguous()
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
