@@ -26,13 +26,13 @@ def main(dataset: str = 'multivariate', group: str = 'ETTm2') -> None:
     train['ds'] = pd.to_datetime(train['ds'])
 
     models = [
-        SOFTS(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
-        TSMixer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
-        TSMixerx(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
-        iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
+        SOFTS(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=500, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
+        TSMixer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
+        TSMixerx(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
+        iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=500, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
         # StemGNN(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout_rate=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
-        MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
-        TimeMixer(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64)
+        MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
+        TimeMixer(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=500, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64)
     ]
 
     # Models

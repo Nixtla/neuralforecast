@@ -99,9 +99,6 @@ class BasePointLoss(torch.nn.Module):
 
         return weights * mask
 
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-
 # %% ../../nbs/losses.pytorch.ipynb 11
 class MAE(BasePointLoss):
     """Mean Absolute Error
@@ -124,14 +121,13 @@ class MAE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        *args,
-        **kwargs
-    ):
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -167,14 +163,13 @@ class MSE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -213,14 +208,13 @@ class RMSE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -261,14 +255,13 @@ class MAPE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -312,14 +305,13 @@ class SMAPE(BasePointLoss):
             horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
         )
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -363,15 +355,13 @@ class MASE(BasePointLoss):
         )
         self.seasonality = seasonality
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
         y_insample: torch.Tensor,
-        *args,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
@@ -422,15 +412,13 @@ class relMSE(BasePointLoss):
             raise DeprecationWarning("y_train will be deprecated in a future release.")
         self.mse = MSE(horizon_weight=horizon_weight)
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
         y_benchmark: torch.Tensor,
-        *args,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor (batch_size, output_size), Actual values.<br>
@@ -475,14 +463,13 @@ class QuantileLoss(BasePointLoss):
         )
         self.q = q
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs,
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -609,14 +596,13 @@ class MQLoss(BasePointLoss):
 
         return weights * mask
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -1989,7 +1975,7 @@ class DistributionLoss(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2196,7 +2182,7 @@ class PMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2413,7 +2399,7 @@ class GMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2637,7 +2623,7 @@ class NBMM(torch.nn.Module):
         self.quantiles = torch.tensor([q])
         self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         distr_args: torch.Tensor,
@@ -2700,14 +2686,13 @@ class HuberLoss(BasePointLoss):
         )
         self.delta = delta
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -2777,14 +2762,13 @@ class TukeyLoss(BasePointLoss):
         x_mean = torch.nan_to_num(x_mean, nan=0.0)
         return x_mean
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -2850,14 +2834,13 @@ class HuberQLoss(BasePointLoss):
         self.q = q
         self.delta = delta
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs,
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -2958,14 +2941,13 @@ class HuberMQLoss(BasePointLoss):
 
         return weights * mask
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -3030,14 +3012,13 @@ class Accuracy(BasePointLoss):
 
         return y_hat
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
@@ -3092,14 +3073,13 @@ class sCRPS(BasePointLoss):
         self.mql = MQLoss(level=level, quantiles=quantiles)
         self.is_distribution_output = False
 
-    def __call__(
+    def forward(
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        *args,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        **kwargs
-    ):
+    ) -> torch.Tensor:
         """
         **Parameters:**<br>
         `y`: tensor, Actual values.<br>
