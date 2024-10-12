@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+import neuralforecast.losses.pytorch as losses
 
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
@@ -51,6 +52,8 @@ class BaseRecurrent(BaseModel):
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -59,6 +62,8 @@ class BaseRecurrent(BaseModel):
             valid_loss=valid_loss,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -72,15 +77,15 @@ class BaseRecurrent(BaseModel):
         self.h = h
         self.input_size = input_size
         self.inference_input_size = inference_input_size
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
+        unsupported_distributions = ["Bernoulli", "ISQF"]
         if (
-            str(type(self.loss))
-            == "<class 'neuralforecast.losses.pytorch.DistributionLoss'>"
-            and self.loss.distribution == "Bernoulli"
+            isinstance(self.loss, losses.DistributionLoss)
+            and self.loss.distribution in unsupported_distributions
         ):
             raise Exception(
-                "Temporal Classification not yet available for Recurrent-based models"
+                f"Distribution {self.loss.distribution} not available for Recurrent-based models. Please choose another distribution."
             )
 
         # Valid batch_size
@@ -205,7 +210,7 @@ class BaseRecurrent(BaseModel):
 
             # Test size covers all data, pad left one timestep with zeros
             if temporal.shape[-1] == self.test_size:
-                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0)
+                padder_left = nn.ConstantPad1d(padding=(1, 0), value=0.0)
                 temporal = padder_left(temporal)
 
         # Parse batch
@@ -344,12 +349,12 @@ class BaseRecurrent(BaseModel):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -442,7 +447,7 @@ class BaseRecurrent(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
@@ -550,6 +555,7 @@ class BaseRecurrent(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")

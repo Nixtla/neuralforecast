@@ -55,6 +55,8 @@ class BaseWindows(BaseModel):
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -63,6 +65,8 @@ class BaseWindows(BaseModel):
             valid_loss=valid_loss,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -79,10 +83,10 @@ class BaseWindows(BaseModel):
         self.start_padding_enabled = start_padding_enabled
         if start_padding_enabled:
             self.padder_train = nn.ConstantPad1d(
-                padding=(self.input_size - 1, self.h), value=0
+                padding=(self.input_size - 1, self.h), value=0.0
             )
         else:
-            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
+            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Batch sizes
         self.batch_size = batch_size
@@ -212,7 +216,7 @@ class BaseWindows(BaseModel):
                     initial_input <= self.input_size
                 ):  # There is not enough data to predict first timestamp
                     padder_left = nn.ConstantPad1d(
-                        padding=(self.input_size - initial_input, 0), value=0
+                        padding=(self.input_size - initial_input, 0), value=0.0
                     )
                     temporal = padder_left(temporal)
                 predict_step_size = self.predict_step_size
@@ -229,7 +233,7 @@ class BaseWindows(BaseModel):
                 if temporal.shape[-1] < window_size:
                     initial_input = temporal.shape[-1] - self.val_size
                     padder_left = nn.ConstantPad1d(
-                        padding=(self.input_size - initial_input, 0), value=0
+                        padding=(self.input_size - initial_input, 0), value=0.0
                     )
                     temporal = padder_left(temporal)
 
@@ -238,7 +242,7 @@ class BaseWindows(BaseModel):
                 and (self.test_size == 0)
                 and (len(self.futr_exog_list) == 0)
             ):
-                padder_right = nn.ConstantPad1d(padding=(0, self.h), value=0)
+                padder_right = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
                 temporal = padder_right(temporal)
 
             windows = temporal.unfold(
@@ -408,10 +412,10 @@ class BaseWindows(BaseModel):
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L]
             insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L + h, F]
+            hist_exog=hist_exog,  # [Ws, L, X]
             stat_exog=stat_exog,
-        )  # [Ws, 1]
+        )  # [Ws, S]
 
         # Model Predictions
         output = self(windows_batch)
@@ -436,12 +440,12 @@ class BaseWindows(BaseModel):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
         return loss
 
     def _compute_valid_loss(
@@ -516,13 +520,14 @@ class BaseWindows(BaseModel):
                 futr_exog,
                 stat_exog,
             ) = self._parse_windows(batch, windows)
+
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
                 insample_mask=insample_mask,  # [Ws, L]
-                futr_exog=futr_exog,  # [Ws, L+H]
-                hist_exog=hist_exog,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L + h, F]
+                hist_exog=hist_exog,  # [Ws, L, X]
                 stat_exog=stat_exog,
-            )  # [Ws, 1]
+            )  # [Ws, S]
 
             # Model Predictions
             output_batch = self(windows_batch)
@@ -546,7 +551,7 @@ class BaseWindows(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach().item(),
             batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,
@@ -580,20 +585,25 @@ class BaseWindows(BaseModel):
             insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
                 self._parse_windows(batch, windows)
             )
+
             windows_batch = dict(
                 insample_y=insample_y,  # [Ws, L]
                 insample_mask=insample_mask,  # [Ws, L]
-                futr_exog=futr_exog,  # [Ws, L+H]
-                hist_exog=hist_exog,  # [Ws, L]
+                futr_exog=futr_exog,  # [Ws, L + h, F]
+                hist_exog=hist_exog,  # [Ws, L, X]
                 stat_exog=stat_exog,
-            )  # [Ws, 1]
+            )  # [Ws, S]
 
             # Model Predictions
             output_batch = self(windows_batch)
             # Inverse normalization and sampling
             if self.loss.is_distribution_output:
                 _, y_loc, y_scale = self._inv_normalization(
-                    y_hat=output_batch[0],
+                    y_hat=torch.empty(
+                        size=(insample_y.shape[0], self.h),
+                        dtype=output_batch[0].dtype,
+                        device=output_batch[0].device,
+                    ),
                     temporal_cols=batch["temporal_cols"],
                     y_idx=y_idx,
                 )
@@ -679,6 +689,7 @@ class BaseWindows(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         self.predict_step_size = step_size
         self.decompose_forecast = False
@@ -716,6 +727,7 @@ class BaseWindows(BaseModel):
         if random_seed is None:
             random_seed = self.random_seed
         torch.manual_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         self.predict_step_size = step_size
         self.decompose_forecast = True

@@ -24,7 +24,7 @@ website:
     collapse-below: lg
     left:
       - text: "Get Started"
-        href: examples/Getting_Started.ipynb
+        href: docs/getting-started/02_quickstart.ipynb
       - text: "NixtlaVerse"
         menu:
           - text: "MLForecast 🤖"

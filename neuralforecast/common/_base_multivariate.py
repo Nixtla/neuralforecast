@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-
 import neuralforecast.losses.pytorch as losses
+
 from ._base_model import BaseModel
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
@@ -52,6 +52,8 @@ class BaseMultivariate(BaseModel):
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -60,6 +62,8 @@ class BaseMultivariate(BaseModel):
             valid_loss=valid_loss,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -73,7 +77,7 @@ class BaseMultivariate(BaseModel):
         self.h = h
         self.input_size = input_size
         self.n_series = n_series
-        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0)
+        self.padder = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Multivariate models do not support these loss functions yet.
         unsupported_losses = (
@@ -356,12 +360,12 @@ class BaseMultivariate(BaseModel):
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
-            insample_y=insample_y,  # [batch_size, L, n_series]
-            insample_mask=insample_mask,  # [batch_size, L, n_series]
-            futr_exog=futr_exog,  # [batch_size, n_feats, L+H, n_series]
-            hist_exog=hist_exog,  # [batch_size, n_feats, L, n_series]
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # [Ws, F, L + h, n_series]
+            hist_exog=hist_exog,  # [Ws, X, L, n_series]
             stat_exog=stat_exog,
-        )  # [n_series, n_feats]
+        )  # [n_series, S]
 
         # Model Predictions
         output = self(windows_batch)
@@ -385,12 +389,12 @@ class BaseMultivariate(BaseModel):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -414,12 +418,12 @@ class BaseMultivariate(BaseModel):
         ) = self._parse_windows(batch, windows)
 
         windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # [Ws, F, L + h, n_series]
+            hist_exog=hist_exog,  # [Ws, X, L, n_series]
             stat_exog=stat_exog,
-        )  # [Ws, 1]
+        )  # [n_series, S]
 
         # Model Predictions
         output = self(windows_batch)
@@ -452,7 +456,7 @@ class BaseMultivariate(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
@@ -472,18 +476,24 @@ class BaseMultivariate(BaseModel):
         )
 
         windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L+H]
-            hist_exog=hist_exog,  # [Ws, L]
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # [Ws, F, L + h, n_series]
+            hist_exog=hist_exog,  # [Ws, X, L, n_series]
             stat_exog=stat_exog,
-        )  # [Ws, 1]
+        )  # [n_series, S]
 
         # Model Predictions
         output = self(windows_batch)
         if self.loss.is_distribution_output:
             _, y_loc, y_scale = self._inv_normalization(
-                y_hat=output[0], temporal_cols=batch["temporal_cols"], y_idx=y_idx
+                y_hat=torch.empty(
+                    size=(insample_y.shape[0], self.h, self.n_series),
+                    dtype=output[0].dtype,
+                    device=output[0].device,
+                ),
+                temporal_cols=batch["temporal_cols"],
+                y_idx=y_idx,
             )
             distr_args = self.loss.scale_decouple(
                 output=output, loc=y_loc, scale=y_scale
@@ -565,6 +575,7 @@ class BaseMultivariate(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
 
         self.predict_step_size = step_size
         self.decompose_forecast = False

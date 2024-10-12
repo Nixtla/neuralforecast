@@ -4,6 +4,7 @@
 __all__ = ['BaseAuto']
 
 # %% ../../nbs/common.base_auto.ipynb 5
+import warnings
 from copy import deepcopy
 from os import cpu_count
 
@@ -19,8 +20,8 @@ class MockTrial:
     def suggest_int(*args, **kwargs):
         return "int"
 
-    def suggest_categorical(*args, **kwargs):
-        return "categorical"
+    def suggest_categorical(self, name, choices):
+        return choices
 
     def suggest_uniform(*args, **kwargs):
         return "uniform"
@@ -101,7 +102,11 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
     ):
         super(BaseAuto, self).__init__()
-        self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+        with warnings.catch_warnings(record=False):
+            warnings.filterwarnings("ignore")
+            # the following line issues a warning about the loss attribute being saved
+            # but we do want to save it
+            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
 
         if backend == "ray":
             if not isinstance(config, dict):
@@ -166,7 +171,7 @@ class BaseAuto(pl.LightningModule):
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
-        self.refit_with_val = refit_with_val
+        self.refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
@@ -425,7 +430,7 @@ class BaseAuto(pl.LightningModule):
             cls_model=self.cls_model,
             config=best_config,
             dataset=dataset,
-            val_size=val_size * (1 - self.refit_with_val),
+            val_size=val_size * self.refit_with_val,
             test_size=test_size,
             distributed_config=distributed_config,
         )

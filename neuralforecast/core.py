@@ -9,7 +9,7 @@ import pickle
 import warnings
 from copy import deepcopy
 from itertools import chain
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import fsspec
 import numpy as np
@@ -24,12 +24,16 @@ from coreforecast.scalers import (
     LocalRobustScaler,
     LocalStandardScaler,
 )
-from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
+from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .tsdataset import _FilesDataset, TimeSeriesDataset
+from neuralforecast.tsdataset import (
+    _FilesDataset,
+    TimeSeriesDataset,
+    LocalFilesTimeSeriesDataset,
+)
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -57,12 +61,20 @@ from neuralforecast.models import (
     MLPMultivariate,
     iTransformer,
     BiTCN,
+    TiDE,
+    DeepNPTS,
+    SOFTS,
+    TimeMixer,
+    KAN,
+    RMoK,
 )
+from .common._base_auto import BaseAuto, MockTrial
+from .utils import PredictionIntervals, get_prediction_interval_method
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
-pl.disable_possible_user_warnings()
+warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
 
 
 def _insample_times(
@@ -170,6 +182,18 @@ MODEL_FILENAME_DICT = {
     "autoitransformer": iTransformer,
     "bitcn": BiTCN,
     "autobitcn": BiTCN,
+    "tide": TiDE,
+    "autotide": TiDE,
+    "deepnpts": DeepNPTS,
+    "autodeepnpts": DeepNPTS,
+    "softs": SOFTS,
+    "autosofts": SOFTS,
+    "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
+    "kan": KAN,
+    "autokan": KAN,
+    "rmok": RMoK,
+    "autormok": RMoK,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -319,9 +343,93 @@ class NeuralForecast:
         if cols_with_nans:
             raise ValueError(f"Found missing values in {cols_with_nans}.")
 
+    def _prepare_fit_distributed(
+        self,
+        df: SparkDataFrame,
+        static_df: Optional[SparkDataFrame],
+        sort_df: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        distributed_config: Optional[DistributedConfig],
+    ):
+        if distributed_config is None:
+            raise ValueError(
+                "Must set `distributed_config` when using a spark dataframe"
+            )
+        if self.local_scaler_type is not None:
+            raise ValueError(
+                "Historic scaling isn't supported in distributed. "
+                "Please open an issue if this would be valuable to you."
+            )
+        temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
+        if static_df is not None:
+            static_cols = [c for c in static_df.columns if c != id_col]
+            df = df.join(static_df, on=[id_col], how="left")
+        else:
+            static_cols = None
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.scalers_ = {}
+        self.sort_df = sort_df
+        num_partitions = distributed_config.num_nodes * distributed_config.devices
+        df = df.repartitionByRange(num_partitions, id_col)
+        df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
+        fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
+        protocol = fs.protocol
+        if isinstance(protocol, tuple):
+            protocol = protocol[0]
+        files = [
+            f"{protocol}://{file}"
+            for file in fs.ls(distributed_config.partitions_path)
+            if file.endswith("parquet")
+        ]
+        return _FilesDataset(
+            files=files,
+            temporal_cols=temporal_cols,
+            static_cols=static_cols,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+            min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
+        )
+
+    def _prepare_fit_for_local_files(
+        self,
+        files_list: Sequence[str],
+        static_df: Optional[DataFrame],
+        sort_df: bool,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+    ):
+        if self.local_scaler_type is not None:
+            raise ValueError(
+                "Historic scaling isn't supported when the dataset is split between files. "
+                "Please open an issue if this would be valuable to you."
+            )
+
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.scalers_ = {}
+        self.sort_df = sort_df
+
+        exogs = self._get_needed_exog()
+        return LocalFilesTimeSeriesDataset.from_data_directories(
+            directories=files_list,
+            static_df=static_df,
+            sort_df=sort_df,
+            exogs=exogs,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
     def fit(
         self,
-        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
         sort_df: bool = True,
@@ -331,6 +439,7 @@ class NeuralForecast:
         time_col: str = "ds",
         target_col: str = "y",
         distributed_config: Optional[DistributedConfig] = None,
+        prediction_intervals: Optional[PredictionIntervals] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -339,7 +448,7 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas, polars or spark DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, or a list of parquet files containing the series, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas, polars or spark DataFrame, optional (default=None)
@@ -360,6 +469,8 @@ class NeuralForecast:
             Column that contains the target.
         distributed_config : neuralforecast.DistributedConfig
             Configuration to use for DDP training. Currently only spark is supported.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
 
         Returns
         -------
@@ -370,10 +481,14 @@ class NeuralForecast:
             raise Exception("You must pass a DataFrame or have one stored.")
 
         # Model and datasets interactions protections
-        if (any(model.early_stop_patience_steps > 0 for model in self.models)) and (
-            val_size == 0
+        if (
+            any(model.early_stop_patience_steps > 0 for model in self.models)
+            and val_size == 0
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
+
+        self._cs_df: Optional[DFType] = None
+        self.prediction_intervals: Optional[PredictionIntervals] = None
 
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
@@ -388,58 +503,63 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
+            if prediction_intervals is not None:
+                self.prediction_intervals = prediction_intervals
+                self._cs_df = self._conformity_scores(
+                    df=df,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    static_df=static_df,
+                )
+
         elif isinstance(df, SparkDataFrame):
-            if distributed_config is None:
+            if static_df is not None and not isinstance(static_df, SparkDataFrame):
                 raise ValueError(
-                    "Must set `distributed_config` when using a spark dataframe"
+                    "`static_df` must be a spark dataframe when `df` is a spark dataframe."
                 )
-            if self.local_scaler_type is not None:
-                raise ValueError(
-                    "Historic scaling isn't supported in distributed. "
-                    "Please open an issue if this would be valuable to you."
-                )
-            temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
-            if static_df is not None:
-                if not isinstance(static_df, SparkDataFrame):
-                    raise ValueError(
-                        "`static_df` must be a spark dataframe when `df` is a spark dataframe."
-                    )
-                static_cols = [c for c in static_df.columns if c != id_col]
-                df = df.join(static_df, on=[id_col], how="left")
-            else:
-                static_cols = None
-            self.id_col = id_col
-            self.time_col = time_col
-            self.target_col = target_col
-            self.scalers_ = {}
-            self.sort_df = sort_df
-            num_partitions = distributed_config.num_nodes * distributed_config.devices
-            df = df.repartitionByRange(num_partitions, id_col)
-            df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
-            fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
-            protocol = fs.protocol
-            if isinstance(protocol, tuple):
-                protocol = protocol[0]
-            files = [
-                f"{protocol}://{file}"
-                for file in fs.ls(distributed_config.partitions_path)
-                if file.endswith("parquet")
-            ]
-            self.dataset = _FilesDataset(
-                files=files,
-                temporal_cols=temporal_cols,
-                static_cols=static_cols,
+            self.dataset = self._prepare_fit_distributed(
+                df=df,
+                static_df=static_df,
+                sort_df=sort_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
-                min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
+                distributed_config=distributed_config,
             )
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for distributed training."
+                )
+
+        elif isinstance(df, Sequence):
+            if not all(isinstance(val, str) for val in df):
+                raise ValueError(
+                    "All entries in the list of files must be of type string"
+                )
+            self.dataset = self._prepare_fit_for_local_files(
+                files_list=df,
+                static_df=static_df,
+                sort_df=sort_df,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.uids = self.dataset.indices
+            self.last_dates = self.dataset.last_times
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for local files."
+                )
+
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`df` must be a pandas, polars or spark DataFrame, or a list of parquet files containing the series, or `None`, got: {type(df)}"
             )
 
         if val_size is not None:
@@ -510,20 +630,181 @@ class NeuralForecast:
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def _get_needed_futr_exog(self):
-        return set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        futr_exogs = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("futr_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("futr_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "futr_exog_list", [])
 
-    def _get_model_names(self) -> List[str]:
+            for exog in exogs:
+                if isinstance(exog, str):
+                    futr_exogs.append(exog)
+                else:
+                    futr_exogs.extend(exog)
+
+        return set(futr_exogs)
+
+    def _get_needed_exog(self):
+        futr_exog = self._get_needed_futr_exog()
+
+        hist_exog = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("hist_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("hist_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "hist_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    hist_exog.append(exog)
+                else:
+                    hist_exog.extend(exog)
+
+        return futr_exog | set(hist_exog)
+
+    def _get_model_names(self, add_level=False) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
+            if add_level and model.loss.outputsize_multiplier > 1:
+                continue
+
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
             names.extend(model_name + n for n in model.loss.output_names)
         return names
+
+    def _predict_distributed(
+        self,
+        df: Optional[SparkDataFrame],
+        static_df: Optional[SparkDataFrame],
+        futr_df: Optional[SparkDataFrame],
+        engine,
+    ):
+        import fugue.api as fa
+
+        def _predict(
+            df: pd.DataFrame,
+            static_cols,
+            futr_exog_cols,
+            models,
+            freq,
+            id_col,
+            time_col,
+            target_col,
+        ) -> pd.DataFrame:
+            from neuralforecast import NeuralForecast
+
+            nf = NeuralForecast(models=models, freq=freq)
+            nf.id_col = id_col
+            nf.time_col = time_col
+            nf.target_col = target_col
+            nf.scalers_ = {}
+            nf._fitted = True
+            if futr_exog_cols:
+                # if we have futr_exog we'll have extra rows with the future values
+                futr_rows = df[target_col].isnull()
+                futr_df = df.loc[
+                    futr_rows, [self.id_col, self.time_col] + futr_exog_cols
+                ].copy()
+                df = df[~futr_rows].copy()
+            else:
+                futr_df = None
+            if static_cols:
+                static_df = (
+                    df[[self.id_col] + static_cols]
+                    .groupby(self.id_col, observed=True)
+                    .head(1)
+                )
+                df = df.drop(columns=static_cols)
+            else:
+                static_df = None
+            preds = nf.predict(df=df, static_df=static_df, futr_df=futr_df)
+            if preds.index.name == id_col:
+                preds = preds.reset_index()
+            return preds
+
+        # df
+        if isinstance(df, SparkDataFrame):
+            repartition = True
+        else:
+            if engine is None:
+                raise ValueError("engine is required for distributed inference")
+            df = engine.read.parquet(*self.dataset.files)
+            # we save the datataset with partitioning
+            repartition = False
+
+        # static
+        static_cols = set(
+            chain.from_iterable(getattr(m, "stat_exog_list", []) for m in self.models)
+        )
+        if static_df is not None:
+            if not isinstance(static_df, SparkDataFrame):
+                raise ValueError(
+                    "`static_df` must be a spark dataframe when `df` is a spark dataframe "
+                    "or the models were trained in a distributed setting.\n"
+                    "You can also provide local dataframes (pandas or polars) as `df` and `static_df`."
+                )
+            missing_static = static_cols - set(static_df.columns)
+            if missing_static:
+                raise ValueError(
+                    f"The following static columns are missing from the static_df: {missing_static}"
+                )
+            # join is supposed to preserve the partitioning
+            df = df.join(static_df, on=[self.id_col], how="left")
+
+        # exog
+        if futr_df is not None:
+            if not isinstance(futr_df, SparkDataFrame):
+                raise ValueError(
+                    "`futr_df` must be a spark dataframe when `df` is a spark dataframe "
+                    "or the models were trained in a distributed setting.\n"
+                    "You can also provide local dataframes (pandas or polars) as `df` and `futr_df`."
+                )
+            if self.target_col in futr_df.columns:
+                raise ValueError("`futr_df` must not contain the target column.")
+            # df has the statics, historic exog and target at this point, futr_df doesnt
+            df = df.unionByName(futr_df, allowMissingColumns=True)
+            # union doesn't guarantee preserving the partitioning
+            repartition = True
+
+        if repartition:
+            df = df.repartitionByRange(df.rdd.getNumPartitions(), self.id_col)
+
+        # predict
+        base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
+        models_schema = {model: "float" for model in self._get_model_names()}
+        return fa.transform(
+            df=df,
+            using=_predict,
+            schema=base_schema.append(models_schema),
+            params=dict(
+                static_cols=list(static_cols),
+                futr_exog_cols=list(self._get_needed_futr_exog()),
+                models=self.models,
+                freq=self.freq,
+                id_col=self.id_col,
+                time_col=self.time_col,
+                target_col=self.target_col,
+            ),
+        )
 
     def predict(
         self,
@@ -533,6 +814,7 @@ class NeuralForecast:
         sort_df: bool = True,
         verbose: bool = False,
         engine=None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -554,6 +836,8 @@ class NeuralForecast:
             Print processing steps.
         engine : spark session
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -563,7 +847,7 @@ class NeuralForecast:
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
-        if (df is None) and not (hasattr(self, "dataset")):
+        if df is None and not hasattr(self, "dataset"):
             raise Exception("You must pass a DataFrame or have one stored.")
 
         if not self._fitted:
@@ -585,117 +869,21 @@ class NeuralForecast:
 
         # distributed df or NeuralForecast instance was trained with a distributed input and no df is provided
         # we assume the user wants to perform distributed inference as well
-        if isinstance(df, SparkDataFrame) or (
-            df is None and isinstance(getattr(self, "dataset", None), _FilesDataset)
-        ):
-            import fugue.api as fa
-
-            def _predict(
-                df: pd.DataFrame,
-                static_cols,
-                futr_exog_cols,
-                models,
-                freq,
-                id_col,
-                time_col,
-                target_col,
-            ) -> pd.DataFrame:
-                from neuralforecast import NeuralForecast
-
-                nf = NeuralForecast(models=models, freq=freq)
-                nf.id_col = id_col
-                nf.time_col = time_col
-                nf.target_col = target_col
-                nf.scalers_ = {}
-                nf._fitted = True
-                if futr_exog_cols:
-                    # if we have futr_exog we'll have extra rows with the future values
-                    futr_rows = df[target_col].isnull()
-                    futr_df = df.loc[
-                        futr_rows, [self.id_col, self.time_col] + futr_exog_cols
-                    ].copy()
-                    df = df[~futr_rows].copy()
-                else:
-                    futr_df = None
-                if static_cols:
-                    static_df = (
-                        df[[self.id_col] + static_cols]
-                        .groupby(self.id_col, observed=True)
-                        .head(1)
-                    )
-                    df = df.drop(columns=static_cols)
-                else:
-                    static_df = None
-                preds = nf.predict(df=df, static_df=static_df, futr_df=futr_df)
-                if preds.index.name == id_col:
-                    preds = preds.reset_index()
-                return preds
-
-            # df
-            if isinstance(df, SparkDataFrame):
-                repartition = True
-            else:
-                if engine is None:
-                    raise ValueError("engine is required for distributed inference")
-                df = engine.read.parquet(*self.dataset.files)
-                # we save the datataset with partitioning
-                repartition = False
-
-            # static
-            static_cols = set(
-                chain.from_iterable(
-                    getattr(m, "stat_exog_list", []) for m in self.models
-                )
-            )
-            if static_df is not None:
-                if not isinstance(static_df, SparkDataFrame):
-                    raise ValueError(
-                        "`static_df` must be a spark dataframe when `df` is a spark dataframe "
-                        "or the models were trained in a distributed setting.\n"
-                        "You can also provide local dataframes (pandas or polars) as `df` and `static_df`."
-                    )
-                missing_static = static_cols - set(static_df.columns)
-                if missing_static:
-                    raise ValueError(
-                        f"The following static columns are missing from the static_df: {missing_static}"
-                    )
-                # join is supposed to preserve the partitioning
-                df = df.join(static_df, on=[self.id_col], how="left")
-
-            # exog
-            if futr_df is not None:
-                if not isinstance(futr_df, SparkDataFrame):
-                    raise ValueError(
-                        "`futr_df` must be a spark dataframe when `df` is a spark dataframe "
-                        "or the models were trained in a distributed setting.\n"
-                        "You can also provide local dataframes (pandas or polars) as `df` and `futr_df`."
-                    )
-                if self.target_col in futr_df.columns:
-                    raise ValueError("`futr_df` must not contain the target column.")
-                # df has the statics, historic exog and target at this point, futr_df doesnt
-                df = df.unionByName(futr_df, allowMissingColumns=True)
-                # union doesn't guarantee preserving the partitioning
-                repartition = True
-
-            if repartition:
-                df = df.repartitionByRange(df.rdd.getNumPartitions(), self.id_col)
-
-            # predict
-            base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
-            models_schema = {model: "float" for model in self._get_model_names()}
-            return fa.transform(
+        is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
+        is_dataset_local_files = isinstance(
+            getattr(self, "dataset", None), LocalFilesTimeSeriesDataset
+        )
+        if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
+            return self._predict_distributed(
                 df=df,
-                using=_predict,
-                schema=base_schema.append(models_schema),
-                params=dict(
-                    static_cols=list(static_cols),
-                    futr_exog_cols=list(needed_futr_exog),
-                    models=self.models,
-                    freq=self.freq,
-                    id_col=self.id_col,
-                    time_col=self.time_col,
-                    target_col=self.target_col,
-                ),
+                static_df=static_df,
+                futr_df=futr_df,
+                engine=engine,
+            )
+
+        if is_dataset_local_files and df is None:
+            raise ValueError(
+                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
             )
 
         # Process new dataset but does not store it.
@@ -779,6 +967,9 @@ class NeuralForecast:
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
+        cols = (
+            self._get_model_names()
+        )  # Needed for IQLoss as column names may have changed during the call to .predict()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -787,6 +978,30 @@ class NeuralForecast:
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
+
+        # add prediction intervals
+        if level is not None:
+            if self._cs_df is None or self.prediction_intervals is None:
+                raise Exception(
+                    "You must fit the model with prediction_intervals to use level."
+                )
+            else:
+                level_ = sorted(level)
+                model_names = self._get_model_names(add_level=True)
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
+
+                fcsts_df = prediction_interval_method(
+                    fcsts_df,
+                    self._cs_df,
+                    model_names=list(model_names),
+                    level=level_,
+                    cs_n_windows=self.prediction_intervals.n_windows,
+                    n_series=len(uids),
+                    horizon=self.h,
+                )
+
         return fcsts_df
 
     def _reset_models(self):
@@ -874,11 +1089,29 @@ class NeuralForecast:
             output_length = len(model.loss.output_names)
             fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
             col_idx += output_length
-        if self.scalers_:
-            indptr = np.append(
-                0, np.full(self.dataset.n_groups, self.h * n_windows).cumsum()
+        # we may have allocated more space than needed
+        # each serie can produce at most (serie.size - 1) // self.h CV windows
+        effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
+        needs_trim = effective_sizes.sum() != fcsts.shape[0]
+        if self.scalers_ or needs_trim:
+            indptr = np.arange(
+                0,
+                n_windows * self.h * (self.dataset.n_groups + 1),
+                n_windows * self.h,
+                dtype=np.int32,
             )
-            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+            if self.scalers_:
+                fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+            if needs_trim:
+                # we keep only the effective samples of each serie from the cv results
+                trimmed = np.empty_like(
+                    fcsts, shape=(effective_sizes.sum(), fcsts.shape[1])
+                )
+                cv_indptr = np.append(0, effective_sizes).cumsum(dtype=np.int32)
+                for i in range(fcsts.shape[1]):
+                    ga = GroupedArray(fcsts[:, i], indptr)
+                    trimmed[:, i] = ga._tails(cv_indptr)
+                fcsts = trimmed
 
         self._fitted = True
 
@@ -916,6 +1149,8 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        prediction_intervals: Optional[PredictionIntervals] = None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -954,6 +1189,10 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100. Use with prediction_intervals.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -974,6 +1213,7 @@ class NeuralForecast:
             n_windows = int((test_size - h) / step_size) + 1
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
+
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
@@ -983,7 +1223,21 @@ class NeuralForecast:
                 FutureWarning,
             )
             df = df.reset_index(id_col)
+
+        # Checks for prediction intervals
+        if prediction_intervals is not None or level is not None:
+            if level is None:
+                warnings.warn("Level not provided, using level=[90].")
+                level = [90]
+            if prediction_intervals is None:
+                raise Exception("You must set prediction_intervals to use level.")
+            if not refit:
+                raise Exception(
+                    "Passing prediction_intervals and/or level is only supported with refit=True."
+                )
+
         if not refit:
+
             return self._no_refit_cross_validation(
                 df=df,
                 static_df=static_df,
@@ -1022,6 +1276,10 @@ class NeuralForecast:
                     sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    prediction_intervals=prediction_intervals,
                 )
                 predict_df: Optional[DataFrame] = None
             else:
@@ -1037,6 +1295,7 @@ class NeuralForecast:
                 futr_df=futr_df,
                 sort_df=sort_df,
                 verbose=verbose,
+                level=level,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1275,6 +1534,8 @@ class NeuralForecast:
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
+            "prediction_intervals": self.prediction_intervals,
+            "_cs_df": self._cs_df,  # conformity score
         }
         if save_dataset:
             config_dict.update(
@@ -1371,6 +1632,10 @@ class NeuralForecast:
 
         for attr in ["id_col", "time_col", "target_col"]:
             setattr(neuralforecast, attr, config_dict[attr])
+        # only restore attribute if available
+        for attr in ["prediction_intervals", "_cs_df"]:
+            if attr in config_dict.keys():
+                setattr(neuralforecast, attr, config_dict[attr])
 
         # Dataset
         if dataset is not None:
@@ -1390,3 +1655,58 @@ class NeuralForecast:
         neuralforecast.scalers_ = config_dict["scalers_"]
 
         return neuralforecast
+
+    def _conformity_scores(
+        self,
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+    ) -> DataFrame:
+        """Compute conformity scores.
+
+        We need at least two cross validation errors to compute
+        quantiles for prediction intervals (`n_windows=2`, specified by self.prediction_intervals).
+
+        The exception is raised by the PredictionIntervals data class.
+
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+        """
+        if self.prediction_intervals is None:
+            raise AttributeError(
+                "Please rerun the `fit` method passing a valid prediction_interval setting to compute conformity scores"
+            )
+
+        min_size = ufp.counts_by_id(df, id_col)["counts"].min()
+        min_samples = self.h * self.prediction_intervals.n_windows + 1
+        if min_size < min_samples:
+            raise ValueError(
+                "Minimum required samples in each serie for the prediction intervals "
+                f"settings are: {min_samples}, shortest serie has: {min_size}. "
+                "Please reduce the number of windows, horizon or remove those series."
+            )
+
+        cv_results = self.cross_validation(
+            df=df,
+            static_df=static_df,
+            n_windows=self.prediction_intervals.n_windows,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
+        kept = [time_col, id_col, "cutoff"]
+        # conformity score for each model
+        for model in self._get_model_names(add_level=True):
+            kept.append(model)
+
+            # compute absolute error for each model
+            abs_err = abs(cv_results[model] - cv_results[target_col])
+            cv_results = ufp.assign_columns(cv_results, model, abs_err)
+        dropped = list(set(cv_results.columns) - set(kept))
+        return ufp.drop_columns(cv_results, dropped)

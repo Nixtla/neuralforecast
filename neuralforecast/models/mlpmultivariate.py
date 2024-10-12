@@ -45,11 +45,16 @@ class MLPMultivariate(BaseMultivariate):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -76,6 +81,8 @@ class MLPMultivariate(BaseMultivariate):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs
     ):
 
@@ -102,6 +109,8 @@ class MLPMultivariate(BaseMultivariate):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs
         )
 
@@ -109,15 +118,11 @@ class MLPMultivariate(BaseMultivariate):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
         input_size_first_layer = n_series * (
             input_size
-            + self.hist_input_size * input_size
-            + self.futr_input_size * (input_size + h)
-            + self.stat_input_size
+            + self.hist_exog_size * input_size
+            + self.futr_exog_size * (input_size + h)
+            + self.stat_exog_size
         )
 
         # MultiLayer Perceptron
@@ -148,14 +153,18 @@ class MLPMultivariate(BaseMultivariate):
         # Contatenate [ Y^1_t, ..., Y^N_t | X^1_{t-L},..., X^1_{t}, ..., X^N_{t} | F^1_{t-L},..., F^1_{t+H}, ...., F^N_{t+H} | S^1, ..., S^N ]
         batch_size = x.shape[0]
         x = x.reshape(batch_size, -1)
-        if self.hist_input_size > 0:
+        if self.hist_exog_size > 0:
             x = torch.cat((x, hist_exog.reshape(batch_size, -1)), dim=1)
 
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             x = torch.cat((x, futr_exog.reshape(batch_size, -1)), dim=1)
 
-        if self.stat_input_size > 0:
-            x = torch.cat((x, stat_exog.reshape(batch_size, -1)), dim=1)
+        if self.stat_exog_size > 0:
+            stat_exog = stat_exog.reshape(-1)  #   [N, S] -> [N * S]
+            stat_exog = stat_exog.unsqueeze(0).repeat(
+                batch_size, 1
+            )  #   [N * S] -> [B, N * S]
+            x = torch.cat((x, stat_exog), dim=1)
 
         for layer in self.mlp:
             x = torch.relu(layer(x))

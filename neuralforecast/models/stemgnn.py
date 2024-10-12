@@ -13,6 +13,10 @@ from ..common._base_multivariate import BaseMultivariate
 
 # %% ../../nbs/models.stemgnn.ipynb 7
 class GLU(nn.Module):
+    """
+    GLU
+    """
+
     def __init__(self, input_channel, output_channel):
         super(GLU, self).__init__()
         self.linear_left = nn.Linear(input_channel, output_channel)
@@ -23,6 +27,10 @@ class GLU(nn.Module):
 
 # %% ../../nbs/models.stemgnn.ipynb 8
 class StockBlockLayer(nn.Module):
+    """
+    StockBlockLayer
+    """
+
     def __init__(self, time_step, unit, multi_layer, stack_cnt=0):
         super(StockBlockLayer, self).__init__()
         self.time_step = time_step
@@ -163,11 +171,16 @@ class StemGNN(BaseMultivariate):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
     # Class attributes
     SAMPLING_TYPE = "multivariate"
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -196,6 +209,8 @@ class StemGNN(BaseMultivariate):
         drop_last_loader=False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs
     ):
 
@@ -222,16 +237,13 @@ class StemGNN(BaseMultivariate):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs
         )
         # Quick fix for now, fix the model later.
         if n_stacks != 2:
             raise Exception("StemGNN currently only supports n_stacks=2.")
-
-        # Exogenous variables
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
 
         self.unit = n_series
         self.stack_cnt = n_stacks

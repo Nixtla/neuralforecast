@@ -64,6 +64,30 @@ jobs:
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
+  test-multivariate-model-performance:
+    resource_class: xlarge
+    docker:
+      - image: mambaorg/micromamba:1.5-focal
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
+      - run:
+          name: Run model performance tests
+          command: |
+            eval "$(micromamba shell hook --shell bash)"
+            micromamba activate base
+            pip install -e ".[dev]"
+            export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+            cd ./action_files/test_models/
+            pip install -r requirements.txt
+            python -m src.multivariate_models
+            python -m src.multivariate_evaluation
+            cd ../../
+      - store_artifacts:
+          path: ./action_files/test_models/data/multi_evaluation.csv
+          destination: multi_evaluation.csv
 
 workflows:
   sample:
@@ -71,3 +95,4 @@ workflows:
       - nbdev-tests
       - test-model-performance
       - test-model-performance2
+      - test-multivariate-model-performance

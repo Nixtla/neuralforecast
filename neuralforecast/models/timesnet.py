@@ -18,6 +18,10 @@ from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.timesnet.ipynb 7
 class Inception_Block_V1(nn.Module):
+    """
+    Inception_Block_V1
+    """
+
     def __init__(self, in_channels, out_channels, num_kernels=6, init_weight=True):
         super(Inception_Block_V1, self).__init__()
         self.in_channels = in_channels
@@ -60,6 +64,10 @@ def FFT_for_Period(x, k=2):
 
 
 class TimesBlock(nn.Module):
+    """
+    TimesBlock
+    """
+
     def __init__(self, input_size, h, k, hidden_size, conv_hidden_size, num_kernels):
         super(TimesBlock, self).__init__()
         self.input_size = input_size
@@ -178,6 +186,8 @@ class TimesNet(BaseWindows):
         User specified optimizer instead of the default choice (Adam).
     `optimizer_kwargs`: dict, optional (defualt=None)
         List of parameters used by the user specified `optimizer`.
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
@@ -188,6 +198,9 @@ class TimesNet(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
@@ -222,6 +235,8 @@ class TimesNet(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs
     ):
         super(TimesNet, self).__init__(
@@ -250,19 +265,12 @@ class TimesNet(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
-        if self.stat_input_size > 0:
-            raise Exception("TimesNet does not support static variables yet")
-        if self.hist_input_size > 0:
-            raise Exception("TimesNet does not support historical variables yet")
-
         self.c_out = self.loss.outputsize_multiplier
         self.enc_in = 1
         self.dec_in = 1
@@ -283,7 +291,7 @@ class TimesNet(BaseWindows):
 
         self.enc_embedding = DataEmbedding(
             c_in=self.enc_in,
-            exog_input_size=self.futr_input_size,
+            exog_input_size=self.futr_exog_size,
             hidden_size=hidden_size,
             pos_embedding=True,  # Original implementation uses true
             dropout=dropout,
@@ -304,7 +312,7 @@ class TimesNet(BaseWindows):
 
         # Parse inputs
         insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
-        if self.futr_input_size > 0:
+        if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
         else:
             x_mark_enc = None

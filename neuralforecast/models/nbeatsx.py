@@ -250,7 +250,13 @@ class NBEATSBlock(nn.Module):
 
         if isinstance(self.basis, ExogenousBasis):
             if self.futr_input_size > 0 and self.stat_input_size > 0:
-                futr_exog = torch.cat((futr_exog, stat_exog), dim=2)
+                futr_exog = torch.cat(
+                    (
+                        futr_exog,
+                        stat_exog.unsqueeze(1).expand(-1, futr_exog.shape[1], -1),
+                    ),
+                    dim=2,
+                )
             elif self.futr_input_size > 0:
                 futr_exog = futr_exog
             elif self.stat_input_size > 0:
@@ -311,6 +317,8 @@ class NBEATSx(BaseWindows):
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -320,6 +328,9 @@ class NBEATSx(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
+    EXOGENOUS_FUTR = True
+    EXOGENOUS_HIST = True
+    EXOGENOUS_STAT = True
 
     def __init__(
         self,
@@ -356,6 +367,8 @@ class NBEATSx(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         **trainer_kwargs,
     ):
         # Protect horizon collapsed seasonality and trend NBEATSx-i basis
@@ -391,20 +404,18 @@ class NBEATSx(BaseWindows):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             **trainer_kwargs,
         )
 
         # Architecture
-        self.futr_input_size = len(self.futr_exog_list)
-        self.hist_input_size = len(self.hist_exog_list)
-        self.stat_input_size = len(self.stat_exog_list)
-
         blocks = self.create_stack(
             h=h,
             input_size=input_size,
-            futr_input_size=self.futr_input_size,
-            hist_input_size=self.hist_input_size,
-            stat_input_size=self.stat_input_size,
+            futr_input_size=self.futr_exog_size,
+            hist_input_size=self.hist_exog_size,
+            stat_input_size=self.stat_exog_size,
             stack_types=stack_types,
             n_blocks=n_blocks,
             mlp_units=mlp_units,
@@ -415,12 +426,6 @@ class NBEATSx(BaseWindows):
             n_harmonics=n_harmonics,
         )
         self.blocks = torch.nn.ModuleList(blocks)
-
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(
-                in_features=h, out_features=h * self.loss.outputsize_multiplier
-            )
 
     def create_stack(
         self,
