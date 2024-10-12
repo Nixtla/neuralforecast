@@ -262,7 +262,7 @@ def log_model(
     """
     return Model.log(
         artifact_path=artifact_path,
-        flavor=mlforecast.flavor,
+        flavor=neuralforecast.flavor,
         registered_model_name=registered_model_name,
         model=model,
         conda_env=conda_env,
