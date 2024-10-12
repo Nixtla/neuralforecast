@@ -278,7 +278,7 @@ def log_model(
 
 def load_model(model_uri, dst_path=None):
     """
-    Load an ``MLForecast`` model from a local file or a run.
+    Load an ``NeuralForecast`` model from a local file or a run.
 
     Parameters
     ----------
@@ -301,13 +301,13 @@ def load_model(model_uri, dst_path=None):
 
     Returns
     -------
-    An ``MLForecast`` model instance.
+    An ``NeuralForecast`` model instance.
     """
     local_model_path = _download_artifact_from_uri(artifact_uri=model_uri, output_path=dst_path)
     flavor_conf = _get_flavor_configuration(model_path=local_model_path, flavor_name=FLAVOR_NAME)
     _add_code_from_conf_to_system_path(local_model_path, flavor_conf)
     model_file_path = os.path.join(local_model_path, flavor_conf["pickled_model"])
-    return MLForecast.load(model_file_path)
+    return NeuralForecast.load(model_file_path)
 
 
 def _load_pyfunc(path):
