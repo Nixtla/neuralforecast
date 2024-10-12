@@ -32,13 +32,13 @@ from mlflow.utils.model_utils import (
 )
 from mlflow.utils.requirements_utils import _get_pinned_requirement
 
-import mlforecast
-import mlforecast.flavor
-from mlforecast import MLForecast
+import neuralforecast
+import neuralforecast.flavor
+from neuralforecast import Neuralforecast
 
 
-FLAVOR_NAME = "mlforecast"
-_MODEL_DATA_SUBPATH = "mlforecast-model"
+FLAVOR_NAME = "neuralforecastforecast"
+_MODEL_DATA_SUBPATH = "neuralforecast-model"
 
 
 def get_default_pip_requirements():
