@@ -199,12 +199,12 @@ def log_model(
     **kwargs,
 ):
     """
-    Log an ``MLForecast`` model as an MLflow artifact for the current run.
+    Log an ``NeuralForecast`` model as an MLflow artifact for the current run.
 
     Parameters
     ----------
-    model : MLForecast
-        Fitted ``MLForecast`` model object.
+    model : NeuralForecast
+        Fitted ``NeuralForecast`` model object.
     artifact_path : str
         Run-relative artifact path to save the model to.
     conda_env : Union[dict, str], optional (default=None)
@@ -244,7 +244,7 @@ def log_model(
         or None to skip waiting.
     pip_requirements : Union[Iterable, str], optional (default=None)
         Either an iterable of pip requirement strings
-        (e.g. ["mlforecast", "-r requirements.txt", "-c constraints.txt"]) or the string
+        (e.g. ["neuralforecast", "-r requirements.txt", "-c constraints.txt"]) or the string
         path to a pip requirements file on the local filesystem
         (e.g. "requirements.txt")
     extra_pip_requirements : Union[Iterable, str], optional (default=None)
