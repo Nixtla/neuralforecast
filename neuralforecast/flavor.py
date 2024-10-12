@@ -37,7 +37,7 @@ import neuralforecast.flavor
 from neuralforecast import NeuralForecast
 
 
-FLAVOR_NAME = "neuralforecastforecast"
+FLAVOR_NAME = "neuralforecast"
 _MODEL_DATA_SUBPATH = "neuralforecast-model"
 
 
