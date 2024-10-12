@@ -316,12 +316,12 @@ def _load_pyfunc(path):
     Parameters
     ----------
     path : str
-        Local filesystem path to the MLflow Model with the ``mlforecast`` flavor.
+        Local filesystem path to the MLflow Model with the ``neuralforecast`` flavor.
 
     """
     pyfunc_flavor_conf = _get_flavor_configuration(model_path=path, flavor_name=pyfunc.FLAVOR_NAME)
     path = os.path.join(path, pyfunc_flavor_conf["model_path"])
-    return _MLForecastModelWrapper(MLForecast.load(path))
+    return _NeuralForecastModelWrapper(NeuralForecast.load(path))
 
 
 class _MLForecastModelWrapper:
