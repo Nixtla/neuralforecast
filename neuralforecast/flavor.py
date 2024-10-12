@@ -34,7 +34,7 @@ from mlflow.utils.requirements_utils import _get_pinned_requirement
 
 import neuralforecast
 import neuralforecast.flavor
-from neuralforecast import Neuralforecast
+from neuralforecast import NeuralForecast
 
 
 FLAVOR_NAME = "neuralforecastforecast"
@@ -50,7 +50,7 @@ def get_default_pip_requirements():
     Calls to :func:`save_model()` and :func:`log_model()` produce a pip environment
     that, at a minimum, contains these requirements.
     """
-    return [_get_pinned_requirement("mlforecast")]
+    return [_get_pinned_requirement("neuralforecast")]
 
 
 def get_default_conda_env():
@@ -75,12 +75,12 @@ def save_model(
     pip_requirements=None,
     extra_pip_requirements=None,
 ):
-    """Save an ``MLForecast`` model to a local path
+    """Save an ``NeuralForecast`` model to a local path
 
     Parameters
     ----------
-    model : MLForecast
-        Fitted ``MLForecast`` model object.
+    model : NeuralForecast
+        Fitted ``NeuralForecast`` model object.
     path : str
         Local path where the model is to be saved.
     conda_env : Union[dict, str], optional (default=None)
@@ -115,7 +115,7 @@ def save_model(
         using the ``Pandas`` split-oriented format. Bytes are base64-encoded.
     pip_requirements : Union[Iterable, str], optional (default=None)
         Either an iterable of pip requirement strings
-        (e.g. ["mlforecast", "-r requirements.txt", "-c constraints.txt"]) or the string
+        (e.g. ["neuralforecast", "-r requirements.txt", "-c constraints.txt"]) or the string
         path to a pip requirements file on the local filesystem
         (e.g. "requirements.txt")
     extra_pip_requirements : Union[Iterable, str], optional (default=None)
@@ -143,7 +143,7 @@ def save_model(
 
     pyfunc.add_to_model(
         mlflow_model,
-        loader_module="mlforecast.flavor",
+        loader_module="neuralforecast.flavor",
         model_path=_MODEL_DATA_SUBPATH,
         conda_env=_CONDA_ENV_FILE_NAME,
         python_env=_PYTHON_ENV_FILE_NAME,
@@ -153,7 +153,7 @@ def save_model(
     mlflow_model.add_flavor(
         FLAVOR_NAME,
         pickled_model=_MODEL_DATA_SUBPATH,
-        mlforecast_version=mlforecast.__version__,
+        neuralforecast_version=neuralforecast.__version__,
         serialization_format="cloudpickle",
         code=code_dir_subpath,
     )
