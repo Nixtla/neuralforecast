@@ -324,8 +324,8 @@ def _load_pyfunc(path):
     return _NeuralForecastModelWrapper(NeuralForecast.load(path))
 
 
-class _MLForecastModelWrapper:
-    def __init__(self, model: MLForecast):
+class _NeuralForecastModelWrapper:
+    def __init__(self, model: NeuralForecast):
         self.model = model
 
     def predict(
