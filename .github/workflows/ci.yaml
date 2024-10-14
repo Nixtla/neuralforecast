@@ -34,7 +34,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install pip requirements
-        run: pip install uv && uv pip install --system ".[dev]"
+        run: >
+          pip install uv &&
+          uv pip install --system -i https://download.pytorch.org/whl/cpu torch &&
+          uv pip install --system ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars
