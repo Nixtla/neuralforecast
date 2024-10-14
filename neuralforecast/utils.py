@@ -502,7 +502,8 @@ def add_conformal_distribution_intervals(
     cuts = [alpha / 200 for alpha in reversed(alphas)]
     cuts.extend(1 - alpha / 200 for alpha in alphas)
     for model in model_names:
-        scores = cs_df[model].to_numpy().reshape(cs_n_windows, n_series, horizon)
+        scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
+        scores = scores.transpose(1, 0, 2)
         # restrict scores to horizon
         scores = scores[:, :, :horizon]
         mean = fcst_df[model].to_numpy().reshape(1, n_series, -1)
