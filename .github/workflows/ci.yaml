@@ -36,7 +36,7 @@ jobs:
       - name: Install pip requirements
         run: >
           pip install uv &&
-          uv pip install --system -i https://download.pytorch.org/whl/cpu torch &&
+          uv pip install --system -i https://download.pytorch.org/whl/cpu torch>=2.3 &&
           uv pip install --system ".[dev]"
 
       - name: Tests
