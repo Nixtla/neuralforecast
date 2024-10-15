@@ -63,7 +63,8 @@
           "group":"Probabilistic Forecasting",
           "pages":[
             "docs/tutorials/uncertainty_quantification.html",
-            "docs/tutorials/longhorizon_probabilistic.html"
+            "docs/tutorials/longhorizon_probabilistic.html",
+            "docs/tutorials/conformal_prediction.html"
           ]
         },   
         {

@@ -92,67 +92,6 @@ nf = NeuralForecast(models=models, freq='ME')
 nf.fit(AirPassengersPanel_train, prediction_intervals=prediction_intervals)
 ```
 
-``` text
-Seed set to 1
-Seed set to 1
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
 ## Forecasting
 
 To generate conformal intervals, we specify the desired levels in the
@@ -162,13 +101,6 @@ To generate conformal intervals, we specify the desired levels in the
 preds = nf.predict(futr_df=AirPassengersPanel_test, level=[90])
 ```
 
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
 
 ```python
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize = (20, 7))
