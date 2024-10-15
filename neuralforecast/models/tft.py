@@ -634,7 +634,6 @@ class TFT(BaseWindows):
         if o_inp is not None:
             _historical_inputs.insert(0, o_inp[:, : self.input_size, :])
         historical_inputs = torch.cat(_historical_inputs, dim=-2)
-
         # Future inputs
         future_inputs = k_inp[:, self.input_size :]
 
@@ -698,7 +697,8 @@ class TFT(BaseWindows):
             if self.tgt_size > 1
             else ["observed_target"]
         )
-
+        if len(self.futr_exog_list) < 1:
+            hist_exog_list += ["repeated_target"]
         hist_vsn_imp = pd.DataFrame(
             self.mean_on_batch(hist_vsn_wgts).cpu().numpy(), columns=hist_exog_list
         )
