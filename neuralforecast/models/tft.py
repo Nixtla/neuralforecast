@@ -418,7 +418,7 @@ class TemporalFusionDecoder(nn.Module):
 
         return x, atten_vect
 
-# %% ../../nbs/models.tft.ipynb 23
+# %% ../../nbs/models.tft.ipynb 24
 class TFT(BaseModel):
     """TFT
 
