@@ -539,7 +539,8 @@ def add_conformal_error_intervals(
     cuts = [lv / 100 for lv in level]
     for model in model_names:
         mean = fcst_df[model].to_numpy().ravel()
-        scores = cs_df[model].to_numpy().reshape(cs_n_windows, n_series, horizon)
+        scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
+        scores = scores.transpose(1, 0, 2)
         # restrict scores to horizon
         scores = scores[:, :, :horizon]
         quantiles = np.quantile(
