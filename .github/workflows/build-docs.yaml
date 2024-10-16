@@ -1,7 +1,7 @@
 name: "build-docs"
 on:
-  push:
-    branches: ["main"]
+  release:
+    types: [released]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
