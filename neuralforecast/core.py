@@ -270,6 +270,7 @@ class NeuralForecast:
         # Flags and attributes
         self._fitted = False
         self._reset_models()
+        self._add_level = False
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
         self.scalers_ = {}
@@ -998,27 +999,6 @@ class NeuralForecast:
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
 
-        # # add prediction intervals or quantiles to models trained with point loss functions via level argument
-        # if level is not None or quantiles is not None:
-        #     model_names = self._get_model_names(add_level=True)
-        #     if model_names:
-        #         if self.prediction_intervals is None:
-        #             raise AttributeError(
-        #                 "You have trained one or more models with a point loss function (e.g. MAE, MSE). "
-        #                 "You then must set `prediction_intervals` during fit to use level or quantiles during predict.")
-        #         prediction_interval_method = get_prediction_interval_method(self.prediction_intervals.method)
-
-        #         fcsts_df = prediction_interval_method(
-        #             fcsts_df,
-        #             self._cs_df,
-        #             model_names=list(model_names),
-        #             level=level_ if level is not None else None,
-        #             cs_n_windows=self.prediction_intervals.n_windows,
-        #             n_series=len(uids),
-        #             horizon=self.h,
-        #             quantiles=quantiles_ if quantiles is not None else None,
-        #         )
-
         return fcsts_df
 
     def _reset_models(self):
@@ -1082,6 +1062,11 @@ class NeuralForecast:
 
         fcsts_list: List = []
         for model in self.models:
+            if self._add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
+                continue
+
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
@@ -1118,7 +1103,7 @@ class NeuralForecast:
         self._fitted = True
 
         # Add predictions to forecasts DataFrame
-        cols = self._get_model_names()
+        cols = self._get_model_names(add_level=self._add_level)
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -1678,6 +1663,7 @@ class NeuralForecast:
                 "Please reduce the number of windows, horizon or remove those series."
             )
 
+        self._add_level = True
         cv_results = self.cross_validation(
             df=df,
             static_df=static_df,
@@ -1686,6 +1672,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
         )
+        self._add_level = False
 
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
@@ -1751,12 +1738,23 @@ class NeuralForecast:
                     cols.extend(col_names)
             # case 2: IQLoss
             elif quantiles_ is not None and isinstance(model.loss, IQLoss):
-                col_names = []
-                for i, quantile in enumerate(quantiles_):
+                # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
+                quantiles_iqloss = np.linspace(0.01, 0.99, 20)
+                fcsts_list_iqloss = []
+                for i, quantile in enumerate(quantiles_iqloss):
                     model_fcsts = model.predict(
                         dataset=dataset, quantiles=[quantile], **data_kwargs
                     )
-                    fcsts_list.append(model_fcsts)
+                    fcsts_list_iqloss.append(model_fcsts)
+                fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
+
+                # Get the actual requested quantiles
+                model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
+                fcsts_list.append(model_fcsts)
+
+                # Get the right column names
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
                     col_name = self._get_column_name(model_name, quantile, has_level)
                     col_names.extend([col_name])
                 cols.extend(col_names)
