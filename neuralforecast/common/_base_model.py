@@ -1465,6 +1465,13 @@ class BaseModel(pl.LightningModule):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        if "quantile" in data_module_kwargs:
+            warnings.warn(
+                "The 'quantile' argument will be deprecated, use 'quantiles' instead."
+            )
+            if quantiles is not None:
+                raise ValueError("You can't specify quantile and quantiles.")
+            quantiles = [data_module_kwargs.pop("quantile")]
         self._set_quantiles(quantiles)
 
         self.predict_step_size = step_size
