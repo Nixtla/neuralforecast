@@ -40,4 +40,4 @@ jobs:
           uv pip install --system "numpy<2" ".[dev]"
 
       - name: Tests
-        run: nbdev_test --do_print --timing --flags polars
+        run: nbdev_test --do_print --timing --n_workers 0 --flags polars

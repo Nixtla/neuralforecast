@@ -389,28 +389,13 @@ class BaseModel(pl.LightningModule):
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
 
-    def _set_quantile(self, **data_module_kwargs):
-        if "quantile" in data_module_kwargs:
-            supported_losses = (
-                losses.IQLoss,
-                losses.DistributionLoss,
-                losses.GMM,
-                losses.PMM,
-                losses.NBMM,
-            )
-            if not isinstance(self.loss, supported_losses):
-                raise Exception(
-                    f"Please train with one of {supported_losses} to make use of the quantile argument."
-                )
-            else:
-                self.quantile = data_module_kwargs["quantile"]
-                data_module_kwargs.pop("quantile")
-                self.loss.update_quantile(q=self.quantile)
-        elif isinstance(self.loss, losses.IQLoss):
-            self.quantile = 0.5
-            self.loss.update_quantile(q=self.quantile)
-
-        return data_module_kwargs
+    def _set_quantiles(self, quantiles=None):
+        if quantiles is None and isinstance(self.loss, losses.IQLoss):
+            self.loss.update_quantile(q=[0.5])
+        elif hasattr(self.loss, "update_quantile") and callable(
+            self.loss.update_quantile
+        ):
+            self.loss.update_quantile(q=quantiles)
 
     def _fit_distributed(
         self,
@@ -1147,10 +1132,7 @@ class BaseModel(pl.LightningModule):
             insample_y = self.scaler.scaler(mean, y_loc, y_scale)
 
             # Save predictions
-            if self.loss.predict_single_quantile:
-                y_hat = quants
-            else:
-                y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
+            y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
@@ -1195,12 +1177,8 @@ class BaseModel(pl.LightningModule):
             distr_args = self.loss.scale_decouple(
                 output=output_batch, loc=y_loc, scale=y_scale
             )
-            if self.loss.predict_single_quantile:
-                _, _, quant = self.loss.sample(distr_args=distr_args)
-                y_hat = quant
-            else:
-                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-                y_hat = torch.concat((sample_mean, quants), axis=-1)
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=-1)
 
             if self.loss.return_params:
                 distr_args = torch.stack(distr_args, dim=-1)
@@ -1470,6 +1448,7 @@ class BaseModel(pl.LightningModule):
         test_size=None,
         step_size=1,
         random_seed=None,
+        quantiles=None,
         **data_module_kwargs,
     ):
         """Predict.
@@ -1481,11 +1460,12 @@ class BaseModel(pl.LightningModule):
         `test_size`: int=None, test size for temporal cross-validation.<br>
         `step_size`: int=1, Step size between each window.<br>
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
+        `quantiles`: list of floats, optional (default=None), target quantiles to predict. <br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
-        data_module_kwargs = self._set_quantile(**data_module_kwargs)
+        self._set_quantiles(quantiles)
 
         self.predict_step_size = step_size
         self.decompose_forecast = False
@@ -1515,7 +1495,14 @@ class BaseModel(pl.LightningModule):
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
-    def decompose(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
+    def decompose(
+        self,
+        dataset,
+        step_size=1,
+        random_seed=None,
+        quantiles=None,
+        **data_module_kwargs,
+    ):
         """Decompose Predictions.
 
         Decompose the predictions through the network's layers.
@@ -1524,13 +1511,14 @@ class BaseModel(pl.LightningModule):
         **Parameters:**<br>
         `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation here](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
         `step_size`: int=1, step size between each window of temporal data.<br>
+        `quantiles`: list of floats, optional (default=None), target quantiles to predict. <br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
         # Restart random seed
         if random_seed is None:
             random_seed = self.random_seed
         torch.manual_seed(random_seed)
-        data_module_kwargs = self._set_quantile(**data_module_kwargs)
+        self._set_quantiles(quantiles)
 
         self.predict_step_size = step_size
         self.decompose_forecast = True

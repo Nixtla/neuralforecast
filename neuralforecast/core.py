@@ -29,6 +29,7 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
+from .losses.pytorch import IQLoss
 from neuralforecast.tsdataset import (
     _FilesDataset,
     TimeSeriesDataset,
@@ -69,7 +70,12 @@ from neuralforecast.models import (
     RMoK,
 )
 from .common._base_auto import BaseAuto, MockTrial
-from .utils import PredictionIntervals, get_prediction_interval_method
+from neuralforecast.utils import (
+    PredictionIntervals,
+    get_prediction_interval_method,
+    level_to_quantiles,
+    quantiles_to_level,
+)
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -681,7 +687,9 @@ class NeuralForecast:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
-            if add_level and model.loss.outputsize_multiplier > 1:
+            if add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
                 continue
 
             model_name = repr(model)
@@ -815,6 +823,7 @@ class NeuralForecast:
         verbose: bool = False,
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -838,6 +847,8 @@ class NeuralForecast:
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
         level : list of ints or floats, optional (default=None)
             Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -852,6 +863,21 @@ class NeuralForecast:
 
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
+
+        quantiles_ = None
+        has_level = False
+        if level is not None:
+            has_level = True
+            if quantiles is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            level_ = sorted(list(set(level)))
+            quantiles_ = level_to_quantiles(level_)
+
+        if quantiles is not None:
+            if level is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            quantiles_ = sorted(list(set(quantiles)))
+            level_ = quantiles_to_level(quantiles_)
 
         needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
@@ -947,22 +973,15 @@ class NeuralForecast:
         self._scalers_transform(futr_dataset)
         dataset = dataset.append(futr_dataset)
 
-        fcsts_list: List = []
-        for model in self.models:
-            old_test_size = model.get_test_size()
-            model.set_test_size(self.h)  # To predict h steps ahead
-            model_fcsts = model.predict(dataset=dataset, **data_kwargs)
-            # Append predictions in memory placeholder
-            fcsts_list.append(model_fcsts)
-            model.set_test_size(old_test_size)  # Set back to original value
-        fcsts = np.concatenate(fcsts_list, axis=-1)
+        fcsts, cols = self._generate_forecasts(
+            dataset=dataset, quantiles_=quantiles_, has_level=has_level, **data_kwargs
+        )
 
         if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        cols = self._get_model_names()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -972,15 +991,15 @@ class NeuralForecast:
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
 
-        # add prediction intervals
-        if level is not None:
-            if self._cs_df is None or self.prediction_intervals is None:
-                raise Exception(
-                    "You must fit the model with prediction_intervals to use level."
-                )
-            else:
-                level_ = sorted(level)
-                model_names = self._get_model_names(add_level=True)
+        # add prediction intervals or quantiles to models trained with point loss functions via level argument
+        if level is not None or quantiles is not None:
+            model_names = self._get_model_names(add_level=True)
+            if model_names:
+                if self.prediction_intervals is None:
+                    raise AttributeError(
+                        "You have trained one or more models with a point loss function (e.g. MAE, MSE). "
+                        "You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                    )
                 prediction_interval_method = get_prediction_interval_method(
                     self.prediction_intervals.method
                 )
@@ -989,10 +1008,11 @@ class NeuralForecast:
                     fcsts_df,
                     self._cs_df,
                     model_names=list(model_names),
-                    level=level_,
+                    level=level_ if level is not None else None,
                     cs_n_windows=self.prediction_intervals.n_windows,
                     n_series=len(uids),
                     horizon=self.h,
+                    quantiles=quantiles_ if quantiles is not None else None,
                 )
 
         return fcsts_df
@@ -1130,6 +1150,7 @@ class NeuralForecast:
         target_col: str = "y",
         prediction_intervals: Optional[PredictionIntervals] = None,
         level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1171,7 +1192,9 @@ class NeuralForecast:
         prediction_intervals : PredictionIntervals, optional (default=None)
             Configuration to calibrate prediction intervals (Conformal Prediction).
         level : list of ints or floats, optional (default=None)
-            Confidence levels between 0 and 100. Use with prediction_intervals.
+            Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1204,16 +1227,18 @@ class NeuralForecast:
             df = df.reset_index(id_col)
 
         # Checks for prediction intervals
-        if prediction_intervals is not None or level is not None:
-            if level is None:
-                warnings.warn("Level not provided, using level=[90].")
-                level = [90]
-            if prediction_intervals is None:
-                raise Exception("You must set prediction_intervals to use level.")
+        if prediction_intervals is not None:
+            if level is None and quantiles is None:
+                raise Exception(
+                    "When passing prediction_intervals you need to set the level or quantiles argument."
+                )
             if not refit:
                 raise Exception(
-                    "Passing prediction_intervals and/or level is only supported with refit=True."
+                    "Passing prediction_intervals is only supported with refit=True."
                 )
+
+        if level is not None and quantiles is not None:
+            raise ValueError("You can't set both level and quantiles argument.")
 
         if not refit:
 
@@ -1275,6 +1300,7 @@ class NeuralForecast:
                 sort_df=sort_df,
                 verbose=verbose,
                 level=level,
+                quantiles=quantiles,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1667,3 +1693,85 @@ class NeuralForecast:
             cv_results = ufp.assign_columns(cv_results, model, abs_err)
         dropped = list(set(cv_results.columns) - set(kept))
         return ufp.drop_columns(cv_results, dropped)
+
+    def _generate_forecasts(
+        self,
+        dataset: TimeSeriesDataset,
+        quantiles_: Optional[List[float]] = None,
+        has_level: Optional[bool] = False,
+        **data_kwargs,
+    ) -> np.array:
+        fcsts_list: List = []
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            old_test_size = model.get_test_size()
+            model.set_test_size(self.h)  # To predict h steps ahead
+
+            # Increment model name if the same model is used more than once
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+
+            # Predict for every quantile or level if requested and the loss function supports it
+            if (
+                quantiles_ is not None
+                and not isinstance(model.loss, IQLoss)
+                and hasattr(model.loss, "update_quantile")
+                and callable(model.loss.update_quantile)
+            ):
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                fcsts_list.append(model_fcsts)
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    if i == 0:
+                        col_names.extend([f"{model_name}", col_name])
+                    else:
+                        col_names.extend([col_name])
+                if hasattr(model.loss, "return_params") and model.loss.return_params:
+                    cols.extend(
+                        col_names
+                        + [
+                            model_name + param_name
+                            for param_name in model.loss.param_names
+                        ]
+                    )
+                else:
+                    cols.extend(col_names)
+            elif quantiles_ is not None and isinstance(model.loss, IQLoss):
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    model_fcsts = model.predict(
+                        dataset=dataset, quantiles=[quantile], **data_kwargs
+                    )
+                    fcsts_list.append(model_fcsts)
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    col_names.extend([col_name])
+                cols.extend(col_names)
+            else:
+                model_fcsts = model.predict(dataset=dataset, **data_kwargs)
+                fcsts_list.append(model_fcsts)
+                cols.extend(model_name + n for n in model.loss.output_names)
+            model.set_test_size(old_test_size)  # Set back to original value
+        fcsts = np.concatenate(fcsts_list, axis=-1)
+
+        return fcsts, cols
+
+    @staticmethod
+    def _get_column_name(model_name, quantile, has_level) -> str:
+        if not has_level:
+            col_name = f"{model_name}_ql{quantile}"
+        elif quantile < 0.5:
+            level_lo = int(round(100 - 200 * quantile))
+            col_name = f"{model_name}-lo-{level_lo}"
+        elif quantile > 0.5:
+            level_hi = int(round(100 - 200 * (1 - quantile)))
+            col_name = f"{model_name}-hi-{level_hi}"
+        else:
+            col_name = f"{model_name}-median"
+
+        return col_name

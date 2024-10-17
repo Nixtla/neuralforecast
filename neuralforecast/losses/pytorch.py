@@ -6,7 +6,7 @@ __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relM
            'Accuracy', 'sCRPS']
 
 # %% ../../nbs/losses.pytorch.ipynb 4
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 
 import numpy as np
 import torch
@@ -557,7 +557,7 @@ class MQLoss(BasePointLoss):
             output_names=output_names,
         )
 
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
 
     def domain_map(self, y_hat: torch.Tensor):
         """
@@ -627,7 +627,7 @@ class MQLoss(BasePointLoss):
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
-        quantiles = self.quantiles[None, None, None, :]
+        quantiles = self.quantiles[None, None, None, :].to(y.device)
         losses = (1 / len(quantiles)) * (quantiles * sq + (1 - quantiles) * s1_q)
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
 
@@ -720,9 +720,9 @@ class IQLoss(QuantileLoss):
             concentration0=concentration0, concentration1=concentration1
         )
 
-    def update_quantile(self, q: float = 0.5):
-        self.q = q
-        self.output_names = [f"_ql{q}"]
+    def update_quantile(self, q: List[float] = [0.5]):
+        self.q = q[0]
+        self.output_names = [f"_ql{q[0]}"]
         self.has_predicted = True
 
     def domain_map(self, y_hat):
@@ -1909,7 +1909,7 @@ class DistributionLoss(torch.nn.Module):
 
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
-        self.predict_single_quantile = False
+        self.has_predicted = False
 
     def _domain_map(self, input: torch.Tensor):
         """
@@ -1970,10 +1970,18 @@ class DistributionLoss(torch.nn.Module):
 
         return samples, sample_mean, quants
 
-    def update_quantile(self, q: float = 0.5):
-        self.predict_single_quantile = True
-        self.quantiles = torch.tensor([q])
-        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
+    def update_quantile(self, q: Optional[List[float]] = None):
+        if q is not None:
+            self.quantiles = torch.tensor(q, dtype=torch.float32)
+            self.output_names = (
+                [""]
+                + [f"_ql{q_i}" for q_i in q]
+                + self.return_params * self.param_names
+            )
+            self.has_predicted = True
+        elif self.has_predicted:
+            self.quantiles = torch.tensor([0.5], dtype=torch.float32).reshape(-1)
+            self.output_names = ["", "-median"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2050,7 +2058,7 @@ class PMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
         self.num_samples = num_samples
         self.batch_correlation = batch_correlation
         self.horizon_correlation = horizon_correlation
@@ -2058,16 +2066,15 @@ class PMM(torch.nn.Module):
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
-        if self.return_params:
-            lambda_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
-            if weighted:
-                weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-                self.param_names = [
-                    i for j in zip(lambda_names, weight_names) for i in j
-                ]
-            else:
-                self.param_names = lambda_names
 
+        lambda_names = [f"-lambda-{i}" for i in range(1, n_components + 1)]
+        if weighted:
+            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
+            self.param_names = [i for j in zip(lambda_names, weight_names) for i in j]
+        else:
+            self.param_names = lambda_names
+
+        if self.return_params:
             self.output_names = self.output_names + self.param_names
 
         # Add first output entry for the sample_mean
@@ -2077,7 +2084,7 @@ class PMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.predict_single_quantile = False
+        self.has_predicted = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2177,10 +2184,18 @@ class PMM(torch.nn.Module):
 
         return samples, sample_mean, quants
 
-    def update_quantile(self, q: float = 0.5):
-        self.predict_single_quantile = True
-        self.quantiles = torch.tensor([q])
-        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
+    def update_quantile(self, q: Optional[List[float]] = None):
+        if q is not None:
+            self.quantiles = torch.tensor(q, dtype=torch.float32)
+            self.output_names = (
+                [""]
+                + [f"_ql{q_i}" for q_i in q]
+                + self.return_params * self.param_names
+            )
+            self.has_predicted = True
+        elif self.has_predicted:
+            self.quantiles = torch.tensor([0.5], dtype=torch.float32).reshape(-1)
+            self.output_names = ["", "-median"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2266,7 +2281,7 @@ class GMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
         self.num_samples = num_samples
         self.batch_correlation = batch_correlation
         self.horizon_correlation = horizon_correlation
@@ -2274,17 +2289,18 @@ class GMM(torch.nn.Module):
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
-        if self.return_params:
-            mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
-            std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
-            if weighted:
-                weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-                self.param_names = [
-                    i for j in zip(mu_names, std_names, weight_names) for i in j
-                ]
-            else:
-                self.param_names = [i for j in zip(mu_names, std_names) for i in j]
 
+        mu_names = [f"-mu-{i}" for i in range(1, n_components + 1)]
+        std_names = [f"-std-{i}" for i in range(1, n_components + 1)]
+        if weighted:
+            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
+            self.param_names = [
+                i for j in zip(mu_names, std_names, weight_names) for i in j
+            ]
+        else:
+            self.param_names = [i for j in zip(mu_names, std_names) for i in j]
+
+        if self.return_params:
             self.output_names = self.output_names + self.param_names
 
         # Add first output entry for the sample_mean
@@ -2294,7 +2310,7 @@ class GMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.predict_single_quantile = False
+        self.has_predicted = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2394,10 +2410,18 @@ class GMM(torch.nn.Module):
 
         return samples, sample_mean, quants
 
-    def update_quantile(self, q: float = 0.5):
-        self.predict_single_quantile = True
-        self.quantiles = torch.tensor([q])
-        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
+    def update_quantile(self, q: Optional[List[float]] = None):
+        if q is not None:
+            self.quantiles = torch.tensor(q, dtype=torch.float32)
+            self.output_names = (
+                [""]
+                + [f"_ql{q_i}" for q_i in q]
+                + self.return_params * self.param_names
+            )
+            self.has_predicted = True
+        elif self.has_predicted:
+            self.quantiles = torch.tensor([0.5], dtype=torch.float32).reshape(-1)
+            self.output_names = ["", "-median"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2478,29 +2502,26 @@ class NBMM(torch.nn.Module):
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
         self.num_samples = num_samples
         self.weighted = weighted
 
         # If True, predict_step will return Distribution's parameters
         self.return_params = return_params
-        if self.return_params:
-            total_count_names = [
-                f"-total_count-{i}" for i in range(1, n_components + 1)
-            ]
-            probs_names = [f"-probs-{i}" for i in range(1, n_components + 1)]
-            if weighted:
-                weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
-                self.param_names = [
-                    i
-                    for j in zip(total_count_names, probs_names, weight_names)
-                    for i in j
-                ]
-            else:
-                self.param_names = [
-                    i for j in zip(total_count_names, probs_names) for i in j
-                ]
 
+        total_count_names = [f"-total_count-{i}" for i in range(1, n_components + 1)]
+        probs_names = [f"-probs-{i}" for i in range(1, n_components + 1)]
+        if weighted:
+            weight_names = [f"-weight-{i}" for i in range(1, n_components + 1)]
+            self.param_names = [
+                i for j in zip(total_count_names, probs_names, weight_names) for i in j
+            ]
+        else:
+            self.param_names = [
+                i for j in zip(total_count_names, probs_names) for i in j
+            ]
+
+        if self.return_params:
             self.output_names = self.output_names + self.param_names
 
         # Add first output entry for the sample_mean
@@ -2510,7 +2531,7 @@ class NBMM(torch.nn.Module):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.predict_single_quantile = False
+        self.has_predicted = False
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2618,10 +2639,18 @@ class NBMM(torch.nn.Module):
 
         return samples, sample_mean, quants
 
-    def update_quantile(self, q: float = 0.5):
-        self.predict_single_quantile = True
-        self.quantiles = torch.tensor([q])
-        self.output_names = [f"_ql{q}"] + self.return_params * self.param_names
+    def update_quantile(self, q: Optional[List[float]] = None):
+        if q is not None:
+            self.quantiles = torch.tensor(q, dtype=torch.float32)
+            self.output_names = (
+                [""]
+                + [f"_ql{q_i}" for q_i in q]
+                + self.return_params * self.param_names
+            )
+            self.has_predicted = True
+        elif self.has_predicted:
+            self.quantiles = torch.tensor([0.5], dtype=torch.float32).reshape(-1)
+            self.output_names = ["", "-median"] + self.return_params * self.param_names
 
     def __call__(
         self,
@@ -2905,7 +2934,7 @@ class HuberMQLoss(BasePointLoss):
             output_names=output_names,
         )
 
-        self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
+        self.quantiles = qs
         self.delta = delta
 
     def domain_map(self, y_hat: torch.Tensor):
@@ -2970,7 +2999,7 @@ class HuberMQLoss(BasePointLoss):
         sq = torch.maximum(-error, torch.zeros_like(error))
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
-        quantiles = self.quantiles[None, None, None, :]
+        quantiles = self.quantiles[None, None, None, :].to(y.device)
         losses = F.huber_loss(
             quantiles * sq, zero_error, reduction="none", delta=self.delta
         ) + F.huber_loss(
