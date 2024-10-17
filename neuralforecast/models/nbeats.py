@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.nbeats.ipynb 7
 class IdentityBasis(nn.Module):
@@ -189,7 +189,7 @@ class NBEATSBlock(nn.Module):
         return backcast, forecast
 
 # %% ../../nbs/models.nbeats.ipynb 9
-class NBEATS(BaseWindows):
+class NBEATS(BaseModel):
     """NBEATS
 
     The Neural Basis Expansion Analysis for Time Series (NBEATS), is a simple and yet
@@ -240,10 +240,13 @@ class NBEATS(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -403,8 +406,8 @@ class NBEATS(BaseWindows):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        insample_mask = windows_batch["insample_mask"]
+        insample_y = windows_batch["insample_y"].squeeze(-1)
+        insample_mask = windows_batch["insample_mask"].squeeze(-1)
 
         # NBEATS' forward
         residuals = insample_y.flip(dims=(-1,))  # backcast init
@@ -419,9 +422,6 @@ class NBEATS(BaseWindows):
 
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
-
-        # Adapting output's domain
-        forecast = self.loss.domain_map(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, out_features)

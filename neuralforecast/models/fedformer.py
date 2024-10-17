@@ -4,7 +4,7 @@
 __all__ = ['LayerNorm', 'AutoCorrelationLayer', 'EncoderLayer', 'Encoder', 'DecoderLayer', 'Decoder', 'get_frequency_modes',
            'FourierBlock', 'FourierCrossAttention', 'FEDformer']
 
-# %% ../../nbs/models.fedformer.ipynb 5
+# %% ../../nbs/models.fedformer.ipynb 6
 import numpy as np
 from typing import Optional
 
@@ -14,11 +14,11 @@ import torch.nn.functional as F
 
 from ..common._modules import DataEmbedding
 from ..common._modules import SeriesDecomp
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.fedformer.ipynb 7
+# %% ../../nbs/models.fedformer.ipynb 8
 class LayerNorm(nn.Module):
     """
     Special designed layernorm for the seasonal part
@@ -66,7 +66,7 @@ class AutoCorrelationLayer(nn.Module):
 
         return self.out_projection(out), attn
 
-# %% ../../nbs/models.fedformer.ipynb 8
+# %% ../../nbs/models.fedformer.ipynb 9
 class EncoderLayer(nn.Module):
     """
     FEDformer encoder layer with the progressive decomposition architecture
@@ -234,7 +234,7 @@ class Decoder(nn.Module):
             x = self.projection(x)
         return x, trend
 
-# %% ../../nbs/models.fedformer.ipynb 9
+# %% ../../nbs/models.fedformer.ipynb 10
 def get_frequency_modes(seq_len, modes=64, mode_select_method="random"):
     """
     Get modes on frequency domain:
@@ -390,8 +390,8 @@ class FourierCrossAttention(nn.Module):
         )
         return (out, None)
 
-# %% ../../nbs/models.fedformer.ipynb 11
-class FEDformer(BaseWindows):
+# %% ../../nbs/models.fedformer.ipynb 12
+class FEDformer(BaseModel):
     """FEDformer
 
     The FEDformer model tackles the challenge of finding reliable dependencies on intricate temporal patterns of long-horizon forecasting.
@@ -449,10 +449,13 @@ class FEDformer(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -623,13 +626,9 @@ class FEDformer(BaseWindows):
     def forward(self, windows_batch):
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
         futr_exog = windows_batch["futr_exog"]
 
         # Parse inputs
-        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
             x_mark_dec = futr_exog[:, -(self.label_len + self.h) :, :]
@@ -663,6 +662,6 @@ class FEDformer(BaseWindows):
         )
         # final
         dec_out = trend_part + seasonal_part
+        forecast = dec_out[:, -self.h :]
 
-        forecast = self.loss.domain_map(dec_out[:, -self.h :])
         return forecast
