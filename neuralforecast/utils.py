@@ -11,12 +11,11 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 # %% ../nbs/utils.ipynb 3
 import random
 from itertools import chain
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 from utilsforecast.compat import DFType
 
 import numpy as np
 import pandas as pd
-import utilsforecast.processing as ufp
 
 # %% ../nbs/utils.ipynb 6
 def generate_series(
@@ -484,15 +483,15 @@ class PredictionIntervals:
 
 # %% ../nbs/utils.ipynb 32
 def add_conformal_distribution_intervals(
-    fcst_df: DFType,
+    model_fcsts: np.array,
     cs_df: DFType,
-    model_names: List[str],
+    model: str,
     cs_n_windows: int,
     n_series: int,
     horizon: int,
     level: Optional[List[Union[int, float]]] = None,
     quantiles: Optional[List[float]] = None,
-) -> DFType:
+) -> Tuple[np.array, List[str]]:
     """
     Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
     `level` should be already sorted. This strategy creates forecasts paths
@@ -502,7 +501,6 @@ def add_conformal_distribution_intervals(
         level is not None or quantiles is not None
     ), "Either level or quantiles must be provided"
 
-    fcst_df = ufp.copy_if_pandas(fcst_df, deep=False)
     if quantiles is None and level is not None:
         alphas = [100 - lv for lv in level]
         cuts = [alpha / 200 for alpha in reversed(alphas)]
@@ -510,41 +508,40 @@ def add_conformal_distribution_intervals(
     elif quantiles is not None:
         cuts = quantiles
 
-    for model in model_names:
-        scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
-        scores = scores.transpose(1, 0, 2)
-        # restrict scores to horizon
-        scores = scores[:, :, :horizon]
-        mean = fcst_df[model].to_numpy().reshape(1, n_series, -1)
-        scores = np.vstack([mean - scores, mean + scores])
-        scores_quantiles = np.quantile(
-            scores,
-            cuts,
-            axis=0,
-        )
-        scores_quantiles = scores_quantiles.reshape(len(cuts), -1).T
-        if quantiles is None and level is not None:
-            lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
-            hi_cols = [f"{model}-hi-{lv}" for lv in level]
-            out_cols = lo_cols + hi_cols
-        elif quantiles is not None:
-            out_cols = [f"{model}-ql{q}" for q in quantiles]
+    scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
+    scores = scores.transpose(1, 0, 2)
+    # restrict scores to horizon
+    scores = scores[:, :, :horizon]
+    mean = model_fcsts.reshape(1, n_series, -1)
+    scores = np.vstack([mean - scores, mean + scores])
+    scores_quantiles = np.quantile(
+        scores,
+        cuts,
+        axis=0,
+    )
+    scores_quantiles = scores_quantiles.reshape(len(cuts), -1).T
+    if quantiles is None and level is not None:
+        lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-hi-{lv}" for lv in level]
+        out_cols = lo_cols + hi_cols
+    elif quantiles is not None:
+        out_cols = [f"{model}-ql{q}" for q in quantiles]
 
-        fcst_df = ufp.assign_columns(fcst_df, out_cols, scores_quantiles)
+    fcsts_with_intervals = np.hstack([model_fcsts, scores_quantiles])
 
-    return fcst_df
+    return fcsts_with_intervals, out_cols
 
 # %% ../nbs/utils.ipynb 33
 def add_conformal_error_intervals(
-    fcst_df: DFType,
+    model_fcsts: np.array,
     cs_df: DFType,
-    model_names: List[str],
+    model: str,
     cs_n_windows: int,
     n_series: int,
     horizon: int,
     level: Optional[List[Union[int, float]]] = None,
     quantiles: Optional[List[float]] = None,
-) -> DFType:
+) -> Tuple[np.array, List[str]]:
     """
     Adds conformal intervals to a `fcst_df` based on conformal scores `cs_df`.
     `level` should be already sorted. This startegy creates prediction intervals
@@ -554,46 +551,45 @@ def add_conformal_error_intervals(
         level is not None or quantiles is not None
     ), "Either level or quantiles must be provided"
 
-    fcst_df = ufp.copy_if_pandas(fcst_df, deep=False)
     if quantiles is None and level is not None:
         cuts = [lv / 100 for lv in level]
     elif quantiles is not None:
         cuts = quantiles
 
-    for model in model_names:
-        mean = fcst_df[model].to_numpy().ravel()
-        scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
-        scores = scores.transpose(1, 0, 2)
-        # restrict scores to horizon
-        scores = scores[:, :, :horizon]
-        scores_quantiles = np.quantile(
-            scores,
-            cuts,
-            axis=0,
-        )
-        scores_quantiles = scores_quantiles.reshape(len(cuts), -1)
-        if quantiles is None and level is not None:
-            lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
-            hi_cols = [f"{model}-hi-{lv}" for lv in level]
-            out_cols = lo_cols + hi_cols
-            scores_quantiles = np.vstack(
-                [mean - scores_quantiles[::-1], mean + scores_quantiles]
-            ).T
-        elif quantiles is not None:
-            out_cols = []
-            scores_quantiles_ls = []
-            for i, q in enumerate(quantiles):
-                out_cols.append(f"{model}-ql{q}")
-                if q < 0.5:
-                    scores_quantiles_ls.append(mean - scores_quantiles[::-1][i])
-                elif q > 0.5:
-                    scores_quantiles_ls.append(mean + scores_quantiles[i])
-                else:
-                    scores_quantiles_ls.append(mean)
-            scores_quantiles = np.vstack(scores_quantiles_ls).T
+    mean = model_fcsts.ravel()
+    scores = cs_df[model].to_numpy().reshape(n_series, cs_n_windows, horizon)
+    scores = scores.transpose(1, 0, 2)
+    # restrict scores to horizon
+    scores = scores[:, :, :horizon]
+    scores_quantiles = np.quantile(
+        scores,
+        cuts,
+        axis=0,
+    )
+    scores_quantiles = scores_quantiles.reshape(len(cuts), -1)
+    if quantiles is None and level is not None:
+        lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
+        hi_cols = [f"{model}-hi-{lv}" for lv in level]
+        out_cols = lo_cols + hi_cols
+        scores_quantiles = np.vstack(
+            [mean - scores_quantiles[::-1], mean + scores_quantiles]
+        ).T
+    elif quantiles is not None:
+        out_cols = []
+        scores_quantiles_ls = []
+        for i, q in enumerate(quantiles):
+            out_cols.append(f"{model}-ql{q}")
+            if q < 0.5:
+                scores_quantiles_ls.append(mean - scores_quantiles[::-1][i])
+            elif q > 0.5:
+                scores_quantiles_ls.append(mean + scores_quantiles[i])
+            else:
+                scores_quantiles_ls.append(mean)
+        scores_quantiles = np.vstack(scores_quantiles_ls).T
 
-        fcst_df = ufp.assign_columns(fcst_df, out_cols, scores_quantiles)
-    return fcst_df
+    fcsts_with_intervals = np.hstack([model_fcsts, scores_quantiles])
+
+    return fcsts_with_intervals, out_cols
 
 # %% ../nbs/utils.ipynb 34
 def get_prediction_interval_method(method: str):

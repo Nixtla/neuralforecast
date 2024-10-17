@@ -687,15 +687,16 @@ class NeuralForecast:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+
             if add_level and (
                 model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
             ):
                 continue
 
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
             names.extend(model_name + n for n in model.loss.output_names)
         return names
 
@@ -865,6 +866,7 @@ class NeuralForecast:
             raise Exception("You must fit the model before predicting.")
 
         quantiles_ = None
+        level_ = None
         has_level = False
         if level is not None:
             has_level = True
@@ -974,7 +976,12 @@ class NeuralForecast:
         dataset = dataset.append(futr_dataset)
 
         fcsts, cols = self._generate_forecasts(
-            dataset=dataset, quantiles_=quantiles_, has_level=has_level, **data_kwargs
+            dataset=dataset,
+            uids=uids,
+            quantiles_=quantiles_,
+            level_=level_,
+            has_level=has_level,
+            **data_kwargs,
         )
 
         if self.scalers_:
@@ -991,29 +998,26 @@ class NeuralForecast:
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
 
-        # add prediction intervals or quantiles to models trained with point loss functions via level argument
-        if level is not None or quantiles is not None:
-            model_names = self._get_model_names(add_level=True)
-            if model_names:
-                if self.prediction_intervals is None:
-                    raise AttributeError(
-                        "You have trained one or more models with a point loss function (e.g. MAE, MSE). "
-                        "You then must set `prediction_intervals` during fit to use level or quantiles during predict."
-                    )
-                prediction_interval_method = get_prediction_interval_method(
-                    self.prediction_intervals.method
-                )
+        # # add prediction intervals or quantiles to models trained with point loss functions via level argument
+        # if level is not None or quantiles is not None:
+        #     model_names = self._get_model_names(add_level=True)
+        #     if model_names:
+        #         if self.prediction_intervals is None:
+        #             raise AttributeError(
+        #                 "You have trained one or more models with a point loss function (e.g. MAE, MSE). "
+        #                 "You then must set `prediction_intervals` during fit to use level or quantiles during predict.")
+        #         prediction_interval_method = get_prediction_interval_method(self.prediction_intervals.method)
 
-                fcsts_df = prediction_interval_method(
-                    fcsts_df,
-                    self._cs_df,
-                    model_names=list(model_names),
-                    level=level_ if level is not None else None,
-                    cs_n_windows=self.prediction_intervals.n_windows,
-                    n_series=len(uids),
-                    horizon=self.h,
-                    quantiles=quantiles_ if quantiles is not None else None,
-                )
+        #         fcsts_df = prediction_interval_method(
+        #             fcsts_df,
+        #             self._cs_df,
+        #             model_names=list(model_names),
+        #             level=level_ if level is not None else None,
+        #             cs_n_windows=self.prediction_intervals.n_windows,
+        #             n_series=len(uids),
+        #             horizon=self.h,
+        #             quantiles=quantiles_ if quantiles is not None else None,
+        #         )
 
         return fcsts_df
 
@@ -1697,7 +1701,9 @@ class NeuralForecast:
     def _generate_forecasts(
         self,
         dataset: TimeSeriesDataset,
+        uids: Series,
         quantiles_: Optional[List[float]] = None,
+        level_: Optional[List[Union[int, float]]] = None,
         has_level: Optional[bool] = False,
         **data_kwargs,
     ) -> np.array:
@@ -1715,6 +1721,7 @@ class NeuralForecast:
                 model_name += str(count_names[model_name])
 
             # Predict for every quantile or level if requested and the loss function supports it
+            # case 1: DistributionLoss and MixtureLosses
             if (
                 quantiles_ is not None
                 and not isinstance(model.loss, IQLoss)
@@ -1742,6 +1749,7 @@ class NeuralForecast:
                     )
                 else:
                     cols.extend(col_names)
+            # case 2: IQLoss
             elif quantiles_ is not None and isinstance(model.loss, IQLoss):
                 col_names = []
                 for i, quantile in enumerate(quantiles_):
@@ -1752,6 +1760,32 @@ class NeuralForecast:
                     col_name = self._get_column_name(model_name, quantile, has_level)
                     col_names.extend([col_name])
                 cols.extend(col_names)
+            # case 3: PointLoss via prediction intervals
+            elif quantiles_ is not None and model.loss.outputsize_multiplier == 1:
+                if self.prediction_intervals is None:
+                    raise AttributeError(
+                        f"You have trained {model_name} with loss={type(model.loss).__name__}(). \n"
+                        " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                    )
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
+                fcsts_with_intervals, out_cols = prediction_interval_method(
+                    model_fcsts,
+                    self._cs_df,
+                    model=model_name,
+                    level=level_ if has_level else None,
+                    cs_n_windows=self.prediction_intervals.n_windows,
+                    n_series=len(uids),
+                    horizon=self.h,
+                    quantiles=quantiles_ if not has_level else None,
+                )
+                fcsts_list.append(fcsts_with_intervals)
+                cols.extend([model_name] + out_cols)
+            # base case: quantiles or levels are not supported or provided as arguments
             else:
                 model_fcsts = model.predict(dataset=dataset, **data_kwargs)
                 fcsts_list.append(model_fcsts)
