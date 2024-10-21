@@ -212,7 +212,9 @@ class TimeLLM(BaseWindows):
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
+    'prefetch_factor': int=None, number of batches to be prefetched by the worker.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `pin_memory`: bool=False, if True `TimeSeriesDataLoader` uses pinned memory.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
@@ -269,7 +271,9 @@ class TimeLLM(BaseWindows):
         early_stop_patience_steps: int = -1,
         scaler_type: str = "identity",
         num_workers_loader: int = 0,
+        prefetch_factor: Optional[int] = None,
         drop_last_loader: bool = False,
+        pin_memory: bool = False,
         random_seed: int = 1,
         optimizer=None,
         optimizer_kwargs=None,
@@ -298,7 +302,9 @@ class TimeLLM(BaseWindows):
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
+            prefetch_factor=prefetch_factor,
             drop_last_loader=drop_last_loader,
+            pin_memory=pin_memory,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,

@@ -337,8 +337,10 @@ class BaseModel(pl.LightningModule):
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
             num_workers=self.num_workers_loader,
+            prefetch_factor=self.prefetch_factor,
             drop_last=self.drop_last_loader,
             shuffle_train=shuffle_train,
+            pin_memory=self.pin_memory,
         )
 
         if self.val_check_steps > self.max_steps:

@@ -180,8 +180,12 @@ class TimesNet(BaseWindows):
         Random_seed for pytorch initializer and numpy generators.
     num_workers_loader : int (default=0)
         Workers to be used by `TimeSeriesDataLoader`.
+    'prefetch_factor': int (default=None)
+        Number of batches to be prefetched by the worker.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
+    `pin_memory`: bool (default=False)
+        If True `TimeSeriesDataLoader` uses pinned memory.
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
         User specified optimizer instead of the default choice (Adam).
     `optimizer_kwargs`: dict, optional (defualt=None)
@@ -232,7 +236,9 @@ class TimesNet(BaseWindows):
         scaler_type: str = "standard",
         random_seed: int = 1,
         num_workers_loader: int = 0,
+        prefetch_factor: Optional[int] = None,
         drop_last_loader: bool = False,
+        pin_memory: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -261,7 +267,9 @@ class TimesNet(BaseWindows):
             step_size=step_size,
             scaler_type=scaler_type,
             num_workers_loader=num_workers_loader,
+            prefetch_factor=prefetch_factor,
             drop_last_loader=drop_last_loader,
+            pin_memory=pin_memory,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
