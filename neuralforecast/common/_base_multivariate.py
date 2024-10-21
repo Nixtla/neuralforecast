@@ -46,16 +46,14 @@ class BaseMultivariate(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
-        num_workers_loader=0,
-        prefetch_factor=None,
         drop_last_loader=False,
-        pin_memory=False,
         random_seed=1,
         alias=None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -126,10 +124,8 @@ class BaseMultivariate(BaseModel):
         self.decompose_forecast = False
 
         # DataModule arguments
-        self.num_workers_loader = num_workers_loader
-        self.prefetch_factor = prefetch_factor
+        self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
-        self.pin_memory = pin_memory
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
         self.alias = alias

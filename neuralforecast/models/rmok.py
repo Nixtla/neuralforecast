@@ -256,9 +256,6 @@ class JacobiKANLayer(nn.Module):
         return y
 
 # %% ../../nbs/models.rmok.ipynb 14
-from typing import Optional
-
-
 class RMoK(BaseMultivariate):
     """Reversible Mixture of KAN
     **Parameters**<br>
@@ -284,15 +281,13 @@ class RMoK(BaseMultivariate):
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
-    'prefetch_factor': int=None, number of batches to be prefetched by the worker.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `pin_memory`: bool=False, if True `TimeSeriesDataLoader` uses pinned memory.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     Reference<br>
@@ -329,14 +324,12 @@ class RMoK(BaseMultivariate):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
-        prefetch_factor: Optional[int] = None,
         drop_last_loader: bool = False,
-        pin_memory: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
 
@@ -358,14 +351,12 @@ class RMoK(BaseMultivariate):
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
-            num_workers_loader=num_workers_loader,
-            prefetch_factor=prefetch_factor,
             drop_last_loader=drop_last_loader,
-            pin_memory=pin_memory,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 

@@ -178,20 +178,16 @@ class TimesNet(BaseWindows):
         Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     random_seed : int (default=1)
         Random_seed for pytorch initializer and numpy generators.
-    num_workers_loader : int (default=0)
-        Workers to be used by `TimeSeriesDataLoader`.
-    'prefetch_factor': int (default=None)
-        Number of batches to be prefetched by the worker.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
-    `pin_memory`: bool (default=False)
-        If True `TimeSeriesDataLoader` uses pinned memory.
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
         User specified optimizer instead of the default choice (Adam).
     `optimizer_kwargs`: dict, optional (defualt=None)
         List of parameters used by the user specified `optimizer`.
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional (default=None)
+        List of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
@@ -235,14 +231,12 @@ class TimesNet(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
-        prefetch_factor: Optional[int] = None,
         drop_last_loader: bool = False,
-        pin_memory: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
         super(TimesNet, self).__init__(
@@ -266,15 +260,13 @@ class TimesNet(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
-            prefetch_factor=prefetch_factor,
             drop_last_loader=drop_last_loader,
-            pin_memory=pin_memory,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
