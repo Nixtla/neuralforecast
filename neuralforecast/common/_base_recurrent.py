@@ -555,7 +555,9 @@ class BaseRecurrent(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
-        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
+        data_module_kwargs = (
+            self._set_quantile_for_iqloss(**data_module_kwargs) | self.dataloader_kwargs
+        )
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")
@@ -573,7 +575,7 @@ class BaseRecurrent(BaseModel):
         datamodule = TimeSeriesDataModule(
             dataset=dataset,
             valid_batch_size=self.valid_batch_size,
-            **self.dataloader_kwargs,
+            **data_module_kwargs,
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
         if self.test_size > 0:
