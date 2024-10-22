@@ -332,13 +332,17 @@ class BaseModel(pl.LightningModule):
             datamodule_constructor = TimeSeriesDataModule
         else:
             datamodule_constructor = _DistributedTimeSeriesDataModule
+
+        dataloader_kwargs = (
+            self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
+        )
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
             drop_last=self.drop_last_loader,
             shuffle_train=shuffle_train,
-            **self.dataloader_kwargs,
+            **dataloader_kwargs,
         )
 
         if self.val_check_steps > self.max_steps:
