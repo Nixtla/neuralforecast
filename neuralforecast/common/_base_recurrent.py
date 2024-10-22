@@ -555,8 +555,11 @@ class BaseRecurrent(BaseModel):
         """
         self._check_exog(dataset)
         self._restart_seed(random_seed)
+        data_module_kwargs = self._set_quantile_for_iqloss(**data_module_kwargs)
         data_module_kwargs = (
-            self._set_quantile_for_iqloss(**data_module_kwargs) | self.dataloader_kwargs
+            self.dataloader_kwargs.update(data_module_kwargs)
+            if self.dataloader_kwargs is not None
+            else data_module_kwargs
         )
 
         if step_size > 1:
