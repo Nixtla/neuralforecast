@@ -16,6 +16,9 @@ from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_recurrent.ipynb 7
+import warnings
+
+
 class BaseRecurrent(BaseModel):
     """Base Recurrent
 
@@ -46,6 +49,7 @@ class BaseRecurrent(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        num_workers_loader=0,
         drop_last_loader=False,
         random_seed=1,
         alias=None,
@@ -117,6 +121,7 @@ class BaseRecurrent(BaseModel):
         self.test_size = 0
 
         # DataModule arguments
+        self.num_workers_loader = num_workers_loader
         self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
@@ -561,6 +566,15 @@ class BaseRecurrent(BaseModel):
             if self.dataloader_kwargs is not None
             else data_module_kwargs
         )
+
+        if self.num_workers_loader != 0:  # value is not at its default
+            warnings.warn(
+                "The `num_workers_loader` argument is deprecated and will be removed in a future version. "
+                "Please provide num_workers through `dataloader_kwargs`, e.g. "
+                f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
+                category=FutureWarning,
+            )
+        data_module_kwargs["num_workers"] = self.num_workers_loader
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")

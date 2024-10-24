@@ -336,6 +336,16 @@ class BaseModel(pl.LightningModule):
         dataloader_kwargs = (
             self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
         )
+
+        if self.num_workers_loader != 0:  # value is not at its default
+            warnings.warn(
+                "The `num_workers_loader` argument is deprecated and will be removed in a future version. "
+                "Please provide num_workers through `dataloader_kwargs`, e.g. "
+                f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
+                category=FutureWarning,
+            )
+        dataloader_kwargs["num_workers"] = self.num_workers_loader
+
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
