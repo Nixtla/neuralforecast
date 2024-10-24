@@ -182,7 +182,7 @@ class TimesNet(BaseWindows):
         Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optionval (default=None)
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
         User specified optimizer instead of the default choice (Adam).
     `optimizer_kwargs`: dict, optional (defualt=None)
         List of parameters used by the user specified `optimizer`.
@@ -263,9 +263,9 @@ class TimesNet(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
+            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            num_workers_loader=num_workers_loader,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
