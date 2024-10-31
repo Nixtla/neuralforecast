@@ -344,7 +344,7 @@ class BaseModel(pl.LightningModule):
                 f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
                 category=FutureWarning,
             )
-        dataloader_kwargs["num_workers"] = self.num_workers_loader
+            dataloader_kwargs["num_workers"] = self.num_workers_loader
 
         datamodule = datamodule_constructor(
             dataset=dataset,

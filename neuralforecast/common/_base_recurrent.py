@@ -574,7 +574,7 @@ class BaseRecurrent(BaseModel):
                 f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
                 category=FutureWarning,
             )
-        data_module_kwargs["num_workers"] = self.num_workers_loader
+            data_module_kwargs["num_workers"] = self.num_workers_loader
 
         if step_size > 1:
             raise Exception("Recurrent models do not support step_size > 1")
