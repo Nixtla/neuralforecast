@@ -575,6 +575,7 @@ class BaseRecurrent(BaseModel):
         datamodule = TimeSeriesDataModule(
             dataset=dataset,
             valid_batch_size=self.valid_batch_size,
+            num_workers=self.num_workers_loader,
             **data_module_kwargs,
         )
         fcsts = trainer.predict(self, datamodule=datamodule)
