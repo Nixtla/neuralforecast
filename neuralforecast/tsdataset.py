@@ -586,25 +586,25 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         dataset: BaseTimeSeriesDataset,
         batch_size=32,
         valid_batch_size=1024,
-        num_workers=0,
         drop_last=False,
         shuffle_train=True,
+        **dataloaders_kwargs
     ):
         super().__init__()
         self.dataset = dataset
         self.batch_size = batch_size
         self.valid_batch_size = valid_batch_size
-        self.num_workers = num_workers
         self.drop_last = drop_last
         self.shuffle_train = shuffle_train
+        self.dataloaders_kwargs = dataloaders_kwargs
 
     def train_dataloader(self):
         loader = TimeSeriesLoader(
             self.dataset,
             batch_size=self.batch_size,
-            num_workers=self.num_workers,
             shuffle=self.shuffle_train,
             drop_last=self.drop_last,
+            **self.dataloaders_kwargs
         )
         return loader
 
@@ -612,9 +612,9 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         loader = TimeSeriesLoader(
             self.dataset,
             batch_size=self.valid_batch_size,
-            num_workers=self.num_workers,
             shuffle=False,
             drop_last=self.drop_last,
+            **self.dataloaders_kwargs
         )
         return loader
 
@@ -622,8 +622,8 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         loader = TimeSeriesLoader(
             self.dataset,
             batch_size=self.valid_batch_size,
-            num_workers=self.num_workers,
             shuffle=False,
+            **self.dataloaders_kwargs
         )
         return loader
 
@@ -634,17 +634,17 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
         dataset: _FilesDataset,
         batch_size=32,
         valid_batch_size=1024,
-        num_workers=0,
         drop_last=False,
         shuffle_train=True,
+        **dataloaders_kwargs
     ):
         super(TimeSeriesDataModule, self).__init__()
         self.files_ds = dataset
         self.batch_size = batch_size
         self.valid_batch_size = valid_batch_size
-        self.num_workers = num_workers
         self.drop_last = drop_last
         self.shuffle_train = shuffle_train
+        self.dataloaders_kwargs = dataloaders_kwargs
 
     def setup(self, stage):
         import torch.distributed as dist
