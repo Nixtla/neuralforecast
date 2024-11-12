@@ -3,22 +3,23 @@
 # %% auto 0
 __all__ = ['GRU']
 
-# %% ../../nbs/models.gru.ipynb 6
+# %% ../../nbs/models.gru.ipynb 7
 from typing import Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP
 
-# %% ../../nbs/models.gru.ipynb 7
+# %% ../../nbs/models.gru.ipynb 8
 class GRU(BaseRecurrent):
     """GRU
 
     Multi Layer Recurrent Network with Gated Units (GRU), and
-    MLP decoder. The network has `tanh` or `relu` non-linearities, it is trained
+    MLP decoder. The network has non-linear activation functions, it is trained
     using ADAM stochastic gradient descent. The network accepts static, historic
     and future exogenous data, flattens the inputs.
 
@@ -28,7 +29,7 @@ class GRU(BaseRecurrent):
     `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `encoder_n_layers`: int=2, number of layers for the GRU.<br>
     `encoder_hidden_size`: int=200, units for the GRU's hidden state size.<br>
-    `encoder_activation`: str=`tanh`, type of GRU activation from `tanh` or `relu`.<br>
+    `encoder_activation`: str=`tanh`, type of GRU activation. Choose from relu, tanh, leaky_relu, elu, selu, gelu, sigmoid.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within GRU units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to GRU outputs.<br>
     `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
@@ -99,7 +100,7 @@ class GRU(BaseRecurrent):
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
-        **trainer_kwargs
+        **trainer_kwargs,
     ):
         super(GRU, self).__init__(
             h=h,
@@ -126,8 +127,26 @@ class GRU(BaseRecurrent):
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
             dataloader_kwargs=dataloader_kwargs,
-            **trainer_kwargs
+            **trainer_kwargs,
         )
+
+        ACTIVATION_FUNCTIONS = {
+            "relu": F.relu,
+            "tanh": F.tanh,
+            "leaky_relu": F.leaky_relu,
+            "elu": F.elu,
+            "selu": F.selu,
+            "gelu": F.gelu,
+            "sigmoid": torch.sigmoid,
+        }
+
+        encoder_activation = encoder_activation.lower()
+        if encoder_activation not in ACTIVATION_FUNCTIONS:
+            raise ValueError(
+                f"Unknown activation function '{encoder_activation}'. "
+                f"Available options are: {list(ACTIVATION_FUNCTIONS.keys())}"
+            )
+        self.encoder_activation = ACTIVATION_FUNCTIONS[encoder_activation]
 
         # RNN
         self.encoder_n_layers = encoder_n_layers
@@ -199,6 +218,7 @@ class GRU(BaseRecurrent):
         hidden_state, _ = self.hist_encoder(
             encoder_input
         )  # [B, seq_len, rnn_hidden_state]
+        hidden_state = self.encoder_activation(hidden_state)
 
         if self.futr_exog_size > 0:
             futr_exog = futr_exog.permute(0, 2, 3, 1)[
