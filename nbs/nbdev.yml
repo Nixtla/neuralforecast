@@ -3,7 +3,7 @@ project:
 
 website:
   title: "neuralforecast"
-  site-url: "https://Nixtla.github.io/neuralforecast/"
+  site-url: "https://nixtlaverse.nixtla.io/neuralforecast/"
   description: "Time series forecasting suite using deep learning models"
   repo-branch: main
   repo-url: "https://github.com/Nixtla/neuralforecast/"

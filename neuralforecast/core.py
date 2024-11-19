@@ -1595,15 +1595,22 @@ class NeuralForecast:
         except FileNotFoundError:
             raise Exception("No configuration found in directory.")
 
+        # in 1.6.4, `local_scaler_type` / `scalers_` lived on the dataset.
+        # in order to preserve backwards-compatibility, we check to see if these are found on the dataset
+        # in case they cannot be found in `config_dict`
+        default_scalar_type = getattr(dataset, "local_scaler_type", None)
+        default_scalars_ = getattr(dataset, "scalers_", None)
+
         # Create NeuralForecast object
         neuralforecast = NeuralForecast(
             models=models,
             freq=config_dict["freq"],
-            local_scaler_type=config_dict["local_scaler_type"],
+            local_scaler_type=config_dict.get("local_scaler_type", default_scalar_type),
         )
 
-        for attr in ["id_col", "time_col", "target_col"]:
-            setattr(neuralforecast, attr, config_dict[attr])
+        attr_to_default = {"id_col": "unique_id", "time_col": "ds", "target_col": "y"}
+        for attr, default in attr_to_default.items():
+            setattr(neuralforecast, attr, config_dict.get(attr, default))
         # only restore attribute if available
         for attr in ["prediction_intervals", "_cs_df"]:
             if attr in config_dict.keys():
@@ -1624,7 +1631,7 @@ class NeuralForecast:
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
 
-        neuralforecast.scalers_ = config_dict["scalers_"]
+        neuralforecast.scalers_ = config_dict.get("scalers_", default_scalars_)
 
         return neuralforecast
 
