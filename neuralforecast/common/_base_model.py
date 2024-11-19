@@ -301,7 +301,10 @@ class BaseModel(pl.LightningModule):
             self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Batch sizes
-        self.batch_size = batch_size
+        if self.MULTIVARIATE and n_series is not None:
+            self.batch_size = max(batch_size, n_series)
+        else:
+            self.batch_size = batch_size
         if valid_batch_size is None:
             self.valid_batch_size = batch_size
         else:
