@@ -95,7 +95,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            scaler_type:str='standard', random_seed:int=1,
 >            num_workers_loader:int=0, drop_last_loader:bool=False,
 >            optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
->            lr_scheduler_kwargs=None, **trainer_kwargs)
+>            lr_scheduler_kwargs=None, dataloader_kwargs=None,
+>            **trainer_kwargs)
 > ```
 
 \*TimesNet
@@ -138,6 +139,7 @@ intraperiod and interperiod temporal variations.\*
 | optimizer_kwargs | NoneType | None |  |
 | lr_scheduler | NoneType | None |  |
 | lr_scheduler_kwargs | NoneType | None |  |
+| dataloader_kwargs | NoneType | None |  |
 | trainer_kwargs |  |  |  |
 
 ------------------------------------------------------------------------

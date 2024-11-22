@@ -60,7 +60,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       batch_size:int=32, valid_batch_size:Optional[int]=None,
 >       scaler_type:str='robust', random_seed:int=1, num_workers_loader=0,
 >       drop_last_loader=False, optimizer=None, optimizer_kwargs=None,
->       lr_scheduler=None, lr_scheduler_kwargs=None, **trainer_kwargs)
+>       lr_scheduler=None, lr_scheduler_kwargs=None, dataloader_kwargs=None,
+>       **trainer_kwargs)
 > ```
 
 \*TCN
@@ -111,6 +112,8 @@ of parameters used by the user specified `optimizer`.<br/>
 optional, user specified lr_scheduler instead of the default choice
 (StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
 used by the user specified `lr_scheduler`.<br/>  
+`dataloader_kwargs`: dict, optional, list of parameters passed into the
+PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br/>
 `**trainer_kwargs`: int, keyword trainer arguments inherited from
 [PyTorch Lighning’s
 trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>\*

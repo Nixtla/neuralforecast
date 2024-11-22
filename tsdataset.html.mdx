@@ -145,7 +145,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  TimeSeriesDataModule (dataset:__main__.BaseTimeSeriesDataset,
 >                        batch_size=32, valid_batch_size=1024,
->                        num_workers=0, drop_last=False, shuffle_train=True)
+>                        drop_last=False, shuffle_train=True,
+>                        **dataloaders_kwargs)
 > ```
 
 \*A DataModule standardizes the training, val, test splits, data

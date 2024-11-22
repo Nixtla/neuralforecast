@@ -4,14 +4,6 @@ title: TFT
 ---
 
 
-```python
-
-```
-
-``` text
-env: PYTORCH_ENABLE_MPS_FALLBACK=1
-```
-
 In summary Temporal Fusion Transformer (TFT) combines gating layers, an
 LSTM recurrent encoder, with multi-head attention layers for a
 multi-step forecasting strategy decoder.<br/>TFT’s inputs are static
@@ -163,7 +155,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       scaler_type:str='robust', num_workers_loader=0,
 >       drop_last_loader=False, random_seed:int=1, optimizer=None,
 >       optimizer_kwargs=None, lr_scheduler=None, lr_scheduler_kwargs=None,
->       **trainer_kwargs)
+>       dataloader_kwargs=None, **trainer_kwargs)
 > ```
 
 \*TFT
@@ -219,7 +211,9 @@ of parameters used by the user specified `optimizer`.<br/>
 `lr_scheduler`: Subclass of ‘torch.optim.lr_scheduler.LRScheduler’,
 optional, user specified lr_scheduler instead of the default choice
 (StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
-used by the user specified `lr_scheduler`.<br/> `**trainer_kwargs`: int,
+used by the user specified `lr_scheduler`.<br/> `dataloader_kwargs`:
+dict, optional, list of parameters passed into the PyTorch Lightning
+dataloader by the `TimeSeriesDataLoader`. <br/> `**trainer_kwargs`: int,
 keyword trainer arguments inherited from [PyTorch Lighning’s
 trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
 
@@ -292,7 +286,7 @@ TimeSeriesDataModule args, see
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L676"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L679"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importances,
@@ -312,7 +306,7 @@ importances.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L738"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -329,7 +323,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L738"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -346,7 +340,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L753"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L756"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importance_correlations
@@ -415,108 +409,6 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
-
-``` text
-Seed set to 1
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-```
-
-``` text
-Sanity Checking: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Training: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Validation: |          | 0/? [00:00<?, ?it/s]
-```
-
-``` text
-Trainer already configured with model summary callbacks: [<class 'pytorch_lightning.callbacks.model_summary.ModelSummary'>]. Skipping setting a default `ModelSummary` callback.
-GPU available: True (mps), used: True
-TPU available: False, using: 0 TPU cores
-IPU available: False, using: 0 IPUs
-HPU available: False, using: 0 HPUs
-```
-
-``` text
-Predicting: |          | 0/? [00:00<?, ?it/s]
-```
-
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-10-output-24.png)
 
 # Interpretability
 
@@ -611,23 +503,17 @@ def plot_attention(self, plot:str="time", output:str='plot', width:int=800, heig
 plot_attention(nf.models[0], plot="time")
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-13-output-1.png)
-
 #### 1.2 Attention of all future time steps
 
 ```python
 plot_attention(nf.models[0], plot="all")
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-14-output-1.png)
-
 #### 1.3 Attention of a specific future time step
 
 ```python
 plot_attention(nf.models[0], plot=8)
 ```
-
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-15-output-1.png)
 
 ## 2. Feature Importance
 
@@ -638,17 +524,11 @@ feature_importances = nf.models[0].feature_importances()
 feature_importances.keys()
 ```
 
-``` text
-dict_keys(['Past variable importance over time', 'Future variable importance over time', 'Static covariates'])
-```
-
 #### Static variable importances
 
 ```python
 feature_importances['Static covariates'].sort_values(by='importance').plot(kind='barh')
 ```
-
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-17-output-1.png)
 
 #### Past variable importances
 
@@ -656,15 +536,11 @@ feature_importances['Static covariates'].sort_values(by='importance').plot(kind=
 feature_importances['Past variable importance over time'].mean().sort_values().plot(kind='barh')
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-18-output-1.png)
-
 #### Future variable importances
 
 ```python
 feature_importances['Future variable importance over time'].mean().sort_values().plot(kind='barh')
 ```
-
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-19-output-1.png)
 
 ### 2.2 Variable importances over time
 
@@ -689,8 +565,6 @@ ax.legend()
 plt.show()
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-20-output-1.png)
-
 2.3
 
 #### Past variable importance over time
@@ -712,8 +586,6 @@ ax.grid(True)
 
 plt.show()
 ```
-
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-21-output-1.png)
 
 #### Past variable importance over time ponderated by attention
 
@@ -741,8 +613,6 @@ plt.legend()
 plt.show()
 ```
 
-![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-22-output-1.png)
-
 ### 3. Variable importance correlations over time
 
 Variables which gain and lose importance at same moments
@@ -750,12 +620,4 @@ Variables which gain and lose importance at same moments
 ```python
 nf.models[0].feature_importance_correlations()
 ```
-
-|  | trend | y\_\[lag12\] | month | observed_target | Correlation with Mean Attention |
-|----|----|----|----|----|----|
-| trend | 1.00 | 0.69 | -0.77 | 0.44 | 0.40 |
-| y\_\[lag12\] | 0.69 | 1.00 | -0.79 | 0.41 | 0.22 |
-| month | -0.77 | -0.79 | 1.00 | -0.72 | -0.48 |
-| observed_target | 0.44 | 0.41 | -0.72 | 1.00 | 0.74 |
-| Correlation with Mean Attention | 0.40 | 0.22 | -0.48 | 0.74 | 1.00 |
 
