@@ -3,7 +3,8 @@
 # %% auto 0
 __all__ = ['GRU']
 
-# %% ../../nbs/models.gru.ipynb 6
+# %% ../../nbs/models.gru.ipynb 7
+import warnings
 from typing import Optional
 
 import torch
@@ -19,7 +20,7 @@ class GRU(BaseModel):
     """GRU
 
     Multi Layer Recurrent Network with Gated Units (GRU), and
-    MLP decoder. The network has `tanh` or `relu` non-linearities, it is trained
+    MLP decoder. The network has non-linear activation functions, it is trained
     using ADAM stochastic gradient descent. The network accepts static, historic
     and future exogenous data, flattens the inputs.
 
@@ -29,7 +30,7 @@ class GRU(BaseModel):
     `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `encoder_n_layers`: int=2, number of layers for the GRU.<br>
     `encoder_hidden_size`: int=200, units for the GRU's hidden state size.<br>
-    `encoder_activation`: str=`tanh`, type of GRU activation from `tanh` or `relu`.<br>
+    `encoder_activation`: Optional[str]=None, Deprecated. Activation function in GRU is frozen in PyTorch.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within GRU units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to GRU outputs.<br>
     `context_size`: deprecated.<br>
@@ -75,8 +76,8 @@ class GRU(BaseModel):
         input_size: int = -1,
         inference_input_size: int = -1,
         encoder_n_layers: int = 2,
-        encoder_hidden_size: int = 128,
-        encoder_activation: str = "tanh",
+        encoder_hidden_size: int = 200,
+        encoder_activation: Optional[str] = None,
         encoder_bias: bool = True,
         encoder_dropout: float = 0.0,
         context_size: Optional[int] = None,
@@ -145,6 +146,14 @@ class GRU(BaseModel):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
+
+        if encoder_activation is not None:
+            warnings.warn(
+                "The 'encoder_activation' argument is deprecated and will be removed in "
+                "future versions. The activation function in GRU is frozen in PyTorch and "
+                "it cannot be modified.",
+                DeprecationWarning,
+            )
 
         # RNN
         self.encoder_n_layers = encoder_n_layers
