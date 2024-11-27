@@ -330,7 +330,7 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
                 distributed_config=distributed_config,
             )
-            trial.set_user_attr("config", user_cfg)
+            trial.set_user_attr("ALL_PARAMS", user_cfg)
             metrics = model.metrics
             trial.set_user_attr(
                 "METRICS",
@@ -425,7 +425,7 @@ class BaseAuto(pl.LightningModule):
                 config=self.config,
                 distributed_config=distributed_config,
             )
-            best_config = results.best_trial.user_attrs["config"]
+            best_config = results.best_trial.user_attrs["ALL_PARAMS"]
         self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
