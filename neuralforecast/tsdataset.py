@@ -86,7 +86,6 @@ class BaseTimeSeriesDataset(Dataset):
         y_idx: int,
         static=None,
         static_cols=None,
-        sorted=False,
     ):
         super().__init__()
         self.temporal_cols = pd.Index(list(temporal_cols))
@@ -104,7 +103,6 @@ class BaseTimeSeriesDataset(Dataset):
 
         # Upadated flag. To protect consistency, dataset can only be updated once
         self.updated = False
-        self.sorted = sorted
 
     def __len__(self):
         return self.n_groups
@@ -127,16 +125,9 @@ class BaseTimeSeriesDataset(Dataset):
         return data, temporal_cols
 
     @staticmethod
-    def _extract_static_features(static_df, sort_df, id_col):
+    def _extract_static_features(static_df, id_col):
         if static_df is not None:
-            if isinstance(static_df, pd.DataFrame) and static_df.index.name == id_col:
-                warnings.warn(
-                    "Passing the id as index is deprecated, please provide it as a column instead.",
-                    FutureWarning,
-                )
-            if sort_df:
-                static_df = ufp.sort(static_df, by=id_col)
-
+            static_df = ufp.sort(static_df, by=id_col)
             static_cols = [col for col in static_df.columns if col != id_col]
             static = ufp.to_numpy(static_df[static_cols])
             static_cols = pd.Index(static_cols)
@@ -153,25 +144,22 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         temporal,
         temporal_cols,
         indptr,
-        max_size: int,
-        min_size: int,
         y_idx: int,
         static=None,
         static_cols=None,
-        sorted=False,
     ):
-        super().__init__(
-            temporal_cols=temporal_cols,
-            max_size=max_size,
-            min_size=min_size,
-            y_idx=y_idx,
-            static=static,
-            static_cols=static_cols,
-            sorted=sorted,
-        )
         self.temporal = self._as_torch_copy(temporal)
         self.indptr = indptr
         self.n_groups = self.indptr.size - 1
+        sizes = np.diff(indptr)
+        super().__init__(
+            temporal_cols=temporal_cols,
+            max_size=sizes.max().item(),
+            min_size=sizes.min().item(),
+            y_idx=y_idx,
+            static=static,
+            static_cols=static_cols,
+        )
 
     def __getitem__(self, idx):
         if isinstance(idx, int):
@@ -226,7 +214,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         # Process future_df
         dataset, *_ = TimeSeriesDataset.from_df(
             df=df,
-            sort_df=self.sorted,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
@@ -245,8 +232,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         new_temporal = torch.empty(size=(len_temporal + len_futr, col_temporal))
         new_indptr = self.indptr + futr_dataset.indptr
         new_sizes = np.diff(new_indptr)
-        new_min_size = np.min(new_sizes)
-        new_max_size = np.max(new_sizes)
 
         for i in range(self.n_groups):
             curr_slice = slice(self.indptr[i], self.indptr[i + 1])
@@ -264,12 +249,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             temporal=new_temporal,
             temporal_cols=self.temporal_cols.copy(),
             indptr=new_indptr,
-            max_size=new_max_size,
-            min_size=new_min_size,
             static=self.static,
             y_idx=self.y_idx,
             static_cols=self.static_cols,
-            sorted=self.sorted,
         )
 
     @staticmethod
@@ -309,33 +291,18 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             acum += new_length
             new_indptr.append(acum)
 
-        new_max_size = dataset.max_size - left_trim - right_trim
-        new_min_size = dataset.min_size - left_trim - right_trim
-
         # Define new dataset
-        updated_dataset = TimeSeriesDataset(
+        return TimeSeriesDataset(
             temporal=new_temporal,
             temporal_cols=dataset.temporal_cols.copy(),
             indptr=np.array(new_indptr, dtype=np.int32),
-            max_size=new_max_size,
-            min_size=new_min_size,
             y_idx=dataset.y_idx,
             static=dataset.static,
             static_cols=dataset.static_cols,
-            sorted=dataset.sorted,
         )
 
-        return updated_dataset
-
     @staticmethod
-    def from_df(
-        df,
-        static_df=None,
-        sort_df=False,
-        id_col="unique_id",
-        time_col="ds",
-        target_col="y",
-    ):
+    def from_df(df, static_df=None, id_col="unique_id", time_col="ds", target_col="y"):
         # TODO: protect on equality of static_df + df indexes
         if isinstance(df, pd.DataFrame) and df.index.name == id_col:
             warnings.warn(
@@ -346,7 +313,7 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
 
         # Define indices if not given and then extract static features
         static, static_cols = TimeSeriesDataset._extract_static_features(
-            static_df, sort_df, id_col
+            static_df, id_col
         )
 
         ids, times, data, indptr, sort_idxs = ufp.process_df(
@@ -378,9 +345,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             static=static,
             static_cols=static_cols,
             indptr=indptr,
-            max_size=max_size,
-            min_size=min_size,
-            sorted=sort_df,
             y_idx=0,
         )
         ds = df[time_col].to_numpy()
@@ -481,7 +445,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
     def from_data_directories(
         directories,
         static_df=None,
-        sort_df=False,
         exogs=[],
         id_col="unique_id",
         time_col="ds",
@@ -494,7 +457,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
         # Define indices if not given and then extract static features
         static, static_cols = TimeSeriesDataset._extract_static_features(
-            static_df, sort_df, id_col
+            static_df, id_col
         )
 
         max_size = 0
@@ -574,7 +537,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             y_idx=0,
             static=static,
             static_cols=static_cols,
-            sorted=sort_df,
         )
         return dataset
 
@@ -662,7 +624,6 @@ class _DistributedTimeSeriesDataModule(TimeSeriesDataModule):
         self.dataset, *_ = TimeSeriesDataset.from_df(
             df=df,
             static_df=static_df,
-            sort_df=True,
             id_col=self.files_ds.id_col,
             time_col=self.files_ds.time_col,
             target_col=self.files_ds.target_col,
