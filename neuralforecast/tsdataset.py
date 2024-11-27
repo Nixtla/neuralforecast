@@ -231,7 +231,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         len_futr = futr_dataset.temporal.shape[0]
         new_temporal = torch.empty(size=(len_temporal + len_futr, col_temporal))
         new_indptr = self.indptr + futr_dataset.indptr
-        new_sizes = np.diff(new_indptr)
 
         for i in range(self.n_groups):
             curr_slice = slice(self.indptr[i], self.indptr[i + 1])
@@ -330,9 +329,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             dates = pd.Index(times, name=time_col)
         else:
             dates = pl_Series(time_col, times)
-        sizes = np.diff(indptr)
-        max_size = max(sizes)
-        min_size = min(sizes)
 
         # Add Available mask efficiently (without adding column to df)
         temporal, temporal_cols = TimeSeriesDataset._ensure_available_mask(
@@ -389,7 +385,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         y_idx: int,
         static=None,
         static_cols=None,
-        sorted=False,
     ):
         super().__init__(
             temporal_cols=temporal_cols,
@@ -398,7 +393,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             y_idx=y_idx,
             static=static,
             static_cols=static_cols,
-            sorted=sorted,
         )
         self.files_ds = files_ds
         self.id_col = id_col

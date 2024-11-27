@@ -4,7 +4,6 @@
 __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
-import os
 import pickle
 import warnings
 from copy import deepcopy
