@@ -454,7 +454,9 @@ class BaseModel(pl.LightningModule):
 
     @classmethod
     def load(cls, path, **kwargs):
-        with fsspec.open(path, "rb") as f:
+        with fsspec.open(path, "rb") as f, warnings.catch_warnings():
+            # ignore possible warnings about weights_only=False
+            warnings.filterwarnings("ignore", category=FutureWarning)
             content = torch.load(f, **kwargs)
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])
