@@ -332,13 +332,27 @@ class BaseModel(pl.LightningModule):
             datamodule_constructor = TimeSeriesDataModule
         else:
             datamodule_constructor = _DistributedTimeSeriesDataModule
+
+        dataloader_kwargs = (
+            self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
+        )
+
+        if self.num_workers_loader != 0:  # value is not at its default
+            warnings.warn(
+                "The `num_workers_loader` argument is deprecated and will be removed in a future version. "
+                "Please provide num_workers through `dataloader_kwargs`, e.g. "
+                f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
+                category=FutureWarning,
+            )
+            dataloader_kwargs["num_workers"] = self.num_workers_loader
+
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
-            num_workers=self.num_workers_loader,
             drop_last=self.drop_last_loader,
             shuffle_train=shuffle_train,
+            **dataloader_kwargs,
         )
 
         if self.val_check_steps > self.max_steps:

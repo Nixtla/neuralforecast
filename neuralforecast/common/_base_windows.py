@@ -57,6 +57,7 @@ class BaseWindows(BaseModel):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -129,6 +130,7 @@ class BaseWindows(BaseModel):
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
+        self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
