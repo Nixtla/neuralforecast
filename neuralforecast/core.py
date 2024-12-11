@@ -24,7 +24,7 @@ from coreforecast.scalers import (
     LocalRobustScaler,
     LocalStandardScaler,
 )
-from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
+from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
@@ -66,7 +66,10 @@ from neuralforecast.models import (
     SOFTS,
     TimeMixer,
     KAN,
+    RMoK,
 )
+from .common._base_auto import BaseAuto, MockTrial
+from .utils import PredictionIntervals, get_prediction_interval_method
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -189,6 +192,8 @@ MODEL_FILENAME_DICT = {
     "autotimemixer": TimeMixer,
     "kan": KAN,
     "autokan": KAN,
+    "rmok": RMoK,
+    "autormok": RMoK,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -434,6 +439,7 @@ class NeuralForecast:
         time_col: str = "ds",
         target_col: str = "y",
         distributed_config: Optional[DistributedConfig] = None,
+        prediction_intervals: Optional[PredictionIntervals] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -463,6 +469,8 @@ class NeuralForecast:
             Column that contains the target.
         distributed_config : neuralforecast.DistributedConfig
             Configuration to use for DDP training. Currently only spark is supported.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
 
         Returns
         -------
@@ -479,6 +487,9 @@ class NeuralForecast:
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
+        self._cs_df: Optional[DFType] = None
+        self.prediction_intervals: Optional[PredictionIntervals] = None
+
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
             validate_freq(df[time_col], self.freq)
@@ -492,6 +503,16 @@ class NeuralForecast:
                 target_col=target_col,
             )
             self.sort_df = sort_df
+            if prediction_intervals is not None:
+                self.prediction_intervals = prediction_intervals
+                self._cs_df = self._conformity_scores(
+                    df=df,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    static_df=static_df,
+                )
+
         elif isinstance(df, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):
                 raise ValueError(
@@ -506,6 +527,12 @@ class NeuralForecast:
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for distributed training."
+                )
+
         elif isinstance(df, Sequence):
             if not all(isinstance(val, str) for val in df):
                 raise ValueError(
@@ -521,6 +548,12 @@ class NeuralForecast:
             )
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for local files."
+                )
+
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
@@ -597,21 +630,60 @@ class NeuralForecast:
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def _get_needed_futr_exog(self):
-        return set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        futr_exogs = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("futr_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("futr_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "futr_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    futr_exogs.append(exog)
+                else:
+                    futr_exogs.extend(exog)
+
+        return set(futr_exogs)
 
     def _get_needed_exog(self):
         futr_exog = self._get_needed_futr_exog()
-        hist_exog = set(
-            chain.from_iterable(getattr(m, "hist_exog_list", []) for m in self.models)
-        )
-        return futr_exog | hist_exog
 
-    def _get_model_names(self) -> List[str]:
+        hist_exog = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("hist_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("hist_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "hist_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    hist_exog.append(exog)
+                else:
+                    hist_exog.extend(exog)
+
+        return futr_exog | set(hist_exog)
+
+    def _get_model_names(self, add_level=False) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
+            if add_level and model.loss.outputsize_multiplier > 1:
+                continue
+
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
@@ -742,6 +814,7 @@ class NeuralForecast:
         sort_df: bool = True,
         verbose: bool = False,
         engine=None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -763,6 +836,8 @@ class NeuralForecast:
             Print processing steps.
         engine : spark session
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -903,6 +978,30 @@ class NeuralForecast:
         if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
             _warn_id_as_idx()
             fcsts_df = fcsts_df.set_index(self.id_col)
+
+        # add prediction intervals
+        if level is not None:
+            if self._cs_df is None or self.prediction_intervals is None:
+                raise Exception(
+                    "You must fit the model with prediction_intervals to use level."
+                )
+            else:
+                level_ = sorted(level)
+                model_names = self._get_model_names(add_level=True)
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
+
+                fcsts_df = prediction_interval_method(
+                    fcsts_df,
+                    self._cs_df,
+                    model_names=list(model_names),
+                    level=level_,
+                    cs_n_windows=self.prediction_intervals.n_windows,
+                    n_series=len(uids),
+                    horizon=self.h,
+                )
+
         return fcsts_df
 
     def _reset_models(self):
@@ -1050,6 +1149,8 @@ class NeuralForecast:
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        prediction_intervals: Optional[PredictionIntervals] = None,
+        level: Optional[List[Union[int, float]]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1088,6 +1189,10 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100. Use with prediction_intervals.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1108,6 +1213,7 @@ class NeuralForecast:
             n_windows = int((test_size - h) / step_size) + 1
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
+
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
@@ -1117,7 +1223,21 @@ class NeuralForecast:
                 FutureWarning,
             )
             df = df.reset_index(id_col)
+
+        # Checks for prediction intervals
+        if prediction_intervals is not None or level is not None:
+            if level is None:
+                warnings.warn("Level not provided, using level=[90].")
+                level = [90]
+            if prediction_intervals is None:
+                raise Exception("You must set prediction_intervals to use level.")
+            if not refit:
+                raise Exception(
+                    "Passing prediction_intervals and/or level is only supported with refit=True."
+                )
+
         if not refit:
+
             return self._no_refit_cross_validation(
                 df=df,
                 static_df=static_df,
@@ -1156,6 +1276,10 @@ class NeuralForecast:
                     sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    prediction_intervals=prediction_intervals,
                 )
                 predict_df: Optional[DataFrame] = None
             else:
@@ -1171,6 +1295,7 @@ class NeuralForecast:
                 futr_df=futr_df,
                 sort_df=sort_df,
                 verbose=verbose,
+                level=level,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1409,6 +1534,8 @@ class NeuralForecast:
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
+            "prediction_intervals": self.prediction_intervals,
+            "_cs_df": self._cs_df,  # conformity score
         }
         if save_dataset:
             config_dict.update(
@@ -1496,15 +1623,26 @@ class NeuralForecast:
         except FileNotFoundError:
             raise Exception("No configuration found in directory.")
 
+        # in 1.6.4, `local_scaler_type` / `scalers_` lived on the dataset.
+        # in order to preserve backwards-compatibility, we check to see if these are found on the dataset
+        # in case they cannot be found in `config_dict`
+        default_scalar_type = getattr(dataset, "local_scaler_type", None)
+        default_scalars_ = getattr(dataset, "scalers_", None)
+
         # Create NeuralForecast object
         neuralforecast = NeuralForecast(
             models=models,
             freq=config_dict["freq"],
-            local_scaler_type=config_dict["local_scaler_type"],
+            local_scaler_type=config_dict.get("local_scaler_type", default_scalar_type),
         )
 
-        for attr in ["id_col", "time_col", "target_col"]:
-            setattr(neuralforecast, attr, config_dict[attr])
+        attr_to_default = {"id_col": "unique_id", "time_col": "ds", "target_col": "y"}
+        for attr, default in attr_to_default.items():
+            setattr(neuralforecast, attr, config_dict.get(attr, default))
+        # only restore attribute if available
+        for attr in ["prediction_intervals", "_cs_df"]:
+            if attr in config_dict.keys():
+                setattr(neuralforecast, attr, config_dict[attr])
 
         # Dataset
         if dataset is not None:
@@ -1521,6 +1659,61 @@ class NeuralForecast:
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
 
-        neuralforecast.scalers_ = config_dict["scalers_"]
+        neuralforecast.scalers_ = config_dict.get("scalers_", default_scalars_)
 
         return neuralforecast
+
+    def _conformity_scores(
+        self,
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+    ) -> DataFrame:
+        """Compute conformity scores.
+
+        We need at least two cross validation errors to compute
+        quantiles for prediction intervals (`n_windows=2`, specified by self.prediction_intervals).
+
+        The exception is raised by the PredictionIntervals data class.
+
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+        """
+        if self.prediction_intervals is None:
+            raise AttributeError(
+                "Please rerun the `fit` method passing a valid prediction_interval setting to compute conformity scores"
+            )
+
+        min_size = ufp.counts_by_id(df, id_col)["counts"].min()
+        min_samples = self.h * self.prediction_intervals.n_windows + 1
+        if min_size < min_samples:
+            raise ValueError(
+                "Minimum required samples in each serie for the prediction intervals "
+                f"settings are: {min_samples}, shortest serie has: {min_size}. "
+                "Please reduce the number of windows, horizon or remove those series."
+            )
+
+        cv_results = self.cross_validation(
+            df=df,
+            static_df=static_df,
+            n_windows=self.prediction_intervals.n_windows,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
+        kept = [time_col, id_col, "cutoff"]
+        # conformity score for each model
+        for model in self._get_model_names(add_level=True):
+            kept.append(model)
+
+            # compute absolute error for each model
+            abs_err = abs(cv_results[model] - cv_results[target_col])
+            cv_results = ufp.assign_columns(cv_results, model, abs_err)
+        dropped = list(set(cv_results.columns) - set(kept))
+        return ufp.drop_columns(cv_results, dropped)

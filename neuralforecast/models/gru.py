@@ -3,7 +3,8 @@
 # %% auto 0
 __all__ = ['GRU']
 
-# %% ../../nbs/models.gru.ipynb 6
+# %% ../../nbs/models.gru.ipynb 7
+import warnings
 from typing import Optional
 
 import torch
@@ -13,12 +14,12 @@ from ..losses.pytorch import MAE
 from ..common._base_recurrent import BaseRecurrent
 from ..common._modules import MLP
 
-# %% ../../nbs/models.gru.ipynb 7
+# %% ../../nbs/models.gru.ipynb 8
 class GRU(BaseRecurrent):
     """GRU
 
     Multi Layer Recurrent Network with Gated Units (GRU), and
-    MLP decoder. The network has `tanh` or `relu` non-linearities, it is trained
+    MLP decoder. The network has non-linear activation functions, it is trained
     using ADAM stochastic gradient descent. The network accepts static, historic
     and future exogenous data, flattens the inputs.
 
@@ -28,7 +29,7 @@ class GRU(BaseRecurrent):
     `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
     `encoder_n_layers`: int=2, number of layers for the GRU.<br>
     `encoder_hidden_size`: int=200, units for the GRU's hidden state size.<br>
-    `encoder_activation`: str=`tanh`, type of GRU activation from `tanh` or `relu`.<br>
+    `encoder_activation`: Optional[str]=None, Deprecated. Activation function in GRU is frozen in PyTorch.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within GRU units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to GRU outputs.<br>
     `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
@@ -55,6 +56,7 @@ class GRU(BaseRecurrent):
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
@@ -71,7 +73,7 @@ class GRU(BaseRecurrent):
         inference_input_size: int = -1,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 200,
-        encoder_activation: str = "tanh",
+        encoder_activation: Optional[str] = None,
         encoder_bias: bool = True,
         encoder_dropout: float = 0.0,
         context_size: int = 10,
@@ -97,6 +99,7 @@ class GRU(BaseRecurrent):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
         super(GRU, self).__init__(
@@ -123,8 +126,17 @@ class GRU(BaseRecurrent):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
+
+        if encoder_activation is not None:
+            warnings.warn(
+                "The 'encoder_activation' argument is deprecated and will be removed in "
+                "future versions. The activation function in GRU is frozen in PyTorch and "
+                "it cannot be modified.",
+                DeprecationWarning,
+            )
 
         # RNN
         self.encoder_n_layers = encoder_n_layers

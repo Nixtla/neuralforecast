@@ -57,6 +57,7 @@ class BaseWindows(BaseModel):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -83,10 +84,10 @@ class BaseWindows(BaseModel):
         self.start_padding_enabled = start_padding_enabled
         if start_padding_enabled:
             self.padder_train = nn.ConstantPad1d(
-                padding=(self.input_size - 1, self.h), value=0
+                padding=(self.input_size - 1, self.h), value=0.0
             )
         else:
-            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0)
+            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
 
         # Batch sizes
         self.batch_size = batch_size
@@ -129,6 +130,7 @@ class BaseWindows(BaseModel):
 
         # DataModule arguments
         self.num_workers_loader = num_workers_loader
+        self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
         self.validation_step_outputs = []
@@ -216,7 +218,7 @@ class BaseWindows(BaseModel):
                     initial_input <= self.input_size
                 ):  # There is not enough data to predict first timestamp
                     padder_left = nn.ConstantPad1d(
-                        padding=(self.input_size - initial_input, 0), value=0
+                        padding=(self.input_size - initial_input, 0), value=0.0
                     )
                     temporal = padder_left(temporal)
                 predict_step_size = self.predict_step_size
@@ -233,7 +235,7 @@ class BaseWindows(BaseModel):
                 if temporal.shape[-1] < window_size:
                     initial_input = temporal.shape[-1] - self.val_size
                     padder_left = nn.ConstantPad1d(
-                        padding=(self.input_size - initial_input, 0), value=0
+                        padding=(self.input_size - initial_input, 0), value=0.0
                     )
                     temporal = padder_left(temporal)
 
@@ -242,7 +244,7 @@ class BaseWindows(BaseModel):
                 and (self.test_size == 0)
                 and (len(self.futr_exog_list) == 0)
             ):
-                padder_right = nn.ConstantPad1d(padding=(0, self.h), value=0)
+                padder_right = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
                 temporal = padder_right(temporal)
 
             windows = temporal.unfold(
@@ -440,12 +442,12 @@ class BaseWindows(BaseModel):
 
         self.log(
             "train_loss",
-            loss.item(),
+            loss.detach().item(),
             batch_size=outsample_y.size(0),
             prog_bar=True,
             on_epoch=True,
         )
-        self.train_trajectories.append((self.global_step, loss.item()))
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
         return loss
 
     def _compute_valid_loss(
@@ -551,7 +553,7 @@ class BaseWindows(BaseModel):
 
         self.log(
             "valid_loss",
-            valid_loss.item(),
+            valid_loss.detach().item(),
             batch_size=batch_size,
             prog_bar=True,
             on_epoch=True,

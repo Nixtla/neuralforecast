@@ -20,8 +20,8 @@ class MockTrial:
     def suggest_int(*args, **kwargs):
         return "int"
 
-    def suggest_categorical(*args, **kwargs):
-        return "categorical"
+    def suggest_categorical(self, name, choices):
+        return choices
 
     def suggest_uniform(*args, **kwargs):
         return "uniform"

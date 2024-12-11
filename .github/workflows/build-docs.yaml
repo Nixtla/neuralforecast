@@ -1,7 +1,7 @@
 name: "build-docs"
 on:
-  push:
-    branches: ["main"]
+  release:
+    types: [released]
   pull_request:
     branches: ["main"]
   workflow_dispatch:
@@ -15,16 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Clone docs repo
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           repository: Nixtla/docs
           ref: scripts
           path: docs-scripts
 
-      - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: '3.10'
           cache-dependency-path: settings.ini
@@ -46,7 +46,9 @@ jobs:
         run: cp nbs/mint.json _docs/mint.json && cp docs-scripts/imgs/* _docs/
 
       - name: Deploy to Mintlify Docs
-        if: github.event_name == 'push'
+        if: | 
+          github.event_name == 'release' || 
+          github.event_name == 'workflow_dispatch'
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -56,7 +58,9 @@ jobs:
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Trigger mintlify workflow
-        if: github.event_name == 'push'
+        if: | 
+          github.event_name == 'release' || 
+          github.event_name == 'workflow_dispatch'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           github-token: ${{ secrets.DOCS_WORKFLOW_TOKEN }}
@@ -72,7 +76,9 @@ jobs:
         run: python docs-scripts/configure-redirects.py neuralforecast
 
       - name: Deploy to Github Pages
-        if: github.event_name == 'push'
+        if: | 
+          github.event_name == 'release' || 
+          github.event_name == 'workflow_dispatch'
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

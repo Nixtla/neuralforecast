@@ -3,19 +3,33 @@
 # %% auto 0
 __all__ = ['TFT']
 
-# %% ../../nbs/models.tft.ipynb 4
-from typing import Tuple, Optional
+# %% ../../nbs/models.tft.ipynb 5
+from typing import Tuple, Optional, Callable
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from torch.nn import LayerNorm
-
+import pandas as pd
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.tft.ipynb 10
+# %% ../../nbs/models.tft.ipynb 11
+def get_activation_fn(activation_str: str) -> Callable:
+    activation_map = {
+        "ReLU": F.relu,
+        "Softplus": F.softplus,
+        "Tanh": F.tanh,
+        "SELU": F.selu,
+        "LeakyReLU": F.leaky_relu,
+        "Sigmoid": F.sigmoid,
+        "ELU": F.elu,
+        "GLU": F.glu,
+    }
+    return activation_map.get(activation_str, F.elu)
+
+
 class MaybeLayerNorm(nn.Module):
     def __init__(self, output_size, hidden_size, eps):
         super().__init__()
@@ -47,9 +61,9 @@ class GRN(nn.Module):
         output_size=None,
         context_hidden_size=None,
         dropout=0,
+        activation="ELU",
     ):
         super().__init__()
-
         self.layer_norm = MaybeLayerNorm(output_size, hidden_size, eps=1e-3)
         self.lin_a = nn.Linear(input_size, hidden_size)
         if context_hidden_size is not None:
@@ -58,12 +72,13 @@ class GRN(nn.Module):
         self.glu = GLU(hidden_size, output_size if output_size else hidden_size)
         self.dropout = nn.Dropout(dropout)
         self.out_proj = nn.Linear(input_size, output_size) if output_size else None
+        self.activation_fn = get_activation_fn(activation)
 
     def forward(self, a: Tensor, c: Optional[Tensor] = None):
         x = self.lin_a(a)
         if c is not None:
             x = x + self.lin_c(c).unsqueeze(1)
-        x = F.elu(x)
+        x = self.activation_fn(x)
         x = self.lin_i(x)
         x = self.dropout(x)
         x = self.glu(x)
@@ -72,7 +87,7 @@ class GRN(nn.Module):
         x = self.layer_norm(x)
         return x
 
-# %% ../../nbs/models.tft.ipynb 13
+# %% ../../nbs/models.tft.ipynb 14
 class TFTEmbedding(nn.Module):
     def __init__(
         self, hidden_size, stat_input_size, futr_input_size, hist_input_size, tgt_size
@@ -162,17 +177,23 @@ class TFTEmbedding(nn.Module):
 
 
 class VariableSelectionNetwork(nn.Module):
-    def __init__(self, hidden_size, num_inputs, dropout):
+    def __init__(self, hidden_size, num_inputs, dropout, grn_activation):
         super().__init__()
         self.joint_grn = GRN(
             input_size=hidden_size * num_inputs,
             hidden_size=hidden_size,
             output_size=num_inputs,
             context_hidden_size=hidden_size,
+            activation=grn_activation,
         )
         self.var_grns = nn.ModuleList(
             [
-                GRN(input_size=hidden_size, hidden_size=hidden_size, dropout=dropout)
+                GRN(
+                    input_size=hidden_size,
+                    hidden_size=hidden_size,
+                    dropout=dropout,
+                    activation=grn_activation,
+                )
                 for _ in range(num_inputs)
             ]
         )
@@ -192,7 +213,7 @@ class VariableSelectionNetwork(nn.Module):
 
         return variable_ctx, sparse_weights
 
-# %% ../../nbs/models.tft.ipynb 15
+# %% ../../nbs/models.tft.ipynb 16
 class InterpretableMultiHeadAttention(nn.Module):
     def __init__(self, n_head, hidden_size, example_length, attn_dropout, dropout):
         super().__init__()
@@ -245,14 +266,17 @@ class InterpretableMultiHeadAttention(nn.Module):
         out = self.out_proj(m_attn_vec)
         out = self.out_dropout(out)
 
-        return out, attn_vec
+        return out, attn_prob
 
-# %% ../../nbs/models.tft.ipynb 18
+# %% ../../nbs/models.tft.ipynb 19
 class StaticCovariateEncoder(nn.Module):
-    def __init__(self, hidden_size, num_static_vars, dropout):
+    def __init__(self, hidden_size, num_static_vars, dropout, grn_activation):
         super().__init__()
         self.vsn = VariableSelectionNetwork(
-            hidden_size=hidden_size, num_inputs=num_static_vars, dropout=dropout
+            hidden_size=hidden_size,
+            num_inputs=num_static_vars,
+            dropout=dropout,
+            grn_activation=grn_activation,
         )
         self.context_grns = nn.ModuleList(
             [
@@ -269,24 +293,32 @@ class StaticCovariateEncoder(nn.Module):
         # enrichment context
         # state_c context
         # state_h context
-        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)
+        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)  # type: ignore
 
-        return cs, ce, ch, cc
+        return cs, ce, ch, cc, sparse_weights  # type: ignore
 
-# %% ../../nbs/models.tft.ipynb 20
+# %% ../../nbs/models.tft.ipynb 21
 class TemporalCovariateEncoder(nn.Module):
-    def __init__(self, hidden_size, num_historic_vars, num_future_vars, dropout):
+    def __init__(
+        self, hidden_size, num_historic_vars, num_future_vars, dropout, grn_activation
+    ):
         super(TemporalCovariateEncoder, self).__init__()
 
         self.history_vsn = VariableSelectionNetwork(
-            hidden_size=hidden_size, num_inputs=num_historic_vars, dropout=dropout
+            hidden_size=hidden_size,
+            num_inputs=num_historic_vars,
+            dropout=dropout,
+            grn_activation=grn_activation,
         )
         self.history_encoder = nn.LSTM(
             input_size=hidden_size, hidden_size=hidden_size, batch_first=True
         )
 
         self.future_vsn = VariableSelectionNetwork(
-            hidden_size=hidden_size, num_inputs=num_future_vars, dropout=dropout
+            hidden_size=hidden_size,
+            num_inputs=num_future_vars,
+            dropout=dropout,
+            grn_activation=grn_activation,
         )
         self.future_encoder = nn.LSTM(
             input_size=hidden_size, hidden_size=hidden_size, batch_first=True
@@ -298,10 +330,12 @@ class TemporalCovariateEncoder(nn.Module):
 
     def forward(self, historical_inputs, future_inputs, cs, ch, cc):
         # [N,X_in,L] -> [N,hidden_size,L]
-        historical_features, _ = self.history_vsn(historical_inputs, cs)
+        historical_features, history_vsn_sparse_weights = self.history_vsn(
+            historical_inputs, cs
+        )
         history, state = self.history_encoder(historical_features, (ch, cc))
 
-        future_features, _ = self.future_vsn(future_inputs, cs)
+        future_features, future_vsn_sparse_weights = self.future_vsn(future_inputs, cs)
         future, _ = self.future_encoder(future_features, state)
         # torch.cuda.synchronize() # this call gives prf boost for unknown reasons
 
@@ -310,12 +344,19 @@ class TemporalCovariateEncoder(nn.Module):
         temporal_features = self.input_gate(temporal_features)
         temporal_features = temporal_features + input_embedding
         temporal_features = self.input_gate_ln(temporal_features)
-        return temporal_features
+        return temporal_features, history_vsn_sparse_weights, future_vsn_sparse_weights
 
-# %% ../../nbs/models.tft.ipynb 22
+# %% ../../nbs/models.tft.ipynb 23
 class TemporalFusionDecoder(nn.Module):
     def __init__(
-        self, n_head, hidden_size, example_length, encoder_length, attn_dropout, dropout
+        self,
+        n_head,
+        hidden_size,
+        example_length,
+        encoder_length,
+        attn_dropout,
+        dropout,
+        grn_activation,
     ):
         super(TemporalFusionDecoder, self).__init__()
         self.encoder_length = encoder_length
@@ -326,6 +367,7 @@ class TemporalFusionDecoder(nn.Module):
             hidden_size=hidden_size,
             context_hidden_size=hidden_size,
             dropout=dropout,
+            activation=grn_activation,
         )
         self.attention = InterpretableMultiHeadAttention(
             n_head=n_head,
@@ -338,7 +380,10 @@ class TemporalFusionDecoder(nn.Module):
         self.attention_ln = LayerNorm(normalized_shape=hidden_size, eps=1e-3)
 
         self.positionwise_grn = GRN(
-            input_size=hidden_size, hidden_size=hidden_size, dropout=dropout
+            input_size=hidden_size,
+            hidden_size=hidden_size,
+            dropout=dropout,
+            activation=grn_activation,
         )
 
         # ---------------------- Decoder -----------------------#
@@ -351,7 +396,7 @@ class TemporalFusionDecoder(nn.Module):
         enriched = self.enrichment_grn(temporal_features, c=ce)
 
         # Temporal self attention
-        x, _ = self.attention(enriched, mask_future_timesteps=True)
+        x, atten_vect = self.attention(enriched, mask_future_timesteps=True)
 
         # Don't compute historical quantiles
         x = x[:, self.encoder_length :, :]
@@ -371,7 +416,7 @@ class TemporalFusionDecoder(nn.Module):
         x = x + temporal_features
         x = self.decoder_ln(x)
 
-        return x
+        return x, atten_vect
 
 # %% ../../nbs/models.tft.ipynb 24
 class TFT(BaseWindows):
@@ -393,8 +438,7 @@ class TFT(BaseWindows):
     `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-    `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
+    `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -417,6 +461,7 @@ class TFT(BaseWindows):
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -441,6 +486,7 @@ class TFT(BaseWindows):
         hidden_size: int = 128,
         n_head: int = 4,
         attn_dropout: float = 0.0,
+        grn_activation: str = "ELU",
         dropout: float = 0.1,
         loss=MAE(),
         valid_loss=None,
@@ -463,7 +509,8 @@ class TFT(BaseWindows):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        **trainer_kwargs
+        dataloader_kwargs=None,
+        **trainer_kwargs,
     ):
 
         # Inherit BaseWindows class
@@ -494,10 +541,13 @@ class TFT(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            **trainer_kwargs
+            dataloader_kwargs=dataloader_kwargs,
+            **trainer_kwargs,
         )
         self.example_length = input_size + h
-
+        self.interpretability_params = dict([])  # type: ignore
+        self.tgt_size = tgt_size
+        self.grn_activation = grn_activation
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
 
@@ -510,17 +560,20 @@ class TFT(BaseWindows):
             tgt_size=tgt_size,
         )
 
-        self.static_encoder = StaticCovariateEncoder(
-            hidden_size=hidden_size,
-            num_static_vars=self.stat_exog_size,
-            dropout=dropout,
-        )
+        if self.stat_exog_size > 0:
+            self.static_encoder = StaticCovariateEncoder(
+                hidden_size=hidden_size,
+                num_static_vars=self.stat_exog_size,
+                dropout=dropout,
+                grn_activation=self.grn_activation,
+            )
 
         self.temporal_encoder = TemporalCovariateEncoder(
             hidden_size=hidden_size,
             num_historic_vars=num_historic_vars,
             num_future_vars=futr_exog_size,
             dropout=dropout,
+            grn_activation=self.grn_activation,
         )
 
         # ------------------------------ Decoders -----------------------------#
@@ -531,6 +584,7 @@ class TFT(BaseWindows):
             encoder_length=self.input_size,
             attn_dropout=attn_dropout,
             dropout=dropout,
+            grn_activation=self.grn_activation,
         )
 
         # Adapter with Loss dependent dimensions
@@ -560,7 +614,7 @@ class TFT(BaseWindows):
         # -------------------------------- Inputs ------------------------------#
         # Static context
         if s_inp is not None:
-            cs, ce, ch, cc = self.static_encoder(s_inp)
+            cs, ce, ch, cc, static_encoder_sparse_weights = self.static_encoder(s_inp)
             ch, cc = ch.unsqueeze(0), cc.unsqueeze(0)  # LSTM initial states
         else:
             # If None add zeros
@@ -573,6 +627,7 @@ class TFT(BaseWindows):
             cc = torch.zeros(
                 size=(1, batch_size, hidden_size), device=y_insample.device
             )
+            static_encoder_sparse_weights = []
 
         # Historical inputs
         _historical_inputs = [
@@ -582,13 +637,12 @@ class TFT(BaseWindows):
         if o_inp is not None:
             _historical_inputs.insert(0, o_inp[:, : self.input_size, :])
         historical_inputs = torch.cat(_historical_inputs, dim=-2)
-
         # Future inputs
         future_inputs = k_inp[:, self.input_size :]
 
         # ---------------------------- Encode/Decode ---------------------------#
         # Embeddings + VSN + LSTM encoders
-        temporal_features = self.temporal_encoder(
+        temporal_features, history_vsn_wgts, future_vsn_wgts = self.temporal_encoder(
             historical_inputs=historical_inputs,
             future_inputs=future_inputs,
             cs=cs,
@@ -597,12 +651,116 @@ class TFT(BaseWindows):
         )
 
         # Static enrichment, Attention and decoders
-        temporal_features = self.temporal_fusion_decoder(
+        temporal_features, attn_wts = self.temporal_fusion_decoder(
             temporal_features=temporal_features, ce=ce
         )
+
+        # Store params
+        self.interpretability_params = {
+            "history_vsn_wgts": history_vsn_wgts,
+            "future_vsn_wgts": future_vsn_wgts,
+            "static_encoder_sparse_weights": static_encoder_sparse_weights,
+            "attn_wts": attn_wts,
+        }
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
         y_hat = self.loss.domain_map(y_hat)
 
         return y_hat
+
+    def mean_on_batch(self, tensor):
+        batch_size = tensor.size(0)
+        if batch_size > 1:
+            return tensor.mean(dim=0)
+        else:
+            return tensor.squeeze(0)
+
+    def feature_importances(self):
+        """
+        Compute the feature importances for historical, future, and static features.
+
+        Returns:
+            dict: A dictionary containing the feature importances for each feature type.
+                The keys are 'hist_vsn', 'future_vsn', and 'static_vsn', and the values
+                are pandas DataFrames with the corresponding feature importances.
+        """
+        if not self.interpretability_params:
+            raise ValueError(
+                "No interpretability_params. Make a prediction using the model to generate them."
+            )
+
+        importances = {}
+
+        # Historical feature importances
+        hist_vsn_wgts = self.interpretability_params.get("history_vsn_wgts")
+        hist_exog_list = list(self.hist_exog_list) + list(self.futr_exog_list)
+        hist_exog_list += (
+            [f"observed_target_{i+1}" for i in range(self.tgt_size)]
+            if self.tgt_size > 1
+            else ["observed_target"]
+        )
+        if len(self.futr_exog_list) < 1:
+            hist_exog_list += ["repeated_target"]
+        hist_vsn_imp = pd.DataFrame(
+            self.mean_on_batch(hist_vsn_wgts).cpu().numpy(), columns=hist_exog_list
+        )
+        importances["Past variable importance over time"] = hist_vsn_imp
+        #  importances["Past variable importance"] = hist_vsn_imp.mean(axis=0).sort_values()
+
+        # Future feature importances
+        if self.futr_exog_size > 0:
+            future_vsn_wgts = self.interpretability_params.get("future_vsn_wgts")
+            future_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(future_vsn_wgts).cpu().numpy(),
+                columns=self.futr_exog_list,
+            )
+            importances["Future variable importance over time"] = future_vsn_imp
+        #   importances["Future variable importance"] = future_vsn_imp.mean(axis=0).sort_values()
+
+        # Static feature importances
+        if self.stat_exog_size > 0:
+            static_encoder_sparse_weights = self.interpretability_params.get(
+                "static_encoder_sparse_weights"
+            )
+
+            static_vsn_imp = pd.DataFrame(
+                self.mean_on_batch(static_encoder_sparse_weights).cpu().numpy(),
+                index=self.stat_exog_list,
+                columns=["importance"],
+            )
+            importances["Static covariates"] = static_vsn_imp.sort_values(
+                by="importance"
+            )
+
+        return importances
+
+    def attention_weights(self):
+        """
+        Batch average attention weights
+
+        Returns:
+        np.ndarray: A 1D array containing the attention weights for each time step.
+
+        """
+
+        attention = (
+            self.mean_on_batch(self.interpretability_params["attn_wts"])
+            .mean(dim=0)
+            .cpu()
+            .numpy()
+        )
+
+        return attention
+
+    def feature_importance_correlations(self) -> pd.DataFrame:
+        """
+        Compute the correlation between the past and future feature importances and the mean attention weights.
+
+        Returns:
+        pd.DataFrame: A DataFrame containing the correlation coefficients between the past feature importances and the mean attention weights.
+        """
+        attention = self.attention_weights()[self.input_size :, :].mean(axis=0)
+        p_c = self.feature_importances()["Past variable importance over time"]
+        p_c["Correlation with Mean Attention"] = attention[: self.input_size]
+        return p_c.corr(method="spearman").round(2)

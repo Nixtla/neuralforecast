@@ -39,6 +39,7 @@
         "docs/capabilities/overview.html",
         "docs/capabilities/objectives.html",
         "docs/capabilities/exogenous_variables.html",
+        "docs/capabilities/cross_validation.html",
         "docs/capabilities/hyperparameter_tuning.html",
         "docs/capabilities/predictinsample.html",
         "docs/capabilities/save_load_models.html",
@@ -63,7 +64,8 @@
           "group":"Probabilistic Forecasting",
           "pages":[
             "docs/tutorials/uncertainty_quantification.html",
-            "docs/tutorials/longhorizon_probabilistic.html"
+            "docs/tutorials/longhorizon_probabilistic.html",
+            "docs/tutorials/conformal_prediction.html"
           ]
         },   
         {
@@ -119,6 +121,7 @@
             "models.nhits.html",
             "models.nlinear.html",
             "models.patchtst.html",
+            "models.rmok.html",
             "models.rnn.html",
             "models.softs.html",
             "models.stemgnn.html",
