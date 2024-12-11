@@ -182,12 +182,6 @@ class TimesNet(BaseWindows):
         Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
-        User specified optimizer instead of the default choice (Adam).
-    `optimizer_kwargs`: dict, optional (defualt=None)
-        List of parameters used by the user specified `optimizer`.
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `dataloader_kwargs`: dict, optional (default=None)
         List of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     **trainer_kwargs
@@ -235,10 +229,6 @@ class TimesNet(BaseWindows):
         random_seed: int = 1,
         num_workers_loader: int = 0,
         drop_last_loader: bool = False,
-        optimizer=None,
-        optimizer_kwargs=None,
-        lr_scheduler=None,
-        lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
         **trainer_kwargs
     ):
@@ -266,10 +256,6 @@ class TimesNet(BaseWindows):
             num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            optimizer=optimizer,
-            optimizer_kwargs=optimizer_kwargs,
-            lr_scheduler=lr_scheduler,
-            lr_scheduler_kwargs=lr_scheduler_kwargs,
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )

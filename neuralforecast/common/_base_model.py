@@ -8,7 +8,6 @@ import inspect
 import random
 import warnings
 from contextlib import contextmanager
-from copy import deepcopy
 from dataclasses import dataclass
 
 import fsspec
@@ -72,10 +71,6 @@ class BaseModel(pl.LightningModule):
         random_seed,
         loss,
         valid_loss,
-        optimizer,
-        optimizer_kwargs,
-        lr_scheduler,
-        lr_scheduler_kwargs,
         futr_exog_list,
         hist_exog_list,
         stat_exog_list,
@@ -100,26 +95,6 @@ class BaseModel(pl.LightningModule):
             self.valid_loss = valid_loss
         self.train_trajectories = []
         self.valid_trajectories = []
-
-        # Optimization
-        if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
-            raise TypeError(
-                "optimizer is not a valid subclass of torch.optim.Optimizer"
-            )
-        self.optimizer = optimizer
-        self.optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
-
-        # lr scheduler
-        if lr_scheduler is not None and not issubclass(
-            lr_scheduler, torch.optim.lr_scheduler.LRScheduler
-        ):
-            raise TypeError(
-                "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler.LRScheduler"
-            )
-        self.lr_scheduler = lr_scheduler
-        self.lr_scheduler_kwargs = (
-            lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
-        )
 
         # customized by set_configure_optimizers()
         self.config_optimizers = None
@@ -389,47 +364,19 @@ class BaseModel(pl.LightningModule):
 
     def configure_optimizers(self):
         if self.config_optimizers is not None:
+            # return the customized optimizer settings if specified
             return self.config_optimizers
 
-        if self.optimizer:
-            optimizer_signature = inspect.signature(self.optimizer)
-            optimizer_kwargs = deepcopy(self.optimizer_kwargs)
-            if "lr" in optimizer_signature.parameters:
-                if "lr" in optimizer_kwargs:
-                    warnings.warn(
-                        "ignoring learning rate passed in optimizer_kwargs, using the model's learning rate"
-                    )
-                optimizer_kwargs["lr"] = self.learning_rate
-            optimizer = self.optimizer(params=self.parameters(), **optimizer_kwargs)
-        else:
-            if self.optimizer_kwargs:
-                warnings.warn(
-                    "ignoring optimizer_kwargs as the optimizer is not specified"
-                )
-            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-        lr_scheduler = {"frequency": 1, "interval": "step"}
-        if self.lr_scheduler:
-            lr_scheduler_signature = inspect.signature(self.lr_scheduler)
-            lr_scheduler_kwargs = deepcopy(self.lr_scheduler_kwargs)
-            if "optimizer" in lr_scheduler_signature.parameters:
-                if "optimizer" in lr_scheduler_kwargs:
-                    warnings.warn(
-                        "ignoring optimizer passed in lr_scheduler_kwargs, using the model's optimizer"
-                    )
-                    del lr_scheduler_kwargs["optimizer"]
-            lr_scheduler["scheduler"] = self.lr_scheduler(
-                optimizer=optimizer, **lr_scheduler_kwargs
-            )
-        else:
-            if self.lr_scheduler_kwargs:
-                warnings.warn(
-                    "ignoring lr_scheduler_kwargs as the lr_scheduler is not specified"
-                )
-            lr_scheduler["scheduler"] = torch.optim.lr_scheduler.StepLR(
+        # default choice
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        scheduler = {
+            "scheduler": torch.optim.lr_scheduler.StepLR(
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
-            )
-        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+            ),
+            "frequency": 1,
+            "interval": "step",
+        }
+        return {"optimizer": optimizer, "lr_scheduler": scheduler}
 
     def set_configure_optimizers(
         self,
