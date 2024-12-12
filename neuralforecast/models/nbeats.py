@@ -119,6 +119,7 @@ def generate_spline_basis(length, n_basis):
     Returns:
     - spline_basis (ndarray): An array of cubic spline basis functions.
     """
+    n_basis = max(4, n_basis)
     x = np.linspace(0, 1, length)
     knots = np.linspace(0, 1, n_basis - 2)
     t = np.concatenate(([0, 0, 0], knots, [1, 1, 1]))
