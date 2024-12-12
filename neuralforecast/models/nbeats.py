@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NBEATS']
 
-# %% ../../nbs/models.nbeats.ipynb 6
+# %% ../../nbs/models.nbeats.ipynb 5
 from typing import Tuple, Optional
 
 import numpy as np
@@ -16,7 +16,7 @@ from scipy.interpolate import BSpline
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nbeats.ipynb 8
+# %% ../../nbs/models.nbeats.ipynb 7
 def generate_legendre_basis(length, n_basis):
     """
     Generates Legendre polynomial basis functions.
@@ -119,7 +119,10 @@ def generate_spline_basis(length, n_basis):
     Returns:
     - spline_basis (ndarray): An array of cubic spline basis functions.
     """
-    n_basis = max(4, n_basis)
+    if n_basis < 4:
+        raise ValueError(
+            f"To use the spline basis, n_basis must be set to 4 or more. Current value is {n_basis}"
+        )
     x = np.linspace(0, 1, length)
     knots = np.linspace(0, 1, n_basis - 2)
     t = np.concatenate(([0, 0, 0], knots, [1, 1, 1]))
@@ -162,7 +165,7 @@ def get_basis(length, n_basis, basis):
     }
     return basis_dict[basis](length, n_basis + 1)
 
-# %% ../../nbs/models.nbeats.ipynb 9
+# %% ../../nbs/models.nbeats.ipynb 8
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, out_features: int = 1):
         super().__init__()
@@ -273,7 +276,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum("bpq,pt->btq", forecast_theta, self.forecast_basis)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 10
+# %% ../../nbs/models.nbeats.ipynb 9
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 
@@ -319,7 +322,7 @@ class NBEATSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 11
+# %% ../../nbs/models.nbeats.ipynb 10
 class NBEATS(BaseWindows):
     """NBEATS
 
