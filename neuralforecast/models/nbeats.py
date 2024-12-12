@@ -3,17 +3,165 @@
 # %% auto 0
 __all__ = ['NBEATS']
 
-# %% ../../nbs/models.nbeats.ipynb 5
+# %% ../../nbs/models.nbeats.ipynb 6
 from typing import Tuple, Optional
 
 import numpy as np
+from numpy.polynomial.legendre import Legendre
+from numpy.polynomial.chebyshev import Chebyshev
 import torch
 import torch.nn as nn
+from scipy.interpolate import BSpline
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
 
-# %% ../../nbs/models.nbeats.ipynb 7
+# %% ../../nbs/models.nbeats.ipynb 8
+def generate_legendre_basis(length, n_basis):
+    """
+    Generates Legendre polynomial basis functions.
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of basis functions to generate.
+
+    Returns:
+    - legendre_basis (ndarray): An array of Legendre basis functions.
+    """
+    x = np.linspace(-1, 1, length)  # Legendre polynomials are defined on [-1, 1]
+    legendre_basis = np.zeros((length, n_basis))
+    for i in range(n_basis):
+        # Legendre polynomial of degree i
+        P_i = Legendre.basis(i)
+        legendre_basis[:, i] = P_i(x)
+    return legendre_basis
+
+
+def generate_polynomial_basis(length, n_basis):
+    """
+    Generates standard polynomial basis functions.
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of polynomial functions to generate.
+
+    Returns:
+    - poly_basis (ndarray): An array of polynomial basis functions.
+    """
+    return np.concatenate(
+        [
+            np.power(np.arange(length, dtype=float) / length, i)[None, :]
+            for i in range(n_basis)
+        ]
+    ).T
+
+
+def generate_changepoint_basis(length, n_basis):
+    """
+    Generates changepoint basis functions with automatically spaced changepoints.
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of changepoint functions to generate.
+
+    Returns:
+    - changepoint_basis (ndarray): An array of changepoint basis functions.
+    """
+    x = np.linspace(0, 1, length)[:, None]  # Shape: (length, 1)
+    changepoint_locations = np.linspace(0, 1, n_basis + 1)[1:][
+        None, :
+    ]  # Shape: (1, n_basis)
+    return np.maximum(0, x - changepoint_locations)
+
+
+def generate_piecewise_linear_basis(length, n_basis):
+    """
+    Generates piecewise linear basis functions (linear splines).
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of piecewise linear basis functions to generate.
+
+    Returns:
+    - pw_linear_basis (ndarray): An array of piecewise linear basis functions.
+    """
+    x = np.linspace(0, 1, length)
+    knots = np.linspace(0, 1, n_basis + 1)
+    pw_linear_basis = np.zeros((length, n_basis))
+    for i in range(1, n_basis):
+        pw_linear_basis[:, i] = np.maximum(
+            0,
+            np.minimum(
+                (x - knots[i - 1]) / (knots[i] - knots[i - 1]),
+                (knots[i + 1] - x) / (knots[i + 1] - knots[i]),
+            ),
+        )
+    return pw_linear_basis
+
+
+def generate_linear_hat_basis(length, n_basis):
+    x = np.linspace(0, 1, length)[:, None]  # Shape: (length, 1)
+    centers = np.linspace(0, 1, n_basis)[None, :]  # Shape: (1, n_basis)
+    width = 1.0 / (n_basis - 1)
+
+    # Create triangular functions using piecewise linear equations
+    return np.maximum(0, 1 - np.abs(x - centers) / width)
+
+
+def generate_spline_basis(length, n_basis):
+    """
+    Generates cubic spline basis functions.
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of basis functions.
+
+    Returns:
+    - spline_basis (ndarray): An array of cubic spline basis functions.
+    """
+    x = np.linspace(0, 1, length)
+    knots = np.linspace(0, 1, n_basis - 2)
+    t = np.concatenate(([0, 0, 0], knots, [1, 1, 1]))
+    degree = 3
+    # Create basis coefficient matrix once
+    coefficients = np.eye(n_basis)
+    # Create single BSpline object with all coefficients
+    spline = BSpline(t, coefficients.T, degree)
+    return spline(x)
+
+
+def generate_chebyshev_basis(length, n_basis):
+    """
+    Generates Chebyshev polynomial basis functions.
+
+    Parameters:
+    - n_points (int): Number of data points.
+    - n_functions (int): Number of Chebyshev polynomials to generate.
+
+    Returns:
+    - chebyshev_basis (ndarray): An array of Chebyshev polynomial basis functions.
+    """
+    x = np.linspace(-1, 1, length)
+    chebyshev_basis = np.zeros((length, n_basis))
+    for i in range(n_basis):
+        T_i = Chebyshev.basis(i)
+        chebyshev_basis[:, i] = T_i(x)
+    return chebyshev_basis
+
+
+def get_basis(length, n_basis, basis):
+    basis_dict = {
+        "legendre": generate_legendre_basis,
+        "polynomial": generate_polynomial_basis,
+        "changepoint": generate_changepoint_basis,
+        "piecewise_linear": generate_piecewise_linear_basis,
+        "linear_hat": generate_linear_hat_basis,
+        "spline": generate_spline_basis,
+        "chebyshev": generate_chebyshev_basis,
+    }
+    return basis_dict[basis](length, n_basis + 1)
+
+# %% ../../nbs/models.nbeats.ipynb 9
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, out_features: int = 1):
         super().__init__()
@@ -31,39 +179,23 @@ class IdentityBasis(nn.Module):
 class TrendBasis(nn.Module):
     def __init__(
         self,
-        degree_of_polynomial: int,
+        n_basis: int,
         backcast_size: int,
         forecast_size: int,
         out_features: int = 1,
+        basis="polynomial",
     ):
         super().__init__()
         self.out_features = out_features
-        polynomial_size = degree_of_polynomial + 1
         self.backcast_basis = nn.Parameter(
             torch.tensor(
-                np.concatenate(
-                    [
-                        np.power(
-                            np.arange(backcast_size, dtype=float) / backcast_size, i
-                        )[None, :]
-                        for i in range(polynomial_size)
-                    ]
-                ),
-                dtype=torch.float32,
+                get_basis(backcast_size, n_basis, basis).T, dtype=torch.float32
             ),
             requires_grad=False,
         )
         self.forecast_basis = nn.Parameter(
             torch.tensor(
-                np.concatenate(
-                    [
-                        np.power(
-                            np.arange(forecast_size, dtype=float) / forecast_size, i
-                        )[None, :]
-                        for i in range(polynomial_size)
-                    ]
-                ),
-                dtype=torch.float32,
+                get_basis(forecast_size, n_basis, basis).T, dtype=torch.float32
             ),
             requires_grad=False,
         )
@@ -140,7 +272,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum("bpq,pt->btq", forecast_theta, self.forecast_basis)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 8
+# %% ../../nbs/models.nbeats.ipynb 10
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 
@@ -158,7 +290,6 @@ class NBEATSBlock(nn.Module):
         dropout_prob: float,
         activation: str,
     ):
-        """ """
         super().__init__()
 
         self.dropout_prob = dropout_prob
@@ -175,7 +306,6 @@ class NBEATSBlock(nn.Module):
 
             if self.dropout_prob > 0:
                 raise NotImplementedError("dropout")
-                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
         output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
         layers = hidden_layers + output_layer
@@ -188,7 +318,7 @@ class NBEATSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 9
+# %% ../../nbs/models.nbeats.ipynb 11
 class NBEATS(BaseWindows):
     """NBEATS
 
@@ -203,7 +333,8 @@ class NBEATS(BaseWindows):
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
     `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
-    `n_polynomials`: int, polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
+    `basis`: str, Type of basis function to use in the trend stack. Choose one from ['legendre', 'polynomial', 'changepoint', 'piecewise_linear', 'linear_hat', 'spline', 'chebyshev']<br>
+    `n_basis`: int, the number of basis functions for the trend stack. Note that it will only be used if a trend stack is used.<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
@@ -251,7 +382,8 @@ class NBEATS(BaseWindows):
         h,
         input_size,
         n_harmonics: int = 2,
-        n_polynomials: int = 2,
+        n_basis: int = 2,
+        basis: str = "polynomial",
         stack_types: list = ["identity", "trend", "seasonality"],
         n_blocks: list = [1, 1, 1],
         mlp_units: list = 3 * [[512, 512]],
@@ -328,8 +460,9 @@ class NBEATS(BaseWindows):
             dropout_prob_theta=dropout_prob_theta,
             activation=activation,
             shared_weights=shared_weights,
-            n_polynomials=n_polynomials,
             n_harmonics=n_harmonics,
+            n_basis=n_basis,
+            basis_type=basis,
         )
         self.blocks = torch.nn.ModuleList(blocks)
 
@@ -343,8 +476,9 @@ class NBEATS(BaseWindows):
         dropout_prob_theta,
         activation,
         shared_weights,
-        n_polynomials,
         n_harmonics,
+        n_basis,
+        basis_type,
     ):
 
         block_list = []
@@ -369,14 +503,13 @@ class NBEATS(BaseWindows):
                         )
 
                     elif stack_types[i] == "trend":
-                        n_theta = (self.loss.outputsize_multiplier + 1) * (
-                            n_polynomials + 1
-                        )
+                        n_theta = (self.loss.outputsize_multiplier + 1) * (n_basis + 1)
                         basis = TrendBasis(
-                            degree_of_polynomial=n_polynomials,
+                            n_basis=n_basis,
                             backcast_size=input_size,
                             forecast_size=h,
                             out_features=self.loss.outputsize_multiplier,
+                            basis=basis_type,
                         )
 
                     elif stack_types[i] == "identity":
