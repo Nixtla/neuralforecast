@@ -1534,9 +1534,12 @@ class NeuralForecast:
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
-            "prediction_intervals": self.prediction_intervals,
-            "_cs_df": self._cs_df,  # conformity score
         }
+        for attr in ["prediction_intervals", "_cs_df"]:
+            # conformal prediction related attributes was not available < 1.7.6
+            if hasattr(self, attr):
+                config_dict[attr] = getattr(self, attr, None)
+
         if save_dataset:
             config_dict.update(
                 {
