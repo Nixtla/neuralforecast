@@ -1,9 +1,7 @@
-name: Upload Python Package
+name: Upload Python Package to TestPyPI
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -25,3 +23,5 @@ jobs:
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3
+        with:
+          repository-url: https://test.pypi.org/legacy/
