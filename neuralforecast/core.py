@@ -1537,8 +1537,7 @@ class NeuralForecast:
         }
         for attr in ["prediction_intervals", "_cs_df"]:
             # conformal prediction related attributes was not available < 1.7.6
-            if hasattr(self, attr):
-                config_dict[attr] = getattr(self, attr, None)
+            config_dict[attr] = getattr(self, attr, None)
 
         if save_dataset:
             config_dict.update(
@@ -1644,8 +1643,7 @@ class NeuralForecast:
             setattr(neuralforecast, attr, config_dict.get(attr, default))
         # only restore attribute if available
         for attr in ["prediction_intervals", "_cs_df"]:
-            if attr in config_dict.keys():
-                setattr(neuralforecast, attr, config_dict[attr])
+            setattr(neuralforecast, attr, config_dict.get(attr, None))
 
         # Dataset
         if dataset is not None:
