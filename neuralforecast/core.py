@@ -4,7 +4,6 @@
 __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
-import os
 import pickle
 import warnings
 from copy import deepcopy
@@ -206,19 +205,6 @@ _type2scaler = {
 }
 
 # %% ../nbs/core.ipynb 9
-def _id_as_idx() -> bool:
-    return not bool(os.getenv("NIXTLA_ID_AS_COL", ""))
-
-
-def _warn_id_as_idx():
-    warnings.warn(
-        "In a future version the predictions will have the id as a column. "
-        "You can set the `NIXTLA_ID_AS_COL` environment variable "
-        "to adopt the new behavior and to suppress this warning.",
-        category=FutureWarning,
-    )
-
-# %% ../nbs/core.ipynb 10
 class NeuralForecast:
 
     def __init__(
@@ -296,9 +282,7 @@ class NeuralForecast:
             data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
         return data
 
-    def _prepare_fit(
-        self, df, static_df, sort_df, predict_only, id_col, time_col, target_col
-    ):
+    def _prepare_fit(self, df, static_df, predict_only, id_col, time_col, target_col):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.id_col = id_col
         self.time_col = time_col
@@ -308,7 +292,6 @@ class NeuralForecast:
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
             static_df=static_df,
-            sort_df=sort_df,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
@@ -347,7 +330,6 @@ class NeuralForecast:
         self,
         df: SparkDataFrame,
         static_df: Optional[SparkDataFrame],
-        sort_df: bool,
         id_col: str,
         time_col: str,
         target_col: str,
@@ -372,7 +354,6 @@ class NeuralForecast:
         self.time_col = time_col
         self.target_col = target_col
         self.scalers_ = {}
-        self.sort_df = sort_df
         num_partitions = distributed_config.num_nodes * distributed_config.devices
         df = df.repartitionByRange(num_partitions, id_col)
         df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
@@ -399,7 +380,6 @@ class NeuralForecast:
         self,
         files_list: Sequence[str],
         static_df: Optional[DataFrame],
-        sort_df: bool,
         id_col: str,
         time_col: str,
         target_col: str,
@@ -414,13 +394,11 @@ class NeuralForecast:
         self.time_col = time_col
         self.target_col = target_col
         self.scalers_ = {}
-        self.sort_df = sort_df
 
         exogs = self._get_needed_exog()
         return LocalFilesTimeSeriesDataset.from_data_directories(
             directories=files_list,
             static_df=static_df,
-            sort_df=sort_df,
             exogs=exogs,
             id_col=id_col,
             time_col=time_col,
@@ -432,7 +410,6 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
-        sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
         id_col: str = "unique_id",
@@ -455,8 +432,6 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
-        sort_df : bool, optional (default=False)
-            Sort `df` before fitting.
         use_init_models : bool, optional (default=False)
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
@@ -487,7 +462,7 @@ class NeuralForecast:
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
-        self._cs_df: Optional[DFType] = None
+        self._cs_df: Optional[DataFrame] = None
         self.prediction_intervals: Optional[PredictionIntervals] = None
 
         # Process and save new dataset (in self)
@@ -496,13 +471,11 @@ class NeuralForecast:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
             )
-            self.sort_df = sort_df
             if prediction_intervals is not None:
                 self.prediction_intervals = prediction_intervals
                 self._cs_df = self._conformity_scores(
@@ -521,7 +494,6 @@ class NeuralForecast:
             self.dataset = self._prepare_fit_distributed(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
@@ -541,7 +513,6 @@ class NeuralForecast:
             self.dataset = self._prepare_fit_for_local_files(
                 files_list=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
@@ -579,7 +550,7 @@ class NeuralForecast:
 
         self._fitted = True
 
-    def make_future_dataframe(self, df: Optional[DataFrame] = None) -> DataFrame:
+    def make_future_dataframe(self, df: Optional[DFType] = None) -> DFType:
         """Create a dataframe with all ids and future times in the forecasting horizon.
 
         Parameters
@@ -613,8 +584,8 @@ class NeuralForecast:
         )
 
     def get_missing_future(
-        self, futr_df: DataFrame, df: Optional[DataFrame] = None
-    ) -> DataFrame:
+        self, futr_df: DFType, df: Optional[DFType] = None
+    ) -> DFType:
         """Get the missing ids and times combinations in `futr_df`.
 
         Parameters
@@ -736,10 +707,7 @@ class NeuralForecast:
                 df = df.drop(columns=static_cols)
             else:
                 static_df = None
-            preds = nf.predict(df=df, static_df=static_df, futr_df=futr_df)
-            if preds.index.name == id_col:
-                preds = preds.reset_index()
-            return preds
+            return nf.predict(df=df, static_df=static_df, futr_df=futr_df)
 
         # df
         if isinstance(df, SparkDataFrame):
@@ -811,7 +779,6 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
-        sort_df: bool = True,
         verbose: bool = False,
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
@@ -830,8 +797,6 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`] and static exogenous.
         futr_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
         verbose : bool (default=False)
             Print processing steps.
         engine : spark session
@@ -892,7 +857,6 @@ class NeuralForecast:
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=True,
                 id_col=self.id_col,
                 time_col=self.time_col,
@@ -975,9 +939,6 @@ class NeuralForecast:
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(self.id_col)
 
         # add prediction intervals
         if level is not None:
@@ -1017,7 +978,6 @@ class NeuralForecast:
         step_size: int,
         val_size: Optional[int],
         test_size: int,
-        sort_df: bool,
         verbose: bool,
         id_col: str,
         time_col: str,
@@ -1033,13 +993,11 @@ class NeuralForecast:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
             )
-            self.sort_df = sort_df
         else:
             if verbose:
                 print("Using stored dataset.")
@@ -1123,16 +1081,12 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = ufp.join(
+        return ufp.join(
             fcsts_df,
             df[[id_col, time_col, target_col]],
             how="left",
             on=[id_col, time_col],
         )
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(id_col)
-        return fcsts_df
 
     def cross_validation(
         self,
@@ -1142,7 +1096,6 @@ class NeuralForecast:
         step_size: int = 1,
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
-        sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
         refit: Union[bool, int] = False,
@@ -1173,8 +1126,6 @@ class NeuralForecast:
             Length of validation size. If passed, set `n_windows=None`.
         test_size : int, optional (default=None)
             Length of test size. If passed, set `n_windows=None`.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
         use_init_models : bool, option (default=False)
             Use initial model passed when object was instantiated.
         verbose : bool (default=False)
@@ -1217,12 +1168,6 @@ class NeuralForecast:
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
-        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
-            warnings.warn(
-                "Passing the id as index is deprecated, please provide it as a column instead.",
-                FutureWarning,
-            )
-            df = df.reset_index(id_col)
 
         # Checks for prediction intervals
         if prediction_intervals is not None or level is not None:
@@ -1245,7 +1190,6 @@ class NeuralForecast:
                 step_size=step_size,
                 val_size=val_size,
                 test_size=test_size,
-                sort_df=sort_df,
                 verbose=verbose,
                 id_col=id_col,
                 time_col=time_col,
@@ -1273,7 +1217,6 @@ class NeuralForecast:
                     df=train,
                     static_df=static_df,
                     val_size=val_size,
-                    sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
                     id_col=id_col,
@@ -1293,7 +1236,6 @@ class NeuralForecast:
                 df=predict_df,
                 static_df=static_df,
                 futr_df=futr_df,
-                sort_df=sort_df,
                 verbose=verbose,
                 level=level,
                 **data_kwargs,
@@ -1311,11 +1253,7 @@ class NeuralForecast:
             c for c in out.columns if c not in first_out_cols + [target_col]
         ]
         cols_order = first_out_cols + remaining_cols + [target_col]
-        out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
-        if isinstance(out, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            out = out.set_index(id_col)
-        return out
+        return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
@@ -1436,9 +1374,6 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -1527,7 +1462,6 @@ class NeuralForecast:
         config_dict = {
             "h": self.h,
             "freq": self.freq,
-            "sort_df": self.sort_df,
             "_fitted": self._fitted,
             "local_scaler_type": self.local_scaler_type,
             "scalers_": self.scalers_,
@@ -1652,7 +1586,6 @@ class NeuralForecast:
                 "uids",
                 "last_dates",
                 "ds",
-                "sort_df",
             ]
             for attr in restore_attrs:
                 setattr(neuralforecast, attr, config_dict[attr])
