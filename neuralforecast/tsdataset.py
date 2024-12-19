@@ -5,7 +5,6 @@ __all__ = ['TimeSeriesLoader', 'BaseTimeSeriesDataset', 'TimeSeriesDataset', 'Lo
            'TimeSeriesDataModule']
 
 # %% ../nbs/tsdataset.ipynb 4
-import warnings
 from collections.abc import Mapping
 from pathlib import Path
 from typing import List, Optional, Sequence, Union
@@ -303,13 +302,6 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
     @staticmethod
     def from_df(df, static_df=None, id_col="unique_id", time_col="ds", target_col="y"):
         # TODO: protect on equality of static_df + df indexes
-        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
-            warnings.warn(
-                "Passing the id as index is deprecated, please provide it as a column instead.",
-                FutureWarning,
-            )
-            df = df.reset_index(id_col)
-
         # Define indices if not given and then extract static features
         static, static_cols = TimeSeriesDataset._extract_static_features(
             static_df, id_col

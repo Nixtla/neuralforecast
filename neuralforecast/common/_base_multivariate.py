@@ -46,7 +46,6 @@ class BaseMultivariate(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
-        num_workers_loader=0,
         drop_last_loader=False,
         random_seed=1,
         alias=None,
@@ -125,7 +124,6 @@ class BaseMultivariate(BaseModel):
         self.decompose_forecast = False
 
         # DataModule arguments
-        self.num_workers_loader = num_workers_loader
         self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook

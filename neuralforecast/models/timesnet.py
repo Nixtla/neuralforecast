@@ -178,8 +178,6 @@ class TimesNet(BaseWindows):
         Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     random_seed : int (default=1)
         Random_seed for pytorch initializer and numpy generators.
-    num_workers_loader : int (default=0)
-        Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
@@ -233,7 +231,6 @@ class TimesNet(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
@@ -263,7 +260,6 @@ class TimesNet(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
