@@ -336,16 +336,6 @@ class BaseModel(pl.LightningModule):
         dataloader_kwargs = (
             self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
         )
-
-        if self.num_workers_loader != 0:  # value is not at its default
-            warnings.warn(
-                "The `num_workers_loader` argument is deprecated and will be removed in a future version. "
-                "Please provide num_workers through `dataloader_kwargs`, e.g. "
-                f"`dataloader_kwargs={{'num_workers': {self.num_workers_loader}}}`",
-                category=FutureWarning,
-            )
-            dataloader_kwargs["num_workers"] = self.num_workers_loader
-
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
@@ -454,7 +444,11 @@ class BaseModel(pl.LightningModule):
 
     @classmethod
     def load(cls, path, **kwargs):
-        with fsspec.open(path, "rb") as f:
+        if "weights_only" in inspect.signature(torch.load).parameters:
+            kwargs["weights_only"] = False
+        with fsspec.open(path, "rb") as f, warnings.catch_warnings():
+            # ignore possible warnings about weights_only=False
+            warnings.filterwarnings("ignore", category=FutureWarning)
             content = torch.load(f, **kwargs)
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])
