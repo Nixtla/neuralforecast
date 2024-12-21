@@ -49,7 +49,6 @@ class GRU(BaseRecurrent):
     `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
@@ -89,7 +88,6 @@ class GRU(BaseRecurrent):
         valid_batch_size: Optional[int] = None,
         scaler_type: str = "robust",
         random_seed=1,
-        num_workers_loader=0,
         drop_last_loader=False,
         dataloader_kwargs=None,
         **trainer_kwargs
@@ -111,7 +109,6 @@ class GRU(BaseRecurrent):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             dataloader_kwargs=dataloader_kwargs,
