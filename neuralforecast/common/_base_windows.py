@@ -52,26 +52,20 @@ class BaseWindows(BaseModel):
         drop_last_loader=False,
         random_seed=1,
         alias=None,
-        optimizer=None,
-        optimizer_kwargs=None,
-        lr_scheduler=None,
-        lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
+        config_optimizers=None,
         **trainer_kwargs,
     ):
         super().__init__(
             random_seed=random_seed,
             loss=loss,
             valid_loss=valid_loss,
-            optimizer=optimizer,
-            optimizer_kwargs=optimizer_kwargs,
-            lr_scheduler=lr_scheduler,
-            lr_scheduler_kwargs=lr_scheduler_kwargs,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             max_steps=max_steps,
             early_stop_patience_steps=early_stop_patience_steps,
+            config_optimizers=config_optimizers,
             **trainer_kwargs,
         )
 

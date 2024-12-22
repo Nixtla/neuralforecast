@@ -835,11 +835,10 @@ class PatchTST(BaseWindows):
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
+    `config_optimizers`: <class 'function'>, optional, A callable function that implements the optimization behavior as detailed in <br>
+     https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.core.LightningModule.html#lightning.pytorch.core.LightningModule.configure_optimizers <br>
+     Note that the function must accept an argument which is the subclass of Neuralforecast's `BaseModel` to speficy the model's parameters() for the optimizer. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -893,11 +892,8 @@ class PatchTST(BaseWindows):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
-        optimizer=None,
-        optimizer_kwargs=None,
-        lr_scheduler=None,
-        lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
+        config_optimizers=None,
         **trainer_kwargs
     ):
         super(PatchTST, self).__init__(
@@ -923,11 +919,8 @@ class PatchTST(BaseWindows):
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
-            optimizer=optimizer,
-            optimizer_kwargs=optimizer_kwargs,
-            lr_scheduler=lr_scheduler,
-            lr_scheduler_kwargs=lr_scheduler_kwargs,
             dataloader_kwargs=dataloader_kwargs,
+            config_optimizers=config_optimizers,
             **trainer_kwargs
         )
 
