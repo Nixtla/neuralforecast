@@ -50,6 +50,7 @@ class BaseRecurrent(BaseModel):
         random_seed=1,
         alias=None,
         dataloader_kwargs=None,
+        config_optimizers=None,
         **trainer_kwargs,
     ):
         super().__init__(
@@ -61,6 +62,7 @@ class BaseRecurrent(BaseModel):
             stat_exog_list=stat_exog_list,
             max_steps=max_steps,
             early_stop_patience_steps=early_stop_patience_steps,
+            config_optimizers=config_optimizers,
             **trainer_kwargs,
         )
 
