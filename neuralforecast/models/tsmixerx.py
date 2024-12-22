@@ -188,6 +188,9 @@ class TSMixerx(BaseMultivariate):
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
+    `config_optimizers`: <class 'function'>, optional, A callable function that implements the optimization behavior as detailed in <br>
+     https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.core.LightningModule.html#lightning.pytorch.core.LightningModule.configure_optimizers <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -226,6 +229,7 @@ class TSMixerx(BaseMultivariate):
         random_seed: int = 1,
         drop_last_loader: bool = False,
         dataloader_kwargs=None,
+        config_optimizers=None,
         **trainer_kwargs
     ):
 
@@ -250,6 +254,7 @@ class TSMixerx(BaseMultivariate):
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
             dataloader_kwargs=dataloader_kwargs,
+            config_optimizers=config_optimizers,
             **trainer_kwargs
         )
         # Reversible InstanceNormalization layer
