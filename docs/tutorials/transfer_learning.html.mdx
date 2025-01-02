@@ -32,34 +32,26 @@ You can run these experiments using GPU with Google Colab.
 
 ```python
 # %%capture
-# !pip install git+https://github.com/Nixtla/datasetsforecast.git@main
-```
-
-
-```python
-# %%capture
-# !pip install neuralforecast
-```
-
-
-```python
-import numpy as np
-import pandas as pd
-import torch
-from IPython.display import display, Markdown
-
-import matplotlib.pyplot as plt
-
-from datasetsforecast.m4 import M4
-from neuralforecast.core import NeuralForecast
-from neuralforecast.models import NHITS
-from neuralforecast.utils import AirPassengersDF
-from neuralforecast.losses.numpy import mae, mse
+# !pip install datasetsforecast neuralforecast
 ```
 
 
 ```python
 import logging
+
+import numpy as np
+import pandas as pd
+import torch
+from datasetsforecast.m4 import M4
+from neuralforecast.core import NeuralForecast
+from neuralforecast.models import NHITS
+from neuralforecast.utils import AirPassengersDF
+from utilsforecast.losses import mae
+from utilsforecast.plotting import plot_series
+```
+
+
+```python
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 ```
 
@@ -69,6 +61,10 @@ an email or join or community, we also offer a fully hosted solution)
 
 ```python
 torch.cuda.is_available()
+```
+
+``` text
+True
 ```
 
 ## 2. Load M4 Data
@@ -89,6 +85,20 @@ Y_df, _, _ = M4.load(directory='./', group='Monthly', cache=True)
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 Y_df
 ```
+
+|          | unique_id | ds                            | y      |
+|----------|-----------|-------------------------------|--------|
+| 0        | M1        | 1970-01-01 00:00:00.000000001 | 8000.0 |
+| 1        | M1        | 1970-01-01 00:00:00.000000002 | 8350.0 |
+| 2        | M1        | 1970-01-01 00:00:00.000000003 | 8570.0 |
+| 3        | M1        | 1970-01-01 00:00:00.000000004 | 7700.0 |
+| 4        | M1        | 1970-01-01 00:00:00.000000005 | 7080.0 |
+| ...      | ...       | ...                           | ...    |
+| 11246406 | M9999     | 1970-01-01 00:00:00.000000083 | 4200.0 |
+| 11246407 | M9999     | 1970-01-01 00:00:00.000000084 | 4300.0 |
+| 11246408 | M9999     | 1970-01-01 00:00:00.000000085 | 3800.0 |
+| 11246409 | M9999     | 1970-01-01 00:00:00.000000086 | 4400.0 |
+| 11246410 | M9999     | 1970-01-01 00:00:00.000000087 | 4300.0 |
 
 ## 3. Model Train and Save
 
@@ -112,9 +122,15 @@ models = [NHITS(input_size=5 * horizon,
                 n_pool_kernel_size = stacks*[1],
                 batch_size = 32,
                 scaler_type='standard',
-                n_freq_downsample=[12,4,1])]
-nf = NeuralForecast(models=models, freq='M')
+                n_freq_downsample=[12,4,1],
+                enable_progress_bar=False
+               )]
+nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df)
+```
+
+``` text
+INFO:lightning_fabric.utilities.seed:Seed set to 1
 ```
 
 Save model with `core.NeuralForecast.save` method. This method uses
@@ -134,6 +150,9 @@ forecast `AirPassenger` with the `core.NeuralForecast.predict` function.
 fcst2 = NeuralForecast.load(path='./results/transfer/')
 ```
 
+``` text
+INFO:lightning_fabric.utilities.seed:Seed set to 1
+```
 
 ```python
 # We define the train df. 
@@ -147,24 +166,23 @@ Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
 
 
 ```python
-Y_hat_df = fcst2.predict(df=Y_train_df).reset_index()
+Y_hat_df = fcst2.predict(df=Y_train_df)
 Y_hat_df.head()
 ```
 
+|     | unique_id | ds         | NHITS      |
+|-----|-----------|------------|------------|
+| 0   | 1.0       | 1960-01-31 | 416.846130 |
+| 1   | 1.0       | 1960-02-29 | 396.173950 |
+| 2   | 1.0       | 1960-03-31 | 452.131226 |
+| 3   | 1.0       | 1960-04-30 | 459.571442 |
+| 4   | 1.0       | 1960-05-31 | 464.970917 |
 
 ```python
-fig, ax = plt.subplots(1, 1, figsize = (20, 7))
-Y_hat_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds'])
-plot_df = pd.concat([Y_train_df, Y_hat_df]).set_index('ds')
-
-plot_df[['y', 'NHITS']].plot(ax=ax, linewidth=2)
-
-ax.set_title('AirPassengers Forecast', fontsize=22)
-ax.set_ylabel('Monthly Passengers', fontsize=20)
-ax.set_xlabel('Timestamp [t]', fontsize=20)
-ax.legend(prop={'size': 15})
-ax.grid()
+plot_series(Y_train_df, Y_hat_df)
 ```
+
+![](/neuralforecast/docs/tutorials/17_transfer_learning_files/figure-markdown_strict/cell-12-output-1.png)
 
 ## 5. Evaluate Results
 
@@ -179,14 +197,15 @@ $$
 $$
 
 ```python
-y_true = Y_test_df.y.values
-y_hat = Y_hat_df['NHITS'].values
-```
-
-
-```python
-print('NHITS     MAE: %0.3f' % mae(y_hat, y_true))
+fcst_mae = mae(Y_test_df.merge(Y_hat_df), models=['NHITS'])['NHITS'].item()
+print(f'NHITS     MAE: {fcst_mae:.3f}')
 print('ETS       MAE: 16.222')
 print('AutoARIMA MAE: 18.551')
+```
+
+``` text
+NHITS     MAE: 8.065
+ETS       MAE: 16.222
+AutoARIMA MAE: 18.551
 ```
 

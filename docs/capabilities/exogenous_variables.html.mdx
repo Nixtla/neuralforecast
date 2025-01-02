@@ -63,13 +63,15 @@ as parameters of the model.
 
 ```python
 import pandas as pd
-import matplotlib.pyplot as plt
+from utilsforecast.plotting import plot_series
 ```
 
 
 ```python
-df = pd.read_csv('https://datasets-nixtla.s3.amazonaws.com/EPF_FR_BE.csv')
-df['ds'] = pd.to_datetime(df['ds'])
+df = pd.read_csv(
+    'https://datasets-nixtla.s3.amazonaws.com/EPF_FR_BE.csv',
+    parse_dates=['ds'],
+)
 df.head()
 ```
 
@@ -87,11 +89,7 @@ df.head()
 > useful to capture long seasonalities.
 
 ```python
-plt.figure(figsize=(15,5))
-plt.plot(df[df['unique_id']=='FR']['ds'], df[df['unique_id']=='FR']['y'])
-plt.xlabel('Date')
-plt.ylabel('Price [EUR/MWh]')
-plt.grid()
+plot_series(df)
 ```
 
 ![](/neuralforecast/docs/capabilities/03_exogenous_variables_files/figure-markdown_strict/cell-5-output-1.png)
@@ -144,23 +142,22 @@ produce the next day hourly forecasts, and set `input_size` to use the
 last 5 days of data as input.
 
 ```python
+import logging
+
 from neuralforecast.auto import NHITS, BiTCN
 from neuralforecast.core import NeuralForecast
+```
 
-import logging
+
+```python
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 ```
 
-``` text
-c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\tqdm\auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from .autonotebook import tqdm as notebook_tqdm
-2024-07-15 11:16:36,090 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
-2024-07-15 11:16:36,499 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
-```
 
 ```python
 horizon = 24 # day-ahead daily forecast
 models = [NHITS(h = horizon,
+                max_steps=100,
                 input_size = 5*horizon,
                 futr_exog_list = ['gen_forecast', 'week_day'], # <- Future exogenous variables
                 hist_exog_list = ['system_load'], # <- Historical exogenous variables
@@ -168,6 +165,7 @@ models = [NHITS(h = horizon,
                 scaler_type = 'robust'),
           BiTCN(h = horizon,
                 input_size = 5*horizon,
+                max_steps=100,
                 futr_exog_list = ['gen_forecast', 'week_day'], # <- Future exogenous variables
                 hist_exog_list = ['system_load'], # <- Historical exogenous variables
                 stat_exog_list = ['market_0', 'market_1'], # <- Static exogenous variables
@@ -196,9 +194,32 @@ Next, pass the datasets to the `df` and `static_df` inputs of the `fit`
 method.
 
 ```python
-nf = NeuralForecast(models=models, freq='H')
-nf.fit(df=df,
-       static_df=static_df)
+nf = NeuralForecast(models=models, freq='h')
+nf.fit(df=df, static_df=static_df)
+```
+
+``` text
+Sanity Checking: |                                                                                            …
+```
+
+``` text
+Training: |                                                                                                   …
+```
+
+``` text
+Validation: |                                                                                                 …
+```
+
+``` text
+Sanity Checking: |                                                                                            …
+```
+
+``` text
+Training: |                                                                                                   …
+```
+
+``` text
+Validation: |                                                                                                 …
 ```
 
 ## 4. Forecasting with exogenous variables
@@ -210,8 +231,10 @@ There is no need to add the target variable `y` and historic variables
 as they won’t be used by the model.
 
 ```python
-futr_df = pd.read_csv('https://datasets-nixtla.s3.amazonaws.com/EPF_FR_BE_futr.csv')
-futr_df['ds'] = pd.to_datetime(futr_df['ds'])
+futr_df = pd.read_csv(
+    'https://datasets-nixtla.s3.amazonaws.com/EPF_FR_BE_futr.csv',
+    parse_dates=['ds'],
+)
 futr_df.head()
 ```
 
@@ -237,48 +260,26 @@ Y_hat_df.head()
 ```
 
 ``` text
-c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:374: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
-  freq = pd.tseries.frequencies.to_offset(freq)
-c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:428: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
-  freq = pd.tseries.frequencies.to_offset(freq)
+Predicting: |                                                                                                 …
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 46.25it/s]
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 14.09it/s]
+Predicting: |                                                                                                 …
 ```
 
-``` text
-c:\Users\ospra\OneDrive\Phd\Repositories\neuralforecast\neuralforecast\core.py:199: FutureWarning: In a future version the predictions will have the id as a column. You can set the `NIXTLA_ID_AS_COL` environment variable to adopt the new behavior and to suppress this warning.
-  warnings.warn(
-```
-
-|           | ds                  | NHITS     | BiTCN     |
-|-----------|---------------------|-----------|-----------|
-| unique_id |                     |           |           |
-| BE        | 2016-11-01 00:00:00 | 38.138920 | 40.295403 |
-| BE        | 2016-11-01 01:00:00 | 34.647514 | 36.238552 |
-| BE        | 2016-11-01 02:00:00 | 33.428795 | 33.724998 |
-| BE        | 2016-11-01 03:00:00 | 32.428146 | 31.264389 |
-| BE        | 2016-11-01 04:00:00 | 31.068453 | 30.719826 |
+|     | unique_id | ds                  | NHITS     | BiTCN     |
+|-----|-----------|---------------------|-----------|-----------|
+| 0   | BE        | 2016-11-01 00:00:00 | 35.209274 | 42.024925 |
+| 1   | BE        | 2016-11-01 01:00:00 | 32.382507 | 39.388638 |
+| 2   | BE        | 2016-11-01 02:00:00 | 30.190483 | 36.652863 |
+| 3   | BE        | 2016-11-01 03:00:00 | 27.577364 | 33.873573 |
+| 4   | BE        | 2016-11-01 04:00:00 | 24.209377 | 35.039787 |
 
 ```python
-import matplotlib.pyplot as plt
-
-plot_df = df[df['unique_id']=='FR'].tail(24*5).reset_index(drop=True)
-Y_hat_df = Y_hat_df.reset_index(drop=False)
-Y_hat_df = Y_hat_df[Y_hat_df['unique_id']=='FR']
-
-plot_df = pd.concat([plot_df, Y_hat_df ]).set_index('ds') # Concatenate the train and forecast dataframes
-
-plot_df[['y', 'NHITS', 'BiTCN']].plot(linewidth=2)
-plt.axvline('2016-11-01', color='red')
-plt.ylabel('Price [EUR/MWh]', fontsize=12)
-plt.xlabel('Date', fontsize=12)
-plt.grid()
+plot_series(df, Y_hat_df, max_insample_length=24*5)
 ```
 
-![](/neuralforecast/docs/capabilities/03_exogenous_variables_files/figure-markdown_strict/cell-12-output-1.png)
+![](/neuralforecast/docs/capabilities/03_exogenous_variables_files/figure-markdown_strict/cell-13-output-1.png)
 
 In summary, to add exogenous variables to a model make sure to follow
 the next steps:

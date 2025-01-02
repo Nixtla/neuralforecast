@@ -40,15 +40,6 @@ In this tutorial we’ll explain how to perform cross-validation in
 > minimal example visit the [Quick
 > Start](../getting-started/quickstart.html)
 
-The following line of code is used so that the output of
-cross-validation has the ids of the series as a column rather than as
-the index.
-
-```python
-import os
-os.environ['NIXTLA_ID_AS_COL'] = '1'
-```
-
 ## 1. Install NeuralForecast
 
 ```python
@@ -62,7 +53,21 @@ Competition](https://www.sciencedirect.com/science/article/pii/S0169207019301128
 which has been stored in a parquet file for efficiency.
 
 ```python
+import os
+import logging
+
 import pandas as pd
+from IPython.display import display
+```
+
+
+```python
+os.environ['PL_TRAINER_ENABLE_PROGRESS_BAR'] = '0'
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+```
+
+
+```python
 Y_df = pd.read_parquet('https://datasets-nixtla.s3.amazonaws.com/m4-hourly.parquet')
 Y_df.head()
 ```
@@ -100,10 +105,14 @@ To plot the series, we’ll use the `plot_series` method from
 
 ```python
 from utilsforecast.plotting import plot_series
+```
+
+
+```python
 plot_series(Y_df)
 ```
 
-![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-6-output-1.png)
+![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-8-output-1.png)
 
 ## 3. Train multiple models using cross-validation
 
@@ -116,6 +125,7 @@ class and the models that we want to compare.
 ```python
 from neuralforecast import NeuralForecast 
 from neuralforecast.auto import MLP, NBEATS, NHITS
+from neuralforecast.losses.pytorch import MQLoss
 ```
 
 In this tutorial, we will use `neuralforecast's`
@@ -154,14 +164,10 @@ To learn more about the hyperparameters of each model, please check out
 the corresponding documentation.
 
 ```python
-from neuralforecast.losses.pytorch import MQLoss
-
 horizon = 48 
-
 models = [MLP(h=horizon, input_size=2*horizon, loss=MQLoss()), 
           NBEATS(h=horizon, input_size=2*horizon, loss=MQLoss()), 
           NHITS(h=horizon, input_size=2*horizon, loss=MQLoss()),]
-
 nf = NeuralForecast(models=models, freq=1)
 ```
 
@@ -185,7 +191,7 @@ The `cross_validation` method takes the following arguments:
     `step_size` parameter and forecast horizon `h` of a model. In this
     diagram `step_size=2` and `h=4`.
 
-![](/neuralforecast/docs/tutorials/../imgs_indx/predict_insample.png)
+![](/neuralforecast/docs/tutorials/../../imgs_indx/predict_insample.png)
 
 -   `refit` (bool or int): Whether to retrain models for each
     cross-validation window. If `False`, the models are trained at the
@@ -214,11 +220,11 @@ cv_df.head()
 
 |  | unique_id | ds | cutoff | MLP-median | MLP-lo-90 | MLP-lo-80 | MLP-hi-80 | MLP-hi-90 | NBEATS-median | NBEATS-lo-90 | NBEATS-lo-80 | NBEATS-hi-80 | NBEATS-hi-90 | NHITS-median | NHITS-lo-90 | NHITS-lo-80 | NHITS-hi-80 | NHITS-hi-90 | y |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | H1 | 605 | 604 | 627.988586 | 534.398438 | 557.919495 | 706.230042 | 729.458984 | 622.185120 | 582.681030 | 598.783203 | 648.851318 | 653.490173 | 632.352661 | 579.588623 | 581.992249 | 641.553772 | 663.227234 | 622.0 |
-| 1 | H1 | 606 | 604 | 567.843018 | 473.527313 | 503.057220 | 652.319458 | 702.797974 | 544.922485 | 489.482178 | 518.790222 | 572.878967 | 585.352661 | 553.002197 | 495.692871 | 504.136749 | 595.143494 | 616.993591 | 558.0 |
-| 2 | H1 | 607 | 604 | 521.304260 | 412.619751 | 446.281494 | 598.887146 | 630.079163 | 496.092041 | 439.469055 | 450.099365 | 524.822876 | 523.129578 | 496.740112 | 449.902313 | 453.967438 | 539.902588 | 560.253723 | 513.0 |
-| 3 | H1 | 608 | 604 | 488.616760 | 393.635559 | 403.897003 | 557.288452 | 600.689697 | 464.539612 | 409.801483 | 425.563171 | 483.017029 | 497.362915 | 455.020721 | 416.871094 | 420.002441 | 500.547150 | 507.826721 | 476.0 |
-| 4 | H1 | 609 | 604 | 464.543854 | 339.080414 | 367.943787 | 536.813965 | 558.877808 | 444.119019 | 384.093872 | 409.416290 | 470.489075 | 474.619446 | 432.959076 | 389.460663 | 397.191345 | 465.580536 | 491.252747 | 449.0 |
+| 0 | H1 | 605 | 604 | 630.349060 | 566.307068 | 577.870239 | 708.477600 | 712.254150 | 626.478210 | 582.834473 | 597.013794 | 624.287659 | 653.175964 | 622.241150 | 567.838135 | 586.760376 | 668.188782 | 659.781067 | 622.0 |
+| 1 | H1 | 606 | 604 | 585.820374 | 493.236633 | 503.230530 | 645.661133 | 675.120361 | 556.979431 | 526.553650 | 520.657654 | 596.815918 | 589.283020 | 566.518494 | 517.265991 | 515.924683 | 604.766785 | 639.438599 | 558.0 |
+| 2 | H1 | 607 | 604 | 530.625977 | 441.605194 | 459.140106 | 594.764465 | 633.654541 | 523.716309 | 472.204712 | 495.788727 | 540.741089 | 552.067322 | 512.103821 | 451.125793 | 477.172058 | 548.852417 | 564.310486 | 513.0 |
+| 3 | H1 | 608 | 604 | 496.266418 | 412.336151 | 422.470306 | 557.838257 | 585.249390 | 486.418243 | 467.397186 | 473.552673 | 525.132446 | 511.859619 | 486.631104 | 420.642029 | 439.170166 | 517.347168 | 539.059570 | 476.0 |
+| 4 | H1 | 609 | 604 | 468.644623 | 395.862976 | 409.881836 | 522.402161 | 587.682190 | 473.056915 | 446.661713 | 457.302490 | 491.170868 | 499.522491 | 456.727844 | 407.459442 | 410.142670 | 507.007324 | 520.796692 | 449.0 |
 
 The output of the `cross-validation` method is a data frame that
 includes the following columns:
@@ -273,7 +279,7 @@ Notice that if we use the default value of `models`, then we need to
 exclude the `cutoff` column from the cross-validation data frame.
 
 ```python
-evaluation_df = evaluate(cv_df.loc[:, cv_df.columns != 'cutoff'], metrics=[rmse])
+evaluation_df = evaluate(cv_df.drop(columns='cutoff'), metrics=[rmse])
 ```
 
 For each unique id, we’ll select the model with the lowest RMSE.
@@ -283,18 +289,18 @@ evaluation_df['best_model'] = evaluation_df.drop(columns=['metric', 'unique_id']
 evaluation_df
 ```
 
-|     | unique_id | metric | MLP-median  | NBEATS-median | NHITS-median | best_model    |
-|-----|-----------|--------|-------------|---------------|--------------|---------------|
-| 0   | H1        | rmse   | 44.453354   | 48.828117     | 47.718341    | MLP-median    |
-| 1   | H10       | rmse   | 24.375221   | 18.887296     | 17.938162    | NHITS-median  |
-| 2   | H100      | rmse   | 165.888534  | 211.220029    | 200.504549   | MLP-median    |
-| 3   | H101      | rmse   | 375.096472  | 201.191102    | 149.309690   | NHITS-median  |
-| 4   | H102      | rmse   | 475.430266  | 321.459725    | 331.499041   | NBEATS-median |
-| 5   | H103      | rmse   | 8552.597224 | 9091.500057   | 8169.006459  | NHITS-median  |
-| 6   | H104      | rmse   | 187.017183  | 194.206979    | 148.196734   | NHITS-median  |
-| 7   | H105      | rmse   | 349.070196  | 304.997747    | 312.518832   | NBEATS-median |
-| 8   | H106      | rmse   | 196.937493  | 361.771205    | 357.442132   | MLP-median    |
-| 9   | H107      | rmse   | 211.585091  | 236.404925    | 241.229147   | MLP-median    |
+|     | unique_id | metric | MLP-median   | NBEATS-median | NHITS-median | best_model    |
+|-----|-----------|--------|--------------|---------------|--------------|---------------|
+| 0   | H1        | rmse   | 41.636492    | 39.277314     | 43.176677    | NBEATS-median |
+| 1   | H10       | rmse   | 26.544711    | 15.540037     | 19.253340    | NBEATS-median |
+| 2   | H100      | rmse   | 171.647549   | 166.811197    | 233.774879   | NBEATS-median |
+| 3   | H101      | rmse   | 372.395826   | 272.311480    | 171.856982   | NHITS-median  |
+| 4   | H102      | rmse   | 470.877063   | 296.628817    | 344.146044   | NBEATS-median |
+| 5   | H103      | rmse   | 10209.629348 | 8931.229973   | 8808.555886  | NHITS-median  |
+| 6   | H104      | rmse   | 203.656224   | 208.518199    | 144.004484   | NHITS-median  |
+| 7   | H105      | rmse   | 299.359214   | 331.195206    | 274.353142   | NHITS-median  |
+| 8   | H106      | rmse   | 212.488910   | 356.315381    | 354.211495   | MLP-median    |
+| 9   | H107      | rmse   | 213.150960   | 195.409269    | 200.016780   | NBEATS-median |
 
 We can summarize the results to see how many times each model won.
 
@@ -307,9 +313,9 @@ summary_df
 
 |     | metric | model         | num. of unique_ids |
 |-----|--------|---------------|--------------------|
-| 0   | rmse   | NBEATS-median | 2                  |
-| 1   | rmse   | MLP-median    | 4                  |
-| 2   | rmse   | NHITS-median  | 4                  |
+| 0   | rmse   | MLP-median    | 1                  |
+| 1   | rmse   | NHITS-median  | 4                  |
+| 2   | rmse   | NBEATS-median | 5                  |
 
 With this information, we now know which model performs best for each
 series in the historical data.
@@ -324,11 +330,11 @@ frame. We’ll also exclude the `cutoff` column and use the
 for better visualization.
 
 ```python
-cv_df.rename(columns = {'y' : 'actual'}, inplace = True) # rename actual values 
-plot_series(Y_df, cv_df.loc[:, cv_df.columns != 'cutoff'], max_insample_length=300)
+cv_df.rename(columns = {'y': 'actual'}, inplace=True) # rename actual values 
+plot_series(Y_df, cv_df.drop(columns='cutoff'), max_insample_length=300)
 ```
 
-![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-15-output-1.png)
+![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-17-output-1.png)
 
 To clarify the concept of cross-validation further, we’ll plot the
 forecasts generated at each cutoff for the series with `unique_id='H1'`.
@@ -340,20 +346,19 @@ forecasts are non-overlapping
 
 ```python
 cutoff1, cutoff2, cutoff3 = cv_df['cutoff'].unique()
-plot_series(Y_df, cv_df[cv_df['cutoff'] == cutoff1].loc[:, cv_df.columns != 'cutoff'], ids=['H1']) # use ids parameter to select specific series
-```
-
-![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-16-output-1.png)
-
-```python
-plot_series(Y_df, cv_df[cv_df['cutoff'] == cutoff2].loc[:, cv_df.columns != 'cutoff'], ids=['H1'])
-```
-
-![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-17-output-1.png)
-
-```python
-plot_series(Y_df, cv_df[cv_df['cutoff'] == cutoff3].loc[:, cv_df.columns != 'cutoff'], ids=['H1'])
+for cutoff in cv_df['cutoff'].unique():
+    display(
+        plot_series(
+            Y_df,
+            cv_df[cv_df['cutoff'] == cutoff].drop(columns='cutoff'),
+            ids=['H1'], # use ids parameter to select specific series
+        )
+    )
 ```
 
 ![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-18-output-1.png)
+
+![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-18-output-2.png)
+
+![](/neuralforecast/docs/tutorials/02_cross_validation_files/figure-markdown_strict/cell-18-output-3.png)
 

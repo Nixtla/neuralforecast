@@ -20,7 +20,6 @@ This notebook was ran in databricks using the following configuration:
 
 ```python
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -44,7 +43,6 @@ To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other ope
 
 ```python
 logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
-os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```
 
 ## Data

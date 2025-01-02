@@ -26,8 +26,7 @@ You can run these experiments using GPU with Google Colab.
 ## 1. Installing packages
 
 ```python
-!pip install datasetsforecast hierarchicalforecast
-!pip install git+https://github.com/Nixtla/neuralforecast.git
+!pip install datasetsforecast hierarchicalforecast neuralforecast
 ```
 
 ## 2. Load hierarchical dataset
@@ -54,13 +53,15 @@ sources are available.
 
 ```python
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from datasetsforecast.hierarchical import HierarchicalData
 from hierarchicalforecast.utils import aggregate, HierarchicalPlot
-
 from neuralforecast.utils import augment_calendar_df
+from utilsforecast.plotting import plot_series
+```
 
+
+```python
 def sort_df_hier(Y_df, S):
     # NeuralForecast core, sorts unique_id lexicographically
     # by default, this method matches S_df and Y_hat_df hierarchical order.
@@ -73,7 +74,6 @@ def sort_df_hier(Y_df, S):
 Y_df, S_df, tags = HierarchicalData.load('./data', 'TourismLarge')
 Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 Y_df = sort_df_hier(Y_df, S_df)
-
 Y_df, _ = augment_calendar_df(df=Y_df, freq='M')
 ```
 
@@ -105,25 +105,13 @@ hplot = HierarchicalPlot(S=S_df, tags=tags)
 hplot.plot_summing_matrix()
 ```
 
-![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-4-output-1.png)
+![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
 
 ```python
-# Here we plot the top most series from the dataset
-# that corresponds to the total tourist monthly visits to Australia
-plt.figure(figsize=(10,5))
-plt.plot(Y_df[Y_df['unique_id']=='TotalAll']['ds'], 
-         Y_df[Y_df['unique_id']=='TotalAll']['y'], label='target')
-plt.plot(Y_df[Y_df['unique_id']=='TotalAll']['ds'], 
-         Y_df[Y_df['unique_id']=='TotalAll']['month']*80000, label='month dummy')
-plt.xlabel('Date')
-plt.ylabel('Tourist Visits')
-plt.legend()
-plt.grid()
-plt.show()
-plt.close()
+plot_series(forecasts_df=Y_df.assign(month=80000*Y_df['month']), ids=['TotalAll'])
 ```
 
-![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
+![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-6-output-1.png)
 
 ## 3. Fit and Predict HINT
 
@@ -133,6 +121,8 @@ efficient and flexible multivariate probability distribution.<br/> 3.
 Builtin reconciliation capabilities.<br/>
 
 ```python
+import logging
+
 import numpy as np
 
 from neuralforecast import NeuralForecast
@@ -144,10 +134,8 @@ from neuralforecast.losses.pytorch import GMM, PMM, DistributionLoss, sCRPS
 ```python
 # Train test splits
 horizon = 12
-Y_test_df  = Y_df.groupby('unique_id').tail(horizon)
+Y_test_df  = Y_df.groupby('unique_id', observed=True).tail(horizon)
 Y_train_df = Y_df.drop(Y_test_df.index)
-Y_test_df  = Y_test_df.set_index('unique_id')
-Y_train_df = Y_train_df.set_index('unique_id')
 ```
 
 
@@ -174,37 +162,33 @@ model = HINT(h=horizon, S=S_df.values,
 ```
 
 ``` text
-INFO:lightning_fabric.utilities.seed:Global seed set to 1
+INFO:lightning_fabric.utilities.seed:Seed set to 1
 ```
+
+```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+```
+
 
 ```python
 Y_df['y'] = Y_df['y'] * (Y_df['y'] > 0)
 nf = NeuralForecast(models=[model], freq='MS')
-# Y_hat_df = nf.cross_validation(df=Y_df, val_size=12, n_windows=1)
 nf.fit(df=Y_train_df, val_size=12)
 Y_hat_df = nf.predict()
 ```
 
 
 ```python
-unique_id = 'TotalAll'
-Y_plot_df = Y_df[Y_df.unique_id==unique_id].tail(12*5)
-Y_hat_df = Y_hat_df.reset_index()
-plot_df = Y_hat_df[Y_hat_df.unique_id==unique_id]
-plot_df = Y_plot_df.merge(plot_df, on=['unique_id', 'ds'], how='left')
-
-plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['HINT-median'], c='blue', label='median')
-plt.fill_between(x=plot_df['ds'][-12:],
-                 y1=plot_df['HINT-lo-90.0'][-12:].values,
-                 y2=plot_df['HINT-hi-90.0'][-12:].values,
-                 alpha=0.4, label='level 90')
-plt.legend()
-plt.grid()
-plt.plot()
+plot_series(
+    Y_df,
+    Y_hat_df.rename(columns=lambda x: x.replace('.0', '')).drop(columns='NHITS-median'),
+    ids=['TotalAll'],
+    level=[90],
+    max_insample_length=12*5,
+)
 ```
 
-![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-10-output-1.png)
+![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-12-output-1.png)
 
 ## 4. Forecast Evaluation
 
@@ -229,8 +213,11 @@ As you can see the HINT model efficiently achieves state of the art
 accuracy under minimal tuning.
 
 ```python
-from hierarchicalforecast.evaluation import scaled_crps    
-    
+from hierarchicalforecast.evaluation import scaled_crps
+```
+
+
+```python
 def _get_hierarchical_scrps(hier_idxs, Y, Yq_hat, quantiles):
     # We use the indexes obtained from the aggregation tags
     # to compute scaled CRPS across the hierarchy levels 
@@ -258,7 +245,7 @@ Y_hat_df_list = [nf.predict() for _ in range(n_samples)]
 # Parse y_test and y_rec
 # Keep only quantile columns from Y_hat_df
 # Removing mean and median default outputs
-model_name = type(model).__name__
+model_name = type(model.model).__name__
 quantile_columns = [model_name + n for n in nhits.loss.output_names]
 quantile_columns.remove(model_name)
 Yq_hat = []
@@ -314,15 +301,15 @@ Yq_hat.shape [n_samples, n_series, horizon, n_quantiles] (5, 555, 12, 99)
 
 |  | Levels | HINT | DPMN | HierE2E | ARIMA_MinTrace_B | ARIMA_BottomUp_B | ARIMA |
 |----|----|----|----|----|----|----|----|
-| 0 | Overall | 0.1178±0.0002 | 0.1249±0.0020 | 0.1472±0.0029 | 0.1313±0.0009 | 0.1375±0.0013 | 0.1416 |
-| 1 | Country | 0.0288±0.0007 | 0.0431±0.0042 | 0.0842±0.0051 | 0.0471±0.0018 | 0.0622±0.0026 | 0.0263 |
-| 2 | State | 0.0593±0.0004 | 0.0637±0.0032 | 0.1012±0.0029 | 0.0723±0.0011 | 0.0820±0.0019 | 0.0904 |
-| 3 | Zone | 0.1023±0.0003 | 0.1084±0.0033 | 0.1317±0.0022 | 0.1143±0.0007 | 0.1207±0.0010 | 0.1389 |
-| 4 | Region | 0.1451±0.0004 | 0.1554±0.0025 | 0.1705±0.0023 | 0.1591±0.0006 | 0.1646±0.0007 | 0.1878 |
-| 5 | Country/Purpose | 0.0752±0.0006 | 0.0700±0.0038 | 0.0995±0.0061 | 0.0723±0.0014 | 0.0788±0.0018 | 0.0770 |
-| 6 | State/Purpose | 0.1109±0.0001 | 0.1070±0.0023 | 0.1336±0.0042 | 0.1243±0.0014 | 0.1268±0.0017 | 0.1270 |
-| 7 | Zone/Purpose | 0.1773±0.0003 | 0.1887±0.0032 | 0.1955±0.0025 | 0.1919±0.0008 | 0.1949±0.0010 | 0.2022 |
-| 8 | Region/Purpose | 0.2438±0.0002 | 0.2629±0.0034 | 0.2615±0.0016 | 0.2694±0.0006 | 0.2698±0.0008 | 0.2834 |
+| 0 | Overall | 0.1281±0.0000 | 0.1249±0.0020 | 0.1472±0.0029 | 0.1313±0.0009 | 0.1375±0.0013 | 0.1416 |
+| 1 | Country | 0.0472±0.0000 | 0.0431±0.0042 | 0.0842±0.0051 | 0.0471±0.0018 | 0.0622±0.0026 | 0.0263 |
+| 2 | State | 0.0710±0.0000 | 0.0637±0.0032 | 0.1012±0.0029 | 0.0723±0.0011 | 0.0820±0.0019 | 0.0904 |
+| 3 | Zone | 0.1102±0.0000 | 0.1084±0.0033 | 0.1317±0.0022 | 0.1143±0.0007 | 0.1207±0.0010 | 0.1389 |
+| 4 | Region | 0.1544±0.0000 | 0.1554±0.0025 | 0.1705±0.0023 | 0.1591±0.0006 | 0.1646±0.0007 | 0.1878 |
+| 5 | Country/Purpose | 0.0819±0.0000 | 0.0700±0.0038 | 0.0995±0.0061 | 0.0723±0.0014 | 0.0788±0.0018 | 0.0770 |
+| 6 | State/Purpose | 0.1222±0.0000 | 0.1070±0.0023 | 0.1336±0.0042 | 0.1243±0.0014 | 0.1268±0.0017 | 0.1270 |
+| 7 | Zone/Purpose | 0.1869±0.0000 | 0.1887±0.0032 | 0.1955±0.0025 | 0.1919±0.0008 | 0.1949±0.0010 | 0.2022 |
+| 8 | Region/Purpose | 0.2509±0.0000 | 0.2629±0.0034 | 0.2615±0.0016 | 0.2694±0.0006 | 0.2698±0.0008 | 0.2834 |
 
 ## References
 

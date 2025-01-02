@@ -40,8 +40,11 @@ can easily fit your model to larger datasets in long format.
 
 ```python
 from neuralforecast.utils import AirPassengersDF
+```
 
-Y_df = AirPassengersDF # Defined in neuralforecast.utils
+
+```python
+Y_df = AirPassengersDF
 Y_df.head()
 ```
 
@@ -71,8 +74,15 @@ hyperparameters of the model. For example, for the
 we changed the default hidden size for both encoder and decoders.
 
 ```python
+import logging
+
 from neuralforecast import NeuralForecast
 from neuralforecast.models import LSTM, NHITS, RNN
+```
+
+
+```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 ```
 
 
@@ -90,8 +100,13 @@ models = [LSTM(h=horizon,                    # Forecast horizon
                 max_steps=100,               # Number of steps to train
                 n_freq_downsample=[2, 1, 1]) # Downsampling factors for each stack output
           ]
-nf = NeuralForecast(models=models, freq='M')
+nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df)
+```
+
+``` text
+Seed set to 1
+Seed set to 1
 ```
 
 > **Tip**
@@ -116,8 +131,11 @@ Y_hat_df = nf.predict()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 50.58it/s]
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 126.52it/s]
+Predicting: |                                                                                                 …
+```
+
+``` text
+Predicting: |                                                                                                 …
 ```
 
 The
@@ -126,41 +144,32 @@ method returns a DataFrame with the forecasts for each `unique_id`,
 `ds`, and model.
 
 ```python
-Y_hat_df = Y_hat_df.reset_index()
+Y_hat_df = Y_hat_df
 Y_hat_df.head()
 ```
 
 |     | unique_id | ds         | LSTM       | NHITS      |
 |-----|-----------|------------|------------|------------|
-| 0   | 1.0       | 1961-01-31 | 424.380310 | 453.039185 |
-| 1   | 1.0       | 1961-02-28 | 442.092010 | 429.609192 |
-| 2   | 1.0       | 1961-03-31 | 448.555664 | 498.796204 |
-| 3   | 1.0       | 1961-04-30 | 473.586609 | 509.536224 |
-| 4   | 1.0       | 1961-05-31 | 512.466370 | 524.131592 |
+| 0   | 1.0       | 1961-01-31 | 427.104553 | 447.842987 |
+| 1   | 1.0       | 1961-02-28 | 441.338562 | 435.471527 |
+| 2   | 1.0       | 1961-03-31 | 457.587250 | 482.023285 |
+| 3   | 1.0       | 1961-04-30 | 470.677490 | 500.341400 |
+| 4   | 1.0       | 1961-05-31 | 519.846191 | 513.727295 |
 
 ## 4. Plot Predictions
 
 Finally, we plot the forecasts of both models againts the real values.
 
 ```python
-import pandas as pd
-import matplotlib.pyplot as plt
+from utilsforecast.plotting import plot_series
 ```
 
 
 ```python
-fig, ax = plt.subplots(1, 1, figsize = (20, 7))
-plot_df = pd.concat([Y_df, Y_hat_df]).set_index('ds') # Concatenate the train and forecast dataframes
-plot_df[['y', 'LSTM', 'NHITS']].plot(ax=ax, linewidth=2)
-
-ax.set_title('AirPassengers Forecast', fontsize=22)
-ax.set_ylabel('Monthly Passengers', fontsize=20)
-ax.set_xlabel('Timestamp [t]', fontsize=20)
-ax.legend(prop={'size': 15})
-ax.grid()
+plot_series(Y_df, Y_hat_df)
 ```
 
-![](/neuralforecast/docs/getting-started/02_quickstart_files/figure-markdown_strict/cell-9-output-1.png)
+![](/neuralforecast/docs/getting-started/02_quickstart_files/figure-markdown_strict/cell-11-output-1.png)
 
 > **Tip**
 >

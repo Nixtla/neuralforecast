@@ -19,7 +19,6 @@ using conformal prediction.
 
 ```python
 import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -34,7 +33,6 @@ from neuralforecast.losses.pytorch import DistributionLoss, MAE
 
 ```python
 logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
-os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```
 
 ## Data

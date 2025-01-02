@@ -8,7 +8,7 @@ title: PyTorch Dataset/Loader
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L22"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L21"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesLoader
@@ -39,15 +39,14 @@ specified.<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L79"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L78"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### BaseTimeSeriesDataset
 
 > ``` text
 >  BaseTimeSeriesDataset (temporal_cols, max_size:int, min_size:int,
->                         y_idx:int, static=None, static_cols=None,
->                         sorted=False)
+>                         y_idx:int, static=None, static_cols=None)
 > ```
 
 \*An abstract class representing a :class:`Dataset`.
@@ -71,7 +70,7 @@ be provided.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L412"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L364"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### LocalFilesTimeSeriesDataset
@@ -81,7 +80,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                               id_col:str, time_col:str, target_col:str,
 >                               last_times, indices, max_size:int,
 >                               min_size:int, y_idx:int, static=None,
->                               static_cols=None, sorted=False)
+>                               static_cols=None)
 > ```
 
 \*An abstract class representing a :class:`Dataset`.
@@ -105,15 +104,14 @@ be provided.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L149"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L139"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesDataset
 
 > ``` text
->  TimeSeriesDataset (temporal, temporal_cols, indptr, max_size:int,
->                     min_size:int, y_idx:int, static=None,
->                     static_cols=None, sorted=False)
+>  TimeSeriesDataset (temporal, temporal_cols, indptr, y_idx:int,
+>                     static=None, static_cols=None)
 > ```
 
 \*An abstract class representing a :class:`Dataset`.
@@ -137,7 +135,7 @@ be provided.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L582"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/tsdataset.py#L530"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TimeSeriesDataModule

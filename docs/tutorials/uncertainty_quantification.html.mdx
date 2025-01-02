@@ -40,51 +40,18 @@ The `plot_grid` auxiliary function defined below will be useful to plot
 different time series, and different models’ forecasts.
 
 ```python
+import logging
 import random
 import warnings
-warnings.filterwarnings("ignore")
 from itertools import product
-import matplotlib.pyplot as plt
 
-def plot_grid(df_train, df_test=None, plot_random=True, model=None, level=None):
-    fig, axes = plt.subplots(4, 2, figsize = (24, 14))
+import torch
+from utilsforecast.plotting import plot_series
+```
 
-    unique_ids = df_train['unique_id'].unique()
 
-    assert len(unique_ids) >= 8, "Must provide at least 8 ts"
-    
-    if plot_random:
-        unique_ids = random.sample(list(unique_ids), k=8)
-    else:
-        unique_uids = unique_ids[:8]
-
-    for uid, (idx, idy) in zip(unique_ids, product(range(4), range(2))):
-        train_uid = df_train.query('unique_id == @uid')
-        axes[idx, idy].plot(train_uid['ds'], train_uid['y'], label = 'y_train')
-        if df_test is not None:
-            max_ds = train_uid['ds'].max()
-            test_uid = df_test.query('unique_id == @uid')
-            for col in ['y', f'{model}-median', 'y_test']:
-                if col in test_uid:
-                    axes[idx, idy].plot(test_uid['ds'], test_uid[col], label=col)
-            if level is not None:
-                for l, alpha in zip(sorted(level), [0.5, .4, .35, .2]):
-                    axes[idx, idy].fill_between(
-                        test_uid['ds'], 
-                        test_uid[f'{model}-lo-{l}'], 
-                        test_uid[f'{model}-hi-{l}'],
-                        alpha=alpha,
-                        color='orange',
-                        label=f'{model}_level_{l}',
-                    )
-        axes[idx, idy].set_title(f'M4 Hourly: {uid}')
-        axes[idx, idy].set_xlabel('Timestamp [t]')
-        axes[idx, idy].set_ylabel('Target')
-        axes[idx, idy].legend(loc='upper left')
-        axes[idx, idy].xaxis.set_major_locator(plt.MaxNLocator(20))
-        axes[idx, idy].grid()
-    fig.subplots_adjust(hspace=0.5)
-    plt.show()
+```python
+warnings.filterwarnings("ignore")
 ```
 
 ## 2. Loading M4 Data
@@ -93,19 +60,15 @@ For testing purposes, we will use the Hourly dataset from the [M4
 competition](https://www.researchgate.net/publication/325901666_The_M4_Competition_Results_findings_conclusion_and_way_forward).
 
 ```python
-!wget https://auto-arima-results.s3.amazonaws.com/M4-Hourly.csv
-!wget https://auto-arima-results.s3.amazonaws.com/M4-Hourly-test.csv
-```
-
-
-```python
 import pandas as pd
 ```
 
 
 ```python
-Y_train_df = pd.read_csv('M4-Hourly.csv')
-Y_test_df = pd.read_csv('M4-Hourly-test.csv').rename(columns={'y': 'y_test'})
+Y_train_df = pd.read_csv('https://auto-arima-results.s3.amazonaws.com/M4-Hourly.csv')
+Y_test_df = pd.read_csv(
+    'https://auto-arima-results.s3.amazonaws.com/M4-Hourly-test.csv'
+).rename(columns={'y': 'y_test'})
 ```
 
 In this example we will use a subset of the data to avoid waiting too
@@ -120,7 +83,7 @@ Y_test_df = Y_test_df.query('unique_id in @uids')
 
 
 ```python
-plot_grid(Y_train_df, Y_test_df)
+plot_series(Y_train_df, Y_test_df)
 ```
 
 ![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-8-output-1.png)
@@ -153,6 +116,12 @@ from neuralforecast.models import LSTM, NHITS
 
 
 ```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+torch.set_float32_matmul_precision('high')
+```
+
+
+```python
 horizon = 48
 levels = [80, 90]
 models = [LSTM(input_size=3*horizon, h=horizon,
@@ -160,12 +129,12 @@ models = [LSTM(input_size=3*horizon, h=horizon,
           NHITS(input_size=7*horizon, h=horizon,
                 n_freq_downsample=[24, 12, 1],
                 loss=MQLoss(level=levels), max_steps=2000),]
-nf = NeuralForecast(models=models, freq='H')
+nf = NeuralForecast(models=models, freq=1)
 ```
 
 ``` text
-Global seed set to 1
-Global seed set to 1
+Seed set to 1
+Seed set to 1
 ```
 
 All the models of the library are global, meaning that all time series
@@ -181,25 +150,27 @@ nf.fit(df=Y_train_df)
 
 ```python
 Y_hat_df = nf.predict()
-Y_hat_df = Y_hat_df.reset_index()
 Y_hat_df.head()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00,  2.82it/s]
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 136.22it/s]
+Predicting: |                                                                                                 …
+```
+
+``` text
+Predicting: |                                                                                                 …
 ```
 
 |  | unique_id | ds | LSTM-median | LSTM-lo-90 | LSTM-lo-80 | LSTM-hi-80 | LSTM-hi-90 | NHITS-median | NHITS-lo-90 | NHITS-lo-80 | NHITS-hi-80 | NHITS-hi-90 |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | H1 | 701 | 603.491211 | 526.534119 | 544.686646 | 650.893799 | 673.805603 | 611.634888 | 575.999146 | 582.778687 | 677.277039 | 674.705872 |
-| 1 | H1 | 702 | 548.415710 | 438.868591 | 472.805237 | 608.017822 | 639.063293 | 569.997803 | 513.014282 | 518.707153 | 598.849609 | 616.793457 |
-| 2 | H1 | 703 | 502.010681 | 382.608643 | 411.710419 | 570.315308 | 608.669250 | 510.787628 | 454.184448 | 465.425232 | 538.964172 | 554.563354 |
-| 3 | H1 | 704 | 460.870483 | 339.368988 | 370.636719 | 544.232666 | 579.824402 | 478.482330 | 429.657104 | 452.395508 | 500.892090 | 502.507141 |
-| 4 | H1 | 705 | 436.451843 | 313.868744 | 343.514191 | 520.812988 | 559.734741 | 463.763611 | 432.906342 | 427.853577 | 486.854492 | 487.539062 |
+| 0 | H1 | 701 | 604.558350 | 522.655884 | 540.282959 | 637.053223 | 656.381653 | 630.159546 | 609.588196 | 610.796936 | 667.073975 | 669.051697 |
+| 1 | H1 | 702 | 543.323303 | 437.307190 | 470.688477 | 592.671570 | 621.944153 | 579.778137 | 559.257080 | 557.859741 | 602.493164 | 610.493286 |
+| 2 | H1 | 703 | 493.909180 | 379.216583 | 417.424408 | 551.339111 | 579.863464 | 529.128662 | 496.805786 | 509.799744 | 543.403442 | 554.367126 |
+| 3 | H1 | 704 | 457.408600 | 347.231049 | 387.196930 | 524.955444 | 542.673462 | 502.934723 | 469.336945 | 476.858734 | 509.803619 | 517.505493 |
+| 4 | H1 | 705 | 431.993744 | 324.040070 | 356.231689 | 487.194427 | 510.252930 | 481.218201 | 457.727081 | 465.636963 | 491.732178 | 508.069946 |
 
 ```python
-Y_test_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds'])
+Y_test_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds']).rename(columns=lambda x: x.replace('-median', ''))
 ```
 
 ## 4. Plotting Predictions
@@ -222,18 +193,18 @@ interval 90% of the time.
 ### LSTM
 
 ```python
-plot_grid(Y_train_df, Y_test_df, level=levels, model='LSTM')
+plot_series(Y_train_df, Y_test_df, level=levels, models=['LSTM'])
 ```
 
-![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-14-output-1.png)
+![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-15-output-1.png)
 
 ### NHITS
 
 ```python
-plot_grid(Y_train_df, Y_test_df, level=levels, model='NHITS')
+plot_series(Y_train_df, Y_test_df, level=levels, models=['NHITS'])
 ```
 
-![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-15-output-1.png)
+![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-16-output-1.png)
 
 ## References
 

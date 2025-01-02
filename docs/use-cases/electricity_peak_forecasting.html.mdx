@@ -151,7 +151,7 @@ object with the following required parameters:
 # Instantiate StatsForecast class as sf
 nf = NeuralForecast(
     models=models,
-    freq='H', 
+    freq='h', 
 )
 ```
 
@@ -214,7 +214,7 @@ predicting the highest monthly load. Next, we filter the day in
 September with the highest hourly demand and predict the peak.
 
 ```python
-crossvalidation_df = crossvalidation_df.reset_index()[['ds','y','AutoNHITS']]
+crossvalidation_df = crossvalidation_df[['ds','y','AutoNHITS']]
 max_day = crossvalidation_df.iloc[crossvalidation_df['y'].argmax()].ds.day # Day with maximum load
 cv_df_day = crossvalidation_df.query('ds.dt.day == @max_day')
 max_hour = cv_df_day['y'].argmax()

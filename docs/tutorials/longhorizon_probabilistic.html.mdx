@@ -96,34 +96,25 @@ Next, plot the `HUFL` variable marking the validation and train splits.
 
 ```python
 import matplotlib.pyplot as plt
+from utilsforecast.plotting import plot_series
 ```
 
 
 ```python
-# We are going to plot the temperature of the transformer 
-# and marking the validation and train splits
 u_id = 'HUFL'
+fig = plot_series(Y_df, ids=[u_id])
+ax = fig.axes[0]
+
 x_plot = pd.to_datetime(Y_df[Y_df.unique_id==u_id].ds)
 y_plot = Y_df[Y_df.unique_id==u_id].y.values
-
 x_val = x_plot[n_time - val_size - test_size]
 x_test = x_plot[n_time - test_size]
 
-fig = plt.figure(figsize=(10, 5))
-fig.tight_layout()
-
-plt.plot(x_plot, y_plot)
-plt.xlabel('Date', fontsize=17)
-plt.ylabel('OT [15 min temperature]', fontsize=17)
-
-plt.axvline(x_val, color='black', linestyle='-.')
-plt.axvline(x_test, color='black', linestyle='-.')
-plt.text(x_val, 5, '  Validation', fontsize=12)
-plt.text(x_test, 3, '  Test', fontsize=12)
-
-plt.grid()
-plt.show()
-plt.close()
+ax.axvline(x_val, color='black', linestyle='-.')
+ax.axvline(x_test, color='black', linestyle='-.')
+ax.text(x_val, 5, '  Validation', fontsize=12)
+ax.text(x_test, 3, '  Test', fontsize=12)
+fig
 ```
 
 ![](/neuralforecast/docs/tutorials/06_longhorizon_probabilistic_files/figure-markdown_strict/cell-6-output-1.png)
@@ -145,15 +136,19 @@ Gradient Steps* are enough to achieve SoTA performance. Feel free to
 play around with this space.
 
 ```python
-from ray import tune
+import logging
 
+import torch
 from neuralforecast.auto import AutoNHITS
 from neuralforecast.core import NeuralForecast
-
 from neuralforecast.losses.pytorch import DistributionLoss
+from ray import tune
+```
 
-import logging
+
+```python
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+torch.set_float32_matmul_precision('high')
 ```
 
 
@@ -217,9 +212,7 @@ object with the following required parameters:
 
 ```python
 # Fit and predict
-nf = NeuralForecast(
-    models=models,
-    freq='15min')
+nf = NeuralForecast(models=models, freq='15min')
 ```
 
 The `cross_validation` method allows you to simulate multiple historic
@@ -248,6 +241,24 @@ Finally, we merge the forecasts with the `Y_df` dataset and plot the
 forecasts.
 
 ```python
+Y_hat_df
+```
+
+|  | unique_id | ds | AutoNHITS | AutoNHITS-median | AutoNHITS-lo-90 | AutoNHITS-lo-80 | AutoNHITS-hi-80 | AutoNHITS-hi-90 |
+|----|----|----|----|----|----|----|----|----|
+| 502944 | OT | 2018-02-11 12:15:00 | -1.033846 | -1.036120 | -1.136418 | -1.107116 | -0.958919 | -0.921281 |
+| 502945 | OT | 2018-02-11 12:30:00 | -1.001433 | -1.001392 | -1.160503 | -1.111777 | -0.882919 | -0.831176 |
+| 502946 | OT | 2018-02-11 12:45:00 | -0.937962 | -0.939637 | -1.136741 | -1.070050 | -0.807724 | -0.752457 |
+| 502947 | OT | 2018-02-11 13:00:00 | -0.917211 | -0.917466 | -1.100279 | -1.050083 | -0.783510 | -0.725839 |
+| 502948 | OT | 2018-02-11 13:15:00 | -0.876303 | -0.872786 | -1.134365 | -1.057353 | -0.695866 | -0.637935 |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
+| 503035 | OT | 2018-02-12 11:00:00 | -1.366006 | -1.371263 | -1.812504 | -1.687056 | -1.065438 | -0.960703 |
+| 503036 | OT | 2018-02-12 11:15:00 | -1.292128 | -1.298940 | -1.857594 | -1.703018 | -0.915413 | -0.659883 |
+| 503037 | OT | 2018-02-12 11:30:00 | -1.259905 | -1.252504 | -1.816049 | -1.641870 | -0.878118 | -0.735540 |
+| 503038 | OT | 2018-02-12 11:45:00 | -1.175016 | -1.182610 | -1.714001 | -1.532490 | -0.820307 | -0.705948 |
+| 503039 | OT | 2018-02-12 12:00:00 | -1.154416 | -1.155848 | -1.739594 | -1.597774 | -0.721565 | -0.581735 |
+
+```python
 Y_hat_df = Y_hat_df.reset_index(drop=True)
 Y_hat_df = Y_hat_df[(Y_hat_df['unique_id']=='OT') & (Y_hat_df['cutoff']=='2018-02-11 12:00:00')]
 Y_hat_df = Y_hat_df.drop(columns=['y','cutoff'])
@@ -256,18 +267,10 @@ Y_hat_df = Y_hat_df.drop(columns=['y','cutoff'])
 
 ```python
 plot_df = Y_df.merge(Y_hat_df, on=['unique_id','ds'], how='outer').tail(96*10+50+96*4).head(96*2+96*4)
-
-plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['AutoNHITS-median'], c='blue', label='median')
-plt.fill_between(x=plot_df['ds'], 
-                    y1=plot_df['AutoNHITS-lo-90'], y2=plot_df['AutoNHITS-hi-90'],
-                    alpha=0.4, label='level 90')
-plt.legend()
-plt.grid()
-plt.plot()
+plot_series(forecasts_df=plot_df.drop(columns='AutoNHITS').rename(columns={'AutoNHITS-median': 'AutoNHITS'}), level=[90])
 ```
 
-![](/neuralforecast/docs/tutorials/06_longhorizon_probabilistic_files/figure-markdown_strict/cell-13-output-1.png)
+![](/neuralforecast/docs/tutorials/06_longhorizon_probabilistic_files/figure-markdown_strict/cell-15-output-1.png)
 
 ## References
 

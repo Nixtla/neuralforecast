@@ -43,10 +43,6 @@ from datasetsforecast.m3 import M3
 Y_df, *_ = M3.load('./data', group='Yearly')
 ```
 
-``` text
-100%|██████████| 1.76M/1.76M [00:00<00:00, 5.55MiB/s]
-INFO:datasetsforecast.utils:Successfully downloaded M3C.xls, 1757696, bytes.
-```
 
 ```python
 Y_df.groupby('unique_id').head(2)
@@ -66,24 +62,6 @@ Y_df.groupby('unique_id').head(2)
 | 18299 | Y99       | 1975-12-31 | 1870.00 |
 | 18300 | Y99       | 1976-12-31 | 1307.20 |
 
-```python
-Y_df.groupby('unique_id').tail(2)
-```
-
-|       | unique_id | ds         | y       |
-|-------|-----------|------------|---------|
-| 18    | Y1        | 1993-12-31 | 8407.84 |
-| 19    | Y1        | 1994-12-31 | 9156.01 |
-| 38    | Y10       | 1993-12-31 | 3187.00 |
-| 39    | Y10       | 1994-12-31 | 3058.00 |
-| 58    | Y100      | 1993-12-31 | 3539.00 |
-| ...   | ...       | ...        | ...     |
-| 18278 | Y97       | 1994-12-31 | 4507.00 |
-| 18297 | Y98       | 1993-12-31 | 1801.00 |
-| 18298 | Y98       | 1994-12-31 | 1710.00 |
-| 18317 | Y99       | 1993-12-31 | 2379.30 |
-| 18318 | Y99       | 1994-12-31 | 2723.00 |
-
 `Y_df` is a dataframe with three columns: `unique_id` with a unique
 identifier for each time series, a column `ds` with the datestamp and a
 column `y` with the values of the series.
@@ -97,7 +75,22 @@ dataset.
 
 ```python
 Y_df = pd.read_csv('https://raw.githubusercontent.com/Nixtla/transfer-learning-time-series/main/datasets/air_passengers.csv')
+Y_df
 ```
+
+|     | timestamp  | value |
+|-----|------------|-------|
+| 0   | 1949-01-01 | 112   |
+| 1   | 1949-02-01 | 118   |
+| 2   | 1949-03-01 | 132   |
+| 3   | 1949-04-01 | 129   |
+| 4   | 1949-05-01 | 121   |
+| ... | ...        | ...   |
+| 139 | 1960-08-01 | 606   |
+| 140 | 1960-09-01 | 508   |
+| 141 | 1960-10-01 | 461   |
+| 142 | 1960-11-01 | 390   |
+| 143 | 1960-12-01 | 432   |
 
 In this example `Y_df` only contains two columns: `timestamp`, and
 `value`. To use
@@ -108,10 +101,6 @@ we have to include the `unique_id` column and rename the previuos ones.
 Y_df['unique_id'] = 1. # We can add an integer as identifier
 Y_df = Y_df.rename(columns={'timestamp': 'ds', 'value': 'y'})
 Y_df = Y_df[['unique_id', 'ds', 'y']]
-```
-
-
-```python
 Y_df
 ```
 

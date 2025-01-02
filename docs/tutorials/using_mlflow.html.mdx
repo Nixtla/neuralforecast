@@ -16,7 +16,6 @@ To install mlflow: `pip install mlflow`
 
 ```python
 import logging
-import os
 import warnings
 
 import matplotlib.pyplot as plt
@@ -36,7 +35,6 @@ from neuralforecast.losses.pytorch import MAE
 
 
 ```python
-os.environ['NIXTLA_ID_AS_COL'] = '1'
 logging.getLogger("mlflow").setLevel(logging.ERROR)
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 warnings.filterwarnings("ignore")

@@ -49,7 +49,7 @@ from neuralforecast.utils import AirPassengersDF
 
 
 ```python
-Y_df = AirPassengersDF # Defined in neuralforecast.utils
+Y_df = AirPassengersDF
 Y_df.head()
 ```
 
@@ -69,10 +69,16 @@ models on the AirPassengers data. We will use the `fit` method of the
 `core` class to train the models.
 
 ```python
+import logging
 import pandas as pd
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import NHITS
+```
+
+
+```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 ```
 
 
@@ -82,12 +88,29 @@ horizon = 12
 # Try different hyperparmeters to improve accuracy.
 models = [NHITS(h=horizon,                      # Forecast horizon
                 input_size=2 * horizon,         # Length of input sequence
-                max_steps=1000,                 # Number of steps to train
+                max_steps=100,                  # Number of steps to train
                 n_freq_downsample=[2, 1, 1],    # Downsampling factors for each stack output
-                mlp_units = 3 * [[1024, 1024]]) # Number of units in each block.
+                mlp_units = 3 * [[1024, 1024]],
+               ) # Number of units in each block.
           ]
-nf = NeuralForecast(models=models, freq='M')
+nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df, val_size=horizon)
+```
+
+``` text
+Seed set to 1
+```
+
+``` text
+Sanity Checking: |                                                                                            …
+```
+
+``` text
+Training: |                                                                                                   …
+```
+
+``` text
+Validation: |                                                                                                 …
 ```
 
 ## 4. Predict Insample
@@ -114,7 +137,7 @@ Y_hat_insample = nf.predict_insample(step_size=horizon)
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 37.76it/s]
+Predicting: |                                                                                                 …
 ```
 
 The `predict_insample` function returns a pandas DataFrame with the
@@ -131,11 +154,11 @@ Y_hat_insample.head()
 
 |     | unique_id | ds         | cutoff     | NHITS    | y     |
 |-----|-----------|------------|------------|----------|-------|
-| 0   | 1.0       | 1949-01-31 | 1948-12-31 | 0.204289 | 112.0 |
-| 1   | 1.0       | 1949-02-28 | 1948-12-31 | 0.302111 | 118.0 |
-| 2   | 1.0       | 1949-03-31 | 1948-12-31 | 0.399522 | 132.0 |
-| 3   | 1.0       | 1949-04-30 | 1948-12-31 | 0.429369 | 129.0 |
-| 4   | 1.0       | 1949-05-31 | 1948-12-31 | 0.518200 | 121.0 |
+| 0   | 1.0       | 1949-01-31 | 1948-12-31 | 0.057849 | 112.0 |
+| 1   | 1.0       | 1949-02-28 | 1948-12-31 | 0.061673 | 118.0 |
+| 2   | 1.0       | 1949-03-31 | 1948-12-31 | 0.044137 | 132.0 |
+| 3   | 1.0       | 1949-04-30 | 1948-12-31 | 0.121791 | 129.0 |
+| 4   | 1.0       | 1949-05-31 | 1948-12-31 | 0.135417 | 121.0 |
 
 > **Important**
 >
@@ -149,31 +172,15 @@ Y_hat_insample.head()
 Finally, we plot the forecasts for the train and validation sets.
 
 ```python
-import matplotlib.pyplot as plt
+from utilsforecast.plotting import plot_series
 ```
 
 
 ```python
-plt.figure(figsize=(10, 5))
-plt.plot(Y_hat_insample['ds'], Y_hat_insample['y'], label='True')
-plt.plot(Y_hat_insample['ds'], Y_hat_insample['NHITS'], label='Forecast')
-plt.axvline(Y_hat_insample['ds'].iloc[-12], color='black', linestyle='--', label='Train-Test Split')
-plt.xlabel('Timestamp [t]')
-plt.ylabel('Monthly Passengers')
-plt.grid()
-plt.legend()
+plot_series(forecasts_df=Y_hat_insample.drop(columns='cutoff'))
 ```
 
-![](/neuralforecast/docs/capabilities/05_predictInsample_files/figure-markdown_strict/cell-10-output-1.png)
-
-> **Important**
->
-> Note how the forecasts for the train set are very accurate, while the
-> forecast in the validation set (last 12 timetamps), are less precise.
-> This is because the model was trained on the train set, and deep
-> learning models such as the
-> [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
-> can easily overfit the train set.
+![](/neuralforecast/docs/capabilities/05_predictInsample_files/figure-markdown_strict/cell-11-output-1.png)
 
 ## References
 

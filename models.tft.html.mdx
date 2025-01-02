@@ -152,10 +152,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       batch_size:int=32, valid_batch_size:Optional[int]=None,
 >       windows_batch_size:int=1024, inference_windows_batch_size:int=1024,
 >       start_padding_enabled=False, step_size:int=1,
->       scaler_type:str='robust', num_workers_loader=0,
->       drop_last_loader=False, random_seed:int=1, optimizer=None,
->       optimizer_kwargs=None, lr_scheduler=None, lr_scheduler_kwargs=None,
->       dataloader_kwargs=None, **trainer_kwargs)
+>       scaler_type:str='robust', drop_last_loader=False, random_seed:int=1,
+>       optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
+>       lr_scheduler_kwargs=None, dataloader_kwargs=None, **trainer_kwargs)
 > ```
 
 \*TFT
@@ -201,20 +200,19 @@ each window of temporal data.<br/> `scaler_type`: str=‘robust’, type of
 scaler for temporal inputs normalization see [temporal
 scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 `random_seed`: int, random seed initialization for replicability.<br/>
-`num_workers_loader`: int=os.cpu_count(), workers to be used by
-`TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if True
-`TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
-optional, Custom name of the model.<br/> `optimizer`: Subclass of
-‘torch.optim.Optimizer’, optional, user specified optimizer instead of
-the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list
-of parameters used by the user specified `optimizer`.<br/>
-`lr_scheduler`: Subclass of ‘torch.optim.lr_scheduler.LRScheduler’,
-optional, user specified lr_scheduler instead of the default choice
-(StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters
-used by the user specified `lr_scheduler`.<br/> `dataloader_kwargs`:
-dict, optional, list of parameters passed into the PyTorch Lightning
-dataloader by the `TimeSeriesDataLoader`. <br/> `**trainer_kwargs`: int,
-keyword trainer arguments inherited from [PyTorch Lighning’s
+`drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops
+last non-full batch.<br/> `alias`: str, optional, Custom name of the
+model.<br/> `optimizer`: Subclass of ‘torch.optim.Optimizer’, optional,
+user specified optimizer instead of the default choice (Adam).<br/>
+`optimizer_kwargs`: dict, optional, list of parameters used by the user
+specified `optimizer`.<br/> `lr_scheduler`: Subclass of
+‘torch.optim.lr_scheduler.LRScheduler’, optional, user specified
+lr_scheduler instead of the default choice (StepLR).<br/>
+`lr_scheduler_kwargs`: dict, optional, list of parameters used by the
+user specified `lr_scheduler`.<br/> `dataloader_kwargs`: dict, optional,
+list of parameters passed into the PyTorch Lightning dataloader by the
+`TimeSeriesDataLoader`. <br/> `**trainer_kwargs`: int, keyword trainer
+arguments inherited from [PyTorch Lighning’s
 trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/>
 
 **References:**<br/> - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas
@@ -286,7 +284,7 @@ TimeSeriesDataModule args, see
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L679"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L676"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importances,
@@ -306,7 +304,7 @@ importances.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L738"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -323,7 +321,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L738"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -340,7 +338,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L756"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L753"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importance_correlations

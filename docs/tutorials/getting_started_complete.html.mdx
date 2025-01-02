@@ -72,20 +72,8 @@ We assume you have
 already installed. Check this guide for instructions on [how to install
 NeuralForecast](../getting-started/installation.html).
 
-Additionally, we will install `s3fs` to read from the S3 Filesystem of
-AWS, `statsforecast` for plotting, and `datasetsforecast` for common
-error metrics like MAE or MASE.
-
-Install the necessary packages using
-`pip install statsforecast s3fs datasetsforecast` \`\`
-
 ```python
-! pip install statsforecast s3fs datasetsforecast
-```
-
-
-```python
-! pip install git+https://github.com/Nixtla/neuralforecast.git@main
+! pip install neuralforecast
 ```
 
 ## 2. Read the data
@@ -117,9 +105,11 @@ seconds.
 
 ```python
 import pandas as pd
+```
 
+
+```python
 Y_df = pd.read_parquet('https://datasets-nixtla.s3.amazonaws.com/m4-hourly.parquet')
-
 Y_df.head()
 ```
 
@@ -147,29 +137,27 @@ uids = Y_df['unique_id'].unique()[:10] # Select 10 ids to make the example faste
 Y_df = Y_df.query('unique_id in @uids').reset_index(drop=True)
 ```
 
-## 3. Explore Data with the plot method of StatsForecast
+## 3. Explore Data with the plot_series function
 
-Plot some series using the `plot` method from the `StatsForecast` class.
-This method prints 8 random series from the dataset and is useful for
-basic EDA.
+Plot some series using the `plot_series` function from the
+`utilsforecast` library. This method prints 8 random series from the
+dataset and is useful for basic EDA.
 
 > **Note**
 >
-> The `StatsForecast.plot` method uses Plotly as a defaul engine. You
-> can change to MatPlotLib by setting `engine="matplotlib"`.
+> The `plot_series` function uses matplotlib as a default engine. You
+> can change to plotly by setting `engine="plotly"`.
 
 ```python
-from statsforecast import StatsForecast
-
-StatsForecast.plot(Y_df, engine='matplotlib')
+from utilsforecast.plotting import plot_series
 ```
 
-``` text
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.10/site-packages/statsforecast/core.py:25: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from tqdm.autonotebook import tqdm
+
+```python
+plot_series(Y_df)
 ```
 
-![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-6-output-2.png)
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-7-output-1.png)
 
 ## 4. Train multiple models for many series
 
@@ -177,11 +165,22 @@ StatsForecast.plot(Y_df, engine='matplotlib')
 can train many models on many time series globally and efficiently.
 
 ```python
-from ray import tune
+import logging
+
+import optuna
+import ray.tune as tune
+import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.auto import AutoNHITS, AutoLSTM
 from neuralforecast.losses.pytorch import MQLoss
+```
+
+
+```python
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+torch.set_float32_matmul_precision('high')
 ```
 
 Each `Auto` model contains a default search space that was extensively
@@ -199,33 +198,80 @@ use `randint` to sample integers uniformly, and `choice` to sample
 values of a list.
 
 ```python
-config_nhits = {
-    "input_size": tune.choice([48, 48*2, 48*3]),              # Length of input window
-    "start_padding_enabled": True,
-    "n_blocks": 5*[1],                                              # Length of input window
-    "mlp_units": 5 * [[64, 64]],                                  # Length of input window
-    "n_pool_kernel_size": tune.choice([5*[1], 5*[2], 5*[4],         
-                                      [8, 4, 2, 1, 1]]),            # MaxPooling Kernel size
-    "n_freq_downsample": tune.choice([[8, 4, 2, 1, 1],
-                                      [1, 1, 1, 1, 1]]),            # Interpolation expressivity ratios
-    "learning_rate": tune.loguniform(1e-4, 1e-2),                   # Initial Learning rate
-    "scaler_type": tune.choice([None]),                             # Scaler type
-    "max_steps": tune.choice([1000]),                               # Max number of training iterations
-    "batch_size": tune.choice([1, 4, 10]),                          # Number of series in batch
-    "windows_batch_size": tune.choice([128, 256, 512]),             # Number of windows in batch
-    "random_seed": tune.randint(1, 20),                             # Random seed
-}
+def config_nhits(trial):
+    return {
+        "input_size": trial.suggest_categorical(          # Length of input window
+            "input_size", (48, 48*2, 48*3)                
+        ),                                                
+        "start_padding_enabled": True,                                          
+        "n_blocks": 5 * [1],                              # Length of input window
+        "mlp_units": 5 * [[64, 64]],                      # Length of input window
+        "n_pool_kernel_size": trial.suggest_categorical(  # MaxPooling Kernel size
+            "n_pool_kernel_size",
+            (5*[1], 5*[2], 5*[4], [8, 4, 2, 1, 1])
+        ),     
+        "n_freq_downsample": trial.suggest_categorical(   # Interpolation expressivity ratios
+            "n_freq_downsample",
+            ([8, 4, 2, 1, 1],  [1, 1, 1, 1, 1])
+        ),     
+        "learning_rate": trial.suggest_float(             # Initial Learning rate
+            "learning_rate",
+            low=1e-4,
+            high=1e-2,
+            log=True,
+        ),            
+        "scaler_type": None,                              # Scaler type
+        "max_steps": 1000,                                # Max number of training iterations
+        "batch_size": trial.suggest_categorical(          # Number of series in batch
+            "batch_size",
+            (1, 4, 10),
+        ),                   
+        "windows_batch_size": trial.suggest_categorical(  # Number of windows in batch
+            "windows_batch_size",
+            (128, 256, 512),
+        ),      
+        "random_seed": trial.suggest_int(                 # Random seed   
+            "random_seed",
+            low=1,
+            high=20,
+        ),                      
+    }
 
-config_lstm = {
-    "input_size": tune.choice([48, 48*2, 48*3]),              # Length of input window
-    "encoder_hidden_size": tune.choice([64, 128]),            # Hidden size of LSTM cells
-    "encoder_n_layers": tune.choice([2,4]),                   # Number of layers in LSTM
-    "learning_rate": tune.loguniform(1e-4, 1e-2),             # Initial Learning rate
-    "scaler_type": tune.choice(['robust']),                   # Scaler type
-    "max_steps": tune.choice([500, 1000]),                    # Max number of training iterations
-    "batch_size": tune.choice([1, 4]),                        # Number of series in batch
-    "random_seed": tune.randint(1, 20),                       # Random seed
-}
+def config_lstm(trial):
+    return {
+        "input_size": trial.suggest_categorical(           # Length of input window
+            "input_size",
+            (48, 48*2, 48*3)
+        ),   
+        "encoder_hidden_size": trial.suggest_categorical(  # Hidden size of LSTM cells
+            "encoder_hidden_size",
+            (64, 128),
+        ),  
+        "encoder_n_layers": trial.suggest_categorical(     # Number of layers in LSTM
+            "encoder_n_layers",
+            (2,4),
+        ),        
+        "learning_rate": trial.suggest_float(              # Initial Learning rate
+            "learning_rate",
+            low=1e-4,
+            high=1e-2,
+            log=True,
+        ),   
+        "scaler_type": 'robust',                           # Scaler type
+        "max_steps": trial.suggest_categorical(           # Max number of training iterations
+            "max_steps",
+            (500, 1000)
+        ),          
+        "batch_size": trial.suggest_categorical(           # Number of series in batch
+            "batch_size",
+            (1, 4)
+        ),              
+        "random_seed": trial.suggest_int(                  # Random seed
+            "random_seed",
+            low=1,
+            high=20
+        ),             
+    }
 ```
 
 To instantiate an `Auto` model you need to define:
@@ -235,10 +281,7 @@ To instantiate an `Auto` model you need to define:
     `neuralforecast.losses.pytorch`.
 -   `config`: hyperparameter search space. If `None`, the `Auto` class
     will use a pre-defined suggested hyperparameter space.
--   `search_alg`: search algorithm (from `tune.search`), default is
-    random search. Refer to
-    https://docs.ray.io/en/latest/tune/api_docs/suggestion.html for more
-    information on the different search algorithm options.
+-   `search_alg`: search algorithm
 -   `num_samples`: number of configurations explored.
 
 In this example we set horizon `h` as 48, use the
@@ -249,10 +292,10 @@ search algorithm.
 ```python
 nf = NeuralForecast(
     models=[
-        AutoNHITS(h=48, config=config_nhits, loss=MQLoss(), num_samples=5),
-        AutoLSTM(h=48, config=config_lstm, loss=MQLoss(), num_samples=2),
+        AutoNHITS(h=48, config=config_nhits, loss=MQLoss(), backend='optuna', num_samples=5),
+        AutoLSTM(h=48, config=config_lstm, loss=MQLoss(), backend='optuna', num_samples=2),
     ],
-    freq='H'
+    freq=1,
 )
 ```
 
@@ -276,8 +319,15 @@ nf.fit(df=Y_df)
 ```
 
 ``` text
-Global seed set to 15
-Global seed set to 4
+Seed set to 17
+Seed set to 10
+Seed set to 6
+Seed set to 6
+Seed set to 11
+Seed set to 11
+Seed set to 4
+Seed set to 20
+Seed set to 20
 ```
 
 Next, we use the `predict` method to forecast the next 48 days using the
@@ -290,41 +340,43 @@ fcst_df.head()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 3/3 [00:00<00:00, 164.16it/s]
-Predicting DataLoader 0: 100%|██████████| 3/3 [00:00<00:00, 13.89it/s]
+Predicting: |                                                                                                 …
 ```
 
-|  | ds | AutoNHITS | AutoNHITS-lo-90 | AutoNHITS-lo-80 | AutoNHITS-hi-80 | AutoNHITS-hi-90 | AutoLSTM | AutoLSTM-lo-90 | AutoLSTM-lo-80 | AutoLSTM-hi-80 | AutoLSTM-hi-90 |
-|----|----|----|----|----|----|----|----|----|----|----|----|
-| unique_id |  |  |  |  |  |  |  |  |  |  |  |
-| H1 | 749 | 550.545288 | 491.368347 | 484.838226 | 640.832520 | 658.631592 | 581.597534 | 510.460632 | 533.967041 | 660.153076 | 690.976379 |
-| H1 | 750 | 549.216736 | 491.054932 | 484.474243 | 639.552002 | 657.615967 | 530.324402 | 440.821899 | 472.254272 | 622.214539 | 653.435913 |
-| H1 | 751 | 528.075989 | 466.917053 | 463.002289 | 621.197205 | 642.255005 | 487.045593 | 383.502045 | 423.310974 | 594.273071 | 627.640320 |
-| H1 | 752 | 486.842255 | 418.012115 | 419.017242 | 585.653259 | 611.903809 | 457.408081 | 347.901093 | 390.807495 | 569.789062 | 604.200012 |
-| H1 | 753 | 452.015930 | 371.543884 | 379.539215 | 558.845154 | 590.465942 | 441.641418 | 333.888611 | 374.730621 | 557.401978 | 595.008484 |
-
-```python
-StatsForecast.plot(Y_df, fcst_df, engine='matplotlib', max_insample_length=48 * 3, level=[80, 90])
+``` text
+Predicting: |                                                                                                 …
 ```
 
-![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-12-output-1.png)
-
-The `StatsForecast.plot` allows for further customization. For example,
-plot the results of the different models and unique ids.
-
-```python
-# Plot to unique_ids and some selected models
-StatsForecast.plot(Y_df, fcst_df, models=["AutoLSTM"], unique_ids=["H107", "H104"], level=[80, 90], engine='matplotlib')
-```
-
-![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-13-output-1.png)
+|  | unique_id | ds | AutoNHITS | AutoNHITS-lo-90 | AutoNHITS-lo-80 | AutoNHITS-hi-80 | AutoNHITS-hi-90 | AutoLSTM | AutoLSTM-lo-90 | AutoLSTM-lo-80 | AutoLSTM-hi-80 | AutoLSTM-hi-90 |
+|----|----|----|----|----|----|----|----|----|----|----|----|----|
+| 0 | H1 | 749 | 598.767883 | 514.016663 | 540.870117 | 642.218750 | 662.944946 | 622.685608 | 348.235046 | 394.057556 | 852.252502 | 908.859009 |
+| 1 | H1 | 750 | 528.400696 | 385.861420 | 424.128540 | 608.396118 | 634.586304 | 624.733154 | 347.051666 | 393.736053 | 851.637329 | 908.909668 |
+| 2 | H1 | 751 | 461.096741 | 329.577850 | 350.306732 | 565.697876 | 579.242432 | 620.866211 | 343.146179 | 389.550720 | 847.222046 | 906.901062 |
+| 3 | H1 | 752 | 403.170471 | 295.051971 | 308.777893 | 495.823914 | 541.085754 | 625.414551 | 347.815918 | 391.334167 | 851.686157 | 910.480469 |
+| 4 | H1 | 753 | 366.044464 | 261.056061 | 285.326935 | 478.635132 | 523.788086 | 621.209900 | 351.657196 | 392.890259 | 856.152710 | 909.783447 |
 
 ```python
-# Explore other models 
-StatsForecast.plot(Y_df, fcst_df, models=["AutoNHITS"], unique_ids=["H10", "H105"], level=[80, 90], engine='matplotlib')
+plot_series(Y_df, fcst_df, plot_random=False, max_insample_length=48 * 3, level=[80, 90])
 ```
 
 ![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-14-output-1.png)
+
+The `plot_series` function allows for further customization. For
+example, plot the results of the different models and unique ids.
+
+```python
+# Plot to unique_ids and some selected models
+plot_series(Y_df, fcst_df, models=["AutoLSTM"], ids=["H107", "H104"], level=[80, 90])
+```
+
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-15-output-1.png)
+
+```python
+# Explore other models 
+plot_series(Y_df, fcst_df, models=["AutoNHITS"], ids=["H10", "H105"], level=[80, 90])
+```
+
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-16-output-1.png)
 
 ## 5. Evaluate the model’s performance
 
@@ -365,11 +417,15 @@ class takes the following arguments.
 
 ```python
 from neuralforecast.auto import AutoNHITS, AutoLSTM
+```
+
+
+```python
 config_nhits = {
-    "input_size": tune.choice([48, 48*2, 48*3]),              # Length of input window
-    "start_padding_enabled": True,
+    "input_size": tune.choice([48, 48*2, 48*3]),                    # Length of input window
+    "start_padding_enabled": True,  
     "n_blocks": 5*[1],                                              # Length of input window
-    "mlp_units": 5 * [[64, 64]],                                  # Length of input window
+    "mlp_units": 5 * [[64, 64]],                                    # Length of input window
     "n_pool_kernel_size": tune.choice([5*[1], 5*[2], 5*[4],         
                                       [8, 4, 2, 1, 1]]),            # MaxPooling Kernel size
     "n_freq_downsample": tune.choice([[8, 4, 2, 1, 1],
@@ -397,18 +453,13 @@ nf = NeuralForecast(
         AutoNHITS(h=48, config=config_nhits, loss=MQLoss(), num_samples=5),
         AutoLSTM(h=48, config=config_lstm, loss=MQLoss(), num_samples=2), 
     ],
-    freq='H'
+    freq=1,
 )
 ```
 
 
 ```python
 cv_df = nf.cross_validation(Y_df, n_windows=2)
-```
-
-``` text
-Global seed set to 4
-Global seed set to 19
 ```
 
 The `cv_df` object is a new data frame that includes the following
@@ -433,28 +484,38 @@ cv_df.head()
 
 |  | unique_id | ds | cutoff | AutoNHITS | AutoNHITS-lo-90 | AutoNHITS-lo-80 | AutoNHITS-hi-80 | AutoNHITS-hi-90 | AutoLSTM | AutoLSTM-lo-90 | AutoLSTM-lo-80 | AutoLSTM-hi-80 | AutoLSTM-hi-90 | y |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | H1 | 700 | 699 | 646.881714 | 601.402893 | 626.471008 | 672.432617 | 683.847778 | 633.707031 | 365.139832 | 407.289246 | 871.474976 | 925.476196 | 684.0 |
-| 1 | H1 | 701 | 699 | 635.608643 | 595.042908 | 612.889771 | 669.565979 | 679.472900 | 632.455017 | 365.303131 | 406.472992 | 869.484985 | 922.926514 | 619.0 |
-| 2 | H1 | 702 | 699 | 592.663940 | 564.124390 | 566.502319 | 648.286072 | 647.859253 | 633.002502 | 365.147522 | 407.174866 | 868.677979 | 925.269409 | 565.0 |
-| 3 | H1 | 703 | 699 | 543.364563 | 516.760742 | 517.990234 | 603.099182 | 601.462280 | 633.903503 | 364.976746 | 408.498779 | 869.797180 | 925.993164 | 532.0 |
-| 4 | H1 | 704 | 699 | 498.051178 | 461.069489 | 474.206360 | 540.752563 | 555.169739 | 634.015991 | 363.384155 | 408.305298 | 870.154297 | 920.329224 | 495.0 |
+| 0 | H1 | 700 | 699 | 681.888367 | 636.549561 | 643.658691 | 702.102844 | 711.914185 | 682.982483 | 614.895813 | 644.472107 | 746.966064 | 760.720764 | 684.0 |
+| 1 | H1 | 701 | 699 | 653.331055 | 603.969421 | 616.532288 | 676.536743 | 685.295105 | 623.179443 | 524.802490 | 553.547241 | 712.007690 | 738.519165 | 619.0 |
+| 2 | H1 | 702 | 699 | 586.374207 | 534.213074 | 555.465637 | 620.347168 | 629.695801 | 555.048889 | 448.712463 | 473.406036 | 656.280823 | 697.658386 | 565.0 |
+| 3 | H1 | 703 | 699 | 534.878662 | 482.983459 | 501.141296 | 571.394897 | 582.617981 | 497.977661 | 376.078644 | 403.215302 | 623.380188 | 670.032471 | 532.0 |
+| 4 | H1 | 704 | 699 | 508.891663 | 454.501068 | 461.194580 | 536.077026 | 547.211914 | 457.796600 | 327.437347 | 352.698944 | 588.427917 | 645.391785 | 495.0 |
+
+```python
+from IPython.display import display
+```
+
 
 ```python
 for cutoff in cv_df['cutoff'].unique():
-    StatsForecast.plot(
-        Y_df, 
-        cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']), 
-        max_insample_length=48 * 4, 
-        unique_ids=['H185'],
-        engine='matplotlib'
+    display(
+        plot_series(
+            Y_df,
+            cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']),
+            max_insample_length=48 * 4, 
+            ids=['H102'],
+        )
     )
 ```
+
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-23-output-1.png)
+
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-23-output-2.png)
 
 Now, let’s evaluate the models’ performance.
 
 ```python
-from datasetsforecast.losses import mse, mae, rmse
-from datasetsforecast.evaluation import accuracy
+from utilsforecast.evaluation import evaluate
+from utilsforecast.losses import mse, mae, rmse
 ```
 
 > **Warning**
@@ -468,25 +529,24 @@ Create the data frame with the results of the evaluation of your
 cross-validation data frame using a Mean Squared Error metric.
 
 ```python
-evaluation_df = accuracy(cv_df, [mse, mae, rmse], agg_by=['unique_id'])
+evaluation_df = evaluate(cv_df.drop(columns='cutoff'), metrics=[mse, mae, rmse])
 evaluation_df['best_model'] = evaluation_df.drop(columns=['metric', 'unique_id']).idxmin(axis=1)
 evaluation_df.head()
 ```
 
-|     | metric | unique_id | AutoNHITS  | AutoLSTM   | best_model |
-|-----|--------|-----------|------------|------------|------------|
-| 0   | mae    | H1        | 38.259457  | 131.158150 | AutoNHITS  |
-| 1   | mae    | H10       | 14.044900  | 32.972164  | AutoNHITS  |
-| 2   | mae    | H100      | 254.464978 | 281.836064 | AutoNHITS  |
-| 3   | mae    | H101      | 257.810841 | 148.341771 | AutoLSTM   |
-| 4   | mae    | H102      | 176.114826 | 472.413350 | AutoNHITS  |
+|     | unique_id | metric | AutoNHITS    | AutoLSTM     | best_model |
+|-----|-----------|--------|--------------|--------------|------------|
+| 0   | H1        | mse    | 1194.938315  | 2078.551001  | AutoNHITS  |
+| 1   | H10       | mse    | 177.231943   | 221.795192   | AutoNHITS  |
+| 2   | H100      | mse    | 75231.397646 | 34166.798331 | AutoLSTM   |
+| 3   | H101      | mse    | 61851.711972 | 13609.076270 | AutoLSTM   |
+| 4   | H102      | mse    | 32519.021906 | 86900.750591 | AutoNHITS  |
 
 Create a summary table with a model column and the number of series
 where that model performs best.
 
 ```python
 summary_df = evaluation_df.groupby(['metric', 'best_model']).size().sort_values().to_frame()
-
 summary_df = summary_df.reset_index()
 summary_df.columns = ['metric', 'model', 'nr. of unique_ids']
 summary_df
@@ -494,12 +554,12 @@ summary_df
 
 |     | metric | model     | nr. of unique_ids |
 |-----|--------|-----------|-------------------|
-| 0   | mae    | AutoLSTM  | 1                 |
-| 1   | mse    | AutoLSTM  | 1                 |
-| 2   | rmse   | AutoLSTM  | 1                 |
-| 3   | mae    | AutoNHITS | 9                 |
-| 4   | mse    | AutoNHITS | 9                 |
-| 5   | rmse   | AutoNHITS | 9                 |
+| 0   | mae    | AutoNHITS | 4                 |
+| 1   | mse    | AutoNHITS | 4                 |
+| 2   | rmse   | AutoNHITS | 4                 |
+| 3   | mae    | AutoLSTM  | 6                 |
+| 4   | mse    | AutoLSTM  | 6                 |
+| 5   | rmse   | AutoLSTM  | 6                 |
 
 ```python
 summary_df.query('metric == "mse"')
@@ -507,8 +567,8 @@ summary_df.query('metric == "mse"')
 
 |     | metric | model     | nr. of unique_ids |
 |-----|--------|-----------|-------------------|
-| 1   | mse    | AutoLSTM  | 1                 |
-| 4   | mse    | AutoNHITS | 9                 |
+| 1   | mse    | AutoNHITS | 4                 |
+| 4   | mse    | AutoLSTM  | 6                 |
 
 You can further explore your results by plotting the unique_ids where a
 specific model wins.
@@ -516,10 +576,10 @@ specific model wins.
 ```python
 nhits_ids = evaluation_df.query('best_model == "AutoNHITS" and metric == "mse"')['unique_id'].unique()
 
-StatsForecast.plot(Y_df, fcst_df, unique_ids=nhits_ids, engine='matplotlib')
+plot_series(Y_df, fcst_df, ids=nhits_ids)
 ```
 
-![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-24-output-1.png)
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-28-output-1.png)
 
 ## 6. Select the best model for every unique series
 
@@ -529,15 +589,12 @@ the best possible forecast for every unique_id.
 
 ```python
 def get_best_model_forecast(forecasts_df, evaluation_df, metric):
-    df = forecasts_df.set_index('ds', append=True).stack().to_frame().reset_index(level=2) # Wide to long 
-    df.columns = ['model', 'best_model_forecast'] 
-    df = df.join(evaluation_df.query('metric == @metric').set_index('unique_id')[['best_model']])
-    df = df.query('model.str.replace("-lo-90|-hi-90", "", regex=True) == best_model').copy()
-    df.loc[:, 'model'] = [model.replace(bm, 'best_model') for model, bm in zip(df['model'], df['best_model'])]
-    df = df.drop(columns='best_model').set_index('model', append=True).unstack()
-    df.columns = df.columns.droplevel()
-    df = df.reset_index(level=1)
-    return df
+    metric_eval = evaluation_df.loc[evaluation_df['metric'] == metric, ['unique_id', 'best_model']]
+    with_best = forecasts_df.merge(metric_eval)
+    res = with_best[['unique_id', 'ds']].copy()
+    for suffix in ('', '-lo-90', '-hi-90'):
+        res[f'best_model{suffix}'] = with_best.apply(lambda row: row[row['best_model'] + suffix], axis=1)
+    return res
 ```
 
 Create your production-ready data frame with the best forecast for every
@@ -545,24 +602,28 @@ unique_id.
 
 ```python
 prod_forecasts_df = get_best_model_forecast(fcst_df, evaluation_df, metric='mse')
-
-prod_forecasts_df.head()
+prod_forecasts_df
 ```
 
-| model     | ds  | best_model | best_model-hi-90 | best_model-lo-90 |
-|-----------|-----|------------|------------------|------------------|
-| unique_id |     |            |                  |                  |
-| H1        | 749 | 550.545288 | 658.631592       | 491.368347       |
-| H1        | 750 | 549.216736 | 657.615967       | 491.054932       |
-| H1        | 751 | 528.075989 | 642.255005       | 466.917053       |
-| H1        | 752 | 486.842255 | 611.903809       | 418.012115       |
-| H1        | 753 | 452.015930 | 590.465942       | 371.543884       |
+|     | unique_id | ds  | best_model  | best_model-lo-90 | best_model-hi-90 |
+|-----|-----------|-----|-------------|------------------|------------------|
+| 0   | H1        | 749 | 598.767883  | 514.016663       | 662.944946       |
+| 1   | H1        | 750 | 528.400696  | 385.861420       | 634.586304       |
+| 2   | H1        | 751 | 461.096741  | 329.577850       | 579.242432       |
+| 3   | H1        | 752 | 403.170471  | 295.051971       | 541.085754       |
+| 4   | H1        | 753 | 366.044464  | 261.056061       | 523.788086       |
+| ... | ...       | ... | ...         | ...              | ...              |
+| 475 | H107      | 792 | 3559.957520 | 2496.569824      | 4672.525391      |
+| 476 | H107      | 793 | 3557.774170 | 2493.142578      | 4671.074219      |
+| 477 | H107      | 794 | 3555.861816 | 2487.265625      | 4681.086914      |
+| 478 | H107      | 795 | 3560.636230 | 2487.065430      | 4678.455078      |
+| 479 | H107      | 796 | 3558.523193 | 2489.494629      | 4695.519531      |
 
 Plot the results.
 
 ```python
-StatsForecast.plot(Y_df, prod_forecasts_df, level=[90], engine='matplotlib')
+plot_series(Y_df, prod_forecasts_df, level=[90])
 ```
 
-![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-27-output-1.png)
+![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-31-output-1.png)
 

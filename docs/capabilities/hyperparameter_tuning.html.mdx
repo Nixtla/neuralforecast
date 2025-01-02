@@ -57,8 +57,18 @@ https://nixtla.github.io/neuralforecast/examples/data_format.html for
 more details on the data input format.
 
 ```python
-from neuralforecast.utils import AirPassengersDF
+import logging
 
+from neuralforecast.utils import AirPassengersDF
+```
+
+
+```python
+logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
+```
+
+
+```python
 Y_df = AirPassengersDF
 Y_df.head()
 ```
@@ -106,7 +116,10 @@ and `n_pool_kernel_size`.
 ```python
 from ray import tune
 from neuralforecast.auto import AutoNHITS
+```
 
+
+```python
 nhits_config = AutoNHITS.get_default_config(h = 12, backend="ray")                      # Extract the default hyperparameter settings
 nhits_config["random_seed"] = tune.randint(1, 10)                                       # Random seed
 nhits_config["n_pool_kernel_size"] = tune.choice([[2, 2, 2], [16, 8, 1]])               # MaxPool's Kernelsize
@@ -126,14 +139,14 @@ such as `max_steps` and `val_check_steps`.
 
 ```python
 nhits_config = {
-       "max_steps": 100,                                                         # Number of SGD steps
-       "input_size": 24,                                                         # Size of input window
-       "learning_rate": tune.loguniform(1e-5, 1e-1),                             # Initial Learning rate
-       "n_pool_kernel_size": tune.choice([[2, 2, 2], [16, 8, 1]]),               # MaxPool's Kernelsize
-       "n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1], [1, 1, 1]]), # Interpolation expressivity ratios
-       "val_check_steps": 50,                                                    # Compute validation every 50 steps
-       "random_seed": tune.randint(1, 10),                                       # Random seed
-    }
+   "max_steps": 100,                                                         # Number of SGD steps
+   "input_size": 24,                                                         # Size of input window
+   "learning_rate": tune.loguniform(1e-5, 1e-1),                             # Initial Learning rate
+   "n_pool_kernel_size": tune.choice([[2, 2, 2], [16, 8, 1]]),               # MaxPool's Kernelsize
+   "n_freq_downsample": tune.choice([[168, 24, 1], [24, 12, 1], [1, 1, 1]]), # Interpolation expressivity ratios
+   "val_check_steps": 50,                                                    # Compute validation every 50 steps
+   "random_seed": tune.randint(1, 10),                                       # Random seed
+}
 ```
 
 > **Important**
@@ -173,12 +186,14 @@ from neuralforecast.auto import AutoNHITS
 
 
 ```python
-model = AutoNHITS(h=12,
-                  loss=MAE(),
-                  config=nhits_config,
-                  search_alg=HyperOptSearch(),
-                  backend='ray',
-                  num_samples=10)
+model = AutoNHITS(
+    h=12,
+    loss=MAE(),
+    config=nhits_config,
+    search_alg=HyperOptSearch(),
+    backend='ray',
+    num_samples=10,
+)
 ```
 
 > **Tip**
@@ -208,12 +223,26 @@ of the validation set. In this case we set the validation set as twice
 the forecasting horizon.
 
 ```python
-nf = NeuralForecast(models=[model], freq='M')
+nf = NeuralForecast(models=[model], freq='ME')
 nf.fit(df=Y_df, val_size=24)
 ```
 
 ``` text
-Global seed set to 8
+2024-11-26 22:33:17,185 INFO worker.py:1786 -- Started a local Ray instance.
+2024-11-26 22:33:17,935 INFO tune.py:253 -- Initializing Ray automatically. For cluster usage or custom Ray initialization, call `ray.init(...)` before `Tuner(...)`.
+2024-11-26 22:33:17,937 INFO tune.py:616 -- [output] This uses the legacy output and progress reporter, as Jupyter notebooks are not supported by the new engine, yet. For more information, please see https://github.com/ray-project/ray/issues/36949
+2024-11-26 22:33:24,269 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:33:31,283 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:33:39,368 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:33:47,528 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:33:54,273 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (2, 2, 2), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:01,148 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:08,180 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:15,137 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:21,028 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:27,260 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (2, 2, 2), 'valid_loss': ('__ref_ph', '004b9a7a')}
+2024-11-26 22:34:27,275 INFO tune.py:1009 -- Wrote the latest version of all result files and experiment state to '/home/ubuntu/ray_results/_train_tune_2024-11-26_22-33-16' in 0.0115s.
+Seed set to 3
 ```
 
 The results of the hyperparameter tuning are available in the `results`
@@ -225,34 +254,33 @@ results = nf.models[0].results.get_dataframe()
 results.head()
 ```
 
-|  | loss | time_this_iter_s | done | timesteps_total | episodes_total | training_iteration | trial_id | experiment_id | date | timestamp | ... | config/input_size | config/learning_rate | config/loss | config/max_steps | config/n_freq_downsample | config/n_pool_kernel_size | config/random_seed | config/val_check_steps | config/valid_loss | logdir |
+|  | loss | train_loss | timestamp | checkpoint_dir_name | done | training_iteration | trial_id | date | time_this_iter_s | time_total_s | ... | config/input_size | config/learning_rate | config/n_pool_kernel_size | config/n_freq_downsample | config/val_check_steps | config/random_seed | config/h | config/loss | config/valid_loss | logdir |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | 21.173204 | 3.645993 | False | NaN | NaN | 2 | e20dbd9b | f62650f116914e18889bb96963c6b202 | 2023-10-03_11-19-14 | 1696346354 | ... | 24 | 0.000415 | MAE() | 100 | \[168, 24, 1\] | \[16, 8, 1\] | 7 | 50 | MAE() | /Users/cchallu/ray_results/\_train_tune_2023-10... |
-| 1 | 33.843426 | 3.756614 | False | NaN | NaN | 2 | 75e09199 | f62650f116914e18889bb96963c6b202 | 2023-10-03_11-19-22 | 1696346362 | ... | 24 | 0.000068 | MAE() | 100 | \[24, 12, 1\] | \[16, 8, 1\] | 4 | 50 | MAE() | /Users/cchallu/ray_results/\_train_tune_2023-10... |
-| 2 | 17.750280 | 8.573898 | False | NaN | NaN | 2 | 0dc5925a | f62650f116914e18889bb96963c6b202 | 2023-10-03_11-19-36 | 1696346376 | ... | 24 | 0.001615 | MAE() | 100 | \[1, 1, 1\] | \[2, 2, 2\] | 8 | 50 | MAE() | /Users/cchallu/ray_results/\_train_tune_2023-10... |
-| 3 | 24.573055 | 6.987517 | False | NaN | NaN | 2 | 352e03ff | f62650f116914e18889bb96963c6b202 | 2023-10-03_11-19-50 | 1696346390 | ... | 24 | 0.003405 | MAE() | 100 | \[1, 1, 1\] | \[2, 2, 2\] | 5 | 50 | MAE() | /Users/cchallu/ray_results/\_train_tune_2023-10... |
-| 4 | 474221.937500 | 4.912362 | False | NaN | NaN | 2 | 289bdd5e | f62650f116914e18889bb96963c6b202 | 2023-10-03_11-20-00 | 1696346400 | ... | 24 | 0.080117 | MAE() | 100 | \[168, 24, 1\] | \[16, 8, 1\] | 5 | 50 | MAE() | /Users/cchallu/ray_results/\_train_tune_2023-10... |
+| 0 | 21.948565 | 11.748630 | 1732660404 | None | False | 2 | e684ab59 | 2024-11-26_22-33-24 | 0.473169 | 1.742914 | ... | 24 | 0.000583 | (16, 8, 1) | (1, 1, 1) | 50 | 9 | 12 | MAE() | MAE() | e684ab59 |
+| 1 | 23.497557 | 13.491600 | 1732660411 | None | False | 2 | 28016d96 | 2024-11-26_22-33-31 | 0.467711 | 1.767644 | ... | 24 | 0.000222 | (16, 8, 1) | (168, 24, 1) | 50 | 5 | 12 | MAE() | MAE() | 28016d96 |
+| 2 | 29.214516 | 16.968582 | 1732660419 | None | False | 2 | ded66a42 | 2024-11-26_22-33-39 | 0.969751 | 2.623766 | ... | 24 | 0.009816 | (16, 8, 1) | (24, 12, 1) | 50 | 5 | 12 | MAE() | MAE() | ded66a42 |
+| 3 | 45.178616 | 28.338690 | 1732660427 | None | False | 2 | 2964d41f | 2024-11-26_22-33-47 | 0.985556 | 2.656381 | ... | 24 | 0.012083 | (16, 8, 1) | (24, 12, 1) | 50 | 7 | 12 | MAE() | MAE() | 2964d41f |
+| 4 | 32.580570 | 21.667740 | 1732660434 | None | False | 2 | 766cc549 | 2024-11-26_22-33-54 | 0.418154 | 1.465539 | ... | 24 | 0.000040 | (2, 2, 2) | (1, 1, 1) | 50 | 4 | 12 | MAE() | MAE() | 766cc549 |
 
 Next, we use the `predict` method to forecast the next 12 months using
 the optimal hyperparameters.
 
 ```python
 Y_hat_df = nf.predict()
-Y_hat_df = Y_hat_df.reset_index()
 Y_hat_df.head()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 113.97it/s]
+Predicting: |                                                                                                 …
 ```
 
 |     | unique_id | ds         | AutoNHITS  |
 |-----|-----------|------------|------------|
-| 0   | 1.0       | 1961-01-31 | 442.346680 |
-| 1   | 1.0       | 1961-02-28 | 439.409821 |
-| 2   | 1.0       | 1961-03-31 | 477.709930 |
-| 3   | 1.0       | 1961-04-30 | 503.884064 |
-| 4   | 1.0       | 1961-05-31 | 521.344421 |
+| 0   | 1.0       | 1961-01-31 | 438.724091 |
+| 1   | 1.0       | 1961-02-28 | 415.593628 |
+| 2   | 1.0       | 1961-03-31 | 493.484894 |
+| 3   | 1.0       | 1961-04-30 | 493.120728 |
+| 4   | 1.0       | 1961-05-31 | 499.806702 |
 
 ## 4. `Optuna` backend
 
@@ -289,19 +317,19 @@ range and `n_pool_kernel_size`.
 
 ```python
 import optuna
-optuna.logging.set_verbosity(optuna.logging.WARNING) # Use this to disable training prints from optuna
 ```
 
 
 ```python
+optuna.logging.set_verbosity(optuna.logging.WARNING) # Use this to disable training prints from optuna
 nhits_default_config = AutoNHITS.get_default_config(h = 12, backend="optuna")                   # Extract the default hyperparameter settings
 
 def config_nhits(trial):
     config = {**nhits_default_config(trial)}
     config.update({
-                   "random_seed": trial.suggest_int("random_seed", 1, 10), 
-                   "n_pool_kernel_size": trial.suggest_categorical("n_pool_kernel_size", [[2, 2, 2], [16, 8, 1]])
-                   })
+        "random_seed": trial.suggest_int("random_seed", 1, 10), 
+        "n_pool_kernel_size": trial.suggest_categorical("n_pool_kernel_size", [[2, 2, 2], [16, 8, 1]])
+    })
     return config
 ```
 
@@ -348,12 +376,14 @@ To instantiate an `Auto` model you need to define:
 -   `num_samples`: number of configurations explored.
 
 ```python
-model = AutoNHITS(h=12,
-                  loss=MAE(),
-                  config=config_nhits,
-                  search_alg=optuna.samplers.TPESampler(),
-                  backend='optuna',
-                  num_samples=10)
+model = AutoNHITS(
+    h=12,
+    loss=MAE(),
+    config=config_nhits,
+    search_alg=optuna.samplers.TPESampler(seed=0),
+    backend='optuna',
+    num_samples=10,
+)
 ```
 
 > **Important**
@@ -369,22 +399,22 @@ of the validation set. In this case we set the validation set as twice
 the forecasting horizon.
 
 ```python
-nf = NeuralForecast(models=[model], freq='M')
+nf = NeuralForecast(models=[model], freq='ME')
 nf.fit(df=Y_df, val_size=24)
 ```
 
 ``` text
-Global seed set to 6
-Global seed set to 6
-Global seed set to 1
-Global seed set to 1
-Global seed set to 7
-Global seed set to 4
-Global seed set to 9
-Global seed set to 8
-Global seed set to 7
-Global seed set to 7
-Global seed set to 6
+Seed set to 5
+Seed set to 10
+Seed set to 10
+Seed set to 10
+Seed set to 1
+Seed set to 5
+Seed set to 4
+Seed set to 2
+Seed set to 7
+Seed set to 1
+Seed set to 5
 ```
 
 The results of the hyperparameter tuning are available in the `results`
@@ -396,39 +426,38 @@ results = nf.models[0].results.trials_dataframe()
 results.drop(columns='user_attrs_ALL_PARAMS')
 ```
 
-|  | number | value | datetime_start | datetime_complete | duration | params_learning_rate | params_n_freq_downsample | params_n_pool_kernel_size | params_random_seed | state |
-|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | 0 | 2.964735e+01 | 2023-10-23 19:13:30.251719 | 2023-10-23 19:13:33.007086 | 0 days 00:00:02.755367 | 0.000074 | \[24, 12, 1\] | \[2, 2, 2\] | 2 | COMPLETE |
-| 1 | 1 | 2.790444e+03 | 2023-10-23 19:13:33.007483 | 2023-10-23 19:13:35.823089 | 0 days 00:00:02.815606 | 0.026500 | \[24, 12, 1\] | \[2, 2, 2\] | 10 | COMPLETE |
-| 2 | 2 | 2.193000e+01 | 2023-10-23 19:13:35.823607 | 2023-10-23 19:13:38.599414 | 0 days 00:00:02.775807 | 0.000337 | \[168, 24, 1\] | \[2, 2, 2\] | 7 | COMPLETE |
-| 3 | 3 | 1.147799e+08 | 2023-10-23 19:13:38.600149 | 2023-10-23 19:13:41.440307 | 0 days 00:00:02.840158 | 0.059274 | \[1, 1, 1\] | \[16, 8, 1\] | 5 | COMPLETE |
-| 4 | 4 | 2.140740e+01 | 2023-10-23 19:13:41.440833 | 2023-10-23 19:13:44.184860 | 0 days 00:00:02.744027 | 0.000840 | \[168, 24, 1\] | \[16, 8, 1\] | 5 | COMPLETE |
-| 5 | 5 | 1.606544e+01 | 2023-10-23 19:13:44.185291 | 2023-10-23 19:13:46.945672 | 0 days 00:00:02.760381 | 0.005477 | \[1, 1, 1\] | \[16, 8, 1\] | 8 | COMPLETE |
-| 6 | 6 | 1.301640e+04 | 2023-10-23 19:13:46.946108 | 2023-10-23 19:13:49.805633 | 0 days 00:00:02.859525 | 0.056746 | \[1, 1, 1\] | \[16, 8, 1\] | 3 | COMPLETE |
-| 7 | 7 | 4.972713e+01 | 2023-10-23 19:13:49.806278 | 2023-10-23 19:13:52.577180 | 0 days 00:00:02.770902 | 0.000021 | \[24, 12, 1\] | \[2, 2, 2\] | 9 | COMPLETE |
-| 8 | 8 | 2.138879e+01 | 2023-10-23 19:13:52.577678 | 2023-10-23 19:13:55.372792 | 0 days 00:00:02.795114 | 0.007136 | \[1, 1, 1\] | \[2, 2, 2\] | 9 | COMPLETE |
-| 9 | 9 | 2.094145e+01 | 2023-10-23 19:13:55.373149 | 2023-10-23 19:13:58.125058 | 0 days 00:00:02.751909 | 0.004655 | \[1, 1, 1\] | \[2, 2, 2\] | 6 | COMPLETE |
+|  | number | value | datetime_start | datetime_complete | duration | params_learning_rate | params_n_freq_downsample | params_n_pool_kernel_size | params_random_seed | user_attrs_METRICS | state |
+|----|----|----|----|----|----|----|----|----|----|----|----|
+| 0 | 0 | 1.827570e+01 | 2024-11-26 22:34:29.382448 | 2024-11-26 22:34:30.773811 | 0 days 00:00:01.391363 | 0.001568 | \[1, 1, 1\] | \[2, 2, 2\] | 5 | {'loss': tensor(18.2757), 'train_loss': tensor... | COMPLETE |
+| 1 | 1 | 9.055198e+06 | 2024-11-26 22:34:30.774153 | 2024-11-26 22:34:32.090132 | 0 days 00:00:01.315979 | 0.036906 | \[168, 24, 1\] | \[2, 2, 2\] | 10 | {'loss': tensor(9055198.), 'train_loss': tenso... | COMPLETE |
+| 2 | 2 | 5.554298e+01 | 2024-11-26 22:34:32.090466 | 2024-11-26 22:34:33.425103 | 0 days 00:00:01.334637 | 0.000019 | \[1, 1, 1\] | \[2, 2, 2\] | 10 | {'loss': tensor(55.5430), 'train_loss': tensor... | COMPLETE |
+| 3 | 3 | 9.857751e+01 | 2024-11-26 22:34:33.425460 | 2024-11-26 22:34:34.962057 | 0 days 00:00:01.536597 | 0.015727 | \[24, 12, 1\] | \[16, 8, 1\] | 10 | {'loss': tensor(98.5775), 'train_loss': tensor... | COMPLETE |
+| 4 | 4 | 1.966841e+01 | 2024-11-26 22:34:34.962357 | 2024-11-26 22:34:36.951450 | 0 days 00:00:01.989093 | 0.001223 | \[168, 24, 1\] | \[2, 2, 2\] | 1 | {'loss': tensor(19.6684), 'train_loss': tensor... | COMPLETE |
+| 5 | 5 | 1.524971e+01 | 2024-11-26 22:34:36.951775 | 2024-11-26 22:34:38.280982 | 0 days 00:00:01.329207 | 0.002955 | \[168, 24, 1\] | \[16, 8, 1\] | 5 | {'loss': tensor(15.2497), 'train_loss': tensor... | COMPLETE |
+| 6 | 6 | 1.678810e+01 | 2024-11-26 22:34:38.281381 | 2024-11-26 22:34:39.648595 | 0 days 00:00:01.367214 | 0.006173 | \[168, 24, 1\] | \[16, 8, 1\] | 4 | {'loss': tensor(16.7881), 'train_loss': tensor... | COMPLETE |
+| 7 | 7 | 2.014485e+01 | 2024-11-26 22:34:39.649025 | 2024-11-26 22:34:41.075568 | 0 days 00:00:01.426543 | 0.000285 | \[168, 24, 1\] | \[2, 2, 2\] | 2 | {'loss': tensor(20.1448), 'train_loss': tensor... | COMPLETE |
+| 8 | 8 | 2.109382e+01 | 2024-11-26 22:34:41.075891 | 2024-11-26 22:34:42.449451 | 0 days 00:00:01.373560 | 0.004097 | \[168, 24, 1\] | \[16, 8, 1\] | 7 | {'loss': tensor(21.0938), 'train_loss': tensor... | COMPLETE |
+| 9 | 9 | 5.091650e+01 | 2024-11-26 22:34:42.449762 | 2024-11-26 22:34:43.804981 | 0 days 00:00:01.355219 | 0.000036 | \[1, 1, 1\] | \[16, 8, 1\] | 1 | {'loss': tensor(50.9165), 'train_loss': tensor... | COMPLETE |
 
 Next, we use the `predict` method to forecast the next 12 months using
 the optimal hyperparameters.
 
 ```python
 Y_hat_df_optuna = nf.predict()
-Y_hat_df_optuna = Y_hat_df_optuna.reset_index()
 Y_hat_df_optuna.head()
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 112.75it/s]
+Predicting: |                                                                                                 …
 ```
 
 |     | unique_id | ds         | AutoNHITS  |
 |-----|-----------|------------|------------|
-| 0   | 1.0       | 1961-01-31 | 445.272858 |
-| 1   | 1.0       | 1961-02-28 | 469.633423 |
-| 2   | 1.0       | 1961-03-31 | 475.265289 |
-| 3   | 1.0       | 1961-04-30 | 483.228516 |
-| 4   | 1.0       | 1961-05-31 | 516.583496 |
+| 0   | 1.0       | 1961-01-31 | 446.410736 |
+| 1   | 1.0       | 1961-02-28 | 422.048523 |
+| 2   | 1.0       | 1961-03-31 | 508.271515 |
+| 3   | 1.0       | 1961-04-30 | 496.549133 |
+| 4   | 1.0       | 1961-05-31 | 506.865723 |
 
 ## 5. Plots
 
@@ -437,27 +466,22 @@ Finally, we compare the forecasts produced by the
 model with both backends.
 
 ```python
-import pandas as pd
-import matplotlib.pyplot as plt
+from utilsforecast.plotting import plot_series
 ```
 
 
 ```python
-fig, ax = plt.subplots(1, 1, figsize = (20, 7))
-plot_df = pd.concat([Y_df, Y_hat_df]).reset_index()
-
-plt.plot(plot_df['ds'], plot_df['y'], label='y')
-plt.plot(plot_df['ds'], plot_df['AutoNHITS'], label='Ray')
-plt.plot(Y_hat_df_optuna['ds'], Y_hat_df_optuna['AutoNHITS'], label='Optuna')
-
-ax.set_title('AirPassengers Forecast', fontsize=22)
-ax.set_ylabel('Monthly Passengers', fontsize=20)
-ax.set_xlabel('Timestamp [t]', fontsize=20)
-ax.legend(prop={'size': 15})
-ax.grid()
+plot_series(
+    Y_df,
+    Y_hat_df.merge(
+        Y_hat_df_optuna,
+        on=['unique_id', 'ds'],
+        suffixes=['_ray', '_optuna'],
+    ),
+)
 ```
 
-![](/neuralforecast/docs/capabilities/04_hyperparameter_tuning_files/figure-markdown_strict/cell-20-output-1.png)
+![](/neuralforecast/docs/capabilities/04_hyperparameter_tuning_files/figure-markdown_strict/cell-23-output-1.png)
 
 ### References
 

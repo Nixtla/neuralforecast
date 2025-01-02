@@ -14,7 +14,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L222"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L208"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -40,7 +40,7 @@ columns. The `y` column denotes the target time series variable.*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L430"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L408"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -51,7 +51,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                      ,Sequence[str],NoneType]=None, static_df:Union[pandas
 >                      .core.frame.DataFrame,polars.dataframe.frame.DataFram
 >                      e,neuralforecast.compat.SparkDataFrame,NoneType]=None
->                      , val_size:Optional[int]=0, sort_df:bool=True,
+>                      , val_size:Optional[int]=0,
 >                      use_init_models:bool=False, verbose:bool=False,
 >                      id_col:str='unique_id', time_col:str='ds',
 >                      target_col:str='y', distributed_config:Optional[neura
@@ -70,7 +70,6 @@ store fitted models for later inspection.\*
 | df | Union | None | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If None, a previously stored dataset is required. |
 | static_df | Union | None | DataFrame with columns \[`unique_id`\] and static exogenous. |
 | val_size | Optional | 0 | Size of validation set. |
-| sort_df | bool | True | Sort `df` before fitting. |
 | use_init_models | bool | False | Use initial model passed when NeuralForecast object was instantiated. |
 | verbose | bool | False | Print processing steps. |
 | id_col | str | unique_id | Column that identifies each serie. |
@@ -83,7 +82,7 @@ store fitted models for later inspection.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L809"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L777"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -97,8 +96,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          ]=None, futr_df:Union[pandas.core.frame.DataFrame
 >                          ,polars.dataframe.frame.DataFrame,neuralforecast.
 >                          compat.SparkDataFrame,NoneType]=None,
->                          sort_df:bool=True, verbose:bool=False,
->                          engine=None,
+>                          verbose:bool=False, engine=None,
 >                          level:Optional[List[Union[int,float]]]=None,
 >                          **data_kwargs)
 > ```
@@ -113,7 +111,6 @@ DataFrame `df`.\*
 | df | Union | None | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables.<br/>If a DataFrame is passed, it is used to generate forecasts. |
 | static_df | Union | None | DataFrame with columns \[`unique_id`\] and static exogenous. |
 | futr_df | Union | None | DataFrame with \[`unique_id`, `ds`\] columns and `df`’s future exogenous. |
-| sort_df | bool | True | Sort `df` before fitting. |
 | verbose | bool | False | Print processing steps. |
 | engine | NoneType | None | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. |
 | level | Optional | None | Confidence levels between 0 and 100. |
@@ -123,7 +120,7 @@ DataFrame `df`.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1137"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1091"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -137,7 +134,6 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                   step_size:int=1,
 >                                   val_size:Optional[int]=0,
 >                                   test_size:Optional[int]=None,
->                                   sort_df:bool=True,
 >                                   use_init_models:bool=False,
 >                                   verbose:bool=False,
 >                                   refit:Union[bool,int]=False,
@@ -163,7 +159,6 @@ rolled manner.\*
 | step_size | int | 1 | Step size between each window. |
 | val_size | Optional | 0 | Length of validation size. If passed, set `n_windows=None`. |
 | test_size | Optional | None | Length of test size. If passed, set `n_windows=None`. |
-| sort_df | bool | True | Sort `df` before fitting. |
 | use_init_models | bool | False | Use initial model passed when object was instantiated. |
 | verbose | bool | False | Print processing steps. |
 | refit | Union | False | Retrain model for each cross validation window.<br/>If False, the models are trained at the beginning and then used to predict each window.<br/>If positive int, the models are retrained every `refit` windows. |
@@ -178,7 +173,7 @@ rolled manner.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1320"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1258"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -200,7 +195,7 @@ to predict historic values of a time series from the stored dataframe.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1445"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1380"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -237,7 +232,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1555"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1489"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -256,11 +251,6 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 | verbose | bool | False |  |
 | kwargs |  |  | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`. |
 | **Returns** | **NeuralForecast** |  | **Instantiated [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class.** |
-
-```python
-os.environ['NIXTLA_ID_AS_COL'] = '1'
-```
-
 
 ```python
 # Test predict_insample step_size

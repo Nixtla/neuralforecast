@@ -58,9 +58,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >        num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
 >        val_check_steps:int=100, batch_size=32,
 >        valid_batch_size:Optional[int]=None, scaler_type:str='robust',
->        random_seed=1, num_workers_loader=0, drop_last_loader=False,
->        optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
->        lr_scheduler_kwargs=None, dataloader_kwargs=None, **trainer_kwargs)
+>        random_seed=1, drop_last_loader=False, optimizer=None,
+>        optimizer_kwargs=None, lr_scheduler=None, lr_scheduler_kwargs=None,
+>        dataloader_kwargs=None, **trainer_kwargs)
 > ```
 
 \*LSTM
@@ -102,9 +102,8 @@ of different series in each validation and test batch.<br/>
 normalization see [temporal
 scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 `random_seed`: int=1, random_seed for pytorch initializer and numpy
-generators.<br/> `num_workers_loader`: int=os.cpu_count(), workers to be
-used by `TimeSeriesDataLoader`.<br/> `drop_last_loader`: bool=False, if
-True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
+generators.<br/> `drop_last_loader`: bool=False, if True
+`TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str,
 optional, Custom name of the model.<br/> `optimizer`: Subclass of
 ‘torch.optim.Optimizer’, optional, user specified optimizer instead of
 the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list

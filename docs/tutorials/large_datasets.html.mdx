@@ -26,7 +26,6 @@ import logging
 import os
 import tempfile
 
-import numpy as nppackage_name
 import pandas as pd
 
 from neuralforecast import NeuralForecast
@@ -39,7 +38,6 @@ from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
 ```python
 logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
-os.environ['NIXTLA_ID_AS_COL'] = '1'
 ```
 
 ## Data
@@ -104,7 +102,6 @@ You can also create this directory structure with a spark dataframe
 using the following:
 
 ```python
-"""
 spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
 (
   spark_df
@@ -114,7 +111,6 @@ spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
   .partitionBy(id_col)
   .parquet(out_dir)
 )
-"""
 ```
 
 The DataLoader class still expects the static data to be passed in as a
