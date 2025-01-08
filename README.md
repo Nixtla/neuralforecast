@@ -107,7 +107,8 @@ If you wish to contribute to the project, please refer to our [contribution guid
 This work is highly influenced by the fantastic work of previous contributors and other scholars on the neural forecasting methods presented here. We want to highlight the work of [Boris Oreshkin](https://arxiv.org/abs/1905.10437), [Slawek Smyl](https://www.sciencedirect.com/science/article/pii/S0169207019301153), [Bryan Lim](https://www.sciencedirect.com/science/article/pii/S0169207021000637), and [David Salinas](https://arxiv.org/abs/1704.04110). We refer to [Benidis et al.](https://arxiv.org/abs/2004.10240) for a comprehensive survey of neural forecasting methods.
 
 ## 🙏 How to cite
-You can cite NeuralForecast as follows:
+If you enjoy or benefit from using these Python implementations, a citation to the repository will be greatly appreciated.
+
 ```bibtex
 @misc{olivares2022library_neuralforecast,
     author={Kin G. Olivares and
