@@ -11,6 +11,7 @@ from itertools import chain
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import fsspec
+import polars
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -1350,7 +1351,7 @@ class NeuralForecast:
 
         # Combine all series forecasts DataFrames
         if isinstance(fcsts_dfs[0], pl_DataFrame):
-            fcsts_df = pl.concat(fcsts_dfs, how="vertical")
+            fcsts_df = polars.concat(fcsts_dfs, how="vertical")
         else:
             fcsts_df = pd.concat(fcsts_dfs, axis=0, ignore_index=True)
 
@@ -1415,9 +1416,14 @@ class NeuralForecast:
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
         # Drop duplicates when step_size < h
-        fcsts_df = fcsts_df.drop_duplicates(
-            subset=[self.id_col, self.time_col], keep="first"
-        )
+        if isinstance(fcsts_df, polars.DataFrame):
+            fcsts_df = fcsts_df.unique(
+                subset=[self.id_col, self.time_col], keep="first"
+            )
+        else:
+            fcsts_df = fcsts_df.drop_duplicates(
+                subset=[self.id_col, self.time_col], keep="first"
+            )
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
