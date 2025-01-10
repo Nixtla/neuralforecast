@@ -1349,7 +1349,7 @@ class NeuralForecast:
             trimmed_datasets.append(trimmed_series)
 
         # Combine all series forecasts DataFrames
-        if isinstance(fcsts_dfs[0], pl.DataFrame):
+        if isinstance(fcsts_dfs[0], pl_DataFrame):
             fcsts_df = pl.concat(fcsts_dfs, how="vertical")
         else:
             fcsts_df = pd.concat(fcsts_dfs, axis=0, ignore_index=True)
