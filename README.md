@@ -113,7 +113,7 @@ If you enjoy or benefit from using these Python implementations, a citation to t
 @misc{olivares2022library_neuralforecast,
     author={Kin G. Olivares and
             Cristian Challú and
-            Federico Garza and
+            Azul Garza and
             Max Mergenthaler Canseco and
             Artur Dubrawski},
     title = {{NeuralForecast}: User friendly state-of-the-art neural forecasting models.},
