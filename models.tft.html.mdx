@@ -4,6 +4,14 @@ title: TFT
 ---
 
 
+```python
+
+```
+
+``` text
+env: PYTORCH_ENABLE_MPS_FALLBACK=1
+```
+
 In summary Temporal Fusion Transformer (TFT) combines gating layers, an
 LSTM recurrent encoder, with multi-head attention layers for a
 multi-step forecasting strategy decoder.<br/>TFT’s inputs are static
@@ -137,7 +145,7 @@ then uses an attention layer, and multi-step adapter.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L422"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L513"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT
@@ -146,15 +154,17 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >  TFT (h, input_size, tgt_size:int=1, stat_exog_list=None,
 >       hist_exog_list=None, futr_exog_list=None, hidden_size:int=128,
 >       n_head:int=4, attn_dropout:float=0.0, grn_activation:str='ELU',
->       dropout:float=0.1, loss=MAE(), valid_loss=None, max_steps:int=1000,
->       learning_rate:float=0.001, num_lr_decays:int=-1,
->       early_stop_patience_steps:int=-1, val_check_steps:int=100,
->       batch_size:int=32, valid_batch_size:Optional[int]=None,
->       windows_batch_size:int=1024, inference_windows_batch_size:int=1024,
->       start_padding_enabled=False, step_size:int=1,
->       scaler_type:str='robust', drop_last_loader=False, random_seed:int=1,
->       optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
->       lr_scheduler_kwargs=None, dataloader_kwargs=None, **trainer_kwargs)
+>       n_rnn_layers:int=1, rnn_type:str='LSTM',
+>       one_rnn_initial_state:bool=False, dropout:float=0.1, loss=MAE(),
+>       valid_loss=None, max_steps:int=1000, learning_rate:float=0.001,
+>       num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>       val_check_steps:int=100, batch_size:int=32,
+>       valid_batch_size:Optional[int]=None, windows_batch_size:int=1024,
+>       inference_windows_batch_size:int=1024, start_padding_enabled=False,
+>       step_size:int=1, scaler_type:str='robust', drop_last_loader=False,
+>       random_seed:int=1, optimizer=None, optimizer_kwargs=None,
+>       lr_scheduler=None, lr_scheduler_kwargs=None, dataloader_kwargs=None,
+>       **trainer_kwargs)
 > ```
 
 \*TFT
@@ -177,7 +187,11 @@ attention heads in temporal fusion decoder.<br/> `attn_dropout`: float
 (0, 1), dropout of fusion decoder’s attention layer.<br/>
 `grn_activation`: str, activation for the GRN module from \[‘ReLU’,
 ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘Sigmoid’, ‘ELU’, ‘GLU’\].<br/>
-`loss`: PyTorch module, instantiated train loss class from [losses
+`rnn_type`: str=“LSTM”, recurrent neural network (RNN) layer type from
+\[“LSTM”,“GRU”\].<br/> `n_rnn_layers`: int=1, number of RNN layers.<br/>
+`one_rnn_initial_state`:str=False, Initialize all rnn layers with the
+same initial states computed from static covariates.<br/> `loss`: PyTorch
+module, instantiated train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
@@ -284,7 +298,7 @@ TimeSeriesDataModule args, see
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L676"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L778"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importances,
@@ -304,7 +318,7 @@ importances.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L837"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -321,7 +335,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L735"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L837"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.attention_weights
@@ -338,7 +352,7 @@ each time step.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L753"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tft.py#L855"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TFT.feature_importance_correlations
@@ -357,56 +371,154 @@ weights.\*
 ## Usage Example
 
 ```python
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
 from neuralforecast import NeuralForecast
-from neuralforecast.models import TFT
+
+# from neuralforecast.models import TFT
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
-AirPassengersPanel['month']=AirPassengersPanel.ds.dt.month
-Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
-Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+AirPassengersPanel["month"] = AirPassengersPanel.ds.dt.month
+Y_train_df = AirPassengersPanel[
+    AirPassengersPanel.ds < AirPassengersPanel["ds"].values[-12]
+]  # 132 train
+Y_test_df = AirPassengersPanel[
+    AirPassengersPanel.ds >= AirPassengersPanel["ds"].values[-12]
+].reset_index(drop=True)  # 12 test
 
 nf = NeuralForecast(
-    models=[TFT(h=12, input_size=48,
-                hidden_size=20,
-                grn_activation='ELU',
-                loss=DistributionLoss(distribution='StudentT', level=[80, 90]),
-                learning_rate=0.005,
-                stat_exog_list=['airline1'],
-                futr_exog_list=['y_[lag12]','month'],
-                hist_exog_list=['trend'],
-                max_steps=300,
-                val_check_steps=10,
-                early_stop_patience_steps=10,
-                scaler_type='robust',
-                windows_batch_size=None,
-                enable_progress_bar=True),
+    models=[
+        TFT(
+            h=12,
+            input_size=48,
+            hidden_size=20,
+            grn_activation="ELU",
+            rnn_type="lstm",
+            n_rnn_layers=1,
+            one_rnn_initial_state=False,
+            loss=DistributionLoss(distribution="StudentT", level=[80, 90]),
+            learning_rate=0.005,
+            stat_exog_list=["airline1"],
+            futr_exog_list=["y_[lag12]", "month"],
+            hist_exog_list=["trend"],
+            max_steps=300,
+            val_check_steps=10,
+            early_stop_patience_steps=10,
+            scaler_type="robust",
+            windows_batch_size=None,
+            enable_progress_bar=True,
+        ),
     ],
-    freq='M'
+    freq="M",
 )
 nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 Y_hat_df = nf.predict(futr_df=Y_test_df)
 
 # Plot quantile predictions
-Y_hat_df = Y_hat_df.reset_index(drop=False).drop(columns=['unique_id','ds'])
+Y_hat_df = Y_hat_df.reset_index(drop=False).drop(columns=["unique_id", "ds"])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])
 
-plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
-plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['TFT'], c='purple', label='mean')
-plt.plot(plot_df['ds'], plot_df['TFT-median'], c='blue', label='median')
-plt.fill_between(x=plot_df['ds'][-12:], 
-                 y1=plot_df['TFT-lo-90'][-12:].values, 
-                 y2=plot_df['TFT-hi-90'][-12:].values,
-                 alpha=0.4, label='level 90')
+plot_df = plot_df[plot_df.unique_id == "Airline1"].drop("unique_id", axis=1)
+plt.plot(plot_df["ds"], plot_df["y"], c="black", label="True")
+plt.plot(plot_df["ds"], plot_df["TFT"], c="purple", label="mean")
+plt.plot(plot_df["ds"], plot_df["TFT-median"], c="blue", label="median")
+plt.fill_between(
+    x=plot_df["ds"][-12:],
+    y1=plot_df["TFT-lo-90"][-12:].values,
+    y2=plot_df["TFT-hi-90"][-12:].values,
+    alpha=0.4,
+    label="level 90",
+)
 plt.legend()
 plt.grid()
 plt.plot()
 ```
+
+``` text
+Seed set to 1
+```
+
+``` text
+Sanity Checking: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Training: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Validation: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-10-output-21.png)
 
 # Interpretability
 
@@ -418,81 +530,103 @@ attention = nf.models[0].attention_weights()
 
 
 ```python
-def plot_attention(self, plot:str="time", output:str='plot', width:int=800, height:int=400):
-        """
-        Plot the attention weights.
+def plot_attention(
+    self, plot: str = "time", output: str = "plot", width: int = 800, height: int = 400
+):
+    """
+    Plot the attention weights.
 
-        Args:
-            plot (str, optional): The type of plot to generate. Can be one of the following:
-                - 'time': Display the mean attention weights over time.
-                - 'all': Display the attention weights for each horizon.
-                - 'heatmap': Display the attention weights as a heatmap.
-                - An integer in the range [1, model.h) to display the attention weights for a specific horizon.
-            output (str, optional): The type of output to generate. Can be one of the following:
-                - 'plot': Display the plot directly.
-                - 'figure': Return the plot as a figure object.
-            width (int, optional): Width of the plot in pixels. Default is 800.
-            height (int, optional): Height of the plot in pixels. Default is 400.
+    Args:
+        plot (str, optional): The type of plot to generate. Can be one of the following:
+            - 'time': Display the mean attention weights over time.
+            - 'all': Display the attention weights for each horizon.
+            - 'heatmap': Display the attention weights as a heatmap.
+            - An integer in the range [1, model.h) to display the attention weights for a specific horizon.
+        output (str, optional): The type of output to generate. Can be one of the following:
+            - 'plot': Display the plot directly.
+            - 'figure': Return the plot as a figure object.
+        width (int, optional): Width of the plot in pixels. Default is 800.
+        height (int, optional): Height of the plot in pixels. Default is 400.
 
-        Returns:
-            matplotlib.figure.Figure: If `output` is 'figure', the function returns the plot as a figure object.
-        """
+    Returns:
+        matplotlib.figure.Figure: If `output` is 'figure', the function returns the plot as a figure object.
+    """
 
-        attention = (
-            self.mean_on_batch(self.interpretability_params["attn_wts"])
-            .mean(dim=0)
-            .cpu()
-            .numpy()
+    attention = (
+        self.mean_on_batch(self.interpretability_params["attn_wts"])
+        .mean(dim=0)
+        .cpu()
+        .numpy()
+    )
+
+    fig, ax = plt.subplots(figsize=(width / 100, height / 100))
+
+    if plot == "time":
+        attention = attention[self.input_size :, :].mean(axis=0)
+        ax.plot(np.arange(-self.input_size, self.h), attention)
+        ax.axvline(
+            x=0, color="black", linewidth=3, linestyle="--", label="prediction start"
+        )
+        ax.set_title("Mean Attention")
+        ax.set_xlabel("time")
+        ax.set_ylabel("Attention")
+        ax.legend()
+
+    elif plot == "all":
+        for i in range(self.input_size, attention.shape[0]):
+            ax.plot(
+                np.arange(-self.input_size, self.h),
+                attention[i, :],
+                label=f"horizon {i-self.input_size+1}",
+            )
+        ax.axvline(
+            x=0, color="black", linewidth=3, linestyle="--", label="prediction start"
+        )
+        ax.set_title("Attention per horizon")
+        ax.set_xlabel("time")
+        ax.set_ylabel("Attention")
+        ax.legend()
+
+    elif plot == "heatmap":
+        cax = ax.imshow(
+            attention,
+            aspect="auto",
+            cmap="viridis",
+            extent=[-self.input_size, self.h, -self.input_size, self.h],
+        )
+        fig.colorbar(cax)
+        ax.set_title("Attention Heatmap")
+        ax.set_xlabel("Attention (current time step)")
+        ax.set_ylabel("Attention (previous time step)")
+
+    elif isinstance(plot, int) and (plot in np.arange(1, self.h + 1)):
+        i = self.input_size + plot - 1
+        ax.plot(
+            np.arange(-self.input_size, self.h),
+            attention[i, :],
+            label=f"horizon {plot}",
+        )
+        ax.axvline(
+            x=0, color="black", linewidth=3, linestyle="--", label="prediction start"
+        )
+        ax.set_title(f"Attention weight for horizon {plot}")
+        ax.set_xlabel("time")
+        ax.set_ylabel("Attention")
+        ax.legend()
+
+    else:
+        raise ValueError(
+            'plot has to be in ["time","all","heatmap"] or integer in range(1,model.h)'
         )
 
-        fig, ax = plt.subplots(figsize=(width / 100, height / 100))
+    plt.tight_layout()
 
-        if plot == "time":
-            attention = attention[self.input_size:, :].mean(axis=0)
-            ax.plot(np.arange(-self.input_size, self.h), attention)
-            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
-            ax.set_title("Mean Attention")
-            ax.set_xlabel("time")
-            ax.set_ylabel("Attention")
-            ax.legend()
-
-        elif plot == "all":
-            for i in range(self.input_size, attention.shape[0]):
-                ax.plot(np.arange(-self.input_size, self.h), attention[i, :], label=f"horizon {i-self.input_size+1}")
-            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
-            ax.set_title("Attention per horizon")
-            ax.set_xlabel("time")
-            ax.set_ylabel("Attention")
-            ax.legend()
-
-        elif plot == "heatmap":
-            cax = ax.imshow(attention, aspect='auto', cmap='viridis',
-                            extent=[-self.input_size, self.h, -self.input_size, self.h])
-            fig.colorbar(cax)
-            ax.set_title("Attention Heatmap")
-            ax.set_xlabel("Attention (current time step)")
-            ax.set_ylabel("Attention (previous time step)")
-
-        elif isinstance(plot, int) and (plot in np.arange(1, self.h + 1)):
-            i = self.input_size + plot - 1
-            ax.plot(np.arange(-self.input_size, self.h), attention[i, :], label=f"horizon {plot}")
-            ax.axvline(x=0, color='black', linewidth=3, linestyle='--', label="prediction start")
-            ax.set_title(f"Attention weight for horizon {plot}")
-            ax.set_xlabel("time")
-            ax.set_ylabel("Attention")
-            ax.legend()
-
-        else:
-            raise ValueError('plot has to be in ["time","all","heatmap"] or integer in range(1,model.h)')
-
-        plt.tight_layout()
-
-        if output == 'plot':
-            plt.show()
-        elif output == 'figure':
-            return fig
-        else:
-            raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
+    if output == "plot":
+        plt.show()
+    elif output == "figure":
+        return fig
+    else:
+        raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
 ```
 
 #### 1.1 Mean attention
@@ -501,17 +635,23 @@ def plot_attention(self, plot:str="time", output:str='plot', width:int=800, heig
 plot_attention(nf.models[0], plot="time")
 ```
 
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-13-output-1.png)
+
 #### 1.2 Attention of all future time steps
 
 ```python
 plot_attention(nf.models[0], plot="all")
 ```
 
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-14-output-1.png)
+
 #### 1.3 Attention of a specific future time step
 
 ```python
 plot_attention(nf.models[0], plot=8)
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-15-output-1.png)
 
 ## 2. Feature Importance
 
@@ -522,23 +662,37 @@ feature_importances = nf.models[0].feature_importances()
 feature_importances.keys()
 ```
 
+``` text
+dict_keys(['Past variable importance over time', 'Future variable importance over time', 'Static covariates'])
+```
+
 #### Static variable importances
 
 ```python
-feature_importances['Static covariates'].sort_values(by='importance').plot(kind='barh')
+feature_importances["Static covariates"].sort_values(by="importance").plot(kind="barh")
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-17-output-1.png)
 
 #### Past variable importances
 
 ```python
-feature_importances['Past variable importance over time'].mean().sort_values().plot(kind='barh')
+feature_importances["Past variable importance over time"].mean().sort_values().plot(
+    kind="barh"
+)
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-18-output-1.png)
 
 #### Future variable importances
 
 ```python
-feature_importances['Future variable importance over time'].mean().sort_values().plot(kind='barh')
+feature_importances["Future variable importance over time"].mean().sort_values().plot(
+    kind="barh"
+)
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-19-output-1.png)
 
 ### 2.2 Variable importances over time
 
@@ -547,36 +701,38 @@ feature_importances['Future variable importance over time'].mean().sort_values()
 Importance of each future covariate at each future time step
 
 ```python
-df=feature_importances['Future variable importance over time']
+df = feature_importances["Future variable importance over time"]
 
 
 fig, ax = plt.subplots(figsize=(20, 10))
 bottom = np.zeros(len(df.index))
 for col in df.columns:
-    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    p = ax.bar(np.arange(-len(df), 0), df[col].values, 0.6, label=col, bottom=bottom)
     bottom += df[col]
-ax.set_title('Future variable importance over time ponderated by attention')
+ax.set_title("Future variable importance over time ponderated by attention")
 ax.set_ylabel("Importance")
 ax.set_xlabel("Time")
 ax.grid(True)
 ax.legend()
 plt.show()
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-20-output-1.png)
 
 2.3
 
 #### Past variable importance over time
 
 ```python
-df= feature_importances['Past variable importance over time']
+df = feature_importances["Past variable importance over time"]
 
 fig, ax = plt.subplots(figsize=(20, 10))
 bottom = np.zeros(len(df.index))
 
 for col in df.columns:
-    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    p = ax.bar(np.arange(-len(df), 0), df[col].values, 0.6, label=col, bottom=bottom)
     bottom += df[col]
-ax.set_title('Past variable importance over time')
+ax.set_title("Past variable importance over time")
 ax.set_ylabel("Importance")
 ax.set_xlabel("Time")
 ax.legend()
@@ -584,6 +740,8 @@ ax.grid(True)
 
 plt.show()
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-21-output-1.png)
 
 #### Past variable importance over time ponderated by attention
 
@@ -591,25 +749,39 @@ Decomposition of the importance of each time step based on importance of
 each variable at that time step
 
 ```python
-df= feature_importances['Past variable importance over time']
-mean_attention = nf.models[0].attention_weights()[nf.models[0].input_size:,:].mean(axis=0)[:nf.models[0].input_size]
+df = feature_importances["Past variable importance over time"]
+mean_attention = (
+    nf.models[0]
+    .attention_weights()[nf.models[0].input_size :, :]
+    .mean(axis=0)[: nf.models[0].input_size]
+)
 df = df.multiply(mean_attention, axis=0)
 
 fig, ax = plt.subplots(figsize=(20, 10))
 bottom = np.zeros(len(df.index))
 
 for col in df.columns:
-    p = ax.bar(np.arange(-len(df),0), df[col].values, 0.6, label=col, bottom=bottom)
+    p = ax.bar(np.arange(-len(df), 0), df[col].values, 0.6, label=col, bottom=bottom)
     bottom += df[col]
-ax.set_title('Past variable importance over time ponderated by attention')
+ax.set_title("Past variable importance over time ponderated by attention")
 ax.set_ylabel("Importance")
 ax.set_xlabel("Time")
 ax.legend()
 ax.grid(True)
-plt.plot(np.arange(-len(df),0), mean_attention, color='black', marker='o', linestyle='-', linewidth=2, label='mean_attention')
+plt.plot(
+    np.arange(-len(df), 0),
+    mean_attention,
+    color="black",
+    marker="o",
+    linestyle="-",
+    linewidth=2,
+    label="mean_attention",
+)
 plt.legend()
 plt.show()
 ```
+
+![](/neuralforecast/models.tft_files/figure-markdown_strict/cell-22-output-1.png)
 
 ### 3. Variable importance correlations over time
 
@@ -618,4 +790,12 @@ Variables which gain and lose importance at same moments
 ```python
 nf.models[0].feature_importance_correlations()
 ```
+
+|  | trend | y\_\[lag12\] | month | observed_target | Correlation with Mean Attention |
+|----|----|----|----|----|----|
+| trend | 1.00 | -0.45 | -0.29 | -0.41 | -0.43 |
+| y\_\[lag12\] | -0.45 | 1.00 | -0.56 | -0.18 | 0.68 |
+| month | -0.29 | -0.56 | 1.00 | 0.18 | -0.38 |
+| observed_target | -0.41 | -0.18 | 0.18 | 1.00 | 0.07 |
+| Correlation with Mean Attention | -0.43 | 0.68 | -0.38 | 0.07 | 1.00 |
 

@@ -650,7 +650,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  DistributionLoss.__init__ (distribution, level=[80, 90], quantiles=None,
 >                             num_samples=1000, return_params=False,
->                             **distribution_kwargs)
+>                             horizon_weight=None, **distribution_kwargs)
 > ```
 
 \*DistributionLoss
@@ -691,7 +691,7 @@ Forecasting”.](https://proceedings.mlr.press/v151/park22a.html)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1975"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L1981"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DistributionLoss.sample
@@ -714,7 +714,7 @@ number of samples for the empirical quantiles.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2014"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2042"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### DistributionLoss.\_\_call\_\_
@@ -748,7 +748,7 @@ backpropagation will be performed.<br/>\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2048"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2076"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PMM.\_\_init\_\_
@@ -790,7 +790,7 @@ arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2132"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2160"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PMM.sample
@@ -816,7 +816,7 @@ quantiles.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2238"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2266"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### PMM.\_\_call\_\_
@@ -835,7 +835,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2248"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2276"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### GMM.\_\_init\_\_
@@ -878,7 +878,7 @@ arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2338"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2366"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### GMM.sample
@@ -904,7 +904,7 @@ quantiles.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2445"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2473"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### GMM.\_\_call\_\_
@@ -924,7 +924,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2455"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2483"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NBMM.\_\_init\_\_
@@ -963,7 +963,7 @@ arxiv.](https://arxiv.org/pdf/2110.13179.pdf)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2548"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2576"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NBMM.sample
@@ -989,7 +989,7 @@ quantiles.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2659"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2687"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NBMM.\_\_call\_\_
@@ -1014,7 +1014,7 @@ offering more stable results.
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2669"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2697"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberLoss.\_\_init\_\_
@@ -1056,7 +1056,7 @@ Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2701"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2729"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberLoss.\_\_call\_\_
@@ -1079,7 +1079,7 @@ consider in loss.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2721"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2749"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TukeyLoss.\_\_init\_\_
@@ -1124,7 +1124,7 @@ Band-Spectroscopic Data.”](https://www.jstor.org/stable/1267936)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2772"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2800"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TukeyLoss.\_\_call\_\_
@@ -1147,7 +1147,7 @@ consider in loss.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2809"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2837"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberQLoss.\_\_init\_\_
@@ -1191,7 +1191,7 @@ Quantiles”.](https://www.jstor.org/stable/1913643)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2843"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2871"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberQLoss.\_\_call\_\_
@@ -1214,7 +1214,7 @@ in loss.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2872"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2900"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberMQLoss.\_\_init\_\_
@@ -1257,7 +1257,7 @@ Quantiles”.](https://www.jstor.org/stable/1913643)\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2943"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2971"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### HuberMQLoss.\_\_call\_\_
@@ -1282,7 +1282,7 @@ consider in loss.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L2986"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3014"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Accuracy.\_\_init\_\_
@@ -1302,7 +1302,7 @@ $$ \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3010"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3038"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Accuracy.\_\_call\_\_
@@ -1323,7 +1323,7 @@ consider in loss.<br/>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3033"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3061"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### sCRPS.\_\_init\_\_
@@ -1371,7 +1371,7 @@ Proceedings of the 38th International Conference on Machine Learning
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3069"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/losses/pytorch.py#L3097"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### sCRPS.\_\_call\_\_
