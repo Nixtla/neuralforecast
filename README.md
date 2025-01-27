@@ -106,6 +106,23 @@ If you wish to contribute to the project, please refer to our [contribution guid
 ## References
 This work is highly influenced by the fantastic work of previous contributors and other scholars on the neural forecasting methods presented here. We want to highlight the work of [Boris Oreshkin](https://arxiv.org/abs/1905.10437), [Slawek Smyl](https://www.sciencedirect.com/science/article/pii/S0169207019301153), [Bryan Lim](https://www.sciencedirect.com/science/article/pii/S0169207021000637), and [David Salinas](https://arxiv.org/abs/1704.04110). We refer to [Benidis et al.](https://arxiv.org/abs/2004.10240) for a comprehensive survey of neural forecasting methods.
 
+## 🙏 How to cite
+If you enjoy or benefit from using these Python implementations, a citation to the repository will be greatly appreciated.
+
+```bibtex
+@misc{olivares2022library_neuralforecast,
+    author={Kin G. Olivares and
+            Cristian Challú and
+            Azul Garza and
+            Max Mergenthaler Canseco and
+            Artur Dubrawski},
+    title = {{NeuralForecast}: User friendly state-of-the-art neural forecasting models.},
+    year={2022},
+    howpublished={{PyCon} Salt Lake City, Utah, US 2022},
+    url={https://github.com/Nixtla/neuralforecast}
+}
+```
+
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
