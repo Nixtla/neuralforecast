@@ -121,9 +121,6 @@ class BaseModel(pl.LightningModule):
             lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
         )
 
-        # customized by set_configure_optimizers()
-        self.config_optimizers = None
-
         # Variables
         self.futr_exog_list = list(futr_exog_list) if futr_exog_list is not None else []
         self.hist_exog_list = list(hist_exog_list) if hist_exog_list is not None else []
@@ -378,9 +375,6 @@ class BaseModel(pl.LightningModule):
         random.seed(self.random_seed)
 
     def configure_optimizers(self):
-        if self.config_optimizers is not None:
-            return self.config_optimizers
-
         if self.optimizer:
             optimizer_signature = inspect.signature(self.optimizer)
             optimizer_kwargs = deepcopy(self.optimizer_kwargs)
@@ -420,51 +414,6 @@ class BaseModel(pl.LightningModule):
                 optimizer=optimizer, step_size=self.lr_decay_steps, gamma=0.5
             )
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
-
-    def set_configure_optimizers(
-        self,
-        optimizer=None,
-        scheduler=None,
-        interval="step",
-        frequency=1,
-        monitor="val_loss",
-        strict=True,
-        name=None,
-    ):
-        """Helper function to customize the lr_scheduler_config as detailed in
-        https://lightning.ai/docs/pytorch/stable/common/lightning_module.html#configure-optimizers
-
-        Calling set_configure_optimizers() with valid `optimizer`, `scheduler` shall modify the returned
-        dictionary of key='optimizer', key='lr_scheduler' in configure_optimizers().
-        Note that the default choice of `interval` in set_configure_optiizers() is 'step',
-        which differs from the choice of 'epoch' used in lightning_module.
-        """
-        lr_scheduler_config = {
-            "interval": interval,
-            "frequency": frequency,
-            "monitor": monitor,
-            "strict": strict,
-            "name": name,
-        }
-
-        if scheduler is not None and optimizer is not None:
-            if not isinstance(scheduler, torch.optim.lr_scheduler.LRScheduler):
-                raise TypeError(
-                    "scheduler is not a valid instance of torch.optim.lr_scheduler.LRScheduler"
-                )
-            if not isinstance(optimizer, torch.optim.Optimizer):
-                raise TypeError(
-                    "optimizer is not a valid instance of torch.optim.Optimizer"
-                )
-
-            lr_scheduler_config["scheduler"] = scheduler
-            self.config_optimizers = {
-                "optimizer": optimizer,
-                "lr_scheduler": lr_scheduler_config,
-            }
-        else:
-            # falls back to default option as specified in configure_optimizers()
-            self.config_optimizers = None
 
     def get_test_size(self):
         return self.test_size
