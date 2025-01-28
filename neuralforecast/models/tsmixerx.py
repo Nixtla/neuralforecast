@@ -187,6 +187,10 @@ class TSMixerx(BaseMultivariate):
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
+    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
+    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
+    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
+    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
@@ -225,6 +229,10 @@ class TSMixerx(BaseMultivariate):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        optimizer=None,
+        optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
         **trainer_kwargs
     ):
@@ -249,6 +257,10 @@ class TSMixerx(BaseMultivariate):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
