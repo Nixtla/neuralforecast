@@ -4,6 +4,7 @@
 __all__ = ['NBEATS']
 
 # %% ../../nbs/models.nbeats.ipynb 5
+import warnings
 from typing import Tuple, Optional
 
 import numpy as np
@@ -337,8 +338,9 @@ class NBEATS(BaseWindows):
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
     `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br>
+    `n_polynomials`: int, DEPRECATED - polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br>
     `basis`: str, Type of basis function to use in the trend stack. Choose one from ['legendre', 'polynomial', 'changepoint', 'piecewise_linear', 'linear_hat', 'spline', 'chebyshev']<br>
-    `n_basis`: int, the number of basis functions for the trend stack. Note that it will only be used if a trend stack is used.<br>
+    `n_basis`: int, the degree of the basis function for the trend stack. Note that it will only be used if a trend stack is used.<br>
     `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
@@ -385,6 +387,7 @@ class NBEATS(BaseWindows):
         h,
         input_size,
         n_harmonics: int = 2,
+        n_polynomials: Optional[int] = None,
         n_basis: int = 2,
         basis: str = "polynomial",
         stack_types: list = ["identity", "trend", "seasonality"],
@@ -450,6 +453,15 @@ class NBEATS(BaseWindows):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
+
+        # Raise deprecation warning
+        if n_polynomials is not None:
+            warnings.warn(
+                "The parameter n_polynomials will be deprecated in favor of n_basis and basis and it is currently ignored.\n"
+                "The basis parameter defines the basis function to be used in the trend stack.\n"
+                "The n_basis defines the degree of the basis function used in the trend stack.",
+                DeprecationWarning,
+            )
 
         # Architecture
         blocks = self.create_stack(
