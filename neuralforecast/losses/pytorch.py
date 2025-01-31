@@ -1824,6 +1824,7 @@ class DistributionLoss(torch.nn.Module):
         quantiles=None,
         num_samples=1000,
         return_params=False,
+        horizon_weight=None,
         **distribution_kwargs,
     ):
         super(DistributionLoss, self).__init__()
@@ -1838,6 +1839,11 @@ class DistributionLoss(torch.nn.Module):
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         num_qk = len(self.quantiles)
+
+        # Generate a horizon weight tensor from the array
+        if horizon_weight is not None:
+            horizon_weight = torch.Tensor(horizon_weight.flatten())
+        self.horizon_weight = horizon_weight
 
         if "num_pieces" not in distribution_kwargs:
             num_pieces = 5
@@ -1987,6 +1993,28 @@ class DistributionLoss(torch.nn.Module):
             )
             self.output_names = ["", "-median"] + self.return_params * self.param_names
 
+    def _compute_weights(self, y, mask):
+        """
+        Compute final weights for each datapoint (based on all weights and all masks)
+        Set horizon_weight to a ones[H] tensor if not set.
+        If set, check that it has the same length as the horizon in x.
+        """
+        if mask is None:
+            mask = torch.ones_like(y, device=y.device)
+        else:
+            mask = mask.unsqueeze(1)  # Add Q dimension.
+
+        # get uniform weights if none
+        if self.horizon_weight is None:
+            self.horizon_weight = torch.ones(mask.shape[-1])
+        else:
+            assert mask.shape[-1] == len(
+                self.horizon_weight
+            ), "horizon_weight must have same length as Y"
+        weights = self.horizon_weight.clone()
+        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
+        return weights * mask
+
     def __call__(
         self,
         y: torch.Tensor,
@@ -2005,6 +2033,10 @@ class DistributionLoss(torch.nn.Module):
         **Parameters**<br>
         `y`: tensor, Actual values.<br>
         `distr_args`: Constructor arguments for the underlying Distribution type.<br>
+        `loc`: Optional tensor, of the same shape as the batch_shape + event_shape
+               of the resulting distribution.<br>
+        `scale`: Optional tensor, of the same shape as the batch_shape+event_shape
+               of the resulting distribution.<br>
         `mask`: tensor, Specifies date stamps per serie to consider in loss.<br>
 
         **Returns**<br>
@@ -2013,7 +2045,7 @@ class DistributionLoss(torch.nn.Module):
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args, **self.distribution_kwargs)
         loss_values = -distr.log_prob(y)
-        loss_weights = mask
+        loss_weights = self._compute_weights(y=y, mask=mask)
         return weighted_average(loss_values, weights=loss_weights)
 
 # %% ../../nbs/losses.pytorch.ipynb 74

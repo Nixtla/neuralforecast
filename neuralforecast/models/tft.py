@@ -4,14 +4,15 @@
 __all__ = ['TFT']
 
 # %% ../../nbs/models.tft.ipynb 5
-from typing import Tuple, Optional, Callable
+from typing import Callable, Optional, Tuple
 
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torch import Tensor
 from torch.nn import LayerNorm
-import pandas as pd
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
 
@@ -129,7 +130,6 @@ class TFTEmbedding(nn.Module):
         cont_emb: Tensor,
         cont_bias: Tensor,
     ):
-
         if cont is not None:
             # the line below is equivalent to following einsums
             # e_cont = torch.einsum('btf,fh->bthf', cont, cont_emb)
@@ -270,7 +270,16 @@ class InterpretableMultiHeadAttention(nn.Module):
 
 # %% ../../nbs/models.tft.ipynb 19
 class StaticCovariateEncoder(nn.Module):
-    def __init__(self, hidden_size, num_static_vars, dropout, grn_activation):
+    def __init__(
+        self,
+        hidden_size,
+        num_static_vars,
+        dropout,
+        grn_activation,
+        rnn_type="lstm",
+        n_rnn_layers=1,
+        one_rnn_initial_state=False,
+    ):
         super().__init__()
         self.vsn = VariableSelectionNetwork(
             hidden_size=hidden_size,
@@ -278,10 +287,18 @@ class StaticCovariateEncoder(nn.Module):
             dropout=dropout,
             grn_activation=grn_activation,
         )
+        self.rnn_type = rnn_type.lower()
+
+        self.n_rnn_layers = n_rnn_layers
+
+        self.n_states = 1 if one_rnn_initial_state else n_rnn_layers
+
+        n_contexts = 2 + 2 * self.n_states if rnn_type == "lstm" else 2 + self.n_states
+
         self.context_grns = nn.ModuleList(
             [
                 GRN(input_size=hidden_size, hidden_size=hidden_size, dropout=dropout)
-                for _ in range(4)
+                for _ in range(n_contexts)
             ]
         )
 
@@ -293,16 +310,62 @@ class StaticCovariateEncoder(nn.Module):
         # enrichment context
         # state_c context
         # state_h context
-        cs, ce, ch, cc = tuple(m(variable_ctx) for m in self.context_grns)  # type: ignore
+
+        cs, ce = list(m(variable_ctx) for m in self.context_grns[:2])  # type: ignore
+
+        if self.n_states == 1:
+            ch = torch.cat(
+                self.n_rnn_layers
+                * list(
+                    m(variable_ctx).unsqueeze(0)
+                    for m in self.context_grns[2 : self.n_states + 2]
+                )
+            )
+
+            if self.rnn_type == "lstm":
+                cc = torch.cat(
+                    self.n_rnn_layers
+                    * list(
+                        m(variable_ctx).unsqueeze(0)
+                        for m in self.context_grns[self.n_states + 2 :]
+                    )
+                )
+
+        else:
+            ch = torch.cat(
+                list(
+                    m(variable_ctx).unsqueeze(0)
+                    for m in self.context_grns[2 : self.n_states + 2]
+                )
+            )
+
+            if self.rnn_type == "lstm":
+                cc = torch.cat(
+                    list(
+                        m(variable_ctx).unsqueeze(0)
+                        for m in self.context_grns[self.n_states + 2 :]
+                    )
+                )
+        if self.rnn_type != "lstm":
+            cc = ch
 
         return cs, ce, ch, cc, sparse_weights  # type: ignore
 
 # %% ../../nbs/models.tft.ipynb 21
 class TemporalCovariateEncoder(nn.Module):
     def __init__(
-        self, hidden_size, num_historic_vars, num_future_vars, dropout, grn_activation
+        self,
+        hidden_size,
+        num_historic_vars,
+        num_future_vars,
+        dropout,
+        grn_activation,
+        rnn_type="lstm",
+        n_rnn_layers=1,
     ):
         super(TemporalCovariateEncoder, self).__init__()
+        self.rnn_type = rnn_type.lower()
+        self.n_rnn_layers = n_rnn_layers
 
         self.history_vsn = VariableSelectionNetwork(
             hidden_size=hidden_size,
@@ -310,18 +373,42 @@ class TemporalCovariateEncoder(nn.Module):
             dropout=dropout,
             grn_activation=grn_activation,
         )
-        self.history_encoder = nn.LSTM(
-            input_size=hidden_size, hidden_size=hidden_size, batch_first=True
-        )
+        if self.rnn_type == "lstm":
+            self.history_encoder = nn.LSTM(
+                input_size=hidden_size,
+                hidden_size=hidden_size,
+                batch_first=True,
+                num_layers=n_rnn_layers,
+            )
+
+            self.future_encoder = nn.LSTM(
+                input_size=hidden_size,
+                hidden_size=hidden_size,
+                batch_first=True,
+                num_layers=n_rnn_layers,
+            )
+
+        elif self.rnn_type == "gru":
+            self.history_encoder = nn.GRU(
+                input_size=hidden_size,
+                hidden_size=hidden_size,
+                batch_first=True,
+                num_layers=n_rnn_layers,
+            )
+            self.future_encoder = nn.GRU(
+                input_size=hidden_size,
+                hidden_size=hidden_size,
+                batch_first=True,
+                num_layers=n_rnn_layers,
+            )
+        else:
+            raise ValueError('RNN type should be in ["lstm","gru"] !')
 
         self.future_vsn = VariableSelectionNetwork(
             hidden_size=hidden_size,
             num_inputs=num_future_vars,
             dropout=dropout,
             grn_activation=grn_activation,
-        )
-        self.future_encoder = nn.LSTM(
-            input_size=hidden_size, hidden_size=hidden_size, batch_first=True
         )
 
         # Shared Gated-Skip Connection
@@ -333,7 +420,11 @@ class TemporalCovariateEncoder(nn.Module):
         historical_features, history_vsn_sparse_weights = self.history_vsn(
             historical_inputs, cs
         )
-        history, state = self.history_encoder(historical_features, (ch, cc))
+        if self.rnn_type == "lstm":
+            history, state = self.history_encoder(historical_features, (ch, cc))
+
+        elif self.rnn_type == "gru":
+            history, state = self.history_encoder(historical_features, ch)
 
         future_features, future_vsn_sparse_weights = self.future_vsn(future_inputs, cs)
         future, _ = self.future_encoder(future_features, state)
@@ -439,6 +530,9 @@ class TFT(BaseModel):
     `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
     `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
+    `rnn_type`: str="LSTM", recurrent neural network (RNN) layer type from ["LSTM","GRU"].<br>
+    `n_rnn_layers`: int=1, number of RNN layers.<br>
+    `one_rnn_initial_state`:str=False, Initialize all rnn layers with the same initial states computed from static covariates.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -454,7 +548,6 @@ class TFT(BaseModel):
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
@@ -490,6 +583,9 @@ class TFT(BaseModel):
         n_head: int = 4,
         attn_dropout: float = 0.0,
         grn_activation: str = "ELU",
+        n_rnn_layers: int = 1,
+        rnn_type: str = "LSTM",
+        one_rnn_initial_state: bool = False,
         dropout: float = 0.1,
         loss=MAE(),
         valid_loss=None,
@@ -505,7 +601,6 @@ class TFT(BaseModel):
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
-        num_workers_loader=0,
         drop_last_loader=False,
         random_seed: int = 1,
         optimizer=None,
@@ -515,7 +610,6 @@ class TFT(BaseModel):
         dataloader_kwargs=None,
         **trainer_kwargs,
     ):
-
         # Inherit BaseWindows class
         super(TFT, self).__init__(
             h=h,
@@ -537,7 +631,6 @@ class TFT(BaseModel):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
@@ -553,7 +646,7 @@ class TFT(BaseModel):
         self.grn_activation = grn_activation
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
-
+        self.n_rnn_layers = n_rnn_layers
         # ------------------------------- Encoders -----------------------------#
         self.embedding = TFTEmbedding(
             hidden_size=hidden_size,
@@ -569,6 +662,9 @@ class TFT(BaseModel):
                 num_static_vars=self.stat_exog_size,
                 dropout=dropout,
                 grn_activation=self.grn_activation,
+                rnn_type=rnn_type,
+                n_rnn_layers=n_rnn_layers,
+                one_rnn_initial_state=one_rnn_initial_state,
             )
 
         self.temporal_encoder = TemporalCovariateEncoder(
@@ -577,6 +673,8 @@ class TFT(BaseModel):
             num_future_vars=futr_exog_size,
             dropout=dropout,
             grn_activation=self.grn_activation,
+            n_rnn_layers=n_rnn_layers,
+            rnn_type=rnn_type,
         )
 
         # ------------------------------ Decoders -----------------------------#
@@ -618,17 +716,19 @@ class TFT(BaseModel):
         # Static context
         if s_inp is not None:
             cs, ce, ch, cc, static_encoder_sparse_weights = self.static_encoder(s_inp)
-            ch, cc = ch.unsqueeze(0), cc.unsqueeze(0)  # LSTM initial states
+            # ch, cc = ch.unsqueeze(0), cc.unsqueeze(0)  # LSTM initial states
         else:
             # If None add zeros
             batch_size, example_length, target_size, hidden_size = t_observed_tgt.shape
             cs = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
             ce = torch.zeros(size=(batch_size, hidden_size), device=y_insample.device)
             ch = torch.zeros(
-                size=(1, batch_size, hidden_size), device=y_insample.device
+                size=(self.n_rnn_layers, batch_size, hidden_size),
+                device=y_insample.device,
             )
             cc = torch.zeros(
-                size=(1, batch_size, hidden_size), device=y_insample.device
+                size=(self.n_rnn_layers, batch_size, hidden_size),
+                device=y_insample.device,
             )
             static_encoder_sparse_weights = []
 
