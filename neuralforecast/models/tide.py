@@ -6,12 +6,12 @@ __all__ = ['MLPResidual', 'TiDE']
 # %% ../../nbs/models.tide.ipynb 5
 from typing import Optional
 
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
 from ..common._base_windows import BaseWindows
+from ..common._modules import RevIN
 
 # %% ../../nbs/models.tide.ipynb 8
 class MLPResidual(nn.Module):
@@ -32,9 +32,9 @@ class MLPResidual(nn.Module):
 
     def forward(self, input):
         # MLP dense
-        x = F.relu(self.lin1(input))
-        x = self.lin2(x)
+        x = F.gelu(self.lin1(input))
         x = self.drop(x)
+        x = self.lin2(x)
 
         # Skip connection
         x_skip = self.skip(input)
@@ -94,22 +94,21 @@ class TiDE(BaseWindows):
 
     # Class attributes
     SAMPLING_TYPE = "windows"
-    EXOGENOUS_FUTR = True
-    EXOGENOUS_HIST = True
-    EXOGENOUS_STAT = True
+    EXOGENOUS_FUTR = False
+    EXOGENOUS_HIST = False
+    EXOGENOUS_STAT = False
 
     def __init__(
         self,
         h,
         input_size,
-        hidden_size=512,
-        decoder_output_dim=32,
-        temporal_decoder_dim=128,
-        dropout=0.3,
-        layernorm=True,
+        hidden_size=128,
+        dropout=0.2,
         num_encoder_layers=1,
-        num_decoder_layers=1,
-        temporal_width=4,
+        n_heads=4,
+        patch_len=16,
+        stride=8,
+        revin=False,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -170,147 +169,80 @@ class TiDE(BaseWindows):
             **trainer_kwargs
         )
         self.h = h
+        n_patches = int((input_size - patch_len) / stride + 1)
+        self.revin = revin
+        if self.revin:
+            self.revin_layer = RevIN(1, affine=True)
 
-        if self.hist_exog_size > 0 or self.futr_exog_size > 0:
-            self.hist_exog_projection = MLPResidual(
-                input_dim=self.hist_exog_size,
-                hidden_size=hidden_size,
-                output_dim=temporal_width,
-                dropout=dropout,
-                layernorm=layernorm,
-            )
-        if self.futr_exog_size > 0:
-            self.futr_exog_projection = MLPResidual(
-                input_dim=self.futr_exog_size,
-                hidden_size=hidden_size,
-                output_dim=temporal_width,
-                dropout=dropout,
-                layernorm=layernorm,
-            )
+        self.patch_len = min(input_size + stride, patch_len)
+        self.stride = stride
+        self.linear_projection = nn.Linear(n_patches, hidden_size)
 
-        # Encoder
-        dense_encoder_input_size = (
-            input_size
-            + input_size * (self.hist_exog_size > 0) * temporal_width
-            + (input_size + h) * (self.futr_exog_size > 0) * temporal_width
-            + (self.stat_exog_size > 0) * self.stat_exog_size
-        )
-
-        dense_encoder_layers = [
-            MLPResidual(
-                input_dim=dense_encoder_input_size if i == 0 else hidden_size,
-                hidden_size=hidden_size,
-                output_dim=hidden_size,
-                dropout=dropout,
-                layernorm=layernorm,
-            )
-            for i in range(num_encoder_layers)
-        ]
-        self.dense_encoder = nn.Sequential(*dense_encoder_layers)
-
-        # Decoder
-        decoder_output_size = decoder_output_dim * h
-        dense_decoder_layers = [
-            MLPResidual(
-                input_dim=hidden_size,
-                hidden_size=hidden_size,
-                output_dim=(
-                    decoder_output_size if i == num_decoder_layers - 1 else hidden_size
-                ),
-                dropout=dropout,
-                layernorm=layernorm,
-            )
-            for i in range(num_decoder_layers)
-        ]
-        self.dense_decoder = nn.Sequential(*dense_decoder_layers)
-
-        # Temporal decoder with loss dependent dimensions
-        self.temporal_decoder = MLPResidual(
-            input_dim=decoder_output_dim + (self.futr_exog_size > 0) * temporal_width,
-            hidden_size=temporal_decoder_dim,
-            output_dim=self.loss.outputsize_multiplier,
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=hidden_size,
+            nhead=n_heads,
+            dim_feedforward=4 * hidden_size,
             dropout=dropout,
-            layernorm=layernorm,
+            activation=F.gelu,
+            batch_first=True,
+        )
+        encoder_norm = nn.LayerNorm(hidden_size)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer, num_encoder_layers, encoder_norm
         )
 
-        # Global skip connection
-        self.global_skip = nn.Linear(
-            in_features=input_size, out_features=h * self.loss.outputsize_multiplier
-        )
+        output_network = [
+            nn.Flatten(start_dim=-2),
+            nn.Linear(hidden_size * patch_len, h * self.loss.outputsize_multiplier),
+            nn.Dropout(dropout),
+        ]
+        self.output_network = nn.Sequential(*output_network)
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
-        hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
-        futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
-        stat_exog = windows_batch["stat_exog"]  #   [B, S]
-        batch_size, seq_len = x.shape[:2]  #   B = batch_size, L = seq_len
+        x = windows_batch["insample_y"].unsqueeze(1)  #   [B, 1, L]
 
-        # Flatten insample_y
-        x = x.reshape(batch_size, -1)  #   [B, L, 1] -> [B, L]
+        # Revin
+        if self.revin:
+            x = x.permute(0, 2, 1)  #   [B, 1, L] -> [B, L, 1]
+            x = self.revin_layer(x, mode="norm")
+            x = x.permute(0, 2, 1)  #   [B, L, 1] -> [B, 1, L]
 
-        # Global skip connection
-        x_skip = self.global_skip(x)  #   [B, L] -> [B, h * n_outputs]
-        x_skip = x_skip.reshape(
-            batch_size, self.h, -1
+        # Unfold
+        x = x.unfold(
+            -1, self.patch_len, self.stride
+        )  #   [B, 1, L] -> [B, 1, n_patches, patch_len]
+        x = x.permute(
+            0, 1, 3, 2
+        )  #   [B, 1, n_patches, patch_len] -> [B, 1, patch_len, n_patches]
+
+        # Linear projection
+        x = self.linear_projection(
+            x
+        )  #   [B, 1, patch_len, n_patches] -> [B, 1, patch_len, hidden_size]
+        x = x.squeeze(
+            1
+        )  #   [B, 1, patch_len, hidden_size] -> [B, patch_len, hidden_size]
+
+        # Transformer
+        x = self.transformer_encoder(
+            x
+        )  #   [B, patch_len, hidden_size] -> [B, patch_len, hidden_size]
+
+        # Output network
+        x = self.output_network(
+            x
+        )  #   [B, patch_len, hidden_size] -> [B, h * n_outputs]
+        x = x.reshape(
+            -1, self.h, self.loss.outputsize_multiplier
         )  #   [B, h * n_outputs] -> [B, h, n_outputs]
 
-        # Concatenate x with flattened historical exogenous
-        if self.hist_exog_size > 0:
-            x_hist_exog = self.hist_exog_projection(
-                hist_exog
-            )  #   [B, L, X] -> [B, L, temporal_width]
-            x_hist_exog = x_hist_exog.reshape(
-                batch_size, -1
-            )  #   [B, L, temporal_width] -> [B, L * temporal_width]
-            x = torch.cat(
-                (x, x_hist_exog), dim=1
-            )  #   [B, L] + [B, L * temporal_width] -> [B, L * (1 + temporal_width)]
-
-        # Concatenate x with flattened future exogenous
-        if self.futr_exog_size > 0:
-            x_futr_exog = self.futr_exog_projection(
-                futr_exog
-            )  #   [B, L + h, F] -> [B, L + h, temporal_width]
-            x_futr_exog_flat = x_futr_exog.reshape(
-                batch_size, -1
-            )  #   [B, L + h, temporal_width] -> [B, (L + h) * temporal_width]
-            x = torch.cat(
-                (x, x_futr_exog_flat), dim=1
-            )  #   [B, L * (1 + temporal_width)] + [B, (L + h) * temporal_width] -> [B, L * (1 + 2 * temporal_width) + h * temporal_width]
-
-        # Concatenate x with static exogenous
-        if self.stat_exog_size > 0:
-            x = torch.cat(
-                (x, stat_exog), dim=1
-            )  #   [B, L * (1 + 2 * temporal_width) + h * temporal_width] + [B, S] -> [B, L * (1 + 2 * temporal_width) + h * temporal_width + S]
-
-        # Dense encoder
-        x = self.dense_encoder(
-            x
-        )  #   [B, L * (1 + 2 * temporal_width) + h * temporal_width + S] -> [B, hidden_size]
-
-        # Dense decoder
-        x = self.dense_decoder(x)  #   [B, hidden_size] ->  [B, decoder_output_dim * h]
-        x = x.reshape(
-            batch_size, self.h, -1
-        )  #   [B, decoder_output_dim * h] -> [B, h, decoder_output_dim]
-
-        # Stack with futr_exog for horizon part of futr_exog
-        if self.futr_exog_size > 0:
-            x_futr_exog_h = x_futr_exog[
-                :, seq_len:
-            ]  #  [B, L + h, temporal_width] -> [B, h, temporal_width]
-            x = torch.cat(
-                (x, x_futr_exog_h), dim=2
-            )  #  [B, h, decoder_output_dim] + [B, h, temporal_width] -> [B, h, temporal_width + decoder_output_dim]
-
-        # Temporal decoder
-        x = self.temporal_decoder(
-            x
-        )  #  [B, h, temporal_width + decoder_output_dim] -> [B, h, n_outputs]
+        # Denorm
+        if self.revin:
+            x = self.revin_layer(x, mode="denorm")
+            x = x.permute(0, 2, 1)  #   [B, n_outputs, h] -> [B, h, n_outputs]
 
         # Map to output domain
-        forecast = self.loss.domain_map(x + x_skip)
+        forecast = self.loss.domain_map(x)
 
         return forecast
