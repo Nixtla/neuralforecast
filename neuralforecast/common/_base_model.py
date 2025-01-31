@@ -103,7 +103,6 @@ class BaseModel(pl.LightningModule):
         hist_exog_list: Union[List, None] = None,
         stat_exog_list: Union[List, None] = None,
         exclude_insample_y: Union[bool, None] = False,
-        num_workers_loader: Union[int, None] = 0,
         drop_last_loader: Union[bool, None] = False,
         random_seed: Union[int, None] = 1,
         alias: Union[str, None] = None,
@@ -352,7 +351,6 @@ class BaseModel(pl.LightningModule):
         self.decompose_forecast = False
 
         # DataModule arguments
-        self.num_workers_loader = num_workers_loader
         self.dataloader_kwargs = dataloader_kwargs
         self.drop_last_loader = drop_last_loader
         # used by on_validation_epoch_end hook
