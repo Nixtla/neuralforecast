@@ -1807,7 +1807,8 @@ class DistributionLoss(torch.nn.Module):
     `level`: float list [0,100], confidence levels for prediction intervals.<br>
     `quantiles`: float list [0,1], alternative to level list, target quantiles.<br>
     `num_samples`: int=500, number of samples for the empirical quantiles.<br>
-    `return_params`: bool=False, wether or not return the Distribution parameters.<br><br>
+    `return_params`: bool=False, wether or not return the Distribution parameters.<br>
+    `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window.<br><br>
 
     **References:**<br>
     - [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt)<br>
@@ -2000,19 +2001,18 @@ class DistributionLoss(torch.nn.Module):
         If set, check that it has the same length as the horizon in x.
         """
         if mask is None:
-            mask = torch.ones_like(y, device=y.device)
-        else:
-            mask = mask.unsqueeze(1)  # Add Q dimension.
+            mask = torch.ones_like(y)
 
-        # get uniform weights if none
         if self.horizon_weight is None:
-            self.horizon_weight = torch.ones(mask.shape[-1])
+            weights = torch.ones_like(mask)
         else:
-            assert mask.shape[-1] == len(
+            assert mask.shape[1] == len(
                 self.horizon_weight
             ), "horizon_weight must have same length as Y"
-        weights = self.horizon_weight.clone()
-        weights = torch.ones_like(mask, device=mask.device) * weights.to(mask.device)
+            weights = self.horizon_weight.clone()
+            weights = weights[None, :, None].to(mask.device)
+            weights = torch.ones_like(mask, device=mask.device) * weights
+
         return weights * mask
 
     def __call__(
@@ -2048,7 +2048,7 @@ class DistributionLoss(torch.nn.Module):
         loss_weights = self._compute_weights(y=y, mask=mask)
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 74
+# %% ../../nbs/losses.pytorch.ipynb 75
 class PMM(torch.nn.Module):
     """Poisson Mixture Mesh
 
@@ -2274,7 +2274,7 @@ class PMM(torch.nn.Module):
 
         return weighted_average(loss_values, weights=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 82
+# %% ../../nbs/losses.pytorch.ipynb 83
 class GMM(torch.nn.Module):
     """Gaussian Mixture Mesh
 
@@ -2503,7 +2503,7 @@ class GMM(torch.nn.Module):
 
         return weighted_average(loss_values, weights=mask)
 
-# %% ../../nbs/losses.pytorch.ipynb 90
+# %% ../../nbs/losses.pytorch.ipynb 91
 class NBMM(torch.nn.Module):
     """Negative Binomial Mixture Mesh
 
@@ -2730,7 +2730,7 @@ class NBMM(torch.nn.Module):
 
         return weighted_average(loss_values, weights=loss_weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 97
+# %% ../../nbs/losses.pytorch.ipynb 98
 class HuberLoss(BasePointLoss):
     """ Huber Loss
 
@@ -2783,7 +2783,7 @@ class HuberLoss(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 102
+# %% ../../nbs/losses.pytorch.ipynb 103
 class TukeyLoss(BasePointLoss):
     """ Tukey Loss
 
@@ -2876,7 +2876,7 @@ class TukeyLoss(BasePointLoss):
         tukey_loss = (self.c**2 / 6) * torch.mean(tukey_loss)
         return tukey_loss
 
-# %% ../../nbs/losses.pytorch.ipynb 107
+# %% ../../nbs/losses.pytorch.ipynb 108
 class HuberQLoss(BasePointLoss):
     """Huberized Quantile Loss
 
@@ -2941,7 +2941,7 @@ class HuberQLoss(BasePointLoss):
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 112
+# %% ../../nbs/losses.pytorch.ipynb 113
 class HuberMQLoss(BasePointLoss):
     """Huberized Multi-Quantile loss
 
@@ -3059,7 +3059,7 @@ class HuberMQLoss(BasePointLoss):
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 118
+# %% ../../nbs/losses.pytorch.ipynb 119
 class Accuracy(BasePointLoss):
     """Accuracy
 
@@ -3113,7 +3113,7 @@ class Accuracy(BasePointLoss):
         accuracy = torch.mean(measure)
         return accuracy
 
-# %% ../../nbs/losses.pytorch.ipynb 122
+# %% ../../nbs/losses.pytorch.ipynb 123
 class sCRPS(BasePointLoss):
     """Scaled Continues Ranked Probability Score
 
