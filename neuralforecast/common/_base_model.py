@@ -153,6 +153,15 @@ class BaseModel(pl.LightningModule):
         self.input_size_backup = input_size
         self.n_samples = n_samples
         if self.RECURRENT:
+            if (
+                hasattr(loss, "horizon_weight")
+                and loss.horizon_weight is not None
+                and h_train != h
+            ):
+                warnings.warn(
+                    f"Setting h_train={h} to match the horizon_weight length."
+                )
+                h_train = h
             self.h_train = h_train
             self.inference_input_size = inference_input_size
             self.rnn_state = None
