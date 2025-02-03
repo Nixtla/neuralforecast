@@ -1,30 +1,17 @@
-import os
 import time
 
 import fire
-# import numpy as np
 import pandas as pd
-# import pytorch_lightning as pl
-# import torch
 
-# import neuralforecast
 from neuralforecast.core import NeuralForecast
 
-# from neuralforecast.models.gru import GRU
 from neuralforecast.models.rnn import RNN
 from neuralforecast.models.tcn import TCN
-# from neuralforecast.models.lstm import LSTM
-# from neuralforecast.models.dilated_rnn import DilatedRNN
 from neuralforecast.models.deepar import DeepAR
-# from neuralforecast.models.mlp import MLP
 from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
-# from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.tft import TFT
 from neuralforecast.models.vanillatransformer import VanillaTransformer
-# from neuralforecast.models.informer import Informer
-# from neuralforecast.models.autoformer import Autoformer
-# from neuralforecast.models.patchtst import PatchTST
 from neuralforecast.models.dlinear import DLinear
 from neuralforecast.models.bitcn import BiTCN   
 from neuralforecast.models.tide import TiDE
@@ -33,19 +20,13 @@ from neuralforecast.models.kan import KAN
 
 from neuralforecast.auto import (
     AutoMLP, 
-    # AutoNHITS, 
-    # AutoNBEATS, 
     AutoDilatedRNN, 
-    # AutoTFT
 )
 
 from neuralforecast.losses.pytorch import SMAPE, MAE, IQLoss
 from ray import tune
 
 from src.data import get_data
-
-os.environ['NIXTLA_ID_AS_COL'] = '1'
-
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
     train, horizon, freq, seasonality = get_data('data/', dataset, group)

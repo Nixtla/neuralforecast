@@ -61,6 +61,5 @@ if __name__ == '__main__':
     df_evaluation.columns = ['dataset', 'model', 'metric', 'val']
     df_evaluation = df_evaluation.set_index(['dataset', 'metric', 'model']).unstack().round(3)
     df_evaluation = df_evaluation.droplevel(0, 1).reset_index()
-    # df_evaluation['AutoARIMA'] = [666.82, 15.35, 3.000]
     df_evaluation.to_csv('data/evaluation.csv')
     print(df_evaluation.T)

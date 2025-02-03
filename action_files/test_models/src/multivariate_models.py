@@ -10,7 +10,6 @@ from neuralforecast.models.softs import SOFTS
 from neuralforecast.models.tsmixer import TSMixer
 from neuralforecast.models.tsmixerx import TSMixerx
 from neuralforecast.models.itransformer import iTransformer
-# # from neuralforecast.models.stemgnn import StemGNN
 from neuralforecast.models.mlpmultivariate import MLPMultivariate
 from neuralforecast.models.timemixer import TimeMixer
 
@@ -30,7 +29,6 @@ def main(dataset: str = 'multivariate', group: str = 'ETTm2') -> None:
         TSMixer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
         TSMixerx(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
         iTransformer(h=horizon, n_series=7, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=500, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
-        # StemGNN(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout_rate=0.0, max_steps=1000, val_check_steps=500, windows_batch_size=64, inference_windows_batch_size=64),
         MLPMultivariate(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), max_steps=1000, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64),
         TimeMixer(h=horizon, n_series=7, input_size=2*horizon, loss=MAE(), dropout=0.0, max_steps=500, val_check_steps=100, windows_batch_size=64, inference_windows_batch_size=64)
     ]
