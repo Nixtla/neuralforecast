@@ -8,13 +8,14 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+import warnings
 
 from ..losses.pytorch import MAE
-from ..common._base_recurrent import BaseRecurrent
+from ..common._base_model import BaseModel
 from ..common._modules import MLP
 
 # %% ../../nbs/models.rnn.ipynb 7
-class RNN(BaseRecurrent):
+class RNN(BaseModel):
     """RNN
 
     Multi Layer Elman RNN (RNN), with MLP decoder.
@@ -31,7 +32,7 @@ class RNN(BaseRecurrent):
     `encoder_activation`: str=`tanh`, type of RNN activation from `tanh` or `relu`.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within RNN units.<br>
     `encoder_dropout`: float=0., dropout regularization applied to RNN outputs.<br>
-    `context_size`: int=10, size of context vector for each timestamp on the forecasting window.<br>
+    `context_size`: deprecated.<br>
     `decoder_hidden_size`: int=200, size of hidden layer for the MLP decoder.<br>
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
@@ -60,10 +61,13 @@ class RNN(BaseRecurrent):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "recurrent"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        True  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -71,16 +75,18 @@ class RNN(BaseRecurrent):
         input_size: int = -1,
         inference_input_size: int = -1,
         encoder_n_layers: int = 2,
-        encoder_hidden_size: int = 200,
+        encoder_hidden_size: int = 128,
         encoder_activation: str = "tanh",
         encoder_bias: bool = True,
         encoder_dropout: float = 0.0,
-        context_size: int = 10,
-        decoder_hidden_size: int = 200,
+        context_size: Optional[int] = None,
+        decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
+        recurrent=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -90,6 +96,10 @@ class RNN(BaseRecurrent):
         val_check_steps: int = 100,
         batch_size=32,
         valid_batch_size: Optional[int] = None,
+        windows_batch_size=128,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
+        step_size: int = 1,
         scaler_type: str = "robust",
         random_seed=1,
         drop_last_loader=False,
@@ -100,10 +110,16 @@ class RNN(BaseRecurrent):
         dataloader_kwargs=None,
         **trainer_kwargs
     ):
+
+        self.RECURRENT = recurrent
+
         super(RNN, self).__init__(
             h=h,
             input_size=input_size,
-            inference_input_size=inference_input_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -113,12 +129,13 @@ class RNN(BaseRecurrent):
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
+            step_size=step_size,
             scaler_type=scaler_type,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
-            stat_exog_list=stat_exog_list,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -135,6 +152,12 @@ class RNN(BaseRecurrent):
         self.encoder_dropout = encoder_dropout
 
         # Context adapter
+        if context_size is not None:
+            warnings.warn(
+                "context_size is deprecated and will be removed in future versions."
+            )
+
+        # Context adapter
         self.context_size = context_size
 
         # MLP decoder
@@ -142,82 +165,96 @@ class RNN(BaseRecurrent):
         self.decoder_layers = decoder_layers
 
         # RNN input size (1 for target variable y)
-        input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
+        input_encoder = (
+            1 + self.hist_exog_size + self.stat_exog_size + self.futr_exog_size
+        )
 
         # Instantiate model
+        self.rnn_state = None
+        self.maintain_state = False
         self.hist_encoder = nn.RNN(
             input_size=input_encoder,
             hidden_size=self.encoder_hidden_size,
             num_layers=self.encoder_n_layers,
-            nonlinearity=self.encoder_activation,
             bias=self.encoder_bias,
             dropout=self.encoder_dropout,
             batch_first=True,
         )
 
-        # Context adapter
-        self.context_adapter = nn.Linear(
-            in_features=self.encoder_hidden_size + self.futr_exog_size * h,
-            out_features=self.context_size * h,
-        )
-
         # Decoder MLP
-        self.mlp_decoder = MLP(
-            in_features=self.context_size + self.futr_exog_size,
-            out_features=self.loss.outputsize_multiplier,
-            hidden_size=self.decoder_hidden_size,
-            num_layers=self.decoder_layers,
-            activation="ReLU",
-            dropout=0.0,
-        )
+        if self.RECURRENT:
+            self.proj = nn.Linear(
+                self.encoder_hidden_size, self.loss.outputsize_multiplier
+            )
+        else:
+            self.mlp_decoder = MLP(
+                in_features=self.encoder_hidden_size + self.futr_exog_size,
+                out_features=self.loss.outputsize_multiplier,
+                hidden_size=self.decoder_hidden_size,
+                num_layers=self.decoder_layers,
+                activation="ReLU",
+                dropout=0.0,
+            )
 
     def forward(self, windows_batch):
 
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
-        futr_exog = windows_batch["futr_exog"]
-        hist_exog = windows_batch["hist_exog"]
-        stat_exog = windows_batch["stat_exog"]
+        futr_exog = windows_batch["futr_exog"]  # [B, seq_len, F]
+        hist_exog = windows_batch["hist_exog"]  # [B, seq_len, X]
+        stat_exog = windows_batch["stat_exog"]  # [B, S]
 
         # Concatenate y, historic and static inputs
-        # [B, C, seq_len, 1] -> [B, seq_len, C]
-        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | S ]
         batch_size, seq_len = encoder_input.shape[:2]
         if self.hist_exog_size > 0:
-            hist_exog = hist_exog.permute(0, 2, 1, 3).squeeze(
-                -1
-            )  # [B, X, seq_len, 1] -> [B, seq_len, X]
-            encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
+            encoder_input = torch.cat(
+                (encoder_input, hist_exog), dim=2
+            )  # [B, seq_len, 1] + [B, seq_len, X] -> [B, seq_len, 1 + X]
 
         if self.stat_exog_size > 0:
+            # print(encoder_input.shape)
             stat_exog = stat_exog.unsqueeze(1).repeat(
                 1, seq_len, 1
             )  # [B, S] -> [B, seq_len, S]
-            encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
-
-        # RNN forward
-        hidden_state, _ = self.hist_encoder(
-            encoder_input
-        )  # [B, seq_len, rnn_hidden_state]
+            encoder_input = torch.cat(
+                (encoder_input, stat_exog), dim=2
+            )  # [B, seq_len, 1 + X] + [B, seq_len, S] -> [B, seq_len, 1 + X + S]
 
         if self.futr_exog_size > 0:
-            futr_exog = futr_exog.permute(0, 2, 3, 1)[
-                :, :, 1:, :
-            ]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
-            hidden_state = torch.cat(
-                (hidden_state, futr_exog.reshape(batch_size, seq_len, -1)), dim=2
-            )
+            encoder_input = torch.cat(
+                (encoder_input, futr_exog[:, :seq_len]), dim=2
+            )  # [B, seq_len, 1 + X + S] + [B, seq_len, F] -> [B, seq_len, 1 + X + S + F]
 
-        # Context adapter
-        context = self.context_adapter(hidden_state)
-        context = context.reshape(batch_size, seq_len, self.h, self.context_size)
+        if self.RECURRENT:
+            if self.maintain_state:
+                rnn_state = self.rnn_state
+            else:
+                rnn_state = None
 
-        # Residual connection with futr_exog
-        if self.futr_exog_size > 0:
-            context = torch.cat((context, futr_exog), dim=-1)
+            output, rnn_state = self.hist_encoder(
+                encoder_input, rnn_state
+            )  # [B, seq_len, rnn_hidden_state]
+            output = self.proj(
+                output
+            )  # [B, seq_len, rnn_hidden_state] -> [B, seq_len, n_output]
+            if self.maintain_state:
+                self.rnn_state = rnn_state
+        else:
+            hidden_state, _ = self.hist_encoder(
+                encoder_input, None
+            )  # [B, seq_len, rnn_hidden_state]
+            hidden_state = hidden_state[
+                :, -self.h :
+            ]  # [B, seq_len, rnn_hidden_state] -> [B, h, rnn_hidden_state]
 
-        # Final forecast
-        output = self.mlp_decoder(context)
-        output = self.loss.domain_map(output)
+            if self.futr_exog_size > 0:
+                futr_exog_futr = futr_exog[:, -self.h :]  # [B, h, F]
+                hidden_state = torch.cat(
+                    (hidden_state, futr_exog_futr), dim=-1
+                )  # [B, h, rnn_hidden_state] + [B, h, F] -> [B, h, rnn_hidden_state + F]
 
-        return output
+            output = self.mlp_decoder(
+                hidden_state
+            )  # [B, h, rnn_hidden_state + F] -> [B, seq_len, n_output]
+
+        return output[:, -self.h :]

@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -48,7 +48,7 @@ class SeriesDecomp(nn.Module):
         return res, moving_mean
 
 # %% ../../nbs/models.dlinear.ipynb 10
-class DLinear(BaseWindows):
+class DLinear(BaseModel):
     """DLinear
 
     *Parameters:*<br>
@@ -86,10 +86,13 @@ class DLinear(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -175,11 +178,7 @@ class DLinear(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-        # futr_exog     = windows_batch['futr_exog']
+        insample_y = windows_batch["insample_y"].squeeze(-1)
 
         # Parse inputs
         batch_size = len(insample_y)
@@ -191,5 +190,4 @@ class DLinear(BaseWindows):
         # Final
         forecast = trend_part + seasonal_part
         forecast = forecast.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        forecast = self.loss.domain_map(forecast)
         return forecast
