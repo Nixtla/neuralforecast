@@ -11,7 +11,6 @@ from itertools import chain
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import fsspec
-import polars
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -1350,10 +1349,7 @@ class NeuralForecast:
             trimmed_datasets.append(trimmed_series)
 
         # Combine all series forecasts DataFrames
-        if isinstance(fcsts_dfs[0], pl_DataFrame):
-            fcsts_df = polars.concat(fcsts_dfs, how="vertical")
-        else:
-            fcsts_df = pd.concat(fcsts_dfs, axis=0, ignore_index=True)
+        fcsts_df = ufp.vertical_concat(fcsts_dfs)
 
         # Generate predictions for each model
         fcsts_list = []
