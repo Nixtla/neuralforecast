@@ -62,6 +62,14 @@ def _disable_torch_init():
         nn.init.xavier_normal_ = xavier_normal
 
 # %% ../../nbs/common.base_model.ipynb 5
+def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
+    """Convert a tensor to numpy"""
+    if tensor.dtype == torch.bfloat16:
+        return tensor.float().numpy()
+
+    return tensor.numpy()
+
+# %% ../../nbs/common.base_model.ipynb 6
 class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
