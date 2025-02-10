@@ -10,7 +10,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 import neuralforecast.losses.pytorch as losses
 
-from ._base_model import BaseModel
+from ._base_model import BaseModel, tensor_to_numpy
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
@@ -582,9 +582,10 @@ class BaseRecurrent(BaseModel):
             fcsts = torch.vstack(
                 [fcst[:, -(1 + self.test_size - self.h) :, :] for fcst in fcsts]
             )
-            fcsts = fcsts.numpy().flatten()
+            fcsts = tensor_to_numpy(fcsts).flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         else:
-            fcsts = torch.vstack([fcst[:, -1:, :] for fcst in fcsts]).numpy().flatten()
+            fcsts = torch.vstack([fcst[:, -1:, :] for fcst in fcsts])
+            fcsts = tensor_to_numpy(fcsts).flatten()
             fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
