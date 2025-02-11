@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 
-from ._base_model import BaseModel
+from ._base_model import BaseModel, tensor_to_numpy
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
@@ -708,7 +708,8 @@ class BaseWindows(BaseModel):
 
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
-        fcsts = torch.vstack(fcsts).numpy().flatten()
+        fcsts = torch.vstack(fcsts)
+        fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
@@ -739,4 +740,5 @@ class BaseWindows(BaseModel):
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         self.decompose_forecast = False  # Default decomposition back to false
-        return torch.vstack(fcsts).numpy()
+        fcsts = torch.vstack(fcsts)
+        return tensor_to_numpy(fcsts)

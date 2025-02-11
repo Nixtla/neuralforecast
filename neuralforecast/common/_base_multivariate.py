@@ -10,7 +10,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 import neuralforecast.losses.pytorch as losses
 
-from ._base_model import BaseModel
+from ._base_model import BaseModel, tensor_to_numpy
 from ._scalers import TemporalNorm
 from ..tsdataset import TimeSeriesDataModule
 from ..utils import get_indexer_raise_missing
@@ -595,7 +595,7 @@ class BaseMultivariate(BaseModel):
 
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
-        fcsts = torch.vstack(fcsts).numpy()
+        fcsts = tensor_to_numpy(torch.vstack(fcsts))
 
         fcsts = np.transpose(fcsts, (2, 0, 1))
         fcsts = fcsts.flatten()
