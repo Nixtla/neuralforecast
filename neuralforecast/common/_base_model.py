@@ -68,6 +68,14 @@ def _disable_torch_init():
         nn.init.xavier_normal_ = xavier_normal
 
 # %% ../../nbs/common.base_model.ipynb 5
+def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
+    """Convert a tensor to numpy"""
+    if tensor.dtype == torch.bfloat16:
+        return tensor.float().numpy()
+
+    return tensor.numpy()
+
+# %% ../../nbs/common.base_model.ipynb 6
 class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
@@ -1518,7 +1526,7 @@ class BaseModel(pl.LightningModule):
             fcsts = fcsts.swapaxes(0, 2)
             fcsts = fcsts.swapaxes(1, 2)
 
-        fcsts = fcsts.numpy().flatten()
+        fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
         return fcsts
 
@@ -1557,4 +1565,5 @@ class BaseModel(pl.LightningModule):
         trainer = pl.Trainer(**self.trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         self.decompose_forecast = False  # Default decomposition back to false
-        return torch.vstack(fcsts).numpy()
+        fcsts = torch.vstack(fcsts)
+        return tensor_to_numpy(fcsts)
