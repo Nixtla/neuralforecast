@@ -66,6 +66,7 @@ from neuralforecast.models import (
     TimeMixer,
     KAN,
     RMoK,
+    TimeXer,
 )
 from .common._base_auto import BaseAuto, MockTrial
 from .utils import PredictionIntervals, get_prediction_interval_method
@@ -193,6 +194,8 @@ MODEL_FILENAME_DICT = {
     "autokan": KAN,
     "rmok": RMoK,
     "autormok": RMoK,
+    "timexer": TimeXer,
+    "autotimexer": TimeXer,
 }
 
 # %% ../nbs/core.ipynb 8
