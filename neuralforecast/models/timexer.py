@@ -336,7 +336,9 @@ class TimeXer(BaseMultivariate):
         futr_exog = windows_batch["futr_exog"]
 
         if self.futr_exog_size > 0:
-            x_mark_enc = futr_exog[:, : self.input_size, :]
+            x_mark_enc = futr_exog[:, :, : self.input_size, :]
+            B, V, T, D = x_mark_enc.shape
+            x_mark_enc = x_mark_enc.reshape(B, T, V * D)
         else:
             x_mark_enc = None
 
@@ -344,7 +346,6 @@ class TimeXer(BaseMultivariate):
         y_pred = y_pred[:, -self.h :, :]
         y_pred = self.loss.domain_map(y_pred)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
         if y_pred.ndim == 2:
             return y_pred.unsqueeze(-1)
         else:
