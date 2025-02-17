@@ -1680,7 +1680,6 @@ class AutoTimeXer(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
         "n_series": None,
-        "patch_len": tune.choice([16, 32]),
         "hidden_size": tune.choice([128, 256, 512]),
         "n_heads": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
