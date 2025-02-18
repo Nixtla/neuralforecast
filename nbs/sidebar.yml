@@ -50,6 +50,7 @@ website:
           - models.timemixer.ipynb
           - models.timellm.ipynb
           - models.timesnet.ipynb
+          - models.timexer.ipynb
           - models.tsmixer.ipynb
           - models.tsmixerx.ipynb
           - models.vanillatransformer.ipynb
