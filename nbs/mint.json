@@ -131,6 +131,7 @@
             "models.timellm.html",
             "models.timemixer.html",
             "models.timesnet.html",
+            "models.timexer.html",
             "models.tsmixer.html",
             "models.tsmixerx.html",
             "models.vanillatransformer.html"
