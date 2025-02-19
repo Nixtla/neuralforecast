@@ -16,6 +16,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
@@ -361,6 +362,15 @@ class BaseModel(pl.LightningModule):
         val_check_interval = min(self.val_check_steps, self.max_steps)
         self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
         self.trainer_kwargs["check_val_every_n_epoch"] = None
+
+        enable_lr_find = None
+        if "enable_lr_find" in self.trainer_kwargs:
+            enable_lr_find = self.trainer_kwargs.pop("enable_lr_find")
+            if enable_lr_find:
+                trainer = pl.Trainer(**self.trainer_kwargs)
+                tuner = Tuner(trainer)
+                lr_finder = tuner.lr_find(self, datamodule=datamodule)
+                self.learning_rate = lr_finder.suggestion()
 
         if is_local:
             model = self
