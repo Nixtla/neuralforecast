@@ -67,6 +67,7 @@ from neuralforecast.models import (
     TimeMixer,
     KAN,
     RMoK,
+    TimeXer,
 )
 from .common._base_auto import BaseAuto, MockTrial
 from neuralforecast.utils import (
@@ -199,6 +200,8 @@ MODEL_FILENAME_DICT = {
     "autokan": KAN,
     "rmok": RMoK,
     "autormok": RMoK,
+    "timexer": TimeXer,
+    "autotimexer": TimeXer,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -1270,75 +1273,123 @@ class NeuralForecast:
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
 
-        # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
 
-        # trim the forefront period to ensure `test_size - h` should be module `step_size
-        # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
-        series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
-        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
+        # Process each series separately
+        fcsts_dfs = []
+        trimmed_datasets = []
 
-        if test_size > 0 or forefront_offset > 0:
-            trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=forefront_offset
+        for i in range(self.dataset.n_groups):
+            # Calculate series-specific length and offset
+            series_length = self.dataset.indptr[i + 1] - self.dataset.indptr[i]
+            _, forefront_offset = np.divmod(
+                (series_length - test_size - self.h), step_size
             )
-            new_idxs = np.hstack(
-                [
-                    np.arange(
-                        self.dataset.indptr[i] + forefront_offset,
-                        self.dataset.indptr[i + 1] - test_size,
-                    )
-                    for i in range(self.dataset.n_groups)
-                ]
+
+            if test_size > 0 or forefront_offset > 0:
+                # Create single-series dataset
+                series_dataset = TimeSeriesDataset(
+                    temporal=self.dataset.temporal[
+                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
+                    ],
+                    temporal_cols=self.dataset.temporal_cols,
+                    indptr=np.array([0, series_length]),
+                    y_idx=self.dataset.y_idx,
+                )
+
+                # Trim the series
+                trimmed_series = TimeSeriesDataset.trim_dataset(
+                    dataset=series_dataset,
+                    right_trim=test_size,
+                    left_trim=forefront_offset,
+                )
+
+                new_idxs = np.arange(
+                    self.dataset.indptr[i] + forefront_offset,
+                    self.dataset.indptr[i + 1] - test_size,
+                )
+                times = self.ds[new_idxs]
+            else:
+                trimmed_series = TimeSeriesDataset(
+                    temporal=self.dataset.temporal[
+                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
+                    ],
+                    temporal_cols=self.dataset.temporal_cols,
+                    indptr=np.array([0, series_length]),
+                    y_idx=self.dataset.y_idx,
+                )
+                times = self.ds[self.dataset.indptr[i] : self.dataset.indptr[i + 1]]
+
+            series_fcsts_df = _insample_times(
+                times=times,
+                uids=self.uids[i : i + 1],
+                indptr=trimmed_series.indptr,
+                h=self.h,
+                freq=self.freq,
+                step_size=step_size,
+                id_col=self.id_col,
+                time_col=self.time_col,
             )
-            times = self.ds[new_idxs]
-        else:
-            trimmed_dataset = self.dataset
-            times = self.ds
 
-        # Generate dates
-        fcsts_df = _insample_times(
-            times=times,
-            uids=self.uids,
-            indptr=trimmed_dataset.indptr,
-            h=self.h,
-            freq=self.freq,
-            step_size=step_size,
-            id_col=self.id_col,
-            time_col=self.time_col,
-        )
+            fcsts_dfs.append(series_fcsts_df)
+            trimmed_datasets.append(trimmed_series)
 
-        fcsts_list: List = []
+        # Combine all series forecasts DataFrames
+        fcsts_df = ufp.vertical_concat(fcsts_dfs)
+
+        # Generate predictions for each model
+        fcsts_list = []
         for model in self.models:
-            # Test size is the number of periods to forecast (full size of trimmed dataset)
-            model.set_test_size(test_size=trimmed_dataset.max_size)
+            model_series_preds = []
+            for i, trimmed_dataset in enumerate(trimmed_datasets):
+                # Set test size to current series length
+                model.set_test_size(test_size=trimmed_dataset.max_size)
+                # Generate predictions
+                model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
+                # Handle distributional forecasts; take only median
+                if len(model_fcsts.shape) > 1 and model_fcsts.shape[1] == 3:
+                    model_fcsts = model_fcsts[:, 0]  # Take first column (median)
+                # Ensure consistent 2D shape
+                if len(model_fcsts.shape) == 1:
+                    model_fcsts = model_fcsts.reshape(-1, 1)
+                model_series_preds.append(model_fcsts)
+            model_preds = np.concatenate(model_series_preds, axis=0)
+            fcsts_list.append(model_preds)
+            # Reset test size to original
+            model.set_test_size(test_size=test_size)
 
-            # Predict
-            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
-            # Append predictions in memory placeholder
-            fcsts_list.append(model_fcsts)
-            model.set_test_size(test_size=test_size)  # Set original test_size
-        fcsts = np.concatenate(fcsts_list, axis=-1)
+        # Combine all predictions
+        fcsts = np.hstack(fcsts_list)
 
-        # original y
+        # Add original y values
         original_y = {
             self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
             self.time_col: self.ds,
             self.target_col: self.dataset.temporal[:, 0].numpy(),
         }
 
-        # Add predictions to forecasts DataFrame
+        # Create forecasts DataFrame
         cols = self._get_model_names()
+        selected_cols = [
+            col
+            for col in cols
+            if not col.endswith(("-lo", "-hi"))
+            and (not "-" in col or col.endswith("-median"))
+        ]
         if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+            fcsts = pl_DataFrame(dict(zip(selected_cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)
         else:
-            fcsts = pd.DataFrame(fcsts, columns=cols)
+            fcsts = pd.DataFrame(fcsts, columns=selected_cols)
             Y_df = pd.DataFrame(original_y).reset_index(drop=True)
+
+        # Combine forecasts with dates
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
-        # Add original input df's y to forecasts DataFrame
+        # Add original values
         fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
+
+        # Apply scaling if needed
         if self.scalers_:
             sizes = ufp.counts_by_id(fcsts_df, self.id_col)["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())

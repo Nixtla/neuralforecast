@@ -149,7 +149,7 @@ class ProbAttention(nn.Module):
         else:
             return (context_in, None)
 
-    def forward(self, queries, keys, values, attn_mask):
+    def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         B, L_Q, H, D = queries.shape
         _, L_K, _, _ = keys.shape
 
