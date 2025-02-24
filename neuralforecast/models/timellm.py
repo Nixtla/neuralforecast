@@ -7,12 +7,12 @@ __all__ = ['ReplicationPad1d', 'TokenEmbedding', 'PatchEmbedding', 'FlattenHead'
 import math
 from typing import Optional
 
+import neuralforecast.losses.pytorch as losses
 import torch
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 from ..common._modules import RevIN
-
 from ..losses.pytorch import MAE
 
 try:
@@ -165,7 +165,7 @@ class ReprogrammingLayer(nn.Module):
         return reprogramming_embedding
 
 # %% ../../nbs/models.timellm.ipynb 11
-class TimeLLM(BaseWindows):
+class TimeLLM(BaseModel):
     """TimeLLM
 
     Time-LLM is a reprogramming framework to repurpose an off-the-shelf LLM for time series forecasting.
@@ -225,10 +225,13 @@ class TimeLLM(BaseWindows):
 
     """
 
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -306,6 +309,15 @@ class TimeLLM(BaseWindows):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
+        if loss.outputsize_multiplier > 1:
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as loss function."
+            )
+
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as valid loss function."
+            )
 
         # Architecture
         self.patch_len = patch_len
@@ -465,12 +477,9 @@ class TimeLLM(BaseWindows):
         return lags
 
     def forward(self, windows_batch):
-        insample_y = windows_batch["insample_y"]
-
-        x = insample_y.unsqueeze(-1)
+        x = windows_batch["insample_y"]
 
         y_pred = self.forecast(x)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
 
         return y_pred

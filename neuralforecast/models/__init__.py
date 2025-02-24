@@ -3,6 +3,7 @@ __all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
            'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx', 'MLPMultivariate',
            'iTransformer', 'BiTCN', 'TiDE', 'DeepNPTS', 'SOFTS', 'TimeMixer', 'KAN', 'RMoK',
+           'TimeXer',
            ]
 
 from .rnn import RNN
@@ -38,3 +39,4 @@ from .softs import SOFTS
 from .timemixer import TimeMixer
 from .kan import KAN
 from .rmok import RMoK
+from .timexer import TimeXer

@@ -8,8 +8,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from typing import Optional
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
+from ..common._modules import RevINMultivariate
 
 # %% ../../nbs/models.tsmixerx.ipynb 8
 class TemporalMixing(nn.Module):
@@ -158,7 +160,7 @@ class ReversibleInstanceNorm1d(nn.Module):
         return x
 
 # %% ../../nbs/models.tsmixerx.ipynb 12
-class TSMixerx(BaseMultivariate):
+class TSMixerx(BaseModel):
     """TSMixerx
 
     Time-Series Mixer exogenous (`TSMixerx`) is a MLP-based multivariate time-series forecasting model, with capability for additional exogenous inputs. `TSMixerx` jointly learns temporal and cross-sectional representations of the time-series by repeatedly combining time- and feature information using stacked mixing layers. A mixing layer consists of a sequential time- and feature Multi Layer Perceptron (`MLP`).
@@ -170,6 +172,7 @@ class TSMixerx(BaseMultivariate):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `exclude_insample_y`: bool=False, if True excludes insample_y from the model.<br>
     `n_block`: int=2, number of mixing layers in the model.<br>
     `ff_dim`: int=64, number of units for the second feed-forward layer in the feature MLP.<br>
     `dropout`: float=0.0, dropout rate between (0, 1) .<br>
@@ -182,6 +185,10 @@ class TSMixerx(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=256, number of windows to sample in each training batch. <br>
+    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -200,10 +207,13 @@ class TSMixerx(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -213,6 +223,7 @@ class TSMixerx(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         n_block=2,
         ff_dim=64,
         dropout=0.0,
@@ -225,6 +236,10 @@ class TSMixerx(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=256,
+        inference_windows_batch_size=256,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -245,6 +260,7 @@ class TSMixerx(BaseMultivariate):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -253,6 +269,10 @@ class TSMixerx(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -267,7 +287,7 @@ class TSMixerx(BaseMultivariate):
         # Reversible InstanceNormalization layer
         self.revin = revin
         if self.revin:
-            self.norm = ReversibleInstanceNorm1d(n_series=n_series)
+            self.norm = RevINMultivariate(num_features=n_series, affine=True)
 
         # Forecast horizon
         self.h = h
@@ -355,12 +375,12 @@ class TSMixerx(BaseMultivariate):
         stat_exog = windows_batch["stat_exog"]  #   [N, stat_exog_size (S)]
         batch_size, input_size = x.shape[:2]
 
-        # Add channel dimension to x
-        x = x.unsqueeze(1)  #   [B, L, N] -> [B, 1, L, N]
-
         # Apply revin to x
         if self.revin:
-            x = self.norm(x)  #   [B, 1, L, N] -> [B, 1, L, N]
+            x = self.norm(x, mode="norm")  #   [B, L, N] -> [B, L, N]
+
+        # Add channel dimension to x
+        x = x.unsqueeze(1)  #   [B, L, N] -> [B, 1, L, N]
 
         # Concatenate x with historical exogenous
         if self.hist_exog_size > 0:
@@ -427,24 +447,16 @@ class TSMixerx(BaseMultivariate):
             x = self.mixing_block(x)  #   [B, h, ff_dim] -> [B, h, ff_dim]
 
         # Fully connected output layer
-        x = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
+        forecast = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
 
         # Reverse Instance Normalization on output
         if self.revin:
-            x = x.reshape(
-                batch_size, self.h, self.loss.outputsize_multiplier, -1
-            )  #   [B, h, N * n_outputs] -> [B, h, n_outputs, N]
-            x = self.norm.reverse(x)
-            x = x.reshape(
+            forecast = forecast.reshape(
+                batch_size, self.h * self.loss.outputsize_multiplier, -1
+            )  #   [B, h, N * n_outputs] -> [B, h * n_outputs, N]
+            forecast = self.norm(forecast, "denorm")
+            forecast = forecast.reshape(
                 batch_size, self.h, -1
-            )  #   [B, h, n_outputs, N] -> [B, h, n_outputs * N]
+            )  #   [B, h * n_outputs, N] -> [B, h, n_outputs * N]
 
-        # Map to loss domain
-        forecast = self.loss.domain_map(x)
-
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast
