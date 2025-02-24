@@ -28,6 +28,7 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
+from .losses.pytorch import IQLoss
 from neuralforecast.tsdataset import (
     _FilesDataset,
     TimeSeriesDataset,
@@ -69,7 +70,12 @@ from neuralforecast.models import (
     TimeXer,
 )
 from .common._base_auto import BaseAuto, MockTrial
-from .utils import PredictionIntervals, get_prediction_interval_method
+from neuralforecast.utils import (
+    PredictionIntervals,
+    get_prediction_interval_method,
+    level_to_quantiles,
+    quantiles_to_level,
+)
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
@@ -253,6 +259,7 @@ class NeuralForecast:
         # Flags and attributes
         self._fitted = False
         self._reset_models()
+        self._add_level = False
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
         self.scalers_ = {}
@@ -655,13 +662,16 @@ class NeuralForecast:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
-            if add_level and model.loss.outputsize_multiplier > 1:
-                continue
-
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
+
+            if add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
+                continue
+
             names.extend(model_name + n for n in model.loss.output_names)
         return names
 
@@ -785,6 +795,7 @@ class NeuralForecast:
         verbose: bool = False,
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -806,6 +817,8 @@ class NeuralForecast:
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
         level : list of ints or floats, optional (default=None)
             Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -820,6 +833,22 @@ class NeuralForecast:
 
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
+
+        quantiles_ = None
+        level_ = None
+        has_level = False
+        if level is not None:
+            has_level = True
+            if quantiles is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            level_ = sorted(list(set(level)))
+            quantiles_ = level_to_quantiles(level_)
+
+        if quantiles is not None:
+            if level is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            quantiles_ = sorted(list(set(quantiles)))
+            level_ = quantiles_to_level(quantiles_)
 
         needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
@@ -872,8 +901,6 @@ class NeuralForecast:
             if verbose:
                 print("Using stored dataset.")
 
-        cols = self._get_model_names()
-
         # Placeholder dataframe for predictions with unique_id and ds
         fcsts_df = ufp.make_future_dataframe(
             uids=uids,
@@ -916,55 +943,25 @@ class NeuralForecast:
         self._scalers_transform(futr_dataset)
         dataset = dataset.append(futr_dataset)
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.h * len(uids), len(cols)), fill_value=np.nan, dtype=np.float32
+        fcsts, cols = self._generate_forecasts(
+            dataset=dataset,
+            uids=uids,
+            quantiles_=quantiles_,
+            level_=level_,
+            has_level=has_level,
+            **data_kwargs,
         )
-        for model in self.models:
-            old_test_size = model.get_test_size()
-            model.set_test_size(self.h)  # To predict h steps ahead
-            model_fcsts = model.predict(dataset=dataset, **data_kwargs)
-            # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : col_idx + output_length] = model_fcsts
-            col_idx += output_length
-            model.set_test_size(old_test_size)  # Set back to original value
+
         if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        cols = (
-            self._get_model_names()
-        )  # Needed for IQLoss as column names may have changed during the call to .predict()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-
-        # add prediction intervals
-        if level is not None:
-            if self._cs_df is None or self.prediction_intervals is None:
-                raise Exception(
-                    "You must fit the model with prediction_intervals to use level."
-                )
-            else:
-                level_ = sorted(level)
-                model_names = self._get_model_names(add_level=True)
-                prediction_interval_method = get_prediction_interval_method(
-                    self.prediction_intervals.method
-                )
-
-                fcsts_df = prediction_interval_method(
-                    fcsts_df,
-                    self._cs_df,
-                    model_names=list(model_names),
-                    level=level_,
-                    cs_n_windows=self.prediction_intervals.n_windows,
-                    n_series=len(uids),
-                    horizon=self.h,
-                )
 
         return fcsts_df
 
@@ -1011,15 +1008,6 @@ class NeuralForecast:
                     "Validation and test sets are larger than the shorter time-series."
                 )
 
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
-
         fcsts_df = ufp.cv_times(
             times=self.ds,
             uids=self.uids,
@@ -1033,23 +1021,22 @@ class NeuralForecast:
         # the cv_times is sorted by window and then id
         fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.dataset.n_groups * self.h * n_windows, len(cols)),
-            np.nan,
-            dtype=np.float32,
-        )
-
+        fcsts_list: List = []
         for model in self.models:
+            if self._add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
+                continue
+
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
             )
 
             # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
+            fcsts_list.append(model_fcsts)
+
+        fcsts = np.concatenate(fcsts_list, axis=-1)
         # we may have allocated more space than needed
         # each serie can produce at most (serie.size - 1) // self.h CV windows
         effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
@@ -1077,6 +1064,7 @@ class NeuralForecast:
         self._fitted = True
 
         # Add predictions to forecasts DataFrame
+        cols = self._get_model_names(add_level=self._add_level)
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -1107,6 +1095,7 @@ class NeuralForecast:
         target_col: str = "y",
         prediction_intervals: Optional[PredictionIntervals] = None,
         level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1146,7 +1135,9 @@ class NeuralForecast:
         prediction_intervals : PredictionIntervals, optional (default=None)
             Configuration to calibrate prediction intervals (Conformal Prediction).
         level : list of ints or floats, optional (default=None)
-            Confidence levels between 0 and 100. Use with prediction_intervals.
+            Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1173,16 +1164,18 @@ class NeuralForecast:
             self._reset_models()
 
         # Checks for prediction intervals
-        if prediction_intervals is not None or level is not None:
-            if level is None:
-                warnings.warn("Level not provided, using level=[90].")
-                level = [90]
-            if prediction_intervals is None:
-                raise Exception("You must set prediction_intervals to use level.")
+        if prediction_intervals is not None:
+            if level is None and quantiles is None:
+                raise Exception(
+                    "When passing prediction_intervals you need to set the level or quantiles argument."
+                )
             if not refit:
                 raise Exception(
-                    "Passing prediction_intervals and/or level is only supported with refit=True."
+                    "Passing prediction_intervals is only supported with refit=True."
                 )
+
+        if level is not None and quantiles is not None:
+            raise ValueError("You can't set both level and quantiles argument.")
 
         if not refit:
 
@@ -1241,6 +1234,7 @@ class NeuralForecast:
                 futr_df=futr_df,
                 verbose=verbose,
                 level=level,
+                quantiles=quantiles,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1278,18 +1272,6 @@ class NeuralForecast:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
-
-        for model in self.models:
-            if model.SAMPLING_TYPE == "recurrent":
-                warnings.warn(
-                    f"Predict insample might not provide accurate predictions for \
-                    recurrent model {repr(model)} class yet due to scaling."
-                )
-                print(
-                    f"WARNING: Predict insample might not provide accurate predictions for \
-                    recurrent model {repr(model)} class yet due to scaling."
-                )
-
         test_size = self.models[0].get_test_size()
 
         # Process each series separately
@@ -1672,6 +1654,7 @@ class NeuralForecast:
                 "Please reduce the number of windows, horizon or remove those series."
             )
 
+        self._add_level = True
         cv_results = self.cross_validation(
             df=df,
             static_df=static_df,
@@ -1680,6 +1663,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
         )
+        self._add_level = False
 
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
@@ -1691,3 +1675,126 @@ class NeuralForecast:
             cv_results = ufp.assign_columns(cv_results, model, abs_err)
         dropped = list(set(cv_results.columns) - set(kept))
         return ufp.drop_columns(cv_results, dropped)
+
+    def _generate_forecasts(
+        self,
+        dataset: TimeSeriesDataset,
+        uids: Series,
+        quantiles_: Optional[List[float]] = None,
+        level_: Optional[List[Union[int, float]]] = None,
+        has_level: Optional[bool] = False,
+        **data_kwargs,
+    ) -> np.array:
+        fcsts_list: List = []
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            old_test_size = model.get_test_size()
+            model.set_test_size(self.h)  # To predict h steps ahead
+
+            # Increment model name if the same model is used more than once
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+
+            # Predict for every quantile or level if requested and the loss function supports it
+            # case 1: DistributionLoss and MixtureLosses
+            if (
+                quantiles_ is not None
+                and not isinstance(model.loss, IQLoss)
+                and hasattr(model.loss, "update_quantile")
+                and callable(model.loss.update_quantile)
+            ):
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                fcsts_list.append(model_fcsts)
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    if i == 0:
+                        col_names.extend([f"{model_name}", col_name])
+                    else:
+                        col_names.extend([col_name])
+                if hasattr(model.loss, "return_params") and model.loss.return_params:
+                    cols.extend(
+                        col_names
+                        + [
+                            model_name + param_name
+                            for param_name in model.loss.param_names
+                        ]
+                    )
+                else:
+                    cols.extend(col_names)
+            # case 2: IQLoss
+            elif quantiles_ is not None and isinstance(model.loss, IQLoss):
+                # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
+                quantiles_iqloss = np.linspace(0.01, 0.99, 20)
+                fcsts_list_iqloss = []
+                for i, quantile in enumerate(quantiles_iqloss):
+                    model_fcsts = model.predict(
+                        dataset=dataset, quantiles=[quantile], **data_kwargs
+                    )
+                    fcsts_list_iqloss.append(model_fcsts)
+                fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
+
+                # Get the actual requested quantiles
+                model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
+                fcsts_list.append(model_fcsts)
+
+                # Get the right column names
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    col_names.extend([col_name])
+                cols.extend(col_names)
+            # case 3: PointLoss via prediction intervals
+            elif quantiles_ is not None and model.loss.outputsize_multiplier == 1:
+                if self.prediction_intervals is None:
+                    raise AttributeError(
+                        f"You have trained {model_name} with loss={type(model.loss).__name__}(). \n"
+                        " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                    )
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
+                fcsts_with_intervals, out_cols = prediction_interval_method(
+                    model_fcsts,
+                    self._cs_df,
+                    model=model_name,
+                    level=level_ if has_level else None,
+                    cs_n_windows=self.prediction_intervals.n_windows,
+                    n_series=len(uids),
+                    horizon=self.h,
+                    quantiles=quantiles_ if not has_level else None,
+                )
+                fcsts_list.append(fcsts_with_intervals)
+                cols.extend([model_name] + out_cols)
+            # base case: quantiles or levels are not supported or provided as arguments
+            else:
+                model_fcsts = model.predict(dataset=dataset, **data_kwargs)
+                fcsts_list.append(model_fcsts)
+                cols.extend(model_name + n for n in model.loss.output_names)
+            model.set_test_size(old_test_size)  # Set back to original value
+        fcsts = np.concatenate(fcsts_list, axis=-1)
+
+        return fcsts, cols
+
+    @staticmethod
+    def _get_column_name(model_name, quantile, has_level) -> str:
+        if not has_level:
+            col_name = f"{model_name}_ql{quantile}"
+        elif quantile < 0.5:
+            level_lo = int(round(100 - 200 * quantile))
+            col_name = f"{model_name}-lo-{level_lo}"
+        elif quantile > 0.5:
+            level_hi = int(round(100 - 200 * (1 - quantile)))
+            col_name = f"{model_name}-hi-{level_hi}"
+        else:
+            col_name = f"{model_name}-median"
+
+        return col_name

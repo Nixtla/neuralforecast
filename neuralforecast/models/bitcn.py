@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from neuralforecast.losses.pytorch import MAE
-from neuralforecast.common._base_windows import BaseWindows
+from neuralforecast.common._base_model import BaseModel
 
 # %% ../../nbs/models.bitcn.ipynb 8
 class CustomConv1d(nn.Module):
@@ -84,7 +84,7 @@ class TCNCell(nn.Module):
         return (h_prev + h_next, out_prev + out_next)
 
 # %% ../../nbs/models.bitcn.ipynb 10
-class BiTCN(BaseWindows):
+class BiTCN(BaseModel):
     """BiTCN
 
     Bidirectional Temporal Convolutional Network (BiTCN) is a forecasting architecture based on two temporal convolutional networks (TCNs). The first network ('forward') encodes future covariates of the time series, whereas the second network ('backward') encodes past observations and covariates. This is a univariate model.
@@ -108,7 +108,7 @@ class BiTCN(BaseWindows):
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -128,10 +128,13 @@ class BiTCN(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -274,7 +277,7 @@ class BiTCN(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"].contiguous()  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
@@ -345,9 +348,6 @@ class BiTCN(BaseWindows):
 
         # Output layer to create forecasts
         x = x.permute(0, 2, 1)  #   [B, 3 * hidden_size, h] -> [B, h, 3 * hidden_size]
-        x = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
-
-        # Map to output domain
-        forecast = self.loss.domain_map(x)
+        forecast = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
 
         return forecast

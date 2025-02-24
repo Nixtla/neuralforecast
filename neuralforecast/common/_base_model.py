@@ -10,19 +10,25 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
+from typing import List, Dict, Union
 
 import fsspec
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import pytorch_lightning as pl
+import neuralforecast.losses.pytorch as losses
+
+from ..losses.pytorch import BasePointLoss, DistributionLoss
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
     BaseTimeSeriesDataset,
     _DistributedTimeSeriesDataModule,
 )
-from ..losses.pytorch import IQLoss
+from ._scalers import TemporalNorm
+from ..utils import get_indexer_raise_missing
 
 # %% ../../nbs/common.base_model.ipynb 3
 @dataclass
@@ -71,27 +77,104 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
 
 # %% ../../nbs/common.base_model.ipynb 6
 class BaseModel(pl.LightningModule):
-    EXOGENOUS_FUTR = True
-    EXOGENOUS_HIST = True
-    EXOGENOUS_STAT = True
+    EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
+    EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
+    EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
-        random_seed,
-        loss,
-        valid_loss,
-        optimizer,
-        optimizer_kwargs,
-        lr_scheduler,
-        lr_scheduler_kwargs,
-        futr_exog_list,
-        hist_exog_list,
-        stat_exog_list,
-        max_steps,
-        early_stop_patience_steps,
+        h: int,
+        input_size: int,
+        loss: Union[BasePointLoss, DistributionLoss, nn.Module],
+        valid_loss: Union[BasePointLoss, DistributionLoss, nn.Module],
+        learning_rate: float,
+        max_steps: int,
+        val_check_steps: int,
+        batch_size: int,
+        valid_batch_size: Union[int, None],
+        windows_batch_size: int,
+        inference_windows_batch_size: Union[int, None],
+        start_padding_enabled: bool,
+        n_series: Union[int, None] = None,
+        n_samples: Union[int, None] = 100,
+        h_train: int = 1,
+        inference_input_size: Union[int, None] = None,
+        step_size: int = 1,
+        num_lr_decays: int = 0,
+        early_stop_patience_steps: int = -1,
+        scaler_type: str = "identity",
+        futr_exog_list: Union[List, None] = None,
+        hist_exog_list: Union[List, None] = None,
+        stat_exog_list: Union[List, None] = None,
+        exclude_insample_y: Union[bool, None] = False,
+        drop_last_loader: Union[bool, None] = False,
+        random_seed: Union[int, None] = 1,
+        alias: Union[str, None] = None,
+        optimizer: Union[torch.optim.Optimizer, None] = None,
+        optimizer_kwargs: Union[Dict, None] = None,
+        lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
+        lr_scheduler_kwargs: Union[Dict, None] = None,
+        dataloader_kwargs=None,
         **trainer_kwargs,
     ):
         super().__init__()
+
+        # Multivarariate checks
+        if self.MULTIVARIATE and n_series is None:
+            raise Exception(
+                f"{type(self).__name__} is a multivariate model. Please set n_series to the number of unique time series in your dataset."
+            )
+        if not self.MULTIVARIATE:
+            if n_series is not None:
+                warnings.warn(
+                    f"{type(self).__name__} is a univariate model. Parameter n_series is ignored."
+                )
+            n_series = 1
+        self.n_series = n_series
+
+        # Protections for previous recurrent models
+        if input_size < 1:
+            input_size = 3 * h
+            warnings.warn(
+                f"Input size too small. Automatically setting input size to 3 * horizon = {input_size}"
+            )
+
+        if inference_input_size is None:
+            inference_input_size = input_size
+        elif inference_input_size is not None and inference_input_size < 1:
+            inference_input_size = input_size
+            warnings.warn(
+                f"Inference input size too small. Automatically setting inference input size to input_size = {input_size}"
+            )
+
+        # For recurrent models we need one additional input as we need to shift insample_y to use it as input
+        if self.RECURRENT:
+            input_size += 1
+            inference_input_size += 1
+
+        # Attributes needed for recurrent models
+        self.horizon_backup = h
+        self.input_size_backup = input_size
+        self.n_samples = n_samples
+        if self.RECURRENT:
+            if (
+                hasattr(loss, "horizon_weight")
+                and loss.horizon_weight is not None
+                and h_train != h
+            ):
+                warnings.warn(
+                    f"Setting h_train={h} to match the horizon_weight length."
+                )
+                h_train = h
+            self.h_train = h_train
+            self.inference_input_size = inference_input_size
+            self.rnn_state = None
+            self.maintain_state = False
+
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
             # the following line issues a warning about the loss attribute being saved
@@ -106,8 +189,8 @@ class BaseModel(pl.LightningModule):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
-        self.train_trajectories = []
-        self.valid_trajectories = []
+        self.train_trajectories: List = []
+        self.valid_trajectories: List = []
 
         # Optimization
         if optimizer is not None and not issubclass(optimizer, torch.optim.Optimizer):
@@ -153,14 +236,41 @@ class BaseModel(pl.LightningModule):
                 f"{type(self).__name__} does not support static exogenous variables."
             )
 
-        # Implicit Quantile Loss
-        if isinstance(self.loss, IQLoss):
-            if not isinstance(self.valid_loss, IQLoss):
+        # Protections for loss functions
+        if isinstance(self.loss, (losses.IQLoss, losses.MQLoss, losses.HuberMQLoss)):
+            loss_type = type(self.loss)
+            if not isinstance(self.valid_loss, loss_type):
                 raise Exception(
-                    "Please set valid_loss to IQLoss() when training with IQLoss"
+                    f"Please set valid_loss={type(self.loss).__name__}() when training with {type(self.loss).__name__}"
                 )
-        if isinstance(self.valid_loss, IQLoss) and not isinstance(self.loss, IQLoss):
-            raise Exception("Please set loss to IQLoss() when validating with IQLoss")
+        if isinstance(self.valid_loss, losses.IQLoss):
+            valid_loss_type = type(self.valid_loss)
+            if not isinstance(self.loss, valid_loss_type):
+                raise Exception(
+                    f"Please set loss={type(self.valid_loss).__name__}() when validating with {type(self.valid_loss).__name__}"
+                )
+
+        # Deny impossible loss / valid_loss combinations
+        if (
+            isinstance(self.loss, losses.BasePointLoss)
+            and self.valid_loss.is_distribution_output
+        ):
+            raise Exception(
+                f"Validation with distribution loss {type(self.valid_loss).__name__} is not possible when using loss={type(self.loss).__name__}. Please use a point valid_loss (MAE, MSE, ...)"
+            )
+        elif self.valid_loss.is_distribution_output and self.valid_loss is not loss:
+            # Maybe we should raise a Warning or an Exception here, but meh for now.
+            self.valid_loss = loss
+
+        if isinstance(self.loss, (losses.relMSE, losses.Accuracy, losses.sCRPS)):
+            raise Exception(
+                f"{type(self.loss).__name__} cannot be used for training. Please use another loss function (MAE, MSE, ...)"
+            )
+
+        if isinstance(self.valid_loss, (losses.relMSE)):
+            raise Exception(
+                f"{type(self.valid_loss).__name__} cannot be used for validation. Please use another valid_loss (MAE, MSE, ...)"
+            )
 
         ## Trainer arguments ##
         # Max steps, validation steps and check_val_every_n_epoch
@@ -191,7 +301,78 @@ class BaseModel(pl.LightningModule):
         if trainer_kwargs.get("enable_checkpointing", None) is None:
             trainer_kwargs["enable_checkpointing"] = False
 
+        # Set other attributes
         self.trainer_kwargs = trainer_kwargs
+        self.h = h
+        self.input_size = input_size
+        self.windows_batch_size = windows_batch_size
+        self.start_padding_enabled = start_padding_enabled
+
+        # Padder to complete train windows,
+        # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
+        if start_padding_enabled:
+            self.padder_train = nn.ConstantPad1d(
+                padding=(self.input_size - 1, self.h), value=0.0
+            )
+        else:
+            self.padder_train = nn.ConstantPad1d(padding=(0, self.h), value=0.0)
+
+        # Batch sizes
+        if self.MULTIVARIATE and n_series is not None:
+            self.batch_size = max(batch_size, n_series)
+        else:
+            self.batch_size = batch_size
+        if valid_batch_size is None:
+            self.valid_batch_size = batch_size
+        else:
+            self.valid_batch_size = valid_batch_size
+        if inference_windows_batch_size is None:
+            self.inference_windows_batch_size = windows_batch_size
+        else:
+            self.inference_windows_batch_size = inference_windows_batch_size
+
+        # Optimization
+        self.learning_rate = learning_rate
+        self.max_steps = max_steps
+        self.num_lr_decays = num_lr_decays
+        self.lr_decay_steps = (
+            max(max_steps // self.num_lr_decays, 1) if self.num_lr_decays > 0 else 10e7
+        )
+        self.early_stop_patience_steps = early_stop_patience_steps
+        self.val_check_steps = val_check_steps
+        self.windows_batch_size = windows_batch_size
+        self.step_size = step_size
+
+        # If the model does not support exogenous, it can't support exclude_insample_y
+        if exclude_insample_y and not (
+            self.EXOGENOUS_FUTR or self.EXOGENOUS_HIST or self.EXOGENOUS_STAT
+        ):
+            raise Exception(
+                f"{type(self).__name__} does not support `exclude_insample_y=True`. Please set `exclude_insample_y=False`"
+            )
+
+        self.exclude_insample_y = exclude_insample_y
+
+        # Scaler
+        self.scaler = TemporalNorm(
+            scaler_type=scaler_type,
+            dim=1,  # Time dimension is 1.
+            num_features=1 + len(self.hist_exog_list) + len(self.futr_exog_list),
+        )
+
+        # Fit arguments
+        self.val_size = 0
+        self.test_size = 0
+
+        # Model state
+        self.decompose_forecast = False
+
+        # DataModule arguments
+        self.dataloader_kwargs = dataloader_kwargs
+        self.drop_last_loader = drop_last_loader
+        # used by on_validation_epoch_end hook
+        self.validation_step_outputs: List = []
+        self.alias = alias
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
@@ -228,21 +409,13 @@ class BaseModel(pl.LightningModule):
             set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
         )
 
-    def _set_quantile_for_iqloss(self, **data_module_kwargs):
-        if "quantile" in data_module_kwargs:
-            if not isinstance(self.loss, IQLoss):
-                raise Exception(
-                    "Please train with loss=IQLoss() to make use of the quantile argument."
-                )
-            else:
-                self.quantile = data_module_kwargs["quantile"]
-                data_module_kwargs.pop("quantile")
-                self.loss.update_quantile(q=self.quantile)
-        elif isinstance(self.loss, IQLoss):
-            self.quantile = 0.5
-            self.loss.update_quantile(q=self.quantile)
-
-        return data_module_kwargs
+    def _set_quantiles(self, quantiles=None):
+        if quantiles is None and isinstance(self.loss, losses.IQLoss):
+            self.loss.update_quantile(q=[0.5])
+        elif hasattr(self.loss, "update_quantile") and callable(
+            self.loss.update_quantile
+        ):
+            self.loss.update_quantile(q=quantiles)
 
     def _fit_distributed(
         self,
@@ -465,3 +638,932 @@ class BaseModel(pl.LightningModule):
         else:  # pytorch<2.1
             model.load_state_dict(content["state_dict"], strict=True)
         return model
+
+    def _create_windows(self, batch, step, w_idxs=None):
+        # Parse common data
+        window_size = self.input_size + self.h
+        temporal_cols = batch["temporal_cols"]
+        temporal = batch["temporal"]
+
+        if step == "train":
+            if self.val_size + self.test_size > 0:
+                cutoff = -self.val_size - self.test_size
+                temporal = temporal[:, :, :cutoff]
+
+            temporal = self.padder_train(temporal)
+
+            if temporal.shape[-1] < window_size:
+                raise Exception(
+                    "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
+                )
+
+            windows = temporal.unfold(
+                dimension=-1, size=window_size, step=self.step_size
+            )
+
+            if self.MULTIVARIATE:
+                # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
+                windows = windows.permute(2, 3, 1, 0)
+            else:
+                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
+                windows_per_serie = windows.shape[2]
+                windows = windows.permute(0, 2, 3, 1)
+                windows = windows.flatten(0, 1)
+                windows = windows.unsqueeze(-1)
+
+            # Sample and Available conditions
+            available_idx = temporal_cols.get_loc("available_mask")
+            available_condition = windows[:, : self.input_size, available_idx]
+            available_condition = torch.sum(
+                available_condition, axis=(1, -1)
+            )  # Sum over time & series dimension
+            final_condition = available_condition > 0
+
+            if self.h > 0:
+                sample_condition = windows[:, self.input_size :, available_idx]
+                sample_condition = torch.sum(
+                    sample_condition, axis=(1, -1)
+                )  # Sum over time & series dimension
+                final_condition = (sample_condition > 0) & (available_condition > 0)
+
+            windows = windows[final_condition]
+
+            # Parse Static data to match windows
+            static = batch.get("static", None)
+            static_cols = batch.get("static_cols", None)
+
+            # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
+            if static is not None and not self.MULTIVARIATE:
+                static = torch.repeat_interleave(
+                    static, repeats=windows_per_serie, dim=0
+                )
+                static = static[final_condition]
+
+            # Protection of empty windows
+            if final_condition.sum() == 0:
+                raise Exception("No windows available for training")
+
+            # Sample windows
+            if self.windows_batch_size is not None:
+                n_windows = windows.shape[0]
+                w_idxs = np.random.choice(
+                    n_windows,
+                    size=self.windows_batch_size,
+                    replace=(n_windows < self.windows_batch_size),
+                )
+                windows = windows[w_idxs]
+
+                if static is not None and not self.MULTIVARIATE:
+                    static = static[w_idxs]
+
+            windows_batch = dict(
+                temporal=windows,
+                temporal_cols=temporal_cols,
+                static=static,
+                static_cols=static_cols,
+            )
+            return windows_batch
+
+        elif step in ["predict", "val"]:
+
+            if step == "predict":
+                initial_input = temporal.shape[-1] - self.test_size
+                if (
+                    initial_input <= self.input_size
+                ):  # There is not enough data to predict first timestamp
+                    temporal = F.pad(
+                        temporal,
+                        pad=(self.input_size - initial_input, 0),
+                        mode="constant",
+                        value=0.0,
+                    )
+                predict_step_size = self.predict_step_size
+                cutoff = -self.input_size - self.test_size
+                temporal = temporal[:, :, cutoff:]
+
+            elif step == "val":
+                predict_step_size = self.step_size
+                cutoff = -self.input_size - self.val_size - self.test_size
+                if self.test_size > 0:
+                    temporal = batch["temporal"][:, :, cutoff : -self.test_size]
+                else:
+                    temporal = batch["temporal"][:, :, cutoff:]
+                if temporal.shape[-1] < window_size:
+                    initial_input = temporal.shape[-1] - self.val_size
+                    temporal = F.pad(
+                        temporal,
+                        pad=(self.input_size - initial_input, 0),
+                        mode="constant",
+                        value=0.0,
+                    )
+
+            if (
+                (step == "predict")
+                and (self.test_size == 0)
+                and (len(self.futr_exog_list) == 0)
+            ):
+                temporal = F.pad(temporal, pad=(0, self.h), mode="constant", value=0.0)
+
+            windows = temporal.unfold(
+                dimension=-1, size=window_size, step=predict_step_size
+            )
+
+            static = batch.get("static", None)
+            static_cols = batch.get("static_cols", None)
+
+            if self.MULTIVARIATE:
+                # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
+                windows = windows.permute(2, 3, 1, 0)
+            else:
+                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
+                windows_per_serie = windows.shape[2]
+                windows = windows.permute(0, 2, 3, 1)
+                windows = windows.flatten(0, 1)
+                windows = windows.unsqueeze(-1)
+                if static is not None:
+                    static = torch.repeat_interleave(
+                        static, repeats=windows_per_serie, dim=0
+                    )
+
+            # Sample windows for batched prediction
+            if w_idxs is not None:
+                windows = windows[w_idxs]
+                if static is not None and not self.MULTIVARIATE:
+                    static = static[w_idxs]
+
+            windows_batch = dict(
+                temporal=windows,
+                temporal_cols=temporal_cols,
+                static=static,
+                static_cols=static_cols,
+            )
+            return windows_batch
+        else:
+            raise ValueError(f"Unknown step {step}")
+
+    def _normalization(self, windows, y_idx):
+        # windows are already filtered by train/validation/test
+        # from the `create_windows_method` nor leakage risk
+        temporal = windows["temporal"]  # [Ws, L + h, C, n_series]
+        temporal_cols = windows["temporal_cols"].copy()  # [Ws, L + h, C, n_series]
+
+        # To avoid leakage uses only the lags
+        temporal_data_cols = self._get_temporal_exogenous_cols(
+            temporal_cols=temporal_cols
+        )
+        temporal_idxs = get_indexer_raise_missing(temporal_cols, temporal_data_cols)
+        temporal_idxs = np.append(y_idx, temporal_idxs)
+        temporal_data = temporal[:, :, temporal_idxs]
+        temporal_mask = temporal[:, :, temporal_cols.get_loc("available_mask")].clone()
+        if self.h > 0:
+            temporal_mask[:, -self.h :] = 0.0
+
+        # Normalize. self.scaler stores the shift and scale for inverse transform
+        temporal_mask = temporal_mask.unsqueeze(
+            2
+        )  # Add channel dimension for scaler.transform.
+        temporal_data = self.scaler.transform(x=temporal_data, mask=temporal_mask)
+
+        # Replace values in windows dict
+        temporal[:, :, temporal_idxs] = temporal_data
+        windows["temporal"] = temporal
+
+        return windows
+
+    def _inv_normalization(self, y_hat, y_idx):
+        # Receives window predictions [Ws, h, output, n_series]
+        # Broadcasts scale if necessary and inverts normalization
+        add_channel_dim = y_hat.ndim > 3
+        y_loc, y_scale = self._get_loc_scale(y_idx, add_channel_dim=add_channel_dim)
+        y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
+
+        return y_hat
+
+    def _parse_windows(self, batch, windows):
+        # windows: [Ws, L + h, C, n_series]
+
+        # Filter insample lags from outsample horizon
+        y_idx = batch["y_idx"]
+        mask_idx = batch["temporal_cols"].get_loc("available_mask")
+
+        insample_y = windows["temporal"][:, : self.input_size, y_idx]
+        insample_mask = windows["temporal"][:, : self.input_size, mask_idx]
+
+        # Declare additional information
+        outsample_y = None
+        outsample_mask = None
+        hist_exog = None
+        futr_exog = None
+        stat_exog = None
+
+        if self.h > 0:
+            outsample_y = windows["temporal"][:, self.input_size :, y_idx]
+            outsample_mask = windows["temporal"][:, self.input_size :, mask_idx]
+
+        # Recurrent models at t predict t+1, so we shift the input (insample_y) by one
+        if self.RECURRENT:
+            insample_y = torch.cat((insample_y, outsample_y[:, :-1]), dim=1)
+            insample_mask = torch.cat((insample_mask, outsample_mask[:, :-1]), dim=1)
+            self.maintain_state = False
+
+        if len(self.hist_exog_list):
+            hist_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.hist_exog_list
+            )
+            if self.RECURRENT:
+                hist_exog = windows["temporal"][:, :, hist_exog_idx]
+                hist_exog[:, self.input_size :] = 0.0
+                hist_exog = hist_exog[:, 1:]
+            else:
+                hist_exog = windows["temporal"][:, : self.input_size, hist_exog_idx]
+            if not self.MULTIVARIATE:
+                hist_exog = hist_exog.squeeze(-1)
+            else:
+                hist_exog = hist_exog.swapaxes(1, 2)
+
+        if len(self.futr_exog_list):
+            futr_exog_idx = get_indexer_raise_missing(
+                windows["temporal_cols"], self.futr_exog_list
+            )
+            futr_exog = windows["temporal"][:, :, futr_exog_idx]
+            if self.RECURRENT:
+                futr_exog = futr_exog[:, 1:]
+            if not self.MULTIVARIATE:
+                futr_exog = futr_exog.squeeze(-1)
+            else:
+                futr_exog = futr_exog.swapaxes(1, 2)
+
+        if len(self.stat_exog_list):
+            static_idx = get_indexer_raise_missing(
+                windows["static_cols"], self.stat_exog_list
+            )
+            stat_exog = windows["static"][:, static_idx]
+
+        # TODO: think a better way of removing insample_y features
+        if self.exclude_insample_y:
+            insample_y = insample_y * 0
+
+        return (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        )
+
+    def _get_loc_scale(self, y_idx, add_channel_dim=False):
+        # [B, L, C, n_series] -> [B, L, n_series]
+        y_scale = self.scaler.x_scale[:, :, y_idx]
+        y_loc = self.scaler.x_shift[:, :, y_idx]
+
+        # [B, L, n_series] -> [B, L, n_series, 1]
+        if add_channel_dim:
+            y_scale = y_scale.unsqueeze(-1)
+            y_loc = y_loc.unsqueeze(-1)
+
+        return y_loc, y_scale
+
+    def _compute_valid_loss(
+        self, insample_y, outsample_y, output, outsample_mask, y_idx
+    ):
+        if self.loss.is_distribution_output:
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            if isinstance(
+                self.valid_loss, (losses.sCRPS, losses.MQLoss, losses.HuberMQLoss)
+            ):
+                _, _, quants = self.loss.sample(distr_args=distr_args)
+                output = quants
+            elif isinstance(self.valid_loss, losses.BasePointLoss):
+                distr = self.loss.get_distribution(distr_args=distr_args)
+                output = distr.mean
+
+        # Validation Loss evaluation
+        if self.valid_loss.is_distribution_output:
+            valid_loss = self.valid_loss(
+                y=outsample_y, distr_args=distr_args, mask=outsample_mask
+            )
+        else:
+            output = self._inv_normalization(y_hat=output, y_idx=y_idx)
+            valid_loss = self.valid_loss(
+                y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
+            )
+        return valid_loss
+
+    def _validate_step_recurrent_batch(
+        self, insample_y, insample_mask, futr_exog, hist_exog, stat_exog, y_idx
+    ):
+        # Remember state in network and set horizon to 1
+        self.rnn_state = None
+        self.maintain_state = True
+        self.h = 1
+
+        # Initialize results array
+        n_outputs = self.loss.outputsize_multiplier
+        y_hat = torch.zeros(
+            (insample_y.shape[0], self.horizon_backup, self.n_series * n_outputs),
+            device=insample_y.device,
+            dtype=insample_y.dtype,
+        )
+
+        # First step prediction
+        tau = 0
+
+        # Set exogenous
+        hist_exog_current = None
+        if self.hist_exog_size > 0:
+            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+
+        futr_exog_current = None
+        if self.futr_exog_size > 0:
+            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+
+        # First forecast step
+        y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+            insample_y=insample_y[:, : self.input_size + tau - 1],
+            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            hist_exog=hist_exog_current,
+            futr_exog=futr_exog_current,
+            stat_exog=stat_exog,
+            y_idx=y_idx,
+        )
+
+        # Horizon prediction recursively
+        for tau in range(self.horizon_backup):
+            # Set exogenous
+            if self.hist_exog_size > 0:
+                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            if self.futr_exog_size > 0:
+                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+                insample_y=insample_y,
+                insample_mask=None,
+                hist_exog=hist_exog_current,
+                futr_exog=futr_exog_current,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+            )
+
+        # Reset state and horizon
+        self.maintain_state = False
+        self.rnn_state = None
+        self.h = self.horizon_backup
+
+        return y_hat
+
+    def _validate_step_recurrent_single(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        # Input sequence
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch_unmapped = self(windows_batch)
+        output_batch = self.loss.domain_map(output_batch_unmapped)
+
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            # Sample distribution
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            # When validating, the output is the mean of the distribution which is an attribute
+            distr = self.loss.get_distribution(distr_args=distr_args)
+
+            # Scale back to feed back as input
+            insample_y = self.scaler.scaler(distr.mean, y_loc, y_scale)
+        else:
+            # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
+            # contains a set of predictions for the target (e.g. MQLoss multiple quantiles), for which we use the
+            # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
+            # insample input size of the recurrent network by the number of outputs so that each output
+            # can be fed back to a specific input channel.
+            if output_batch.ndim == 4:
+                output_batch = output_batch.mean(dim=-1)
+
+            insample_y = output_batch
+
+        # Remove horizon dim: [B, 1, N * n_outputs] -> [B, N * n_outputs]
+        y_hat = output_batch_unmapped.squeeze(1)
+        return y_hat, insample_y
+
+    def _predict_step_recurrent_batch(
+        self, insample_y, insample_mask, futr_exog, hist_exog, stat_exog, y_idx
+    ):
+        # Remember state in network and set horizon to 1
+        self.rnn_state = None
+        self.maintain_state = True
+        self.h = 1
+
+        # Initialize results array
+        n_outputs = len(self.loss.output_names)
+        y_hat = torch.zeros(
+            (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
+            device=insample_y.device,
+            dtype=insample_y.dtype,
+        )
+
+        # First step prediction
+        tau = 0
+
+        # Set exogenous
+        hist_exog_current = None
+        if self.hist_exog_size > 0:
+            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+
+        futr_exog_current = None
+        if self.futr_exog_size > 0:
+            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+
+        # First forecast step
+        y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+            insample_y=insample_y[:, : self.input_size + tau - 1],
+            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            hist_exog=hist_exog_current,
+            futr_exog=futr_exog_current,
+            stat_exog=stat_exog,
+            y_idx=y_idx,
+        )
+
+        # Horizon prediction recursively
+        for tau in range(self.horizon_backup):
+            # Set exogenous
+            if self.hist_exog_size > 0:
+                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            if self.futr_exog_size > 0:
+                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+
+            y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+                insample_y=insample_y,
+                insample_mask=None,
+                hist_exog=hist_exog_current,
+                futr_exog=futr_exog_current,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+            )
+
+        # Reset state and horizon
+        self.maintain_state = False
+        self.rnn_state = None
+        self.h = self.horizon_backup
+
+        # Squeeze for univariate case
+        if not self.MULTIVARIATE:
+            y_hat = y_hat.squeeze(2)
+
+        return y_hat
+
+    def _predict_step_recurrent_single(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        # Input sequence
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch_unmapped = self(windows_batch)
+        output_batch = self.loss.domain_map(output_batch_unmapped)
+
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            # Sample distribution
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            # When predicting, we need to sample to get the quantiles. The mean is an attribute.
+            _, _, quants = self.loss.sample(
+                distr_args=distr_args, num_samples=self.n_samples
+            )
+            mean = self.loss.distr_mean
+
+            # Scale back to feed back as input
+            insample_y = self.scaler.scaler(mean, y_loc, y_scale)
+
+            # Save predictions
+            y_hat = torch.concat((mean.unsqueeze(-1), quants), axis=-1)
+
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                if distr_args.ndim > 4:
+                    distr_args = distr_args.flatten(-2, -1)
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
+        else:
+            # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
+            # contains a set of predictions for the target (e.g. MQLoss multiple quantiles), for which we use the
+            # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
+            # insample input size of the recurrent network by the number of outputs so that each output
+            # can be fed back to a specific input channel.
+            if output_batch.ndim == 4:
+                output_batch = output_batch.mean(dim=-1)
+
+            insample_y = output_batch
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+            y_hat = y_hat.unsqueeze(-1)
+
+        # Remove horizon dim: [B, 1, N, n_outputs] -> [B, N, n_outputs]
+        y_hat = y_hat.squeeze(1)
+        return y_hat, insample_y
+
+    def _predict_step_direct_batch(
+        self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
+    ):
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output_batch = self(windows_batch)
+        output_batch = self.loss.domain_map(output_batch)
+
+        # Inverse normalization and sampling
+        if self.loss.is_distribution_output:
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            distr_args = self.loss.scale_decouple(
+                output=output_batch, loc=y_loc, scale=y_scale
+            )
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=-1)
+
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                if distr_args.ndim > 4:
+                    distr_args = distr_args.flatten(-2, -1)
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
+        else:
+            y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
+
+        return y_hat
+
+    def training_step(self, batch, batch_idx):
+        # Set horizon to h_train in case of recurrent model to speed up training
+        if self.RECURRENT:
+            self.h = self.h_train
+
+        # windows: [Ws, L + h, C, n_series] or [Ws, L + h, C]
+        y_idx = batch["y_idx"]
+
+        windows = self._create_windows(batch, step="train")
+        original_outsample_y = torch.clone(
+            windows["temporal"][:, self.input_size :, y_idx]
+        )
+        windows = self._normalization(windows=windows, y_idx=y_idx)
+
+        # Parse windows
+        (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
+
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L, n_series]
+            insample_mask=insample_mask,  # [Ws, L, n_series]
+            futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+            hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+            stat_exog=stat_exog,
+        )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+        # Model Predictions
+        output = self(windows_batch)
+        output = self.loss.domain_map(output)
+
+        if self.loss.is_distribution_output:
+            y_loc, y_scale = self._get_loc_scale(y_idx)
+            outsample_y = original_outsample_y
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+        else:
+            loss = self.loss(
+                y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
+            )
+
+        if torch.isnan(loss):
+            print("Model Parameters", self.hparams)
+            print("insample_y", torch.isnan(insample_y).sum())
+            print("outsample_y", torch.isnan(outsample_y).sum())
+            raise Exception("Loss is NaN, training stopped.")
+
+        train_loss_log = loss.detach().item()
+        self.log(
+            "train_loss",
+            train_loss_log,
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, train_loss_log))
+
+        self.h = self.horizon_backup
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        if self.val_size == 0:
+            return np.nan
+
+        # TODO: Hack to compute number of windows
+        windows = self._create_windows(batch, step="val")
+        n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+
+        valid_losses = []
+        batch_sizes = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L + h, C, n_series]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._create_windows(batch, step="val", w_idxs=w_idxs)
+            original_outsample_y = torch.clone(
+                windows["temporal"][:, self.input_size :, y_idx]
+            )
+
+            windows = self._normalization(windows=windows, y_idx=y_idx)
+
+            # Parse windows
+            (
+                insample_y,
+                insample_mask,
+                _,
+                outsample_mask,
+                hist_exog,
+                futr_exog,
+                stat_exog,
+            ) = self._parse_windows(batch, windows)
+
+            if self.RECURRENT:
+                output_batch = self._validate_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            else:
+                windows_batch = dict(
+                    insample_y=insample_y,  # [Ws, L, n_series]
+                    insample_mask=insample_mask,  # [Ws, L, n_series]
+                    futr_exog=futr_exog,  # univariate: [Ws, L, F]; multivariate: [Ws, F, L, n_series]
+                    hist_exog=hist_exog,  # univariate: [Ws, L, X]; multivariate: [Ws, X, L, n_series]
+                    stat_exog=stat_exog,
+                )  # univariate: [Ws, S]; multivariate: [n_series, S]
+
+                # Model Predictions
+                output_batch = self(windows_batch)
+
+            output_batch = self.loss.domain_map(output_batch)
+            valid_loss_batch = self._compute_valid_loss(
+                insample_y=insample_y,
+                outsample_y=original_outsample_y,
+                output=output_batch,
+                outsample_mask=outsample_mask,
+                y_idx=batch["y_idx"],
+            )
+            valid_losses.append(valid_loss_batch)
+            batch_sizes.append(len(output_batch))
+
+        valid_loss = torch.stack(valid_losses)
+        batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
+        batch_size = torch.sum(batch_sizes)
+        valid_loss = torch.sum(valid_loss * batch_sizes) / batch_size
+
+        if torch.isnan(valid_loss):
+            raise Exception("Loss is NaN, training stopped.")
+
+        valid_loss_log = valid_loss.detach()
+        self.log(
+            "valid_loss",
+            valid_loss_log.item(),
+            batch_size=batch_size,
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.validation_step_outputs.append(valid_loss_log)
+        return valid_loss
+
+    def predict_step(self, batch, batch_idx):
+        if self.RECURRENT:
+            self.input_size = self.inference_input_size
+
+        # TODO: Hack to compute number of windows
+        windows = self._create_windows(batch, step="predict")
+        n_windows = len(windows["temporal"])
+        y_idx = batch["y_idx"]
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+        y_hats = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
+            windows = self._normalization(windows=windows, y_idx=y_idx)
+
+            # Parse windows
+            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
+
+            if self.RECURRENT:
+                y_hat = self._predict_step_recurrent_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            else:
+                y_hat = self._predict_step_direct_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+
+            y_hats.append(y_hat)
+        y_hat = torch.cat(y_hats, dim=0)
+        self.input_size = self.input_size_backup
+
+        return y_hat
+
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
+        """Fit.
+
+        The `fit` method, optimizes the neural network's weights using the
+        initialization parameters (`learning_rate`, `windows_batch_size`, ...)
+        and the `loss` function as defined during the initialization.
+        Within `fit` we use a PyTorch Lightning `Trainer` that
+        inherits the initialization's `self.trainer_kwargs`, to customize
+        its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+        The method is designed to be compatible with SKLearn-like classes
+        and in particular to be compatible with the StatsForecast library.
+
+        By default the `model` is not saving training checkpoints to protect
+        disk memory, to get them change `enable_checkpointing=True` in `__init__`.
+
+        **Parameters:**<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `val_size`: int, validation size for temporal cross-validation.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
+        `test_size`: int, test size for temporal cross-validation.<br>
+        """
+        return self._fit(
+            dataset=dataset,
+            batch_size=self.batch_size,
+            valid_batch_size=self.valid_batch_size,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
+            distributed_config=distributed_config,
+        )
+
+    def predict(
+        self,
+        dataset,
+        test_size=None,
+        step_size=1,
+        random_seed=None,
+        quantiles=None,
+        **data_module_kwargs,
+    ):
+        """Predict.
+
+        Neural network prediction with PL's `Trainer` execution of `predict_step`.
+
+        **Parameters:**<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `test_size`: int=None, test size for temporal cross-validation.<br>
+        `step_size`: int=1, Step size between each window.<br>
+        `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
+        `quantiles`: list of floats, optional (default=None), target quantiles to predict. <br>
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+        """
+        self._check_exog(dataset)
+        self._restart_seed(random_seed)
+        if "quantile" in data_module_kwargs:
+            warnings.warn(
+                "The 'quantile' argument will be deprecated, use 'quantiles' instead."
+            )
+            if quantiles is not None:
+                raise ValueError("You can't specify quantile and quantiles.")
+            quantiles = [data_module_kwargs.pop("quantile")]
+        self._set_quantiles(quantiles)
+
+        self.predict_step_size = step_size
+        self.decompose_forecast = False
+        datamodule = TimeSeriesDataModule(
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            **data_module_kwargs,
+        )
+
+        # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+
+        trainer = pl.Trainer(**pred_trainer_kwargs)
+        fcsts = trainer.predict(self, datamodule=datamodule)
+        fcsts = torch.vstack(fcsts)
+
+        if self.MULTIVARIATE:
+            # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
+            fcsts = fcsts.swapaxes(0, 2)
+            fcsts = fcsts.swapaxes(1, 2)
+
+        fcsts = tensor_to_numpy(fcsts).flatten()
+        fcsts = fcsts.reshape(-1, len(self.loss.output_names))
+        return fcsts
+
+    def decompose(
+        self,
+        dataset,
+        step_size=1,
+        random_seed=None,
+        quantiles=None,
+        **data_module_kwargs,
+    ):
+        """Decompose Predictions.
+
+        Decompose the predictions through the network's layers.
+        Available methods are `ESRNN`, `NHITS`, `NBEATS`, and `NBEATSx`.
+
+        **Parameters:**<br>
+        `dataset`: NeuralForecast's `TimeSeriesDataset`, see [documentation here](https://nixtla.github.io/neuralforecast/tsdataset.html).<br>
+        `step_size`: int=1, step size between each window of temporal data.<br>
+        `quantiles`: list of floats, optional (default=None), target quantiles to predict. <br>
+        `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+        """
+        # Restart random seed
+        if random_seed is None:
+            random_seed = self.random_seed
+        torch.manual_seed(random_seed)
+        self._set_quantiles(quantiles)
+
+        self.predict_step_size = step_size
+        self.decompose_forecast = True
+        datamodule = TimeSeriesDataModule(
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            **data_module_kwargs,
+        )
+        trainer = pl.Trainer(**self.trainer_kwargs)
+        fcsts = trainer.predict(self, datamodule=datamodule)
+        self.decompose_forecast = False  # Default decomposition back to false
+        fcsts = torch.vstack(fcsts)
+        return tensor_to_numpy(fcsts)

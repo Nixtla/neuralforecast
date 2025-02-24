@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.tide.ipynb 8
 class MLPResidual(nn.Module):
@@ -48,7 +48,7 @@ class MLPResidual(nn.Module):
         return x
 
 # %% ../../nbs/models.tide.ipynb 10
-class TiDE(BaseWindows):
+class TiDE(BaseModel):
     """TiDE
 
     Time-series Dense Encoder (`TiDE`) is a MLP-based univariate time-series forecasting model. `TiDE` uses Multi-layer Perceptrons (MLPs) in an encoder-decoder model for long-term time-series forecasting.
@@ -93,10 +93,13 @@ class TiDE(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -240,7 +243,7 @@ class TiDE(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"]  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
@@ -310,7 +313,6 @@ class TiDE(BaseWindows):
             x
         )  #  [B, h, temporal_width + decoder_output_dim] -> [B, h, n_outputs]
 
-        # Map to output domain
-        forecast = self.loss.domain_map(x + x_skip)
+        forecast = x + x_skip
 
         return forecast

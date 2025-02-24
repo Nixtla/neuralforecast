@@ -9,13 +9,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 from neuralforecast.common._modules import (
     DataEmbedding_inverted,
     PositionalEmbedding,
     FullAttention,
     AttentionLayer,
 )
+from typing import Optional
 
 # %% ../../nbs/models.timexer.ipynb 7
 class FlattenHead(nn.Module):
@@ -131,7 +132,7 @@ class EnEmbedding(nn.Module):
         return self.dropout(x), n_vars
 
 # %% ../../nbs/models.timexer.ipynb 12
-class TimeXer(BaseMultivariate):
+class TimeXer(BaseModel):
     """
     TimeXer
 
@@ -158,6 +159,10 @@ class TimeXer(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=256, number of windows in each batch.<br>
+    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -177,10 +182,13 @@ class TimeXer(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -206,6 +214,10 @@ class TimeXer(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=256,
+        inference_windows_batch_size=256,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -222,9 +234,10 @@ class TimeXer(BaseMultivariate):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=False,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -233,6 +246,10 @@ class TimeXer(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
@@ -344,9 +361,5 @@ class TimeXer(BaseMultivariate):
 
         y_pred = self.forecast(insample_y, x_mark_enc)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
 
-        if y_pred.ndim == 2:
-            return y_pred.unsqueeze(-1)
-        else:
-            return y_pred
+        return y_pred
