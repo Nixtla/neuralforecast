@@ -49,7 +49,8 @@ if __name__ == '__main__':
               'iTransformer',
               'StemGNN',
               'MLPMultivariate',
-              'TimeMixer']
+              'TimeMixer',
+              'TimeXer']
     
     datasets = ['multivariate']
     evaluation = [evaluate(model, dataset, group) for model, group in product(models, groups) for dataset in datasets]
