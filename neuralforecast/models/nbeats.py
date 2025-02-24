@@ -323,7 +323,7 @@ class NBEATSBlock(nn.Module):
         backcast, forecast = self.basis(theta)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeats.ipynb 9
+# %% ../../nbs/models.nbeats.ipynb 10
 class NBEATS(BaseModel):
     """NBEATS
 
