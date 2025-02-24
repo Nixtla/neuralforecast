@@ -9,7 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Optional
-
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
 
@@ -21,7 +20,7 @@ from neuralforecast.common._modules import (
     DataEmbedding_inverted,
 )
 
-# %% ../../nbs/models.itransformer.ipynb 13
+# %% ../../nbs/models.itransformer.ipynb 8
 class iTransformer(BaseModel):
     """iTransformer
 

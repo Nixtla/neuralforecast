@@ -23,7 +23,7 @@ from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.vanillatransformer.ipynb 10
+# %% ../../nbs/models.vanillatransformer.ipynb 8
 class VanillaTransformer(BaseModel):
     """VanillaTransformer
 

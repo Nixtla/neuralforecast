@@ -2,9 +2,9 @@
 
 # %% auto 0
 __all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolutionEncoder', 'TransEncoderLayer', 'TransEncoder',
-           'TransDecoderLayer', 'TransDecoder', 'AttentionLayer', 'TriangularCausalMask', 'FullAttention', 'PositionalEmbedding', 'TokenEmbedding',
-           'TimeFeatureEmbedding', 'FixedEmbedding', 'TemporalEmbedding', 'DataEmbedding', 'DataEmbedding_inverted', 'MovingAvg', 'SeriesDecomp',
-           'RevIN', 'RevINMultivariate']
+           'TransDecoderLayer', 'TransDecoder', 'AttentionLayer', 'TriangularCausalMask', 'FullAttention',
+           'PositionalEmbedding', 'TokenEmbedding', 'TimeFeatureEmbedding', 'FixedEmbedding', 'TemporalEmbedding',
+           'DataEmbedding', 'DataEmbedding_inverted', 'MovingAvg', 'SeriesDecomp', 'RevIN', 'RevINMultivariate']
 
 # %% ../../nbs/common.modules.ipynb 3
 import math
@@ -686,7 +686,7 @@ class RevIN(nn.Module):
             x = x + self.mean
         return x
 
-# %% ../../nbs/common.modules.ipynb 21
+# %% ../../nbs/common.modules.ipynb 22
 class RevINMultivariate(nn.Module):
     """
     ReversibleInstanceNorm1d for Multivariate models

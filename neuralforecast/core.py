@@ -1252,7 +1252,7 @@ class NeuralForecast:
         cols_order = first_out_cols + remaining_cols + [target_col]
         return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
 
-    def predict_insample(self, step_size: int = 1, **data_kwargs):
+    def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
 
         `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
@@ -1272,7 +1272,6 @@ class NeuralForecast:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
-
         test_size = self.models[0].get_test_size()
 
         # Process each series separately
