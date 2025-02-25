@@ -237,11 +237,16 @@ class BaseModel(pl.LightningModule):
             )
 
         # Protections for loss functions
-        if isinstance(self.loss, (losses.IQLoss, losses.MQLoss, losses.HuberMQLoss)):
+        if isinstance(self.loss, (losses.IQLoss)):
             loss_type = type(self.loss)
             if not isinstance(self.valid_loss, loss_type):
                 raise Exception(
                     f"Please set valid_loss={type(self.loss).__name__}() when training with {type(self.loss).__name__}"
+                )
+        if isinstance(self.loss, (losses.MQLoss, losses.HuberMQLoss)):
+            if not isinstance(self.valid_loss, (losses.MQLoss, losses.HuberMQLoss)):
+                raise Exception(
+                    f"Please set valid_loss to MQLoss() or HuberMQLoss() when training with {type(self.loss).__name__}"
                 )
         if isinstance(self.valid_loss, losses.IQLoss):
             valid_loss_type = type(self.valid_loss)
