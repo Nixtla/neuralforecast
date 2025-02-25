@@ -119,6 +119,7 @@ class BaseModel(pl.LightningModule):
         lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
         lr_scheduler_kwargs: Union[Dict, None] = None,
         dataloader_kwargs=None,
+        data_availability_threshold=0.0,
         **trainer_kwargs,
     ):
         super().__init__()
@@ -307,6 +308,7 @@ class BaseModel(pl.LightningModule):
         self.input_size = input_size
         self.windows_batch_size = windows_batch_size
         self.start_padding_enabled = start_padding_enabled
+        self.data_availability_threshold = data_availability_threshold
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
@@ -677,14 +679,21 @@ class BaseModel(pl.LightningModule):
             available_condition = torch.sum(
                 available_condition, axis=(1, -1)
             )  # Sum over time & series dimension
-            final_condition = available_condition > 0
+            final_condition = (
+                available_condition > self.data_availability_threshold * self.input_size
+            )
 
             if self.h > 0:
                 sample_condition = windows[:, self.input_size :, available_idx]
                 sample_condition = torch.sum(
                     sample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
-                final_condition = (sample_condition > 0) & (available_condition > 0)
+                final_condition = (
+                    sample_condition > self.data_availability_threshold * self.h
+                ) & (
+                    available_condition
+                    > self.data_availability_threshold * self.input_size
+                )
 
             windows = windows[final_condition]
 
