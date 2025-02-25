@@ -680,7 +680,8 @@ class BaseModel(pl.LightningModule):
                 available_condition, axis=(1, -1)
             )  # Sum over time & series dimension
             final_condition = (
-                available_condition > self.data_availability_threshold * self.input_size
+                available_condition
+                > self.data_availability_threshold * self.input_size * self.n_series
             )
 
             if self.h > 0:
@@ -689,10 +690,11 @@ class BaseModel(pl.LightningModule):
                     sample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
                 final_condition = (
-                    sample_condition > self.data_availability_threshold * self.h
+                    sample_condition
+                    > self.data_availability_threshold * self.h * self.n_series
                 ) & (
                     available_condition
-                    > self.data_availability_threshold * self.input_size
+                    > self.data_availability_threshold * self.input_size * self.n_series
                 )
 
             windows = windows[final_condition]
