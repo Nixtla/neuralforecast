@@ -530,7 +530,7 @@ class TFT(BaseModel):
     `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
     `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
-    `rnn_type`: str="LSTM", recurrent neural network (RNN) layer type from ["LSTM","GRU"].<br>
+    `rnn_type`: str="lstm", recurrent neural network (RNN) layer type from ["lstm","gru"].<br>
     `n_rnn_layers`: int=1, number of RNN layers.<br>
     `one_rnn_initial_state`:str=False, Initialize all rnn layers with the same initial states computed from static covariates.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
@@ -584,7 +584,7 @@ class TFT(BaseModel):
         attn_dropout: float = 0.0,
         grn_activation: str = "ELU",
         n_rnn_layers: int = 1,
-        rnn_type: str = "LSTM",
+        rnn_type: str = "lstm",
         one_rnn_initial_state: bool = False,
         dropout: float = 0.1,
         loss=MAE(),
@@ -647,6 +647,7 @@ class TFT(BaseModel):
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
         self.n_rnn_layers = n_rnn_layers
+        self.rnn_type = rnn_type.lower()
         # ------------------------------- Encoders -----------------------------#
         self.embedding = TFTEmbedding(
             hidden_size=hidden_size,
@@ -662,7 +663,7 @@ class TFT(BaseModel):
                 num_static_vars=self.stat_exog_size,
                 dropout=dropout,
                 grn_activation=self.grn_activation,
-                rnn_type=rnn_type,
+                rnn_type=self.rnn_type,
                 n_rnn_layers=n_rnn_layers,
                 one_rnn_initial_state=one_rnn_initial_state,
             )
@@ -674,7 +675,7 @@ class TFT(BaseModel):
             dropout=dropout,
             grn_activation=self.grn_activation,
             n_rnn_layers=n_rnn_layers,
-            rnn_type=rnn_type,
+            rnn_type=self.rnn_type,
         )
 
         # ------------------------------ Decoders -----------------------------#
