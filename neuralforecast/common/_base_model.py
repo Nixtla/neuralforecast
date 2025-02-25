@@ -129,10 +129,6 @@ class BaseModel(pl.LightningModule):
                 f"{type(self).__name__} is a multivariate model. Please set n_series to the number of unique time series in your dataset."
             )
         if not self.MULTIVARIATE:
-            if n_series is not None:
-                warnings.warn(
-                    f"{type(self).__name__} is a univariate model. Parameter n_series is ignored."
-                )
             n_series = 1
         self.n_series = n_series
 
