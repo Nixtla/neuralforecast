@@ -69,7 +69,7 @@ nbdev_export
 If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
 
 ### Cleaning notebooks
-Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/examples`, unless you intend to change the examples.
+Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/docs`, unless you intend to change the examples.
 
 ## Do you want to contribute to the documentation?
 
@@ -78,6 +78,6 @@ Since the notebooks output cells can vary from run to run (even if they produce 
     1. Find the relevant notebook.
     2. Make your changes.
     3. Run all cells.
-    4. If you are modifying library notebooks (not in `nbs/examples`), clear all outputs using `Edit > Clear All Outputs`.
+    4. If you are modifying library notebooks (not in `nbs/docs`), clear all outputs using `Edit > Clear All Outputs`.
     5. Run `nbdev_preview`.
     6. Clean the notebook metadata using `nbdev_clean`.
