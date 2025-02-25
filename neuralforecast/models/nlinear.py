@@ -8,12 +8,12 @@ from typing import Optional
 
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.nlinear.ipynb 7
-class NLinear(BaseWindows):
+class NLinear(BaseModel):
     """NLinear
 
     *Parameters:*<br>
@@ -50,10 +50,13 @@ class NLinear(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -129,11 +132,7 @@ class NLinear(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-        # futr_exog     = windows_batch['futr_exog']
+        insample_y = windows_batch["insample_y"].squeeze(-1)
 
         # Parse inputs
         batch_size = len(insample_y)
@@ -145,5 +144,4 @@ class NLinear(BaseWindows):
         # Final
         forecast = self.linear(norm_insample_y) + last_value
         forecast = forecast.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        forecast = self.loss.domain_map(forecast)
         return forecast

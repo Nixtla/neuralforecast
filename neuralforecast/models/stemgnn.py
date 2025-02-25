@@ -8,8 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from typing import Optional
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.stemgnn.ipynb 7
 class GLU(nn.Module):
@@ -136,7 +137,7 @@ class StockBlockLayer(nn.Module):
         return forecast, backcast_source
 
 # %% ../../nbs/models.stemgnn.ipynb 9
-class StemGNN(BaseMultivariate):
+class StemGNN(BaseModel):
     """StemGNN
 
     The Spectral Temporal Graph Neural Network (`StemGNN`) is a Graph-based multivariate
@@ -163,6 +164,10 @@ class StemGNN(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of windows in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
@@ -177,10 +182,13 @@ class StemGNN(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -190,6 +198,7 @@ class StemGNN(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         n_stacks=2,
         multi_layer: int = 5,
         dropout_rate: float = 0.5,
@@ -202,6 +211,10 @@ class StemGNN(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=1024,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
         random_seed: int = 1,
@@ -222,6 +235,7 @@ class StemGNN(BaseMultivariate):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -230,6 +244,10 @@ class StemGNN(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
@@ -367,11 +385,5 @@ class StemGNN(BaseMultivariate):
         forecast = forecast.reshape(
             batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
         )
-        forecast = self.loss.domain_map(forecast)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast

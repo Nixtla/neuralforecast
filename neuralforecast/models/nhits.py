@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.nhits.ipynb 8
 class _IdentityBasis(nn.Module):
@@ -184,7 +184,7 @@ class NHITSBlock(nn.Module):
         return backcast, forecast
 
 # %% ../../nbs/models.nhits.ipynb 10
-class NHITS(BaseWindows):
+class NHITS(BaseModel):
     """NHITS
 
     The Neural Hierarchical Interpolation for Time Series (NHITS), is an MLP-based deep
@@ -239,10 +239,13 @@ class NHITS(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -395,8 +398,8 @@ class NHITS(BaseWindows):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        insample_mask = windows_batch["insample_mask"]
+        insample_y = windows_batch["insample_y"].squeeze(-1).contiguous()
+        insample_mask = windows_batch["insample_mask"].squeeze(-1).contiguous()
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -419,9 +422,6 @@ class NHITS(BaseWindows):
 
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
-
-        # Adapting output's domain
-        forecast = self.loss.domain_map(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, output_size)

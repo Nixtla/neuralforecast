@@ -19,7 +19,7 @@ from neuralforecast.common._modules import (
     DataEmbedding,
     AttentionLayer,
 )
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
@@ -149,7 +149,7 @@ class ProbAttention(nn.Module):
         else:
             return (context_in, None)
 
-    def forward(self, queries, keys, values, attn_mask):
+    def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         B, L_Q, H, D = queries.shape
         _, L_K, _, _ = keys.shape
 
@@ -179,7 +179,7 @@ class ProbAttention(nn.Module):
         return context.contiguous(), attn
 
 # %% ../../nbs/models.informer.ipynb 11
-class Informer(BaseWindows):
+class Informer(BaseModel):
     """Informer
 
         The Informer model tackles the vanilla Transformer computational complexity challenges for long-horizon forecasting.
@@ -237,10 +237,11 @@ class Informer(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False
+    RECURRENT = False
 
     def __init__(
         self,
@@ -411,13 +412,7 @@ class Informer(BaseWindows):
     def forward(self, windows_batch):
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-
         futr_exog = windows_batch["futr_exog"]
-
-        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
 
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
@@ -435,5 +430,5 @@ class Informer(BaseWindows):
         dec_out = self.dec_embedding(x_dec, x_mark_dec)
         dec_out = self.decoder(dec_out, enc_out, x_mask=None, cross_mask=None)
 
-        forecast = self.loss.domain_map(dec_out[:, -self.h :])
+        forecast = dec_out[:, -self.h :]
         return forecast
