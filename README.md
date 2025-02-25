@@ -31,7 +31,7 @@ or
 ```python
 conda install -c conda-forge neuralforecast
 ``` 
-Vist our [Installation Guide](https://nixtla.github.io/neuralforecast/examples/installation.html) for further details.
+Vist our [Installation Guide](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/installation.html) for further details.
 
 ## Quick Start
 
@@ -51,7 +51,7 @@ nf.fit(df=AirPassengersDF)
 nf.predict()
 ```
 
-**Get Started with this [quick guide](https://nixtla.github.io/neuralforecast/examples/getting_started.html).**
+**Get Started with this [quick guide](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/quickstart.html).**
 
 ## Why? 
 
@@ -61,7 +61,7 @@ Unfortunately, available implementations and published research are yet to reali
 
 ## Features 
 
-* Fast and accurate implementations of `MLP`, `LSTM`, `GRU`, `RNN`, `TCN`, `TimesNet`, `BiTCN`, `DeepAR`, `NBEATS`, `NBEATSx`, `NHITS`, `TiDE`, `DeepNPTS`, `TSMixer`, `TSMixerx`, `MLPMultivariate`, `DLinear`, `NLinear`, `TFT`, `Informer`, `AutoFormer`, `FedFormer`, `PatchTST`, `iTransformer`, `StemGNN`, and `TimeLLM`. See the entire [collection here](https://nixtla.github.io/neuralforecast/models.html).
+* Fast and accurate implementations of more than 30 state-of-the-art models. See the entire [collection here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html).
 * Support for exogenous variables and static covariates.
 * Interpretability methods for trend, seasonality and exogenous components.
 * Probabilistic Forecasting with adapters for quantile losses and parametric distributions.
@@ -82,50 +82,21 @@ Missing something? Please open an issue or write us in [![Slack](https://img.shi
 
 ## Examples and Guides
 
-The [documentation page](https://nixtla.github.io/neuralforecast/) contains all the examples and tutorials.
+The [documentation page](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/introduction.html) contains all the examples and tutorials.
 
-📈 [Automatic Hyperparameter Optimization](https://nixtla.github.io/neuralforecast/examples/automatic_hyperparameter_tuning.html): Easy and Scalable Automatic Hyperparameter Optimization with `Auto` models on `Ray` or `Optuna`.
+📈 [Automatic Hyperparameter Optimization](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/hyperparameter_tuning.html): Easy and Scalable Automatic Hyperparameter Optimization with `Auto` models on `Ray` or `Optuna`.
 
-🌡️ [Exogenous Regressors](https://nixtla.github.io/neuralforecast/examples/exogenous_variables.html): How to incorporate static or temporal exogenous covariates like weather or prices.
+🌡️ [Exogenous Regressors](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/exogenous_variables.html): How to incorporate static or temporal exogenous covariates like weather or prices.
 
-🔌 [Transformer Models](https://nixtla.github.io/neuralforecast/examples/longhorizon_with_transformers.html): Learn how to forecast with many state-of-the-art Transformers models.
+🔌 [Transformer Models](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/longhorizon_transformers.html): Learn how to forecast with many state-of-the-art Transformers models.
 
-👑 [Hierarchical Forecasting](https://nixtla.github.io/neuralforecast/examples/hierarchicalnetworks.html): forecast series with very few non-zero observations. 
+👑 [Hierarchical Forecasting](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/hierarchical_forecasting.html): forecast series with very few non-zero observations. 
 
-👩‍🔬 [Add Your Own Model](https://nixtla.github.io/neuralforecast/examples/how_to_add_models.html): Learn how to add a new model to the library.
+👩‍🔬 [Add Your Own Model](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/adding_models.html): Learn how to add a new model to the library.
 
 ## Models
 
-|Model | Structure | Sampling | Point Forecast | Probabilistic Forecast | Exogenous features | `Auto` Model
-|:------|:-------------:|:-----------------:|:---------------------:|:----------------------------:|:---------------------:|:---------------------:|
-|[LSTM](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html)| RNN | recurrent |✅|✅|✅|✅|
-|[GRU](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html)| RNN | recurrent |✅|✅|✅|✅|
-|[RNN](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html)| RNN | recurrent |✅|✅|✅|✅|
-|[DilatedRNN](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html)| RNN | recurrent |✅|✅|✅|✅|
-|[DeepAR](https://nixtlaverse.nixtla.io/neuralforecast/models.deepar.html)| RNN | recurrent ||✅|✅|✅|
-|[TCN](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html)| CNN | recurrent |✅|✅|✅|✅|
-|[TimesNet](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html)| CNN | windows |✅|✅||✅|
-|[BiTCN](https://nixtlaverse.nixtla.io/neuralforecast/models.bitcn.html)| CNN | windows |✅|✅|✅|✅|
-|[DLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.dlinear.html)| Linear | windows |✅|✅||✅|
-|[NLinear](https://nixtlaverse.nixtla.io/neuralforecast/models.nlinear.html)| Linear | windows |✅|✅||✅|
-|[MLP](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html)| MLP | windows |✅|✅|✅|✅|
-|[NBEATS](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html)| MLP | windows |✅|✅||✅|
-|[NBEATSx](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html)| MLP | windows |✅|✅|✅|✅|
-|[NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html)| MLP | windows |✅|✅|✅|✅|
-|[TiDE](https://nixtlaverse.nixtla.io/neuralforecast/models.tide.html)| MLP | windows |✅|✅|✅|✅|
-|[DeepNPTS](https://nixtlaverse.nixtla.io/neuralforecast/models.deepnpts.html)| MLP | windows |✅||✅|✅|
-|[TSMixer](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html)| MLP | multivariate |✅|||✅|
-|[TSMixerx](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html)| MLP | multivariate |✅||✅|✅|
-|[MLPMultivariate](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html)| MLP | multivariate |✅||✅|✅|
-|[TFT](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html)| Transformer | windows |✅|✅|✅|✅|
-|[Transformer](https://nixtlaverse.nixtla.io/neuralforecast/models.vanillatransformer.html)| Transformer | windows |✅|✅|✅|✅|
-|[Informer](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html)| Transformer | windows |✅|✅|✅|✅|
-|[Autoformer](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html)| Transformer | windows |✅|✅|✅|✅|
-|[FEDFormer](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html)| Transformer | windows |✅|✅|✅|✅|
-|[PatchTST](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html)| Transformer | windows |✅|✅||✅|
-|[Time-LLM](https://nixtlaverse.nixtla.io/neuralforecast/models.timellm.html)| Transformer | windows |✅|✅|||
-|[iTransformer](https://nixtlaverse.nixtla.io/neuralforecast/models.itransformer.html)| Transformer | multivariate |✅|||✅|
-|[StemGNN](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html)| GNN | multivariate |✅|||✅|
+See the entire [collection here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html).
 
 Missing a model? Please open an issue or write us in [![Slack](https://img.shields.io/badge/Slack-4A154B?&logo=slack&logoColor=white)](https://join.slack.com/t/nixtlaworkspace/shared_invite/zt-135dssye9-fWTzMpv2WBthq8NK0Yvu6A)
 
@@ -134,6 +105,23 @@ If you wish to contribute to the project, please refer to our [contribution guid
 
 ## References
 This work is highly influenced by the fantastic work of previous contributors and other scholars on the neural forecasting methods presented here. We want to highlight the work of [Boris Oreshkin](https://arxiv.org/abs/1905.10437), [Slawek Smyl](https://www.sciencedirect.com/science/article/pii/S0169207019301153), [Bryan Lim](https://www.sciencedirect.com/science/article/pii/S0169207021000637), and [David Salinas](https://arxiv.org/abs/1704.04110). We refer to [Benidis et al.](https://arxiv.org/abs/2004.10240) for a comprehensive survey of neural forecasting methods.
+
+## 🙏 How to cite
+If you enjoy or benefit from using these Python implementations, a citation to the repository will be greatly appreciated.
+
+```bibtex
+@misc{olivares2022library_neuralforecast,
+    author={Kin G. Olivares and
+            Cristian Challú and
+            Azul Garza and
+            Max Mergenthaler Canseco and
+            Artur Dubrawski},
+    title = {{NeuralForecast}: User friendly state-of-the-art neural forecasting models.},
+    year={2022},
+    howpublished={{PyCon} Salt Lake City, Utah, US 2022},
+    url={https://github.com/Nixtla/neuralforecast}
+}
+```
 
 ## Contributors ✨
 
@@ -144,7 +132,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/FedericoGarza"><img src="https://avatars.githubusercontent.com/u/10517170?v=4?s=100" width="100px;" alt="fede"/><br /><sub><b>fede</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=FedericoGarza" title="Code">💻</a> <a href="#maintenance-FedericoGarza" title="Maintenance">🚧</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/AzulGarza"><img src="https://avatars.githubusercontent.com/u/10517170?v=4?s=100" width="100px;" alt="azul"/><br /><sub><b>azul</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=AzulGarza" title="Code">💻</a> <a href="#maintenance-AzulGarza" title="Maintenance">🚧</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/cchallu"><img src="https://avatars.githubusercontent.com/u/31133398?v=4?s=100" width="100px;" alt="Cristian Challu"/><br /><sub><b>Cristian Challu</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=cchallu" title="Code">💻</a> <a href="#maintenance-cchallu" title="Maintenance">🚧</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/jmoralez"><img src="https://avatars.githubusercontent.com/u/8473587?v=4?s=100" width="100px;" alt="José Morales"/><br /><sub><b>José Morales</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=jmoralez" title="Code">💻</a> <a href="#maintenance-jmoralez" title="Maintenance">🚧</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/mergenthaler"><img src="https://avatars.githubusercontent.com/u/4086186?v=4?s=100" width="100px;" alt="mergenthaler"/><br /><sub><b>mergenthaler</b></sub></a><br /><a href="https://github.com/Nixtla/neuralforecast/commits?author=mergenthaler" title="Documentation">📖</a> <a href="https://github.com/Nixtla/neuralforecast/commits?author=mergenthaler" title="Code">💻</a></td>

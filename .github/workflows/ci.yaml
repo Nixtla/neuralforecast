@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-defaults:
-  run:
-    shell: bash -l {0}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -21,26 +17,27 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-13, windows-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
         exclude:
           - os: windows-latest
-            python-version: '3.11'
+            python-version: "3.11"
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_NIXTLA_TMP }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NIXTLA_TMP }}
     steps:
       - name: Clone repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up environment
-        uses: mamba-org/setup-micromamba@v1
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # 5.3.0
         with:
-          environment-file: environment-cpu.yml
-          create-args: python=${{ matrix.python-version }}
-          cache-environment: true
-      
+          python-version: ${{ matrix.python-version }}
+
       - name: Install pip requirements
-        run: pip install ./ 
-      
+        run: >
+          pip install uv &&
+          uv pip install --system -i https://download.pytorch.org/whl/cpu torch &&
+          uv pip install --system "numpy<2" ".[dev]"
+
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars

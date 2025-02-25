@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.nbeatsx.ipynb 8
 class IdentityBasis(nn.Module):
@@ -250,7 +250,13 @@ class NBEATSBlock(nn.Module):
 
         if isinstance(self.basis, ExogenousBasis):
             if self.futr_input_size > 0 and self.stat_input_size > 0:
-                futr_exog = torch.cat((futr_exog, stat_exog), dim=2)
+                futr_exog = torch.cat(
+                    (
+                        futr_exog,
+                        stat_exog.unsqueeze(1).expand(-1, futr_exog.shape[1], -1),
+                    ),
+                    dim=2,
+                )
             elif self.futr_input_size > 0:
                 futr_exog = futr_exog
             elif self.stat_input_size > 0:
@@ -268,7 +274,7 @@ class NBEATSBlock(nn.Module):
             return backcast, forecast
 
 # %% ../../nbs/models.nbeatsx.ipynb 10
-class NBEATSx(BaseWindows):
+class NBEATSx(BaseModel):
     """NBEATSx
 
     The Neural Basis Expansion Analysis with Exogenous variables (NBEATSx) is a simple
@@ -307,13 +313,13 @@ class NBEATSx(BaseWindows):
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References:**<br>
@@ -322,10 +328,13 @@ class NBEATSx(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -359,12 +368,12 @@ class NBEATSx(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs,
     ):
         # Protect horizon collapsed seasonality and trend NBEATSx-i basis
@@ -396,13 +405,13 @@ class NBEATSx(BaseWindows):
             data_availability_threshold=data_availability_threshold,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
 
@@ -423,12 +432,6 @@ class NBEATSx(BaseWindows):
             n_harmonics=n_harmonics,
         )
         self.blocks = torch.nn.ModuleList(blocks)
-
-        # Adapter with Loss dependent dimensions
-        if self.loss.outputsize_multiplier > 1:
-            self.out = nn.Linear(
-                in_features=h, out_features=h * self.loss.outputsize_multiplier
-            )
 
     def create_stack(
         self,
@@ -513,8 +516,8 @@ class NBEATSx(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        insample_mask = windows_batch["insample_mask"]
+        insample_y = windows_batch["insample_y"].squeeze(-1)
+        insample_mask = windows_batch["insample_mask"].squeeze(-1)
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -537,9 +540,6 @@ class NBEATSx(BaseWindows):
 
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
-
-        # Adapting output's domain
-        forecast = self.loss.domain_map(forecast)
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h)

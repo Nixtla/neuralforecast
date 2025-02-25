@@ -4,12 +4,11 @@
 __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
-import os
 import pickle
 import warnings
 from copy import deepcopy
 from itertools import chain
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import fsspec
 import numpy as np
@@ -24,12 +23,17 @@ from coreforecast.scalers import (
     LocalRobustScaler,
     LocalStandardScaler,
 )
-from utilsforecast.compat import DataFrame, Series, pl_DataFrame, pl_Series
+from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .tsdataset import _FilesDataset, TimeSeriesDataset
+from .losses.pytorch import IQLoss
+from neuralforecast.tsdataset import (
+    _FilesDataset,
+    TimeSeriesDataset,
+    LocalFilesTimeSeriesDataset,
+)
 from neuralforecast.models import (
     GRU,
     LSTM,
@@ -60,12 +64,23 @@ from neuralforecast.models import (
     TiDE,
     DeepNPTS,
     SOFTS,
+    TimeMixer,
+    KAN,
+    RMoK,
+    TimeXer,
+)
+from .common._base_auto import BaseAuto, MockTrial
+from neuralforecast.utils import (
+    PredictionIntervals,
+    get_prediction_interval_method,
+    level_to_quantiles,
+    quantiles_to_level,
 )
 
 # %% ../nbs/core.ipynb 5
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
-pl.disable_possible_user_warnings()
+warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
 
 
 def _insample_times(
@@ -179,6 +194,14 @@ MODEL_FILENAME_DICT = {
     "autodeepnpts": DeepNPTS,
     "softs": SOFTS,
     "autosofts": SOFTS,
+    "timemixer": TimeMixer,
+    "autotimemixer": TimeMixer,
+    "kan": KAN,
+    "autokan": KAN,
+    "rmok": RMoK,
+    "autormok": RMoK,
+    "timexer": TimeXer,
+    "autotimexer": TimeXer,
 }
 
 # %% ../nbs/core.ipynb 8
@@ -191,19 +214,6 @@ _type2scaler = {
 }
 
 # %% ../nbs/core.ipynb 9
-def _id_as_idx() -> bool:
-    return not bool(os.getenv("NIXTLA_ID_AS_COL", ""))
-
-
-def _warn_id_as_idx():
-    warnings.warn(
-        "In a future version the predictions will have the id as a column. "
-        "You can set the `NIXTLA_ID_AS_COL` environment variable "
-        "to adopt the new behavior and to suppress this warning.",
-        category=FutureWarning,
-    )
-
-# %% ../nbs/core.ipynb 10
 class NeuralForecast:
 
     def __init__(
@@ -249,6 +259,7 @@ class NeuralForecast:
         # Flags and attributes
         self._fitted = False
         self._reset_models()
+        self._add_level = False
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
         self.scalers_ = {}
@@ -281,9 +292,7 @@ class NeuralForecast:
             data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
         return data
 
-    def _prepare_fit(
-        self, df, static_df, sort_df, predict_only, id_col, time_col, target_col
-    ):
+    def _prepare_fit(self, df, static_df, predict_only, id_col, time_col, target_col):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.id_col = id_col
         self.time_col = time_col
@@ -293,7 +302,6 @@ class NeuralForecast:
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
             static_df=static_df,
-            sort_df=sort_df,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
@@ -332,7 +340,6 @@ class NeuralForecast:
         self,
         df: SparkDataFrame,
         static_df: Optional[SparkDataFrame],
-        sort_df: bool,
         id_col: str,
         time_col: str,
         target_col: str,
@@ -357,7 +364,6 @@ class NeuralForecast:
         self.time_col = time_col
         self.target_col = target_col
         self.scalers_ = {}
-        self.sort_df = sort_df
         num_partitions = distributed_config.num_nodes * distributed_config.devices
         df = df.repartitionByRange(num_partitions, id_col)
         df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
@@ -380,18 +386,47 @@ class NeuralForecast:
             min_size=df.groupBy(id_col).count().agg({"count": "min"}).first()[0],
         )
 
+    def _prepare_fit_for_local_files(
+        self,
+        files_list: Sequence[str],
+        static_df: Optional[DataFrame],
+        id_col: str,
+        time_col: str,
+        target_col: str,
+    ):
+        if self.local_scaler_type is not None:
+            raise ValueError(
+                "Historic scaling isn't supported when the dataset is split between files. "
+                "Please open an issue if this would be valuable to you."
+            )
+
+        self.id_col = id_col
+        self.time_col = time_col
+        self.target_col = target_col
+        self.scalers_ = {}
+
+        exogs = self._get_needed_exog()
+        return LocalFilesTimeSeriesDataset.from_data_directories(
+            directories=files_list,
+            static_df=static_df,
+            exogs=exogs,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+
     def fit(
         self,
-        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
-        sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
         distributed_config: Optional[DistributedConfig] = None,
+        prediction_intervals: Optional[PredictionIntervals] = None,
     ) -> None:
         """Fit the core.NeuralForecast.
 
@@ -400,15 +435,13 @@ class NeuralForecast:
 
         Parameters
         ----------
-        df : pandas, polars or spark DataFrame, optional (default=None)
+        df : pandas, polars or spark DataFrame, or a list of parquet files containing the series, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If None, a previously stored dataset is required.
         static_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`] and static exogenous.
         val_size : int, optional (default=0)
             Size of validation set.
-        sort_df : bool, optional (default=False)
-            Sort `df` before fitting.
         use_init_models : bool, optional (default=False)
             Use initial model passed when NeuralForecast object was instantiated.
         verbose : bool (default=False)
@@ -421,6 +454,8 @@ class NeuralForecast:
             Column that contains the target.
         distributed_config : neuralforecast.DistributedConfig
             Configuration to use for DDP training. Currently only spark is supported.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
 
         Returns
         -------
@@ -437,19 +472,30 @@ class NeuralForecast:
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
+        self._cs_df: Optional[DataFrame] = None
+        self.prediction_intervals: Optional[PredictionIntervals] = None
+
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
             validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
             )
-            self.sort_df = sort_df
+            if prediction_intervals is not None:
+                self.prediction_intervals = prediction_intervals
+                self._cs_df = self._conformity_scores(
+                    df=df,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    static_df=static_df,
+                )
+
         elif isinstance(df, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):
                 raise ValueError(
@@ -458,18 +504,43 @@ class NeuralForecast:
             self.dataset = self._prepare_fit_distributed(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
                 distributed_config=distributed_config,
             )
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for distributed training."
+                )
+
+        elif isinstance(df, Sequence):
+            if not all(isinstance(val, str) for val in df):
+                raise ValueError(
+                    "All entries in the list of files must be of type string"
+                )
+            self.dataset = self._prepare_fit_for_local_files(
+                files_list=df,
+                static_df=static_df,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+            self.uids = self.dataset.indices
+            self.last_dates = self.dataset.last_times
+
+            if prediction_intervals is not None:
+                raise NotImplementedError(
+                    "Prediction intervals are not supported for local files."
+                )
+
         elif df is None:
             if verbose:
                 print("Using stored dataset.")
         else:
             raise ValueError(
-                f"`df` must be a pandas, polars or spark DataFrame or `None`, got: {type(df)}"
+                f"`df` must be a pandas, polars or spark DataFrame, or a list of parquet files containing the series, or `None`, got: {type(df)}"
             )
 
         if val_size is not None:
@@ -489,7 +560,7 @@ class NeuralForecast:
 
         self._fitted = True
 
-    def make_future_dataframe(self, df: Optional[DataFrame] = None) -> DataFrame:
+    def make_future_dataframe(self, df: Optional[DFType] = None) -> DFType:
         """Create a dataframe with all ids and future times in the forecasting horizon.
 
         Parameters
@@ -523,8 +594,8 @@ class NeuralForecast:
         )
 
     def get_missing_future(
-        self, futr_df: DataFrame, df: Optional[DataFrame] = None
-    ) -> DataFrame:
+        self, futr_df: DFType, df: Optional[DFType] = None
+    ) -> DFType:
         """Get the missing ids and times combinations in `futr_df`.
 
         Parameters
@@ -540,11 +611,54 @@ class NeuralForecast:
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
     def _get_needed_futr_exog(self):
-        return set(
-            chain.from_iterable(getattr(m, "futr_exog_list", []) for m in self.models)
-        )
+        futr_exogs = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("futr_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("futr_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "futr_exog_list", [])
 
-    def _get_model_names(self) -> List[str]:
+            for exog in exogs:
+                if isinstance(exog, str):
+                    futr_exogs.append(exog)
+                else:
+                    futr_exogs.extend(exog)
+
+        return set(futr_exogs)
+
+    def _get_needed_exog(self):
+        futr_exog = self._get_needed_futr_exog()
+
+        hist_exog = []
+        for m in self.models:
+            if isinstance(m, BaseAuto):
+                if isinstance(m.config, dict):  # ray
+                    exogs = m.config.get("hist_exog_list", [])
+                    if hasattr(
+                        exogs, "categories"
+                    ):  # features are being tuned, get possible values
+                        exogs = exogs.categories
+                else:  # optuna
+                    exogs = m.config(MockTrial()).get("hist_exog_list", [])
+            else:  # regular model, extract them directly
+                exogs = getattr(m, "hist_exog_list", [])
+
+            for exog in exogs:
+                if isinstance(exog, str):
+                    hist_exog.append(exog)
+                else:
+                    hist_exog.extend(exog)
+
+        return futr_exog | set(hist_exog)
+
+    def _get_model_names(self, add_level=False) -> List[str]:
         names: List[str] = []
         count_names = {"model": 0}
         for model in self.models:
@@ -552,6 +666,12 @@ class NeuralForecast:
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
+
+            if add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
+                continue
+
             names.extend(model_name + n for n in model.loss.output_names)
         return names
 
@@ -600,10 +720,7 @@ class NeuralForecast:
                 df = df.drop(columns=static_cols)
             else:
                 static_df = None
-            preds = nf.predict(df=df, static_df=static_df, futr_df=futr_df)
-            if preds.index.name == id_col:
-                preds = preds.reset_index()
-            return preds
+            return nf.predict(df=df, static_df=static_df, futr_df=futr_df)
 
         # df
         if isinstance(df, SparkDataFrame):
@@ -675,9 +792,10 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
-        sort_df: bool = True,
         verbose: bool = False,
         engine=None,
+        level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -693,12 +811,14 @@ class NeuralForecast:
             DataFrame with columns [`unique_id`] and static exogenous.
         futr_df : pandas, polars or spark DataFrame, optional (default=None)
             DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
         verbose : bool (default=False)
             Print processing steps.
         engine : spark session
             Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -713,6 +833,22 @@ class NeuralForecast:
 
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
+
+        quantiles_ = None
+        level_ = None
+        has_level = False
+        if level is not None:
+            has_level = True
+            if quantiles is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            level_ = sorted(list(set(level)))
+            quantiles_ = level_to_quantiles(level_)
+
+        if quantiles is not None:
+            if level is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            quantiles_ = sorted(list(set(quantiles)))
+            level_ = quantiles_to_level(quantiles_)
 
         needed_futr_exog = self._get_needed_futr_exog()
         if needed_futr_exog:
@@ -731,6 +867,9 @@ class NeuralForecast:
         # distributed df or NeuralForecast instance was trained with a distributed input and no df is provided
         # we assume the user wants to perform distributed inference as well
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
+        is_dataset_local_files = isinstance(
+            getattr(self, "dataset", None), LocalFilesTimeSeriesDataset
+        )
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
             return self._predict_distributed(
                 df=df,
@@ -739,13 +878,17 @@ class NeuralForecast:
                 engine=engine,
             )
 
+        if is_dataset_local_files and df is None:
+            raise ValueError(
+                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
+            )
+
         # Process new dataset but does not store it.
         if df is not None:
             validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=True,
                 id_col=self.id_col,
                 time_col=self.time_col,
@@ -757,8 +900,6 @@ class NeuralForecast:
             last_dates = self.last_dates
             if verbose:
                 print("Using stored dataset.")
-
-        cols = self._get_model_names()
 
         # Placeholder dataframe for predictions with unique_id and ds
         fcsts_df = ufp.make_future_dataframe(
@@ -802,35 +943,26 @@ class NeuralForecast:
         self._scalers_transform(futr_dataset)
         dataset = dataset.append(futr_dataset)
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.h * len(uids), len(cols)), fill_value=np.nan, dtype=np.float32
+        fcsts, cols = self._generate_forecasts(
+            dataset=dataset,
+            uids=uids,
+            quantiles_=quantiles_,
+            level_=level_,
+            has_level=has_level,
+            **data_kwargs,
         )
-        for model in self.models:
-            old_test_size = model.get_test_size()
-            model.set_test_size(self.h)  # To predict h steps ahead
-            model_fcsts = model.predict(dataset=dataset, **data_kwargs)
-            # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : col_idx + output_length] = model_fcsts
-            col_idx += output_length
-            model.set_test_size(old_test_size)  # Set back to original value
+
         if self.scalers_:
             indptr = np.append(0, np.full(len(uids), self.h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
-        cols = (
-            self._get_model_names()
-        )  # Needed for IQLoss as column names may have changed during the call to .predict()
         if isinstance(fcsts_df, pl_DataFrame):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
             fcsts = pd.DataFrame(fcsts, columns=cols)
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(self.id_col)
+
         return fcsts_df
 
     def _reset_models(self):
@@ -846,7 +978,6 @@ class NeuralForecast:
         step_size: int,
         val_size: Optional[int],
         test_size: int,
-        sort_df: bool,
         verbose: bool,
         id_col: str,
         time_col: str,
@@ -862,13 +993,11 @@ class NeuralForecast:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                sort_df=sort_df,
                 predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
             )
-            self.sort_df = sort_df
         else:
             if verbose:
                 print("Using stored dataset.")
@@ -878,15 +1007,6 @@ class NeuralForecast:
                 warnings.warn(
                     "Validation and test sets are larger than the shorter time-series."
                 )
-
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
 
         fcsts_df = ufp.cv_times(
             times=self.ds,
@@ -901,23 +1021,22 @@ class NeuralForecast:
         # the cv_times is sorted by window and then id
         fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
-        col_idx = 0
-        fcsts = np.full(
-            (self.dataset.n_groups * self.h * n_windows, len(cols)),
-            np.nan,
-            dtype=np.float32,
-        )
-
+        fcsts_list: List = []
         for model in self.models:
+            if self._add_level and (
+                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+            ):
+                continue
+
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, **data_kwargs
             )
 
             # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
+            fcsts_list.append(model_fcsts)
+
+        fcsts = np.concatenate(fcsts_list, axis=-1)
         # we may have allocated more space than needed
         # each serie can produce at most (serie.size - 1) // self.h CV windows
         effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
@@ -945,6 +1064,7 @@ class NeuralForecast:
         self._fitted = True
 
         # Add predictions to forecasts DataFrame
+        cols = self._get_model_names(add_level=self._add_level)
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
         else:
@@ -952,16 +1072,12 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         # Add original input df's y to forecasts DataFrame
-        fcsts_df = ufp.join(
+        return ufp.join(
             fcsts_df,
             df[[id_col, time_col, target_col]],
             how="left",
             on=[id_col, time_col],
         )
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(id_col)
-        return fcsts_df
 
     def cross_validation(
         self,
@@ -971,13 +1087,15 @@ class NeuralForecast:
         step_size: int = 1,
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
-        sort_df: bool = True,
         use_init_models: bool = False,
         verbose: bool = False,
         refit: Union[bool, int] = False,
         id_col: str = "unique_id",
         time_col: str = "ds",
         target_col: str = "y",
+        prediction_intervals: Optional[PredictionIntervals] = None,
+        level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1000,8 +1118,6 @@ class NeuralForecast:
             Length of validation size. If passed, set `n_windows=None`.
         test_size : int, optional (default=None)
             Length of test size. If passed, set `n_windows=None`.
-        sort_df : bool (default=True)
-            Sort `df` before fitting.
         use_init_models : bool, option (default=False)
             Use initial model passed when object was instantiated.
         verbose : bool (default=False)
@@ -1016,6 +1132,12 @@ class NeuralForecast:
             Column that identifies each timestep, its values can be timestamps or integers.
         target_col : str (default='y')
             Column that contains the target.
+        prediction_intervals : PredictionIntervals, optional (default=None)
+            Configuration to calibrate prediction intervals (Conformal Prediction).
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1036,16 +1158,27 @@ class NeuralForecast:
             n_windows = int((test_size - h) / step_size) + 1
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
+
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
-        if isinstance(df, pd.DataFrame) and df.index.name == id_col:
-            warnings.warn(
-                "Passing the id as index is deprecated, please provide it as a column instead.",
-                FutureWarning,
-            )
-            df = df.reset_index(id_col)
+
+        # Checks for prediction intervals
+        if prediction_intervals is not None:
+            if level is None and quantiles is None:
+                raise Exception(
+                    "When passing prediction_intervals you need to set the level or quantiles argument."
+                )
+            if not refit:
+                raise Exception(
+                    "Passing prediction_intervals is only supported with refit=True."
+                )
+
+        if level is not None and quantiles is not None:
+            raise ValueError("You can't set both level and quantiles argument.")
+
         if not refit:
+
             return self._no_refit_cross_validation(
                 df=df,
                 static_df=static_df,
@@ -1053,7 +1186,6 @@ class NeuralForecast:
                 step_size=step_size,
                 val_size=val_size,
                 test_size=test_size,
-                sort_df=sort_df,
                 verbose=verbose,
                 id_col=id_col,
                 time_col=time_col,
@@ -1081,9 +1213,12 @@ class NeuralForecast:
                     df=train,
                     static_df=static_df,
                     val_size=val_size,
-                    sort_df=sort_df,
                     use_init_models=False,
                     verbose=verbose,
+                    id_col=id_col,
+                    time_col=time_col,
+                    target_col=target_col,
+                    prediction_intervals=prediction_intervals,
                 )
                 predict_df: Optional[DataFrame] = None
             else:
@@ -1097,8 +1232,9 @@ class NeuralForecast:
                 df=predict_df,
                 static_df=static_df,
                 futr_df=futr_df,
-                sort_df=sort_df,
                 verbose=verbose,
+                level=level,
+                quantiles=quantiles,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1114,11 +1250,7 @@ class NeuralForecast:
             c for c in out.columns if c not in first_out_cols + [target_col]
         ]
         cols_order = first_out_cols + remaining_cols + [target_col]
-        out = ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
-        if isinstance(out, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            out = out.set_index(id_col)
-        return out
+        return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
 
     def predict_insample(self, step_size: int = 1):
         """Predict insample with core.NeuralForecast.
@@ -1140,98 +1272,123 @@ class NeuralForecast:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
-
-        for model in self.models:
-            if model.SAMPLING_TYPE == "recurrent":
-                warnings.warn(
-                    f"Predict insample might not provide accurate predictions for \
-                       recurrent model {repr(model)} class yet due to scaling."
-                )
-                print(
-                    f"WARNING: Predict insample might not provide accurate predictions for \
-                      recurrent model {repr(model)} class yet due to scaling."
-                )
-
-        cols = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-            cols += [model_name + n for n in model.loss.output_names]
-
-        # Remove test set from dataset and last dates
         test_size = self.models[0].get_test_size()
 
-        # trim the forefront period to ensure `test_size - h` should be module `step_size
-        # Note: current constraint imposes that all series lengths are equal, so we can take the first series length as sample
-        series_length = self.dataset.indptr[1] - self.dataset.indptr[0]
-        _, forefront_offset = np.divmod((series_length - test_size - self.h), step_size)
+        # Process each series separately
+        fcsts_dfs = []
+        trimmed_datasets = []
 
-        if test_size > 0 or forefront_offset > 0:
-            trimmed_dataset = TimeSeriesDataset.trim_dataset(
-                dataset=self.dataset, right_trim=test_size, left_trim=forefront_offset
+        for i in range(self.dataset.n_groups):
+            # Calculate series-specific length and offset
+            series_length = self.dataset.indptr[i + 1] - self.dataset.indptr[i]
+            _, forefront_offset = np.divmod(
+                (series_length - test_size - self.h), step_size
             )
-            new_idxs = np.hstack(
-                [
-                    np.arange(
-                        self.dataset.indptr[i] + forefront_offset,
-                        self.dataset.indptr[i + 1] - test_size,
-                    )
-                    for i in range(self.dataset.n_groups)
-                ]
+
+            if test_size > 0 or forefront_offset > 0:
+                # Create single-series dataset
+                series_dataset = TimeSeriesDataset(
+                    temporal=self.dataset.temporal[
+                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
+                    ],
+                    temporal_cols=self.dataset.temporal_cols,
+                    indptr=np.array([0, series_length]),
+                    y_idx=self.dataset.y_idx,
+                )
+
+                # Trim the series
+                trimmed_series = TimeSeriesDataset.trim_dataset(
+                    dataset=series_dataset,
+                    right_trim=test_size,
+                    left_trim=forefront_offset,
+                )
+
+                new_idxs = np.arange(
+                    self.dataset.indptr[i] + forefront_offset,
+                    self.dataset.indptr[i + 1] - test_size,
+                )
+                times = self.ds[new_idxs]
+            else:
+                trimmed_series = TimeSeriesDataset(
+                    temporal=self.dataset.temporal[
+                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
+                    ],
+                    temporal_cols=self.dataset.temporal_cols,
+                    indptr=np.array([0, series_length]),
+                    y_idx=self.dataset.y_idx,
+                )
+                times = self.ds[self.dataset.indptr[i] : self.dataset.indptr[i + 1]]
+
+            series_fcsts_df = _insample_times(
+                times=times,
+                uids=self.uids[i : i + 1],
+                indptr=trimmed_series.indptr,
+                h=self.h,
+                freq=self.freq,
+                step_size=step_size,
+                id_col=self.id_col,
+                time_col=self.time_col,
             )
-            times = self.ds[new_idxs]
-        else:
-            trimmed_dataset = self.dataset
-            times = self.ds
 
-        # Generate dates
-        fcsts_df = _insample_times(
-            times=times,
-            uids=self.uids,
-            indptr=trimmed_dataset.indptr,
-            h=self.h,
-            freq=self.freq,
-            step_size=step_size,
-            id_col=self.id_col,
-            time_col=self.time_col,
-        )
+            fcsts_dfs.append(series_fcsts_df)
+            trimmed_datasets.append(trimmed_series)
 
-        col_idx = 0
-        fcsts = np.full((len(fcsts_df), len(cols)), np.nan, dtype=np.float32)
+        # Combine all series forecasts DataFrames
+        fcsts_df = ufp.vertical_concat(fcsts_dfs)
 
+        # Generate predictions for each model
+        fcsts_list = []
         for model in self.models:
-            # Test size is the number of periods to forecast (full size of trimmed dataset)
-            model.set_test_size(test_size=trimmed_dataset.max_size)
+            model_series_preds = []
+            for i, trimmed_dataset in enumerate(trimmed_datasets):
+                # Set test size to current series length
+                model.set_test_size(test_size=trimmed_dataset.max_size)
+                # Generate predictions
+                model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
+                # Handle distributional forecasts; take only median
+                if len(model_fcsts.shape) > 1 and model_fcsts.shape[1] == 3:
+                    model_fcsts = model_fcsts[:, 0]  # Take first column (median)
+                # Ensure consistent 2D shape
+                if len(model_fcsts.shape) == 1:
+                    model_fcsts = model_fcsts.reshape(-1, 1)
+                model_series_preds.append(model_fcsts)
+            model_preds = np.concatenate(model_series_preds, axis=0)
+            fcsts_list.append(model_preds)
+            # Reset test size to original
+            model.set_test_size(test_size=test_size)
 
-            # Predict
-            model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
-            # Append predictions in memory placeholder
-            output_length = len(model.loss.output_names)
-            fcsts[:, col_idx : (col_idx + output_length)] = model_fcsts
-            col_idx += output_length
-            model.set_test_size(test_size=test_size)  # Set original test_size
+        # Combine all predictions
+        fcsts = np.hstack(fcsts_list)
 
-        # original y
+        # Add original y values
         original_y = {
             self.id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),
             self.time_col: self.ds,
             self.target_col: self.dataset.temporal[:, 0].numpy(),
         }
 
-        # Add predictions to forecasts DataFrame
+        # Create forecasts DataFrame
+        cols = self._get_model_names()
+        selected_cols = [
+            col
+            for col in cols
+            if not col.endswith(("-lo", "-hi"))
+            and (not "-" in col or col.endswith("-median"))
+        ]
         if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+            fcsts = pl_DataFrame(dict(zip(selected_cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)
         else:
-            fcsts = pd.DataFrame(fcsts, columns=cols)
+            fcsts = pd.DataFrame(fcsts, columns=selected_cols)
             Y_df = pd.DataFrame(original_y).reset_index(drop=True)
+
+        # Combine forecasts with dates
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
-        # Add original input df's y to forecasts DataFrame
+        # Add original values
         fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
+
+        # Apply scaling if needed
         if self.scalers_:
             sizes = ufp.counts_by_id(fcsts_df, self.id_col)["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())
@@ -1239,9 +1396,6 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
-        if isinstance(fcsts_df, pd.DataFrame) and _id_as_idx():
-            _warn_id_as_idx()
-            fcsts_df = fcsts_df.set_index(self.id_col)
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -1330,7 +1484,6 @@ class NeuralForecast:
         config_dict = {
             "h": self.h,
             "freq": self.freq,
-            "sort_df": self.sort_df,
             "_fitted": self._fitted,
             "local_scaler_type": self.local_scaler_type,
             "scalers_": self.scalers_,
@@ -1338,6 +1491,10 @@ class NeuralForecast:
             "time_col": self.time_col,
             "target_col": self.target_col,
         }
+        for attr in ["prediction_intervals", "_cs_df"]:
+            # conformal prediction related attributes was not available < 1.7.6
+            config_dict[attr] = getattr(self, attr, None)
+
         if save_dataset:
             config_dict.update(
                 {
@@ -1424,15 +1581,25 @@ class NeuralForecast:
         except FileNotFoundError:
             raise Exception("No configuration found in directory.")
 
+        # in 1.6.4, `local_scaler_type` / `scalers_` lived on the dataset.
+        # in order to preserve backwards-compatibility, we check to see if these are found on the dataset
+        # in case they cannot be found in `config_dict`
+        default_scalar_type = getattr(dataset, "local_scaler_type", None)
+        default_scalars_ = getattr(dataset, "scalers_", None)
+
         # Create NeuralForecast object
         neuralforecast = NeuralForecast(
             models=models,
             freq=config_dict["freq"],
-            local_scaler_type=config_dict["local_scaler_type"],
+            local_scaler_type=config_dict.get("local_scaler_type", default_scalar_type),
         )
 
-        for attr in ["id_col", "time_col", "target_col"]:
-            setattr(neuralforecast, attr, config_dict[attr])
+        attr_to_default = {"id_col": "unique_id", "time_col": "ds", "target_col": "y"}
+        for attr, default in attr_to_default.items():
+            setattr(neuralforecast, attr, config_dict.get(attr, default))
+        # only restore attribute if available
+        for attr in ["prediction_intervals", "_cs_df"]:
+            setattr(neuralforecast, attr, config_dict.get(attr, None))
 
         # Dataset
         if dataset is not None:
@@ -1441,7 +1608,6 @@ class NeuralForecast:
                 "uids",
                 "last_dates",
                 "ds",
-                "sort_df",
             ]
             for attr in restore_attrs:
                 setattr(neuralforecast, attr, config_dict[attr])
@@ -1449,6 +1615,186 @@ class NeuralForecast:
         # Fitted flag
         neuralforecast._fitted = config_dict["_fitted"]
 
-        neuralforecast.scalers_ = config_dict["scalers_"]
+        neuralforecast.scalers_ = config_dict.get("scalers_", default_scalars_)
 
         return neuralforecast
+
+    def _conformity_scores(
+        self,
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+    ) -> DataFrame:
+        """Compute conformity scores.
+
+        We need at least two cross validation errors to compute
+        quantiles for prediction intervals (`n_windows=2`, specified by self.prediction_intervals).
+
+        The exception is raised by the PredictionIntervals data class.
+
+        df: DataFrame,
+        id_col: str,
+        time_col: str,
+        target_col: str,
+        static_df: Optional[DataFrame],
+        """
+        if self.prediction_intervals is None:
+            raise AttributeError(
+                "Please rerun the `fit` method passing a valid prediction_interval setting to compute conformity scores"
+            )
+
+        min_size = ufp.counts_by_id(df, id_col)["counts"].min()
+        min_samples = self.h * self.prediction_intervals.n_windows + 1
+        if min_size < min_samples:
+            raise ValueError(
+                "Minimum required samples in each serie for the prediction intervals "
+                f"settings are: {min_samples}, shortest serie has: {min_size}. "
+                "Please reduce the number of windows, horizon or remove those series."
+            )
+
+        self._add_level = True
+        cv_results = self.cross_validation(
+            df=df,
+            static_df=static_df,
+            n_windows=self.prediction_intervals.n_windows,
+            id_col=id_col,
+            time_col=time_col,
+            target_col=target_col,
+        )
+        self._add_level = False
+
+        kept = [time_col, id_col, "cutoff"]
+        # conformity score for each model
+        for model in self._get_model_names(add_level=True):
+            kept.append(model)
+
+            # compute absolute error for each model
+            abs_err = abs(cv_results[model] - cv_results[target_col])
+            cv_results = ufp.assign_columns(cv_results, model, abs_err)
+        dropped = list(set(cv_results.columns) - set(kept))
+        return ufp.drop_columns(cv_results, dropped)
+
+    def _generate_forecasts(
+        self,
+        dataset: TimeSeriesDataset,
+        uids: Series,
+        quantiles_: Optional[List[float]] = None,
+        level_: Optional[List[Union[int, float]]] = None,
+        has_level: Optional[bool] = False,
+        **data_kwargs,
+    ) -> np.array:
+        fcsts_list: List = []
+        cols = []
+        count_names = {"model": 0}
+        for model in self.models:
+            old_test_size = model.get_test_size()
+            model.set_test_size(self.h)  # To predict h steps ahead
+
+            # Increment model name if the same model is used more than once
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+
+            # Predict for every quantile or level if requested and the loss function supports it
+            # case 1: DistributionLoss and MixtureLosses
+            if (
+                quantiles_ is not None
+                and not isinstance(model.loss, IQLoss)
+                and hasattr(model.loss, "update_quantile")
+                and callable(model.loss.update_quantile)
+            ):
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                fcsts_list.append(model_fcsts)
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    if i == 0:
+                        col_names.extend([f"{model_name}", col_name])
+                    else:
+                        col_names.extend([col_name])
+                if hasattr(model.loss, "return_params") and model.loss.return_params:
+                    cols.extend(
+                        col_names
+                        + [
+                            model_name + param_name
+                            for param_name in model.loss.param_names
+                        ]
+                    )
+                else:
+                    cols.extend(col_names)
+            # case 2: IQLoss
+            elif quantiles_ is not None and isinstance(model.loss, IQLoss):
+                # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
+                quantiles_iqloss = np.linspace(0.01, 0.99, 20)
+                fcsts_list_iqloss = []
+                for i, quantile in enumerate(quantiles_iqloss):
+                    model_fcsts = model.predict(
+                        dataset=dataset, quantiles=[quantile], **data_kwargs
+                    )
+                    fcsts_list_iqloss.append(model_fcsts)
+                fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
+
+                # Get the actual requested quantiles
+                model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
+                fcsts_list.append(model_fcsts)
+
+                # Get the right column names
+                col_names = []
+                for i, quantile in enumerate(quantiles_):
+                    col_name = self._get_column_name(model_name, quantile, has_level)
+                    col_names.extend([col_name])
+                cols.extend(col_names)
+            # case 3: PointLoss via prediction intervals
+            elif quantiles_ is not None and model.loss.outputsize_multiplier == 1:
+                if self.prediction_intervals is None:
+                    raise AttributeError(
+                        f"You have trained {model_name} with loss={type(model.loss).__name__}(). \n"
+                        " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                    )
+                model_fcsts = model.predict(
+                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                )
+                prediction_interval_method = get_prediction_interval_method(
+                    self.prediction_intervals.method
+                )
+                fcsts_with_intervals, out_cols = prediction_interval_method(
+                    model_fcsts,
+                    self._cs_df,
+                    model=model_name,
+                    level=level_ if has_level else None,
+                    cs_n_windows=self.prediction_intervals.n_windows,
+                    n_series=len(uids),
+                    horizon=self.h,
+                    quantiles=quantiles_ if not has_level else None,
+                )
+                fcsts_list.append(fcsts_with_intervals)
+                cols.extend([model_name] + out_cols)
+            # base case: quantiles or levels are not supported or provided as arguments
+            else:
+                model_fcsts = model.predict(dataset=dataset, **data_kwargs)
+                fcsts_list.append(model_fcsts)
+                cols.extend(model_name + n for n in model.loss.output_names)
+            model.set_test_size(old_test_size)  # Set back to original value
+        fcsts = np.concatenate(fcsts_list, axis=-1)
+
+        return fcsts, cols
+
+    @staticmethod
+    def _get_column_name(model_name, quantile, has_level) -> str:
+        if not has_level:
+            col_name = f"{model_name}_ql{quantile}"
+        elif quantile < 0.5:
+            level_lo = int(round(100 - 200 * quantile))
+            col_name = f"{model_name}-lo-{level_lo}"
+        elif quantile > 0.5:
+            level_hi = int(round(100 - 200 * (1 - quantile)))
+            col_name = f"{model_name}-hi-{level_hi}"
+        else:
+            col_name = f"{model_name}-median"
+
+        return col_name

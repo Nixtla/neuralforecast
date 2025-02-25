@@ -12,12 +12,16 @@ import torch.nn.functional as F
 import torch.fft
 
 from ..common._modules import DataEmbedding
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.timesnet.ipynb 7
 class Inception_Block_V1(nn.Module):
+    """
+    Inception_Block_V1
+    """
+
     def __init__(self, in_channels, out_channels, num_kernels=6, init_weight=True):
         super(Inception_Block_V1, self).__init__()
         self.in_channels = in_channels
@@ -60,6 +64,10 @@ def FFT_for_Period(x, k=2):
 
 
 class TimesBlock(nn.Module):
+    """
+    TimesBlock
+    """
+
     def __init__(self, input_size, h, k, hidden_size, conv_hidden_size, num_kernels):
         super(TimesBlock, self).__init__()
         self.input_size = input_size
@@ -111,7 +119,7 @@ class TimesBlock(nn.Module):
         return res
 
 # %% ../../nbs/models.timesnet.ipynb 10
-class TimesNet(BaseWindows):
+class TimesNet(BaseModel):
     """TimesNet
 
     The TimesNet univariate model tackles the challenge of modeling multiple intraperiod and interperiod temporal variations.
@@ -172,8 +180,6 @@ class TimesNet(BaseWindows):
         Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     random_seed : int (default=1)
         Random_seed for pytorch initializer and numpy generators.
-    num_workers_loader : int (default=0)
-        Workers to be used by `TimeSeriesDataLoader`.
     drop_last_loader : bool (default=False)
         If True `TimeSeriesDataLoader` drops last non-full batch.
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional (default=None)
@@ -182,6 +188,8 @@ class TimesNet(BaseWindows):
         List of parameters used by the user specified `optimizer`.
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional (default=None)
+        List of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     **trainer_kwargs
         Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
@@ -191,10 +199,13 @@ class TimesNet(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -226,12 +237,12 @@ class TimesNet(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
         super(TimesNet, self).__init__(
@@ -256,13 +267,13 @@ class TimesNet(BaseWindows):
             data_availability_threshold=data_availability_threshold,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
@@ -301,13 +312,9 @@ class TimesNet(BaseWindows):
 
         # Parse windows_batch
         insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
         futr_exog = windows_batch["futr_exog"]
 
         # Parse inputs
-        insample_y = insample_y.unsqueeze(-1)  # [Ws,L,1]
         if self.futr_exog_size > 0:
             x_mark_enc = futr_exog[:, : self.input_size, :]
         else:
@@ -324,5 +331,5 @@ class TimesNet(BaseWindows):
         # porject back
         dec_out = self.projection(enc_out)
 
-        forecast = self.loss.domain_map(dec_out[:, -self.h :])
+        forecast = dec_out[:, -self.h :]
         return forecast

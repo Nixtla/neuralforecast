@@ -11,11 +11,11 @@ import neuralforecast.losses.pytorch as losses
 from typing import Optional
 
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 from ..losses.pytorch import MAE
 
-# %% ../../nbs/models.deepnpts.ipynb 7
-class DeepNPTS(BaseWindows):
+# %% ../../nbs/models.deepnpts.ipynb 6
+class DeepNPTS(BaseModel):
     """DeepNPTS
 
     Deep Non-Parametric Time Series Forecaster (`DeepNPTS`) is a baseline model for time-series forecasting. This model generates predictions by (weighted) sampling from the empirical distribution according to a learnable strategy. The strategy is learned by exploiting the information across multiple related time series.
@@ -47,13 +47,13 @@ class DeepNPTS(BaseWindows):
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
     **References**<br>
@@ -62,10 +62,13 @@ class DeepNPTS(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -95,24 +98,24 @@ class DeepNPTS(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
-        num_workers_loader=0,
         drop_last_loader=False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
 
         if exclude_insample_y:
             raise Exception("DeepNPTS has no possibility for excluding y.")
 
-        if not isinstance(loss, losses.BasePointLoss):
+        if loss.outputsize_multiplier > 1:
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as loss function."
             )
 
-        if not isinstance(valid_loss, losses.BasePointLoss):
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as valid loss function."
             )
@@ -140,13 +143,13 @@ class DeepNPTS(BaseWindows):
             data_availability_threshold=data_availability_threshold,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
@@ -175,13 +178,13 @@ class DeepNPTS(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"]  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
 
         batch_size, seq_len = x.shape[:2]  #   B = batch_size, L = seq_len
-        insample_y = windows_batch["insample_y"].unsqueeze(-1)
+        insample_y = windows_batch["insample_y"]
 
         # Concatenate x_t with future exogenous of input
         if self.futr_exog_size > 0:
@@ -223,8 +226,6 @@ class DeepNPTS(BaseWindows):
         x = (
             F.softmax(weights, dim=1) * insample_y
         )  #   [B, L, h] * [B, L, 1] = [B, L, h]
-        output = torch.sum(x, dim=1).unsqueeze(-1)  #   [B, L, h] -> [B, h, 1]
-
-        forecast = self.loss.domain_map(output)  #   [B, h, 1] -> [B, h, 1]
+        forecast = torch.sum(x, dim=1).unsqueeze(-1)  #   [B, L, h] -> [B, h, 1]
 
         return forecast

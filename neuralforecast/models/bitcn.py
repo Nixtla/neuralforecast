@@ -11,11 +11,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from neuralforecast.losses.pytorch import MAE
+from neuralforecast.common._base_model import BaseModel
 
 # %% ../../nbs/models.bitcn.ipynb 8
 class CustomConv1d(nn.Module):
+    """
+    Forward- and backward looking Conv1D
+    """
+
     def __init__(
         self,
         in_channels,
@@ -51,6 +55,10 @@ class CustomConv1d(nn.Module):
 
 
 class TCNCell(nn.Module):
+    """
+    Temporal Convolutional Network Cell, consisting of CustomConv1D modules.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -76,7 +84,7 @@ class TCNCell(nn.Module):
         return (h_prev + h_next, out_prev + out_next)
 
 # %% ../../nbs/models.bitcn.ipynb 10
-class BiTCN(BaseWindows):
+class BiTCN(BaseModel):
     """BiTCN
 
     Bidirectional Temporal Convolutional Network (BiTCN) is a forecasting architecture based on two temporal convolutional networks (TCNs). The first network ('forward') encodes future covariates of the time series, whereas the second network ('backward') encodes past observations and covariates. This is a univariate model.
@@ -100,28 +108,34 @@ class BiTCN(BaseWindows):
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `data_availability_threshold`: float=0.0, drop windows where the percentage of available data points is less than this threshold.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References**<br>
+    - [Olivier Sprangers, Sebastian Schelter, Maarten de Rijke (2023). Parameter-Efficient Deep Probabilistic Forecasting. International Journal of Forecasting 39, no. 1 (1 January 2023): 332–45. URL: https://doi.org/10.1016/j.ijforecast.2021.11.011.](https://doi.org/10.1016/j.ijforecast.2021.11.011)<br>
 
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -149,12 +163,12 @@ class BiTCN(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
         super(BiTCN, self).__init__(
@@ -180,12 +194,12 @@ class BiTCN(BaseWindows):
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
@@ -266,7 +280,7 @@ class BiTCN(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"].contiguous()  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
@@ -337,9 +351,6 @@ class BiTCN(BaseWindows):
 
         # Output layer to create forecasts
         x = x.permute(0, 2, 1)  #   [B, 3 * hidden_size, h] -> [B, h, 3 * hidden_size]
-        x = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
-
-        # Map to output domain
-        forecast = self.loss.domain_map(x)
+        forecast = self.output_lin(x)  #   [B, h, 3 * hidden_size] -> [B, h, n_outputs]
 
         return forecast

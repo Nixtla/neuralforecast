@@ -1,50 +1,32 @@
-import os
 import time
 
 import fire
-# import numpy as np
 import pandas as pd
-# import pytorch_lightning as pl
-# import torch
 
-# import neuralforecast
 from neuralforecast.core import NeuralForecast
 
-# from neuralforecast.models.gru import GRU
 from neuralforecast.models.rnn import RNN
 from neuralforecast.models.tcn import TCN
-# from neuralforecast.models.lstm import LSTM
-# from neuralforecast.models.dilated_rnn import DilatedRNN
 from neuralforecast.models.deepar import DeepAR
-# from neuralforecast.models.mlp import MLP
 from neuralforecast.models.nhits import NHITS
 from neuralforecast.models.nbeats import NBEATS
-# from neuralforecast.models.nbeatsx import NBEATSx
 from neuralforecast.models.tft import TFT
 from neuralforecast.models.vanillatransformer import VanillaTransformer
-# from neuralforecast.models.informer import Informer
-# from neuralforecast.models.autoformer import Autoformer
-# from neuralforecast.models.patchtst import PatchTST
 from neuralforecast.models.dlinear import DLinear
 from neuralforecast.models.bitcn import BiTCN   
 from neuralforecast.models.tide import TiDE
 from neuralforecast.models.deepnpts import DeepNPTS
+from neuralforecast.models.kan import KAN
 
 from neuralforecast.auto import (
     AutoMLP, 
-    # AutoNHITS, 
-    # AutoNBEATS, 
     AutoDilatedRNN, 
-    # AutoTFT
 )
 
 from neuralforecast.losses.pytorch import SMAPE, MAE, IQLoss
 from ray import tune
 
 from src.data import get_data
-
-os.environ['NIXTLA_ID_AS_COL'] = '1'
-
 
 def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
     train, horizon, freq, seasonality = get_data('data/', dataset, group)
@@ -60,25 +42,27 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
     }
     config_drnn = {'input_size': tune.choice([2 * horizon]),
-                   'encoder_hidden_size': tune.choice([124]),
+                   'encoder_hidden_size': tune.choice([16]),
                    "max_steps": 300,
                    "val_check_steps": 100,
-                   "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),}
+                   "random_seed": tune.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+                   "scaler_type": "minmax1"}
 
     models = [
         AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
-        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=50, max_steps=300),
-        TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=20, max_steps=300),
+        RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
+        TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=MAE(), max_steps=1000, val_check_steps=500),
         AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, cpus=1),
         DLinear(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=2000, val_check_steps=500),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), hidden_size=64, scaler_type='robust', windows_batch_size=512, max_steps=1500, val_check_steps=500),
         VanillaTransformer(h=horizon, input_size=2 * horizon, loss=MAE(), hidden_size=64, scaler_type='minmax1', windows_batch_size=512, max_steps=1500, val_check_steps=500),
-        DeepAR(h=horizon, input_size=2 * horizon, scaler_type='minmax1', max_steps=1000),
+        DeepAR(h=horizon, input_size=2 * horizon, scaler_type='minmax1', max_steps=500),
         BiTCN(h=horizon, input_size=2 * horizon, loss=MAE(), dropout=0.0, max_steps=1000, val_check_steps=500),
         TiDE(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
         DeepNPTS(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500),
         NBEATS(h=horizon, input_size=2 * horizon, loss=IQLoss(), max_steps=2000, val_check_steps=500),
+        KAN(h=horizon, input_size= 2 * horizon, loss=MAE(), max_steps=1000, val_check_steps=500)
     ]
 
     # Models

@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # 5.3.0
         with:
           python-version: 3.8
 
       - name: Install dependencies
-        run: pip install black nbdev pre-commit
+        run: pip install black nbdev==2.3.25 pre-commit
 
       - name: Run pre-commit
         run: pre-commit run --files neuralforecast/*

@@ -7,11 +7,12 @@ __all__ = ['MLPMultivariate']
 import torch
 import torch.nn as nn
 
+from typing import Optional
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.mlpmultivariate.ipynb 6
-class MLPMultivariate(BaseMultivariate):
+class MLPMultivariate(BaseModel):
     """MLPMultivariate
 
     Simple Multi Layer Perceptron architecture (MLP) for multivariate forecasting.
@@ -37,24 +38,31 @@ class MLPMultivariate(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=256, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `num_workers_loader`: int=os.cpu_count(), workers to be used by `TimeSeriesDataLoader`.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -64,6 +72,7 @@ class MLPMultivariate(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         num_layers=2,
         hidden_size=1024,
         loss=MAE(),
@@ -74,15 +83,19 @@ class MLPMultivariate(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=256,
+        inference_windows_batch_size=256,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        num_workers_loader: int = 0,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
 
@@ -94,6 +107,7 @@ class MLPMultivariate(BaseMultivariate):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -102,15 +116,19 @@ class MLPMultivariate(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            num_workers_loader=num_workers_loader,
             drop_last_loader=drop_last_loader,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
@@ -160,18 +178,16 @@ class MLPMultivariate(BaseMultivariate):
             x = torch.cat((x, futr_exog.reshape(batch_size, -1)), dim=1)
 
         if self.stat_exog_size > 0:
-            x = torch.cat((x, stat_exog.reshape(batch_size, -1)), dim=1)
+            stat_exog = stat_exog.reshape(-1)  #   [N, S] -> [N * S]
+            stat_exog = stat_exog.unsqueeze(0).repeat(
+                batch_size, 1
+            )  #   [N * S] -> [B, N * S]
+            x = torch.cat((x, stat_exog), dim=1)
 
         for layer in self.mlp:
             x = torch.relu(layer(x))
         x = self.out(x)
 
-        x = x.reshape(batch_size, self.h, -1)
-        forecast = self.loss.domain_map(x)
+        forecast = x.reshape(batch_size, self.h, -1)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        # Note that this fails in case of a tuple loss, but Multivariate does not support tuple losses yet.
-        if forecast.ndim == 2:
-            return forecast.unsqueeze(-1)
-        else:
-            return forecast
+        return forecast

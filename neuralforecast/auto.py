@@ -2,10 +2,10 @@
 
 # %% auto 0
 __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoBiTCN', 'AutoMLP', 'AutoNBEATS',
-           'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS', 'AutoTFT',
+           'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS', 'AutoKAN', 'AutoTFT',
            'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer', 'AutoPatchTST',
-           'AutoiTransformer', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer', 'AutoTSMixerx',
-           'AutoMLPMultivariate', 'AutoSOFTS']
+           'AutoiTransformer', 'AutoTimeXer', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer', 'AutoTSMixerx',
+           'AutoMLPMultivariate', 'AutoSOFTS', 'AutoTimeMixer', 'AutoRMoK']
 
 # %% ../nbs/models.ipynb 2
 from os import cpu_count
@@ -42,6 +42,10 @@ from .models.fedformer import FEDformer
 from .models.patchtst import PatchTST
 from .models.timesnet import TimesNet
 from .models.itransformer import iTransformer
+from .models.timexer import TimeXer
+
+from .models.kan import KAN
+from .models.rmok import RMoK
 
 from .models.stemgnn import StemGNN
 from .models.hint import HINT
@@ -49,6 +53,7 @@ from .models.tsmixer import TSMixer
 from .models.tsmixerx import TSMixerx
 from .models.mlpmultivariate import MLPMultivariate
 from .models.softs import SOFTS
+from .models.timemixer import TimeMixer
 
 from .losses.pytorch import MAE, MQLoss, DistributionLoss
 
@@ -59,10 +64,10 @@ class AutoRNN(BaseAuto):
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
         "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
         "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
+        "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -134,10 +139,10 @@ class AutoLSTM(BaseAuto):
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
         "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
         "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
+        "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -205,10 +210,10 @@ class AutoGRU(BaseAuto):
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
         "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
         "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
+        "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -276,9 +281,9 @@ class AutoTCN(BaseAuto):
         "input_size_multiplier": [-1, 4, 16, 64],
         "inference_input_size_multiplier": [-1],
         "h": None,
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128]),
+        "decoder_hidden_size": tune.choice([32, 64]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -418,10 +423,10 @@ class AutoDilatedRNN(BaseAuto):
         "inference_input_size_multiplier": [-1],
         "h": None,
         "cell_type": tune.choice(["LSTM", "GRU"]),
-        "encoder_hidden_size": tune.choice([50, 100, 200, 300]),
+        "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "dilations": tune.choice([[[1, 2], [4, 8]], [[1, 2, 4, 8]]]),
         "context_size": tune.choice([5, 10, 50]),
-        "decoder_hidden_size": tune.choice([64, 128, 256, 512]),
+        "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
@@ -1106,6 +1111,75 @@ class AutoDeepNPTS(BaseAuto):
         return config
 
 # %% ../nbs/models.ipynb 75
+class AutoKAN(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "grid_size": tune.choice([5, 10, 15]),
+        "spline_order": tune.choice([2, 3, 4]),
+        "hidden_size": tune.choice([64, 128, 256, 512]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(lower=1, upper=20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend)
+
+        super(AutoKAN, self).__init__(
+            cls_model=KAN,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 80
 class AutoTFT(BaseAuto):
 
     default_config = {
@@ -1173,7 +1247,7 @@ class AutoTFT(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 79
+# %% ../nbs/models.ipynb 84
 class AutoVanillaTransformer(BaseAuto):
 
     default_config = {
@@ -1241,7 +1315,7 @@ class AutoVanillaTransformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 83
+# %% ../nbs/models.ipynb 88
 class AutoInformer(BaseAuto):
 
     default_config = {
@@ -1309,7 +1383,7 @@ class AutoInformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 87
+# %% ../nbs/models.ipynb 92
 class AutoAutoformer(BaseAuto):
 
     default_config = {
@@ -1377,7 +1451,7 @@ class AutoAutoformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 91
+# %% ../nbs/models.ipynb 96
 class AutoFEDformer(BaseAuto):
 
     default_config = {
@@ -1444,7 +1518,7 @@ class AutoFEDformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 95
+# %% ../nbs/models.ipynb 100
 class AutoPatchTST(BaseAuto):
 
     default_config = {
@@ -1514,7 +1588,7 @@ class AutoPatchTST(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 99
+# %% ../nbs/models.ipynb 104
 class AutoiTransformer(BaseAuto):
 
     default_config = {
@@ -1599,7 +1673,92 @@ class AutoiTransformer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 104
+# %% ../nbs/models.ipynb 108
+class AutoTimeXer(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "n_series": None,
+        "hidden_size": tune.choice([128, 256, 512]),
+        "n_heads": tune.choice([4, 8]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
+
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
+
+        super(AutoTimeXer, self).__init__(
+            cls_model=TimeXer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 113
 class AutoTimesNet(BaseAuto):
 
     default_config = {
@@ -1667,7 +1826,7 @@ class AutoTimesNet(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 109
+# %% ../nbs/models.ipynb 118
 class AutoStemGNN(BaseAuto):
 
     default_config = {
@@ -1752,7 +1911,7 @@ class AutoStemGNN(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 113
+# %% ../nbs/models.ipynb 122
 class AutoHINT(BaseAuto):
 
     def __init__(
@@ -1824,7 +1983,7 @@ class AutoHINT(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         raise Exception("AutoHINT has no default configuration.")
 
-# %% ../nbs/models.ipynb 118
+# %% ../nbs/models.ipynb 127
 class AutoTSMixer(BaseAuto):
 
     default_config = {
@@ -1910,7 +2069,7 @@ class AutoTSMixer(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 122
+# %% ../nbs/models.ipynb 131
 class AutoTSMixerx(BaseAuto):
 
     default_config = {
@@ -1996,7 +2155,7 @@ class AutoTSMixerx(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 126
+# %% ../nbs/models.ipynb 135
 class AutoMLPMultivariate(BaseAuto):
 
     default_config = {
@@ -2081,7 +2240,7 @@ class AutoMLPMultivariate(BaseAuto):
 
         return config
 
-# %% ../nbs/models.ipynb 130
+# %% ../nbs/models.ipynb 139
 class AutoSOFTS(BaseAuto):
 
     default_config = {
@@ -2133,6 +2292,180 @@ class AutoSOFTS(BaseAuto):
 
         super(AutoSOFTS, self).__init__(
             cls_model=SOFTS,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 143
+class AutoTimeMixer(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "n_series": None,
+        "d_model": tune.choice([16, 32, 64]),
+        "d_ff": tune.choice([16, 32, 64]),
+        "down_sampling_layers": tune.choice([1, 2]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
+
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
+
+        super(AutoTimeMixer, self).__init__(
+            cls_model=TimeMixer,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+
+        # Rolling windows with step_size=1 or step_size=h
+        # See `BaseWindows` and `BaseRNN`'s create_windows
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            # Always use n_series from parameters
+            config["n_series"] = n_series
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+# %% ../nbs/models.ipynb 147
+class AutoRMoK(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "n_series": None,
+        "taylor_order": tune.choice([3, 4, 5]),
+        "jacobi_degree": tune.choice([4, 5, 6]),
+        "wavelet_function": tune.choice(
+            ["mexican_hat", "morlet", "dog", "meyer", "shannon"]
+        ),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        n_series,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend, n_series=n_series)
+
+        # Always use n_series from parameters, raise exception with Optuna because we can't enforce it
+        if backend == "ray":
+            config["n_series"] = n_series
+        elif backend == "optuna":
+            mock_trial = MockTrial()
+            if (
+                "n_series" in config(mock_trial)
+                and config(mock_trial)["n_series"] != n_series
+            ) or ("n_series" not in config(mock_trial)):
+                raise Exception(f"config needs 'n_series': {n_series}")
+
+        super(AutoRMoK, self).__init__(
+            cls_model=RMoK,
             h=h,
             loss=loss,
             valid_loss=valid_loss,
