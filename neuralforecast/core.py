@@ -472,9 +472,9 @@ class NeuralForecast:
         ):
             raise Exception("Set val_size>0 if early stopping is enabled.")
 
-        if (val_size is not None) and (val_size < self.h):
+        if (val_size is not None) and (0 < val_size < self.h):
             raise ValueError(
-                f"val_size must be greater than or equal to the horizon: {self.h}"
+                f"val_size must be either 0 or greater than or equal to the horizon: {self.h}"
             )
 
         self._cs_df: Optional[DataFrame] = None
