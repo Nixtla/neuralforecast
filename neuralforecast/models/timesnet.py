@@ -174,6 +174,8 @@ class TimesNet(BaseModel):
         Number of windows to sample in each inference batch.
     start_padding_enabled : bool (default=False)
         If True, the model will pad the time series with zeros at the beginning by input size.
+    `data_availability_threshold`: float (default=0.0)
+        Drop windows where the percentage of available data points is less than this threshold.<br>
     scaler_type : str (default='standard')
         Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     random_seed : int (default=1)
@@ -231,6 +233,7 @@ class TimesNet(BaseModel):
         windows_batch_size=64,
         inference_windows_batch_size=256,
         start_padding_enabled=False,
+        data_availability_threshold: float = 0.0,
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
@@ -261,6 +264,7 @@ class TimesNet(BaseModel):
             valid_batch_size=valid_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
+            data_availability_threshold=data_availability_threshold,
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
