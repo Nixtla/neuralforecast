@@ -323,7 +323,7 @@ class BaseModel(pl.LightningModule):
         else:
             self.batch_size = batch_size
         if valid_batch_size is None:
-            self.valid_batch_size = batch_size
+            self.valid_batch_size = self.batch_size
         else:
             self.valid_batch_size = valid_batch_size
         if inference_windows_batch_size is None:
