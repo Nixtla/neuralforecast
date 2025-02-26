@@ -129,10 +129,6 @@ class BaseModel(pl.LightningModule):
                 f"{type(self).__name__} is a multivariate model. Please set n_series to the number of unique time series in your dataset."
             )
         if not self.MULTIVARIATE:
-            if n_series is not None:
-                warnings.warn(
-                    f"{type(self).__name__} is a univariate model. Parameter n_series is ignored."
-                )
             n_series = 1
         self.n_series = n_series
 
@@ -237,11 +233,16 @@ class BaseModel(pl.LightningModule):
             )
 
         # Protections for loss functions
-        if isinstance(self.loss, (losses.IQLoss, losses.MQLoss, losses.HuberMQLoss)):
+        if isinstance(self.loss, (losses.IQLoss)):
             loss_type = type(self.loss)
             if not isinstance(self.valid_loss, loss_type):
                 raise Exception(
                     f"Please set valid_loss={type(self.loss).__name__}() when training with {type(self.loss).__name__}"
+                )
+        if isinstance(self.loss, (losses.MQLoss, losses.HuberMQLoss)):
+            if not isinstance(self.valid_loss, (losses.MQLoss, losses.HuberMQLoss)):
+                raise Exception(
+                    f"Please set valid_loss to MQLoss() or HuberMQLoss() when training with {type(self.loss).__name__}"
                 )
         if isinstance(self.valid_loss, losses.IQLoss):
             valid_loss_type = type(self.valid_loss)
@@ -320,12 +321,16 @@ class BaseModel(pl.LightningModule):
         # Batch sizes
         if self.MULTIVARIATE and n_series is not None:
             self.batch_size = max(batch_size, n_series)
+            if valid_batch_size is not None:
+                valid_batch_size = max(valid_batch_size, n_series)
         else:
             self.batch_size = batch_size
+
         if valid_batch_size is None:
-            self.valid_batch_size = batch_size
+            self.valid_batch_size = self.batch_size
         else:
             self.valid_batch_size = valid_batch_size
+
         if inference_windows_batch_size is None:
             self.inference_windows_batch_size = windows_batch_size
         else:

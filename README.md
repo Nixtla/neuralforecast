@@ -44,7 +44,7 @@ from neuralforecast.utils import AirPassengersDF
 
 nf = NeuralForecast(
     models = [NBEATS(input_size=24, h=12, max_steps=100)],
-    freq = 'M'
+    freq = 'ME'
 )
 
 nf.fit(df=AirPassengersDF)
