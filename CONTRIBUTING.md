@@ -78,6 +78,6 @@ Since the notebooks output cells can vary from run to run (even if they produce 
     1. Find the relevant notebook.
     2. Make your changes.
     3. Run all cells.
-    4. If you are modifying library notebooks (not in `nbs/docs`), clean all outputs using `Edit > Clear All Outputs`.
+    4. If you are modifying library notebooks (not in `nbs/docs`), clear all outputs using `Edit > Clear All Outputs`.
     5. Run `nbdev_preview`.
     6. Clean the notebook metadata using `nbdev_clean`.
