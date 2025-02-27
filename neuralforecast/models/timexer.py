@@ -160,8 +160,8 @@ class TimeXer(BaseModel):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=256, number of windows in each batch.<br>
-    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `windows_batch_size`: int=32, number of windows in each batch.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -215,13 +215,14 @@ class TimeXer(BaseModel):
         val_check_steps: int = 100,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
-        windows_batch_size=256,
-        inference_windows_batch_size=256,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -254,6 +255,7 @@ class TimeXer(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,

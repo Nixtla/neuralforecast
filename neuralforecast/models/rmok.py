@@ -272,7 +272,7 @@ class RMoK(BaseModel):
     `jacobi_degree`: int, degree of the Jacobi polynomial.<br>
     `wavelet_function`: str, wavelet function to use in the WaveKAN. Choose from ["mexican_hat", "morlet", "dog", "meyer", "shannon"]<br>
     `dropout`: float, dropout rate.<br>
-    `revin_affine`: bool=False, bool to use affine in RevIn.<br>
+    `revine_affine`: bool=False, bool to use affine in RevIn.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -282,8 +282,8 @@ class RMoK(BaseModel):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
+    `windows_batch_size`: int=32, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -332,13 +332,14 @@ class RMoK(BaseModel):
         val_check_steps: int = 100,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
-        windows_batch_size=1024,
-        inference_windows_batch_size=1024,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -351,9 +352,9 @@ class RMoK(BaseModel):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=None,
-            futr_exog_list=None,
-            hist_exog_list=None,
+            futr_exog_list=hist_exog_list,
+            hist_exog_list=stat_exog_list,
+            stat_exog_list=futr_exog_list,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -370,6 +371,7 @@ class RMoK(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,

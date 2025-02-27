@@ -1,4 +1,4 @@
-name: neuralforecast
+name: neuralforecast-backup
 channels:
   - pytorch
   - nvidia

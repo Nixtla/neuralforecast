@@ -31,6 +31,7 @@ class iTransformer(BaseModel):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `hidden_size`: int, dimension of the model.<br>
     `n_heads`: int, number of heads.<br>
     `e_layers`: int, number of encoder layers.<br>
@@ -48,8 +49,8 @@ class iTransformer(BaseModel):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=128, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=128, number of windows to sample in each inference batch, -1 uses all.<br>
+    `windows_batch_size`: int=32, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -100,13 +101,14 @@ class iTransformer(BaseModel):
         val_check_steps: int = 100,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
-        windows_batch_size=128,
-        inference_windows_batch_size=128,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -119,9 +121,9 @@ class iTransformer(BaseModel):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=None,
-            futr_exog_list=None,
-            hist_exog_list=None,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
@@ -139,6 +141,7 @@ class iTransformer(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
