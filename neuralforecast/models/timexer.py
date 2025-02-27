@@ -316,7 +316,12 @@ class TimeXer(BaseModel):
             norm_layer=torch.nn.LayerNorm(self.hidden_size),
         )
         self.head_nf = self.hidden_size * (self.patch_num + 1)
-        self.head = FlattenHead(self.enc_in, self.head_nf, h, head_dropout=self.dropout)
+        self.head = FlattenHead(
+            self.enc_in,
+            self.head_nf,
+            h * self.loss.outputsize_multiplier,
+            head_dropout=self.dropout,
+        )
 
     def forecast(self, x_enc, x_mark_enc):
         if self.use_norm:
@@ -340,13 +345,21 @@ class TimeXer(BaseModel):
         # z: [bs x nvars x d_model x patch_num]
         enc_out = enc_out.permute(0, 1, 3, 2)
 
-        dec_out = self.head(enc_out)  # z: [bs x nvars x target_window]
+        dec_out = self.head(enc_out)  # z: [bs x nvars x h * n_outputs]
         dec_out = dec_out.permute(0, 2, 1)
 
         if self.use_norm:
             # De-Normalization from Non-stationary Transformer
-            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
-            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
+            dec_out = dec_out * (
+                stdev[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
+            dec_out = dec_out + (
+                means[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
 
         return dec_out
 
@@ -362,6 +375,5 @@ class TimeXer(BaseModel):
             x_mark_enc = None
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred[:, -self.h :, :]
-
+        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
         return y_pred
