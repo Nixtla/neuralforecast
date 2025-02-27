@@ -200,8 +200,6 @@ class TimeLLM(BaseModel):
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
@@ -209,6 +207,8 @@ class TimeLLM(BaseModel):
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -271,8 +271,9 @@ class TimeLLM(BaseModel):
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
         scaler_type: str = "identity",
-        drop_last_loader: bool = False,
         random_seed: int = 1,
+        drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -301,6 +302,7 @@ class TimeLLM(BaseModel):
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,

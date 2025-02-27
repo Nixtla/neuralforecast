@@ -160,8 +160,8 @@ class TimeXer(BaseModel):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=256, number of windows in each batch.<br>
-    `inference_windows_batch_size`: int=256, number of windows to sample in each inference batch, -1 uses all.<br>
+    `windows_batch_size`: int=32, number of windows in each batch.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
@@ -215,13 +215,14 @@ class TimeXer(BaseModel):
         val_check_steps: int = 100,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
-        windows_batch_size=256,
-        inference_windows_batch_size=256,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -254,6 +255,7 @@ class TimeXer(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -314,7 +316,12 @@ class TimeXer(BaseModel):
             norm_layer=torch.nn.LayerNorm(self.hidden_size),
         )
         self.head_nf = self.hidden_size * (self.patch_num + 1)
-        self.head = FlattenHead(self.enc_in, self.head_nf, h, head_dropout=self.dropout)
+        self.head = FlattenHead(
+            self.enc_in,
+            self.head_nf,
+            h * self.loss.outputsize_multiplier,
+            head_dropout=self.dropout,
+        )
 
     def forecast(self, x_enc, x_mark_enc):
         if self.use_norm:
@@ -338,13 +345,21 @@ class TimeXer(BaseModel):
         # z: [bs x nvars x d_model x patch_num]
         enc_out = enc_out.permute(0, 1, 3, 2)
 
-        dec_out = self.head(enc_out)  # z: [bs x nvars x target_window]
+        dec_out = self.head(enc_out)  # z: [bs x nvars x h * n_outputs]
         dec_out = dec_out.permute(0, 2, 1)
 
         if self.use_norm:
             # De-Normalization from Non-stationary Transformer
-            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
-            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
+            dec_out = dec_out * (
+                stdev[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
+            dec_out = dec_out + (
+                means[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
 
         return dec_out
 
@@ -360,6 +375,5 @@ class TimeXer(BaseModel):
             x_mark_enc = None
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred[:, -self.h :, :]
-
+        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
         return y_pred

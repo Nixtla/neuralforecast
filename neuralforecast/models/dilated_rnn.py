@@ -291,8 +291,8 @@ class DilatedRNN(BaseModel):
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
     `cell_type`: str, type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'.<br>
     `dilations`: int list, dilations betweem layers.<br>
     `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
@@ -302,6 +302,7 @@ class DilatedRNN(BaseModel):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int, maximum number of training steps.<br>
@@ -311,6 +312,9 @@ class DilatedRNN(BaseModel):
     `val_check_steps`: int, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `windows_batch_size`: int=128, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -336,8 +340,8 @@ class DilatedRNN(BaseModel):
     def __init__(
         self,
         h: int,
-        input_size: int,
-        inference_input_size: int = -1,
+        input_size: int = -1,
+        inference_input_size: Optional[int] = None,
         cell_type: str = "LSTM",
         dilations: List[List[int]] = [[1, 2], [4, 8]],
         encoder_hidden_size: int = 128,
@@ -364,6 +368,7 @@ class DilatedRNN(BaseModel):
         scaler_type: str = "robust",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -374,6 +379,7 @@ class DilatedRNN(BaseModel):
         super(DilatedRNN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -394,6 +400,7 @@ class DilatedRNN(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
