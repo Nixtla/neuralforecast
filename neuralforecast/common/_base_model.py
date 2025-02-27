@@ -321,12 +321,16 @@ class BaseModel(pl.LightningModule):
         # Batch sizes
         if self.MULTIVARIATE and n_series is not None:
             self.batch_size = max(batch_size, n_series)
+            if valid_batch_size is not None:
+                valid_batch_size = max(valid_batch_size, n_series)
         else:
             self.batch_size = batch_size
+
         if valid_batch_size is None:
-            self.valid_batch_size = batch_size
+            self.valid_batch_size = self.batch_size
         else:
             self.valid_batch_size = valid_batch_size
+
         if inference_windows_batch_size is None:
             self.inference_windows_batch_size = windows_batch_size
         else:
