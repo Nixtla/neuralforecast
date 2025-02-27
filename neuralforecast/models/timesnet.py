@@ -125,7 +125,7 @@ class TimesNet(BaseModel):
     The TimesNet univariate model tackles the challenge of modeling multiple intraperiod and interperiod temporal variations.
 
     **Parameters**<br>
-    `h` : int, Forecast horizon.
+    `h` : int, Forecast horizon.<br>
     `input_size` : int, Length of input window (lags).<br>
     `stat_exog_list` : list of str, optional (default=None), Static exogenous columns.<br>
     `hist_exog_list` : list of str, optional (default=None), Historic exogenous columns.<br>
