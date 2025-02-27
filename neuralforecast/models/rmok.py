@@ -272,7 +272,7 @@ class RMoK(BaseModel):
     `jacobi_degree`: int, degree of the Jacobi polynomial.<br>
     `wavelet_function`: str, wavelet function to use in the WaveKAN. Choose from ["mexican_hat", "morlet", "dog", "meyer", "shannon"]<br>
     `dropout`: float, dropout rate.<br>
-    `revine_affine`: bool=False, bool to use affine in RevIn.<br>
+    `revin_affine`: bool=False, bool to use affine in RevIn.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -322,7 +322,7 @@ class RMoK(BaseModel):
         jacobi_degree: int = 6,
         wavelet_function: str = "mexican_hat",
         dropout: float = 0.1,
-        revine_affine: bool = True,
+        revin_affine: bool = True,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -384,7 +384,7 @@ class RMoK(BaseModel):
         self.h = h
         self.n_series = n_series
         self.dropout = nn.Dropout(dropout)
-        self.revin_affine = revine_affine
+        self.revin_affine = revin_affine
 
         self.taylor_order = taylor_order
         self.jacobi_degree = jacobi_degree
