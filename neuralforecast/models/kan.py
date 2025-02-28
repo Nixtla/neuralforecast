@@ -260,12 +260,12 @@ class KAN(BaseModel):
     `enable_standalone_scale_spline`: bool, whether each spline is scaled individually.<br>
     `grid_eps`: float, used for numerical stability.<br>
     `grid_range`: list, range of the grid used for spline approximation.<br>
+    `n_hidden_layers`: int, number of hidden layers for the KAN.<br>
+    `hidden_size`: int or list, number of units for each hidden layer of the KAN. If an integer, all hidden layers will have the same size. Use a list to specify the size of each hidden layer.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `n_hidden_layers`: int, number of hidden layers for the KAN.<br>
-    `hidden_size`: int or list, number of units for each hidden layer of the KAN. If an integer, all hidden layers will have the same size. Use a list to specify the size of each hidden layer.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -315,9 +315,9 @@ class KAN(BaseModel):
         grid_range: list = [-1, 1],
         n_hidden_layers: int = 1,
         hidden_size: Union[int, list] = 512,
-        futr_exog_list=None,
-        hist_exog_list=None,
         stat_exog_list=None,
+        hist_exog_list=None,
+        futr_exog_list=None,
         exclude_insample_y=False,
         loss=MAE(),
         valid_loss=None,
@@ -335,6 +335,7 @@ class KAN(BaseModel):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         dataloader_kwargs=None,
@@ -364,6 +365,7 @@ class KAN(BaseModel):
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,

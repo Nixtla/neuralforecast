@@ -522,17 +522,18 @@ class TFT(BaseModel):
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `tgt_size`: int=1, target size.<br>
     `stat_exog_list`: str list, static continuous columns.<br>
     `hist_exog_list`: str list, historic continuous columns.<br>
     `futr_exog_list`: str list, future continuous columns.<br>
     `hidden_size`: int, units of embeddings and encoders.<br>
-    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
     `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
-    `rnn_type`: str="lstm", recurrent neural network (RNN) layer type from ["lstm","gru"].<br>
     `n_rnn_layers`: int=1, number of RNN layers.<br>
+    `rnn_type`: str="lstm", recurrent neural network (RNN) layer type from ["lstm","gru"].<br>
     `one_rnn_initial_state`:str=False, Initialize all rnn layers with the same initial states computed from static covariates.<br>
+    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -541,10 +542,10 @@ class TFT(BaseModel):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -601,8 +602,9 @@ class TFT(BaseModel):
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
-        drop_last_loader=False,
         random_seed: int = 1,
+        drop_last_loader=False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -631,8 +633,9 @@ class TFT(BaseModel):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
