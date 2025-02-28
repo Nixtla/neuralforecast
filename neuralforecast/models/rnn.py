@@ -25,8 +25,8 @@ class RNN(BaseModel):
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
     `encoder_n_layers`: int=2, number of layers for the RNN.<br>
     `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
     `encoder_activation`: str=`tanh`, type of RNN activation from `tanh` or `relu`.<br>
@@ -49,15 +49,19 @@ class RNN(BaseModel):
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of differentseries in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `windows_batch_size`: int=128, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
+    `alias`: str, optional,  Custom name of the model.<br>
     `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `alias`: str, optional,  Custom name of the model.<br>
 
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
     """
@@ -75,7 +79,7 @@ class RNN(BaseModel):
         self,
         h: int,
         input_size: int = -1,
-        inference_input_size: int = -1,
+        inference_input_size: Optional[int] = None,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 128,
         encoder_activation: str = "tanh",
@@ -105,6 +109,7 @@ class RNN(BaseModel):
         scaler_type: str = "robust",
         random_seed=1,
         drop_last_loader=False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -118,6 +123,7 @@ class RNN(BaseModel):
         super(RNN, self).__init__(
             h=h,
             input_size=input_size,
+            inference_input_size=inference_input_size,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -138,6 +144,7 @@ class RNN(BaseModel):
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,

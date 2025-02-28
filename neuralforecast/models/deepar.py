@@ -56,7 +56,7 @@ class DeepAR(BaseModel):
 
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
     `lstm_n_layers`: int=2, number of LSTM layers.<br>
     `lstm_hidden_size`: int=128, LSTM hidden size.<br>
     `lstm_dropout`: float=0.1, LSTM dropout.<br>
@@ -114,9 +114,9 @@ class DeepAR(BaseModel):
         decoder_hidden_layers: int = 0,
         decoder_hidden_size: int = 0,
         trajectory_samples: int = 100,
-        futr_exog_list=None,
-        hist_exog_list=None,
         stat_exog_list=None,
+        hist_exog_list=None,
+        futr_exog_list=None,
         exclude_insample_y=False,
         loss=DistributionLoss(
             distribution="StudentT", level=[80, 90], return_params=False
@@ -136,6 +136,7 @@ class DeepAR(BaseModel):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader=False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -151,9 +152,9 @@ class DeepAR(BaseModel):
         super(DeepAR, self).__init__(
             h=h,
             input_size=input_size,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
+            futr_exog_list=futr_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
@@ -163,14 +164,15 @@ class DeepAR(BaseModel):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
-            windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
