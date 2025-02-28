@@ -68,7 +68,7 @@ architecture*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L115"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timexer.py#L37"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### Encoder
@@ -82,7 +82,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/fedformer.py#L70"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/timexer.py#L58"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### EncoderLayer
@@ -167,8 +167,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >              inference_windows_batch_size=1024,
 >              start_padding_enabled=False, step_size:int=1,
 >              scaler_type:str='identity', random_seed:int=1,
->              drop_last_loader:bool=False, optimizer=None,
->              optimizer_kwargs=None, lr_scheduler=None,
+>              drop_last_loader:bool=False, alias:Optional[str]=None,
+>              optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
 >              lr_scheduler_kwargs=None, dataloader_kwargs=None,
 >              **trainer_kwargs)
 > ```
@@ -207,9 +207,12 @@ convolutional encoder.<br/> `activation`: str=`GELU`, activation from
 \[‘ReLU’, ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘PReLU’, ‘Sigmoid’,
 ‘GELU’\].<br/> `encoder_layers`: int=2, number of layers for the TCN
 encoder.<br/> `decoder_layers`: int=1, number of layers for the MLP
-decoder.<br/> `distil`: bool = True, wether the Autoformer decoder uses
-bottlenecks.<br/> `loss`: PyTorch module, instantiated train loss class
-from [losses
+decoder.<br/> `MovingAvg_window`: int=25, window size for the moving
+average filter.<br/> `loss`: PyTorch module, instantiated train loss
+class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`valid_loss`: PyTorch module, instantiated validation loss class from
+[losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `max_steps`: int=1000, maximum number of training steps.<br/>
 `learning_rate`: float=1e-3, Learning rate between (0, 1).<br/>
@@ -289,7 +292,8 @@ size for temporal cross-validation.<br/>\*
 
 > ``` text
 >  Autoformer.predict (dataset, test_size=None, step_size=1,
->                      random_seed=None, **data_module_kwargs)
+>                      random_seed=None, quantiles=None,
+>                      **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -304,8 +308,9 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:
 int=None, random_seed for pytorch initializer and numpy generators,
-overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
-TimeSeriesDataModule args, see
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
@@ -338,7 +343,7 @@ model = Autoformer(h=12,
 
 nf = NeuralForecast(
     models=[model],
-    freq='M'
+    freq='ME'
 )
 nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = nf.predict(futr_df=Y_test_df)

@@ -74,24 +74,24 @@ plt.close()
 # Last horizon observations for test
 horizon = 96
 Y_df = pd.DataFrame(dict(unique_id=1, ds=np.arange(len(x)), y=y))
-Y_train_df = Y_df.groupby('unique_id').head(len(Y_df)-horizon).reset_index()
-Y_test_df = Y_df.groupby('unique_id').tail(horizon).reset_index()
+Y_train_df = Y_df.groupby('unique_id').head(len(Y_df)-horizon)
+Y_test_df = Y_df.groupby('unique_id').tail(horizon)
 Y_test_df
 ```
 
-|     | index | unique_id | ds   | y         |
-|-----|-------|-----------|------|-----------|
-| 0   | 9904  | 1         | 9904 | -0.951057 |
-| 1   | 9905  | 1         | 9905 | -0.570326 |
-| 2   | 9906  | 1         | 9906 | -0.391007 |
-| 3   | 9907  | 1         | 9907 | -0.499087 |
-| 4   | 9908  | 1         | 9908 | -0.809017 |
-| ... | ...   | ...       | ...  | ...       |
-| 91  | 9995  | 1         | 9995 | -0.029130 |
-| 92  | 9996  | 1         | 9996 | -0.309017 |
-| 93  | 9997  | 1         | 9997 | -0.586999 |
-| 94  | 9998  | 1         | 9998 | -0.656434 |
-| 95  | 9999  | 1         | 9999 | -0.432012 |
+|      | unique_id | ds   | y         |
+|------|-----------|------|-----------|
+| 9904 | 1         | 9904 | -0.951057 |
+| 9905 | 1         | 9905 | -0.570326 |
+| 9906 | 1         | 9906 | -0.391007 |
+| 9907 | 1         | 9907 | -0.499087 |
+| 9908 | 1         | 9908 | -0.809017 |
+| ...  | ...       | ...  | ...       |
+| 9995 | 1         | 9995 | -0.029130 |
+| 9996 | 1         | 9996 | -0.309017 |
+| 9997 | 1         | 9997 | -0.586999 |
+| 9998 | 1         | 9998 | -0.656434 |
+| 9999 | 1         | 9999 | -0.432012 |
 
 ## 3. NHITS decomposition
 
@@ -126,13 +126,10 @@ models = [NHITS(h=horizon,                           # Forecast horizon
                 val_check_steps=10,                  # Frequency of validation signal (affects early stopping)
               )
           ]
-nf = NeuralForecast(models=models, freq='M')
+nf = NeuralForecast(models=models, freq=1)
 nf.fit(df=Y_train_df)
 ```
 
-``` text
-Global seed set to 1
-```
 
 ```python
 from neuralforecast.tsdataset import TimeSeriesDataset
@@ -144,7 +141,14 @@ y_hat = model.decompose(dataset=dataset)
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 20.68it/s]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
 ```python
@@ -197,13 +201,10 @@ models = [NBEATSx(h=horizon,                           # Forecast horizon
                   val_check_steps=10,                  # Frequency of validation signal (affects early stopping)
               )
           ]
-nf = NeuralForecast(models=models, freq='M')
+nf = NeuralForecast(models=models, freq=1)
 nf.fit(df=Y_train_df)
 ```
 
-``` text
-Global seed set to 1
-```
 
 ```python
 # NBEATSx decomposition plot
@@ -213,7 +214,14 @@ y_hat = model.decompose(dataset=dataset)
 ```
 
 ``` text
-Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 112.51it/s]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
 ```python

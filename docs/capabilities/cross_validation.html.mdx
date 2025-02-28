@@ -20,7 +20,6 @@ Make sure to install `neuralforecast` to follow along.
 import logging
 import matplotlib.pyplot as plt
 import pandas as pd
-from IPython.display import display
 from utilsforecast.plotting import plot_series
 
 from neuralforecast import NeuralForecast
@@ -123,11 +122,11 @@ Seed set to 1
 
 |     | unique_id | ds  | cutoff | NHITS      | y     |
 |-----|-----------|-----|--------|------------|-------|
-| 0   | H1        | 301 | 300    | 492.037689 | 485.0 |
-| 1   | H1        | 302 | 300    | 535.533752 | 525.0 |
-| 2   | H1        | 303 | 300    | 608.856873 | 585.0 |
-| 3   | H1        | 304 | 300    | 687.862183 | 670.0 |
-| 4   | H1        | 305 | 300    | 761.865417 | 747.0 |
+| 0   | H1        | 301 | 300    | 490.048950 | 485.0 |
+| 1   | H1        | 302 | 300    | 537.713867 | 525.0 |
+| 2   | H1        | 303 | 300    | 612.900635 | 585.0 |
+| 3   | H1        | 304 | 300    | 689.346313 | 670.0 |
+| 4   | H1        | 305 | 300    | 760.153992 | 747.0 |
 
 ```python
 cutoffs = cv_df['cutoff'].unique()

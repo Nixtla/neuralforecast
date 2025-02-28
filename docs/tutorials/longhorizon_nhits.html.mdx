@@ -179,11 +179,6 @@ models = [AutoNHITS(h=horizon,
                     num_samples=5)]
 ```
 
-``` text
-INFO:torch.distributed.nn.jit.instantiator:Created a temporary directory at /tmp/tmp0ke5wzvj
-INFO:torch.distributed.nn.jit.instantiator:Writing /tmp/tmp0ke5wzvj/_remote_module_non_scriptable.py
-```
-
 Fit the model by instantiating a
 [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 object with the following required parameters:
@@ -218,10 +213,6 @@ Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
                                test_size=test_size, n_windows=None)
 ```
 
-``` text
-INFO:ray.tune.tune:Initializing Ray automatically.For cluster usage or custom Ray initialization, call `ray.init(...)` before `tune.run`.
-```
-
 ## 4. Evaluate Results
 
 The
@@ -246,10 +237,11 @@ nf.models[0].results.get_best_result().config
  'n_blocks': [1, 1, 1],
  'mlp_units': [[512, 512], [512, 512], [512, 512]],
  'interpolation_mode': 'linear',
- 'check_val_every_n_epoch': 100,
- 'random_seed': 4,
+ 'val_check_steps': 100,
+ 'random_seed': 8,
  'h': 96,
- 'loss': MAE()}
+ 'loss': MAE(),
+ 'valid_loss': MAE()}
 ```
 
 ```python
@@ -308,8 +300,8 @@ print('MSE: ', mse(y_hat, y_true))
 ```
 
 ``` text
-MAE:  0.26096806135482414
-MSE:  0.18279484416711375
+MAE:  0.24862242128243706
+MSE:  0.17257850996828134
 ```
 
 For reference we can check the performance when compared to previous
@@ -322,7 +314,7 @@ Mean Absolute Error (MAE):
 
 | Horizon | NHITS     | AutoFormer | InFormer | ARIMA |
 |---------|-----------|------------|----------|-------|
-| 96      | **0.255** | 0.339      | 0.453    | 0.301 |
+| 96      | **0.249** | 0.339      | 0.453    | 0.301 |
 | 192     | 0.305     | 0.340      | 0.563    | 0.345 |
 | 336     | 0.346     | 0.372      | 0.887    | 0.386 |
 | 720     | 0.426     | 0.419      | 1.388    | 0.445 |
@@ -331,7 +323,7 @@ Mean Squared Error (MSE):
 
 | Horizon | NHITS     | AutoFormer | InFormer | ARIMA |
 |---------|-----------|------------|----------|-------|
-| 96      | **0.176** | 0.255      | 0.365    | 0.225 |
+| 96      | **0.173** | 0.255      | 0.365    | 0.225 |
 | 192     | 0.245     | 0.281      | 0.533    | 0.298 |
 | 336     | 0.295     | 0.339      | 1.363    | 0.370 |
 | 720     | 0.401     | 0.422      | 3.379    | 0.478 |

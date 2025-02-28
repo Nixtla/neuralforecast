@@ -29,7 +29,7 @@ Perceptron
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L91"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L93"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MixingLayerWithStaticExogenous
@@ -43,7 +43,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L66"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L68"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MixingLayer
@@ -57,7 +57,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L35"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L37"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### FeatureMixing
@@ -71,7 +71,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L15"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L17"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TemporalMixing
@@ -93,21 +93,24 @@ implementation](https://github.com/google-research/google-research/blob/master/t
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L161"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/tsmixerx.py#L163"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### TSMixerx
 
 > ``` text
 >  TSMixerx (h, input_size, n_series, futr_exog_list=None,
->            hist_exog_list=None, stat_exog_list=None, n_block=2, ff_dim=64,
->            dropout=0.0, revin=True, loss=MAE(), valid_loss=None,
->            max_steps:int=1000, learning_rate:float=0.001,
->            num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
->            val_check_steps:int=100, batch_size:int=32, step_size:int=1,
+>            hist_exog_list=None, stat_exog_list=None,
+>            exclude_insample_y=False, n_block=2, ff_dim=64, dropout=0.0,
+>            revin=True, loss=MAE(), valid_loss=None, max_steps:int=1000,
+>            learning_rate:float=0.001, num_lr_decays:int=-1,
+>            early_stop_patience_steps:int=-1, val_check_steps:int=100,
+>            batch_size:int=32, valid_batch_size:Optional[int]=None,
+>            windows_batch_size=32, inference_windows_batch_size=32,
+>            start_padding_enabled=False, step_size:int=1,
 >            scaler_type:str='identity', random_seed:int=1,
->            drop_last_loader:bool=False, optimizer=None,
->            optimizer_kwargs=None, lr_scheduler=None,
+>            drop_last_loader:bool=False, alias:Optional[str]=None,
+>            optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
 >            lr_scheduler_kwargs=None, dataloader_kwargs=None,
 >            **trainer_kwargs)
 > ```
@@ -130,11 +133,12 @@ considered autorregresive inputs (lags), y=\[1,2,3,4\] input_size=2 -\>
 lags=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
 `futr_exog_list`: str list, future exogenous columns.<br/>
 `hist_exog_list`: str list, historic exogenous columns.<br/>
-`stat_exog_list`: str list, static exogenous columns.<br/> `n_block`:
-int=2, number of mixing layers in the model.<br/> `ff_dim`: int=64,
-number of units for the second feed-forward layer in the feature
-MLP.<br/> `dropout`: float=0.0, dropout rate between (0, 1) .<br/>
-`revin`: bool=True, if True uses Reverse Instance Normalization on
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`exclude_insample_y`: bool=False, if True excludes insample_y from the
+model.<br/> `n_block`: int=2, number of mixing layers in the model.<br/>
+`ff_dim`: int=64, number of units for the second feed-forward layer in
+the feature MLP.<br/> `dropout`: float=0.0, dropout rate between (0, 1)
+.<br/> `revin`: bool=True, if True uses Reverse Instance Normalization on
 `insample_y` and applies it to the outputs.<br/>  
 `loss`: PyTorch module, instantiated train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
@@ -148,9 +152,16 @@ distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
 Number of validation iterations before early stopping.<br/>
 `val_check_steps`: int=100, Number of training steps between every
 validation loss check.<br/> `batch_size`: int=32, number of different
-series in each batch.<br/> `step_size`: int=1, step size between each
-window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
-scaler for temporal inputs normalization see [temporal
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=32, number of windows to
+sample in each training batch. <br/> `inference_windows_batch_size`:
+int=32, number of windows to sample in each inference batch, -1 uses
+all.<br/> `start_padding_enabled`: bool=False, if True, the model will
+pad the time series with zeros at the beginning, by input size.<br/>
+`step_size`: int=1, step size between each window of temporal data.<br/>
+`scaler_type`: str=‘identity’, type of scaler for temporal inputs
+normalization see [temporal
 scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 `random_seed`: int=1, random_seed for pytorch initializer and numpy
 generators.<br/> `drop_last_loader`: bool=False, if True
@@ -203,7 +214,9 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>\*
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -211,7 +224,7 @@ see
 
 > ``` text
 >  TSMixerx.predict (dataset, test_size=None, step_size=1, random_seed=None,
->                    **data_module_kwargs)
+>                    quantiles=None, **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -224,9 +237,21 @@ Neural network prediction with PL’s `Trainer` execution of
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>
-`step_size`: int=1, Step size between each window.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
+
+```python
+# Unit tests for models
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    check_model(TSMixerx, ["airpassengers"])
+```
 
 ## 3. Usage Examples
 
@@ -239,7 +264,7 @@ import matplotlib.pyplot as plt
 from neuralforecast import NeuralForecast
 from neuralforecast.models import TSMixerx
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-from neuralforecast.losses.pytorch import MAE
+from neuralforecast.losses.pytorch import GMM
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
@@ -252,17 +277,16 @@ model = TSMixerx(h=12,
                 n_block=4,
                 ff_dim=4,
                 revin=True,
-                scaler_type='standard',
+                scaler_type='robust',
                 max_steps=500,
                 early_stop_patience_steps=-1,
                 val_check_steps=5,
                 learning_rate=1e-3,
-                loss=MAE(),
-                valid_loss=MAE(),
+                loss = GMM(n_components=10, weighted=True),
                 batch_size=32
                 )
 
-fcst = NeuralForecast(models=[model], freq='M')
+fcst = NeuralForecast(models=[model], freq='ME')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 
@@ -274,7 +298,11 @@ plot_df = pd.concat([Y_train_df, plot_df])
 
 plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
 plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['TSMixerx'], c='blue', label='Forecast')
+plt.plot(plot_df['ds'], plot_df['TSMixerx-median'], c='blue', label='median')
+plt.fill_between(x=plot_df['ds'][-12:], 
+                 y1=plot_df['TSMixerx-lo-90'][-12:].values,
+                 y2=plot_df['TSMixerx-hi-90'][-12:].values,
+                 alpha=0.4, label='level 90')
 ax.set_title('AirPassengers Forecast', fontsize=22)
 ax.set_ylabel('Monthly Passengers', fontsize=20)
 ax.set_xlabel('Year', fontsize=20)
@@ -294,7 +322,7 @@ Y_hat_df = forecasts.loc['Airline1']
 Y_df = AirPassengersPanel[AirPassengersPanel['unique_id']=='Airline1']
 
 plt.plot(Y_df['ds'], Y_df['y'], c='black', label='True')
-plt.plot(Y_hat_df['ds'], Y_hat_df['TSMixerx'], c='blue', label='Forecast')
+plt.plot(Y_hat_df['ds'], Y_hat_df['TSMixerx-median'], c='blue', label='Forecast')
 ax.set_title('AirPassengers Forecast', fontsize=22)
 ax.set_ylabel('Monthly Passengers', fontsize=20)
 ax.set_xlabel('Year', fontsize=20)

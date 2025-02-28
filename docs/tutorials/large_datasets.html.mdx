@@ -95,7 +95,8 @@ files_list
 ```
 
 ``` text
-['/tmp/tmp9cy2qa36/unique_id=Airline2', '/tmp/tmp9cy2qa36/unique_id=Airline1']
+['C:\\Users\\ospra\\AppData\\Local\\Temp\\tmpxe__gjoo/unique_id=Airline1',
+ 'C:\\Users\\ospra\\AppData\\Local\\Temp\\tmpxe__gjoo/unique_id=Airline2']
 ```
 
 You can also create this directory structure with a spark dataframe
@@ -144,17 +145,14 @@ models = [NHITS(input_size=5 * horizon,
                 stack_types = stacks*['identity'],
                 n_blocks = stacks*[1],
                 mlp_units = [[256,256] for _ in range(stacks)],
-                n_pool_kernel_size = stacks*[1])]
+                n_pool_kernel_size = stacks*[1],
+                interpolation_mode="nearest")]
 nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=files_list, static_df=static, id_col='id_col')
 ```
 
 ``` text
 Seed set to 1
-2024-07-23 11:46:22.369481: I tensorflow/core/util/port.cc:113] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
-2024-07-23 11:46:22.402269: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
-To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2024-07-23 11:46:22.934767: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
 ```
 
 ``` text
@@ -200,18 +198,18 @@ predictions
 
 |     | id_col   | ds         | NHITS      |
 |-----|----------|------------|------------|
-| 0   | Airline2 | 1960-01-31 | 710.602417 |
-| 1   | Airline2 | 1960-02-29 | 688.900879 |
-| 2   | Airline2 | 1960-03-31 | 758.637573 |
-| 3   | Airline2 | 1960-04-30 | 748.974365 |
-| 4   | Airline2 | 1960-05-31 | 753.558655 |
-| 5   | Airline2 | 1960-06-30 | 801.517822 |
-| 6   | Airline2 | 1960-07-31 | 863.835449 |
-| 7   | Airline2 | 1960-08-31 | 847.854980 |
-| 8   | Airline2 | 1960-09-30 | 797.115845 |
-| 9   | Airline2 | 1960-10-31 | 748.879761 |
-| 10  | Airline2 | 1960-11-30 | 707.076233 |
-| 11  | Airline2 | 1960-12-31 | 747.851685 |
+| 0   | Airline2 | 1960-01-31 | 713.441406 |
+| 1   | Airline2 | 1960-02-29 | 688.176880 |
+| 2   | Airline2 | 1960-03-31 | 763.382935 |
+| 3   | Airline2 | 1960-04-30 | 745.478027 |
+| 4   | Airline2 | 1960-05-31 | 758.036438 |
+| 5   | Airline2 | 1960-06-30 | 806.288574 |
+| 6   | Airline2 | 1960-07-31 | 869.563782 |
+| 7   | Airline2 | 1960-08-31 | 858.105896 |
+| 8   | Airline2 | 1960-09-30 | 803.531555 |
+| 9   | Airline2 | 1960-10-31 | 751.093079 |
+| 10  | Airline2 | 1960-11-30 | 700.435852 |
+| 11  | Airline2 | 1960-12-31 | 746.640259 |
 
 ## Evaluation
 
@@ -231,7 +229,7 @@ evaluate(
 
 |     | metric | NHITS     |
 |-----|--------|-----------|
-| 0   | mae    | 23.693777 |
-| 1   | rmse   | 29.992256 |
-| 2   | smape  | 0.014734  |
+| 0   | mae    | 20.728617 |
+| 1   | rmse   | 26.980698 |
+| 2   | smape  | 0.012879  |
 

@@ -289,11 +289,11 @@ print(f'Forecast Minutes: {(end - init) / 60}')
 ```
 
 ``` text
-Forecast:   0%|          | 0/1600 [Elapsed: 00:00]
+Forecast:   0%|          | 0/2000 [Elapsed: 00:00]
 ```
 
 ``` text
-Forecast Minutes: 6.027772482236227
+Forecast Minutes: 4.009805858135223
 ```
 
 ```python
@@ -435,7 +435,7 @@ print(f'MLForecast Minutes: {(end - init) / 60}')
 ```
 
 ``` text
-MLForecast Minutes: 0.5530486385027568
+MLForecast Minutes: 0.5360581119855244
 ```
 
 After that, just call `predict` to generate forecasts.
@@ -451,11 +451,11 @@ fcst_mlf_df.head()
 
 |     | unique_id        | ds         | LGBMRegressor | XGBRegressor | LinearRegression |
 |-----|------------------|------------|---------------|--------------|------------------|
-| 0   | FOODS_3_001_CA_1 | 2016-05-23 | 0.549520      | 0.560123     | 0.359638         |
-| 1   | FOODS_3_001_CA_1 | 2016-05-24 | 0.553196      | 0.369337     | 0.100359         |
-| 2   | FOODS_3_001_CA_1 | 2016-05-25 | 0.599668      | 0.374338     | 0.175837         |
-| 3   | FOODS_3_001_CA_1 | 2016-05-26 | 0.638097      | 0.327176     | 0.156456         |
-| 4   | FOODS_3_001_CA_1 | 2016-05-27 | 0.763305      | 0.331631     | 0.328192         |
+| 0   | FOODS_3_001_CA_1 | 2016-05-23 | 0.549520      | 0.560123     | 0.332693         |
+| 1   | FOODS_3_001_CA_1 | 2016-05-24 | 0.553196      | 0.369337     | 0.055071         |
+| 2   | FOODS_3_001_CA_1 | 2016-05-25 | 0.599668      | 0.374338     | 0.127144         |
+| 3   | FOODS_3_001_CA_1 | 2016-05-26 | 0.638097      | 0.327176     | 0.101624         |
+| 4   | FOODS_3_001_CA_1 | 2016-05-27 | 0.763305      | 0.331631     | 0.269863         |
 
 ## NeuralForecast
 
@@ -515,11 +515,11 @@ fcst_df.head()
 
 |  | unique_id | ds | SeasonalNaive | Naive | HistoricAverage | CrostonOptimized | ADIDA | IMAPA | AutoETS | AutoNHITS | AutoNHITS-lo-90 | AutoNHITS-hi-90 | AutoTFT | AutoTFT-lo-90 | AutoTFT-hi-90 | LGBMRegressor | XGBRegressor | LinearRegression |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | FOODS_3_001_CA_1 | 2016-05-23 | 1.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.381414 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.549520 | 0.560123 | 0.359638 |
-| 1 | FOODS_3_001_CA_1 | 2016-05-24 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.286933 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.553196 | 0.369337 | 0.100359 |
-| 2 | FOODS_3_001_CA_1 | 2016-05-25 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.334987 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 1.0 | 0.599668 | 0.374338 | 0.175837 |
-| 3 | FOODS_3_001_CA_1 | 2016-05-26 | 1.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.186851 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.638097 | 0.327176 | 0.156456 |
-| 4 | FOODS_3_001_CA_1 | 2016-05-27 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.308112 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.763305 | 0.331631 | 0.328192 |
+| 0 | FOODS_3_001_CA_1 | 2016-05-23 | 1.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.381414 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.549520 | 0.560123 | 0.332693 |
+| 1 | FOODS_3_001_CA_1 | 2016-05-24 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.286933 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.553196 | 0.369337 | 0.055071 |
+| 2 | FOODS_3_001_CA_1 | 2016-05-25 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.334987 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 1.0 | 0.599668 | 0.374338 | 0.127144 |
+| 3 | FOODS_3_001_CA_1 | 2016-05-26 | 1.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.186851 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.638097 | 0.327176 | 0.101624 |
+| 4 | FOODS_3_001_CA_1 | 2016-05-27 | 0.0 | 2.0 | 0.448738 | 0.345192 | 0.345477 | 0.347249 | 0.308112 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 | 0.763305 | 0.331631 | 0.269863 |
 
 ## Forecast plots
 
@@ -580,7 +580,7 @@ print(f'CV Minutes: {(end - init) / 60}')
 ```
 
 ``` text
-CV Minutes: 17.494867050647734
+CV Minutes: 10.829525109132131
 ```
 
 The crossvaldation_df object is a new data frame that includes the
@@ -632,7 +632,7 @@ print(f'CV Minutes: {(end - init) / 60}')
 ```
 
 ``` text
-CV Minutes: 1.785299829641978
+CV Minutes: 1.6215598344802857
 ```
 
 The crossvaldation_df object is a new data frame that includes the
@@ -652,11 +652,11 @@ cv_mlf_df.head()
 
 |  | unique_id | ds | cutoff | y | LGBMRegressor | XGBRegressor | LinearRegression |
 |----|----|----|----|----|----|----|----|
-| 0 | FOODS_3_001_CA_1 | 2016-02-29 | 2016-02-28 | 0.0 | 0.435674 | 0.556261 | -0.312492 |
-| 1 | FOODS_3_001_CA_1 | 2016-03-01 | 2016-02-28 | 1.0 | 0.639676 | 0.625807 | -0.041920 |
-| 2 | FOODS_3_001_CA_1 | 2016-03-02 | 2016-02-28 | 1.0 | 0.792989 | 0.659651 | 0.263699 |
-| 3 | FOODS_3_001_CA_1 | 2016-03-03 | 2016-02-28 | 0.0 | 0.806868 | 0.535121 | 0.482491 |
-| 4 | FOODS_3_001_CA_1 | 2016-03-04 | 2016-02-28 | 0.0 | 0.829106 | 0.313354 | 0.677326 |
+| 0 | FOODS_3_001_CA_1 | 2016-02-29 | 2016-02-28 | 0.0 | 0.435674 | 0.556261 | -0.353077 |
+| 1 | FOODS_3_001_CA_1 | 2016-03-01 | 2016-02-28 | 1.0 | 0.639676 | 0.625807 | -0.088985 |
+| 2 | FOODS_3_001_CA_1 | 2016-03-02 | 2016-02-28 | 1.0 | 0.792989 | 0.659651 | 0.217697 |
+| 3 | FOODS_3_001_CA_1 | 2016-03-03 | 2016-02-28 | 0.0 | 0.806868 | 0.535121 | 0.438713 |
+| 4 | FOODS_3_001_CA_1 | 2016-03-04 | 2016-02-28 | 0.0 | 0.829106 | 0.313354 | 0.637066 |
 
 ## NeuralForecast
 
@@ -763,17 +763,17 @@ evaluation_df
 
 |  | unique_id | metric | SeasonalNaive | Naive | HistoricAverage | CrostonOptimized | ADIDA | IMAPA | AutoETS | AutoNHITS | AutoTFT | LGBMRegressor | XGBRegressor | LinearRegression |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | FOODS_3_001_CA_1 | mse | 1.250000 | 0.892857 | 0.485182 | 0.507957 | 0.509299 | 0.516988 | 0.494235 | 0.630952 | 0.571429 | 0.648962 | 0.584722 | 0.518863 |
-| 1 | FOODS_3_001_CA_2 | mse | 6.273809 | 3.773809 | 3.477309 | 3.412580 | 3.432295 | 3.474050 | 3.426468 | 4.550595 | 3.607143 | 3.423646 | 3.856465 | 3.713406 |
-| 2 | FOODS_3_001_CA_3 | mse | 5.880952 | 4.357143 | 5.016396 | 4.173154 | 4.160645 | 4.176733 | 4.145148 | 4.005952 | 4.372024 | 4.928764 | 6.937792 | 5.173173 |
-| 3 | FOODS_3_001_CA_4 | mse | 1.071429 | 0.476190 | 0.402938 | 0.382559 | 0.380783 | 0.380877 | 0.380872 | 0.476190 | 0.476190 | 0.664270 | 0.424068 | 0.592870 |
-| 4 | FOODS_3_001_TX_1 | mse | 0.047619 | 0.047619 | 0.238824 | 0.261356 | 0.047619 | 0.047619 | 0.077575 | 0.047619 | 0.047619 | 0.718796 | 0.063564 | 0.208862 |
+| 0 | FOODS_3_001_CA_1 | mse | 1.250000 | 0.892857 | 0.485182 | 0.507957 | 0.509299 | 0.516988 | 0.494235 | 0.630952 | 0.571429 | 0.648962 | 0.584722 | 0.529400 |
+| 1 | FOODS_3_001_CA_2 | mse | 6.273809 | 3.773809 | 3.477309 | 3.412580 | 3.432295 | 3.474050 | 3.426468 | 4.550595 | 3.607143 | 3.423646 | 3.856465 | 3.773264 |
+| 2 | FOODS_3_001_CA_3 | mse | 5.880952 | 4.357143 | 5.016396 | 4.173154 | 4.160645 | 4.176733 | 4.145148 | 4.005952 | 4.372024 | 4.928764 | 6.937792 | 5.317195 |
+| 3 | FOODS_3_001_CA_4 | mse | 1.071429 | 0.476190 | 0.402938 | 0.382559 | 0.380783 | 0.380877 | 0.380872 | 0.476190 | 0.476190 | 0.664270 | 0.424068 | 0.637221 |
+| 4 | FOODS_3_001_TX_1 | mse | 0.047619 | 0.047619 | 0.238824 | 0.261356 | 0.047619 | 0.047619 | 0.077575 | 0.047619 | 0.047619 | 0.718796 | 0.063564 | 0.187810 |
 | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... | ... |
-| 24685 | FOODS_3_827_TX_2 | smape | 0.083333 | 0.035714 | 0.989540 | 0.996362 | 0.987395 | 0.982847 | 0.981537 | 0.323810 | 0.335714 | 0.976356 | 0.994702 | 0.982738 |
-| 24686 | FOODS_3_827_TX_3 | smape | 0.708532 | 0.681495 | 0.662490 | 0.653057 | 0.655810 | 0.660161 | 0.649180 | 0.683947 | 0.712121 | 0.639518 | 0.856866 | 0.673560 |
-| 24687 | FOODS_3_827_WI_1 | smape | 0.608722 | 0.694328 | 0.470570 | 0.470846 | 0.480032 | 0.480032 | 0.466956 | 0.486852 | 0.475980 | 0.472336 | 0.484906 | 0.492325 |
-| 24688 | FOODS_3_827_WI_2 | smape | 0.531777 | 0.398156 | 0.433577 | 0.387718 | 0.388827 | 0.389371 | 0.389888 | 0.393774 | 0.374640 | 0.413559 | 0.430893 | 0.396423 |
-| 24689 | FOODS_3_827_WI_3 | smape | 0.643689 | 0.680178 | 0.588031 | 0.589143 | 0.599820 | 0.628673 | 0.591437 | 0.558201 | 0.567460 | 0.589870 | 0.698798 | 0.620368 |
+| 24685 | FOODS_3_827_TX_2 | smape | 0.083333 | 0.035714 | 0.989540 | 0.996362 | 0.987395 | 0.982847 | 0.981537 | 0.323810 | 0.335714 | 0.976356 | 0.994702 | 0.985058 |
+| 24686 | FOODS_3_827_TX_3 | smape | 0.708532 | 0.681495 | 0.662490 | 0.653057 | 0.655810 | 0.660161 | 0.649180 | 0.683947 | 0.712121 | 0.639518 | 0.856866 | 0.686547 |
+| 24687 | FOODS_3_827_WI_1 | smape | 0.608722 | 0.694328 | 0.470570 | 0.470846 | 0.480032 | 0.480032 | 0.466956 | 0.486852 | 0.475980 | 0.472336 | 0.484906 | 0.492277 |
+| 24688 | FOODS_3_827_WI_2 | smape | 0.531777 | 0.398156 | 0.433577 | 0.387718 | 0.388827 | 0.389371 | 0.389888 | 0.393774 | 0.374640 | 0.413559 | 0.430893 | 0.399131 |
+| 24689 | FOODS_3_827_WI_3 | smape | 0.643689 | 0.680178 | 0.588031 | 0.589143 | 0.599820 | 0.628673 | 0.591437 | 0.558201 | 0.567460 | 0.589870 | 0.698798 | 0.627255 |
 
 ```python
 by_metric = evaluation_df.groupby('metric').mean(numeric_only=True)
@@ -783,9 +783,9 @@ by_metric
 |  | SeasonalNaive | Naive | HistoricAverage | CrostonOptimized | ADIDA | IMAPA | AutoETS | AutoNHITS | AutoTFT | LGBMRegressor | XGBRegressor | LinearRegression |
 |----|----|----|----|----|----|----|----|----|----|----|----|----|
 | metric |  |  |  |  |  |  |  |  |  |  |  |  |
-| mae | 1.775415 | 2.045906 | 1.749080 | 1.634791 | 1.542097 | 1.543745 | 1.511545 | 1.438250 | 1.497647 | 1.697947 | 1.552061 | 1.589638 |
-| mse | 14.265773 | 20.453325 | 12.938136 | 11.484233 | 11.090195 | 11.094446 | 10.351927 | 9.606913 | 10.721251 | 10.502289 | 11.565916 | 10.781582 |
-| smape | 0.436414 | 0.446430 | 0.616884 | 0.613219 | 0.618910 | 0.619313 | 0.620084 | 0.400770 | 0.411018 | 0.579856 | 0.693615 | 0.631614 |
+| mae | 1.775415 | 2.045906 | 1.749080 | 1.634791 | 1.542097 | 1.543745 | 1.511545 | 1.438250 | 1.497647 | 1.697947 | 1.552061 | 1.592978 |
+| mse | 14.265773 | 20.453325 | 12.938136 | 11.484233 | 11.090195 | 11.094446 | 10.351927 | 9.606913 | 10.721251 | 10.502289 | 11.565916 | 10.830894 |
+| smape | 0.436414 | 0.446430 | 0.616884 | 0.613219 | 0.618910 | 0.619313 | 0.620084 | 0.400770 | 0.411018 | 0.579856 | 0.693615 | 0.641515 |
 
 Best models by metric
 
@@ -891,29 +891,20 @@ plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-51-output-1.png)
 
-# Technical Debt
-
--   Train the statistical models in the full dataset.
--   Increase the number of `num_samples` in the neural auto models.
--   Include other models such as `Theta`, `ARIMA`,
-    [`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn),
-    [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm),
-    …
-
 # Further materials
 
 -   [Available Models
-    StatsForecast](https://nixtla.github.io/statsforecast/examples/models_intro.html)
+    StatsForecast](https://nixtlaverse.nixtla.io/statsforecast/index.html#models)
 -   [Available Models
-    NeuralForecast](https://nixtla.github.io/neuralforecast/models.html)
--   [Scalers and Loss
-    Functions](https://nixtla.github.io/neuralforecast/losses.pytorch.html)
+    NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html)
+-   [Loss Functions in
+    NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html)
 -   [Getting Started
-    NeuralForecast](https://nixtla.github.io/neuralforecast/examples/getting_started.html)
+    NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/quickstart.html)
 -   [Hierarchical
-    Reconciliation](https://nixtla.github.io/hierarchicalforecast/examples/tourismsmall.html)
+    Reconciliation](https://nixtlaverse.nixtla.io/hierarchicalforecast/examples/tourismsmall.html)
 -   [Distributed ML Forecast
-    (trees)](https://nixtla.github.io/mlforecast/docs/quick_start_distributed.html)
+    (trees)](https://nixtlaverse.nixtla.io/mlforecast/docs/getting-started/quick_start_distributed.html)
 -   [Using StatsForecast to train millions of time
     series](https://www.anyscale.com/blog/how-nixtla-uses-ray-to-accurately-predict-more-than-a-million-time-series)
 -   [Intermittent Demand Forecasting With Nixtla on

@@ -92,8 +92,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >         valid_batch_size:Optional[int]=None, windows_batch_size=1024,
 >         inference_windows_batch_size=1024, start_padding_enabled=False,
 >         step_size:int=1, scaler_type:str='identity', random_seed:int=1,
->         drop_last_loader:bool=False, optimizer=None,
->         optimizer_kwargs=None, lr_scheduler=None,
+>         drop_last_loader:bool=False, alias:Optional[str]=None,
+>         optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
 >         lr_scheduler_kwargs=None, dataloader_kwargs=None,
 >         **trainer_kwargs)
 > ```
@@ -131,7 +131,7 @@ series in each batch.<br/> `valid_batch_size`: int=None, number of
 different series in each validation and test batch, if None uses
 batch_size.<br/> `windows_batch_size`: int=1024, number of windows to
 sample in each training batch, default uses all.<br/>
-`inference_windows_batch_size`: int=-1, number of windows to sample in
+`inference_windows_batch_size`: int=1024, number of windows to sample in
 each inference batch, -1 uses all.<br/> `start_padding_enabled`:
 bool=False, if True, the model will pad the time series with zeros at
 the beginning, by input size.<br/> `step_size`: int=1, step size between
@@ -200,7 +200,7 @@ size for temporal cross-validation.<br/>\*
 
 > ``` text
 >  BiTCN.predict (dataset, test_size=None, step_size=1, random_seed=None,
->                 **data_module_kwargs)
+>                 quantiles=None, **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -215,8 +215,9 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:
 int=None, random_seed for pytorch initializer and numpy generators,
-overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
-TimeSeriesDataModule args, see
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
@@ -226,8 +227,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import BiTCN
 from neuralforecast.losses.pytorch import GMM
+from neuralforecast.models import BiTCN
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
@@ -237,15 +238,18 @@ fcst = NeuralForecast(
     models=[
             BiTCN(h=12,
                 input_size=24,
-                loss=GMM(n_components=7, return_params=True, level=[80,90]),
+                loss=GMM(n_components=7, level=[80,90]),
                 max_steps=100,
                 scaler_type='standard',
                 futr_exog_list=['y_[lag12]'],
                 hist_exog_list=None,
                 stat_exog_list=['airline1'],
+                windows_batch_size=2048,
+                val_check_steps=10,
+                early_stop_patience_steps=-1,
                 ),     
     ],
-    freq='M'
+    freq='ME'
 )
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic)
 forecasts = fcst.predict(futr_df=Y_test_df)

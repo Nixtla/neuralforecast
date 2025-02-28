@@ -109,11 +109,6 @@ from neuralforecast.core import NeuralForecast
 from neuralforecast.auto import AutoNHITS
 ```
 
-``` text
-/Users/cchallu/opt/anaconda3/envs/neuralforecast/lib/python3.10/site-packages/tqdm/auto.py:22: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from .autonotebook import tqdm as notebook_tqdm
-```
-
 First, instantiate the model and define the parameters. To instantiate
 [`AutoNHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonhits)
 you need to define:
@@ -184,11 +179,11 @@ crossvalidation_df.head()
 
 |  | unique_id | ds | cutoff | AutoNHITS | y |
 |----|----|----|----|----|----|
-| 0 | ERCOT | 2022-09-01 00:00:00 | 2022-08-31 23:00:00 | 46184.621094 | 45482.471757 |
-| 1 | ERCOT | 2022-09-01 01:00:00 | 2022-08-31 23:00:00 | 44108.359375 | 43602.658043 |
-| 2 | ERCOT | 2022-09-01 02:00:00 | 2022-08-31 23:00:00 | 42990.058594 | 42284.817342 |
-| 3 | ERCOT | 2022-09-01 03:00:00 | 2022-08-31 23:00:00 | 42040.902344 | 41663.156771 |
-| 4 | ERCOT | 2022-09-01 04:00:00 | 2022-08-31 23:00:00 | 42007.972656 | 41710.621904 |
+| 0 | ERCOT | 2022-09-01 00:00:00 | 2022-08-31 23:00:00 | 45841.601562 | 45482.471757 |
+| 1 | ERCOT | 2022-09-01 01:00:00 | 2022-08-31 23:00:00 | 43613.394531 | 43602.658043 |
+| 2 | ERCOT | 2022-09-01 02:00:00 | 2022-08-31 23:00:00 | 41968.945312 | 42284.817342 |
+| 3 | ERCOT | 2022-09-01 03:00:00 | 2022-08-31 23:00:00 | 41038.539062 | 41663.156771 |
+| 4 | ERCOT | 2022-09-01 04:00:00 | 2022-08-31 23:00:00 | 41237.203125 | 41710.621904 |
 
 > **Important**
 >

@@ -23,61 +23,12 @@ alt="Figure 1. Architecture of iTransformer." />
 iTransformer.</figcaption>
 </figure>
 
-# 1. Auxiliary functions
-
-## 1.1 Attention
+# 1. Model
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/vanillatransformer.py#L40"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### FullAttention
-
-> ``` text
->  FullAttention (mask_flag=True, factor=5, scale=None,
->                 attention_dropout=0.1, output_attention=False)
-> ```
-
-*FullAttention*
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/vanillatransformer.py#L27"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### TriangularCausalMask
-
-> ``` text
->  TriangularCausalMask (B, L, device='cpu')
-> ```
-
-*TriangularCausalMask*
-
-## 1.2 Inverted embedding
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L16"
-target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
-
-### DataEmbedding_inverted
-
-> ``` text
->  DataEmbedding_inverted (c_in, hidden_size, dropout=0.1)
-> ```
-
-*DataEmbedding_inverted*
-
-# 2. Model
-
-------------------------------------------------------------------------
-
-<a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/itransformer.py#L105"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/itransformer.py#L24"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### iTransformer
@@ -85,16 +36,19 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ``` text
 >  iTransformer (h, input_size, n_series, futr_exog_list=None,
 >                hist_exog_list=None, stat_exog_list=None,
->                hidden_size:int=512, n_heads:int=8, e_layers:int=2,
->                d_layers:int=1, d_ff:int=2048, factor:int=1,
->                dropout:float=0.1, use_norm:bool=True, loss=MAE(),
->                valid_loss=None, max_steps:int=1000,
->                learning_rate:float=0.001, num_lr_decays:int=-1,
->                early_stop_patience_steps:int=-1, val_check_steps:int=100,
->                batch_size:int=32, step_size:int=1,
+>                exclude_insample_y=False, hidden_size:int=512,
+>                n_heads:int=8, e_layers:int=2, d_layers:int=1,
+>                d_ff:int=2048, factor:int=1, dropout:float=0.1,
+>                use_norm:bool=True, loss=MAE(), valid_loss=None,
+>                max_steps:int=1000, learning_rate:float=0.001,
+>                num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
+>                val_check_steps:int=100, batch_size:int=32,
+>                valid_batch_size:Optional[int]=None, windows_batch_size=32,
+>                inference_windows_batch_size=32,
+>                start_padding_enabled=False, step_size:int=1,
 >                scaler_type:str='identity', random_seed:int=1,
->                drop_last_loader:bool=False, optimizer=None,
->                optimizer_kwargs=None, lr_scheduler=None,
+>                drop_last_loader:bool=False, alias:Optional[str]=None,
+>                optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
 >                lr_scheduler_kwargs=None, dataloader_kwargs=None,
 >                **trainer_kwargs)
 > ```
@@ -106,13 +60,16 @@ autorregresive inputs size, y=\[1,2,3,4\] input_size=2 -\>
 y\_\[t-2:t\]=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
 `futr_exog_list`: str list, future exogenous columns.<br/>
 `hist_exog_list`: str list, historic exogenous columns.<br/>
-`stat_exog_list`: str list, static exogenous columns.<br/> `hidden_size`:
-int, dimension of the model.<br/> `n_heads`: int, number of heads.<br/>
-`e_layers`: int, number of encoder layers.<br/> `d_layers`: int, number
-of decoder layers.<br/> `d_ff`: int, dimension of fully-connected
-layer.<br/> `factor`: int, attention factor.<br/> `dropout`: float,
-dropout rate.<br/> `use_norm`: bool, whether to normalize or not.<br/>
-`loss`: PyTorch module, instantiated train loss class from [losses
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`exclude_insample_y`: bool=False, the model skips the autoregressive
+features y\[t-input_size:t\] if True.<br/>  
+`hidden_size`: int, dimension of the model.<br/> `n_heads`: int, number
+of heads.<br/> `e_layers`: int, number of encoder layers.<br/> `d_layers`:
+int, number of decoder layers.<br/> `d_ff`: int, dimension of
+fully-connected layer.<br/> `factor`: int, attention factor.<br/>
+`dropout`: float, dropout rate.<br/> `use_norm`: bool, whether to
+normalize or not.<br/> `loss`: PyTorch module, instantiated train loss
+class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
@@ -124,8 +81,15 @@ distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
 Number of validation iterations before early stopping.<br/>
 `val_check_steps`: int=100, Number of training steps between every
 validation loss check.<br/> `batch_size`: int=32, number of different
-series in each batch.<br/> `step_size`: int=1, step size between each
-window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=32, number of windows to
+sample in each training batch, default uses all.<br/>
+`inference_windows_batch_size`: int=32, number of windows to sample in
+each inference batch, -1 uses all.<br/> `start_padding_enabled`:
+bool=False, if True, the model will pad the time series with zeros at
+the beginning, by input size.<br/> `step_size`: int=1, step size between
+each window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
 scaler for temporal inputs normalization see [temporal
 scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 `random_seed`: int=1, random_seed for pytorch initializer and numpy
@@ -179,7 +143,9 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>\*
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -187,7 +153,8 @@ see
 
 > ``` text
 >  iTransformer.predict (dataset, test_size=None, step_size=1,
->                        random_seed=None, **data_module_kwargs)
+>                        random_seed=None, quantiles=None,
+>                        **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -200,11 +167,14 @@ Neural network prediction with PL’s `Trainer` execution of
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>
-`step_size`: int=1, Step size between each window.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
-# 3. Usage example
+# 2. Usage example
 
 ```python
 import pandas as pd
@@ -232,9 +202,10 @@ model = iTransformer(h=12,
                      loss=MSE(),
                      valid_loss=MAE(),
                      early_stop_patience_steps=3,
-                     batch_size=32)
+                     batch_size=32,
+                     max_steps=100)
 
-fcst = NeuralForecast(models=[model], freq='M')
+fcst = NeuralForecast(models=[model], freq='ME')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 

@@ -25,14 +25,14 @@ You can run these experiments using GPU with Google Colab.
 ## 1. Installing NeuralForecast
 
 ```python
-!pip install git+https://github.com/Nixtla/neuralforecast.git
+!pip install neuralforecast
 ```
 
 
 ```python
+import logging
 import numpy as np
 import pandas as pd
-from sklearn import datasets
 
 import matplotlib.pyplot as plt
 from random import random
@@ -45,7 +45,13 @@ from neuralforecast.utils import AirPassengersDF
 from neuralforecast.models import NHITS
 from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, HuberMQLoss
 
-from neuralforecast.losses.numpy import mape, mqloss
+from utilsforecast.losses import mape, mqloss
+from utilsforecast.evaluation import evaluate
+```
+
+
+```python
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 ```
 
 ## 2. Loading Noisy AirPassengers
@@ -67,7 +73,7 @@ plt.xlabel('Timestamp [t]')
 plt.grid()
 ```
 
-![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-4-output-1.png)
+![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
 
 ```python
 # Here we add some artificial outliers to AirPassengers
@@ -75,7 +81,7 @@ seed(1)
 for i in range(len(Y_df)):
     factor = randint(2, 4)
     if random() > 0.97:
-        Y_df.y[i] += factor * Y_df.y.std()
+        Y_df.loc[i, "y"] += factor * Y_df["y"].std()
 
 plt.plot(Y_df.y)
 plt.ylabel('Monthly Passengers + Noise')
@@ -83,30 +89,30 @@ plt.xlabel('Timestamp [t]')
 plt.grid()
 ```
 
-![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
+![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-6-output-1.png)
 
 ```python
 # Split datasets into train/test 
 # Last 12 months for test
-Y_train_df = Y_df.groupby('unique_id').head(-12).reset_index()
-Y_test_df = Y_df.groupby('unique_id').tail(12).reset_index()
+Y_train_df = Y_df.groupby('unique_id').head(-12)
+Y_test_df = Y_df.groupby('unique_id').tail(12)
 Y_test_df
 ```
 
-|     | index | unique_id | ds         | y     |
-|-----|-------|-----------|------------|-------|
-| 0   | 132   | 1.0       | 1960-01-31 | 417.0 |
-| 1   | 133   | 1.0       | 1960-02-29 | 391.0 |
-| 2   | 134   | 1.0       | 1960-03-31 | 419.0 |
-| 3   | 135   | 1.0       | 1960-04-30 | 461.0 |
-| 4   | 136   | 1.0       | 1960-05-31 | 472.0 |
-| 5   | 137   | 1.0       | 1960-06-30 | 535.0 |
-| 6   | 138   | 1.0       | 1960-07-31 | 622.0 |
-| 7   | 139   | 1.0       | 1960-08-31 | 606.0 |
-| 8   | 140   | 1.0       | 1960-09-30 | 508.0 |
-| 9   | 141   | 1.0       | 1960-10-31 | 461.0 |
-| 10  | 142   | 1.0       | 1960-11-30 | 390.0 |
-| 11  | 143   | 1.0       | 1960-12-31 | 432.0 |
+|     | unique_id | ds         | y     |
+|-----|-----------|------------|-------|
+| 132 | 1.0       | 1960-01-31 | 417.0 |
+| 133 | 1.0       | 1960-02-29 | 391.0 |
+| 134 | 1.0       | 1960-03-31 | 419.0 |
+| 135 | 1.0       | 1960-04-30 | 461.0 |
+| 136 | 1.0       | 1960-05-31 | 472.0 |
+| 137 | 1.0       | 1960-06-30 | 535.0 |
+| 138 | 1.0       | 1960-07-31 | 622.0 |
+| 139 | 1.0       | 1960-08-31 | 606.0 |
+| 140 | 1.0       | 1960-09-30 | 508.0 |
+| 141 | 1.0       | 1960-10-31 | 461.0 |
+| 142 | 1.0       | 1960-11-30 | 390.0 |
+| 143 | 1.0       | 1960-12-31 | 432.0 |
 
 ## 3. Fit and predict robustified NeuralForecast
 
@@ -155,13 +161,13 @@ documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 
 ```python
 horizon = 12
-quantiles = [0.1, 0.25, 0.5, 0.75, 0.9]
+level = [50, 80]
 
 # Try different hyperparmeters to improve accuracy.
 models = [NHITS(h=horizon,                           # Forecast horizon
                 input_size=2 * horizon,              # Length of input sequence
-                loss=HuberMQLoss(quantiles=quantiles),    # Robust Huber Loss
-                valid_loss=MQLoss(quantiles=quantiles),   # Validation signal
+                loss=HuberMQLoss(level=level),    # Robust Huber Loss
+                valid_loss=MQLoss(level=level),   # Validation signal
                 max_steps=500,                       # Number of steps to train
                 dropout_prob_theta=0.6,              # Dropout to robustify vs outlier lag inputs
                 #early_stop_patience_steps=2,        # Early stopping regularization patience
@@ -171,8 +177,8 @@ models = [NHITS(h=horizon,                           # Forecast horizon
           NHITS(h=horizon,
                 input_size=2 * horizon,
                 loss=DistributionLoss(distribution='Normal', 
-                                      quantiles=quantiles), # Classic Normal distribution
-                valid_loss=MQLoss(quantiles=quantiles),
+                                      level=level), # Classic Normal distribution
+                valid_loss=MQLoss(level=level),
                 max_steps=500,
                 #early_stop_patience_steps=2,
                 dropout_prob_theta=0.6,
@@ -185,33 +191,28 @@ nf.fit(df=Y_train_df)
 Y_hat_df = nf.predict()
 ```
 
-``` text
-Global seed set to 1
-Global seed set to 1
-```
 
 ```python
 # By default NeuralForecast produces forecast intervals
 # In this case the lo-x and high-x levels represent the 
 # low and high bounds of the prediction accumulating x% probability
-Y_hat_df = Y_hat_df.reset_index(drop=True)
 Y_hat_df
 ```
 
-|  | ds | Huber-lo-80.0 | Huber-lo-50.0 | Huber-median | Huber-hi-50.0 | Huber-hi-80.0 | Normal | Normal-lo-80.0 | Normal-lo-50.0 | Normal-median | Normal-hi-50.0 | Normal-hi-80.0 |
-|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | 1960-01-31 | 392.046448 | 397.029694 | 402.842377 | 412.451111 | 420.441254 | 370.554321 | -1246.564331 | -466.951233 | 374.260681 | 1214.356934 | 1953.910645 |
-| 1 | 1960-02-29 | 389.217041 | 398.078979 | 411.310669 | 426.811432 | 462.116272 | 431.134827 | -1016.146179 | -376.702576 | 469.389313 | 1195.809082 | 1874.808838 |
-| 2 | 1960-03-31 | 434.787323 | 446.318176 | 456.515533 | 468.646667 | 486.479950 | 469.221069 | -965.224670 | -268.812164 | 455.846985 | 1197.529175 | 1983.282349 |
-| 3 | 1960-04-30 | 435.589081 | 443.395844 | 451.102966 | 458.542328 | 469.953857 | 544.345642 | -1038.976440 | -251.178711 | 535.880615 | 1403.179932 | 2100.239990 |
-| 4 | 1960-05-31 | 442.144714 | 448.320862 | 455.896271 | 466.212524 | 477.713348 | 400.593628 | -1188.452881 | -417.007935 | 426.566284 | 1202.106201 | 2103.583008 |
-| 5 | 1960-06-30 | 505.597168 | 513.204590 | 522.992188 | 535.911987 | 547.264099 | 482.142883 | -1210.700195 | -386.704407 | 484.923767 | 1400.397339 | 2142.133789 |
-| 6 | 1960-07-31 | 566.634033 | 576.086548 | 588.730164 | 602.847534 | 613.312256 | 548.551086 | -1049.558838 | -299.192017 | 578.715820 | 1399.025879 | 2226.514404 |
-| 7 | 1960-08-31 | 554.081116 | 568.410767 | 580.600281 | 594.198730 | 605.851440 | 542.382874 | -1056.719116 | -310.321533 | 543.106689 | 1420.388306 | 2138.160889 |
-| 8 | 1960-09-30 | 503.825928 | 511.493469 | 520.782532 | 530.070435 | 551.331299 | 656.870056 | -957.937927 | -157.202362 | 644.464355 | 1539.134644 | 2261.052490 |
-| 9 | 1960-10-31 | 438.602539 | 445.856720 | 454.243591 | 462.382782 | 487.070221 | 662.375427 | -926.544312 | -206.266907 | 650.127808 | 1537.292480 | 2253.246094 |
-| 10 | 1960-11-30 | 395.615570 | 402.616699 | 417.529083 | 430.389435 | 452.758911 | 499.940247 | -1233.157471 | -397.680908 | 492.310120 | 1396.803711 | 2209.155273 |
-| 11 | 1960-12-31 | 433.402496 | 439.153748 | 448.741119 | 456.206573 | 471.018433 | 458.918365 | -1393.779053 | -589.960815 | 468.123871 | 1448.744263 | 2284.202637 |
+|  | unique_id | ds | Huber-median | Huber-lo-80 | Huber-lo-50 | Huber-hi-50 | Huber-hi-80 | Normal | Normal-median | Normal-lo-80 | Normal-lo-50 | Normal-hi-50 | Normal-hi-80 |
+|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+| 0 | 1.0 | 1960-01-31 | 412.738525 | 401.058044 | 406.131958 | 420.779266 | 432.124268 | 406.459717 | 416.787842 | -124.278656 | 135.413223 | 680.997070 | 904.871765 |
+| 1 | 1.0 | 1960-02-29 | 403.913544 | 384.403534 | 391.904419 | 420.288208 | 469.040375 | 399.827148 | 418.305725 | -137.291870 | 103.988327 | 661.940430 | 946.699219 |
+| 2 | 1.0 | 1960-03-31 | 472.311523 | 446.644531 | 460.767334 | 486.710999 | 512.552979 | 380.263947 | 378.253998 | -105.411003 | 117.415565 | 647.887695 | 883.611633 |
+| 3 | 1.0 | 1960-04-30 | 460.996674 | 444.471039 | 452.971802 | 467.544189 | 480.843903 | 432.131378 | 442.395844 | -104.205200 | 135.457123 | 729.306885 | 974.661743 |
+| 4 | 1.0 | 1960-05-31 | 465.534790 | 452.048889 | 457.472626 | 476.141022 | 490.311005 | 417.186279 | 417.956543 | -117.399597 | 150.915833 | 692.936523 | 930.934814 |
+| 5 | 1.0 | 1960-06-30 | 538.116028 | 518.049866 | 527.238159 | 551.501709 | 563.818848 | 444.510834 | 440.168396 | -54.501572 | 189.301392 | 703.502014 | 946.068909 |
+| 6 | 1.0 | 1960-07-31 | 613.937866 | 581.048035 | 597.368408 | 629.111450 | 645.550659 | 423.707275 | 431.251526 | -97.069489 | 164.821259 | 687.764526 | 942.432251 |
+| 7 | 1.0 | 1960-08-31 | 616.188660 | 581.982300 | 599.544128 | 632.137512 | 643.219543 | 386.655823 | 383.755157 | -134.702011 | 139.954285 | 658.973022 | 897.393494 |
+| 8 | 1.0 | 1960-09-30 | 537.559143 | 513.477478 | 526.664856 | 551.563293 | 573.146667 | 388.874817 | 379.827057 | -139.859344 | 110.772484 | 673.086182 | 926.355774 |
+| 9 | 1.0 | 1960-10-31 | 471.107605 | 449.207916 | 459.288025 | 486.402985 | 515.082458 | 401.483643 | 412.114990 | -185.928085 | 95.805717 | 703.490784 | 970.837830 |
+| 10 | 1.0 | 1960-11-30 | 412.758423 | 389.203308 | 398.727295 | 431.723602 | 451.208588 | 425.829895 | 425.018799 | -172.022018 | 108.840889 | 723.424011 | 1035.656128 |
+| 11 | 1.0 | 1960-12-31 | 457.254761 | 438.565582 | 446.097168 | 468.809296 | 483.967865 | 406.916595 | 399.852051 | -199.963684 | 110.715050 | 729.735107 | 951.728577 |
 
 ## 4. Plot and Evaluate Predictions
 
@@ -232,53 +233,38 @@ ax.legend(prop={'size': 15})
 ax.grid()
 ```
 
-![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-9-output-1.png)
+![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-10-output-1.png)
 
 To evaluate the median predictions we use the mean average percentage
 error (MAPE), defined as follows:
 
 $$\mathrm{MAPE}(\mathbf{y}_{\tau}, \hat{\mathbf{y}}_{\tau}) = \mathrm{mean}\left(\frac{|\mathbf{y}_{\tau}-\hat{\mathbf{y}}_{\tau}|}{|\mathbf{y}_{\tau}|}\right)$$
 
-```python
-#from neuralforecast.losses.numpy import mape, mqloss
-
-huber_mae = mape(y=Y_test_df['y'], y_hat=Y_hat_df['Huber-median'])
-normal_mae = mape(y=Y_test_df['y'], y_hat=Y_hat_df['Normal-median'])
-
-print(f'Huber MAPE: {huber_mae:.1%}')
-print(f'Normal MAPE: {normal_mae:.1%}')
-```
-
-``` text
-Huber MAPE: 4.2%
-Normal MAPE: 16.2%
-```
-
 To evaluate the coherent probabilistic predictions we use the Continuous
 Ranked Probability Score (CRPS), defined as follows:
 
 $$\mathrm{CRPS}(\hat{F}_{\tau},\mathbf{y}_{\tau}) = \int^{1}_{0} \mathrm{QL}(\hat{F}_{\tau}, y_{\tau})_{q} dq$$
 
-As you can see robust regression improvements can reflect in the
-probabilistic forecasts too.
+As you can see, robust regression improvements reflect in both the
+normal and probabilistic forecast setting.
 
 ```python
-huber_qcols = ['Huber-lo-80.0', 'Huber-lo-50.0',    'Huber-median', 'Huber-hi-50.0', 'Huber-hi-80.0']
-normal_qcols = ['Normal-lo-80.0', 'Normal-lo-50.0', 'Normal-median',    'Normal-hi-50.0', 'Normal-hi-80.0']
+df_metrics = Y_hat_df.merge(Y_test_df, on=['ds', 'unique_id'])
+df_metrics.rename(columns={'Huber-median': 'Huber'}, inplace=True)
 
-huber_crps = mqloss(y=Y_test_df['y'], y_hat=Y_hat_df[huber_qcols], 
-                   quantiles=np.array(quantiles))
-normal_crps = mqloss(y=Y_test_df['y'], y_hat=Y_hat_df[normal_qcols], 
-                    quantiles=np.array(quantiles))
+metrics = evaluate(df_metrics,
+                   metrics=[mape, mqloss],
+                   models=['Huber', 'Normal'],
+                   level = [50, 80],
+                   agg_fn="mean")
 
-print(f'Huber CRPS: {huber_crps:.4}')
-print(f'Normal CRPS: {normal_crps:.4}')
+metrics
 ```
 
-``` text
-Huber CRPS: 6.139
-Normal CRPS: 157.5
-```
+|     | metric | Huber    | Normal    |
+|-----|--------|----------|-----------|
+| 0   | mape   | 0.034726 | 0.140207  |
+| 1   | mqloss | 5.511535 | 61.891651 |
 
 ## References
 

@@ -93,8 +93,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >            windows_batch_size=64, inference_windows_batch_size=256,
 >            start_padding_enabled=False, step_size:int=1,
 >            scaler_type:str='standard', random_seed:int=1,
->            drop_last_loader:bool=False, optimizer=None,
->            optimizer_kwargs=None, lr_scheduler=None,
+>            drop_last_loader:bool=False, alias:Optional[str]=None,
+>            optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
 >            lr_scheduler_kwargs=None, dataloader_kwargs=None,
 >            **trainer_kwargs)
 > ```
@@ -102,44 +102,64 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 \*TimesNet
 
 The TimesNet univariate model tackles the challenge of modeling multiple
-intraperiod and interperiod temporal variations.\*
+intraperiod and interperiod temporal variations.
 
-|  | **Type** | **Default** | **Details** |
-|------|------------------|-------------------------|-------------------------|
-| h | int |  | Forecast horizon. |
-| input_size | int |  | Length of input window (lags). |
-| stat_exog_list | NoneType | None | Static exogenous columns. |
-| hist_exog_list | NoneType | None | Historic exogenous columns. |
-| futr_exog_list | NoneType | None | Future exogenous columns. |
-| exclude_insample_y | bool | False | The model skips the autoregressive features y\[t-input_size:t\] if True |
-| hidden_size | int | 64 | Size of embedding for embedding and encoders. |
-| dropout | float | 0.1 | Dropout for embeddings.<br/>conv_hidden_size: int (default=64)<br/>Channels of the Inception block. |
-| conv_hidden_size | int | 64 |  |
-| top_k | int | 5 |  |
-| num_kernels | int | 6 |  |
-| encoder_layers | int | 2 | Number of encoder layers. |
-| loss | MAE | MAE() |  |
-| valid_loss | NoneType | None |  |
-| max_steps | int | 1000 |  |
-| learning_rate | float | 0.0001 | Learning rate. |
-| num_lr_decays | int | -1 |  |
-| early_stop_patience_steps | int | -1 | Number of validation iterations before early stopping. If -1, no early stopping is performed. |
-| val_check_steps | int | 100 | Number of training steps between every validation loss check. |
-| batch_size | int | 32 | Number of different series in each batch. |
-| valid_batch_size | Optional | None | Number of different series in each validation and test batch, if None uses batch_size. |
-| windows_batch_size | int | 64 | Number of windows to sample in each training batch. |
-| inference_windows_batch_size | int | 256 | Number of windows to sample in each inference batch. |
-| start_padding_enabled | bool | False | If True, the model will pad the time series with zeros at the beginning by input size. |
-| step_size | int | 1 |  |
-| scaler_type | str | standard | Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/> |
-| random_seed | int | 1 | Random_seed for pytorch initializer and numpy generators. |
-| drop_last_loader | bool | False | If True `TimeSeriesDataLoader` drops last non-full batch. |
-| optimizer | NoneType | None |  |
-| optimizer_kwargs | NoneType | None |  |
-| lr_scheduler | NoneType | None |  |
-| lr_scheduler_kwargs | NoneType | None |  |
-| dataloader_kwargs | NoneType | None |  |
-| trainer_kwargs |  |  |  |
+**Parameters**<br/> `h` : int, Forecast horizon.<br/> `input_size` : int,
+Length of input window (lags).<br/> `stat_exog_list` : list of str,
+optional (default=None), Static exogenous columns.<br/> `hist_exog_list`
+: list of str, optional (default=None), Historic exogenous columns.<br/>
+`futr_exog_list` : list of str, optional (default=None), Future
+exogenous columns.<br/> `exclude_insample_y` : bool (default=False), The
+model skips the autoregressive features y\[t-input_size:t\] if True.<br/>
+`hidden_size` : int (default=64), Size of embedding for embedding and
+encoders.<br/> `dropout` : float between \[0, 1) (default=0.1), Dropout
+for embeddings.<br/> `conv_hidden_size`: int (default=64), Channels of
+the Inception block.<br/> `top_k`: int (default=5), Number of
+periods.<br/> `num_kernels`: int (default=6), Number of kernels for the
+Inception block.<br/> `encoder_layers` : int, (default=2), Number of
+encoder layers.<br/> `loss`: PyTorch module (default=MAE()), Instantiated
+train loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+`valid_loss`: PyTorch module (default=None, uses loss), Instantiated
+validation loss class from [losses
+collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
+`max_steps`: int (default=1000), Maximum number of training steps.<br/>
+`learning_rate` : float (default=1e-4), Learning rate.<br/>
+`num_lr_decays`: int (default=-1), Number of learning rate decays,
+evenly distributed across max_steps. If -1, no learning rate decay is
+performed.<br/> `early_stop_patience_steps` : int (default=-1), Number of
+validation iterations before early stopping. If -1, no early stopping is
+performed.<br/> `val_check_steps` : int (default=100), Number of training
+steps between every validation loss check.<br/> `batch_size` : int
+(default=32), Number of different series in each batch.<br/>
+`valid_batch_size` : int (default=None), Number of different series in
+each validation and test batch, if None uses batch_size.<br/>
+`windows_batch_size` : int (default=64), Number of windows to sample in
+each training batch.<br/> `inference_windows_batch_size` : int
+(default=256), Number of windows to sample in each inference batch.<br/>
+`start_padding_enabled` : bool (default=False), If True, the model will
+pad the time series with zeros at the beginning by input size.<br/>
+`step_size` : int (default=1), Step size between each window of temporal
+data.<br/> `scaler_type` : str (default=‘standard’), Type of scaler for
+temporal inputs normalization see [temporal
+scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
+`random_seed` : int (default=1), Random_seed for pytorch initializer and
+numpy generators.<br/> `drop_last_loader` : bool (default=False), If True
+`TimeSeriesDataLoader` drops last non-full batch.<br/> `alias` : str,
+optional (default=None), Custom name of the model.<br/> `optimizer`:
+Subclass of ‘torch.optim.Optimizer’, optional (default=None), User
+specified optimizer instead of the default choice (Adam).<br/>
+`optimizer_kwargs`: dict, optional (defualt=None), List of parameters
+used by the user specified `optimizer`.<br/> `lr_scheduler`: Subclass of
+‘torch.optim.lr_scheduler.LRScheduler’, optional, user specified
+lr_scheduler instead of the default choice (StepLR).<br/>
+`lr_scheduler_kwargs`: dict, optional, list of parameters used by the
+user specified `lr_scheduler`.<br/>  
+`dataloader_kwargs`: dict, optional (default=None), List of parameters
+passed into the PyTorch Lightning dataloader by the
+`TimeSeriesDataLoader`. <br/> `**trainer_kwargs`: Keyword trainer
+arguments inherited from [PyTorch Lighning’s
+trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)\*
 
 ------------------------------------------------------------------------
 
@@ -181,7 +201,7 @@ size for temporal cross-validation.<br/>\*
 
 > ``` text
 >  TimesNet.predict (dataset, test_size=None, step_size=1, random_seed=None,
->                    **data_module_kwargs)
+>                    quantiles=None, **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -196,8 +216,9 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:
 int=None, random_seed for pytorch initializer and numpy generators,
-overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
-TimeSeriesDataModule args, see
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
@@ -208,9 +229,7 @@ import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
 from neuralforecast.losses.pytorch import DistributionLoss
-from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic, augment_calendar_df
-
-AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
@@ -220,16 +239,15 @@ model = TimesNet(h=12,
                  hidden_size = 16,
                  conv_hidden_size = 32,
                  loss=DistributionLoss(distribution='Normal', level=[80, 90]),
-                 futr_exog_list=calendar_cols,
                  scaler_type='standard',
                  learning_rate=1e-3,
-                 max_steps=5,
+                 max_steps=100,
                  val_check_steps=50,
                  early_stop_patience_steps=2)
 
 nf = NeuralForecast(
     models=[model],
-    freq='M'
+    freq='ME'
 )
 nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = nf.predict(futr_df=Y_test_df)

@@ -10,16 +10,16 @@ NeuralForecast currently offers the following models.
 |:------|:--------|:-----------|:--------------------|:-----------|:-------------|
 | [`Autoformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.autoformer.html#autoformer) | [`AutoAutoformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autoautoformer) | Transformer | Univariate | Direct | F |
 | [`BiTCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.bitcn.html#bitcn) | [`AutoBiTCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autobitcn) | CNN | Univariate | Direct | F/H/S |
-| [`DeepAR`](https://nixtlaverse.nixtla.io/neuralforecast/models.deepar.html#deepar) | [`AutoDeepAR`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autodeepar) | RNN | Univariate | Recursive | F/S |
+| [`DeepAR`](https://nixtlaverse.nixtla.io/neuralforecast/models.deepar.html#deepar) | [`AutoDeepAR`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autodeepar) | RNN | Univariate | Direct | F/S |
 | [`DeepNPTS`](https://nixtlaverse.nixtla.io/neuralforecast/models.deepnpts.html#deepnpts) | [`AutoDeepNPTS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autodeepnpts) | MLP | Univariate | Direct | F/H/S |
-| [`DilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html#dilatedrnn) | [`AutoDilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autodilatedrnn) | RNN | Univariate | Recursive | F/H/S |
+| [`DilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html#dilatedrnn) | [`AutoDilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autodilatedrnn) | RNN | Univariate | Direct | F/H/S |
 | [`FEDformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html#fedformer) | [`AutoFEDformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autofedformer) | Transformer | Univariate | Direct | F |
-| [`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru) | [`AutoGRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autogru) | RNN | Univariate | Recursive | F/H/S |
+| [`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru) | [`AutoGRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autogru) | RNN | Univariate | Both<sup>8</sup> | F/H/S |
 | [`HINT`](https://nixtlaverse.nixtla.io/neuralforecast/models.hint.html#hint) | [`AutoHINT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autohint) | Any<sup>7</sup> | Both<sup>7</sup> | Both<sup>7</sup> | F/H/S |
-| [`Informer`](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html#informer) | [`AutoInformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autoinformer) | Transformer | Multivariate | Direct | F |
+| [`Informer`](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html#informer) | [`AutoInformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autoinformer) | Transformer | Univariate | Direct | F |
 | [`iTransformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.itransformer.html#itransformer) | [`AutoiTransformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autoitransformer) | Transformer | Multivariate | Direct | \- |
 | [`KAN`](https://nixtlaverse.nixtla.io/neuralforecast/models.kan.html#kan) | [`AutoKAN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autokan) | KAN | Univariate | Direct | F/H/S |
-| [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm) | [`AutoLSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autolstm) | RNN | Univariate | Recursive | F/H/S |
+| [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm) | [`AutoLSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autolstm) | RNN | Univariate | Both<sup>8</sup> | F/H/S |
 | [`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp) | [`AutoMLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#automlp) | MLP | Univariate | Direct | F/H/S |
 | [`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate) | [`AutoMLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#automlpmultivariate) | MLP | Multivariate | Direct | F/H/S |
 | [`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats) | [`AutoNBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonbeats) | MLP | Univariate | Direct | \- |
@@ -28,15 +28,16 @@ NeuralForecast currently offers the following models.
 | [`NLinear`](https://nixtlaverse.nixtla.io/neuralforecast/models.nlinear.html#nlinear) | [`AutoNLinear`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autonlinear) | MLP | Univariate | Direct | \- |
 | [`PatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html#patchtst) | [`AutoPatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autopatchtst) | Transformer | Univariate | Direct | \- |
 | [`RMoK`](https://nixtlaverse.nixtla.io/neuralforecast/models.rmok.html#rmok) | [`AutoRMoK`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autormok) | KAN | Multivariate | Direct | \- |
-| [`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn) | [`AutoRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autornn) | RNN | Univariate | Recursive | F/H/S |
+| [`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn) | [`AutoRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autornn) | RNN | Univariate | Both<sup>8</sup> | F/H/S |
 | [`SOFTS`](https://nixtlaverse.nixtla.io/neuralforecast/models.softs.html#softs) | [`AutoSOFTS`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autosofts) | MLP | Multivariate | Direct | \- |
 | [`StemGNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html#stemgnn) | [`AutoStemGNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autostemgnn) | GNN | Multivariate | Direct | \- |
-| [`TCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html#tcn) | [`AutoTCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotcn) | CNN | Univariate | Recursive | F/H/S |
+| [`TCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html#tcn) | [`AutoTCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotcn) | CNN | Univariate | Direct | F/H/S |
 | [`TFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html#tft) | [`AutoTFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotft) | Transformer | Univariate | Direct | F/H/S |
 | [`TiDE`](https://nixtlaverse.nixtla.io/neuralforecast/models.tide.html#tide) | [`AutoTiDE`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotide) | MLP | Univariate | Direct | F/H/S |
 | [`TimeMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.timemixer.html#timemixer) | [`AutoTimeMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotimemixer) | MLP | Multivariate | Direct | \- |
 | [`TimeLLM`](https://nixtlaverse.nixtla.io/neuralforecast/models.timellm.html#timellm) | \- | LLM | Univariate | Direct | \- |
 | [`TimesNet`](https://nixtlaverse.nixtla.io/neuralforecast/models.timesnet.html#timesnet) | [`AutoTimesNet`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotimesnet) | CNN | Univariate | Direct | F |
+| [`TimeXer`](https://nixtlaverse.nixtla.io/neuralforecast/models.timexer.html#timexer) | [`AutoTimeXer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotimexer) | Transformer | Multivariate | Direct | F |
 | [`TSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixer.html#tsmixer) | [`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer) | MLP | Multivariate | Direct | \- |
 | [`TSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.tsmixerx.html#tsmixerx) | [`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx) | MLP | Multivariate | Direct | F/H/S |
 | [`VanillaTransformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.vanillatransformer.html#vanillatransformer) | [`AutoVanillaTransformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autovanillatransformer) | Transformer | Univariate | Direct | F |
@@ -72,4 +73,10 @@ NeuralForecast currently offers the following models.
 7.  **HINT** is a modular framework that can combine any type of neural
     architecture with task-specialized mixture probability and advanced
     hierarchical reconciliation strategies.
+8.  Models that can produce forecasts recursively and direct. For
+    example, the RNN model uses an RNN to encode the past sequence, and
+    subsequently the user can choose between producing forecasts
+    recursively using the RNN or direct using an MLP that uses the
+    encoded sequence as input. The models feature an `recursive=False`
+    feature that sets how they produce forecasts.
 

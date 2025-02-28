@@ -14,7 +14,7 @@ title: Core
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L208"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L217"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast
@@ -40,7 +40,7 @@ columns. The `y` column denotes the target time series variable.*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L408"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L418"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.fit
@@ -82,7 +82,7 @@ store fitted models for later inspection.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L777"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L795"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict
@@ -98,6 +98,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                          compat.SparkDataFrame,NoneType]=None,
 >                          verbose:bool=False, engine=None,
 >                          level:Optional[List[Union[int,float]]]=None,
+>                          quantiles:Optional[List[float]]=None,
 >                          **data_kwargs)
 > ```
 
@@ -114,13 +115,14 @@ DataFrame `df`.\*
 | verbose | bool | False | Print processing steps. |
 | engine | NoneType | None | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. |
 | level | Optional | None | Confidence levels between 0 and 100. |
-| data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
+| quantiles | Optional | None | Alternative to level, target quantiles to predict. |
+| data_kwargs | VAR_KEYWORD |  | Extra arguments to be passed to the dataset within each model. |
 | **Returns** | **pandas or polars DataFrame** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1091"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1087"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.cross_validation
@@ -142,7 +144,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >                                   rediction_intervals:Optional[neuralforec
 >                                   ast.utils.PredictionIntervals]=None, lev
 >                                   el:Optional[List[Union[int,float]]]=None
->                                   , **data_kwargs)
+>                                   , quantiles:Optional[List[float]]=None,
+>                                   **data_kwargs)
 > ```
 
 \*Temporal Cross-Validation with core.NeuralForecast.
@@ -166,14 +169,15 @@ rolled manner.\*
 | time_col | str | ds | Column that identifies each timestep, its values can be timestamps or integers. |
 | target_col | str | y | Column that contains the target. |
 | prediction_intervals | Optional | None | Configuration to calibrate prediction intervals (Conformal Prediction). |
-| level | Optional | None | Confidence levels between 0 and 100. Use with prediction_intervals. |
-| data_kwargs | kwargs |  | Extra arguments to be passed to the dataset within each model. |
+| level | Optional | None | Confidence levels between 0 and 100. |
+| quantiles | Optional | None | Alternative to level, target quantiles to predict. |
+| data_kwargs | VAR_KEYWORD |  | Extra arguments to be passed to the dataset within each model. |
 | **Returns** | **Union** |  | **DataFrame with insample `models` columns for point predictions and probabilistic<br/>predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1258"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1260"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.predict_insample
@@ -195,7 +199,7 @@ to predict historic values of a time series from the stored dataframe.\*
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1380"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1407"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -232,7 +236,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1489"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1516"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -249,7 +253,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 |------|------------------|-------------------------|-------------------------|
 | path | str |  | Directory with stored artifacts. |
 | verbose | bool | False |  |
-| kwargs |  |  | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`. |
+| kwargs | VAR_KEYWORD |  | Additional keyword arguments to be passed to the function<br/>`load_from_checkpoint`. |
 | **Returns** | **NeuralForecast** |  | **Instantiated [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast) class.** |
 
 ```python
@@ -322,7 +326,7 @@ for step_size, test_size in [(7, 0), (9, 0), (7, 5), (9, 5)]:
     last_cutoff = train_end - test_size * pd.offsets.MonthEnd() - h * pd.offsets.MonthEnd()
     expected_cutoffs = np.flip(np.array([last_cutoff - step_size * i * pd.offsets.MonthEnd() for i in range(n_expected_cutoffs)]))
     pl_cutoffs = forecasts.filter(polars.col('uid') ==nf.uids[1]).select('cutoff').unique(maintain_order=True)
-    actual_cutoffs = np.array([pd.Timestamp(x['cutoff']) for x in pl_cutoffs.rows(named=True)])
+    actual_cutoffs = np.sort(np.array([pd.Timestamp(x['cutoff']) for x in pl_cutoffs.rows(named=True)]))
     np.testing.assert_array_equal(expected_cutoffs, actual_cutoffs, err_msg=f"{step_size=},{expected_cutoffs=},{actual_cutoffs=}")
 
     # check forecast-points count per series

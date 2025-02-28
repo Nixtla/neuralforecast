@@ -32,20 +32,24 @@ autorregresive inputs.</figcaption>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/mlpmultivariate.py#L14"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/mlpmultivariate.py#L15"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### MLPMultivariate
 
 > ``` text
->  MLPMultivariate (h, input_size, n_series, futr_exog_list=None,
->                   hist_exog_list=None, stat_exog_list=None, num_layers=2,
+>  MLPMultivariate (h, input_size, n_series, stat_exog_list=None,
+>                   hist_exog_list=None, futr_exog_list=None,
+>                   exclude_insample_y=False, num_layers=2,
 >                   hidden_size=1024, loss=MAE(), valid_loss=None,
 >                   max_steps:int=1000, learning_rate:float=0.001,
 >                   num_lr_decays:int=-1, early_stop_patience_steps:int=-1,
 >                   val_check_steps:int=100, batch_size:int=32,
->                   step_size:int=1, scaler_type:str='identity',
->                   random_seed:int=1, drop_last_loader:bool=False,
+>                   valid_batch_size:Optional[int]=None,
+>                   windows_batch_size=32, inference_windows_batch_size=32,
+>                   start_padding_enabled=False, step_size:int=1,
+>                   scaler_type:str='identity', random_seed:int=1,
+>                   drop_last_loader:bool=False, alias:Optional[str]=None,
 >                   optimizer=None, optimizer_kwargs=None,
 >                   lr_scheduler=None, lr_scheduler_kwargs=None,
 >                   dataloader_kwargs=None, **trainer_kwargs)
@@ -65,7 +69,7 @@ considered autorregresive inputs (lags), y=\[1,2,3,4\] input_size=2 -\>
 lags=\[1,2\].<br/> `n_series`: int, number of time-series.<br/>
 `stat_exog_list`: str list, static exogenous columns.<br/>
 `hist_exog_list`: str list, historic exogenous columns.<br/>
-`futr_exog_list`: str list, future exogenous columns.<br/> `n_layers`:
+`futr_exog_list`: str list, future exogenous columns.<br/> `num_layers`:
 int, number of layers for the MLP.<br/> `hidden_size`: int, number of
 units for each layer of the MLP.<br/> `loss`: PyTorch module,
 instantiated train loss class from [losses
@@ -80,8 +84,15 @@ distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1,
 Number of validation iterations before early stopping.<br/>
 `val_check_steps`: int=100, Number of training steps between every
 validation loss check.<br/> `batch_size`: int=32, number of different
-series in each batch.<br/> `step_size`: int=1, step size between each
-window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
+series in each batch.<br/> `valid_batch_size`: int=None, number of
+different series in each validation and test batch, if None uses
+batch_size.<br/> `windows_batch_size`: int=32, number of windows to
+sample in each training batch, default uses all.<br/>
+`inference_windows_batch_size`: int=32, number of windows to sample in
+each inference batch, -1 uses all.<br/> `start_padding_enabled`:
+bool=False, if True, the model will pad the time series with zeros at
+the beginning, by input size.<br/> `step_size`: int=1, step size between
+each window of temporal data.<br/> `scaler_type`: str=‘identity’, type of
 scaler for temporal inputs normalization see [temporal
 scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br/>
 `random_seed`: int=1, random_seed for pytorch initializer and numpy
@@ -130,7 +141,9 @@ disk memory, to get them change `enable_checkpointing=True` in
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `val_size`: int, validation size for temporal cross-validation.<br/>
-`test_size`: int, test size for temporal cross-validation.<br/>\*
+`random_seed`: int=None, random_seed for pytorch initializer and numpy
+generators, overwrites model.\_\_init\_\_’s.<br/> `test_size`: int, test
+size for temporal cross-validation.<br/>\*
 
 ------------------------------------------------------------------------
 
@@ -138,7 +151,8 @@ see
 
 > ``` text
 >  MLPMultivariate.predict (dataset, test_size=None, step_size=1,
->                           random_seed=None, **data_module_kwargs)
+>                           random_seed=None, quantiles=None,
+>                           **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -151,7 +165,10 @@ Neural network prediction with PL’s `Trainer` execution of
 see
 [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).<br/>
 `test_size`: int=None, test size for temporal cross-validation.<br/>
-`step_size`: int=1, Step size between each window.<br/>
+`step_size`: int=1, Step size between each window.<br/> `random_seed`:
+int=None, random_seed for pytorch initializer and numpy generators,
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
 `**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
@@ -177,17 +194,19 @@ model = MLPMultivariate(h=12,
             loss = MAE(),
             scaler_type='robust',
             learning_rate=1e-3,
+            stat_exog_list=['airline1'],
             max_steps=200,
             val_check_steps=10,
             early_stop_patience_steps=2)
 
 fcst = NeuralForecast(
     models=[model],
-    freq='M'
+    freq='ME'
 )
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 forecasts = fcst.predict(futr_df=Y_test_df)
 
+# Plot predictions
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])

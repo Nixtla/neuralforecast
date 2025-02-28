@@ -31,8 +31,7 @@ You can run these experiments using GPU with Google Colab.
 ## 1. Installing Libraries
 
 ```python
-# %%capture
-# !pip install datasetsforecast neuralforecast
+!pip install datasetsforecast neuralforecast
 ```
 
 
@@ -123,7 +122,8 @@ models = [NHITS(input_size=5 * horizon,
                 batch_size = 32,
                 scaler_type='standard',
                 n_freq_downsample=[12,4,1],
-                enable_progress_bar=False
+                enable_progress_bar=False,
+                interpolation_mode="nearest",
                )]
 nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df)
@@ -151,6 +151,8 @@ fcst2 = NeuralForecast.load(path='./results/transfer/')
 ```
 
 ``` text
+c:\Nixtla\Repositories\neuralforecast\neuralforecast\common\_base_model.py:133: UserWarning: NHITS is a univariate model. Parameter n_series is ignored.
+  warnings.warn(
 INFO:lightning_fabric.utilities.seed:Seed set to 1
 ```
 
@@ -172,11 +174,11 @@ Y_hat_df.head()
 
 |     | unique_id | ds         | NHITS      |
 |-----|-----------|------------|------------|
-| 0   | 1.0       | 1960-01-31 | 416.846130 |
-| 1   | 1.0       | 1960-02-29 | 396.173950 |
-| 2   | 1.0       | 1960-03-31 | 452.131226 |
-| 3   | 1.0       | 1960-04-30 | 459.571442 |
-| 4   | 1.0       | 1960-05-31 | 464.970917 |
+| 0   | 1.0       | 1960-01-31 | 422.038757 |
+| 1   | 1.0       | 1960-02-29 | 424.678040 |
+| 2   | 1.0       | 1960-03-31 | 439.538879 |
+| 3   | 1.0       | 1960-04-30 | 447.967072 |
+| 4   | 1.0       | 1960-05-31 | 470.603333 |
 
 ```python
 plot_series(Y_train_df, Y_hat_df)
@@ -204,7 +206,7 @@ print('AutoARIMA MAE: 18.551')
 ```
 
 ``` text
-NHITS     MAE: 8.065
+NHITS     MAE: 17.245
 ETS       MAE: 16.222
 AutoARIMA MAE: 18.551
 ```

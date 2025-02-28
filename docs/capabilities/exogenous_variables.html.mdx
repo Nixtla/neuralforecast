@@ -198,30 +198,6 @@ nf = NeuralForecast(models=models, freq='h')
 nf.fit(df=df, static_df=static_df)
 ```
 
-``` text
-Sanity Checking: |                                                                                            …
-```
-
-``` text
-Training: |                                                                                                   …
-```
-
-``` text
-Validation: |                                                                                                 …
-```
-
-``` text
-Sanity Checking: |                                                                                            …
-```
-
-``` text
-Training: |                                                                                                   …
-```
-
-``` text
-Validation: |                                                                                                 …
-```
-
 ## 4. Forecasting with exogenous variables
 
 Before predicting the prices, we need to gather the future exogenous
@@ -260,20 +236,20 @@ Y_hat_df.head()
 ```
 
 ``` text
-Predicting: |                                                                                                 …
+Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
 ``` text
-Predicting: |                                                                                                 …
+Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
 |     | unique_id | ds                  | NHITS     | BiTCN     |
 |-----|-----------|---------------------|-----------|-----------|
-| 0   | BE        | 2016-11-01 00:00:00 | 35.209274 | 42.024925 |
-| 1   | BE        | 2016-11-01 01:00:00 | 32.382507 | 39.388638 |
-| 2   | BE        | 2016-11-01 02:00:00 | 30.190483 | 36.652863 |
-| 3   | BE        | 2016-11-01 03:00:00 | 27.577364 | 33.873573 |
-| 4   | BE        | 2016-11-01 04:00:00 | 24.209377 | 35.039787 |
+| 0   | BE        | 2016-11-01 00:00:00 | 35.297050 | 41.957176 |
+| 1   | BE        | 2016-11-01 01:00:00 | 32.350044 | 39.419579 |
+| 2   | BE        | 2016-11-01 02:00:00 | 30.091702 | 36.313972 |
+| 3   | BE        | 2016-11-01 03:00:00 | 27.317764 | 34.002922 |
+| 4   | BE        | 2016-11-01 04:00:00 | 24.316488 | 35.002541 |
 
 ```python
 plot_series(df, Y_hat_df, max_insample_length=24*5)

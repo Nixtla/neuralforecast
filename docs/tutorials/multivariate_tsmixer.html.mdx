@@ -133,7 +133,7 @@ import logging
 import torch
 from neuralforecast.core import NeuralForecast
 from neuralforecast.models import TSMixer, TSMixerx, NHITS, MLPMultivariate
-from neuralforecast.losses.pytorch import MSE, MAE
+from neuralforecast.losses.pytorch import MAE
 ```
 
 
@@ -190,13 +190,6 @@ models = [
                 random_seed=12345678,
                 ),                                                                       
          ]
-```
-
-``` text
-INFO:lightning_fabric.utilities.seed:Seed set to 12345678
-INFO:lightning_fabric.utilities.seed:Seed set to 12345678
-INFO:lightning_fabric.utilities.seed:Seed set to 12345678
-INFO:lightning_fabric.utilities.seed:Seed set to 12345678
 ```
 
 > **Tip**
@@ -271,8 +264,8 @@ evaluate(Y_hat_df.drop(columns='cutoff'), metrics=[mae, mse], agg_fn='mean')
 
 |     | metric | TSMixer  | TSMixerx | MLPMultivariate | NHITS    |
 |-----|--------|----------|----------|-----------------|----------|
-| 0   | mae    | 0.249628 | 0.258297 | 0.329494        | 0.250723 |
-| 1   | mse    | 0.163704 | 0.171751 | 0.271666        | 0.178045 |
+| 0   | mae    | 0.245435 | 0.249727 | 0.263579        | 0.251008 |
+| 1   | mse    | 0.162566 | 0.163098 | 0.176594        | 0.178864 |
 
 For reference, we can check the performance when compared to
 self-reported performance in the paper. We find that
@@ -296,7 +289,7 @@ Mean Absolute Error (MAE)
 
 | Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) | MLPMultivariate <br/>(this notebook) |
 |-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| 96 | **0.250** | 0.252 | 0.257 | 0.251 | 0.255 | 0.322 |
+| 96 | **0.245** | 0.252 | 0.250 | 0.251 | 0.251 | 0.263 |
 | 192 | **0.288** | 0.290 | 0.300 | 0.291 | 0.305 | 0.361 |
 | 336 | **0.323** | 0.324 | 0.380 | 0.344 | 0.346 | 0.390 |
 | 720 | **0.377** | 0.422 | 0.464 | 0.417 | 0.413 | 0.608 |
@@ -305,7 +298,7 @@ Mean Squared Error (MSE)
 
 | Horizon | TSMixer<br/> (this notebook) | TSMixer <br/>(paper) | TSMixerx<br/> (this notebook) | NHITS <br/>(this notebook) | NHITS <br/>(paper) | MLPMultivariate <br/>(this notebook) |
 |-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| 96 | **0.163** | **0.163** | 0.170 | 0.179 | 0.176 | 0.255 |
+| 96 | **0.163** | **0.163** | 0.163 | 0.179 | 0.179 | 0.177 |
 | 192 | 0.220 | **0.216** | 0.231 | 0.239 | 0.245 | 0.330 |
 | 336 | 0.272 | **0.268** | 0.361 | 0.311 | 0.295 | 0.376 |
 | 720 | **0.356** | 0.420 | 0.493 | 0.451 | 0.401 | 3.421 |
@@ -455,12 +448,12 @@ nf.models[0].results.get_best_result().config
 
 ``` text
 {'input_size': 512,
- 'max_steps': 1000,
+ 'max_steps': 2000,
  'val_check_steps': 100,
  'early_stop_patience_steps': 5,
- 'learning_rate': 0.00024275041730929272,
- 'n_block': 2,
- 'dropout': 0.8899345956647728,
+ 'learning_rate': 0.00034884229033995355,
+ 'n_block': 4,
+ 'dropout': 0.7592667651473878,
  'ff_dim': 128,
  'scaler_type': 'identity',
  'n_series': 7,
@@ -478,13 +471,13 @@ nf.models[1].results.get_best_result().config
 
 ``` text
 {'input_size': 512,
- 'max_steps': 500,
+ 'max_steps': 2000,
  'val_check_steps': 100,
  'early_stop_patience_steps': 5,
- 'learning_rate': 0.0011655141874392031,
- 'n_block': 1,
- 'dropout': 0.19394679511018112,
- 'ff_dim': 32,
+ 'learning_rate': 0.00019039338576148522,
+ 'n_block': 6,
+ 'dropout': 0.5902743834953548,
+ 'ff_dim': 128,
  'scaler_type': 'identity',
  'futr_exog_list': ('ex_1', 'ex_2', 'ex_3', 'ex_4'),
  'n_series': 7,
@@ -506,8 +499,8 @@ evaluate(Y_hat_df.drop(columns='cutoff'), metrics=[mae, mse], agg_fn='mean')
 
 |     | metric | AutoTSMixer | AutoTSMixerx |
 |-----|--------|-------------|--------------|
-| 0   | mae    | 0.248598    | 0.260330     |
-| 1   | mse    | 0.162815    | 0.175015     |
+| 0   | mae    | 0.243749    | 0.251972     |
+| 1   | mse    | 0.162212    | 0.164347     |
 
 We can compare the error metrics for our optimized setting to the
 earlier setting in which we used the default hyperparameters. In this
@@ -524,8 +517,8 @@ architecture for a horizon of 96.
 
 | Metric | TSMixer<br/> (optimized) | TSMixer <br/>(default) | TSMixer <br/>(paper) | TSMixerx<br/> (optimized) | TSMixerx <br/>(default) |
 |------------|------------|------------|------------|------------|------------|
-| MAE | **0.247** | 0.250 | 0.252 | 0.258 | 0.257 |
-| MSE | **0.162** | 0.163 | 0.163 | 0.174 | 0.170 |
+| MAE | **0.244** | 0.245 | 0.252 | 0.252 | 0.250 |
+| MSE | **0.162** | 0.163 | 0.163 | 0.164 | 0.163 |
 
 Note that we only evaluated 10 hyperparameter configurations
 (`num_samples=10`), which may suggest that it is possible to further

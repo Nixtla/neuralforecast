@@ -45,7 +45,7 @@ You can run these experiments using GPU with Google Colab.
 ## 1. Install `Neuralforecast`
 
 ```python
-# !pip install neuralforecast hyperopt
+!pip install neuralforecast hyperopt
 ```
 
 ## 2. Load Data
@@ -227,24 +227,6 @@ nf = NeuralForecast(models=[model], freq='ME')
 nf.fit(df=Y_df, val_size=24)
 ```
 
-``` text
-2024-11-26 22:33:17,185 INFO worker.py:1786 -- Started a local Ray instance.
-2024-11-26 22:33:17,935 INFO tune.py:253 -- Initializing Ray automatically. For cluster usage or custom Ray initialization, call `ray.init(...)` before `Tuner(...)`.
-2024-11-26 22:33:17,937 INFO tune.py:616 -- [output] This uses the legacy output and progress reporter, as Jupyter notebooks are not supported by the new engine, yet. For more information, please see https://github.com/ray-project/ray/issues/36949
-2024-11-26 22:33:24,269 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:33:31,283 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:33:39,368 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:33:47,528 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:33:54,273 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (2, 2, 2), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:01,148 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:08,180 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:15,137 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (1, 1, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:21,028 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (24, 12, 1), 'n_pool_kernel_size': (16, 8, 1), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:27,260 INFO tensorboardx.py:308 -- Removed the following hyperparameter values when logging to tensorboard: {'loss': ('__ref_ph', 'de895953'), 'n_freq_downsample': (168, 24, 1), 'n_pool_kernel_size': (2, 2, 2), 'valid_loss': ('__ref_ph', '004b9a7a')}
-2024-11-26 22:34:27,275 INFO tune.py:1009 -- Wrote the latest version of all result files and experiment state to '/home/ubuntu/ray_results/_train_tune_2024-11-26_22-33-16' in 0.0115s.
-Seed set to 3
-```
-
 The results of the hyperparameter tuning are available in the `results`
 attribute of the `Auto` model. Use the `get_dataframe` method to get the
 results in a pandas dataframe.
@@ -401,20 +383,6 @@ the forecasting horizon.
 ```python
 nf = NeuralForecast(models=[model], freq='ME')
 nf.fit(df=Y_df, val_size=24)
-```
-
-``` text
-Seed set to 5
-Seed set to 10
-Seed set to 10
-Seed set to 10
-Seed set to 1
-Seed set to 5
-Seed set to 4
-Seed set to 2
-Seed set to 7
-Seed set to 1
-Seed set to 5
 ```
 
 The results of the hyperparameter tuning are available in the `results`

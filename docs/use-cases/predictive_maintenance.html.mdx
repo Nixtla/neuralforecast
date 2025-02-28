@@ -26,30 +26,28 @@ You can run these experiments using GPU with Google Colab.
 ## 1. Installing Packages
 
 ```python
-# %%capture
-# !pip install git+https://github.com/Nixtla/neuralforecast.git
+!pip install neuralforecast datasetsforecast
 ```
 
 
 ```python
-# %%capture
-# !pip install git+https://github.com/Nixtla/datasetsforecast.git
-```
-
-
-```python
+import logging
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 plt.rcParams['font.family'] = 'serif'
 
-from neuralforecast.models import NBEATSx, MLP
+from neuralforecast.models import NBEATSx
 from neuralforecast import NeuralForecast
-#from neuralforecast.losses.pytorch import DistributionLoss, HuberMQLoss, MQLoss
-from neuralforecast.losses.pytorch import HuberLoss, MAE
+from neuralforecast.losses.pytorch import HuberLoss
 
 from datasetsforecast.phm2008 import PHM2008
+```
+
+
+```python
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 ```
 
 ## 2. Load PHM2008 aircraft degradation dataset
@@ -67,6 +65,13 @@ before failure.
 ```python
 Y_train_df, Y_test_df = PHM2008.load(directory='./data', group='FD001', clip_rul=False)
 Y_train_df
+```
+
+``` text
+100%|██████████| 12.4M/12.4M [00:00<00:00, 21.6MiB/s]
+INFO:datasetsforecast.utils:Successfully downloaded CMAPSSData.zip, 12437405, bytes.
+INFO:datasetsforecast.utils:Decompressing zip file...
+INFO:datasetsforecast.utils:Successfully decompressed data\phm2008\CMAPSSData.zip
 ```
 
 |  | unique_id | ds | s_2 | s_3 | s_4 | s_7 | s_8 | s_9 | s_11 | s_12 | s_13 | s_14 | s_15 | s_17 | s_20 | s_21 | y |
@@ -160,6 +165,10 @@ $$P(y_{t+1}\;|\;x^{(f)}_{:t+1},x^{(s)})$$
 
 ```python
 Y_train_df, Y_test_df = PHM2008.load(directory='./data', group='FD001', clip_rul=True)
+max_ds = Y_train_df.groupby('unique_id')["ds"].max()
+Y_test_df = Y_test_df.merge(max_ds, on='unique_id', how='left', suffixes=('', '_train_max_date'))
+Y_test_df["ds"] = Y_test_df["ds"] + Y_test_df["ds_train_max_date"]
+Y_test_df = Y_test_df.drop(columns=["ds_train_max_date"])
 ```
 
 
@@ -167,7 +176,8 @@ Y_train_df, Y_test_df = PHM2008.load(directory='./data', group='FD001', clip_rul
 futr_exog_list =['s_2', 's_3', 's_4', 's_7', 's_8', 's_9', 's_11',
                  's_12', 's_13', 's_14', 's_15', 's_17', 's_20', 's_21']
 
-model = NBEATSx(h=1, input_size=24,
+model = NBEATSx(h=1, 
+                input_size=24,
                 loss=HuberLoss(),
                 scaler_type='robust',
                 stack_types=['identity', 'identity', 'identity'],
@@ -175,19 +185,10 @@ model = NBEATSx(h=1, input_size=24,
                 futr_exog_list=futr_exog_list,
                 exclude_insample_y = True,
                 max_steps=1000)
-nf = NeuralForecast(models=[model], freq='M')
+nf = NeuralForecast(models=[model], freq=1)
 
 nf.fit(df=Y_train_df)
-Y_hat_df = nf.predict(futr_df=Y_test_df).reset_index() # By default last window?
-```
-
-``` text
-Global seed set to 1
-```
-
-```python
-filter_test_df = Y_test_df.groupby('unique_id').tail(31).reset_index()
-Y_hat_df2 = nf.cross_validation(df=filter_test_df, n_windows=30, fit_models=False)
+Y_hat_df = nf.predict(futr_df=Y_test_df)
 ```
 
 ## 4. Evaluate Predictions
@@ -198,40 +199,23 @@ the predictions to only evaluate the last time cycle.
 
 $$RMSE(\mathbf{y}_{T},\hat{\mathbf{y}}_{T}) = \sqrt{\frac{1}{|\mathcal{D}_{test}|} \sum_{i} (y_{i,T}-\hat{y}_{i,T})^{2}}$$
 
-$$R2(\mathbf{y}_{T},\hat{\mathbf{y}}_{T}) = 1- \frac{\sum_{i} (y_{i,T}-\hat{y}_{i,T})^{2}}{\sum_{i} (y_{i,T}-\bar{y}_{i,T})^{2}}$$
+```python
+from utilsforecast.evaluation import evaluate
+from utilsforecast.losses import rmse
+```
+
 
 ```python
-from sklearn.metrics import r2_score
-from neuralforecast.losses.numpy import rmse
+metrics = evaluate(Y_hat_df.merge(Y_test_df[["unique_id", "ds", "y"]], on=['unique_id', 'ds']),
+                   metrics=[rmse],
+                   agg_fn='mean')
 
-model_name = repr(nf.models[0])
-y_last = Y_test_df[['unique_id', 'y']].groupby('unique_id').last().reset_index()
-y_hat_last = Y_hat_df[['unique_id', model_name]].groupby('unique_id').last().reset_index()
-y_last = y_last['y']
-y_hat_last = y_hat_last[model_name]
-
-rmse_eval = rmse(y=y_last, y_hat=y_hat_last)
-r2_eval = r2_score(y_true=y_last, y_pred=y_hat_last)
-
-print(f'{model_name} Prognosis Evaluation')
-print(f'RMSE:\t {rmse_eval:.3f}')
-print(f'R2:\t {r2_eval:.3f}')
+metrics
 ```
 
-``` text
-NBEATSx Prognosis Evaluation
-RMSE:    4.119
-R2:  0.989
-```
-
-```python
-plt.scatter(y_last, y_hat_last)
-plt.xlabel('True RUL', fontsize=15)
-plt.ylabel('RUL Prediction', fontsize=15)
-plt.grid()
-```
-
-![](/neuralforecast/docs/use-cases/predictive_maintenance_files/figure-markdown_strict/cell-12-output-1.png)
+|     | metric | NBEATSx    |
+|-----|--------|------------|
+| 0   | rmse   | 118.179373 |
 
 ```python
 plot_df1 = Y_hat_df2[Y_hat_df2['unique_id']==1]
@@ -251,7 +235,7 @@ plt.legend()
 plt.grid()
 ```
 
-![](/neuralforecast/docs/use-cases/predictive_maintenance_files/figure-markdown_strict/cell-13-output-1.png)
+![](/neuralforecast/docs/use-cases/predictive_maintenance_files/figure-markdown_strict/cell-12-output-1.png)
 
 ## References
 

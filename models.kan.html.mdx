@@ -48,8 +48,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       scale_noise:float=0.1, scale_base:float=1.0, scale_spline:float=1.0,
 >       enable_standalone_scale_spline:bool=True, grid_eps:float=0.02,
 >       grid_range:list=[-1, 1], n_hidden_layers:int=1,
->       hidden_size:Union[int,list]=512, futr_exog_list=None,
->       hist_exog_list=None, stat_exog_list=None, exclude_insample_y=False,
+>       hidden_size:Union[int,list]=512, stat_exog_list=None,
+>       hist_exog_list=None, futr_exog_list=None, exclude_insample_y=False,
 >       loss=MAE(), valid_loss=None, max_steps:int=1000,
 >       learning_rate:float=0.001, num_lr_decays:int=-1,
 >       early_stop_patience_steps:int=-1, val_check_steps:int=100,
@@ -57,8 +57,9 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 >       windows_batch_size=1024, inference_windows_batch_size=-1,
 >       start_padding_enabled=False, step_size:int=1,
 >       scaler_type:str='identity', random_seed:int=1,
->       drop_last_loader:bool=False, optimizer=None, optimizer_kwargs=None,
->       dataloader_kwargs=None, **trainer_kwargs)
+>       drop_last_loader:bool=False, alias:Optional[str]=None,
+>       optimizer=None, optimizer_kwargs=None, dataloader_kwargs=None,
+>       **trainer_kwargs)
 > ```
 
 \*KAN
@@ -79,16 +80,16 @@ function.<br/> `scale_spline`: float, scaling coefficient for the
 splines.<br/> `enable_standalone_scale_spline`: bool, whether each spline
 is scaled individually.<br/> `grid_eps`: float, used for numerical
 stability.<br/> `grid_range`: list, range of the grid used for spline
-approximation.<br/> `stat_exog_list`: str list, static exogenous
-columns.<br/> `hist_exog_list`: str list, historic exogenous columns.<br/>
+approximation.<br/> `n_hidden_layers`: int, number of hidden layers for
+the KAN.<br/> `hidden_size`: int or list, number of units for each hidden
+layer of the KAN. If an integer, all hidden layers will have the same
+size. Use a list to specify the size of each hidden layer.<br/>  
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`hist_exog_list`: str list, historic exogenous columns.<br/>
 `futr_exog_list`: str list, future exogenous columns.<br/>
 `exclude_insample_y`: bool=False, the model skips the autoregressive
-features y\[t-input_size:t\] if True.<br/> `n_hidden_layers`: int, number
-of hidden layers for the KAN.<br/> `hidden_size`: int or list, number of
-units for each hidden layer of the KAN. If an integer, all hidden layers
-will have the same size. Use a list to specify the size of each hidden
-layer.<br/> `loss`: PyTorch module, instantiated train loss class from
-[losses
+features y\[t-input_size:t\] if True.<br/> `loss`: PyTorch module,
+instantiated train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
@@ -168,7 +169,7 @@ size for temporal cross-validation.<br/>\*
 
 > ``` text
 >  KAN.predict (dataset, test_size=None, step_size=1, random_seed=None,
->               **data_module_kwargs)
+>               quantiles=None, **data_module_kwargs)
 > ```
 
 \*Predict.
@@ -183,8 +184,9 @@ see
 `test_size`: int=None, test size for temporal cross-validation.<br/>
 `step_size`: int=1, Step size between each window.<br/> `random_seed`:
 int=None, random_seed for pytorch initializer and numpy generators,
-overwrites model.\_\_init\_\_’s.<br/> `**data_module_kwargs`: PL’s
-TimeSeriesDataModule args, see
+overwrites model.\_\_init\_\_’s.<br/> `quantiles`: list of floats,
+optional (default=None), target quantiles to predict. <br/>
+`**data_module_kwargs`: PL’s TimeSeriesDataModule args, see
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
@@ -197,7 +199,6 @@ from neuralforecast import NeuralForecast
 from neuralforecast.models import KAN
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-
 
 Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
@@ -214,7 +215,7 @@ fcst = NeuralForecast(
                 stat_exog_list=['airline1'],
                 ),     
     ],
-    freq='M'
+    freq='ME'
 )
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic)
 forecasts = fcst.predict(futr_df=Y_test_df)

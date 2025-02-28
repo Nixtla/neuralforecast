@@ -144,8 +144,8 @@ Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)<br/>
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -162,8 +162,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -184,8 +184,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -202,8 +202,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -223,8 +223,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -241,8 +241,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -263,8 +263,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -281,8 +281,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -295,7 +295,7 @@ evaluation mode. :vartype training: bool\*
 ### AttentionLayer
 
 > ``` text
->  AttentionLayer (attention, hidden_size, n_head, d_keys=None,
+>  AttentionLayer (attention, hidden_size, n_heads, d_keys=None,
 >                  d_values=None)
 > ```
 
@@ -303,8 +303,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -321,14 +321,78 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
 
 :ivar training: Boolean represents whether this module is in training or
 evaluation mode. :vartype training: bool\*
+
+------------------------------------------------------------------------
+
+### FullAttention
+
+> ``` text
+>  FullAttention (mask_flag=True, factor=5, scale=None,
+>                 attention_dropout=0.1, output_attention=False)
+> ```
+
+\*Base class for all neural network modules.
+
+Your models should also subclass this class.
+
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
+
+``` text
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Model(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 20, 5)
+        self.conv2 = nn.Conv2d(20, 20, 5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        return F.relu(self.conv2(x))
+```
+
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
+
+.. note:: As per the example above, an `__init__()` call to the parent
+class must be made before assignment on the child.
+
+:ivar training: Boolean represents whether this module is in training or
+evaluation mode. :vartype training: bool\*
+
+------------------------------------------------------------------------
+
+### TriangularCausalMask
+
+> ``` text
+>  TriangularCausalMask (B, L, device='cpu')
+> ```
+
+*TriangularCausalMask*
+
+------------------------------------------------------------------------
+
+<a
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/softs.py#L17"
+target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
+
+### DataEmbedding_inverted
+
+> ``` text
+>  DataEmbedding_inverted (c_in, hidden_size, dropout=0.1)
+> ```
+
+*DataEmbedding_inverted*
 
 ------------------------------------------------------------------------
 
@@ -343,8 +407,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -361,8 +425,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -382,8 +446,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -400,8 +464,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -421,8 +485,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -439,8 +503,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -460,8 +524,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -478,8 +542,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -503,8 +567,8 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -521,8 +585,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -542,8 +606,8 @@ evaluation mode. :vartype training: bool\*
 
 Your models should also subclass this class.
 
-Modules can also contain other Modules, allowing to nest them in a tree
-structure. You can assign the submodules as regular attributes::
+Modules can also contain other Modules, allowing them to be nested in a
+tree structure. You can assign the submodules as regular attributes::
 
 ``` text
 import torch.nn as nn
@@ -560,8 +624,8 @@ class Model(nn.Module):
         return F.relu(self.conv2(x))
 ```
 
-Submodules assigned in this way will be registered, and will have their
-parameters converted too when you call :meth:`to`, etc.
+Submodules assigned in this way will be registered, and will also have
+their parameters converted when you call :meth:`to`, etc.
 
 .. note:: As per the example above, an `__init__()` call to the parent
 class must be made before assignment on the child.
@@ -607,4 +671,15 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ```
 
 *RevIN (Reversible-Instance-Normalization)*
+
+------------------------------------------------------------------------
+
+### RevINMultivariate
+
+> ``` text
+>  RevINMultivariate (num_features:int, eps=1e-05, affine=False,
+>                     subtract_last=False, non_norm=False)
+> ```
+
+*ReversibleInstanceNorm1d for Multivariate models*
 

@@ -33,18 +33,7 @@ You can run these experiments using GPU with Google Colab.
 
 
 ```python
-import torch
-import numpy as np
 import pandas as pd
-```
-
-
-```python
-torch.cuda.is_available()
-```
-
-``` text
-True
 ```
 
 ## 2. Load ERCOT Data
@@ -187,7 +176,7 @@ hardware and the explored configurations, it should take between 10 and
 ```python
 nf = NeuralForecast(
     models=models,
-    freq='H')
+    freq='h')
 
 nf.fit(df=Y_df)
 ```
@@ -201,17 +190,23 @@ Y_hat_df.head()
 ```
 
 ``` text
-Predicting: 0it [00:00, ?it/s]
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:384: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
+c:\Users\ospra\miniconda3\envs\neuralforecast\lib\site-packages\utilsforecast\processing.py:440: FutureWarning: 'H' is deprecated and will be removed in a future version, please use 'h' instead.
+  freq = pd.tseries.frequencies.to_offset(freq)
 ```
 
-|           | ds                  | AutoTFT      |
-|-----------|---------------------|--------------|
-| unique_id |                     |              |
-| ERCOT     | 2022-10-01 00:00:00 | 38644.019531 |
-| ERCOT     | 2022-10-01 01:00:00 | 36833.121094 |
-| ERCOT     | 2022-10-01 02:00:00 | 35698.265625 |
-| ERCOT     | 2022-10-01 03:00:00 | 35065.148438 |
-| ERCOT     | 2022-10-01 04:00:00 | 34788.566406 |
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+|     | unique_id | ds                  | AutoTFT      |
+|-----|-----------|---------------------|--------------|
+| 0   | ERCOT     | 2022-10-01 00:00:00 | 38600.757812 |
+| 1   | ERCOT     | 2022-10-01 01:00:00 | 36871.199219 |
+| 2   | ERCOT     | 2022-10-01 02:00:00 | 35505.500000 |
+| 3   | ERCOT     | 2022-10-01 03:00:00 | 34781.691406 |
+| 4   | ERCOT     | 2022-10-01 04:00:00 | 34647.484375 |
 
 Plot the results with matplot lib
 
@@ -229,7 +224,7 @@ ax.legend(prop={'size': 10})
 ax.grid()
 ```
 
-![](/neuralforecast/docs/tutorials/07_forecasting_tft_files/figure-markdown_strict/cell-10-output-1.png)
+![](/neuralforecast/docs/tutorials/07_forecasting_tft_files/figure-markdown_strict/cell-9-output-1.png)
 
 ## 4. Cross validation for multiple historic forecasts
 
@@ -281,7 +276,7 @@ plt.grid()
 plt.plot()
 ```
 
-![](/neuralforecast/docs/tutorials/07_forecasting_tft_files/figure-markdown_strict/cell-13-output-1.png)
+![](/neuralforecast/docs/tutorials/07_forecasting_tft_files/figure-markdown_strict/cell-12-output-1.png)
 
 ## Next Steps
 
@@ -289,7 +284,7 @@ In Challu et al \[2\] we demonstrate that the N-HiTS model outperforms
 the latest transformers by more than 20% with 50 times less computation.
 
 Learn how to use the N-HiTS and the NeuralForecast library in [this
-tutorial](https://nixtla.github.io/neuralforecast/examples/electricitypeakforecasting.html).
+tutorial](https://nixtlaverse.nixtla.io/neuralforecast/docs/use-cases/electricity_peak_forecasting.html).
 
 ## References
 

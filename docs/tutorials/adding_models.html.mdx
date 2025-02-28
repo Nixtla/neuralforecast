@@ -57,10 +57,10 @@ $Y_{t+1:t+h}$, using as inputs the last $L$ historical values, given by
 $Y_{t-L:t}$. The following figure presents a diagram of the model.
 
 <figure>
-<img src="../imgs_models/mlp.png"
-alt="Figure 1. Three layer MLP with autorregresive inputs." />
+<img src="../../imgs_models/mlp.png"
+alt="Figure 1. Three layer MLP with autoregresive inputs." />
 <figcaption aria-hidden="true">Figure 1. Three layer MLP with
-autorregresive inputs.</figcaption>
+autoregresive inputs.</figcaption>
 </figure>
 
 ## 0. Preliminaries
@@ -77,35 +77,21 @@ Here is a short list of the most important steps:
     dependencies, and `nbdev` package to code your model in an
     interactive notebook.
 
-## 1. Inherit the Base Class (`BaseWindows`)
+## 1. Inherit the Base Class (`BaseModel`)
 
-The library contains **three** types of base models: `BaseWindows`,
-`BaseRecurrent`, and `BaseMultivariate`. In this tutorial, we will focus
-on the `BaseWindows` class, which is the most common type of model in
-the library, with models such as
-[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
-[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits),
-[`TFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html#tft),
-and
-[`PatchTST`](https://nixtlaverse.nixtla.io/neuralforecast/models.patchtst.html#patchtst).
-The main difference between the three types is the sampling procedure
-and input batch for the `forward` method, which determines the type of
-model.
-
-> **Important**
->
-> If you want to add a `BaseRecurrent` or `BaseMultivariate` model,
-> please add an issue in our github.
+The library contains a base model class: `BaseModel`. Using class
+attributes we can make this model recurrent or not, or multivariate or
+univariate, or allow the use of exogenous inputs.
 
 ### a. Sampling process
 
 During training, the base class receives a sample of time series of the
 dataset from the
 [`TimeSeriesLoader`](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset.html#timeseriesloader)
-module. The `BaseWindows` models will sample individual windows of size
+module. The `BaseModel` models will sample individual windows of size
 `input_size+h`, starting from random timestamps.
 
-### b. `BaseWindows`’ hyperparameters
+### b. `BaseModel`’ hyperparameters
 
 Get familiar with the hyperparameters specified in the base class,
 including `h` (horizon), `input_size`, and optimization hyperparameters
@@ -137,11 +123,12 @@ following keys:
 -   `hist_exog`: historic exogenous covariates (if any).
 -   `stat_exog`: static exogenous covariates (if any).
 
-The following table presents the shape for each tensor:
+The following table presents the shape for each tensor if the attribute
+`MULTIVARIATE = False` is set:
 
-| `tensor`        | `BaseWindows`            |
+| `tensor`        | `BaseModel`              |
 |-----------------|--------------------------|
-| `insample_y`    | (`w_bs`, `L`)            |
+| `insample_y`    | (`w_bs`, `L`, `1`)       |
 | `insample_mask` | (`w_bs`, `L`)            |
 | `futr_exog`     | (`w_bs`, `L`+`h`, `n_f`) |
 | `hist_exog`     | (`w_bs`, `L`, `n_h`)     |
@@ -157,9 +144,9 @@ the example below).
 > Since we are using `nbdev`, you can easily add prints to the code and
 > see the shapes of the tensors during training.
 
-### d. `BaseWindows`’ methods
+### d. `BaseModel`’ methods
 
-The `BaseWindows` class contains several common methods for all
+The `BaseModel` class contains several common methods for all
 windows-based models, simplifying the development of new models by
 preventing code duplication. The most important methods of the class
 are:
@@ -179,8 +166,8 @@ are:
 
 ## 2. Create the model file and class
 
-Once familiar with the basics of the `BaseWindows` class, the next step
-is creating your particular model.
+Once familiar with the basics of the `BaseModel` class, the next step is
+creating your particular model.
 
 The main steps are:
 
@@ -191,7 +178,18 @@ The main steps are:
 3.  Import libraries in the file.
 4.  Define the `__init__` method with the model’s inherited and
     particular hyperparameters and instantiate the architecture.
-5.  Define the `forward` method, which recieves the input batch
+5.  Set the following model attributes:
+    -   `EXOGENOUS_FUTR`: if the model can handle future exogenous
+        variables (True) or not (False)
+    -   `EXOGENOUS_HIST`: if the model can handle historical exogenous
+        variables (True) or not (False)
+    -   `EXOGENOUS_STAT`: if the model can handle static exogenous
+        variables (True) or not (False)
+    -   `MULTIVARIATE`: If the model produces multivariate forecasts
+        (True) or univariate (False)
+    -   `RECURRENT`: If the model produces forecasts recursively (True)
+        or direct (False)
+6.  Define the `forward` method, which recieves the input batch
     dictionary and returns the forecast.
 
 ### a. Model class
@@ -224,7 +222,7 @@ import torch
 import torch.nn as nn
 
 from neuralforecast.losses.pytorch import MAE
-from neuralforecast.common._base_windows import BaseWindows
+from neuralforecast.common._base_model import BaseModel
 ```
 
 > **Tip**
@@ -238,7 +236,14 @@ model. We explain important details after the code.
 
 ```python
 #| export
-class MLP(BaseWindows): # <<---- Inherits from BaseWindows
+class MLP(BaseModel): # <<---- Inherits from BaseModel
+    # Set class attributes to determine this model's characteristics
+    EXOGENOUS_FUTR = False   # If the model can handle future exogenous variables
+    EXOGENOUS_HIST = False   # If the model can handle historical exogenous variables
+    EXOGENOUS_STAT = False   # If the model can handle static exogenous variables
+    MULTIVARIATE = False    # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = False       # If the model produces forecasts recursively (True) or direct (False)
+
     def __init__(self,
                  # Inhereted hyperparameters with no defaults
                  h,
@@ -247,6 +252,9 @@ class MLP(BaseWindows): # <<---- Inherits from BaseWindows
                  num_layers = 2,
                  hidden_size = 1024,
                  # Inhereted hyperparameters with defaults
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
                  exclude_insample_y = False,
                  loss = MAE(),
                  valid_loss = None,
@@ -259,10 +267,16 @@ class MLP(BaseWindows): # <<---- Inherits from BaseWindows
                  valid_batch_size: Optional[int] = None,
                  windows_batch_size = 1024,
                  inference_windows_batch_size = -1,
+                 start_padding_enabled = False,
                  step_size: int = 1,
                  scaler_type: str = 'identity',
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
+                 optimizer = None,
+                 optimizer_kwargs = None,
+                 lr_scheduler = None,
+                 lr_scheduler_kwargs = None,
+                 dataloader_kwargs = None,
                  **trainer_kwargs):
     # Inherit BaseWindows class
     super(MLP, self).__init__(h=h,
@@ -289,12 +303,14 @@ class MLP(BaseWindows): # <<---- Inherits from BaseWindows
 
     def forward(self, windows_batch): # <<--- Receives windows_batch dictionary
         # Parse windows_batch
-        insample_y = windows_batch['insample_y'].clone()
+        insample_y = windows_batch['insample_y'].squeeze(-1)                            # [batch_size, input_size]
         # MLP
-        y_pred = self.mlp(insample_y)
-        # Reshape and map to loss domain
-        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        y_pred = self.loss.domain_map(y_pred)
+        hidden = self.mlp(insample_y)                                                   # [batch_size, hidden_size]
+        y_pred = self.out(hidden)                                                       # [batch_size, h * n_outputs]
+        
+        # Reshape
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)    # [batch_size, h, n_outputs]
+
         return y_pred
 
 ```
@@ -319,13 +335,6 @@ attribute to automatically adjust the output size of the forecast
 depending on the `loss`. For example, for the Multi-quantile loss
 ([`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)),
 the model needs to output each quantile for each horizon.
-
-**Finally, always include `y_pred = self.loss.domain_map(y_pred)` at the
-end of the `forward`**. This is necessary to map the output to the
-domain (and shape) of the loss function. For example, if the loss
-function is the
-[`MAE`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mae),
-it maps the output of shape `(batch_size, h, 1)` to `(batch_size, h)`.
 
 ### b. Tests and documentation
 
@@ -398,12 +407,12 @@ and merge it into the library.
 
 ## Quick Checklist
 
--   Get familiar with the `BaseWindows` class hyperparameters and
+-   Get familiar with the `BaseModel` class hyperparameters and
     input/output shapes of the `forward` method.
 -   Create the notebook with your model class in the `nbs` folder:
     `models.YOUR_MODEL_NAME.ipynb`
 -   Add the header and import libraries.
--   Implement `init` and `forward` methods.
+-   Implement `init` and `forward` methods and set the class attributes.
 -   Export model with `nbdev_export`.
 -   Add model to this [init
     file](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/__init__.py).

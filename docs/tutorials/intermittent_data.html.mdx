@@ -49,12 +49,7 @@ NeuralForecast](https://nixtla.github.io/neuralforecast/examples/installation.ht
 Install the necessary packages using `pip install neuralforecast`
 
 ```python
-!pip install statsforecast s3fs fastparquet
-```
-
-
-```python
-!pip install git+https://github.com/Nixtla/neuralforecast.git
+!pip install statsforecast s3fs fastparquet neuralforecast
 ```
 
 ## 2. Load and explore the data
@@ -67,13 +62,9 @@ the data is intermittent. We first need to import the data.
 
 ```python
 import pandas as pd
-from statsforecast import StatsForecast as sf
+from utilsforecast.plotting import plot_series
 ```
 
-``` text
-/usr/local/lib/python3.8/dist-packages/statsforecast/core.py:21: TqdmExperimentalWarning: Using `tqdm.autonotebook.tqdm` in notebook mode. Use `tqdm.tqdm` instead to force console mode (e.g. in jupyter console)
-  from tqdm.autonotebook import tqdm
-```
 
 ```python
 Y_df = pd.read_parquet('https://m5-benchmarks.s3.amazonaws.com/data/train/target.parquet')
@@ -99,10 +90,10 @@ basic
 [EDA](https://nixtla.github.io/statsforecast/core.html#statsforecast.plot).
 
 ```python
-sf.plot(Y_df, engine='matplotlib')
+plot_series(Y_df)
 ```
 
-![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-7-output-1.png)
+![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-6-output-1.png)
 
 ## 3. Train models for intermittent data
 
@@ -177,8 +168,8 @@ default search algorithm.
 ```python
 nf = NeuralForecast(
     models=[
-        AutoNHITS(h=28, config=config_nhits, loss=DistributionLoss(distribution='Poisson', level=[80, 90], return_params=False), num_samples=5),
-        AutoTFT(h=28, config=config_tft, loss=DistributionLoss(distribution='Poisson', level=[80, 90], return_params=False), num_samples=2), 
+        AutoNHITS(h=28, config=config_nhits, loss=DistributionLoss(distribution='Poisson', level=[80, 90]), num_samples=5),
+        AutoTFT(h=28, config=config_tft, loss=DistributionLoss(distribution='Poisson', level=[80, 90]), num_samples=2), 
     ],
     freq='D'
 )
@@ -211,23 +202,35 @@ fcst_df = nf.predict()
 ```
 
 ``` text
-Predicting: 0it [00:00, ?it/s]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 ```
 
 ``` text
-Predicting: 0it [00:00, ?it/s]
+Predicting: |          | 0/? [00:00<?, ?it/s]
+```
+
+``` text
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+```
+
+``` text
+Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
 ```python
-fcst_df.columns = fcst_df.columns.str.replace('-median', '')
+plot_series(Y_df, 
+            fcst_df.drop(columns=["AutoNHITS-median", "AutoTFT-median"]), 
+            max_insample_length=28*3, 
+            level=[90])
 ```
 
-
-```python
-sf.plot(Y_df, fcst_df, engine='matplotlib', max_insample_length=28 * 3)
-```
-
-![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-14-output-1.png)
+![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-12-output-1.png)
 
 ## 4. Cross Validation
 
@@ -255,8 +258,8 @@ class takes the following arguments.
 ```python
 nf = NeuralForecast(
     models=[
-        AutoNHITS(h=28, config=config_nhits, loss=DistributionLoss(distribution='Poisson', level=[80, 90], return_params=False), num_samples=5),
-        AutoTFT(h=28, config=config_tft, loss=DistributionLoss(distribution='Poisson', level=[80, 90], return_params=False), num_samples=2), 
+        AutoNHITS(h=28, config=config_nhits, loss=DistributionLoss(distribution='Poisson', level=[80, 90]), num_samples=5),
+        AutoTFT(h=28, config=config_tft, loss=DistributionLoss(distribution='Poisson', level=[80, 90]), num_samples=2), 
     ],
     freq='D'
 )
@@ -270,8 +273,7 @@ cv_df = nf.cross_validation(Y_df, n_windows=3, step_size=28)
 The `cv_df` object is a new data frame that includes the following
 columns:
 
--   `unique_id` index: (If you dont like working with index just run
-    forecasts_cv_df.resetindex())
+-   `unique_id`: contains the id corresponding to the time series
 -   `ds`: datestamp or temporal index
 -   `cutoff`: the last datestamp or temporal index for the n_windows. If
     n_windows=1, then one unique cuttoff value, if n_windows=2 then two
@@ -280,36 +282,31 @@ columns:
 -   `"model"`: columns with the model’s name and fitted value.
 
 ```python
-# cv_df.columns = cv_df.columns.str.replace('-median', '')
-```
-
-
-```python
 cv_df.head()
 ```
 
-|  | unique_id | ds | cutoff | AutoNHITS | AutoNHITS-lo-90.0 | AutoNHITS-lo-80.0 | AutoNHITS-hi-80.0 | AutoNHITS-hi-90.0 | AutoTFT | AutoTFT-lo-90.0 | AutoTFT-lo-80.0 | AutoTFT-hi-80.0 | AutoTFT-hi-90.0 | y |
-|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-| 0 | FOODS_3_001_CA_1 | 2016-02-29 | 2016-02-28 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
-| 1 | FOODS_3_001_CA_1 | 2016-03-01 | 2016-02-28 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 |
-| 2 | FOODS_3_001_CA_1 | 2016-03-02 | 2016-02-28 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 |
-| 3 | FOODS_3_001_CA_1 | 2016-03-03 | 2016-02-28 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
-| 4 | FOODS_3_001_CA_1 | 2016-03-04 | 2016-02-28 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
+|  | unique_id | ds | cutoff | AutoNHITS | AutoNHITS-median | AutoNHITS-lo-90 | AutoNHITS-lo-80 | AutoNHITS-hi-80 | AutoNHITS-hi-90 | AutoTFT | AutoTFT-median | AutoTFT-lo-90 | AutoTFT-lo-80 | AutoTFT-hi-80 | AutoTFT-hi-90 | y |
+|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+| 0 | FOODS_3_001_CA_1 | 2016-02-29 | 2016-02-28 | 0.550 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.775 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
+| 1 | FOODS_3_001_CA_1 | 2016-03-01 | 2016-02-28 | 0.611 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.746 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 |
+| 2 | FOODS_3_001_CA_1 | 2016-03-02 | 2016-02-28 | 0.567 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.750 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 |
+| 3 | FOODS_3_001_CA_1 | 2016-03-03 | 2016-02-28 | 0.554 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.750 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
+| 4 | FOODS_3_001_CA_1 | 2016-03-04 | 2016-02-28 | 0.627 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.788 | 1.0 | 0.0 | 0.0 | 2.0 | 3.0 | 0.0 |
 
 ```python
 for cutoff in cv_df['cutoff'].unique():
-    sf.plot(Y_df, 
-            cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']), 
-            max_insample_length=28 * 5, 
-            unique_ids=['FOODS_3_001_CA_1'],
-            engine='matplotlib')
+    display(plot_series(Y_df, 
+                        cv_df.query('cutoff == @cutoff').drop(columns=['cutoff', 'y', 'AutoNHITS-median', 'AutoTFT-median']), 
+                max_insample_length=28*4,
+                ids=['FOODS_3_001_CA_1'],
+                level=[90]))
 ```
 
-![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-19-output-1.png)
+![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-16-output-1.png)
 
-![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-19-output-2.png)
+![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-16-output-2.png)
 
-![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-19-output-3.png)
+![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-16-output-3.png)
 
 ### Evaluate
 
@@ -317,36 +314,33 @@ In this section we will evaluate the performance of each model each
 cross validation window using the MSE metric.
 
 ```python
-from neuralforecast.losses.numpy import mse, mae
+from utilsforecast.losses import mse, mae
+from utilsforecast.evaluation import evaluate
 ```
 
 
 ```python
-def evaluate(df):
-    eval_ = {}
-    models = df.loc[:, ~df.columns.str.contains('unique_id|y|ds|cutoff|lo|hi')].columns
-    for model in models:
-        eval_[model] = {}
-        for metric in [mse, mae]:
-            eval_[model][metric.__name__] = metric(df['y'].values, df[model].values)
-    eval_df = pd.DataFrame(eval_).rename_axis('metric')
-    return eval_df
+metrics = pd.DataFrame()
+for cutoff in cv_df["cutoff"].unique():
+    metrics_per_cutoff = evaluate(cv_df.query("cutoff == @cutoff"),
+                                metrics=[mse, mae],
+                                models=['AutoNHITS', 'AutoTFT'],
+                                level=[80, 90],
+                                agg_fn="mean")
+    metrics_per_cutoff = metrics_per_cutoff.assign(cutoff=cutoff)
+    metrics = pd.concat([metrics, metrics_per_cutoff])
+
+metrics
 ```
 
-
-```python
-cv_df.groupby('cutoff').apply(lambda df: evaluate(df))
-```
-
-|            |        | AutoNHITS | AutoTFT   |
-|------------|--------|-----------|-----------|
-| cutoff     | metric |           |           |
-| 2016-02-28 | mse    | 10.274085 | 15.240116 |
-|            | mae    | 1.445398  | 1.511810  |
-| 2016-03-27 | mse    | 9.533789  | 14.307356 |
-|            | mae    | 1.445806  | 1.520717  |
-| 2016-04-24 | mse    | 9.561473  | 14.719155 |
-|            | mae    | 1.455149  | 1.534106  |
+|     | metric | AutoNHITS | AutoTFT   | cutoff     |
+|-----|--------|-----------|-----------|------------|
+| 0   | mse    | 10.059308 | 10.909020 | 2016-02-28 |
+| 1   | mae    | 1.485914  | 1.554572  | 2016-02-28 |
+| 0   | mse    | 9.590549  | 10.253903 | 2016-03-27 |
+| 1   | mae    | 1.494229  | 1.561868  | 2016-03-27 |
+| 0   | mse    | 9.596170  | 10.300666 | 2016-04-24 |
+| 1   | mae    | 1.501949  | 1.564157  | 2016-04-24 |
 
 ## References
 
