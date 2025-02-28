@@ -22,6 +22,7 @@ dependencies:
   - s3fs
   - pip:
     - nbdev
+    - ipython<=8.32.0
     - black
     - polars
     - "ray[tune]>=2.2.0"
