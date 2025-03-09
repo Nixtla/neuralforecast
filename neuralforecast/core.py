@@ -801,6 +801,7 @@ class NeuralForecast:
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
         quantiles: Optional[List[float]] = None,
+        recurrent: bool = False,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -824,6 +825,8 @@ class NeuralForecast:
             Confidence levels between 0 and 100.
         quantiles : list of floats, optional (default=None)
             Alternative to level, target quantiles to predict.
+        recurrent : bool (default=False)
+            Whether to produce forecasts recursively (True) or direct (False).
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -954,6 +957,7 @@ class NeuralForecast:
             quantiles_=quantiles_,
             level_=level_,
             has_level=has_level,
+            recurrent=recurrent,
             **data_kwargs,
         )
 
@@ -1688,6 +1692,7 @@ class NeuralForecast:
         quantiles_: Optional[List[float]] = None,
         level_: Optional[List[Union[int, float]]] = None,
         has_level: Optional[bool] = False,
+        recurrent: bool = False,
         **data_kwargs,
     ) -> np.array:
         fcsts_list: List = []
@@ -1712,7 +1717,10 @@ class NeuralForecast:
                 and callable(model.loss.update_quantile)
             ):
                 model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                    dataset=dataset,
+                    quantiles=quantiles_,
+                    recurrent=recurrent,
+                    **data_kwargs,
                 )
                 fcsts_list.append(model_fcsts)
                 col_names = []
@@ -1739,7 +1747,10 @@ class NeuralForecast:
                 fcsts_list_iqloss = []
                 for i, quantile in enumerate(quantiles_iqloss):
                     model_fcsts = model.predict(
-                        dataset=dataset, quantiles=[quantile], **data_kwargs
+                        dataset=dataset,
+                        quantiles=[quantile],
+                        recurrent=recurrent,
+                        **data_kwargs,
                     )
                     fcsts_list_iqloss.append(model_fcsts)
                 fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
@@ -1762,7 +1773,10 @@ class NeuralForecast:
                         " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
                     )
                 model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                    dataset=dataset,
+                    quantiles=quantiles_,
+                    recurrent=recurrent,
+                    **data_kwargs,
                 )
                 prediction_interval_method = get_prediction_interval_method(
                     self.prediction_intervals.method
@@ -1781,7 +1795,9 @@ class NeuralForecast:
                 cols.extend([model_name] + out_cols)
             # base case: quantiles or levels are not supported or provided as arguments
             else:
-                model_fcsts = model.predict(dataset=dataset, **data_kwargs)
+                model_fcsts = model.predict(
+                    dataset=dataset, recurrent=recurrent, **data_kwargs
+                )
                 fcsts_list.append(model_fcsts)
                 cols.extend(model_name + n for n in model.loss.output_names)
             model.set_test_size(old_test_size)  # Set back to original value

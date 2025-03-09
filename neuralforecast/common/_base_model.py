@@ -84,6 +84,9 @@ class BaseModel(pl.LightningModule):
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
     )
+    STATEFUL = (
+        False  # If the model maintains a state during forecasts (True) or not (False)
+    )
 
     def __init__(
         self,
@@ -156,6 +159,8 @@ class BaseModel(pl.LightningModule):
         self.horizon_backup = h
         self.input_size_backup = input_size
         self.n_samples = n_samples
+        self.inference_input_size = inference_input_size
+
         if self.RECURRENT:
             if (
                 hasattr(loss, "horizon_weight")
@@ -167,7 +172,6 @@ class BaseModel(pl.LightningModule):
                 )
                 h_train = h
             self.h_train = h_train
-            self.inference_input_size = inference_input_size
             self.rnn_state = None
             self.maintain_state = False
 
@@ -964,7 +968,7 @@ class BaseModel(pl.LightningModule):
     ):
         # Remember state in network and set horizon to 1
         self.rnn_state = None
-        self.maintain_state = True
+        self.maintain_state = True if self.STATEFUL else False
         self.h = 1
 
         # Initialize results array
@@ -988,7 +992,7 @@ class BaseModel(pl.LightningModule):
             futr_exog_current = futr_exog[:, : self.input_size + tau]
 
         # First forecast step
-        y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+        y_hat[:, tau], insample_y_next = self._validate_step_recurrent_single(
             insample_y=insample_y[:, : self.input_size + tau],
             insample_mask=insample_mask[:, : self.input_size + tau],
             hist_exog=hist_exog_current,
@@ -996,23 +1000,57 @@ class BaseModel(pl.LightningModule):
             stat_exog=stat_exog,
             y_idx=y_idx,
         )
+        insample_y, insample_mask = self._update_insample_y(
+            insample_y=insample_y,
+            insample_y_next=insample_y_next,
+            insample_mask=insample_mask,
+        )
 
         # Horizon prediction recursively
         for tau in range(1, self.horizon_backup):
             # Set exogenous
             if self.hist_exog_size > 0:
-                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+                if self.maintain_state:
+                    hist_exog_current = hist_exog[
+                        :, self.input_size + tau - 1
+                    ].unsqueeze(1)
+                else:
+                    hist_exog_current = hist_exog[
+                        :, tau : self.input_size + tau
+                    ].unsqueeze(1)
 
             if self.futr_exog_size > 0:
-                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+                if self.maintain_state:
+                    futr_exog_current = futr_exog[
+                        :, self.input_size + tau - 1
+                    ].unsqueeze(1)
+                else:
+                    futr_exog_current = futr_exog[
+                        :, tau : self.input_size + tau
+                    ].unsqueeze(1)
 
-            y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
+            if self.maintain_state:
+                y_hat[:, tau], insample_y_next = self._validate_step_recurrent_single(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    hist_exog=hist_exog_current,
+                    futr_exog=futr_exog_current,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            else:
+                y_hat[:, tau], insample_y_next = self._validate_step_recurrent_single(
+                    insample_y=insample_y[:, tau : self.input_size + tau],
+                    insample_mask=insample_mask[:, tau : self.input_size + tau],
+                    hist_exog=hist_exog_current,
+                    futr_exog=futr_exog_current,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            insample_y, insample_mask = self._update_insample_y(
                 insample_y=insample_y,
-                insample_mask=None,
-                hist_exog=hist_exog_current,
-                futr_exog=futr_exog_current,
-                stat_exog=stat_exog,
-                y_idx=y_idx,
+                insample_y_next=insample_y_next,
+                insample_mask=insample_mask,
             )
 
         # Reset state and horizon
@@ -1070,7 +1108,7 @@ class BaseModel(pl.LightningModule):
     ):
         # Remember state in network and set horizon to 1
         self.rnn_state = None
-        self.maintain_state = True
+        self.maintain_state = True if self.STATEFUL else False
         self.h = 1
 
         # Initialize results array
@@ -1094,7 +1132,7 @@ class BaseModel(pl.LightningModule):
             futr_exog_current = futr_exog[:, : self.input_size + tau]
 
         # First forecast step
-        y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+        y_hat[:, tau], insample_y_next = self._predict_step_recurrent_single(
             insample_y=insample_y[:, : self.input_size + tau],
             insample_mask=insample_mask[:, : self.input_size + tau],
             hist_exog=hist_exog_current,
@@ -1102,23 +1140,58 @@ class BaseModel(pl.LightningModule):
             stat_exog=stat_exog,
             y_idx=y_idx,
         )
+        insample_y, insample_mask = self._update_insample_y(
+            insample_y=insample_y,
+            insample_y_next=insample_y_next,
+            insample_mask=insample_mask,
+        )
 
         # Horizon prediction recursively
         for tau in range(1, self.horizon_backup):
             # Set exogenous
             if self.hist_exog_size > 0:
-                hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
+                if self.maintain_state:
+                    hist_exog_current = hist_exog[
+                        :, self.input_size + tau - 1
+                    ].unsqueeze(1)
+                else:
+                    hist_exog_current = hist_exog[
+                        :, tau : self.input_size + tau
+                    ].unsqueeze(1)
 
             if self.futr_exog_size > 0:
-                futr_exog_current = futr_exog[:, self.input_size + tau - 1].unsqueeze(1)
+                if self.maintain_state:
+                    futr_exog_current = futr_exog[
+                        :, self.input_size + tau - 1
+                    ].unsqueeze(1)
+                else:
+                    futr_exog_current = futr_exog[
+                        :, tau : self.input_size + tau
+                    ].unsqueeze(1)
 
-            y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
+            if self.maintain_state:
+                y_hat[:, tau], insample_y_next = self._predict_step_recurrent_single(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    hist_exog=hist_exog_current,
+                    futr_exog=futr_exog_current,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+            else:
+                y_hat[:, tau], insample_y_next = self._predict_step_recurrent_single(
+                    insample_y=insample_y[:, tau : self.input_size + tau],
+                    insample_mask=insample_mask[:, tau : self.input_size + tau],
+                    hist_exog=hist_exog_current,
+                    futr_exog=futr_exog_current,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+
+            insample_y, insample_mask = self._update_insample_y(
                 insample_y=insample_y,
-                insample_mask=None,
-                hist_exog=hist_exog_current,
-                futr_exog=futr_exog_current,
-                stat_exog=stat_exog,
-                y_idx=y_idx,
+                insample_y_next=insample_y_next,
+                insample_mask=insample_mask,
             )
 
         # Reset state and horizon
@@ -1131,6 +1204,19 @@ class BaseModel(pl.LightningModule):
             y_hat = y_hat.squeeze(2)
 
         return y_hat
+
+    def _update_insample_y(self, insample_y, insample_y_next, insample_mask):
+        insample_mask_next = torch.ones_like(insample_y_next)
+        if self.maintain_state:
+            insample_y = insample_y_next
+            insample_mask = insample_mask_next
+        else:
+            insample_y = torch.cat((insample_y[:, :-1], insample_y_next), dim=1)
+            insample_mask = torch.cat(
+                (insample_mask[:, :-1], insample_mask_next), dim=1
+            )
+
+        return insample_y, insample_mask
 
     def _predict_step_recurrent_single(
         self, insample_y, insample_mask, hist_exog, futr_exog, stat_exog, y_idx
@@ -1482,6 +1568,7 @@ class BaseModel(pl.LightningModule):
         step_size=1,
         random_seed=None,
         quantiles=None,
+        recurrent=False,
         **data_module_kwargs,
     ):
         """Predict.
@@ -1494,8 +1581,12 @@ class BaseModel(pl.LightningModule):
         `step_size`: int=1, Step size between each window.<br>
         `random_seed`: int=None, random_seed for pytorch initializer and numpy generators, overwrites model.__init__'s.<br>
         `quantiles`: list of floats, optional (default=None), target quantiles to predict. <br>
+        `recurrent`: bool=False, if True, the model will create predictions recursively.<br>
         `**data_module_kwargs`: PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
         """
+        recurrent_backup = self.RECURRENT
+        self.RECURRENT = recurrent
+
         self._check_exog(dataset)
         self._restart_seed(random_seed)
         if "quantile" in data_module_kwargs:
@@ -1533,6 +1624,8 @@ class BaseModel(pl.LightningModule):
 
         fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
+
+        self.RECURRENT = recurrent_backup
         return fcsts
 
     def decompose(
