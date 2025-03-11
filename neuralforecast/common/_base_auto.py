@@ -458,3 +458,14 @@ class BaseAuto(pl.LightningModule):
         `path`: str, path to save the model.<br>
         """
         self.model.save(path)
+
+    def set_ray_tune_config(self, **args):
+        """BaseAuto.set_ray_tune_config
+
+        Customize the default tune.TuneConfig() choice
+
+        **Parameters:**<br>
+        `args`: keyword arguments as as detailed in ray.tune.TuneConfig, see
+        https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html
+        """
+        self.ray_tune_config = tune.TuneConfig(**args)
