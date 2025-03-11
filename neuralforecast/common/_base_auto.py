@@ -223,32 +223,20 @@ class BaseAuto(pl.LightningModule):
             test_size=test_size,
         )
 
-    def _tune_model(
-        self,
-        cls_model,
-        dataset,
-        val_size,
-        test_size,
-        cpus,
-        gpus,
-        verbose,
-        num_samples,
-        search_alg,
-        config,
-    ):
+    def _tune_model(self, dataset, val_size, test_size):
         train_fn_with_parameters = tune.with_parameters(
             self._train_tune,
-            cls_model=cls_model,
+            cls_model=self.cls_model,
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
         )
 
         # Device
-        if gpus > 0:
-            device_dict = {"gpu": gpus}
+        if self.gpus > 0:
+            device_dict = {"gpu": self.gpus}
         else:
-            device_dict = {"cpu": cpus}
+            device_dict = {"cpu": self.cpus}
 
         # on Windows, prevent long trial directory names
         import platform
@@ -261,15 +249,15 @@ class BaseAuto(pl.LightningModule):
 
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
+            run_config=air.RunConfig(callbacks=self.callbacks, verbose=self.verbose),
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
-                num_samples=num_samples,
-                search_alg=search_alg,
+                num_samples=self.num_samples,
+                search_alg=deepcopy(self.search_alg),
                 trial_dirname_creator=trial_dirname_creator,
             ),
-            param_space=config,
+            param_space=self.config,
         )
         results = tuner.fit()
         return results
@@ -405,16 +393,9 @@ class BaseAuto(pl.LightningModule):
                     "distributed training is not supported for the ray backend."
                 )
             results = self._tune_model(
-                cls_model=self.cls_model,
                 dataset=dataset,
                 val_size=val_size,
                 test_size=test_size,
-                cpus=self.cpus,
-                gpus=self.gpus,
-                verbose=self.verbose,
-                num_samples=self.num_samples,
-                search_alg=search_alg,
-                config=self.config,
             )
             best_config = results.get_best_result().config
         else:
