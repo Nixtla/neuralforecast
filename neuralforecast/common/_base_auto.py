@@ -8,8 +8,10 @@ import warnings
 from copy import deepcopy
 from os import cpu_count
 
+import platform
 import torch
 import pytorch_lightning as pl
+
 
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
@@ -184,6 +186,20 @@ class BaseAuto(pl.LightningModule):
         self.MULTIVARIATE = cls_model.MULTIVARIATE
         self.RECURRENT = cls_model.RECURRENT
 
+        # ray tune config
+        self.ray_tune_config = tune.TuneConfig(
+            metric="loss",
+            mode="min",
+            num_samples=self.num_samples,
+            search_alg=deepcopy(self.search_alg),
+            # on Windows, prevent long trial directory names
+            trial_dirname_creator=(
+                (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
+                if platform.system() == "Windows"
+                else None
+            ),
+        )
+
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
@@ -238,25 +254,10 @@ class BaseAuto(pl.LightningModule):
         else:
             device_dict = {"cpu": self.cpus}
 
-        # on Windows, prevent long trial directory names
-        import platform
-
-        trial_dirname_creator = (
-            (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
-            if platform.system() == "Windows"
-            else None
-        )
-
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
             run_config=air.RunConfig(callbacks=self.callbacks, verbose=self.verbose),
-            tune_config=tune.TuneConfig(
-                metric="loss",
-                mode="min",
-                num_samples=self.num_samples,
-                search_alg=deepcopy(self.search_alg),
-                trial_dirname_creator=trial_dirname_creator,
-            ),
+            tune_config=self.ray_tune_config,
             param_space=self.config,
         )
         results = tuner.fit()
