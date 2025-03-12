@@ -493,7 +493,10 @@ class NeuralForecast:
             )
             if prediction_intervals is not None:
                 self.prediction_intervals = prediction_intervals
-                self._cs_df = self._conformity_scores(
+
+                # copy of model to prevent issue such as https://github.com/Nixtla/neuralforecast/issues/1232
+                model_copy = deepcopy(self)
+                self._cs_df = model_copy._conformity_scores(
                     df=df,
                     id_col=id_col,
                     time_col=time_col,
