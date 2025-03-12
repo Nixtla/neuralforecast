@@ -981,16 +981,16 @@ class BaseModel(pl.LightningModule):
         # Set exogenous
         hist_exog_current = None
         if self.hist_exog_size > 0:
-            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+            hist_exog_current = hist_exog[:, : self.input_size + tau]
 
         futr_exog_current = None
         if self.futr_exog_size > 0:
-            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+            futr_exog_current = futr_exog[:, : self.input_size + tau]
 
         # First forecast step
         y_hat[:, tau], insample_y = self._validate_step_recurrent_single(
-            insample_y=insample_y[:, : self.input_size + tau - 1],
-            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            insample_y=insample_y[:, : self.input_size + tau],
+            insample_mask=insample_mask[:, : self.input_size + tau],
             hist_exog=hist_exog_current,
             futr_exog=futr_exog_current,
             stat_exog=stat_exog,
@@ -998,7 +998,7 @@ class BaseModel(pl.LightningModule):
         )
 
         # Horizon prediction recursively
-        for tau in range(self.horizon_backup):
+        for tau in range(1, self.horizon_backup):
             # Set exogenous
             if self.hist_exog_size > 0:
                 hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
@@ -1087,16 +1087,16 @@ class BaseModel(pl.LightningModule):
         # Set exogenous
         hist_exog_current = None
         if self.hist_exog_size > 0:
-            hist_exog_current = hist_exog[:, : self.input_size + tau - 1]
+            hist_exog_current = hist_exog[:, : self.input_size + tau]
 
         futr_exog_current = None
         if self.futr_exog_size > 0:
-            futr_exog_current = futr_exog[:, : self.input_size + tau - 1]
+            futr_exog_current = futr_exog[:, : self.input_size + tau]
 
         # First forecast step
         y_hat[:, tau], insample_y = self._predict_step_recurrent_single(
-            insample_y=insample_y[:, : self.input_size + tau - 1],
-            insample_mask=insample_mask[:, : self.input_size + tau - 1],
+            insample_y=insample_y[:, : self.input_size + tau],
+            insample_mask=insample_mask[:, : self.input_size + tau],
             hist_exog=hist_exog_current,
             futr_exog=futr_exog_current,
             stat_exog=stat_exog,
@@ -1104,7 +1104,7 @@ class BaseModel(pl.LightningModule):
         )
 
         # Horizon prediction recursively
-        for tau in range(self.horizon_backup):
+        for tau in range(1, self.horizon_backup):
             # Set exogenous
             if self.hist_exog_size > 0:
                 hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
