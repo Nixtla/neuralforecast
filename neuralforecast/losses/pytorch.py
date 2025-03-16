@@ -857,8 +857,8 @@ def nbinomial_scale_decouple(output, loc=None, scale=None):
     mu = F.softplus(mu) + 1e-8
     alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
     if (loc is not None) and (scale is not None):
-        mu *= loc
-        alpha /= loc + 1.0
+        mu = mu * scale + loc
+        alpha /= scale + 1.0
 
     # mu = total_count * (probs/(1-probs))
     # => probs = mu / (total_count + mu)
