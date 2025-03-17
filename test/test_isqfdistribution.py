@@ -1,6 +1,6 @@
 #%% Test IQLoss for all types of architectures
 from neuralforecast import NeuralForecast
-from neuralforecast.models import NHITS, BiTCN
+from neuralforecast.models import NHITS, BiTCN, VanillaTransformer
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 import matplotlib.pyplot as plt
@@ -33,7 +33,19 @@ fcst = NeuralForecast(
                 hist_exog_list=None,
                 stat_exog_list=['airline1'],
                 early_stop_patience_steps=3,
-                ),           
+                ),
+            VanillaTransformer(h=12,
+                input_size=24,
+                atten='flash',
+                loss=DistributionLoss(distribution="ISQF", level=[10, 20, 30, 40, 50, 60, 70, 80, 90], num_pieces=1),
+                dropout=0.1,
+                max_steps=max_steps,
+                scaler_type='standard',
+                # futr_exog_list=['y_[lag12]'],
+                # hist_exog_list=None,
+                # stat_exog_list=['airline1'],
+                early_stop_patience_steps=3,
+                ),  
     ],
     freq='M'
 )

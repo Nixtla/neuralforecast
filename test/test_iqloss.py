@@ -1,6 +1,8 @@
 #%% Test IQLoss for all types of architectures
 from neuralforecast import NeuralForecast
-from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN
+from neuralforecast.models import (
+    NBEATSx, NHITS, TSMixerx, LSTM, BiTCN, TimeXer, iTransformer, VanillaTransformer
+)
 from neuralforecast.losses.pytorch import IQLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 import matplotlib.pyplot as plt
@@ -67,10 +69,57 @@ fcst = NeuralForecast(
                 hist_exog_list=None,
                 stat_exog_list=['airline1'],
                 early_stop_patience_steps=3,
-                ),           
+                ),
+            TimeXer(h=12,
+                input_size=24,
+                n_series=2,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                futr_exog_list=['y_[lag12]'],
+                # hist_exog_list=None,
+                # stat_exog_list=['airline1'],
+                early_stop_patience_steps=3,
+                # # fb16
+                # precision="bf16",
+                ),
+            iTransformer(h=12,
+                input_size=24,
+                n_series=2,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                # futr_exog_list=['y_[lag12]'],
+                # hist_exog_list=None,
+                # stat_exog_list=['airline1'],
+                early_stop_patience_steps=3,
+                # # fb16
+                # precision="bf16-mixed",
+                ),
+            VanillaTransformer(h=12,
+                input_size=24,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                # futr_exog_list=['y_[lag12]'],
+                # hist_exog_list=None,
+                # stat_exog_list=['airline1'],
+                early_stop_patience_steps=3,
+                # # fb16
+                # precision="bf16-mixed",
+                ),
     ],
     freq='M'
 )
+# Y_train_df['y'] = Y_train_df['y'].astype('float16')
+# for col in ['y_[lag12]']:
+#     Y_train_df[col] = Y_train_df[col].astype('float16')
 fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
 #%% Test IQLoss prediction with multiple quantiles for different architectures
 # Test IQLoss
