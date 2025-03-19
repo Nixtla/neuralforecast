@@ -1,6 +1,6 @@
 #%% Test IQLoss for all types of architectures
 from neuralforecast import NeuralForecast
-from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN
+from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN, TimeXer, iTransformer, VanillaTransformer
 from neuralforecast.losses.pytorch import IQLoss
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 import matplotlib.pyplot as plt
@@ -67,7 +67,37 @@ fcst = NeuralForecast(
                 hist_exog_list=None,
                 stat_exog_list=['airline1'],
                 early_stop_patience_steps=3,
-                ),           
+                ),     
+            TimeXer(h=12,
+                input_size=24,
+                n_series=2,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                futr_exog_list=['y_[lag12]'],
+                early_stop_patience_steps=3,
+                ),
+            iTransformer(h=12,
+                input_size=24,
+                n_series=2,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                early_stop_patience_steps=3,
+                ),
+            VanillaTransformer(h=12,
+                input_size=24,
+                atten='flash',
+                loss=IQLoss(),
+                valid_loss=IQLoss(),
+                max_steps=max_steps,
+                scaler_type='identity',
+                early_stop_patience_steps=3,
+                ),      
     ],
     freq='M'
 )

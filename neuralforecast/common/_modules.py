@@ -378,33 +378,56 @@ class FullAttention(nn.Module):
         scale=None,
         attention_dropout=0.1,
         output_attention=False,
+        atten="full",
     ):
         super(FullAttention, self).__init__()
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
+        self.atten = atten  # 支持"full", "flash", "moba"
+        assert self.atten in ["full", "flash"], "atten must be in ['full', 'flash']"
 
     def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
-        scale = self.scale or 1.0 / math.sqrt(E)
 
-        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+        if self.atten == "flash":
+            assert (
+                self.output_attention == False
+            ), "output_attention not supported with flash attention"
+            q = queries.permute(0, 2, 1, 3)  # [B, H, L, E]
+            k = keys.permute(0, 2, 1, 3)
+            v = values.permute(0, 2, 1, 3)
 
-        if self.mask_flag:
-            if attn_mask is None:
-                attn_mask = TriangularCausalMask(B, L, device=queries.device)
+            scale = self.scale or 1.0 / math.sqrt(E)
+            attn_output = torch.nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=(
+                    attn_mask.mask[:, 0] if (self.mask_flag and attn_mask) else None
+                ),
+                dropout_p=self.dropout.p if self.training else 0.0,
+                scale=scale,
+            )
+            V = attn_output.permute(0, 2, 1, 3).contiguous()
+            return (V, None) if self.output_attention else (V, None)
+        else:  # "full" attention
+            scale = self.scale or 1.0 / math.sqrt(E)
+            scores = torch.einsum("blhe,bshe->bhls", queries, keys)
 
-            scores.masked_fill_(attn_mask.mask, -np.inf)
+            if self.mask_flag:
+                if attn_mask is None:
+                    attn_mask = TriangularCausalMask(B, L, device=queries.device)
+                scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        V = torch.einsum("bhls,bshd->blhd", A, values)
+            A = self.dropout(torch.softmax(scale * scores, dim=-1))
+            V = torch.einsum("bhls,bshd->blhd", A, values)
 
-        if self.output_attention:
-            return V.contiguous(), A
-        else:
-            return V.contiguous(), None
+            return (
+                (V.contiguous(), A) if self.output_attention else (V.contiguous(), None)
+            )
 
 # %% ../../nbs/common.modules.ipynb 19
 class PositionalEmbedding(nn.Module):

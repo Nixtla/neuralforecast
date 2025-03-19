@@ -51,6 +51,7 @@ class VanillaTransformer(BaseModel):
     `n_head`: int=4, controls number of multi-head's attention.<br>
         `conv_hidden_size`: int=32, channels of the convolutional encoder.<br>
         `activation`: str=`GELU`, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].<br>
+    `atten`: str, attention type, 'full' or 'flash'.<br>
     `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
     `decoder_layers`: int=1, number of layers for the MLP decoder.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
@@ -104,6 +105,7 @@ class VanillaTransformer(BaseModel):
         n_head: int = 4,
         conv_hidden_size: int = 32,
         activation: str = "gelu",
+        atten: str = "full",
         encoder_layers: int = 2,
         decoder_layers: int = 1,
         loss=MAE(),
@@ -202,6 +204,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=False,
                             attention_dropout=dropout,
                             output_attention=self.output_attention,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
@@ -224,6 +227,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=True,
                             attention_dropout=dropout,
                             output_attention=False,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
@@ -233,6 +237,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=False,
                             attention_dropout=dropout,
                             output_attention=False,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
