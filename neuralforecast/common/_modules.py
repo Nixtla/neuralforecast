@@ -429,6 +429,12 @@ class FullAttention(nn.Module):
                 (V.contiguous(), A) if self.output_attention else (V.contiguous(), None)
             )
 
+    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
+        # Manually initialize `atten` if not in state_dict
+        if prefix + "atten" not in state_dict:
+            self.atten = "full"
+        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
+
 # %% ../../nbs/common.modules.ipynb 19
 class PositionalEmbedding(nn.Module):
     def __init__(self, hidden_size, max_len=5000):
