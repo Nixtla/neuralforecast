@@ -53,6 +53,7 @@ class VanillaTransformer(BaseModel):
         `activation`: str=`GELU`, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].<br>
     `encoder_layers`: int=2, number of layers for the TCN encoder.<br>
     `decoder_layers`: int=1, number of layers for the MLP decoder.<br>
+    `atten`: str, attention type, 'full' or 'flash'.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -106,6 +107,7 @@ class VanillaTransformer(BaseModel):
         activation: str = "gelu",
         encoder_layers: int = 2,
         decoder_layers: int = 1,
+        atten: str = "full",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5000,
@@ -202,6 +204,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=False,
                             attention_dropout=dropout,
                             output_attention=self.output_attention,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
@@ -224,6 +227,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=True,
                             attention_dropout=dropout,
                             output_attention=False,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
@@ -233,6 +237,7 @@ class VanillaTransformer(BaseModel):
                             mask_flag=False,
                             attention_dropout=dropout,
                             output_attention=False,
+                            atten=atten,
                         ),
                         hidden_size,
                         n_head,
