@@ -631,8 +631,6 @@ class AutoNBEATS(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "basis": tune.choice(["polynomial", "changepoint"]),
-        "n_basis": tune.choice([2, 5]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000]),
