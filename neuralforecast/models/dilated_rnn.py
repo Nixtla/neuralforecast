@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_recurrent import BaseRecurrent
+from ..common._base_model import BaseModel
 from ..common._modules import MLP
 
 # %% ../../nbs/models.dilated_rnn.ipynb 7
@@ -256,8 +256,8 @@ class DRNN(nn.Module):
             for i in range(rate)
         ]
 
-        interleaved = torch.stack((blocks)).transpose(1, 0).contiguous()
-        interleaved = interleaved.view(
+        interleaved = torch.stack((blocks)).transpose(1, 0)
+        interleaved = interleaved.reshape(
             dilated_outputs.size(0) * rate, batchsize, dilated_outputs.size(2)
         )
         return interleaved
@@ -286,13 +286,13 @@ class DRNN(nn.Module):
         return dilated_inputs
 
 # %% ../../nbs/models.dilated_rnn.ipynb 12
-class DilatedRNN(BaseRecurrent):
+class DilatedRNN(BaseModel):
     """DilatedRNN
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `inference_input_size`: int, maximum sequence length for truncated inference. Default -1 uses all history.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
+    `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
     `cell_type`: str, type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'.<br>
     `dilations`: int list, dilations betweem layers.<br>
     `encoder_hidden_size`: int=200, units for the RNN's hidden state size.<br>
@@ -302,6 +302,7 @@ class DilatedRNN(BaseRecurrent):
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int, maximum number of training steps.<br>
@@ -311,6 +312,9 @@ class DilatedRNN(BaseRecurrent):
     `val_check_steps`: int, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
+    `windows_batch_size`: int=128, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -325,25 +329,29 @@ class DilatedRNN(BaseRecurrent):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "recurrent"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
         h: int,
         input_size: int = -1,
-        inference_input_size: int = -1,
+        inference_input_size: Optional[int] = None,
         cell_type: str = "LSTM",
         dilations: List[List[int]] = [[1, 2], [4, 8]],
-        encoder_hidden_size: int = 200,
+        encoder_hidden_size: int = 128,
         context_size: int = 10,
-        decoder_hidden_size: int = 200,
+        decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y=False,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -353,10 +361,14 @@ class DilatedRNN(BaseRecurrent):
         val_check_steps: int = 100,
         batch_size=32,
         valid_batch_size: Optional[int] = None,
+        windows_batch_size=128,
+        inference_windows_batch_size=1024,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -368,6 +380,10 @@ class DilatedRNN(BaseRecurrent):
             h=h,
             input_size=input_size,
             inference_input_size=inference_input_size,
+            futr_exog_list=futr_exog_list,
+            hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -377,12 +393,14 @@ class DilatedRNN(BaseRecurrent):
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
+            step_size=step_size,
             scaler_type=scaler_type,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
-            stat_exog_list=stat_exog_list,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -404,14 +422,14 @@ class DilatedRNN(BaseRecurrent):
         self.decoder_layers = decoder_layers
 
         # RNN input size (1 for target variable y)
-        input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
+        input_encoder = (
+            1 + self.hist_exog_size + self.stat_exog_size + self.futr_exog_size
+        )
 
         # Instantiate model
         layers = []
         for grp_num in range(len(self.dilations)):
-            if grp_num == 0:
-                input_encoder = 1 + self.hist_exog_size + self.stat_exog_size
-            else:
+            if grp_num > 0:
                 input_encoder = self.encoder_hidden_size
             layer = DRNN(
                 input_encoder,
@@ -425,14 +443,11 @@ class DilatedRNN(BaseRecurrent):
         self.rnn_stack = nn.Sequential(*layers)
 
         # Context adapter
-        self.context_adapter = nn.Linear(
-            in_features=self.encoder_hidden_size + self.futr_exog_size * h,
-            out_features=self.context_size * h,
-        )
+        self.context_adapter = nn.Linear(in_features=self.input_size, out_features=h)
 
         # Decoder MLP
         self.mlp_decoder = MLP(
-            in_features=self.context_size + self.futr_exog_size,
+            in_features=self.encoder_hidden_size + self.futr_exog_size,
             out_features=self.loss.outputsize_multiplier,
             hidden_size=self.decoder_hidden_size,
             num_layers=self.decoder_layers,
@@ -443,26 +458,30 @@ class DilatedRNN(BaseRecurrent):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        encoder_input = windows_batch["insample_y"]  # [B, seq_len, 1]
-        futr_exog = windows_batch["futr_exog"]
-        hist_exog = windows_batch["hist_exog"]
-        stat_exog = windows_batch["stat_exog"]
+        encoder_input = windows_batch["insample_y"]  # [B, L, 1]
+        futr_exog = windows_batch["futr_exog"]  # [B, L + h, F]
+        hist_exog = windows_batch["hist_exog"]  # [B, L, X]
+        stat_exog = windows_batch["stat_exog"]  # [B, S]
 
         # Concatenate y, historic and static inputs
-        # [B, C, seq_len, 1] -> [B, seq_len, C]
-        # Contatenate [ Y_t, | X_{t-L},..., X_{t} | S ]
         batch_size, seq_len = encoder_input.shape[:2]
         if self.hist_exog_size > 0:
-            hist_exog = hist_exog.permute(0, 2, 1, 3).squeeze(
-                -1
-            )  # [B, X, seq_len, 1] -> [B, seq_len, X]
-            encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
+            encoder_input = torch.cat(
+                (encoder_input, hist_exog), dim=2
+            )  # [B, L, 1] + [B, L, X] -> [B, L, 1 + X]
 
         if self.stat_exog_size > 0:
             stat_exog = stat_exog.unsqueeze(1).repeat(
                 1, seq_len, 1
-            )  # [B, S] -> [B, seq_len, S]
-            encoder_input = torch.cat((encoder_input, stat_exog), dim=2)
+            )  # [B, S] -> [B, L, S]
+            encoder_input = torch.cat(
+                (encoder_input, stat_exog), dim=2
+            )  # [B, L, 1 + X] + [B, L, S] -> [B, L, 1 + X + S]
+
+        if self.futr_exog_size > 0:
+            encoder_input = torch.cat(
+                (encoder_input, futr_exog[:, :seq_len]), dim=2
+            )  # [B, L, 1 + X + S] + [B, L, F] -> [B, L, 1 + X + S + F]
 
         # DilatedRNN forward
         for layer_num in range(len(self.rnn_stack)):
@@ -472,24 +491,21 @@ class DilatedRNN(BaseRecurrent):
                 output += residual
             encoder_input = output
 
-        if self.futr_exog_size > 0:
-            futr_exog = futr_exog.permute(0, 2, 3, 1)[
-                :, :, 1:, :
-            ]  # [B, F, seq_len, 1+H] -> [B, seq_len, H, F]
-            encoder_input = torch.cat(
-                (encoder_input, futr_exog.reshape(batch_size, seq_len, -1)), dim=2
-            )
-
         # Context adapter
-        context = self.context_adapter(encoder_input)
-        context = context.reshape(batch_size, seq_len, self.h, self.context_size)
+        output = output.permute(0, 2, 1)  # [B, L, C] -> [B, C, L]
+        context = self.context_adapter(output)  # [B, C, L] -> [B, C, h]
 
         # Residual connection with futr_exog
         if self.futr_exog_size > 0:
-            context = torch.cat((context, futr_exog), dim=-1)
+            futr_exog_futr = futr_exog[:, seq_len:].permute(
+                0, 2, 1
+            )  # [B, h, F] -> [B, F, h]
+            context = torch.cat(
+                (context, futr_exog_futr), dim=1
+            )  # [B, C, h] + [B, F, h] = [B, C + F, h]
 
         # Final forecast
-        output = self.mlp_decoder(context)
-        output = self.loss.domain_map(output)
+        context = context.permute(0, 2, 1)  # [B, C + F, h] -> [B, h, C + F]
+        output = self.mlp_decoder(context)  # [B, h, C + F] -> [B, h, n_output]
 
         return output

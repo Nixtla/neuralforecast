@@ -7,12 +7,12 @@ __all__ = ['ReplicationPad1d', 'TokenEmbedding', 'PatchEmbedding', 'FlattenHead'
 import math
 from typing import Optional
 
+import neuralforecast.losses.pytorch as losses
 import torch
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 from ..common._modules import RevIN
-
 from ..losses.pytorch import MAE
 
 try:
@@ -165,7 +165,7 @@ class ReprogrammingLayer(nn.Module):
         return reprogramming_embedding
 
 # %% ../../nbs/models.timellm.ipynb 11
-class TimeLLM(BaseWindows):
+class TimeLLM(BaseModel):
     """TimeLLM
 
     Time-LLM is a reprogramming framework to repurpose an off-the-shelf LLM for time series forecasting.
@@ -200,8 +200,6 @@ class TimeLLM(BaseWindows):
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
     `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
@@ -209,6 +207,8 @@ class TimeLLM(BaseWindows):
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
+    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
+    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -225,10 +225,13 @@ class TimeLLM(BaseWindows):
 
     """
 
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -268,8 +271,9 @@ class TimeLLM(BaseWindows):
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
         scaler_type: str = "identity",
-        drop_last_loader: bool = False,
         random_seed: int = 1,
+        drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -298,6 +302,7 @@ class TimeLLM(BaseWindows):
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
@@ -306,6 +311,15 @@ class TimeLLM(BaseWindows):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
+        if loss.outputsize_multiplier > 1:
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as loss function."
+            )
+
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
+            raise Exception(
+                "TimeLLM only supports point loss functions (MAE, MSE, etc) as valid loss function."
+            )
 
         # Architecture
         self.patch_len = patch_len
@@ -465,12 +479,9 @@ class TimeLLM(BaseWindows):
         return lags
 
     def forward(self, windows_batch):
-        insample_y = windows_batch["insample_y"]
-
-        x = insample_y.unsqueeze(-1)
+        x = windows_batch["insample_y"]
 
         y_pred = self.forecast(x)
         y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
 
         return y_pred

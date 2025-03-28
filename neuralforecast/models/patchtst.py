@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 from ..common._modules import RevIN
 
 from ..losses.pytorch import MAE
@@ -785,7 +785,7 @@ class _ScaledDotProductAttention(nn.Module):
             return output, attn_weights
 
 # %% ../../nbs/models.patchtst.ipynb 15
-class PatchTST(BaseWindows):
+class PatchTST(BaseModel):
     """PatchTST
 
     The PatchTST model is an efficient Transformer-based model for multivariate time series forecasting.
@@ -813,11 +813,11 @@ class PatchTST(BaseWindows):
     `stride`: int=16, stride of patch.<br>
     `revin`: bool=True, bool to use RevIn.<br>
     `revin_affine`: bool=False, bool to use affine in RevIn.<br>
-    `revin_substract_last`: bool=False, bool to use substract last in RevIn.<br>
+    `revin_subtract_last`: bool=False, bool to use substract last in RevIn.<br>
     `activation`: str='ReLU', activation from ['gelu','relu'].<br>
     `res_attention`: bool=False, bool to use residual attention.<br>
     `batch_normalization`: bool=False, bool to use batch normalization.<br>
-    `learn_pos_embedding`: bool=True, bool to learn positional embedding.<br>
+    `learn_pos_embed`: bool=True, bool to learn positional embedding.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -847,10 +847,13 @@ class PatchTST(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -893,6 +896,7 @@ class PatchTST(BaseWindows):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -903,8 +907,8 @@ class PatchTST(BaseWindows):
         super(PatchTST, self).__init__(
             h=h,
             input_size=input_size,
-            hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
@@ -921,8 +925,9 @@ class PatchTST(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -992,20 +997,10 @@ class PatchTST(BaseWindows):
     def forward(self, windows_batch):  # x: [batch, input_size]
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-        # futr_exog     = windows_batch['futr_exog']
-
-        # Add dimension for channel
-        x = insample_y.unsqueeze(-1)  # [Ws,L,1]
+        x = windows_batch["insample_y"]
 
         x = x.permute(0, 2, 1)  # x: [Batch, 1, input_size]
         x = self.model(x)
-        x = x.reshape(x.shape[0], self.h, -1)  # x: [Batch, h, c_out]
-
-        # Domain map
-        forecast = self.loss.domain_map(x)
+        forecast = x.reshape(x.shape[0], self.h, -1)  # x: [Batch, h, c_out]
 
         return forecast

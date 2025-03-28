@@ -1,5 +1,5 @@
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 line-length = 88
 # Enable Pyflakes `E` and `F` codes by default.
 lint.select = [

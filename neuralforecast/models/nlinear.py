@@ -8,22 +8,23 @@ from typing import Optional
 
 import torch.nn as nn
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.nlinear.ipynb 7
-class NLinear(BaseWindows):
+class NLinear(BaseModel):
     """NLinear
 
     *Parameters:*<br>
     `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses all history.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `input_size`: int, maximum sequence length for truncated train backpropagation.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
+    `hist_exog_list`: str list, historic exogenous columns.<br>
+    `futr_exog_list`: str list, future exogenous columns.<br>
     `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -34,6 +35,7 @@ class NLinear(BaseWindows):
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
@@ -50,10 +52,13 @@ class NLinear(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -79,6 +84,7 @@ class NLinear(BaseWindows):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -89,8 +95,8 @@ class NLinear(BaseWindows):
         super(NLinear, self).__init__(
             h=h,
             input_size=input_size,
-            hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
@@ -107,8 +113,9 @@ class NLinear(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -129,11 +136,7 @@ class NLinear(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
-        # insample_mask = windows_batch['insample_mask']
-        # hist_exog     = windows_batch['hist_exog']
-        # stat_exog     = windows_batch['stat_exog']
-        # futr_exog     = windows_batch['futr_exog']
+        insample_y = windows_batch["insample_y"].squeeze(-1)
 
         # Parse inputs
         batch_size = len(insample_y)
@@ -145,5 +148,4 @@ class NLinear(BaseWindows):
         # Final
         forecast = self.linear(norm_insample_y) + last_value
         forecast = forecast.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        forecast = self.loss.domain_map(forecast)
         return forecast

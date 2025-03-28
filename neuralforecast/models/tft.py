@@ -10,11 +10,11 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torch import Tensor
 from torch.nn import LayerNorm
-
-from ..common._base_windows import BaseWindows
 from ..losses.pytorch import MAE
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.tft.ipynb 11
 def get_activation_fn(activation_str: str) -> Callable:
@@ -510,7 +510,7 @@ class TemporalFusionDecoder(nn.Module):
         return x, atten_vect
 
 # %% ../../nbs/models.tft.ipynb 24
-class TFT(BaseWindows):
+class TFT(BaseModel):
     """TFT
 
     The Temporal Fusion Transformer architecture (TFT) is an Sequence-to-Sequence
@@ -522,17 +522,18 @@ class TFT(BaseWindows):
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
+    `tgt_size`: int=1, target size.<br>
     `stat_exog_list`: str list, static continuous columns.<br>
     `hist_exog_list`: str list, historic continuous columns.<br>
     `futr_exog_list`: str list, future continuous columns.<br>
     `hidden_size`: int, units of embeddings and encoders.<br>
-    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
     `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
     `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
-    `rnn_type`: str="LSTM", recurrent neural network (RNN) layer type from ["LSTM","GRU"].<br>
     `n_rnn_layers`: int=1, number of RNN layers.<br>
+    `rnn_type`: str="lstm", recurrent neural network (RNN) layer type from ["lstm","gru"].<br>
     `one_rnn_initial_state`:str=False, Initialize all rnn layers with the same initial states computed from static covariates.<br>
+    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -541,10 +542,10 @@ class TFT(BaseWindows):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
     `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int, random seed initialization for replicability.<br>
@@ -563,10 +564,13 @@ class TFT(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -581,7 +585,7 @@ class TFT(BaseWindows):
         attn_dropout: float = 0.0,
         grn_activation: str = "ELU",
         n_rnn_layers: int = 1,
-        rnn_type: str = "LSTM",
+        rnn_type: str = "lstm",
         one_rnn_initial_state: bool = False,
         dropout: float = 0.1,
         loss=MAE(),
@@ -598,8 +602,9 @@ class TFT(BaseWindows):
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "robust",
-        drop_last_loader=False,
         random_seed: int = 1,
+        drop_last_loader=False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -628,8 +633,9 @@ class TFT(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -644,6 +650,7 @@ class TFT(BaseWindows):
         futr_exog_size = max(self.futr_exog_size, 1)
         num_historic_vars = futr_exog_size + self.hist_exog_size + tgt_size
         self.n_rnn_layers = n_rnn_layers
+        self.rnn_type = rnn_type.lower()
         # ------------------------------- Encoders -----------------------------#
         self.embedding = TFTEmbedding(
             hidden_size=hidden_size,
@@ -659,7 +666,7 @@ class TFT(BaseWindows):
                 num_static_vars=self.stat_exog_size,
                 dropout=dropout,
                 grn_activation=self.grn_activation,
-                rnn_type=rnn_type,
+                rnn_type=self.rnn_type,
                 n_rnn_layers=n_rnn_layers,
                 one_rnn_initial_state=one_rnn_initial_state,
             )
@@ -671,7 +678,7 @@ class TFT(BaseWindows):
             dropout=dropout,
             grn_activation=self.grn_activation,
             n_rnn_layers=n_rnn_layers,
-            rnn_type=rnn_type,
+            rnn_type=self.rnn_type,
         )
 
         # ------------------------------ Decoders -----------------------------#
@@ -691,8 +698,9 @@ class TFT(BaseWindows):
         )
 
     def forward(self, windows_batch):
+
         # Parsiw windows_batch
-        y_insample = windows_batch["insample_y"][:, :, None]  # <- [B,T,1]
+        y_insample = windows_batch["insample_y"]  # <- [B,T,1]
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -764,7 +772,6 @@ class TFT(BaseWindows):
 
         # Adapt output to loss
         y_hat = self.output_adapter(temporal_features)
-        y_hat = self.loss.domain_map(y_hat)
 
         return y_hat
 
