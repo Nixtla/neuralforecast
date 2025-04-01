@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relMSE', 'QuantileLoss', 'MQLoss', 'QuantileLayer',
            'IQLoss', 'DistributionLoss', 'PMM', 'GMM', 'NBMM', 'HuberLoss', 'TukeyLoss', 'HuberQLoss', 'HuberMQLoss',
-           'Accuracy', 'sCRPS']
+           'HuberIQLoss', 'Accuracy', 'sCRPS']
 
 # %% ../../nbs/losses.pytorch.ipynb 4
 from typing import Optional, Union, Tuple, List
@@ -3062,7 +3062,113 @@ class HuberMQLoss(BasePointLoss):
 
         return _weighted_mean(losses=losses, weights=weights)
 
-# %% ../../nbs/losses.pytorch.ipynb 119
+# %% ../../nbs/losses.pytorch.ipynb 118
+class HuberIQLoss(HuberQLoss):
+    """Implicit Huber Quantile Loss
+
+    Computes the huberized quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network.
+    HuberIQLoss measures the deviation of a huberized quantile forecast.
+    By weighting the absolute deviation in a non symmetric way, the
+    loss pays more attention to under or over estimation.
+
+    $$ \mathrm{HuberQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
+    (1-q)\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} \geq y_{\\tau} \} +
+    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \} $$
+
+    **Parameters:**<br>
+    `quantile_sampling`: str, default='uniform', sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. <br>
+    `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
+    `delta`: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.<br>
+
+    **References:**<br>
+    [Gouttes, Adèle, Kashif Rasul, Mateusz Koren, Johannes Stephan, and Tofigh Naghibi, "Probabilistic Time Series Forecasting with Implicit Quantile Networks".](http://arxiv.org/abs/2107.03743)
+    [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)<br>
+    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+    """
+
+    def __init__(
+        self,
+        cos_embedding_dim=64,
+        concentration0=1.0,
+        concentration1=1.0,
+        delta=1.0,
+        horizon_weight=None,
+    ):
+        self.update_quantile()
+        super(HuberIQLoss, self).__init__(
+            q=self.q, delta=delta, horizon_weight=horizon_weight
+        )
+
+        self.cos_embedding_dim = cos_embedding_dim
+        self.concentration0 = concentration0
+        self.concentration1 = concentration1
+        self.has_sampled = False
+        self.has_predicted = False
+
+        self.quantile_layer = QuantileLayer(
+            num_output=1, cos_embedding_dim=self.cos_embedding_dim
+        )
+        self.output_layer = nn.Sequential(nn.Linear(1, 1), nn.PReLU())
+
+    def _sample_quantiles(self, sample_size, device):
+        if not self.has_sampled:
+            self._init_sampling_distribution(device)
+
+        quantiles = self.sampling_distr.sample(sample_size)
+        self.has_sampled = True
+        self.has_predicted = False
+
+        return quantiles
+
+    def _init_sampling_distribution(self, device):
+        concentration0 = torch.tensor(
+            [self.concentration0], device=device, dtype=torch.float32
+        )
+        concentration1 = torch.tensor(
+            [self.concentration1], device=device, dtype=torch.float32
+        )
+        self.sampling_distr = Beta(
+            concentration0=concentration0, concentration1=concentration1
+        )
+
+    def update_quantile(self, q: List[float] = [0.5]):
+        self.q = q[0]
+        self.output_names = [f"_ql{q[0]}"]
+        self.has_predicted = True
+
+    def domain_map(self, y_hat):
+        """
+        Adds IQN network to output of network
+
+        Input shapes to this function:
+
+        Univariate: y_hat = [B, h, 1]
+        Multivariate: y_hat = [B, h, N]
+        """
+        if self.eval() and self.has_predicted:
+            quantiles = torch.full(
+                size=y_hat.shape,
+                fill_value=self.q,
+                device=y_hat.device,
+                dtype=y_hat.dtype,
+            )
+            quantiles = quantiles.unsqueeze(-1)
+        else:
+            quantiles = self._sample_quantiles(
+                sample_size=y_hat.shape, device=y_hat.device
+            )
+
+        # Embed the quantiles and add to y_hat
+        emb_taus = self.quantile_layer(quantiles)
+        emb_inputs = y_hat.unsqueeze(-1) * (1.0 + emb_taus)
+        emb_outputs = self.output_layer(emb_inputs)
+
+        # Domain map
+        y_hat = emb_outputs.squeeze(-1)
+
+        return y_hat
+
+# %% ../../nbs/losses.pytorch.ipynb 124
 class Accuracy(BasePointLoss):
     """Accuracy
 
@@ -3116,7 +3222,7 @@ class Accuracy(BasePointLoss):
         accuracy = torch.mean(measure)
         return accuracy
 
-# %% ../../nbs/losses.pytorch.ipynb 123
+# %% ../../nbs/losses.pytorch.ipynb 128
 class sCRPS(BasePointLoss):
     """Scaled Continues Ranked Probability Score
 
