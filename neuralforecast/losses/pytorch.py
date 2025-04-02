@@ -704,6 +704,7 @@ class IQLoss(QuantileLoss):
             self._init_sampling_distribution(device)
 
         quantiles = self.sampling_distr.sample(sample_size)
+        self.q = quantiles.squeeze(-1)
         self.has_sampled = True
         self.has_predicted = False
 
@@ -3115,6 +3116,7 @@ class HuberIQLoss(HuberQLoss):
             self._init_sampling_distribution(device)
 
         quantiles = self.sampling_distr.sample(sample_size)
+        self.q = quantiles.squeeze(-1)
         self.has_sampled = True
         self.has_predicted = False
 
