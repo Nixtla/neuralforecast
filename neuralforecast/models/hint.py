@@ -11,7 +11,7 @@ import torch
 
 # %% ../../nbs/models.hint.ipynb 7
 def get_bottomup_P(S: np.ndarray):
-    """BottomUp Reconciliation Matrix.
+    r"""BottomUp Reconciliation Matrix.
 
     Creates BottomUp hierarchical \"projection\" matrix is defined as:
     $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
@@ -35,7 +35,7 @@ def get_bottomup_P(S: np.ndarray):
 
 
 def get_mintrace_ols_P(S: np.ndarray):
-    """MinTraceOLS Reconciliation Matrix.
+    r"""MinTraceOLS Reconciliation Matrix.
 
     Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
 
@@ -67,7 +67,7 @@ def get_mintrace_ols_P(S: np.ndarray):
 
 
 def get_mintrace_wls_P(S: np.ndarray):
-    """MinTraceOLS Reconciliation Matrix.
+    r"""MinTraceOLS Reconciliation Matrix.
 
     Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
     Depending on a weighted GLS estimator and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$.
