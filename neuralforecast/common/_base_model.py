@@ -233,7 +233,7 @@ class BaseModel(pl.LightningModule):
             )
 
         # Protections for loss functions
-        if isinstance(self.loss, (losses.IQLoss)):
+        if isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
             loss_type = type(self.loss)
             if not isinstance(self.valid_loss, loss_type):
                 raise Exception(
@@ -244,7 +244,7 @@ class BaseModel(pl.LightningModule):
                 raise Exception(
                     f"Please set valid_loss to MQLoss() or HuberMQLoss() when training with {type(self.loss).__name__}"
                 )
-        if isinstance(self.valid_loss, losses.IQLoss):
+        if isinstance(self.valid_loss, (losses.IQLoss, losses.HuberIQLoss)):
             valid_loss_type = type(self.valid_loss)
             if not isinstance(self.loss, valid_loss_type):
                 raise Exception(
@@ -415,7 +415,9 @@ class BaseModel(pl.LightningModule):
         )
 
     def _set_quantiles(self, quantiles=None):
-        if quantiles is None and isinstance(self.loss, losses.IQLoss):
+        if quantiles is None and isinstance(
+            self.loss, (losses.IQLoss, losses.HuberIQLoss)
+        ):
             self.loss.update_quantile(q=[0.5])
         elif hasattr(self.loss, "update_quantile") and callable(
             self.loss.update_quantile
