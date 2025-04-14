@@ -178,7 +178,11 @@ class BaseAuto(pl.LightningModule):
         self.callbacks = callbacks
 
         # Base Class attributes
-        self.SAMPLING_TYPE = cls_model.SAMPLING_TYPE
+        self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+        self.EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+        self.EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+        self.MULTIVARIATE = cls_model.MULTIVARIATE
+        self.RECURRENT = cls_model.RECURRENT
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias

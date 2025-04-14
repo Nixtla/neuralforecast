@@ -10,10 +10,10 @@ import torch
 import torch.nn as nn
 
 from ..losses.pytorch import MAE
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 
 # %% ../../nbs/models.mlp.ipynb 6
-class MLP(BaseWindows):
+class MLP(BaseModel):
     """MLP
 
     Simple Multi Layer Perceptron architecture (MLP).
@@ -29,7 +29,7 @@ class MLP(BaseWindows):
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `n_layers`: int, number of layers for the MLP.<br>
+    `num_layers`: int, number of layers for the MLP.<br>
     `hidden_size`: int, number of units for each layer of the MLP.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
@@ -57,18 +57,21 @@ class MLP(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
         h,
         input_size,
-        futr_exog_list=None,
-        hist_exog_list=None,
         stat_exog_list=None,
+        hist_exog_list=None,
+        futr_exog_list=None,
         exclude_insample_y=False,
         num_layers=2,
         hidden_size=1024,
@@ -88,6 +91,7 @@ class MLP(BaseWindows):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -100,9 +104,9 @@ class MLP(BaseWindows):
         super(MLP, self).__init__(
             h=h,
             input_size=input_size,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
+            futr_exog_list=futr_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
@@ -118,8 +122,9 @@ class MLP(BaseWindows):
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -155,7 +160,7 @@ class MLP(BaseWindows):
     def forward(self, windows_batch):
 
         # Parse windows_batch
-        insample_y = windows_batch["insample_y"]
+        insample_y = windows_batch["insample_y"].squeeze(-1)
         futr_exog = windows_batch["futr_exog"]
         hist_exog = windows_batch["hist_exog"]
         stat_exog = windows_batch["stat_exog"]
@@ -184,5 +189,4 @@ class MLP(BaseWindows):
         y_pred = self.out(y_pred)
 
         y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
-        y_pred = self.loss.domain_map(y_pred)
         return y_pred

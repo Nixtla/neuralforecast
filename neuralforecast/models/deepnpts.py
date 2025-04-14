@@ -11,11 +11,11 @@ import neuralforecast.losses.pytorch as losses
 from typing import Optional
 
 
-from ..common._base_windows import BaseWindows
+from ..common._base_model import BaseModel
 from ..losses.pytorch import MAE
 
 # %% ../../nbs/models.deepnpts.ipynb 6
-class DeepNPTS(BaseWindows):
+class DeepNPTS(BaseModel):
     """DeepNPTS
 
     Deep Non-Parametric Time Series Forecaster (`DeepNPTS`) is a baseline model for time-series forecasting. This model generates predictions by (weighted) sampling from the empirical distribution according to a learnable strategy. The strategy is learned by exploiting the information across multiple related time series.
@@ -61,22 +61,25 @@ class DeepNPTS(BaseWindows):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "windows"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
         h,
-        input_size: int = -1,
+        input_size: int,
         hidden_size: int = 32,
         batch_norm: bool = True,
         dropout: float = 0.1,
         n_layers: int = 2,
-        futr_exog_list=None,
-        hist_exog_list=None,
         stat_exog_list=None,
+        hist_exog_list=None,
+        futr_exog_list=None,
         exclude_insample_y=False,
         loss=MAE(),
         valid_loss=MAE(),
@@ -94,6 +97,7 @@ class DeepNPTS(BaseWindows):
         scaler_type: str = "standard",
         random_seed: int = 1,
         drop_last_loader=False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -105,12 +109,12 @@ class DeepNPTS(BaseWindows):
         if exclude_insample_y:
             raise Exception("DeepNPTS has no possibility for excluding y.")
 
-        if not isinstance(loss, losses.BasePointLoss):
+        if loss.outputsize_multiplier > 1:
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as loss function."
             )
 
-        if not isinstance(valid_loss, losses.BasePointLoss):
+        if valid_loss is not None and not isinstance(valid_loss, losses.BasePointLoss):
             raise Exception(
                 "DeepNPTS only supports point loss functions (MAE, MSE, etc) as valid loss function."
             )
@@ -119,9 +123,9 @@ class DeepNPTS(BaseWindows):
         super(DeepNPTS, self).__init__(
             h=h,
             input_size=input_size,
-            futr_exog_list=futr_exog_list,
-            hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            hist_exog_list=hist_exog_list,
+            futr_exog_list=futr_exog_list,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
@@ -131,14 +135,15 @@ class DeepNPTS(BaseWindows):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
-            windows_batch_size=windows_batch_size,
             valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
-            drop_last_loader=drop_last_loader,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -172,13 +177,13 @@ class DeepNPTS(BaseWindows):
 
     def forward(self, windows_batch):
         # Parse windows_batch
-        x = windows_batch["insample_y"].unsqueeze(-1)  #   [B, L, 1]
+        x = windows_batch["insample_y"]  #   [B, L, 1]
         hist_exog = windows_batch["hist_exog"]  #   [B, L, X]
         futr_exog = windows_batch["futr_exog"]  #   [B, L + h, F]
         stat_exog = windows_batch["stat_exog"]  #   [B, S]
 
         batch_size, seq_len = x.shape[:2]  #   B = batch_size, L = seq_len
-        insample_y = windows_batch["insample_y"].unsqueeze(-1)
+        insample_y = windows_batch["insample_y"]
 
         # Concatenate x_t with future exogenous of input
         if self.futr_exog_size > 0:
@@ -220,8 +225,6 @@ class DeepNPTS(BaseWindows):
         x = (
             F.softmax(weights, dim=1) * insample_y
         )  #   [B, L, h] * [B, L, 1] = [B, L, h]
-        output = torch.sum(x, dim=1).unsqueeze(-1)  #   [B, L, h] -> [B, h, 1]
-
-        forecast = self.loss.domain_map(output)  #   [B, h, 1] -> [B, h, 1]
+        forecast = torch.sum(x, dim=1).unsqueeze(-1)  #   [B, L, h] -> [B, h, 1]
 
         return forecast

@@ -9,13 +9,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
+from ..common._base_model import BaseModel
 from neuralforecast.common._modules import (
     DataEmbedding_inverted,
     PositionalEmbedding,
     FullAttention,
     AttentionLayer,
 )
+from typing import Optional
 
 # %% ../../nbs/models.timexer.ipynb 7
 class FlattenHead(nn.Module):
@@ -131,7 +132,7 @@ class EnEmbedding(nn.Module):
         return self.dropout(x), n_vars
 
 # %% ../../nbs/models.timexer.ipynb 12
-class TimeXer(BaseMultivariate):
+class TimeXer(BaseModel):
     """
     TimeXer
 
@@ -158,6 +159,10 @@ class TimeXer(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=32, number of windows in each batch.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -177,10 +182,13 @@ class TimeXer(BaseMultivariate):
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
@@ -190,6 +198,7 @@ class TimeXer(BaseMultivariate):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        exclude_insample_y: bool = False,
         patch_len: int = 16,
         hidden_size: int = 512,
         n_heads: int = 8,
@@ -206,10 +215,15 @@ class TimeXer(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -222,9 +236,10 @@ class TimeXer(BaseMultivariate):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
+            stat_exog_list=stat_exog_list,
+            exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -233,10 +248,15 @@ class TimeXer(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -297,7 +317,12 @@ class TimeXer(BaseMultivariate):
             norm_layer=torch.nn.LayerNorm(self.hidden_size),
         )
         self.head_nf = self.hidden_size * (self.patch_num + 1)
-        self.head = FlattenHead(self.enc_in, self.head_nf, h, head_dropout=self.dropout)
+        self.head = FlattenHead(
+            self.enc_in,
+            self.head_nf,
+            h * self.loss.outputsize_multiplier,
+            head_dropout=self.dropout,
+        )
 
     def forecast(self, x_enc, x_mark_enc):
         if self.use_norm:
@@ -321,13 +346,21 @@ class TimeXer(BaseMultivariate):
         # z: [bs x nvars x d_model x patch_num]
         enc_out = enc_out.permute(0, 1, 3, 2)
 
-        dec_out = self.head(enc_out)  # z: [bs x nvars x target_window]
+        dec_out = self.head(enc_out)  # z: [bs x nvars x h * n_outputs]
         dec_out = dec_out.permute(0, 2, 1)
 
         if self.use_norm:
             # De-Normalization from Non-stationary Transformer
-            dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
-            dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.h, 1))
+            dec_out = dec_out * (
+                stdev[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
+            dec_out = dec_out + (
+                means[:, 0, :]
+                .unsqueeze(1)
+                .repeat(1, self.h * self.loss.outputsize_multiplier, 1)
+            )
 
         return dec_out
 
@@ -343,10 +376,5 @@ class TimeXer(BaseMultivariate):
             x_mark_enc = None
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred[:, -self.h :, :]
-        y_pred = self.loss.domain_map(y_pred)
-
-        if y_pred.ndim == 2:
-            return y_pred.unsqueeze(-1)
-        else:
-            return y_pred
+        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
+        return y_pred

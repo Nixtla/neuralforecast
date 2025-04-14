@@ -11,8 +11,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..losses.pytorch import MAE
-from ..common._base_multivariate import BaseMultivariate
-from ..common._modules import RevIN
+from ..common._base_model import BaseModel
+from ..common._modules import RevINMultivariate
+from typing import Optional
 
 # %% ../../nbs/models.rmok.ipynb 8
 class WaveKANLayer(nn.Module):
@@ -256,9 +257,11 @@ class JacobiKANLayer(nn.Module):
         return y
 
 # %% ../../nbs/models.rmok.ipynb 14
-class RMoK(BaseMultivariate):
+class RMoK(BaseModel):
     """Reversible Mixture of KAN
-    **Parameters**<br>
+
+
+    **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
     `n_series`: int, number of time-series.<br>
@@ -278,6 +281,10 @@ class RMoK(BaseMultivariate):
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
     `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
     `batch_size`: int=32, number of different series in each batch.<br>
+    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
+    `windows_batch_size`: int=32, number of windows to sample in each training batch, default uses all.<br>
+    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
+    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -290,21 +297,24 @@ class RMoK(BaseMultivariate):
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
 
-    Reference<br>
-    [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe Wu."KAN4TSF: Are KAN and KAN-based models Effective for Time Series Forecasting?"](https://arxiv.org/abs/2408.11306)
+    **References**<br>
+    - [Xiao Han, Xinfeng Zhang, Yiling Wu, Zhenduo Zhang, Zhe Wu."KAN4TSF: Are KAN and KAN-based models Effective for Time Series Forecasting?". arXiv.](https://arxiv.org/abs/2408.11306)<br>
     """
 
     # Class attributes
-    SAMPLING_TYPE = "multivariate"
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = (
+        False  # If the model produces forecasts recursively (True) or direct (False)
+    )
 
     def __init__(
         self,
         h,
         input_size,
-        n_series,
+        n_series: int,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -312,7 +322,7 @@ class RMoK(BaseMultivariate):
         jacobi_degree: int = 6,
         wavelet_function: str = "mexican_hat",
         dropout: float = 0.1,
-        revine_affine: bool = True,
+        revin_affine: bool = True,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -321,10 +331,15 @@ class RMoK(BaseMultivariate):
         early_stop_patience_steps: int = -1,
         val_check_steps: int = 100,
         batch_size: int = 32,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size=32,
+        inference_windows_batch_size=32,
+        start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -337,9 +352,9 @@ class RMoK(BaseMultivariate):
             h=h,
             input_size=input_size,
             n_series=n_series,
-            stat_exog_list=None,
-            futr_exog_list=None,
-            hist_exog_list=None,
+            futr_exog_list=hist_exog_list,
+            hist_exog_list=stat_exog_list,
+            stat_exog_list=futr_exog_list,
             loss=loss,
             valid_loss=valid_loss,
             max_steps=max_steps,
@@ -348,10 +363,15 @@ class RMoK(BaseMultivariate):
             early_stop_patience_steps=early_stop_patience_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
             step_size=step_size,
             scaler_type=scaler_type,
             random_seed=random_seed,
             drop_last_loader=drop_last_loader,
+            alias=alias,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
@@ -364,7 +384,7 @@ class RMoK(BaseMultivariate):
         self.h = h
         self.n_series = n_series
         self.dropout = nn.Dropout(dropout)
-        self.revin_affine = revine_affine
+        self.revin_affine = revin_affine
 
         self.taylor_order = taylor_order
         self.jacobi_degree = jacobi_degree
@@ -373,25 +393,34 @@ class RMoK(BaseMultivariate):
         self.experts = nn.ModuleList(
             [
                 TaylorKANLayer(
-                    self.input_size, self.h, order=self.taylor_order, addbias=True
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    order=self.taylor_order,
+                    addbias=True,
                 ),
-                JacobiKANLayer(self.input_size, self.h, degree=self.jacobi_degree),
+                JacobiKANLayer(
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    degree=self.jacobi_degree,
+                ),
                 WaveKANLayer(
-                    self.input_size, self.h, wavelet_type=self.wavelet_function
+                    self.input_size,
+                    self.h * self.loss.outputsize_multiplier,
+                    wavelet_type=self.wavelet_function,
                 ),
-                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h * self.loss.outputsize_multiplier),
             ]
         )
 
         self.num_experts = len(self.experts)
         self.gate = nn.Linear(self.input_size, self.num_experts)
         self.softmax = nn.Softmax(dim=-1)
-        self.rev = RevIN(self.n_series, affine=self.revin_affine)
+        self.rev = RevINMultivariate(self.n_series, affine=self.revin_affine)
 
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]
         B, L, N = insample_y.shape
-        x = self.rev(insample_y, "norm") if self.rev else insample_y
+        x = self.rev(insample_y, "norm")
         x = self.dropout(x).transpose(1, 2).reshape(B * N, L)
 
         score = F.softmax(self.gate(x), dim=-1)
@@ -400,15 +429,11 @@ class RMoK(BaseMultivariate):
         )
 
         y_pred = (
-            torch.einsum("BLE,BE->BL", expert_outputs, score)
-            .reshape(B, N, -1)
+            torch.einsum("BLE, BE -> BL", expert_outputs, score)
+            .reshape(B, N, self.h * self.loss.outputsize_multiplier)
             .permute(0, 2, 1)
         )
         y_pred = self.rev(y_pred, "denorm")
-        y_pred = self.loss.domain_map(y_pred)
+        y_pred = y_pred.reshape(B, self.h, -1)
 
-        # domain_map might have squeezed the last dimension in case n_series == 1
-        if y_pred.ndim == 2:
-            return y_pred.unsqueeze(-1)
-        else:
-            return y_pred
+        return y_pred
