@@ -1259,7 +1259,7 @@ class NeuralForecast:
         cols_order = first_out_cols + remaining_cols + [target_col]
         return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
 
-    def predict_insample(self, step_size: int = 1):
+    def predict_insample(self, step_size: int = 1, keep_distribution: bool = False):
         """Predict insample with core.NeuralForecast.
 
         `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
@@ -1269,6 +1269,8 @@ class NeuralForecast:
         ----------
         step_size : int (default=1)
             Step size between each window.
+        keep_distribution : bool (default=False)
+            Return distributional predictions. By default, only the median is returned.
 
         Returns
         -------
@@ -1352,8 +1354,12 @@ class NeuralForecast:
                 model.set_test_size(test_size=trimmed_dataset.max_size)
                 # Generate predictions
                 model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
-                # Handle distributional forecasts; take only median
-                if len(model_fcsts.shape) > 1 and model_fcsts.shape[1] == 3:
+                if (
+                    not keep_distribution
+                    and len(model_fcsts.shape) > 1
+                    and model_fcsts.shape[1] == 3
+                ):
+                    # Handle distributional forecasts; take only median
                     model_fcsts = model_fcsts[:, 0]  # Take first column (median)
                 # Ensure consistent 2D shape
                 if len(model_fcsts.shape) == 1:
@@ -1376,12 +1382,15 @@ class NeuralForecast:
 
         # Create forecasts DataFrame
         cols = self._get_model_names()
-        selected_cols = [
-            col
-            for col in cols
-            if not col.endswith(("-lo", "-hi"))
-            and (not "-" in col or col.endswith("-median"))
-        ]
+        if keep_distribution:
+            selected_cols = cols
+        else:
+            selected_cols = [
+                col
+                for col in cols
+                if not col.endswith(("-lo", "-hi"))
+                and (not "-" in col or col.endswith("-median"))
+            ]
         if isinstance(self.uids, pl_Series):
             fcsts = pl_DataFrame(dict(zip(selected_cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)
