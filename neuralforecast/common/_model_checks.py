@@ -131,6 +131,7 @@ def check_loss_functions(model_class):
         losses.QuantileLoss(q=0.5),
         losses.MQLoss(),
         losses.IQLoss(),
+        losses.HuberIQLoss(),
         losses.DistributionLoss("Normal"),
         losses.DistributionLoss("StudentT"),
         losses.DistributionLoss("Poisson"),

@@ -28,7 +28,7 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .losses.pytorch import IQLoss
+from .losses.pytorch import IQLoss, HuberIQLoss
 from neuralforecast.tsdataset import (
     _FilesDataset,
     TimeSeriesDataset,
@@ -673,7 +673,8 @@ class NeuralForecast:
                 model_name += str(count_names[model_name])
 
             if add_level and (
-                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+                model.loss.outputsize_multiplier > 1
+                or isinstance(model.loss, (IQLoss, HuberIQLoss))
             ):
                 continue
 
@@ -1029,7 +1030,8 @@ class NeuralForecast:
         fcsts_list: List = []
         for model in self.models:
             if self._add_level and (
-                model.loss.outputsize_multiplier > 1 or isinstance(model.loss, IQLoss)
+                model.loss.outputsize_multiplier > 1
+                or isinstance(model.loss, (IQLoss, HuberIQLoss))
             ):
                 continue
 
@@ -1707,7 +1709,7 @@ class NeuralForecast:
             # case 1: DistributionLoss and MixtureLosses
             if (
                 quantiles_ is not None
-                and not isinstance(model.loss, IQLoss)
+                and not isinstance(model.loss, (IQLoss, HuberIQLoss))
                 and hasattr(model.loss, "update_quantile")
                 and callable(model.loss.update_quantile)
             ):
@@ -1733,7 +1735,9 @@ class NeuralForecast:
                 else:
                     cols.extend(col_names)
             # case 2: IQLoss
-            elif quantiles_ is not None and isinstance(model.loss, IQLoss):
+            elif quantiles_ is not None and isinstance(
+                model.loss, (IQLoss, HuberIQLoss)
+            ):
                 # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
                 quantiles_iqloss = np.linspace(0.01, 0.99, 20)
                 fcsts_list_iqloss = []

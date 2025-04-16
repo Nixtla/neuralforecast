@@ -11,6 +11,7 @@ jobs:
           command: micromamba install -n base -c conda-forge -y python=3.10 git -f environment-cpu.yml
       - run:
           name: Run nbdev tests
+          no_output_timeout: 20m
           command: |
             eval "$(micromamba shell hook --shell bash)"
             micromamba activate base
