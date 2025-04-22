@@ -22,6 +22,7 @@ import neuralforecast.losses.pytorch as losses
 
 from ..losses.pytorch import BasePointLoss, DistributionLoss
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.tuner.tuning import Tuner
 from neuralforecast.tsdataset import (
     TimeSeriesDataModule,
     BaseTimeSeriesDataset,
@@ -118,6 +119,7 @@ class BaseModel(pl.LightningModule):
         optimizer_kwargs: Union[Dict, None] = None,
         lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
         lr_scheduler_kwargs: Union[Dict, None] = None,
+        enable_lr_finder: bool = False,
         dataloader_kwargs=None,
         **trainer_kwargs,
     ):
@@ -347,6 +349,7 @@ class BaseModel(pl.LightningModule):
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
+        self.enable_lr_finder = enable_lr_finder
 
         # If the model does not support exogenous, it can't support exclude_insample_y
         if exclude_insample_y and not (
@@ -532,6 +535,26 @@ class BaseModel(pl.LightningModule):
             shuffle_train=shuffle_train,
             **dataloader_kwargs,
         )
+
+        if self.enable_lr_finder:
+            print("Running learning rate finder...")
+
+            # Create a temporary trainer for LR finding
+            temp_trainer_kwargs = self.trainer_kwargs.copy()
+            temp_trainer_kwargs.pop("max_steps", None)
+            temp_trainer_kwargs.pop("callbacks", None)
+            temp_trainer_kwargs.pop("val_check_interval", None)
+
+            temp_trainer = pl.Trainer(**temp_trainer_kwargs)
+            tuner = Tuner(temp_trainer)
+
+            # Run the finder
+            lr_finder = tuner.lr_find(self, datamodule=datamodule)
+            suggested_lr = lr_finder.suggestion()
+            print(f"Learning rate finder suggested: {suggested_lr}")
+
+            # Update learning rate
+            self.learning_rate = suggested_lr
 
         if self.val_check_steps > self.max_steps:
             warnings.warn(

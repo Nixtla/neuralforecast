@@ -372,6 +372,7 @@ class NBEATSx(BaseModel):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
+        enable_lr_finder=False,
         dataloader_kwargs=None,
         **trainer_kwargs,
     ):
@@ -410,6 +411,7 @@ class NBEATSx(BaseModel):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
+            enable_lr_finder=enable_lr_finder,
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )

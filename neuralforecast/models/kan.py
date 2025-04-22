@@ -338,6 +338,7 @@ class KAN(BaseModel):
         alias: Optional[str] = None,
         optimizer=None,
         optimizer_kwargs=None,
+        enable_lr_finder=False,
         dataloader_kwargs=None,
         **trainer_kwargs
     ):
@@ -369,6 +370,7 @@ class KAN(BaseModel):
             random_seed=random_seed,
             optimizer=optimizer,
             optimizer_kwargs=optimizer_kwargs,
+            enable_lr_finder=enable_lr_finder,
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
