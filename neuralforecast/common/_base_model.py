@@ -537,8 +537,6 @@ class BaseModel(pl.LightningModule):
         )
 
         if self.enable_lr_finder:
-            print("Running learning rate finder...")
-
             # Create a temporary trainer for LR finding
             temp_trainer_kwargs = self.trainer_kwargs.copy()
             temp_trainer_kwargs.pop("max_steps", None)
@@ -551,7 +549,6 @@ class BaseModel(pl.LightningModule):
             # Run the finder
             lr_finder = tuner.lr_find(self, datamodule=datamodule)
             suggested_lr = lr_finder.suggestion()
-            print(f"Learning rate finder suggested: {suggested_lr}")
 
             # Update learning rate
             self.learning_rate = suggested_lr

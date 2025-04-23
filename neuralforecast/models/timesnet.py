@@ -158,6 +158,7 @@ class TimesNet(BaseModel):
     `optimizer_kwargs`: dict, optional (defualt=None), List of parameters used by the user specified `optimizer`.<br>
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
+    `enable_lr_finder`: bool=False, if True, does a range test of good initial learning rates, to reduce the amount of guesswork in picking a good starting learning rate.<br>
     `dataloader_kwargs`: dict, optional (default=None), List of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: Keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer)
 
