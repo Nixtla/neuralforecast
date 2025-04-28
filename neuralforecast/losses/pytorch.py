@@ -546,7 +546,7 @@ class MQLoss(BasePointLoss):
 
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             _, output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
@@ -1834,7 +1834,7 @@ class DistributionLoss(torch.nn.Module):
         qs, self.output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
 
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             quantiles = sorted(quantiles)
             _, self.output_names = quantiles_to_outputs(quantiles)
@@ -2091,7 +2091,7 @@ class PMM(torch.nn.Module):
         qs, self.output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
 
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
@@ -2318,7 +2318,7 @@ class GMM(torch.nn.Module):
         qs, self.output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
 
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
@@ -2543,7 +2543,7 @@ class NBMM(torch.nn.Module):
         qs, self.output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
 
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             _, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
@@ -2972,7 +2972,7 @@ class HuberMQLoss(BasePointLoss):
 
         qs, output_names = level_to_outputs(level)
         qs = torch.Tensor(qs)
-        # Transform quantiles to homogeneus output names
+        # Transform quantiles to homogeneous output names
         if quantiles is not None:
             _, output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
