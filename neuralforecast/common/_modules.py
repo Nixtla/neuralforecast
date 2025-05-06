@@ -378,24 +378,18 @@ class FullAttention(nn.Module):
         scale=None,
         attention_dropout=0.1,
         output_attention=False,
-        atten="full",
     ):
         super(FullAttention, self).__init__()
         self.scale = scale
         self.mask_flag = mask_flag
         self.output_attention = output_attention
         self.dropout = nn.Dropout(attention_dropout)
-        self.atten = atten
-        assert self.atten in ["full", "flash"], "atten must be in ['full', 'flash']"
 
     def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
 
-        if self.atten == "flash":
-            assert (
-                self.output_attention == False
-            ), "output_attention not supported with flash attention"
+        if not self.output_attention:  # flash attention not supported
             q = queries.permute(0, 2, 1, 3)  # [B, H, L, E]
             k = keys.permute(0, 2, 1, 3)
             v = values.permute(0, 2, 1, 3)
@@ -413,7 +407,7 @@ class FullAttention(nn.Module):
             )
             V = attn_output.permute(0, 2, 1, 3).contiguous()
             return (V, None) if self.output_attention else (V, None)
-        else:  # "full" attention
+        else:
             scale = self.scale or 1.0 / math.sqrt(E)
             scores = torch.einsum("blhe,bshe->bhls", queries, keys)
 
@@ -428,12 +422,6 @@ class FullAttention(nn.Module):
             return (
                 (V.contiguous(), A) if self.output_attention else (V.contiguous(), None)
             )
-
-    def _load_from_state_dict(self, state_dict, prefix, *args, **kwargs):
-        # Manually initialize `atten` if not in state_dict
-        if prefix + "atten" not in state_dict:
-            self.atten = "full"
-        super()._load_from_state_dict(state_dict, prefix, *args, **kwargs)
 
 # %% ../../nbs/common.modules.ipynb 19
 class PositionalEmbedding(nn.Module):

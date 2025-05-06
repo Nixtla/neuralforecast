@@ -151,7 +151,6 @@ class TimeXer(BaseModel):
     `factor`: int, attention factor.<br>
     `dropout`: float, dropout rate.<br>
     `use_norm`: bool, whether to normalize or not.<br>
-    `atten`: str, attention type, 'full' or 'flash'.<br>
     `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
@@ -208,7 +207,6 @@ class TimeXer(BaseModel):
         factor: int = 1,
         dropout: float = 0.1,
         use_norm: bool = True,
-        atten: str = "full",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -295,7 +293,6 @@ class TimeXer(BaseModel):
                             self.factor,
                             attention_dropout=self.dropout,
                             output_attention=False,
-                            atten=atten,
                         ),
                         self.hidden_size,
                         self.n_heads,
@@ -306,7 +303,6 @@ class TimeXer(BaseModel):
                             self.factor,
                             attention_dropout=self.dropout,
                             output_attention=False,
-                            atten=atten,
                         ),
                         self.hidden_size,
                         self.n_heads,
