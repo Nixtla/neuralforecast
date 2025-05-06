@@ -741,48 +741,68 @@ class _ScaledDotProductAttention(nn.Module):
             attn   : [bs x n_heads x q_len x seq_len]
             scores : [bs x n_heads x q_len x seq_len]
         """
-
-        # Scaled MatMul (q, k) - similarity scores for all pairs of positions in an input sequence
-        attn_scores = (
-            torch.matmul(q, k) * self.scale
-        )  # attn_scores : [bs x n_heads x max_q_len x q_len]
-
-        # Add pre-softmax attention scores from the previous layer (optional)
-        if prev is not None:
-            attn_scores = attn_scores + prev
-
-        # Attention mask (optional)
-        if (
-            attn_mask is not None
-        ):  # attn_mask with shape [q_len x seq_len] - only used when q_len == seq_len
-            if attn_mask.dtype == torch.bool:
-                attn_scores.masked_fill_(attn_mask, -np.inf)
-            else:
-                attn_scores += attn_mask
-
-        # Key padding mask (optional)
-        if (
-            key_padding_mask is not None
-        ):  # mask with shape [bs x q_len] (only when max_w_len == q_len)
-            attn_scores.masked_fill_(
-                key_padding_mask.unsqueeze(1).unsqueeze(2), -np.inf
+        if not self.res_attention:
+            # Use torch's built-in flash attention for efficient computation
+            # Note: This will not return attention weights/scores
+            # The shapes of q, k, v must be: [batch, n_heads, seq_len, head_dim]
+            # Reshape q, k, v into [batch*n_heads, seq_len, head_dim] as required by torch.nn.functional.scaled_dot_product_attention
+            bs, n_heads, seq_len, head_dim = q.shape
+            q_ = q.reshape(bs * n_heads, seq_len, head_dim)
+            k_ = k.reshape(bs * n_heads, seq_len, head_dim)
+            v_ = v.reshape(bs * n_heads, seq_len, head_dim)
+            # If attn_mask exists, convert it to the appropriate format for flash attention (e.g. [batch*n_heads, seq_len, seq_len])
+            if attn_mask is not None:
+                attn_mask = attn_mask.repeat(bs * n_heads, 1, 1)
+            output = torch.nn.functional.scaled_dot_product_attention(
+                q_,
+                k_,
+                v_,
+                attn_mask=attn_mask,
+                dropout_p=self.attn_dropout.p,
+                is_causal=False,
             )
-
-        # normalize the attention weights
-        attn_weights = F.softmax(
-            attn_scores, dim=-1
-        )  # attn_weights   : [bs x n_heads x max_q_len x q_len]
-        attn_weights = self.attn_dropout(attn_weights)
-
-        # compute the new values given the attention weights
-        output = torch.matmul(
-            attn_weights, v
-        )  # output: [bs x n_heads x max_q_len x d_v]
-
-        if self.res_attention:
-            return output, attn_weights, attn_scores
+            # Restore the original shape
+            output = output.reshape(bs, n_heads, seq_len, head_dim)
+            return output, None
         else:
-            return output, attn_weights
+            # Scaled MatMul (q, k) - similarity scores for all pairs of positions in an input sequence
+            attn_scores = (
+                torch.matmul(q, k) * self.scale
+            )  # attn_scores : [bs x n_heads x max_q_len x q_len]
+
+            # Add pre-softmax attention scores from the previous layer (optional)
+            if prev is not None:
+                attn_scores = attn_scores + prev
+
+            # Attention mask (optional)
+            if (
+                attn_mask is not None
+            ):  # attn_mask with shape [q_len x seq_len] - only used when q_len == seq_len
+                if attn_mask.dtype == torch.bool:
+                    attn_scores.masked_fill_(attn_mask, -np.inf)
+                else:
+                    attn_scores += attn_mask
+
+            # Key padding mask (optional)
+            if (
+                key_padding_mask is not None
+            ):  # mask with shape [bs x q_len] (only when max_w_len == q_len)
+                attn_scores.masked_fill_(
+                    key_padding_mask.unsqueeze(1).unsqueeze(2), -np.inf
+                )
+
+            # normalize the attention weights
+            attn_weights = F.softmax(
+                attn_scores, dim=-1
+            )  # attn_weights   : [bs x n_heads x max_q_len x q_len]
+            attn_weights = self.attn_dropout(attn_weights)
+
+            # compute the new values given the attention weights
+            output = torch.matmul(
+                attn_weights, v
+            )  # output: [bs x n_heads x max_q_len x d_v]
+
+            return output, attn_weights, attn_scores
 
 # %% ../../nbs/models.patchtst.ipynb 15
 class PatchTST(BaseModel):
