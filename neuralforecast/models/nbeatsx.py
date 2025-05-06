@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NBEATSx']
 
-# %% ../../nbs/models.nbeatsx.ipynb 6
+# %% ../../nbs/models.nbeatsx.ipynb 7
 from typing import Tuple, Optional
 
 import numpy as np
@@ -13,7 +13,7 @@ import torch.nn as nn
 from ..losses.pytorch import MAE
 from ..common._base_model import BaseModel
 
-# %% ../../nbs/models.nbeatsx.ipynb 8
+# %% ../../nbs/models.nbeatsx.ipynb 9
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, out_features: int = 1):
         super().__init__()
@@ -161,7 +161,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum("bpq,pt->btq", forecast_theta, self.forecast_basis)
         return backcast, forecast
 
-# %% ../../nbs/models.nbeatsx.ipynb 9
+# %% ../../nbs/models.nbeatsx.ipynb 10
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 
@@ -186,7 +186,9 @@ class NBEATSBlock(nn.Module):
         """ """
         super().__init__()
 
+        self.h = h
         self.dropout_prob = dropout_prob
+        self.input_size = input_size
         self.futr_input_size = futr_input_size
         self.hist_input_size = hist_input_size
         self.stat_input_size = stat_input_size
@@ -260,7 +262,9 @@ class NBEATSBlock(nn.Module):
             elif self.futr_input_size > 0:
                 futr_exog = futr_exog
             elif self.stat_input_size > 0:
-                futr_exog = stat_exog
+                futr_exog = stat_exog.unsqueeze(1).expand(
+                    -1, self.input_size + self.h, -1
+                )
             else:
                 raise (
                     ValueError(
@@ -273,7 +277,7 @@ class NBEATSBlock(nn.Module):
             backcast, forecast = self.basis(theta)
             return backcast, forecast
 
-# %% ../../nbs/models.nbeatsx.ipynb 10
+# %% ../../nbs/models.nbeatsx.ipynb 11
 class NBEATSx(BaseModel):
     """NBEATSx
 
@@ -292,7 +296,7 @@ class NBEATSx(BaseModel):
     `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
     `n_harmonics`: int, Number of harmonic oscillations in the SeasonalityBasis [cos(i * t/n_harmonics), sin(i * t/n_harmonics)]. Note that it will only be used if 'seasonality' is in `stack_types`.<br>
     `n_polynomials`: int, Number of polynomial terms for TrendBasis [1,t,...,t^n_poly]. Note that it will only be used if 'trend' is in `stack_types`.<br>
-    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br>
+    `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity', 'exogenous'].<br>
     `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br>
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br>
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
