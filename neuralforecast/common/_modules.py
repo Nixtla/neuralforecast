@@ -82,7 +82,7 @@ class Chomp1d(nn.Module):
 
 
 class CausalConv1d(nn.Module):
-    """Causal Convolution 1d
+    r"""Causal Convolution 1d
 
     Receives `x` input of dim [N,C_in,T], and computes a causal convolution
     in the time dimension. Skipping the H steps of the forecast horizon, through
