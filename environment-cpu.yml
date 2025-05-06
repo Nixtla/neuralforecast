@@ -15,7 +15,7 @@ dependencies:
   - optuna
   - pandas>=1.3.5
   - pyarrow
-  - pytorch>=2.0.0
+  - pytorch>=2.0.0,<=2.6.0
   - pytorch-lightning>=2.0.0
   - pip
   - s3fs
