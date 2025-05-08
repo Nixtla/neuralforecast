@@ -388,23 +388,40 @@ class FullAttention(nn.Module):
     def forward(self, queries, keys, values, attn_mask, tau=None, delta=None):
         B, L, H, E = queries.shape
         _, S, _, D = values.shape
-        scale = self.scale or 1.0 / math.sqrt(E)
 
-        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+        if not self.output_attention:  # flash attention not supported
+            q = queries.permute(0, 2, 1, 3)  # [B, H, L, E]
+            k = keys.permute(0, 2, 1, 3)
+            v = values.permute(0, 2, 1, 3)
 
-        if self.mask_flag:
-            if attn_mask is None:
-                attn_mask = TriangularCausalMask(B, L, device=queries.device)
-
-            scores.masked_fill_(attn_mask.mask, -np.inf)
-
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
-        V = torch.einsum("bhls,bshd->blhd", A, values)
-
-        if self.output_attention:
-            return V.contiguous(), A
+            scale = self.scale or 1.0 / math.sqrt(E)
+            attn_output = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=(
+                    attn_mask.mask[:, 0] if (self.mask_flag and attn_mask) else None
+                ),
+                dropout_p=self.dropout.p if self.training else 0.0,
+                scale=scale,
+            )
+            V = attn_output.permute(0, 2, 1, 3).contiguous()
+            return (V, None) if self.output_attention else (V, None)
         else:
-            return V.contiguous(), None
+            scale = self.scale or 1.0 / math.sqrt(E)
+            scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+
+            if self.mask_flag:
+                if attn_mask is None:
+                    attn_mask = TriangularCausalMask(B, L, device=queries.device)
+                scores.masked_fill_(attn_mask.mask, -np.inf)
+
+            A = self.dropout(torch.softmax(scale * scores, dim=-1))
+            V = torch.einsum("bhls,bshd->blhd", A, values)
+
+            return (
+                (V.contiguous(), A) if self.output_attention else (V.contiguous(), None)
+            )
 
 # %% ../../nbs/common.modules.ipynb 19
 class PositionalEmbedding(nn.Module):
