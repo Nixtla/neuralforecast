@@ -748,12 +748,12 @@ class _ScaledDotProductAttention(nn.Module):
             # Reshape q, k, v into [batch*n_heads, seq_len, head_dim] as required by torch.nn.functional.scaled_dot_product_attention
             bs, n_heads, seq_len, head_dim = q.shape
             q_ = q.reshape(bs * n_heads, seq_len, head_dim)
-            k_ = k.reshape(bs * n_heads, seq_len, head_dim)
+            k_ = k.permute(0, 1, 3, 2).reshape(bs * n_heads, seq_len, head_dim)
             v_ = v.reshape(bs * n_heads, seq_len, head_dim)
             # If attn_mask exists, convert it to the appropriate format for flash attention (e.g. [batch*n_heads, seq_len, seq_len])
             if attn_mask is not None:
                 attn_mask = attn_mask.repeat(bs * n_heads, 1, 1)
-            output = torch.nn.functional.scaled_dot_product_attention(
+            output = F.scaled_dot_product_attention(
                 q_,
                 k_,
                 v_,

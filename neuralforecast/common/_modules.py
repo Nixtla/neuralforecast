@@ -395,7 +395,7 @@ class FullAttention(nn.Module):
             v = values.permute(0, 2, 1, 3)
 
             scale = self.scale or 1.0 / math.sqrt(E)
-            attn_output = torch.nn.functional.scaled_dot_product_attention(
+            attn_output = F.scaled_dot_product_attention(
                 q,
                 k,
                 v,
