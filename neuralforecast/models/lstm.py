@@ -27,6 +27,7 @@ class LSTM(BaseModel):
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
     `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
+    `h_train`: int, maximum sequence length for truncated train backpropagation. Default 1.<br>
     `encoder_n_layers`: int=2, number of layers for the LSTM.<br>
     `encoder_hidden_size`: int=200, units for the LSTM's hidden state size.<br>
     `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within LSTM units.<br>
@@ -78,6 +79,7 @@ class LSTM(BaseModel):
         h: int,
         input_size: int = -1,
         inference_input_size: Optional[int] = None,
+        h_train: int = 1,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 128,
         encoder_bias: bool = True,
@@ -121,6 +123,7 @@ class LSTM(BaseModel):
             h=h,
             input_size=input_size,
             inference_input_size=inference_input_size,
+            h_train=h_train,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
