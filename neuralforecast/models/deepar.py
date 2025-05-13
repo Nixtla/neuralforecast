@@ -57,6 +57,7 @@ class DeepAR(BaseModel):
     **Parameters:**<br>
     `h`: int, Forecast horizon. <br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
+    `h_train`: int, maximum sequence length for truncated train backpropagation. Default 1.<br>
     `lstm_n_layers`: int=2, number of LSTM layers.<br>
     `lstm_hidden_size`: int=128, LSTM hidden size.<br>
     `lstm_dropout`: float=0.1, LSTM dropout.<br>
@@ -108,6 +109,7 @@ class DeepAR(BaseModel):
         self,
         h,
         input_size: int = -1,
+        h_train: int = 1,
         lstm_n_layers: int = 2,
         lstm_hidden_size: int = 128,
         lstm_dropout: float = 0.1,
@@ -152,6 +154,7 @@ class DeepAR(BaseModel):
         super(DeepAR, self).__init__(
             h=h,
             input_size=input_size,
+            h_train=h_train,
             stat_exog_list=stat_exog_list,
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
