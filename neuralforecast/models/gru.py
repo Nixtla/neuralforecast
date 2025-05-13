@@ -27,6 +27,7 @@ class GRU(BaseModel):
     `h`: int, forecast horizon.<br>
     `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
     `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
+    `h_train`: int, maximum sequence length for truncated train backpropagation. Default 1.<br>
     `encoder_n_layers`: int=2, number of layers for the GRU.<br>
     `encoder_hidden_size`: int=200, units for the GRU's hidden state size.<br>
     `encoder_activation`: Optional[str]=None, Deprecated. Activation function in GRU is frozen in PyTorch.<br>
@@ -79,6 +80,7 @@ class GRU(BaseModel):
         h: int,
         input_size: int = -1,
         inference_input_size: Optional[int] = None,
+        h_train: int = 1,
         encoder_n_layers: int = 2,
         encoder_hidden_size: int = 200,
         encoder_activation: Optional[str] = None,
@@ -123,6 +125,7 @@ class GRU(BaseModel):
             h=h,
             input_size=input_size,
             inference_input_size=inference_input_size,
+            h_train=h_train,
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
@@ -207,6 +210,8 @@ class GRU(BaseModel):
                 activation="ReLU",
                 dropout=0.0,
             )
+            if self.h > self.input_size:
+                self.upsample_sequence = nn.Linear(self.input_size, self.h)
 
     def forward(self, windows_batch):
 
@@ -255,9 +260,20 @@ class GRU(BaseModel):
             hidden_state, _ = self.hist_encoder(
                 encoder_input, None
             )  # [B, seq_len, rnn_hidden_state]
-            hidden_state = hidden_state[
-                :, -self.h :
-            ]  # [B, seq_len, rnn_hidden_state] -> [B, h, rnn_hidden_state]
+            if self.h > self.input_size:
+                hidden_state = hidden_state.permute(
+                    0, 2, 1
+                )  # [B, seq_len, rnn_hidden_state] -> [B, rnn_hidden_state, seq_len]
+                hidden_state = self.upsample_sequence(
+                    hidden_state
+                )  # [B, rnn_hidden_state, seq_len] -> [B, rnn_hidden_state, h]
+                hidden_state = hidden_state.permute(
+                    0, 2, 1
+                )  # [B, rnn_hidden_state, h] -> [B, h, rnn_hidden_state]
+            else:
+                hidden_state = hidden_state[
+                    :, -self.h :
+                ]  # [B, seq_len, rnn_hidden_state] -> [B, h, rnn_hidden_state]
 
             if self.futr_exog_size > 0:
                 futr_exog_futr = futr_exog[:, -self.h :]  # [B, h, F]
