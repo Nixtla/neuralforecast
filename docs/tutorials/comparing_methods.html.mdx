@@ -101,6 +101,7 @@ Outline:
 
 ## Installing Libraries
 
+
 ```python
 !pip install statsforecast mlforecast neuralforecast pyarrow
 ```
@@ -110,6 +111,7 @@ Outline:
 The example uses the [M5
 dataset](https://github.com/Mcompetitions/M5-methods/blob/master/M5-Competitors-Guide.pdf).
 It consists of `30,490` bottom time series.
+
 
 ```python
 import pandas as pd
@@ -138,6 +140,7 @@ Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 
 For simplicity sake we will keep just one category
 
+
 ```python
 Y_df = Y_df.query('unique_id.str.startswith("FOODS_3")').reset_index(drop=True)
 Y_df['unique_id'] = Y_df['unique_id'].astype(str)
@@ -148,6 +151,7 @@ Y_df['unique_id'] = Y_df['unique_id'].astype(str)
 Plot some series using the `plot_series` function from the
 `utilsforecast` library. This method prints 8 random series from the
 dataset and is useful for basic EDA.
+
 
 ```python
 from utilsforecast.plotting import plot_series
@@ -160,6 +164,7 @@ plot_series(Y_df)
 ```
 
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-7-output-1.png)
+
 
 ```python
 # Feature: plot groups of series for EDA
@@ -205,6 +210,7 @@ forecasting:
 we are dealing with Daily data, it would be benefitial to use 7 as
 seasonality.
 
+
 ```python
 from statsforecast import StatsForecast
 # Import necessary models from the statsforecast library
@@ -239,6 +245,7 @@ following parameters:
     are passed into the constructor. Then you call its fit method and
     pass in the historical data frame.
 
+
 ```python
 horizon = 28
 models = [
@@ -272,6 +279,7 @@ This block of code times how long it takes to run the forecasting
 function of the StatsForecast class, which predicts the next 28 days
 (h=28). The time is calculated in minutes and printed out at the end.
 
+
 ```python
 from time import time
 
@@ -295,6 +303,7 @@ Forecast:   0%|          | 0/2000 [Elapsed: 00:00]
 ``` text
 Forecast Minutes: 4.009805858135223
 ```
+
 
 ```python
 fcst_df.head()
@@ -337,6 +346,7 @@ Key features of MLForecast include:
     datasets by distributing the computations across multiple nodes in a
     cluster, making it ideal for large-scale time series forecasting
     tasks.
+
 
 ```python
 from mlforecast import MLForecast
@@ -404,6 +414,7 @@ All these settings are passed to the `MLForecast` constructor. Once the
 `fit` method trains the models on the provided historical data, readying
 them for future forecasting tasks.
 
+
 ```python
 # Instantiate the MLForecast object
 mlf = MLForecast(
@@ -419,6 +430,7 @@ mlf = MLForecast(
 
 Just call the `fit` models to train the select models. In this case we
 are generating conformal prediction intervals.
+
 
 ```python
 # Start the timer to calculate the time taken for fitting the models
@@ -439,6 +451,7 @@ MLForecast Minutes: 0.5360581119855244
 ```
 
 After that, just call `predict` to generate forecasts.
+
 
 ```python
 fcst_mlf_df = mlf.predict(28)
@@ -482,6 +495,7 @@ This machine doesn’t have GPU, but Google Colabs offers some for free.
 Using [Colab’s GPU to train
 NeuralForecast](https://nixtla.github.io/neuralforecast/examples/intermittentdata.html).
 
+
 ```python
 # Read the results from Colab
 fcst_nf_df = pd.read_parquet('https://m5-benchmarks.s3.amazonaws.com/data/forecast-nf.parquet')
@@ -499,6 +513,7 @@ fcst_nf_df.head()
 | 2 | FOODS_3_001_CA_1 | 2016-05-25 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 1.0 |
 | 3 | FOODS_3_001_CA_1 | 2016-05-26 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 |
 | 4 | FOODS_3_001_CA_1 | 2016-05-27 | 0.0 | 0.0 | 2.0 | 0.0 | 0.0 | 2.0 |
+
 
 ```python
 # Merge the forecasts from StatsForecast and NeuralForecast
@@ -523,6 +538,7 @@ fcst_df.head()
 
 ## Forecast plots
 
+
 ```python
 plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 ```
@@ -530,6 +546,7 @@ plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-25-output-1.png)
 
 Use the plot function to explore models and ID’s
+
 
 ```python
 plot_series(
@@ -571,6 +588,7 @@ These parameters allow us to control the extent and granularity of our
 cross-validation process. By tuning these settings, we can balance
 between computational cost and the thoroughness of the cross-validation.
 
+
 ```python
 sf.verbose = False
 init = time()
@@ -593,6 +611,7 @@ following columns:
     unique cutoff values.
 -   `y`: true value
 -   `"model"`: columns with the model’s name and fitted value.
+
 
 ```python
 cv_df.head()
@@ -620,6 +639,7 @@ following arguments.
     other words: what number of forecasting processes in the past do you
     want to evaluate.
 
+
 ```python
 init = time()
 cv_mlf_df = mlf.cross_validation(
@@ -646,6 +666,7 @@ following columns:
 -   `y`: true value
 -   `"model"`: columns with the model’s name and fitted value.
 
+
 ```python
 cv_mlf_df.head()
 ```
@@ -664,6 +685,7 @@ This machine doesn’t have GPU, but Google Colabs offers some for free.
 
 Using [Colab’s GPU to train
 NeuralForecast](https://nixtla.github.io/neuralforecast/examples/intermittentdata.html).
+
 
 ```python
 cv_nf_df = pd.read_parquet('https://m5-benchmarks.s3.amazonaws.com/data/cross-validation-nf.parquet')
@@ -684,12 +706,14 @@ cv_nf_df.head()
 
 ## Merge cross validation forecasts
 
+
 ```python
 cv_df = cv_df.merge(cv_nf_df.drop(columns=['y']), how='left', on=['unique_id', 'ds', 'cutoff'])
 cv_df = cv_df.merge(cv_mlf_df.drop(columns=['y']), how='left', on=['unique_id', 'ds', 'cutoff'])
 ```
 
 ## Plots CV
+
 
 ```python
 cutoffs = cv_df['cutoff'].unique()
@@ -715,6 +739,7 @@ for cutoff in cutoffs:
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-35-output-3.png)
 
 ### Aggregate Demand
+
 
 ```python
 agg_cv_df = cv_df.loc[:,~cv_df.columns.str.contains('hi|lo')].groupby(['ds', 'cutoff']).sum(numeric_only=True).reset_index()
@@ -750,6 +775,7 @@ for cutoff in cutoffs:
 In this section, we will evaluate the performance of each model for each
 time series.
 
+
 ```python
 from utilsforecast.evaluation import evaluate
 from utilsforecast.losses import mse, mae, smape
@@ -775,6 +801,7 @@ evaluation_df
 | 24688 | FOODS_3_827_WI_2 | smape | 0.531777 | 0.398156 | 0.433577 | 0.387718 | 0.388827 | 0.389371 | 0.389888 | 0.393774 | 0.374640 | 0.413559 | 0.430893 | 0.399131 |
 | 24689 | FOODS_3_827_WI_3 | smape | 0.643689 | 0.680178 | 0.588031 | 0.589143 | 0.599820 | 0.628673 | 0.591437 | 0.558201 | 0.567460 | 0.589870 | 0.698798 | 0.627255 |
 
+
 ```python
 by_metric = evaluation_df.groupby('metric').mean(numeric_only=True)
 by_metric
@@ -789,6 +816,7 @@ by_metric
 
 Best models by metric
 
+
 ```python
 by_metric.idxmin(axis=1)
 ```
@@ -802,6 +830,7 @@ dtype: object
 ```
 
 ### Distribution of errors
+
 
 ```python
 !pip install seaborn
@@ -820,6 +849,7 @@ evaluation_df_long = pd.melt(evaluation_df, id_vars=['unique_id', 'metric'], var
 
 #### SMAPE
 
+
 ```python
 sns.violinplot(evaluation_df_long.query('metric=="smape"'), x='error', y='model');
 ```
@@ -835,6 +865,7 @@ Feature:
 -   E.g. Average predictions
 -   Or MinMax (Choosing is ensembling)
 
+
 ```python
 # Choose the best model for each time series, metric, and cross validation window
 evaluation_df['best_model'] = evaluation_df.idxmin(axis=1, numeric_only=True)
@@ -848,6 +879,7 @@ sns.barplot(count_best_model, x='n', y='best_model', hue='metric')
 
 ### Et pluribus unum: an inclusive forecasting Pie.
 
+
 ```python
 # For the mse, calculate how many times a model wins
 eval_series_df = evaluation_df.query('metric == "mse"').groupby(['unique_id']).mean(numeric_only=True)
@@ -858,6 +890,7 @@ plt.show()
 ```
 
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-48-output-1.png)
+
 
 ```python
 plot_series(
@@ -871,6 +904,7 @@ plot_series(
 ![](/neuralforecast/docs/tutorials/15_comparing_methods_files/figure-markdown_strict/cell-49-output-1.png)
 
 # Choose Forecasting method for different groups of series
+
 
 ```python
 # Merge the best model per time series dataframe

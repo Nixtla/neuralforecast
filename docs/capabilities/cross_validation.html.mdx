@@ -11,6 +11,7 @@ In this tutorial, we explore in detail the cross-validation function in
 
 Make sure to install `neuralforecast` to follow along.
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -55,6 +56,7 @@ three columns: `unique_id`, `ds` and `y`:
 Depending on your internet connection, this step should take around 10
 seconds.
 
+
 ```python
 Y_df = pd.read_parquet('https://datasets-nixtla.s3.amazonaws.com/m4-hourly.parquet')
 Y_df.head()
@@ -73,6 +75,7 @@ cross-validation functionality. Also, let’s use the first 700 time
 steps, such that we work with round numbers, making it easier to
 visualize and understand cross-validation.
 
+
 ```python
 Y_df = Y_df.query("unique_id == 'H1'")[:700]
 Y_df.head()
@@ -85,6 +88,7 @@ Y_df.head()
 | 2   | H1        | 3   | 586.0 |
 | 3   | H1        | 4   | 559.0 |
 | 4   | H1        | 5   | 511.0 |
+
 
 ```python
 plot_series(Y_df)
@@ -109,6 +113,7 @@ the distance between each cross-validation window. By setting it equal
 to the horizon, we perform *chained cross-validation* where the windows
 do not overlap.
 
+
 ```python
 h = 100
 nf = NeuralForecast(models=[NHITS(h=h, input_size=2*h, max_steps=500, enable_progress_bar=False, logger=False)], freq=1);
@@ -127,6 +132,7 @@ Seed set to 1
 | 2   | H1        | 303 | 300    | 612.900635 | 585.0 |
 | 3   | H1        | 304 | 300    | 689.346313 | 670.0 |
 | 4   | H1        | 305 | 300    | 760.153992 | 747.0 |
+
 
 ```python
 cutoffs = cv_df['cutoff'].unique()
@@ -170,6 +176,7 @@ This process is repeated until we run out of windows.
 
 Instead of setting a number of windows, we can define a validation and
 test set. In that case, we must set `n_windows=None`
+
 
 ```python
 cv_df_val_test = nf.cross_validation(Y_df, val_size=200, test_size=200, step_size=h, n_windows=None)
@@ -221,6 +228,7 @@ retrained at every step in the cross-validation process. In other words,
 the training set is gradually expanded with new observed values and the
 model is retrained before making the next set of predictions.
 
+
 ```python
 cv_df_refit = nf.cross_validation(Y_df, n_windows=4, step_size=h, refit=True)
 ```
@@ -264,6 +272,7 @@ different segments of the series.
 
 However, it comes with a higher computation cost, as we are making
 predictions more than once for some of the time steps.
+
 
 ```python
 cv_df_refit_overlap = nf.cross_validation(Y_df, n_windows=2, step_size=50, refit=True)

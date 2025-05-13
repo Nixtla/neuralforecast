@@ -35,6 +35,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -44,6 +45,7 @@ You can run these experiments using GPU with Google Colab.
 For this example we will use the classical [AirPassenger Data
 set](https://www.kaggle.com/datasets/rakannimer/air-passengers). Import
 the pre-processed AirPassenger from `utils`.
+
 
 ```python
 from neuralforecast.utils import AirPassengersDF
@@ -71,6 +73,7 @@ Next, we instantiate and train three models:
 and
 [`AutoMLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#automlp).
 The models with their hyperparameters are defined in the `models` list.
+
 
 ```python
 import logging
@@ -105,12 +108,14 @@ Seed set to 1
 Seed set to 1
 ```
 
+
 ```python
 nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df)
 ```
 
 Produce the forecasts with the `predict` method.
+
 
 ```python
 Y_hat_df = nf.predict()
@@ -139,6 +144,7 @@ Predicting: |                                                                   
 
 We plot the forecasts for each model.
 
+
 ```python
 from utilsforecast.plotting import plot_series
 ```
@@ -165,6 +171,7 @@ The `save` method has the following inputs:
 -   `overwrite`: boolean to overwrite existing files in `path`. When
     True, the method will only overwrite models with conflicting names.
 -   `save_dataset`: boolean to save `Dataset` object with the dataset.
+
 
 ```python
 nf.save(path='./checkpoints/test_run/',
@@ -197,6 +204,7 @@ of each class. In this example the names will be `automlp_0`,
 
 Load the saved models with the `load` method, specifying the `path`, and
 use the new `nf2` object to produce forecasts.
+
 
 ```python
 nf2 = NeuralForecast.load(path='./checkpoints/test_run/')
@@ -232,6 +240,7 @@ Predicting: |                                                                   
 
 Finally, plot the forecasts to confirm they are identical to the
 original forecasts.
+
 
 ```python
 plot_series(Y_df, Y_hat_df2)

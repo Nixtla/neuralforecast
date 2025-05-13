@@ -41,6 +41,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing libraries
 
+
 ```python
 !pip install neuralforecast datasetsforecast
 ```
@@ -67,6 +68,7 @@ exogenous features, you should use
 If you want to use your own data just replace `Y_df` and `X_df`. Be sure
 to use a long format and make sure to have a similar structure as our
 data set.
+
 
 ```python
 import pandas as pd
@@ -126,6 +128,7 @@ compare against the univariate
 and multivariate
 [`MLPMultivariate`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlpmultivariate.html#mlpmultivariate)
 models.
+
 
 ```python
 import logging
@@ -210,6 +213,7 @@ object with the following required parameters:
 Second, use the `cross_validation` method, specifying the dataset
 (`Y_df`), validation size and test size.
 
+
 ```python
 nf = NeuralForecast(
     models=models,
@@ -232,6 +236,7 @@ on the test set.
 Next, we plot the forecasts on the test set for the `OT` variable for
 all models.
 
+
 ```python
 from utilsforecast.plotting import plot_series
 ```
@@ -251,6 +256,7 @@ and Mean Squared Error (MSE):
 $\qquad MAE = \frac{1}{Windows * Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}| \qquad$
 and
 $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau})^{2} \qquad$
+
 
 ```python
 from utilsforecast.evaluation import evaluate
@@ -327,6 +333,7 @@ to play around with this space.
 For this example, we will optimize the hyperparameters for
 `horizon = 96`.
 
+
 ```python
 from ray import tune
 from ray.tune.search.hyperopt import HyperOptSearch
@@ -379,6 +386,7 @@ space. \* `backend`: the backend used for the hyperparameter
 optimization search, either `ray` or `optuna`. \* `valid_loss`: the loss
 used for the validation sets in the optimization procedure.
 
+
 ```python
 model = AutoTSMixer(h=horizon,
                     n_series=7,
@@ -424,6 +432,7 @@ The `cross_validation` method will use the validation set for
 hyperparameter selection, and will then produce the forecasts for the
 test set.
 
+
 ```python
 nf = NeuralForecast(models=[model, modelx], freq='15min')
 Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
@@ -441,6 +450,7 @@ obtained in the previous step is based on the best config of the
 hyperparameter search. For
 [`AutoTSMixer`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixer),
 the best config is:
+
 
 ```python
 nf.models[0].results.get_best_result().config
@@ -464,6 +474,7 @@ nf.models[0].results.get_best_result().config
 
 and for
 [`AutoTSMixerx`](https://nixtlaverse.nixtla.io/neuralforecast/models.html#autotsmixerx):
+
 
 ```python
 nf.models[1].results.get_best_result().config
@@ -492,6 +503,7 @@ interest:
 $\qquad MAE = \frac{1}{Windows * Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}| \qquad$
 and
 $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau})^{2} \qquad$
+
 
 ```python
 evaluate(Y_hat_df.drop(columns='cutoff'), metrics=[mae, mse], agg_fn='mean')

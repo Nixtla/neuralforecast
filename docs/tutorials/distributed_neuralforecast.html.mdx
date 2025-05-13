@@ -18,6 +18,7 @@ This notebook was ran in databricks using the following configuration:
 
 ## Load libraries
 
+
 ```python
 import logging
 
@@ -41,11 +42,13 @@ from utilsforecast.plotting import plot_series
 To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
 ```
 
+
 ```python
 logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 ```
 
 ## Data
+
 
 ```python
 df = pd.read_parquet('https://datasets-nixtla.s3.amazonaws.com/m4-hourly.parquet')
@@ -67,6 +70,7 @@ spark_static = spark.read.parquet(f'{s3_prefix}/static.parquet')
 ```
 
 ## Configuration
+
 
 ```python
 # Configuration required for distributed training
@@ -103,6 +107,7 @@ def config(trial):
 ```
 
 ## Model training
+
 
 ```python
 nf = NeuralForecast(
@@ -298,6 +303,7 @@ provide a spark dataframe as `futr_df`. Note that if you want to load
 the stored dataset you need to provide the spark session through the
 `engine` argument.
 
+
 ```python
 saved_ds_preds = nf.predict(futr_df=spark_valid.drop("y"), engine=spark).toPandas()
 ```
@@ -306,11 +312,13 @@ We can also provide a spark dataframe as `df` as well as `static_df` and
 `futr_df` (if applicable) to compute predictions on different data or
 after loading a saved model.
 
+
 ```python
 new_df_preds = nf.predict(df=spark_train, static_df=spark_static, futr_df=spark_valid.drop("y")).toPandas()
 ```
 
 Either of the above methods will yield the same results.
+
 
 ```python
 pd.testing.assert_frame_equal(
@@ -324,12 +332,14 @@ pd.testing.assert_frame_equal(
 
 We can now persist the trained models
 
+
 ```python
 save_path = f'{s3_prefix}/model-artifacts'
 nf.save(save_path, save_dataset=False, overwrite=True)
 ```
 
 And load them back
+
 
 ```python
 nf2 = NeuralForecast.load(save_path)
@@ -344,6 +354,7 @@ nf2 = NeuralForecast.load(save_path)
 We can now use this object to compute forecasts. We can provide either
 local dataframes (pandas, polars) as well as spark dataframes
 
+
 ```python
 preds = nf.predict(df=train, static_df=static, futr_df=valid.drop(columns='y'))
 preds2 = nf2.predict(df=train, static_df=static, futr_df=valid.drop(columns='y'))[preds.columns]
@@ -352,6 +363,7 @@ pd.testing.assert_frame_equal(preds, preds2)
 ```
 
 ## Evaluation
+
 
 ```python
 (
@@ -373,6 +385,7 @@ pd.testing.assert_frame_equal(preds, preds2)
 | smape  | 0.063995   | 0.066046    | 0.063975   |
 
 ## Plotting a sample
+
 
 ```python
 plot_series(train, preds)

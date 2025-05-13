@@ -19,6 +19,7 @@ This tutorial provides an example of how to support the use of
 
 ## Load libraries
 
+
 ```python
 import numpy as np
 import pandas as pd
@@ -43,6 +44,7 @@ from utilsforecast.plotting import plot_series
 We use the AirPassengers dataset for the demonstration of conformal
 prediction.
 
+
 ```python
 AirPassengersPanel_train = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
 AirPassengersPanel_test = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -56,6 +58,7 @@ We now train a NHITS model on the above dataset. We consider two
 different predictions: 1. Training using the default
 `configure_optimizers()`. 2. Training by overwriting the
 `configure_optimizers()` of the subclass of NHITS model.
+
 
 ```python
 horizon = 12
@@ -174,6 +177,7 @@ HPU available: False, using: 0 HPUs
 
 Predicting DataLoader 0: 100%|██████████| 1/1 [00:00<00:00, 246.29it/s]
 ```
+
 
 ```python
 plot_series(AirPassengersPanel_train, preds)

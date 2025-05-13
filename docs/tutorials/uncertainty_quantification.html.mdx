@@ -30,6 +30,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -38,6 +39,7 @@ You can run these experiments using GPU with Google Colab.
 
 The `plot_grid` auxiliary function defined below will be useful to plot
 different time series, and different models’ forecasts.
+
 
 ```python
 import logging
@@ -57,6 +59,7 @@ warnings.filterwarnings("ignore")
 For testing purposes, we will use the Hourly dataset from the [M4
 competition](https://www.researchgate.net/publication/325901666_The_M4_Competition_Results_findings_conclusion_and_way_forward).
 
+
 ```python
 import pandas as pd
 ```
@@ -71,6 +74,7 @@ Y_test_df = pd.read_csv(
 
 In this example we will use a subset of the data to avoid waiting too
 long. You can modify the number of series if you want.
+
 
 ```python
 n_series = 8
@@ -105,6 +109,7 @@ configured for the forecasting task.
 
 For more network’s instantiation details check their
 [documentation](https://nixtla.github.io/neuralforecast/models.dilated_rnn.html).
+
 
 ```python
 from neuralforecast import NeuralForecast
@@ -141,6 +146,7 @@ model with shared parameters. This is the most common practice in the
 forecasting literature for deep learning models, and it is known as
 “cross-learning”.
 
+
 ```python
 nf.fit(df=Y_train_df)
 ```
@@ -167,6 +173,7 @@ Predicting: |          | 0/? [00:00<?, ?it/s]
 | 3 | H1 | 704 | 485.141418 | 403.336914 | 421.090546 | 547.966492 | 567.057800 | 495.627869 | 476.579742 | 468.514069 | 498.171600 | 527.931091 |
 | 4 | H1 | 705 | 462.695831 | 383.011108 | 399.126282 | 522.579224 | 543.981750 | 481.584534 | 468.134857 | 472.723450 | 496.198975 | 513.859985 |
 
+
 ```python
 Y_test_df = Y_test_df.merge(Y_hat_df, how='left', on=['unique_id', 'ds']).rename(columns=lambda x: x.replace('-median', ''))
 ```
@@ -190,6 +197,7 @@ interval 90% of the time.
 
 ### LSTM
 
+
 ```python
 plot_series(Y_train_df, Y_test_df, level=levels, models=['LSTM'])
 ```
@@ -197,6 +205,7 @@ plot_series(Y_train_df, Y_test_df, level=levels, models=['LSTM'])
 ![](/neuralforecast/docs/tutorials/03_uncertainty_quantification_files/figure-markdown_strict/cell-15-output-1.png)
 
 ### NHITS
+
 
 ```python
 plot_series(Y_train_df, Y_test_df, level=levels, models=['NHITS'])

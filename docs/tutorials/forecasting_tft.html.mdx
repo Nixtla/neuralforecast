@@ -27,6 +27,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Libraries
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -57,6 +58,7 @@ processed the original data (available
 [here](https://www.ercot.com/gridinfo/load/load_hist)), by adding the
 missing hour due to daylight saving time, parsing the date to datetime
 format, and filtering columns of interest.
+
 
 ```python
 Y_df = pd.read_csv('https://datasets-nixtla.s3.amazonaws.com/ERCOT-clean.csv')
@@ -95,6 +97,7 @@ you need to define:
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
+
 ```python
 from ray import tune
 
@@ -113,6 +116,7 @@ logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 > to be bigger than `15`.
 >
 > With `num_samples=3` this example should run in around 20 minutes.
+
 
 ```python
 horizon = 24
@@ -139,6 +143,7 @@ models = [AutoTFT(h=horizon,
 > parameters.
 >
 > This are all the parameters of the config:
+>
 >
 > ```python
 > config = {
@@ -173,6 +178,7 @@ model on the ERCOT data. The total training time will depend on the
 hardware and the explored configurations, it should take between 10 and
 30 minutes.
 
+
 ```python
 nf = NeuralForecast(
     models=models,
@@ -183,6 +189,7 @@ nf.fit(df=Y_df)
 
 Finally, use the `predict` method to forecast the next 24 hours after
 the training data and plot the forecasts.
+
 
 ```python
 Y_hat_df = nf.predict()
@@ -209,6 +216,7 @@ Predicting: |          | 0/? [00:00<?, ?it/s]
 | 4   | ERCOT     | 2022-10-01 04:00:00 | 34647.484375 |
 
 Plot the results with matplot lib
+
 
 ```python
 import matplotlib.pyplot as plt
@@ -248,6 +256,7 @@ September. Set the validation and test sizes. To produce daily forecasts
 set the forecasting set the step size between windows as 24, to only
 produce one forecast per day.
 
+
 ```python
 val_size  = 90*24 # 90 days x 24 hours
 test_size = 30*24 # 30 days x 24 hours
@@ -257,6 +266,7 @@ fcst_df = nf.cross_validation(df=Y_df, val_size=val_size, test_size=test_size,
 
 Finally, we merge the forecasts with the `Y_df` dataset and plot the
 forecasts.
+
 
 ```python
 Y_hat_df = fcst_df.reset_index(drop=True)

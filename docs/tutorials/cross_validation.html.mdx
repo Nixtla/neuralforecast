@@ -42,6 +42,7 @@ In this tutorial we’ll explain how to perform cross-validation in
 
 ## 1. Install NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -51,6 +52,7 @@ In this tutorial we’ll explain how to perform cross-validation in
 We’ll use pandas to load the hourly dataset from the [M4 Forecasting
 Competition](https://www.sciencedirect.com/science/article/pii/S0169207019301128),
 which has been stored in a parquet file for efficiency.
+
 
 ```python
 import os
@@ -94,6 +96,7 @@ three columns: `unique_id`, `ds`, and `y`.
 This dataset contains 414 unique time series. To reduce the total
 execution time, we’ll use only the first 10.
 
+
 ```python
 uids = Y_df['unique_id'].unique()[:10] # Select 10 ids to make the example run faster
 Y_df = Y_df.query('unique_id in @uids').reset_index(drop=True)
@@ -102,6 +105,7 @@ Y_df = Y_df.query('unique_id in @uids').reset_index(drop=True)
 To plot the series, we’ll use the `plot_series` method from
 `utilsforecast.plotting`. `utilsforecast` is a dependency of
 `neuralforecast` so it should be already installed.
+
 
 ```python
 from utilsforecast.plotting import plot_series
@@ -121,6 +125,7 @@ We’ll train different models from `neuralforecast` using the
 historical data. To do this, we need to import the
 [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 class and the models that we want to compare.
+
 
 ```python
 from neuralforecast import NeuralForecast 
@@ -163,6 +168,7 @@ model, we’ll use the default values for the purposes of this tutorial.
 To learn more about the hyperparameters of each model, please check out
 the corresponding documentation.
 
+
 ```python
 horizon = 48 
 models = [MLP(h=horizon, input_size=2*horizon, loss=MQLoss()), 
@@ -195,6 +201,7 @@ The `cross_validation` method takes the following arguments:
     retrained after each window using the data with timestamps up to and
     including the cutoff.
 
+
 ```python
 cv_df = nf.cross_validation(Y_df, n_windows=3, step_size=horizon, refit=1)
 ```
@@ -207,6 +214,7 @@ all the windows, thus reducing the total execution time. For scenarios
 where the models need to be retrained, you can use the `refit` parameter
 to specify the number of windows after which the models should be
 retrained.
+
 
 ```python
 cv_df.head()
@@ -246,6 +254,7 @@ For convenience, we’ll use the `evaluate` and the
 [`rmse`](https://nixtlaverse.nixtla.io/neuralforecast/losses.numpy.html#rmse)
 functions from `utilsforecast`.
 
+
 ```python
 from utilsforecast.evaluation import evaluate
 from utilsforecast.losses import rmse
@@ -272,11 +281,13 @@ The `evaluate` function takes the following arguments:
 Notice that if we use the default value of `models`, then we need to
 exclude the `cutoff` column from the cross-validation data frame.
 
+
 ```python
 evaluation_df = evaluate(cv_df.drop(columns='cutoff'), metrics=[rmse])
 ```
 
 For each unique id, we’ll select the model with the lowest RMSE.
+
 
 ```python
 evaluation_df['best_model'] = evaluation_df.drop(columns=['metric', 'unique_id']).idxmin(axis=1)
@@ -297,6 +308,7 @@ evaluation_df
 | 9   | H107      | rmse   | 212.384943  | 161.445838    | 231.303421   | NBEATS-median |
 
 We can summarize the results to see how many times each model won.
+
 
 ```python
 summary_df = evaluation_df.groupby(['metric', 'best_model']).size().sort_values().to_frame()
@@ -323,6 +335,7 @@ frame. We’ll also exclude the `cutoff` column and use the
 `max_insample_length argument` to plot only the last 300 observations
 for better visualization.
 
+
 ```python
 cv_df.rename(columns = {'y': 'actual'}, inplace=True) # rename actual values 
 plot_series(Y_df, cv_df.drop(columns='cutoff'), max_insample_length=300)
@@ -337,6 +350,7 @@ we used `refit=1`, so each model is retrained for each window using data
 with timestamps up to and including the respective cutoff. Additionally,
 since `step_size` is equal to the forecast horizon, the resulting
 forecasts are non-overlapping
+
 
 ```python
 cutoff1, cutoff2, cutoff3 = cv_df['cutoff'].unique()

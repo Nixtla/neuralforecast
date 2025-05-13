@@ -54,6 +54,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing libraries
 
+
 ```python
 !pip install neuralforecast datasetsforecast
 ```
@@ -70,6 +71,7 @@ example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
 long format and have a simmilar structure than our data set.
+
 
 ```python
 import pandas as pd
@@ -124,6 +126,7 @@ First, instantiate each model in the `models` list, specifying the
 [`FEDformer`](https://nixtlaverse.nixtla.io/neuralforecast/models.fedformer.html#fedformer)
 model was excluded due to extremely long training times.)
 
+
 ```python
 from neuralforecast.core import NeuralForecast
 from neuralforecast.models import Informer, Autoformer, FEDformer, PatchTST
@@ -133,6 +136,7 @@ from neuralforecast.models import Informer, Autoformer, FEDformer, PatchTST
 INFO:torch.distributed.nn.jit.instantiator:Created a temporary directory at /tmp/tmpopb2vyyt
 INFO:torch.distributed.nn.jit.instantiator:Writing /tmp/tmpopb2vyyt/_remote_module_non_scriptable.py
 ```
+
 
 ```python
 horizon = 96 # 24hrs = 4 * 15 min.
@@ -177,6 +181,7 @@ object with the following required parameters:
 Second, use the `cross_validation` method, specifying the dataset
 (`Y_df`), validation size and test size.
 
+
 ```python
 nf = NeuralForecast(
     models=models,
@@ -190,6 +195,7 @@ Y_hat_df = nf.cross_validation(df=Y_df,
 
 The `cross_validation` method will return the forecasts for each model
 on the test set.
+
 
 ```python
 Y_hat_df.head()
@@ -207,6 +213,7 @@ Y_hat_df.head()
 
 Next, we plot the forecasts on the test set for the `OT` variable for
 all models.
+
 
 ```python
 import matplotlib.pyplot as plt
@@ -234,6 +241,7 @@ plt.legend()
 Finally, we compute the test errors using the Mean Absolute Error (MAE):
 
 $\qquad MAE = \frac{1}{Windows * Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}| \qquad$
+
 
 ```python
 from neuralforecast.losses.numpy import mae

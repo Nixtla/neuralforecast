@@ -31,6 +31,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast datasetsforecast
 ```
@@ -47,6 +48,7 @@ example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
 long format and have a simmilar structure than our data set.
+
 
 ```python
 import pandas as pd
@@ -80,6 +82,7 @@ Y_df.groupby('unique_id').head(2)
 | 288001 | MULL      | 2016-07-01 00:15:00 | -0.659338 |
 | 345600 | OT        | 2016-07-01 00:00:00 | 1.018032  |
 | 345601 | OT        | 2016-07-01 00:15:00 | 0.980124  |
+
 
 ```python
 import matplotlib.pyplot as plt
@@ -125,6 +128,7 @@ hyperparameter space. Here, we specify a different search space
 following the paper’s hyperparameters. Notice that *1000 Stochastic
 Gradient Steps* are enough to achieve SoTA performance. Feel free to
 play around with this space.
+
 
 ```python
 from ray import tune
@@ -173,6 +177,7 @@ you need to define:
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
+
 ```python
 models = [AutoNHITS(h=horizon,
                     config=nhits_config, 
@@ -204,6 +209,7 @@ The `cross_validation` method will use the validation set for
 hyperparameter selection, and will then produce the forecasts for the
 test set.
 
+
 ```python
 nf = NeuralForecast(
     models=models,
@@ -220,6 +226,7 @@ The
 class contains a `results` tune attribute that stores information of
 each configuration explored. It contains the validation loss and best
 validation hyperparameter.
+
 
 ```python
 nf.models[0].results.get_best_result().config
@@ -244,6 +251,7 @@ nf.models[0].results.get_best_result().config
  'valid_loss': MAE()}
 ```
 
+
 ```python
 y_true = Y_hat_df.y.values
 y_hat = Y_hat_df['AutoNHITS'].values
@@ -263,6 +271,7 @@ Parsed results
 2. y_true.shape (n_series, n_windows, n_time_out):   (7, 11425, 96)
 2. y_hat.shape  (n_series, n_windows, n_time_out):   (7, 11425, 96)
 ```
+
 
 ```python
 fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(10, 11))
@@ -291,6 +300,7 @@ Finally, we compute the test errors for the two metrics of interest:
 $\qquad MAE = \frac{1}{Windows * Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}| \qquad$
 and
 $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau})^{2} \qquad$
+
 
 ```python
 from neuralforecast.losses.numpy import mae, mse

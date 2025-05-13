@@ -34,6 +34,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Libraries
 
+
 ```python
 !pip install neuralforecast datasetsforecast
 ```
@@ -50,6 +51,7 @@ example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
 long format and have a simmilar structure than our data set.
+
 
 ```python
 import pandas as pd
@@ -94,6 +96,7 @@ Y_df.groupby('unique_id').head(2)
 
 Next, plot the `HUFL` variable marking the validation and train splits.
 
+
 ```python
 import matplotlib.pyplot as plt
 from utilsforecast.plotting import plot_series
@@ -134,6 +137,7 @@ hyperparameter space. Here, we specify a different search space
 following the paper’s hyperparameters. Notice that *1000 Stochastic
 Gradient Steps* are enough to achieve SoTA performance. Feel free to
 play around with this space.
+
 
 ```python
 import logging
@@ -193,6 +197,7 @@ you need to define:
     class will use a pre-defined suggested hyperparameter space.
 -   `num_samples`: number of configurations explored.
 
+
 ```python
 models = [AutoNHITS(h=horizon,
                     loss=DistributionLoss(distribution='StudentT', level=[80, 90]), 
@@ -209,6 +214,7 @@ object with the following required parameters:
 -   `freq`: a string indicating the frequency of the data. (See [panda’s
     available
     frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases).)
+
 
 ```python
 # Fit and predict
@@ -230,6 +236,7 @@ The `cross_validation` method will use the validation set for
 hyperparameter selection, and will then produce the forecasts for the
 test set.
 
+
 ```python
 Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
                                test_size=test_size, n_windows=None)
@@ -239,6 +246,7 @@ Y_hat_df = nf.cross_validation(df=Y_df, val_size=val_size,
 
 Finally, we merge the forecasts with the `Y_df` dataset and plot the
 forecasts.
+
 
 ```python
 Y_hat_df
@@ -257,6 +265,7 @@ Y_hat_df
 | 581277 | OT | 2018-02-20 23:15:00 | 2018-02-19 23:45:00 | -1.232434 | -1.229675 | -1.591164 | -1.481251 | -0.989993 | -0.870404 | -1.581325 |
 | 581278 | OT | 2018-02-20 23:30:00 | 2018-02-19 23:45:00 | -1.259237 | -1.258848 | -1.659239 | -1.536979 | -0.985581 | -0.822370 | -1.562328 |
 | 581279 | OT | 2018-02-20 23:45:00 | 2018-02-19 23:45:00 | -1.247161 | -1.251899 | -1.631909 | -1.520350 | -0.949529 | -0.832602 | -1.562328 |
+
 
 ```python
 Y_hat_df = Y_hat_df.reset_index(drop=True)

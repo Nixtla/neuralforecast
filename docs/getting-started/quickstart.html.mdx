@@ -23,6 +23,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -37,6 +38,7 @@ variable.
 
 In this example dataset consists of a set of a single series, but you
 can easily fit your model to larger datasets in long format.
+
 
 ```python
 from neuralforecast.utils import AirPassengersDF
@@ -72,6 +74,7 @@ forecasting `horizon` (12 in this example), and modify the
 hyperparameters of the model. For example, for the
 [`LSTM`](https://nixtlaverse.nixtla.io/neuralforecast/models.lstm.html#lstm)
 we changed the default hidden size for both encoder and decoders.
+
 
 ```python
 import logging
@@ -122,6 +125,7 @@ Using the
 [`NeuralForecast.predict`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.predict)
 method you can obtain the `h` forecasts after the training data `Y_df`.
 
+
 ```python
 Y_hat_df = nf.predict()
 ```
@@ -130,6 +134,7 @@ The
 [`NeuralForecast.predict`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast.predict)
 method returns a DataFrame with the forecasts for each `unique_id`,
 `ds`, and model.
+
 
 ```python
 Y_hat_df = Y_hat_df
@@ -147,6 +152,7 @@ Y_hat_df.head()
 ## 4. Plot Predictions
 
 Finally, we plot the forecasts of both models againts the real values.
+
 
 ```python
 from utilsforecast.plotting import plot_series

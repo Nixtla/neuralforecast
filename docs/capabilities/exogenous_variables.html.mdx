@@ -40,6 +40,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Libraries
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -60,6 +61,7 @@ we demonstrate in Olivares et al. (2022).
 
 The distinction between historic and future variables will be made later
 as parameters of the model.
+
 
 ```python
 import pandas as pd
@@ -88,6 +90,7 @@ df.head()
 > Calendar variables such as day of week, month, and year are very
 > useful to capture long seasonalities.
 
+
 ```python
 plot_series(df)
 ```
@@ -98,6 +101,7 @@ Add the static variables in a separate `static_df` dataframe. In this
 example, we are using one-hot encoding of the electricity market. The
 `static_df` must include one observation (row) for each `unique_id` of
 the `df` dataframe, with the different statics variables as columns.
+
 
 ```python
 static_df = pd.read_csv('https://datasets-nixtla.s3.amazonaws.com/EPF_FR_BE_static.csv')
@@ -140,6 +144,7 @@ hyperparameter during initialization: `futr_exog_list`,
 `hist_exog_list`, and `stat_exog_list`. We also set `horizon` as 24 to
 produce the next day hourly forecasts, and set `input_size` to use the
 last 5 days of data as input.
+
 
 ```python
 import logging
@@ -193,6 +198,7 @@ Seed set to 1
 Next, pass the datasets to the `df` and `static_df` inputs of the `fit`
 method.
 
+
 ```python
 nf = NeuralForecast(models=models, freq='h')
 nf.fit(df=df, static_df=static_df)
@@ -205,6 +211,7 @@ variables for the day we want to forecast. Define a new dataframe
 (`futr_df`) with the `unique_id`, `ds`, and future exogenous variables.
 There is no need to add the target variable `y` and historic variables
 as they won’t be used by the model.
+
 
 ```python
 futr_df = pd.read_csv(
@@ -230,6 +237,7 @@ futr_df.head()
 
 Finally, use the `predict` method to forecast the day-ahead prices.
 
+
 ```python
 Y_hat_df = nf.predict(futr_df=futr_df)
 Y_hat_df.head()
@@ -250,6 +258,7 @@ Predicting: |          | 0/? [00:00<?, ?it/s]
 | 2   | BE        | 2016-11-01 02:00:00 | 30.091702 | 36.313972 |
 | 3   | BE        | 2016-11-01 03:00:00 | 27.317764 | 34.002922 |
 | 4   | BE        | 2016-11-01 04:00:00 | 24.316488 | 35.002541 |
+
 
 ```python
 plot_series(df, Y_hat_df, max_insample_length=24*5)

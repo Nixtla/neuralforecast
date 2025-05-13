@@ -51,6 +51,7 @@ frequencies](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.
 **Returns:**<br/> `freq`: pandas.DataFrame, synthetic panel with columns
 \[`unique_id`, `ds`, `y`\] and exogenous.\*
 
+
 ```python
 synthetic_panel = generate_series(n_series=2)
 synthetic_panel.groupby('unique_id').head(4)
@@ -71,6 +72,7 @@ airline passengers, 1949 to 1960.
 It has been used as a reference on several forecasting libraries, since
 it is a series that shows clear trends and seasonalities it offers a
 nice opportunity to quickly showcase a model’s predictions performance.
+
 
 ```python
 AirPassengersDF.head(12)
@@ -123,6 +125,7 @@ variables, that can help to explore the performance of models like
 [`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)
 and
 [`TFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html#tft).
+
 
 ```python
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
@@ -325,6 +328,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 > ```
 
 *Initialize self. See help(type(self)) for accurate signature.*
+
 
 ```python
 AirPassengerPanelCalendar, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')

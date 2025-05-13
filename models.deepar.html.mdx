@@ -88,7 +88,7 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### DeepAR
 
 > ``` text
->  DeepAR (h, input_size:int=-1, lstm_n_layers:int=2,
+>  DeepAR (h, input_size:int=-1, h_train:int=1, lstm_n_layers:int=2,
 >          lstm_hidden_size:int=128, lstm_dropout:float=0.1,
 >          decoder_hidden_layers:int=0, decoder_hidden_size:int=0,
 >          trajectory_samples:int=100, stat_exog_list=None,
@@ -110,18 +110,20 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 **Parameters:**<br/> `h`: int, Forecast horizon. <br/> `input_size`: int,
 maximum sequence length for truncated train backpropagation. Default -1
-uses 3 \* horizon <br/> `lstm_n_layers`: int=2, number of LSTM
-layers.<br/> `lstm_hidden_size`: int=128, LSTM hidden size.<br/>
-`lstm_dropout`: float=0.1, LSTM dropout.<br/> `decoder_hidden_layers`:
-int=0, number of decoder MLP hidden layers. Default: 0 for linear layer.
-<br/> `decoder_hidden_size`: int=0, decoder MLP hidden size. Default: 0
-for linear layer.<br/> `trajectory_samples`: int=100, number of Monte
-Carlo trajectories during inference.<br/> `stat_exog_list`: str list,
-static exogenous columns.<br/> `hist_exog_list`: str list, historic
-exogenous columns.<br/> `futr_exog_list`: str list, future exogenous
-columns.<br/> `exclude_insample_y`: bool=False, the model skips the
-autoregressive features y\[t-input_size:t\] if True.<br/> `loss`: PyTorch
-module, instantiated train loss class from [losses
+uses 3 \* horizon <br/> `h_train`: int, maximum sequence length for
+truncated train backpropagation. Default 1.<br/> `lstm_n_layers`: int=2,
+number of LSTM layers.<br/> `lstm_hidden_size`: int=128, LSTM hidden
+size.<br/> `lstm_dropout`: float=0.1, LSTM dropout.<br/>
+`decoder_hidden_layers`: int=0, number of decoder MLP hidden layers.
+Default: 0 for linear layer. <br/> `decoder_hidden_size`: int=0, decoder
+MLP hidden size. Default: 0 for linear layer.<br/> `trajectory_samples`:
+int=100, number of Monte Carlo trajectories during inference.<br/>
+`stat_exog_list`: str list, static exogenous columns.<br/>
+`hist_exog_list`: str list, historic exogenous columns.<br/>
+`futr_exog_list`: str list, future exogenous columns.<br/>
+`exclude_insample_y`: bool=False, the model skips the autoregressive
+features y\[t-input_size:t\] if True.<br/> `loss`: PyTorch module,
+instantiated train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
@@ -229,6 +231,7 @@ optional (default=None), target quantiles to predict. <br/>
 [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).\*
 
 ## Usage Example
+
 
 ```python
 import pandas as pd

@@ -28,6 +28,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -42,6 +43,7 @@ variable.
 
 In this example dataset consists of a set of a single series, but you
 can easily fit your model to larger datasets in long format.
+
 
 ```python
 from neuralforecast.utils import AirPassengersDF
@@ -67,6 +69,7 @@ First, we train the
 [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 models on the AirPassengers data. We will use the `fit` method of the
 `core` class to train the models.
+
 
 ```python
 import logging
@@ -132,6 +135,7 @@ set `step_size=2` and `h=4`.
 
 ![](/neuralforecast/docs/capabilities/../imgs_indx/predict_insample.png)
 
+
 ```python
 Y_hat_insample = nf.predict_insample(step_size=horizon)
 ```
@@ -147,6 +151,7 @@ series. \* `ds`: the datestamp of the forecast for each row. \*
 actual value of the target variable. \* `model_name`: the forecasted
 values for the models. In this case,
 [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits).
+
 
 ```python
 Y_hat_insample.head()
@@ -170,6 +175,7 @@ Y_hat_insample.head()
 ## 5. Plot Predictions
 
 Finally, we plot the forecasts for the train and validation sets.
+
 
 ```python
 from utilsforecast.plotting import plot_series

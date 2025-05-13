@@ -14,6 +14,7 @@ To install mlflow: `pip install mlflow`
 
 ## Imports
 
+
 ```python
 import logging
 import warnings
@@ -42,6 +43,7 @@ warnings.filterwarnings("ignore")
 
 ## Splitting the data
 
+
 ```python
 # Split data and declare panel dataset
 Y_df = AirPassengersDF
@@ -65,6 +67,7 @@ Run the following command from the terminal to start the UI:
 experiments.
 
 ## Model training
+
 
 ```python
 mlflow.pytorch.autolog(checkpoint=False)
@@ -115,6 +118,7 @@ Seed set to 42
 ```
 
 ## Forecasting the future
+
 
 ```python
 Y_hat_df = nf.predict(futr_df=Y_test_df)

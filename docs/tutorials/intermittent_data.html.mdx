@@ -48,6 +48,7 @@ NeuralForecast](https://nixtla.github.io/neuralforecast/examples/installation.ht
 
 Install the necessary packages using `pip install neuralforecast`
 
+
 ```python
 !pip install statsforecast s3fs fastparquet neuralforecast
 ```
@@ -59,6 +60,7 @@ Competition](https://www.sciencedirect.com/science/article/pii/S0169207021001187
 dataset. Each time series represents the unit sales of a particular
 product in a given Walmart store. At this level (product-store), most of
 the data is intermittent. We first need to import the data.
+
 
 ```python
 import pandas as pd
@@ -78,6 +80,7 @@ Y_df['ds'] = pd.to_datetime(Y_df['ds'])
 
 For simplicity sake we will keep just one category
 
+
 ```python
 Y_df = Y_df.query('unique_id.str.startswith("FOODS_3")')
 Y_df['unique_id'] = Y_df['unique_id'].astype(str)
@@ -89,6 +92,7 @@ This method prints 8 random series from the dataset and is useful for
 basic
 [EDA](https://nixtla.github.io/statsforecast/core.html#statsforecast.plot).
 
+
 ```python
 plot_series(Y_df)
 ```
@@ -96,6 +100,7 @@ plot_series(Y_df)
 ![](/neuralforecast/docs/tutorials/11_intermittent_data_files/figure-markdown_strict/cell-6-output-1.png)
 
 ## 3. Train models for intermittent data
+
 
 ```python
 from ray import tune
@@ -118,6 +123,7 @@ corresponds to the model’s hyperparameter and the value is a `Tune`
 function to specify how the hyperparameter will be sampled. For example,
 use `randint` to sample integers uniformly, and `choice` to sample
 values of a list.
+
 
 ```python
 config_nhits = {
@@ -165,6 +171,7 @@ In this example we set horizon `h` as 28, use the `Poisson` distribution
 loss (ideal for count data) for training and validation, and use the
 default search algorithm.
 
+
 ```python
 nf = NeuralForecast(
     models=[
@@ -190,12 +197,14 @@ forecasts on the validation set, and evaluating them. The best
 configuration is selected based on the error on a validation set. Only
 the best model is stored and used during inference.
 
+
 ```python
 nf.fit(df=Y_df)
 ```
 
 Next, we use the `predict` method to forecast the next 28 days using the
 optimal hyperparameters.
+
 
 ```python
 fcst_df = nf.predict()
@@ -222,6 +231,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 ``` text
 Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
+
 
 ```python
 plot_series(Y_df, 
@@ -255,6 +265,7 @@ class takes the following arguments.
     other words: what number of forecasting processes in the past do you
     want to evaluate.
 
+
 ```python
 nf = NeuralForecast(
     models=[
@@ -281,6 +292,7 @@ columns:
 -   `y`: true value
 -   `"model"`: columns with the model’s name and fitted value.
 
+
 ```python
 cv_df.head()
 ```
@@ -292,6 +304,7 @@ cv_df.head()
 | 2 | FOODS_3_001_CA_1 | 2016-03-02 | 2016-02-28 | 0.567 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.750 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 1.0 |
 | 3 | FOODS_3_001_CA_1 | 2016-03-03 | 2016-02-28 | 0.554 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.750 | 1.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.0 |
 | 4 | FOODS_3_001_CA_1 | 2016-03-04 | 2016-02-28 | 0.627 | 0.0 | 0.0 | 0.0 | 2.0 | 2.0 | 0.788 | 1.0 | 0.0 | 0.0 | 2.0 | 3.0 | 0.0 |
+
 
 ```python
 for cutoff in cv_df['cutoff'].unique():
@@ -312,6 +325,7 @@ for cutoff in cv_df['cutoff'].unique():
 
 In this section we will evaluate the performance of each model each
 cross validation window using the MSE metric.
+
 
 ```python
 from utilsforecast.losses import mse, mae

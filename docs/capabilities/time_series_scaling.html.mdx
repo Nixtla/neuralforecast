@@ -45,6 +45,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Install `Neuralforecast`
 
+
 ```python
 !pip install neuralforecast
 !pip install hyperopt
@@ -64,6 +65,7 @@ we demonstrate in Olivares et al. (2022).
 The `futr_df` dataframe includes the information of the future exogenous
 variables for the period we want to forecast (in this case, 24 hours
 after the end of the train dataset `df`).
+
 
 ```python
 import pandas as pd
@@ -116,6 +118,7 @@ model, recently proposed in [Wu, Haixu, et
 al. (2022)](https://arxiv.org/abs/2210.02186). First instantiate the
 model with the desired parameters.
 
+
 ```python
 import logging
 
@@ -155,6 +158,7 @@ use `standard`, which scales the data to have zero mean and unit
 variance.Other supported scalers are `minmax`, `robust`, `robust-iqr`,
 `minmax`, and `boxcox`.
 
+
 ```python
 nf = NeuralForecast(models=[model], freq='h', local_scaler_type='standard')
 nf.fit(df=df)
@@ -178,6 +182,7 @@ Finally, use the `predict` method to forecast the day-ahead prices. The
 `Neuralforecast` class handles the inverse normalization, forecasts are
 returned in the original scale.
 
+
 ```python
 Y_hat_df = nf.predict(futr_df=futr_df)
 Y_hat_df.head()
@@ -194,6 +199,7 @@ Predicting: |                                                                   
 | 2   | BE        | 2016-11-01 02:00:00 | 27.978468 |
 | 3   | BE        | 2016-11-01 03:00:00 | 28.143955 |
 | 4   | BE        | 2016-11-01 04:00:00 | 32.332230 |
+
 
 ```python
 from utilsforecast.plotting import plot_series
@@ -240,6 +246,7 @@ al. (2022). First instantiate the model with the desired parameters.
 Visit https://nixtla.github.io/neuralforecast/common.scalers.html for a
 complete list of supported scalers.
 
+
 ```python
 horizon = 24 # day-ahead daily forecast
 model = TimesNet(h = horizon,                                  # Horizon
@@ -263,6 +270,7 @@ Fit the model by instantiating a
 object and using the `fit` method. Note that `local_scaler_type` has
 `None` as default to avoid scaling the data before training.
 
+
 ```python
 nf = NeuralForecast(models=[model], freq='h')
 nf.fit(df=df)
@@ -285,6 +293,7 @@ Validation: |                                                                   
 Finally, use the `predict` method to forecast the day-ahead prices. The
 forecasts are returned in the original scale.
 
+
 ```python
 Y_hat_df = nf.predict(futr_df=futr_df)
 Y_hat_df.head()
@@ -301,6 +310,7 @@ Predicting: |                                                                   
 | 2   | BE        | 2016-11-01 02:00:00 | 30.623751 |
 | 3   | BE        | 2016-11-01 03:00:00 | 28.773439 |
 | 4   | BE        | 2016-11-01 04:00:00 | 30.689444 |
+
 
 ```python
 plot_series(df, Y_hat_df, max_insample_length=24*5)

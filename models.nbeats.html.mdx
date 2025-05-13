@@ -39,18 +39,19 @@ Analysis.</figcaption>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/nbeats.py#L192"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/nbeats.py#L327"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NBEATS
 
 > ``` text
->  NBEATS (h, input_size, n_harmonics:int=2, n_polynomials:int=2,
->          stack_types:list=['identity', 'trend', 'seasonality'],
->          n_blocks:list=[1, 1, 1], mlp_units:list=[[512, 512], [512, 512],
->          [512, 512]], dropout_prob_theta:float=0.0, activation:str='ReLU',
->          shared_weights:bool=False, loss=MAE(), valid_loss=None,
->          max_steps:int=1000, learning_rate:float=0.001,
+>  NBEATS (h, input_size, n_harmonics:int=2,
+>          n_polynomials:Optional[int]=None, n_basis:int=2,
+>          basis:str='polynomial', stack_types:list=['identity', 'trend',
+>          'seasonality'], n_blocks:list=[1, 1, 1], mlp_units:list=[[512,
+>          512], [512, 512], [512, 512]], dropout_prob_theta:float=0.0,
+>          activation:str='ReLU', shared_weights:bool=False, loss=MAE(),
+>          valid_loss=None, max_steps:int=1000, learning_rate:float=0.001,
 >          num_lr_decays:int=3, early_stop_patience_steps:int=-1,
 >          val_check_steps:int=100, batch_size:int=32,
 >          valid_batch_size:Optional[int]=None, windows_batch_size:int=1024,
@@ -77,20 +78,25 @@ considered autorregresive inputs (lags), y=\[1,2,3,4\] input_size=2 -\>
 lags=\[1,2\].<br/> `n_harmonics`: int, Number of harmonic terms for
 seasonality stack type. Note that len(n_harmonics) = len(stack_types).
 Note that it will only be used if a seasonality stack is used.<br/>
-`n_polynomials`: int, polynomial degree for trend stack. Note that
-len(n_polynomials) = len(stack_types). Note that it will only be used if
-a trend stack is used.<br/> `stack_types`: List\[str\], List of stack
-types. Subset from \[‘seasonality’, ‘trend’, ‘identity’\].<br/>
-`n_blocks`: List\[int\], Number of blocks for each stack. Note that
-len(n_blocks) = len(stack_types).<br/> `mlp_units`: List\[List\[int\]\],
-Structure of hidden layers for each stack type. Each internal list
-should contain the number of units of each hidden layer. Note that
-len(n_hidden) = len(stack_types).<br/> `dropout_prob_theta`: float, Float
-between (0, 1). Dropout for N-BEATS basis.<br/> `activation`: str,
-activation from \[‘ReLU’, ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’,
-‘PReLU’, ‘Sigmoid’\].<br/> `shared_weights`: bool, If True, all blocks
-within each stack will share parameters. <br/> `loss`: PyTorch module,
-instantiated train loss class from [losses
+`n_polynomials`: int, DEPRECATED - polynomial degree for trend stack.
+Note that len(n_polynomials) = len(stack_types). Note that it will only
+be used if a trend stack is used.<br/> `basis`: str, Type of basis
+function to use in the trend stack. Choose one from \[‘legendre’,
+‘polynomial’, ‘changepoint’, ‘piecewise_linear’, ‘linear_hat’, ‘spline’,
+‘chebyshev’\]<br/> `n_basis`: int, the degree of the basis function for
+the trend stack. Note that it will only be used if a trend stack is
+used.<br/> `stack_types`: List\[str\], List of stack types. Subset from
+\[‘seasonality’, ‘trend’, ‘identity’\].<br/> `n_blocks`: List\[int\],
+Number of blocks for each stack. Note that len(n_blocks) =
+len(stack_types).<br/> `mlp_units`: List\[List\[int\]\], Structure of
+hidden layers for each stack type. Each internal list should contain the
+number of units of each hidden layer. Note that len(n_hidden) =
+len(stack_types).<br/> `dropout_prob_theta`: float, Float between (0, 1).
+Dropout for N-BEATS basis.<br/> `activation`: str, activation from
+\[‘ReLU’, ‘Softplus’, ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘PReLU’,
+‘Sigmoid’\].<br/> `shared_weights`: bool, If True, all blocks within each
+stack will share parameters. <br/> `loss`: PyTorch module, instantiated
+train loss class from [losses
 collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br/>
 `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from
 [losses
@@ -196,6 +202,7 @@ optional (default=None), target quantiles to predict. <br/>
 
 ## Usage Example
 
+
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -209,6 +216,8 @@ Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].v
 Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
 
 model = NBEATS(h=12, input_size=24,
+               basis='changepoint',
+               n_basis=2,
                loss=DistributionLoss(distribution='Poisson', level=[80, 90]),
                stack_types = ['identity', 'trend', 'seasonality'],
                max_steps=100,

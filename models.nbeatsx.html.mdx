@@ -44,7 +44,7 @@ with Exogenous Variables.</figcaption>
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/nbeatsx.py#L277"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/nbeatsx.py#L281"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NBEATSx
@@ -93,11 +93,11 @@ sin(i \* t/n_harmonics)\]. Note that it will only be used if
 polynomial terms for TrendBasis \[1,t,…,t^n_poly\]. Note that it will
 only be used if ‘trend’ is in `stack_types`.<br/> `stack_types`:
 List\[str\], List of stack types. Subset from \[‘seasonality’, ‘trend’,
-‘identity’\].<br/> `n_blocks`: List\[int\], Number of blocks for each
-stack. Note that len(n_blocks) = len(stack_types).<br/> `mlp_units`:
-List\[List\[int\]\], Structure of hidden layers for each stack type.
-Each internal list should contain the number of units of each hidden
-layer. Note that len(n_hidden) = len(stack_types).<br/>
+‘identity’, ‘exogenous’\].<br/> `n_blocks`: List\[int\], Number of blocks
+for each stack. Note that len(n_blocks) = len(stack_types).<br/>
+`mlp_units`: List\[List\[int\]\], Structure of hidden layers for each
+stack type. Each internal list should contain the number of units of
+each hidden layer. Note that len(n_hidden) = len(stack_types).<br/>
 `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS
 basis.<br/> `activation`: str, activation from \[‘ReLU’, ‘Softplus’,
 ‘Tanh’, ‘SELU’, ‘LeakyReLU’, ‘PReLU’, ‘Sigmoid’\].<br/> `loss`: PyTorch
@@ -207,6 +207,7 @@ optional (default=None), target quantiles to predict. <br/>
 
 ## Usage Example
 
+
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -225,6 +226,8 @@ model = NBEATSx(h=12, input_size=24,
                 dropout_prob_theta=0.5,
                 stat_exog_list=['airline1'],
                 futr_exog_list=['trend'],
+                stack_types = ["identity", "trend", "seasonality", "exogenous"],
+                n_blocks = [1,1,1,1],
                 max_steps=200,
                 val_check_steps=10,
                 early_stop_patience_steps=2)

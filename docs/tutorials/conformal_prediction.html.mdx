@@ -17,6 +17,7 @@ using conformal prediction.
 
 ## Load libraries
 
+
 ```python
 import logging
 
@@ -39,6 +40,7 @@ logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 
 We use the AirPassengers dataset for the demonstration of conformal
 prediction.
+
 
 ```python
 AirPassengersPanel_train = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -78,6 +80,7 @@ We consider two models below:
     quantify the uncertainty by training the model to fit the parameters
     of a Normal distribution. This case is labeled with `NHITS1`.
 
+
 ```python
 horizon = 12
 input_size = 24
@@ -94,6 +97,7 @@ nf.fit(AirPassengersPanel_train, prediction_intervals=prediction_intervals)
 
 To generate conformal intervals, we specify the desired levels in the
 `predict` method.
+
 
 ```python
 preds = nf.predict(futr_df=AirPassengersPanel_test, level=[90])

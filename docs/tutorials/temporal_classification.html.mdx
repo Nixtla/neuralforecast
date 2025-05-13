@@ -31,6 +31,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -60,6 +61,7 @@ sequences and define a classification problem, to identify when the
 pixels surpass certain threshold. We declare a pandas dataframe in long
 format, to match NeuralForecast’s inputs.
 
+
 ```python
 digits = datasets.load_digits()
 images = digits.images[:100]
@@ -84,6 +86,7 @@ plt.show()
 ![](/neuralforecast/docs/tutorials/16_temporal_classification_files/figure-markdown_strict/cell-4-output-1.png)
 
 ![](/neuralforecast/docs/tutorials/16_temporal_classification_files/figure-markdown_strict/cell-4-output-2.png)
+
 
 ```python
 # We flat the images and create an input dataframe
@@ -140,6 +143,7 @@ documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 > [`TCN`](https://nixtlaverse.nixtla.io/neuralforecast/models.tcn.html#tcn).
 > This feature is work in progress.
 
+
 ```python
 # %%capture
 horizon = 12
@@ -192,6 +196,7 @@ Y_hat_df
 | 1198 | 99 | 1972 | 1961 | 0.056 | 0.0 | 0.0 | 0.0 | 0.0 | 1.0 | 0.000 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
 | 1199 | 99 | 1973 | 1961 | 0.000 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0.000 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | 0 |
 
+
 ```python
 # Define classification threshold for final predictions
 # If (prob > threshold) -> 1
@@ -223,6 +228,7 @@ and
 [`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
 temporal classifiers.
 
+
 ```python
 plot_df = Y_hat_df[Y_hat_df.unique_id==10]
 
@@ -238,6 +244,7 @@ ax.grid()
 ```
 
 ![](/neuralforecast/docs/tutorials/16_temporal_classification_files/figure-markdown_strict/cell-9-output-1.png)
+
 
 ```python
 def accuracy(y, y_hat):

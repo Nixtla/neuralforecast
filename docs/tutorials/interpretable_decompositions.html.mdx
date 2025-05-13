@@ -23,6 +23,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -31,6 +32,7 @@ You can run these experiments using GPU with Google Colab.
 
 In this example, we will consider a Harmonic signal comprising two
 frequencies: one low-frequency and one high-frequency.
+
 
 ```python
 import numpy as np
@@ -69,6 +71,7 @@ plt.close()
 
 ![](/neuralforecast/docs/tutorials/14_interpretable_decompositions_files/figure-markdown_strict/cell-6-output-1.png)
 
+
 ```python
 # Split dataset into train/test
 # Last horizon observations for test
@@ -104,6 +107,7 @@ a Wavelet-inspired algorithm, allows for breaking down a time series
 into various scales or resolutions, aiding in the identification of
 localized patterns or features. The expressivity ratios for each layer
 enable control over the model’s stack specialization.
+
 
 ```python
 from neuralforecast.models import NHITS, NBEATSx
@@ -151,6 +155,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
 
+
 ```python
 fig, ax = plt.subplots(3, 1, figsize=(6, 7))
 
@@ -188,6 +193,7 @@ wavelet-like projections the basis heavily determine the behavior of the
 projections. And the Fourier projections are not capable of being
 immediately decomposed into individual frequencies.
 
+
 ```python
 models = [NBEATSx(h=horizon,                           # Forecast horizon
                   input_size=2 * horizon,              # Length of input sequence
@@ -223,6 +229,7 @@ LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
 ``` text
 Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
+
 
 ```python
 fig, ax = plt.subplots(3, 1, figsize=(6, 7))

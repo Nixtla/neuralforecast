@@ -25,6 +25,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing Packages
 
+
 ```python
 !pip install neuralforecast datasetsforecast
 ```
@@ -62,6 +63,7 @@ before failure.
 
 ![](https://github.com/Nixtla/neuralforecast/blob/main/nbs/imgs_losses/turbofan_engine.png?raw=1)
 
+
 ```python
 Y_train_df, Y_test_df = PHM2008.load(directory='./data', group='FD001', clip_rul=False)
 Y_train_df
@@ -88,6 +90,7 @@ INFO:datasetsforecast.utils:Successfully decompressed data\phm2008\CMAPSSData.zi
 | 20629 | 100 | 199 | 643.23 | 1605.26 | 1426.53 | 550.68 | 2388.25 | 9073.72 | 48.39 | 519.67 | 2388.23 | 8139.29 | 8.5389 | 395 | 38.29 | 23.0640 | 1 |
 | 20630 | 100 | 200 | 643.85 | 1600.38 | 1432.14 | 550.79 | 2388.26 | 9061.48 | 48.20 | 519.30 | 2388.26 | 8137.33 | 8.5036 | 396 | 38.37 | 23.0522 | 0 |
 
+
 ```python
 plot_df1 = Y_train_df[Y_train_df['unique_id']==1]
 plot_df2 = Y_train_df[Y_train_df['unique_id']==2]
@@ -109,6 +112,7 @@ plt.grid()
 ```
 
 ![](/neuralforecast/docs/use-cases/predictive_maintenance_files/figure-markdown_strict/cell-6-output-1.png)
+
 
 ```python
 def smooth(s, b = 0.98):
@@ -163,6 +167,7 @@ the target variable represents the RUL itself.
 
 $$P(y_{t+1}\;|\;x^{(f)}_{:t+1},x^{(s)})$$
 
+
 ```python
 Y_train_df, Y_test_df = PHM2008.load(directory='./data', group='FD001', clip_rul=True)
 max_ds = Y_train_df.groupby('unique_id')["ds"].max()
@@ -199,6 +204,7 @@ the predictions to only evaluate the last time cycle.
 
 $$RMSE(\mathbf{y}_{T},\hat{\mathbf{y}}_{T}) = \sqrt{\frac{1}{|\mathcal{D}_{test}|} \sum_{i} (y_{i,T}-\hat{y}_{i,T})^{2}}$$
 
+
 ```python
 from utilsforecast.evaluation import evaluate
 from utilsforecast.losses import rmse
@@ -216,6 +222,7 @@ metrics
 |     | metric | NBEATSx    |
 |-----|--------|------------|
 | 0   | rmse   | 118.179373 |
+
 
 ```python
 plot_df1 = Y_hat_df2[Y_hat_df2['unique_id']==1]

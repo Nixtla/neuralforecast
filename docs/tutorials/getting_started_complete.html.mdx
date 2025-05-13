@@ -72,6 +72,7 @@ We assume you have
 already installed. Check this guide for instructions on [how to install
 NeuralForecast](../getting-started/installation.html).
 
+
 ```python
 ! pip install neuralforecast
 ```
@@ -103,6 +104,7 @@ This data set already satisfies the requirement.
 Depending on your internet connection, this step should take around 10
 seconds.
 
+
 ```python
 import pandas as pd
 ```
@@ -132,6 +134,7 @@ free to select more or less series.
 > Running this example with the complete dataset takes around 10 minutes
 > in a c5d.24xlarge (96 cores) instance from AWS.
 
+
 ```python
 uids = Y_df['unique_id'].unique()[:10] # Select 10 ids to make the example faster
 Y_df = Y_df.query('unique_id in @uids').reset_index(drop=True)
@@ -148,6 +151,7 @@ dataset and is useful for basic EDA.
 > The `plot_series` function uses matplotlib as a default engine. You
 > can change to plotly by setting `engine="plotly"`.
 
+
 ```python
 from utilsforecast.plotting import plot_series
 ```
@@ -163,6 +167,7 @@ plot_series(Y_df)
 
 [`NeuralForecast`](https://nixtlaverse.nixtla.io/neuralforecast/core.html#neuralforecast)
 can train many models on many time series globally and efficiently.
+
 
 ```python
 import logging
@@ -196,6 +201,7 @@ corresponds to the model’s hyperparameter and the value is a `Tune`
 function to specify how the hyperparameter will be sampled. For example,
 use `randint` to sample integers uniformly, and `choice` to sample
 values of a list.
+
 
 ```python
 def config_nhits(trial):
@@ -289,6 +295,7 @@ In this example we set horizon `h` as 48, use the
 distribution loss for training and validation, and use the default
 search algorithm.
 
+
 ```python
 nf = NeuralForecast(
     models=[
@@ -314,12 +321,14 @@ producing the forecasts on the validation set, and evaluating them. The
 best configuration is selected based on the error on a validation set.
 Only the best model is stored and used during inference.
 
+
 ```python
 nf.fit(df=Y_df)
 ```
 
 Next, we use the `predict` method to forecast the next 48 days using the
 optimal hyperparameters.
+
 
 ```python
 fcst_df = nf.predict()
@@ -337,12 +346,14 @@ plot_series(Y_df, fcst_df, plot_random=False, max_insample_length=48 * 3, level=
 The `plot_series` function allows for further customization. For
 example, plot the results of the different models and unique ids.
 
+
 ```python
 # Plot to unique_ids and some selected models
 plot_series(Y_df, fcst_df, models=["AutoLSTM"], ids=["H107", "H104"], level=[80, 90])
 ```
 
 ![](/neuralforecast/docs/tutorials/01_getting_started_complete_files/figure-markdown_strict/cell-15-output-1.png)
+
 
 ```python
 # Explore other models 
@@ -388,6 +399,7 @@ class takes the following arguments.
     other words: what number of forecasting processes in the past do you
     want to evaluate.
 
+
 ```python
 from neuralforecast.auto import AutoNHITS, AutoLSTM
 ```
@@ -419,6 +431,7 @@ columns:
 -   `y`: true value
 -   `"model"`: columns with the model’s name and fitted value.
 
+
 ```python
 cv_df.columns = cv_df.columns.str.replace('-median', '')
 ```
@@ -435,6 +448,7 @@ cv_df.head()
 | 2 | H1 | 702 | 699 | 546.807922 | 486.383362 | 498.541748 | 599.284302 | 623.889038 | 569.914795 | 314.173462 | 389.398865 | 763.250244 | 852.974121 | 565.0 |
 | 3 | H1 | 703 | 699 | 483.149811 | 420.416351 | 435.613708 | 536.380005 | 561.349487 | 548.401917 | 305.305054 | 379.597839 | 732.263123 | 817.543152 | 532.0 |
 | 4 | H1 | 704 | 699 | 434.347931 | 381.605713 | 394.665619 | 481.329041 | 501.715546 | 511.798950 | 269.810272 | 346.146484 | 692.443542 | 776.531921 | 495.0 |
+
 
 ```python
 from IPython.display import display
@@ -459,6 +473,7 @@ for cutoff in cv_df['cutoff'].unique():
 
 Now, let’s evaluate the models’ performance.
 
+
 ```python
 from utilsforecast.evaluation import evaluate
 from utilsforecast.losses import mse, mae, rmse
@@ -473,6 +488,7 @@ from utilsforecast.losses import mse, mae, rmse
 
 Create the data frame with the results of the evaluation of your
 cross-validation data frame using a Mean Squared Error metric.
+
 
 ```python
 evaluation_df = evaluate(cv_df.drop(columns='cutoff'), metrics=[mse, mae, rmse])
@@ -491,6 +507,7 @@ evaluation_df.head()
 Create a summary table with a model column and the number of series
 where that model performs best.
 
+
 ```python
 summary_df = evaluation_df.groupby(['metric', 'best_model']).size().sort_values().to_frame()
 summary_df = summary_df.reset_index()
@@ -507,6 +524,7 @@ summary_df
 | 4   | rmse   | AutoLSTM  | 6                 |
 | 5   | mae    | AutoLSTM  | 7                 |
 
+
 ```python
 summary_df.query('metric == "mse"')
 ```
@@ -518,6 +536,7 @@ summary_df.query('metric == "mse"')
 
 You can further explore your results by plotting the unique_ids where a
 specific model wins.
+
 
 ```python
 nhits_ids = evaluation_df.query('best_model == "AutoNHITS" and metric == "mse"')['unique_id'].unique()
@@ -533,6 +552,7 @@ Define a utility function that takes your forecast’s data frame with the
 predictions and the evaluation data frame and returns a data frame with
 the best possible forecast for every unique_id.
 
+
 ```python
 def get_best_model_forecast(forecasts_df, evaluation_df, metric):
     metric_eval = evaluation_df.loc[evaluation_df['metric'] == metric, ['unique_id', 'best_model']]
@@ -545,6 +565,7 @@ def get_best_model_forecast(forecasts_df, evaluation_df, metric):
 
 Create your production-ready data frame with the best forecast for every
 unique_id.
+
 
 ```python
 prod_forecasts_df = get_best_model_forecast(fcst_df, evaluation_df, metric='mse')
@@ -566,6 +587,7 @@ prod_forecasts_df
 | 479 | H107      | 796 | 3666.446045 | 3177.937744      | 4059.684570      |
 
 Plot the results.
+
 
 ```python
 plot_series(Y_df, prod_forecasts_df, level=[90])

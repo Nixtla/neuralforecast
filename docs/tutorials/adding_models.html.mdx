@@ -196,6 +196,7 @@ The main steps are:
 
 First, add the following **two cells** on top of the `nbdev` file.
 
+
 ```python
 #| default_exp models.mlp
 ```
@@ -206,6 +207,7 @@ First, add the following **two cells** on top of the `nbdev` file.
 > When you later run `nbdev_export`, it will create a `YOUR_MODEL.py`
 > script in the `neuralforecast/models/` directory.
 
+
 ```python
 #| hide
 %load_ext autoreload
@@ -213,6 +215,7 @@ First, add the following **two cells** on top of the `nbdev` file.
 ```
 
 Next, add the dependencies of the model.
+
 
 ```python
 #| export
@@ -233,6 +236,7 @@ Next, create the class with the `init` and `forward` methods. The
 following example shows the example for the simplified
 [`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)
 model. We explain important details after the code.
+
 
 ```python
 #| export
@@ -366,6 +370,7 @@ Finally, add the model to the `core` class and additional files:
     [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/core.html):
 
     1.  Add the model to the initial model list:
+
 
     ```python
     from neuralforecast.models import (

@@ -30,6 +30,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing Libraries
 
+
 ```python
 !pip install datasetsforecast neuralforecast
 ```
@@ -58,6 +59,7 @@ This example will automatically run on GPUs if available. **Make sure**
 cuda is available. (If you need help to put this into production send us
 an email or join or community, we also offer a fully hosted solution)
 
+
 ```python
 torch.cuda.is_available()
 ```
@@ -78,6 +80,7 @@ example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
 long format and have a simmilar structure than our data set.
+
 
 ```python
 Y_df, _, _ = M4.load(directory='./', group='Monthly', cache=True)
@@ -109,6 +112,7 @@ the number of historic observations (lags) that the model will use to
 learn to predict `h` steps in the future. Also, you can modify the
 hyperparameters of the model to get a better accuracy.
 
+
 ```python
 horizon = 12
 stacks = 3
@@ -137,6 +141,7 @@ Save model with `core.NeuralForecast.save` method. This method uses
 PytorchLightning `save_checkpoint` function. We set `save_dataset=False`
 to only save the model.
 
+
 ```python
 nf.save(path='./results/transfer/', model_index=None, overwrite=True, save_dataset=False)
 ```
@@ -145,6 +150,7 @@ nf.save(path='./results/transfer/', model_index=None, overwrite=True, save_datas
 
 We load the stored model with the `core.NeuralForecast.load` method, and
 forecast `AirPassenger` with the `core.NeuralForecast.predict` function.
+
 
 ```python
 fcst2 = NeuralForecast.load(path='./results/transfer/')
@@ -155,6 +161,7 @@ c:\Nixtla\Repositories\neuralforecast\neuralforecast\common\_base_model.py:133: 
   warnings.warn(
 INFO:lightning_fabric.utilities.seed:Seed set to 1
 ```
+
 
 ```python
 # We define the train df. 
@@ -180,6 +187,7 @@ Y_hat_df.head()
 | 3   | 1.0       | 1960-04-30 | 447.967072 |
 | 4   | 1.0       | 1960-05-31 | 470.603333 |
 
+
 ```python
 plot_series(Y_train_df, Y_hat_df)
 ```
@@ -197,6 +205,7 @@ $$
 \qquad MAE = \frac{1}{Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}|\qquad
 
 $$
+
 
 ```python
 fcst_mae = mae(Y_test_df.merge(Y_hat_df), models=['NHITS'])['NHITS'].item()

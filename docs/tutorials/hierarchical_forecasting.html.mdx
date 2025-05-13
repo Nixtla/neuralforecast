@@ -26,6 +26,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing packages
 
+
 ```python
 !pip install datasetsforecast hierarchicalforecast neuralforecast statsforecast
 ```
@@ -51,6 +52,7 @@ sources are available.
 | Zones | 27 | 108 | 135 |
 | Regions | 76 | 304 | 380 |
 | Total | 111 | 444 | 555 |
+
 
 ```python
 import pandas as pd
@@ -92,6 +94,7 @@ where $\mathbf{y}_{[a],t}$ are the aggregate series,
 $\mathbf{y}_{[b],t}$ are the bottom level series and
 $\mathbf{S}_{[a,b][b]}$ are the hierarchical aggregation constraints.
 
+
 ```python
 # Here we plot the hierarchical constraints matrix
 hplot = HierarchicalPlot(S=S_df, tags=tags)
@@ -99,6 +102,7 @@ hplot.plot_summing_matrix()
 ```
 
 ![](/neuralforecast/docs/tutorials/09_hierarchical_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
+
 
 ```python
 plot_series(forecasts_df=Y_df[["unique_id", "ds", "y"]], ids=['TotalAll'])
@@ -112,6 +116,7 @@ The Hierarchical Forecast Network (HINT) combines into an easy to use
 model three components:<br/> 1. SoTA neural forecast model.<br/> 2. An
 efficient and flexible multivariate probability distribution.<br/> 3.
 Builtin reconciliation capabilities.<br/>
+
 
 ```python
 import logging
@@ -158,6 +163,7 @@ model = HINT(h=horizon, S=S_df.drop(columns='unique_id').values,
 INFO:lightning_fabric.utilities.seed:Seed set to 1
 ```
 
+
 ```python
 logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 ```
@@ -193,6 +199,7 @@ method from the
 package, for which we reconcile the forecasts using
 [HierarchicalForecast](https://nixtlaverse.nixtla.io/hierarchicalforecast/index.html).
 
+
 ```python
 from statsforecast import StatsForecast
 from statsforecast.models import AutoARIMA
@@ -201,6 +208,7 @@ from hierarchicalforecast.core import HierarchicalReconciliation
 ```
 
 We define the model, and create the forecasts.
+
 
 ```python
 sf = StatsForecast(models=[AutoARIMA()], 
@@ -215,6 +223,7 @@ Y_fitted_df_arima = sf.forecast_fitted_values()
 
 Next, we reconcile the forecasts using `BottomUp` and `MinTrace`
 reconciliation techniques:
+
 
 ```python
 reconcilers = [
@@ -251,6 +260,7 @@ $$
 
 As you can see the HINT model (using NHITS as base model) efficiently
 achieves state of the art accuracy under minimal tuning.
+
 
 ```python
 from utilsforecast.losses import scaled_crps

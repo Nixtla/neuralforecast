@@ -24,6 +24,7 @@ You can run these experiments using GPU with Google Colab.
 
 ## 1. Installing NeuralForecast
 
+
 ```python
 !pip install neuralforecast
 ```
@@ -63,6 +64,7 @@ In particular, we will focus on introducing outliers to the target
 variable altering it to deviate from its original observation by a
 specified factor, such as 2-to-4 times the standard deviation.
 
+
 ```python
 # Original Box-Cox AirPassengers 
 # as defined in neuralforecast.utils
@@ -74,6 +76,7 @@ plt.grid()
 ```
 
 ![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
+
 
 ```python
 # Here we add some artificial outliers to AirPassengers
@@ -90,6 +93,7 @@ plt.grid()
 ```
 
 ![](/neuralforecast/docs/tutorials/13_robust_forecasting_files/figure-markdown_strict/cell-6-output-1.png)
+
 
 ```python
 # Split datasets into train/test 
@@ -159,6 +163,7 @@ and
 [model
 documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
 
+
 ```python
 horizon = 12
 level = [50, 80]
@@ -221,6 +226,7 @@ Finally, we plot the forecasts of both models againts the real values.
 And evaluate the accuracy of the `NHITS-Huber` and `NHITS-Normal`
 forecasters.
 
+
 ```python
 fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 plot_df = pd.concat([Y_train_df, Y_hat_df]).set_index('ds') # Concatenate the train and forecast dataframes
@@ -247,6 +253,7 @@ $$\mathrm{CRPS}(\hat{F}_{\tau},\mathbf{y}_{\tau}) = \int^{1}_{0} \mathrm{QL}(\ha
 
 As you can see, robust regression improvements reflect in both the
 normal and probabilistic forecast setting.
+
 
 ```python
 df_metrics = Y_hat_df.merge(Y_test_df, on=['ds', 'unique_id'])

@@ -21,6 +21,7 @@ this large-scale DataLoader.
 
 ## Load libraries
 
+
 ```python
 import logging
 import os
@@ -60,6 +61,7 @@ which each timeseries is already sorted by time) into the below format:
 
 <br/> We then simply input a list of the paths to these directories.
 
+
 ```python
 Y_df = AirPassengersPanel.copy()
 Y_df
@@ -78,6 +80,7 @@ Y_df
 | 285 | Airline2  | 1960-10-31 | 761.0 | 285   | 707.0        |
 | 286 | Airline2  | 1960-11-30 | 690.0 | 286   | 662.0        |
 | 287 | Airline2  | 1960-12-31 | 732.0 | 287   | 705.0        |
+
 
 ```python
 valid = Y_df.groupby('unique_id').tail(72)
@@ -102,6 +105,7 @@ files_list
 You can also create this directory structure with a spark dataframe
 using the following:
 
+
 ```python
 spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
 (
@@ -116,6 +120,7 @@ spark.conf.set("spark.sql.parquet.outputTimestampType", "TIMESTAMP_MICROS")
 
 The DataLoader class still expects the static data to be passed in as a
 single DataFrame with one row per timeseries.
+
 
 ```python
 static = AirPassengersStatic.rename(columns={'unique_id': 'id_col'})
@@ -133,6 +138,7 @@ We now train a NHITS model on the above dataset. It is worth noting that
 NeuralForecast currently does not support scaling when using this
 DataLoader. If you want to scale the timeseries this should be done
 before passing it in to the `fit` method.
+
 
 ```python
 horizon = 12
@@ -178,6 +184,7 @@ also include the future values of these features in the separate
 For the below prediction we are assuming we only want to predict the
 next 12 timesteps for Airline2.
 
+
 ```python
 valid_df = valid[valid['id_col'] == 'Airline2']
 # we set input_size=60 and horizon=12 when fitting the model
@@ -191,6 +198,7 @@ predictions = nf.predict(df=pred_df, futr_df=futr_df, static_df=static)
 ``` text
 Predicting: |          | 0/? [00:00<?, ?it/s]
 ```
+
 
 ```python
 predictions
@@ -212,6 +220,7 @@ predictions
 | 11  | Airline2 | 1960-12-31 | 746.640259 |
 
 ## Evaluation
+
 
 ```python
 target = valid_df[60:72]
