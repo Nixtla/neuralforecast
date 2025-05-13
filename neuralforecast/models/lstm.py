@@ -197,8 +197,8 @@ class LSTM(BaseModel):
                 activation="ReLU",
                 dropout=0.0,
             )
-            if h > input_size:
-                self.upsample_sequence = nn.Linear(input_size, h)
+            if self.h > self.input_size:
+                self.upsample_sequence = nn.Linear(self.input_size, self.h)
 
     def forward(self, windows_batch):
 
