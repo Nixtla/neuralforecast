@@ -8,8 +8,10 @@ import warnings
 from copy import deepcopy
 from os import cpu_count
 
+import platform
 import torch
 import pytorch_lightning as pl
+
 
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
@@ -184,6 +186,20 @@ class BaseAuto(pl.LightningModule):
         self.MULTIVARIATE = cls_model.MULTIVARIATE
         self.RECURRENT = cls_model.RECURRENT
 
+        # ray tune config
+        self.ray_tune_config = tune.TuneConfig(
+            metric="loss",
+            mode="min",
+            num_samples=self.num_samples,
+            search_alg=deepcopy(self.search_alg),
+            # on Windows, prevent long trial directory names
+            trial_dirname_creator=(
+                (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
+                if platform.system() == "Windows"
+                else None
+            ),
+        )
+
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
 
@@ -223,53 +239,26 @@ class BaseAuto(pl.LightningModule):
             test_size=test_size,
         )
 
-    def _tune_model(
-        self,
-        cls_model,
-        dataset,
-        val_size,
-        test_size,
-        cpus,
-        gpus,
-        verbose,
-        num_samples,
-        search_alg,
-        config,
-    ):
+    def _tune_model(self, dataset, val_size, test_size):
         train_fn_with_parameters = tune.with_parameters(
             self._train_tune,
-            cls_model=cls_model,
+            cls_model=self.cls_model,
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
         )
 
         # Device
-        if gpus > 0:
-            device_dict = {"gpu": gpus}
+        if self.gpus > 0:
+            device_dict = {"gpu": self.gpus}
         else:
-            device_dict = {"cpu": cpus}
-
-        # on Windows, prevent long trial directory names
-        import platform
-
-        trial_dirname_creator = (
-            (lambda trial: f"{trial.trainable_name}_{trial.trial_id}")
-            if platform.system() == "Windows"
-            else None
-        )
+            device_dict = {"cpu": self.cpus}
 
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
-            tune_config=tune.TuneConfig(
-                metric="loss",
-                mode="min",
-                num_samples=num_samples,
-                search_alg=search_alg,
-                trial_dirname_creator=trial_dirname_creator,
-            ),
-            param_space=config,
+            run_config=air.RunConfig(callbacks=self.callbacks, verbose=self.verbose),
+            tune_config=self.ray_tune_config,
+            param_space=self.config,
         )
         results = tuner.fit()
         return results
@@ -405,16 +394,9 @@ class BaseAuto(pl.LightningModule):
                     "distributed training is not supported for the ray backend."
                 )
             results = self._tune_model(
-                cls_model=self.cls_model,
                 dataset=dataset,
                 val_size=val_size,
                 test_size=test_size,
-                cpus=self.cpus,
-                gpus=self.gpus,
-                verbose=self.verbose,
-                num_samples=self.num_samples,
-                search_alg=search_alg,
-                config=self.config,
             )
             best_config = results.get_best_result().config
         else:
@@ -476,3 +458,14 @@ class BaseAuto(pl.LightningModule):
         `path`: str, path to save the model.<br>
         """
         self.model.save(path)
+
+    def set_ray_tune_config(self, **args):
+        """BaseAuto.set_ray_tune_config
+
+        Customize the default tune.TuneConfig() choice
+
+        **Parameters:**<br>
+        `args`: keyword arguments as as detailed in ray.tune.TuneConfig, see
+        https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html
+        """
+        self.ray_tune_config = tune.TuneConfig(**args)
