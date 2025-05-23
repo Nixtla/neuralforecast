@@ -47,6 +47,8 @@ class TimeSeriesLoader(DataLoader):
         elem_type = type(elem)
 
         if isinstance(elem, torch.Tensor):
+            if len(batch) == 1:
+                return elem.unsqueeze(0)
             out = None
             if torch.utils.data.get_worker_info() is not None:
                 # If we're in a background process, concatenate directly into a
@@ -163,11 +165,16 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
     def __getitem__(self, idx):
         if isinstance(idx, int):
             # Parse temporal data and pad its left
-            temporal = torch.zeros(
-                size=(len(self.temporal_cols), self.max_size), dtype=torch.float32
-            )
+
+            temporal_size = (len(self.temporal_cols), self.max_size)
             ts = self.temporal[self.indptr[idx] : self.indptr[idx + 1], :]
-            temporal[: len(self.temporal_cols), -len(ts) :] = ts.permute(1, 0)
+            if temporal_size == (ts.shape[1], ts.shape[0]):
+                temporal = ts.permute(1, 0)
+            else:
+                temporal = torch.zeros(
+                    size=(len(self.temporal_cols), self.max_size), dtype=torch.float32
+                )
+                temporal[: len(self.temporal_cols), -len(ts) :] = ts.permute(1, 0)
 
             # Add static data if available
             static = None if self.static is None else self.static[idx, :]
