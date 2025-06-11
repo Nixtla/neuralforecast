@@ -10,7 +10,7 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any, Optional, Tuple
 
 import fsspec
 import numpy as np
@@ -556,6 +556,1009 @@ class BaseModel(pl.LightningModule):
                 test_size,
             )
         return model
+
+    def _extract_target_features(self, dataset_batch: Dict) -> np.ndarray:
+        """
+        Extract target, historical exogenous, future exogenous, and static exogenous features for SHAP explanation.
+        """
+        # TimeSeriesDataset returns temporal data as [batch_size, features, time_steps]
+        temporal_data = dataset_batch[
+            "temporal"
+        ]  # Shape: [batch_size, features, time_steps]
+        temporal_cols = dataset_batch["temporal_cols"]  # Column names
+
+        # Check what exogenous features the model supports
+        has_hist_exog = (
+            hasattr(self, "EXOGENOUS_HIST")
+            and self.EXOGENOUS_HIST
+            and hasattr(self, "hist_exog_list")
+            and self.hist_exog_list
+        )
+        has_futr_exog = (
+            hasattr(self, "EXOGENOUS_FUTR")
+            and self.EXOGENOUS_FUTR
+            and hasattr(self, "futr_exog_list")
+            and self.futr_exog_list
+        )
+        has_stat_exog = (
+            hasattr(self, "EXOGENOUS_STAT")
+            and self.EXOGENOUS_STAT
+            and hasattr(self, "stat_exog_list")
+            and self.stat_exog_list
+        )
+
+        if self.MULTIVARIATE:
+            # For multivariate models, extract n_series worth of data
+            n_series = getattr(self, "n_series", 1)
+
+            # Take the first n_series from temporal_data (assumes target series come first)
+            if temporal_data.shape[1] >= n_series:
+                series_data = temporal_data[
+                    :, :n_series, :
+                ]  # [batch_size, n_series, time_steps]
+            else:
+                # If we don't have enough series, pad or repeat
+                series_data = temporal_data[:, :1, :].repeat(1, n_series, 1)
+                print(
+                    f"Warning: Dataset has {temporal_data.shape[1]} series but model expects {n_series}. Using repeated data."
+                )
+
+            # Take the last input_size time steps for all series
+            if series_data.shape[2] >= self.input_size:
+                target_features = series_data[
+                    :, :, -self.input_size :
+                ]  # [batch_size, n_series, input_size]
+            else:
+                # Pad with zeros if not enough history
+                pad_size = self.input_size - series_data.shape[2]
+                target_features = F.pad(series_data, (pad_size, 0), value=0.0)
+
+            # Flatten to [batch_size, n_series * input_size] for SHAP
+            batch_size, n_series_actual, input_size = target_features.shape
+            target_features = target_features.reshape(
+                batch_size, n_series_actual * input_size
+            )
+
+            # Add multivariate historical exogenous support
+            if has_hist_exog:
+                hist_exog_features = []
+
+                # Find indices of historical exogenous columns
+                for exog_col in self.hist_exog_list:
+                    if exog_col in temporal_cols:
+                        exog_idx = temporal_cols.get_loc(exog_col)
+                        exog_data = temporal_data[
+                            :, exog_idx, :
+                        ]  # [batch_size, time_steps]
+
+                        # Take the last input_size time steps for this exogenous feature
+                        if exog_data.shape[1] >= self.input_size:
+                            exog_features = exog_data[
+                                :, -self.input_size :
+                            ]  # [batch_size, input_size]
+                        else:
+                            # Pad with zeros if not enough history
+                            pad_size = self.input_size - exog_data.shape[1]
+                            exog_features = F.pad(exog_data, (pad_size, 0), value=0.0)
+
+                        hist_exog_features.append(exog_features)
+                    else:
+                        print(
+                            f"Warning: Historical exogenous feature '{exog_col}' not found in dataset columns."
+                        )
+                        # Create zero features as placeholder
+                        zero_features = torch.zeros(
+                            target_features.shape[0], self.input_size
+                        )
+                        hist_exog_features.append(zero_features)
+
+                # Concatenate historical exogenous features
+                if hist_exog_features:
+                    all_hist_exog = torch.stack(
+                        hist_exog_features, dim=1
+                    )  # [batch_size, n_hist_exog, input_size]
+                    all_hist_exog = all_hist_exog.reshape(
+                        target_features.shape[0], -1
+                    )  # [batch_size, n_hist_exog * input_size]
+                    target_features = torch.cat(
+                        [target_features, all_hist_exog], dim=1
+                    )  # [batch_size, n_series * input_size + n_hist_exog * input_size]
+
+        else:
+            # For univariate models, extract target series and exogenous features
+            y_idx = dataset_batch["y_idx"]  # Index of target variable in features
+            target_data = temporal_data[:, y_idx, :]  # Shape: [batch_size, time_steps]
+
+            # Take the last input_size time steps for target
+            if target_data.shape[1] >= self.input_size:
+                target_features = target_data[
+                    :, -self.input_size :
+                ]  # Shape: [batch_size, input_size]
+            else:
+                # Pad with zeros if not enough history
+                pad_size = self.input_size - target_data.shape[1]
+                target_features = F.pad(target_data, (pad_size, 0), value=0.0)
+
+            # Extract historical exogenous features if model supports them
+            if has_hist_exog:
+                hist_exog_features = []
+
+                # Find indices of historical exogenous columns
+                for exog_col in self.hist_exog_list:
+                    if exog_col in temporal_cols:
+                        exog_idx = temporal_cols.get_loc(exog_col)
+                        exog_data = temporal_data[
+                            :, exog_idx, :
+                        ]  # [batch_size, time_steps]
+
+                        # Take the last input_size time steps for this exogenous feature
+                        if exog_data.shape[1] >= self.input_size:
+                            exog_features = exog_data[
+                                :, -self.input_size :
+                            ]  # [batch_size, input_size]
+                        else:
+                            # Pad with zeros if not enough history
+                            pad_size = self.input_size - exog_data.shape[1]
+                            exog_features = F.pad(exog_data, (pad_size, 0), value=0.0)
+
+                        hist_exog_features.append(exog_features)
+                    else:
+                        print(
+                            f"Warning: Historical exogenous feature '{exog_col}' not found in dataset columns."
+                        )
+                        # Create zero features as placeholder
+                        zero_features = torch.zeros(
+                            target_features.shape[0], self.input_size
+                        )
+                        hist_exog_features.append(zero_features)
+
+                # Concatenate target and historical exogenous features
+                if hist_exog_features:
+                    all_hist_exog = torch.stack(
+                        hist_exog_features, dim=1
+                    )  # [batch_size, n_hist_exog, input_size]
+                    all_hist_exog = all_hist_exog.reshape(
+                        target_features.shape[0], -1
+                    )  # [batch_size, n_hist_exog * input_size]
+                    target_features = torch.cat(
+                        [target_features, all_hist_exog], dim=1
+                    )  # [batch_size, input_size + n_hist_exog * input_size]
+
+        # Extract future exogenous features if model supports them (both univariate and multivariate)
+        if has_futr_exog:
+            futr_exog_features = []
+            horizon = getattr(self, "h", 1)  # Forecast horizon
+
+            # For NHITS, future exogenous needs input_size + horizon time steps
+            # For other models, just horizon time steps
+            if self.__class__.__name__ == "NHITS":
+                futr_exog_time_steps = self.input_size + horizon
+                print(
+                    f"DEBUG: NHITS detected, using {futr_exog_time_steps} time steps for future exog"
+                )
+            else:
+                futr_exog_time_steps = horizon
+                print(
+                    f"DEBUG: Non-NHITS model, using {futr_exog_time_steps} time steps for future exog"
+                )
+
+            # Find indices of future exogenous columns
+            for exog_col in self.futr_exog_list:
+                if exog_col in temporal_cols:
+                    exog_idx = temporal_cols.get_loc(exog_col)
+                    exog_data = temporal_data[
+                        :, exog_idx, :
+                    ]  # [batch_size, time_steps]
+                    print(
+                        f"DEBUG: Available exog_data shape for {exog_col}: {exog_data.shape}"
+                    )
+
+                    # Take the required time steps for future exogenous
+                    if exog_data.shape[1] >= futr_exog_time_steps:
+                        futr_exog_data = exog_data[
+                            :, -futr_exog_time_steps:
+                        ]  # [batch_size, required_steps]
+                    else:
+                        # Pad with zeros if not enough future data
+                        pad_size = futr_exog_time_steps - exog_data.shape[1]
+                        futr_exog_data = F.pad(exog_data, (0, pad_size), value=0.0)[
+                            :, -futr_exog_time_steps:
+                        ]
+
+                    print(
+                        f"DEBUG: Extracted futr_exog_data shape for {exog_col}: {futr_exog_data.shape}"
+                    )
+                    futr_exog_features.append(futr_exog_data)
+                else:
+                    print(
+                        f"Warning: Future exogenous feature '{exog_col}' not found in dataset columns."
+                    )
+                    # Create zero features as placeholder
+                    zero_features = torch.zeros(
+                        target_features.shape[0], futr_exog_time_steps
+                    )
+                    futr_exog_features.append(zero_features)
+
+            # Concatenate future exogenous features
+            if futr_exog_features:
+                all_futr_exog = torch.stack(
+                    futr_exog_features, dim=1
+                )  # [batch_size, n_futr_exog, required_steps]
+                all_futr_exog = all_futr_exog.reshape(
+                    target_features.shape[0], -1
+                )  # [batch_size, n_futr_exog * required_steps]
+                print(f"DEBUG: Final all_futr_exog shape: {all_futr_exog.shape}")
+                print(
+                    f"DEBUG: target_features shape before concat: {target_features.shape}"
+                )
+                target_features = torch.cat(
+                    [target_features, all_futr_exog], dim=1
+                )  # [batch_size, prev_features + n_futr_exog * required_steps]
+                print(
+                    f"DEBUG: target_features shape after concat: {target_features.shape}"
+                )
+
+        # Extract static exogenous features if model supports them (both univariate and multivariate)
+        if has_stat_exog:
+            # Static exogenous data is in dataset_batch['static']
+            if "static" in dataset_batch and dataset_batch["static"] is not None:
+                static_data = dataset_batch[
+                    "static"
+                ]  # Shape: [batch_size, n_static_features]
+                print(f"DEBUG: Available static_data shape: {static_data.shape}")
+
+                if self.MULTIVARIATE:
+                    # For multivariate models like TSMixerx, static exog is expected as [n_series, n_static_features]
+                    # We need to repeat static features across series or take first n_series rows
+                    n_series = getattr(self, "n_series", 1)
+                    n_stat_features = static_data.shape[1]
+
+                    if static_data.shape[0] >= n_series:
+                        # Take first n_series rows
+                        static_features = static_data[
+                            :n_series, :
+                        ]  # [n_series, n_static_features]
+                    else:
+                        # Repeat first row across series
+                        static_features = static_data[:1, :].repeat(
+                            n_series, 1
+                        )  # [n_series, n_static_features]
+
+                    # Flatten for SHAP: [n_series, n_static_features] -> [n_series * n_static_features]
+                    static_features = static_features.reshape(
+                        -1
+                    )  # [n_series * n_static_features]
+                    print(
+                        f"DEBUG: Multivariate static features shape: {static_features.shape}"
+                    )
+                    target_features = torch.cat(
+                        [
+                            target_features,
+                            static_features.unsqueeze(0).repeat(
+                                target_features.shape[0], 1
+                            ),
+                        ],
+                        dim=1,
+                    )
+                    print(
+                        f"DEBUG: target_features shape after multivariate static concat: {target_features.shape}"
+                    )
+                else:
+                    # For univariate models like NHITS, static exog is expected as [batch_size, n_static_features]
+                    static_features = static_data  # [batch_size, n_static_features]
+                    print(
+                        f"DEBUG: Univariate static features shape: {static_features.shape}"
+                    )
+                    target_features = torch.cat(
+                        [target_features, static_features], dim=1
+                    )  # [batch_size, prev_features + n_static_features]
+                    print(
+                        f"DEBUG: target_features shape after univariate static concat: {target_features.shape}"
+                    )
+            else:
+                print(
+                    "Warning: Model expects static exogenous features but none found in dataset batch."
+                )
+                # Create zero static features as placeholder
+                n_stat_features = len(self.stat_exog_list)
+
+                if self.MULTIVARIATE:
+                    n_series = getattr(self, "n_series", 1)
+                    zero_static = torch.zeros(
+                        target_features.shape[0], n_series * n_stat_features
+                    )
+                else:
+                    zero_static = torch.zeros(target_features.shape[0], n_stat_features)
+
+                target_features = torch.cat([target_features, zero_static], dim=1)
+
+        return (
+            target_features.cpu().numpy()
+            if torch.is_tensor(target_features)
+            else target_features
+        )
+
+    def _get_feature_names(self) -> List[str]:
+        """
+        Get feature names for SHAP plots (with support for all exogenous types).
+        """
+        feature_names = []
+
+        if self.MULTIVARIATE:
+            # For multivariate models, create names for all series and their lags
+            n_series = getattr(self, "n_series", 1)
+
+            for series_idx in range(n_series):
+                for lag_idx in range(self.input_size):
+                    feature_names.append(f"series_{series_idx}_lag_{lag_idx + 1}")
+
+            # Add multivariate historical exogenous feature names
+            has_hist_exog = (
+                hasattr(self, "EXOGENOUS_HIST")
+                and self.EXOGENOUS_HIST
+                and hasattr(self, "hist_exog_list")
+                and self.hist_exog_list
+            )
+
+            if has_hist_exog:
+                for exog_col in self.hist_exog_list:
+                    for lag_idx in range(self.input_size):
+                        feature_names.append(f"{exog_col}_lag_{lag_idx + 1}")
+
+        else:
+            # For univariate models, add target lags
+            for lag_idx in range(self.input_size):
+                feature_names.append(f"y_lag_{lag_idx + 1}")
+
+            # Add historical exogenous feature names if model supports them
+            has_hist_exog = (
+                hasattr(self, "EXOGENOUS_HIST")
+                and self.EXOGENOUS_HIST
+                and hasattr(self, "hist_exog_list")
+                and self.hist_exog_list
+            )
+
+            if has_hist_exog:
+                for exog_col in self.hist_exog_list:
+                    for lag_idx in range(self.input_size):
+                        feature_names.append(f"{exog_col}_lag_{lag_idx + 1}")
+
+        # Add future exogenous feature names (both univariate and multivariate)
+        has_futr_exog = (
+            hasattr(self, "EXOGENOUS_FUTR")
+            and self.EXOGENOUS_FUTR
+            and hasattr(self, "futr_exog_list")
+            and self.futr_exog_list
+        )
+
+        if has_futr_exog:
+            horizon = getattr(self, "h", 1)
+
+            # For NHITS, future exogenous spans input_size + horizon time steps
+            # For other models, just horizon time steps
+            if self.__class__.__name__ == "NHITS":
+                futr_exog_time_steps = self.input_size + horizon
+                time_step_prefix = "step"  # step_1, step_2, etc. (includes both historical and future periods)
+            else:
+                futr_exog_time_steps = horizon
+                time_step_prefix = "step"  # step_1, step_2, etc. (forecast period only)
+
+            for exog_col in self.futr_exog_list:
+                for step_idx in range(futr_exog_time_steps):
+                    feature_names.append(
+                        f"{exog_col}_{time_step_prefix}_{step_idx + 1}"
+                    )
+
+        # Add static exogenous feature names (both univariate and multivariate)
+        has_stat_exog = (
+            hasattr(self, "EXOGENOUS_STAT")
+            and self.EXOGENOUS_STAT
+            and hasattr(self, "stat_exog_list")
+            and self.stat_exog_list
+        )
+
+        if has_stat_exog:
+            if self.MULTIVARIATE:
+                # For multivariate models, static features are per series
+                n_series = getattr(self, "n_series", 1)
+                for series_idx in range(n_series):
+                    for stat_col in self.stat_exog_list:
+                        feature_names.append(f"{stat_col}_series_{series_idx}_static")
+            else:
+                # For univariate models, static features are global
+                for stat_col in self.stat_exog_list:
+                    feature_names.append(f"{stat_col}_static")
+
+        return feature_names
+
+    def _parse_shap_input(self, X_flat: np.ndarray) -> Dict[str, torch.Tensor]:
+        """
+        Parse flattened SHAP input back into model's expected format.
+        """
+        # Convert to tensor
+        X_tensor = torch.FloatTensor(X_flat)
+
+        # Check what exogenous features the model supports
+        has_hist_exog = (
+            hasattr(self, "EXOGENOUS_HIST")
+            and self.EXOGENOUS_HIST
+            and hasattr(self, "hist_exog_list")
+            and self.hist_exog_list
+        )
+        has_futr_exog = (
+            hasattr(self, "EXOGENOUS_FUTR")
+            and self.EXOGENOUS_FUTR
+            and hasattr(self, "futr_exog_list")
+            and self.futr_exog_list
+        )
+        has_stat_exog = (
+            hasattr(self, "EXOGENOUS_STAT")
+            and self.EXOGENOUS_STAT
+            and hasattr(self, "stat_exog_list")
+            and self.stat_exog_list
+        )
+
+        if self.MULTIVARIATE:
+            # For multivariate models: handle target + historical exog + future exog + static exog
+            batch_size = X_tensor.shape[0]
+            n_series = getattr(self, "n_series", 1)
+
+            # Calculate sizes
+            target_size = n_series * self.input_size
+            hist_exog_size = 0
+            futr_exog_size = 0
+            stat_exog_size = 0
+
+            if has_hist_exog:
+                hist_exog_size = len(self.hist_exog_list) * self.input_size
+            if has_futr_exog:
+                horizon = getattr(self, "h", 1)
+                # For NHITS, future exogenous spans input_size + horizon time steps
+                if self.__class__.__name__ == "NHITS":
+                    futr_exog_size = len(self.futr_exog_list) * (
+                        self.input_size + horizon
+                    )
+                    print(
+                        f"DEBUG: NHITS multivariate futr_exog_size calculation: {len(self.futr_exog_list)} * ({self.input_size} + {horizon}) = {futr_exog_size}"
+                    )
+                else:
+                    futr_exog_size = len(self.futr_exog_list) * horizon
+                    print(
+                        f"DEBUG: Non-NHITS multivariate futr_exog_size calculation: {len(self.futr_exog_list)} * {horizon} = {futr_exog_size}"
+                    )
+            if has_stat_exog:
+                stat_exog_size = (
+                    len(self.stat_exog_list) * n_series
+                )  # For multivariate: n_stat_features * n_series
+
+            print(
+                f"DEBUG: Multivariate calculated sizes - target: {target_size}, hist_exog: {hist_exog_size}, futr_exog: {futr_exog_size}, stat_exog: {stat_exog_size}"
+            )
+            print(
+                f"DEBUG: Multivariate total expected input size: {target_size + hist_exog_size + futr_exog_size + stat_exog_size}"
+            )
+            print(f"DEBUG: Actual input tensor size: {X_tensor.shape[1]}")
+
+            # Split features
+            current_idx = 0
+
+            # Target series data
+            target_flat = X_tensor[:, current_idx : current_idx + target_size]
+            current_idx += target_size
+
+            # Reshape target: [batch_size, n_series * input_size] -> [batch_size, input_size, n_series]
+            insample_y = target_flat.reshape(batch_size, n_series, self.input_size)
+            insample_y = insample_y.transpose(
+                1, 2
+            )  # [batch_size, input_size, n_series]
+
+            # Handle historical exogenous (TSMixerx format)
+            if has_hist_exog and hist_exog_size > 0:
+                hist_exog_flat = X_tensor[:, current_idx : current_idx + hist_exog_size]
+                current_idx += hist_exog_size
+
+                # TSMixerx expects hist_exog as [batch_size, hist_exog_size, input_size, n_series]
+                n_hist_exog = len(self.hist_exog_list)
+
+                # Reshape: [batch_size, n_hist_exog * input_size] -> [batch_size, n_hist_exog, input_size]
+                hist_exog = hist_exog_flat.reshape(
+                    batch_size, n_hist_exog, self.input_size
+                )
+
+                # Add n_series dimension: [batch_size, n_hist_exog, input_size] -> [batch_size, n_hist_exog, input_size, n_series]
+                # For multivariate, hist_exog features are typically repeated across series
+                hist_exog = hist_exog.unsqueeze(-1).repeat(1, 1, 1, n_series)
+            else:
+                hist_exog = None
+
+            # Handle future exogenous for multivariate models (TSMixerx format)
+            if has_futr_exog and futr_exog_size > 0:
+                futr_exog_flat = X_tensor[:, current_idx : current_idx + futr_exog_size]
+                current_idx += futr_exog_size
+                n_futr_exog = len(self.futr_exog_list)
+                horizon = getattr(self, "h", 1)
+
+                if self.__class__.__name__ == "NHITS":
+                    # NHITS (though it's univariate) would need input_size + horizon
+                    futr_exog_time_steps = self.input_size + horizon
+                else:
+                    # TSMixerx and other multivariate models expect just horizon
+                    futr_exog_time_steps = horizon
+
+                # TSMixerx expects futr_exog as [batch_size, futr_exog_size, input_size + horizon, n_series]
+                # Reshape: [batch_size, n_futr_exog * time_steps] -> [batch_size, n_futr_exog, time_steps]
+                futr_exog = futr_exog_flat.reshape(
+                    batch_size, n_futr_exog, futr_exog_time_steps
+                )
+
+                if self.__class__.__name__ == "TSMixerx":
+                    # For TSMixerx, we need to pad with input_size zeros at the beginning
+                    # since it expects [input_size + horizon] but we only have [horizon] from SHAP
+                    if futr_exog_time_steps == horizon:  # Only horizon provided
+                        zeros_pad = torch.zeros(
+                            batch_size, n_futr_exog, self.input_size
+                        )
+                        futr_exog = torch.cat(
+                            [zeros_pad, futr_exog], dim=2
+                        )  # [batch_size, n_futr_exog, input_size + horizon]
+
+                    # Add n_series dimension: [batch_size, n_futr_exog, input_size + horizon] -> [batch_size, n_futr_exog, input_size + horizon, n_series]
+                    futr_exog = futr_exog.unsqueeze(-1).repeat(1, 1, 1, n_series)
+                else:
+                    # For other multivariate models, transpose to [batch_size, time_steps, n_futr_exog]
+                    futr_exog = futr_exog.transpose(1, 2)
+            else:
+                futr_exog = None
+
+            # Handle static exogenous for multivariate models
+            if has_stat_exog and stat_exog_size > 0:
+                stat_exog_flat = X_tensor[:, current_idx : current_idx + stat_exog_size]
+                # For TSMixerx: reshape [batch_size, n_series * n_stat_features] -> [n_series, n_stat_features]
+                n_stat_features = len(self.stat_exog_list)
+                stat_exog = stat_exog_flat[0].reshape(
+                    n_series, n_stat_features
+                )  # Take first batch sample
+                print(f"DEBUG: Multivariate static exog reshaped to: {stat_exog.shape}")
+            else:
+                stat_exog = None
+
+            # For multivariate models, no insample_mask needed
+            insample_mask = None
+
+        else:
+            # For univariate models: handle target + historical exog + future exog + static exog
+            batch_size = X_tensor.shape[0]
+
+            # Calculate sizes
+            target_size = self.input_size
+            hist_exog_size = 0
+            futr_exog_size = 0
+            stat_exog_size = 0
+
+            if has_hist_exog:
+                hist_exog_size = len(self.hist_exog_list) * self.input_size
+            if has_futr_exog:
+                horizon = getattr(self, "h", 1)
+                # For NHITS, future exogenous spans input_size + horizon time steps
+                if self.__class__.__name__ == "NHITS":
+                    futr_exog_size = len(self.futr_exog_list) * (
+                        self.input_size + horizon
+                    )
+                    print(
+                        f"DEBUG: NHITS futr_exog_size calculation: {len(self.futr_exog_list)} * ({self.input_size} + {horizon}) = {futr_exog_size}"
+                    )
+                else:
+                    futr_exog_size = len(self.futr_exog_list) * horizon
+                    print(
+                        f"DEBUG: Non-NHITS futr_exog_size calculation: {len(self.futr_exog_list)} * {horizon} = {futr_exog_size}"
+                    )
+            if has_stat_exog:
+                stat_exog_size = len(self.stat_exog_list)
+
+            print(
+                f"DEBUG: Calculated sizes - target: {target_size}, hist_exog: {hist_exog_size}, futr_exog: {futr_exog_size}, stat_exog: {stat_exog_size}"
+            )
+            print(
+                f"DEBUG: Total expected input size: {target_size + hist_exog_size + futr_exog_size + stat_exog_size}"
+            )
+            print(f"DEBUG: Actual input tensor size: {X_tensor.shape[1]}")
+
+            # Split the flattened input
+            current_idx = 0
+
+            # Target features
+            target_flat = X_tensor[:, current_idx : current_idx + target_size]
+            current_idx += target_size
+
+            # Historical exogenous features
+            if has_hist_exog and hist_exog_size > 0:
+                hist_exog_flat = X_tensor[:, current_idx : current_idx + hist_exog_size]
+                current_idx += hist_exog_size
+
+                # Reshape: [batch_size, n_hist_exog * input_size] -> [batch_size, input_size, n_hist_exog]
+                n_hist_exog = len(self.hist_exog_list)
+                hist_exog = hist_exog_flat.reshape(
+                    batch_size, n_hist_exog, self.input_size
+                )
+                hist_exog = hist_exog.transpose(1, 2)
+            else:
+                hist_exog = None
+
+            # Future exogenous features
+            if has_futr_exog and futr_exog_size > 0:
+                futr_exog_flat = X_tensor[:, current_idx : current_idx + futr_exog_size]
+                current_idx += futr_exog_size
+                n_futr_exog = len(self.futr_exog_list)
+
+                # Handle different model requirements for future exogenous
+                if self.__class__.__name__ == "NHITS":
+                    # NHITS expects [batch_size, input_size + horizon, n_futr_exog]
+                    horizon = getattr(self, "h", 1)
+                    futr_exog_time_steps = self.input_size + horizon
+
+                    print(
+                        f"DEBUG: NHITS reshaping futr_exog from {futr_exog_flat.shape} to ({batch_size}, {n_futr_exog}, {futr_exog_time_steps})"
+                    )
+                    # Reshape: [batch_size, n_futr_exog * (input_size + horizon)] -> [batch_size, input_size + horizon, n_futr_exog]
+                    futr_exog = futr_exog_flat.reshape(
+                        batch_size, n_futr_exog, futr_exog_time_steps
+                    )
+                    futr_exog = futr_exog.transpose(1, 2)
+                    print(f"DEBUG: NHITS final futr_exog shape: {futr_exog.shape}")
+                else:
+                    # Other models expect [batch_size, horizon, n_futr_exog]
+                    horizon = getattr(self, "h", 1)
+
+                    print(
+                        f"DEBUG: Non-NHITS reshaping futr_exog from {futr_exog_flat.shape} to ({batch_size}, {n_futr_exog}, {horizon})"
+                    )
+                    # Reshape: [batch_size, n_futr_exog * horizon] -> [batch_size, horizon, n_futr_exog]
+                    futr_exog = futr_exog_flat.reshape(batch_size, n_futr_exog, horizon)
+                    futr_exog = futr_exog.transpose(1, 2)
+                    print(f"DEBUG: Non-NHITS final futr_exog shape: {futr_exog.shape}")
+            else:
+                futr_exog = None
+
+            # Static exogenous features
+            if has_stat_exog and stat_exog_size > 0:
+                stat_exog_flat = X_tensor[:, current_idx : current_idx + stat_exog_size]
+                # Static exog is used as-is: [batch_size, n_stat_exog]
+                stat_exog = stat_exog_flat
+                print(f"DEBUG: Static exog shape: {stat_exog.shape}")
+            else:
+                stat_exog = None
+
+            # Reshape target: [batch_size, input_size] -> [batch_size, input_size, 1]
+            insample_y = target_flat.unsqueeze(-1)
+
+            # Create insample_mask based on non-zero values (for models like NHITS)
+            insample_mask = (target_flat != 0.0).float().unsqueeze(-1)
+
+        # Move to same device as model
+        device = next(self.parameters()).device
+        insample_y = insample_y.to(device)
+        if insample_mask is not None:
+            insample_mask = insample_mask.to(device)
+        if hist_exog is not None:
+            hist_exog = hist_exog.to(device)
+        if futr_exog is not None:
+            futr_exog = futr_exog.to(device)
+        if stat_exog is not None:
+            stat_exog = stat_exog.to(device)
+
+        # Return dictionary matching model's forward method expected windows_batch format
+        windows_batch = {
+            "insample_y": insample_y,
+            "hist_exog": hist_exog,
+            "futr_exog": futr_exog,
+            "stat_exog": stat_exog,  # Now includes actual static exogenous data
+        }
+
+        # Add insample_mask only for univariate models that might need it
+        if not self.MULTIVARIATE:
+            windows_batch["insample_mask"] = insample_mask
+
+        return windows_batch
+
+    def _aggregate_shap_by_feature(
+        self, shap_values: np.ndarray, feature_names: List[str], aggregate_method: str
+    ) -> Tuple[np.ndarray, List[str]]:
+        """
+        Aggregate SHAP values across lags and steps for each feature.
+
+        Parameters:
+        -----------
+        shap_values : np.ndarray
+            Original SHAP values [n_samples, n_features]
+        feature_names : List[str]
+            Original feature names with lag/step information
+        aggregate_method : str
+            Aggregation method: 'sum', 'mean', 'abs_sum', 'max_abs'
+
+        Returns:
+        --------
+        Tuple[np.ndarray, List[str]]
+            Aggregated SHAP values and corresponding feature names
+        """
+        # Group feature indices by base name (without lag/step/series suffix)
+        base_features: Dict[str, List[int]] = {}
+        for i, name in enumerate(feature_names):
+            if "_lag_" in name:
+                # Extract base name by removing '_lag_X' suffix (historical features)
+                base_name = "_".join(name.split("_")[:-2])
+            elif "_step_" in name:
+                # Extract base name by removing '_step_X' suffix (future exogenous features)
+                base_name = "_".join(name.split("_")[:-2])
+            elif "_series_" in name and "_static" in name:
+                # Extract base name by removing '_series_X_static' suffix (multivariate static features)
+                parts = name.split("_")
+                # Find the index of 'series' and remove everything from there
+                if "series" in parts:
+                    series_idx = parts.index("series")
+                    base_name = "_".join(parts[:series_idx])
+                else:
+                    base_name = name
+            elif "_static" in name:
+                # Extract base name by removing '_static' suffix (univariate static features)
+                base_name = "_".join(name.split("_")[:-1])
+            else:
+                # Feature without lag/step/static suffix (keep as is)
+                base_name = name
+
+            if base_name not in base_features:
+                base_features[base_name] = []
+            base_features[base_name].append(i)
+
+        # Aggregate SHAP values for each base feature
+        aggregated_shap_list = []
+        aggregated_names = []
+
+        for base_name, indices in base_features.items():
+            feature_shap = shap_values[:, indices]  # [n_samples, n_lags_or_steps]
+
+            if aggregate_method == "sum":
+                agg_shap = np.sum(feature_shap, axis=1, keepdims=True)
+            elif aggregate_method == "mean":
+                agg_shap = np.mean(feature_shap, axis=1, keepdims=True)
+            elif aggregate_method == "abs_sum":
+                agg_shap = np.sum(np.abs(feature_shap), axis=1, keepdims=True)
+            elif aggregate_method == "max_abs":
+                max_indices = np.argmax(np.abs(feature_shap), axis=1)
+                agg_shap = feature_shap[
+                    np.arange(len(feature_shap)), max_indices
+                ].reshape(-1, 1)
+            else:
+                raise ValueError(f"Unknown aggregation method: {aggregate_method}")
+
+            aggregated_shap_list.append(agg_shap)
+            aggregated_names.append(base_name)
+
+        # Concatenate along feature dimension
+        aggregated_shap_values = np.concatenate(aggregated_shap_list, axis=1)
+
+        return aggregated_shap_values, aggregated_names
+
+    def _create_shap_wrapper(self):
+        """
+        Create SHAP-compatible prediction wrapper for this model.
+        """
+
+        def predict_for_shap(X_flat: np.ndarray) -> np.ndarray:
+            """SHAP prediction function with debugging."""
+            # Set model to eval mode
+            self.eval()
+
+            # Debug: Print input shape
+            print(f"DEBUG: SHAP input shape: {X_flat.shape}")
+
+            # Parse input into model format
+            windows_batch = self._parse_shap_input(X_flat)
+
+            # Debug: Print parsed shapes
+            print(f"DEBUG: insample_y shape: {windows_batch['insample_y'].shape}")
+            if windows_batch["hist_exog"] is not None:
+                print(f"DEBUG: hist_exog shape: {windows_batch['hist_exog'].shape}")
+            if windows_batch["futr_exog"] is not None:
+                print(f"DEBUG: futr_exog shape: {windows_batch['futr_exog'].shape}")
+
+            with torch.no_grad():
+                try:
+                    # Call model forward method with windows_batch dictionary
+                    predictions = self.forward(windows_batch)
+
+                    # Handle different model output formats
+                    if isinstance(predictions, tuple):
+                        # Models like NBEATS return (backcast, forecast)
+                        forecast = predictions[1]
+                    else:
+                        forecast = predictions
+
+                    if self.MULTIVARIATE:
+                        # Multivariate models return [batch_size, horizon, n_series]
+                        # Flatten to [batch_size, horizon * n_series] for SHAP
+                        batch_size, horizon, n_series = forecast.shape
+                        forecast = forecast.reshape(batch_size, horizon * n_series)
+                    else:
+                        # Univariate models: handle different output shapes
+                        if len(forecast.shape) == 3 and forecast.shape[-1] > 1:
+                            forecast = forecast.mean(
+                                dim=-1
+                            )  # Average across output dimensions
+                        elif len(forecast.shape) == 3:
+                            forecast = forecast.squeeze(
+                                -1
+                            )  # Remove single output dimension
+
+                    # Return numpy array
+                    return forecast.cpu().numpy()
+
+                except Exception as e:
+                    print(f"DEBUG: Model forward failed with error: {e}")
+                    print(f"DEBUG: Model class: {self.__class__.__name__}")
+                    print(
+                        f"DEBUG: Model attributes: MULTIVARIATE={getattr(self, 'MULTIVARIATE', 'N/A')}"
+                    )
+                    print(
+                        f"DEBUG: Model attributes: n_series={getattr(self, 'n_series', 'N/A')}"
+                    )
+                    print(
+                        f"DEBUG: Model attributes: input_size={getattr(self, 'input_size', 'N/A')}"
+                    )
+                    raise e
+
+        return predict_for_shap
+
+    def explain_prediction(
+        self,
+        dataset: Any,
+        background_size: int = 100,
+        target_samples: Optional[int] = 10,
+        explainer_type: str = "kernel",
+        aggregate_lags: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generate SHAP explanations for model predictions (univariate/multivariate, with historical exogenous support).
+
+        Parameters:
+        -----------
+        dataset : TimeSeriesDataset
+            Dataset to extract samples from
+        background_size : int, default=100
+            Number of background samples for SHAP
+        target_samples : int, default=10
+            Number of samples to explain (None for all)
+        explainer_type : str, default='kernel'
+            Type of SHAP explainer ('kernel', 'deep', etc.)
+        aggregate_lags : str or None, default=None
+            How to aggregate SHAP values across lags for each feature:
+            - None: Keep individual lag contributions (y_lag_1, y_lag_2, ...)
+            - 'sum': Sum SHAP values across all lags for each feature (most common)
+            - 'mean': Average SHAP values across lags
+            - 'abs_sum': Sum of absolute SHAP values (total importance regardless of direction)
+            - 'max_abs': Maximum absolute SHAP value across lags (most important single lag)
+
+        Returns:
+        --------
+        Dict[str, Any]
+            Dictionary containing SHAP values, feature names, and metadata.
+
+        Supported Features:
+        ------------------
+        - Target time series (univariate and multivariate)
+        - Historical exogenous features (models with hist_exog_list)
+        - Future exogenous features: Not supported yet
+        - Static exogenous features: Not supported yet
+        """
+        try:
+            import shap
+        except ImportError:
+            raise ImportError(
+                "SHAP library is required for explainability. Install with: pip install shap"
+            )
+
+        # Custom collate function to handle pandas Index objects
+        def custom_collate_fn(batch):
+            """Custom collate function that handles pandas Index objects"""
+            if len(batch) == 0:
+                return {}
+
+            # Get first sample to understand structure
+            first_sample = batch[0]
+
+            collated = {}
+            for key in first_sample.keys():
+                if key in ["temporal_cols", "static_cols"]:
+                    # For pandas Index objects, just take the first one (they should be the same)
+                    collated[key] = first_sample[key]
+                elif key == "y_idx":
+                    # y_idx should be the same for all samples
+                    collated[key] = first_sample[key]
+                else:
+                    # For tensors and other data, use default collation
+                    values = [sample[key] for sample in batch]
+                    if values[0] is not None:
+                        collated[key] = torch.stack(values)
+                    else:
+                        collated[key] = None
+            return collated
+
+        # Access dataset using neuralforecast's DataLoader with custom collate
+        from torch.utils.data import DataLoader
+
+        # Create dataloader to sample from dataset
+        total_samples = min(background_size + (target_samples or 10), len(dataset))
+        dataloader = DataLoader(
+            dataset,
+            batch_size=total_samples,
+            shuffle=True,
+            collate_fn=custom_collate_fn,
+        )
+        batch = next(iter(dataloader))
+
+        # Extract features (handles both univariate and multivariate)
+        all_features = self._extract_target_features(batch)
+
+        # Split into background and target samples
+        n_samples = all_features.shape[0]
+        effective_target_samples: int
+        if target_samples is None:
+            effective_target_samples = min(10, n_samples - background_size)
+        else:
+            effective_target_samples = target_samples
+
+        if n_samples < background_size + effective_target_samples:
+            background_size = max(1, n_samples // 2)
+            effective_target_samples = n_samples - background_size
+
+        # Random sampling for background and targets
+        indices = np.random.choice(
+            n_samples, size=background_size + effective_target_samples, replace=False
+        )
+        background_indices = indices[:background_size]
+        target_indices = indices[
+            background_size : background_size + effective_target_samples
+        ]
+
+        background_data = all_features[background_indices]
+        target_data = all_features[target_indices]
+
+        # Create SHAP explainer
+        prediction_wrapper = self._create_shap_wrapper()
+
+        if explainer_type == "kernel":
+            explainer = shap.KernelExplainer(prediction_wrapper, background_data)
+        else:
+            raise ValueError(f"Explainer type '{explainer_type}' not supported yet")
+
+        # Generate SHAP values
+        shap_values = explainer.shap_values(target_data)
+
+        # Get original feature names (with individual lags)
+        original_feature_names = self._get_feature_names()
+
+        # Apply lag aggregation if requested
+        if aggregate_lags is not None:
+            shap_values, feature_names = self._aggregate_shap_by_feature(
+                shap_values, original_feature_names, aggregate_lags
+            )
+        else:
+            feature_names = original_feature_names
+
+        # Prepare results
+        results = {
+            "shap_values": shap_values,
+            "feature_names": feature_names,
+            "background_data": background_data,
+            "target_data": target_data,
+            "base_values": explainer.expected_value,
+            "model_name": self.__class__.__name__,
+            "model_alias": getattr(self, "alias", None),
+            "is_multivariate": self.MULTIVARIATE,
+            "aggregate_lags": aggregate_lags,
+            "original_feature_names": original_feature_names,  # Keep original for reference
+        }
+
+        return results
 
     def on_fit_start(self):
         torch.manual_seed(self.random_seed)

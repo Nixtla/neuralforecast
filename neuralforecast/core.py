@@ -1807,3 +1807,119 @@ class NeuralForecast:
             col_name = f"{model_name}-median"
 
         return col_name
+
+    def explain(
+        self,
+        models: Optional[Union[str, List[str]]] = None,
+        background_size: int = 100,
+        target_samples: Optional[int] = 10,
+        explainer_type: str = "kernel",
+        aggregate_lags: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Generate SHAP explanations for fitted models (univariate only, no exogenous features).
+
+        Parameters:
+        -----------
+        models : str, List[str], or None, default=None
+            Model names/aliases to explain. If None, explains all fitted models.
+            If str, explains single model. If List[str], explains specified models.
+        background_size : int, default=100
+            Number of background samples for SHAP explainer.
+        target_samples : int or None, default=10
+            Number of samples to generate explanations for. If None, uses all available samples.
+        explainer_type : str, default='kernel'
+            Type of SHAP explainer to use ('kernel' only supported currently).
+
+        Returns:
+        --------
+        Dict[str, Any]
+            Dictionary with model names as keys and explanation results as values.
+            Each explanation contains: shap_values, feature_names, base_values, etc.
+
+        Examples:
+        ---------
+        >>> nf = NeuralForecast(models=[NBEATS(...), NHITS(...)], freq='D')
+        >>> nf.fit(df)
+        >>>
+        >>> # Explain all models
+        >>> explanations = nf.explain()
+        >>>
+        >>> # Explain single model
+        >>> explanations = nf.explain(models='NBEATS')
+        >>>
+        >>> # Explain specific models
+        >>> explanations = nf.explain(models=['NBEATS', 'NHITS'])
+        >>>
+        >>> # Use SHAP directly for plotting
+        >>> import shap
+        >>> results = explanations['NBEATS']
+        >>> shap.summary_plot(results['shap_values'], feature_names=results['feature_names'])
+        """
+
+        # Check if models are fitted
+        if not self._fitted:
+            raise Exception(
+                "Models must be fitted before generating explanations. Call .fit() first."
+            )
+
+        # Check if dataset is available
+        if not hasattr(self, "dataset") or self.dataset is None:
+            raise Exception(
+                "Dataset not available. This might happen if models were loaded from disk."
+            )
+
+        # Determine which models to explain
+        if models is None:
+            models_to_explain = self.models
+        else:
+            if isinstance(models, str):
+                models = [models]
+
+            # Find models by alias or class name
+            models_to_explain = []
+            for model in self.models:
+                model_identifier = (
+                    getattr(model, "alias", None) or model.__class__.__name__
+                )
+                if model_identifier in models:
+                    models_to_explain.append(model)
+
+            if not models_to_explain:
+                available_models = [
+                    getattr(m, "alias", None) or m.__class__.__name__
+                    for m in self.models
+                ]
+                raise ValueError(
+                    f"No models found with names {models}. Available models: {available_models}"
+                )
+
+        explanations = {}
+
+        for model in models_to_explain:
+            model_name = getattr(model, "alias", model.__class__.__name__)
+
+            try:
+                # Generate explanation for this model
+                explanation = model.explain_prediction(
+                    dataset=self.dataset,
+                    background_size=background_size,
+                    target_samples=target_samples,
+                    explainer_type=explainer_type,
+                    aggregate_lags=aggregate_lags,
+                )
+
+                explanations[model_name] = explanation
+
+            except Exception as e:
+                warnings.warn(
+                    f"Failed to generate explanation for model {model_name}: {str(e)}"
+                )
+                continue
+
+        if not explanations:
+            raise Exception(
+                "No explanations were generated. Check model compatibility and error messages."
+            )
+
+        return explanations
