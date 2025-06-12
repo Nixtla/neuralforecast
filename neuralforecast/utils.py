@@ -552,7 +552,9 @@ def add_conformal_error_intervals(
     ), "Either level or quantiles must be provided"
 
     if quantiles is None and level is not None:
-        cuts = [lv / 100 for lv in level]
+        alphas = [100 - lv for lv in level]
+        cuts = [alpha / 200 for alpha in reversed(alphas)]
+        cuts.extend(1 - alpha / 200 for alpha in alphas)
     elif quantiles is not None:
         cuts = quantiles
 
@@ -567,25 +569,23 @@ def add_conformal_error_intervals(
         axis=0,
     )
     scores_quantiles = scores_quantiles.reshape(len(cuts), -1)
+
     if quantiles is None and level is not None:
         lo_cols = [f"{model}-lo-{lv}" for lv in reversed(level)]
         hi_cols = [f"{model}-hi-{lv}" for lv in level]
         out_cols = lo_cols + hi_cols
-        scores_quantiles = np.vstack(
-            [mean - scores_quantiles[::-1], mean + scores_quantiles]
-        ).T
-    elif quantiles is not None:
-        out_cols = []
-        scores_quantiles_ls = []
-        for i, q in enumerate(quantiles):
-            out_cols.append(f"{model}-ql{q}")
-            if q < 0.5:
-                scores_quantiles_ls.append(mean - scores_quantiles[::-1][i])
-            elif q > 0.5:
-                scores_quantiles_ls.append(mean + scores_quantiles[i])
-            else:
-                scores_quantiles_ls.append(mean)
-        scores_quantiles = np.vstack(scores_quantiles_ls).T
+    else:
+        out_cols = [f"{model}-ql{q}" for q in cuts]
+
+    scores_quantiles_ls = []
+    for i, q in enumerate(cuts):
+        if q < 0.5:
+            scores_quantiles_ls.append(mean - scores_quantiles[::-1][i])
+        elif q > 0.5:
+            scores_quantiles_ls.append(mean + scores_quantiles[i])
+        else:
+            scores_quantiles_ls.append(mean)
+    scores_quantiles = np.vstack(scores_quantiles_ls).T
 
     fcsts_with_intervals = np.hstack([model_fcsts, scores_quantiles])
 
