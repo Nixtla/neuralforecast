@@ -1299,12 +1299,20 @@ class NeuralForecast:
                 raise ValueError("You can't set both level and quantiles.")
             level_ = sorted(list(set(level)))
             quantiles_ = level_to_quantiles(level_)
+            if self._cs_df is not None:
+                raise NotImplementedError(
+                    "Conformal prediction intervals are not supported for insample predictions. Set level=None"
+                )
 
         if quantiles is not None:
             if level is not None:
                 raise ValueError("You can't set both level and quantiles.")
             quantiles_ = sorted(list(set(quantiles)))
             level_ = quantiles_to_level(quantiles_)
+            if self._cs_df is not None:
+                raise NotImplementedError(
+                    "Conformal prediction intervals are not supported for insample predictions. Set quantiles=None"
+                )
 
         # Process each series separately
         fcsts_dfs = []
