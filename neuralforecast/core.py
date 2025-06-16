@@ -28,7 +28,7 @@ from utilsforecast.validation import validate_freq
 
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .losses.pytorch import IQLoss, HuberIQLoss
+from .losses.pytorch import HuberIQLoss, IQLoss
 from neuralforecast.tsdataset import (
     _FilesDataset,
     TimeSeriesDataset,
@@ -1259,7 +1259,12 @@ class NeuralForecast:
         cols_order = first_out_cols + remaining_cols + [target_col]
         return ufp.sort(out[cols_order], by=[id_col, "cutoff", time_col])
 
-    def predict_insample(self, step_size: int = 1):
+    def predict_insample(
+        self,
+        step_size: int = 1,
+        level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
+    ):
         """Predict insample with core.NeuralForecast.
 
         `core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
@@ -1269,6 +1274,10 @@ class NeuralForecast:
         ----------
         step_size : int (default=1)
             Step size between each window.
+        level : list of ints or floats, optional (default=None)
+            Confidence levels between 0 and 100.
+        quantiles : list of floats, optional (default=None)
+            Alternative to level, target quantiles to predict.
 
         Returns
         -------
@@ -1280,6 +1289,36 @@ class NeuralForecast:
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
         test_size = self.models[0].get_test_size()
+
+        quantiles_ = None
+        level_ = None
+        has_level = False
+        if level is not None:
+            has_level = True
+            if quantiles is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            level_ = sorted(list(set(level)))
+            quantiles_ = level_to_quantiles(level_)
+            if self._cs_df is not None:
+                raise NotImplementedError(
+                    "One or more models has been trained with conformal prediction intervals. They are not supported for insample predictions. Set level=None"
+                )
+
+        if quantiles is not None:
+            if level is not None:
+                raise ValueError("You can't set both level and quantiles.")
+            quantiles_ = sorted(list(set(quantiles)))
+            level_ = quantiles_to_level(quantiles_)
+            if self._cs_df is not None:
+                raise NotImplementedError(
+                    "One or more models has been trained with conformal prediction intervals. They are not supported for insample predictions. Set quantiles=None"
+                )
+
+        for model in self.models:
+            if model.MULTIVARIATE:
+                raise NotImplementedError(
+                    f"Model {model} is multivariate. Insample predictions are not supported for multivariate models."
+                )
 
         # Process each series separately
         fcsts_dfs = []
@@ -1343,29 +1382,24 @@ class NeuralForecast:
         # Combine all series forecasts DataFrames
         fcsts_df = ufp.vertical_concat(fcsts_dfs)
 
-        # Generate predictions for each model
-        fcsts_list = []
-        for model in self.models:
-            model_series_preds = []
-            for i, trimmed_dataset in enumerate(trimmed_datasets):
-                # Set test size to current series length
-                model.set_test_size(test_size=trimmed_dataset.max_size)
-                # Generate predictions
-                model_fcsts = model.predict(trimmed_dataset, step_size=step_size)
-                # Handle distributional forecasts; take only median
-                if len(model_fcsts.shape) > 1 and model_fcsts.shape[1] == 3:
-                    model_fcsts = model_fcsts[:, 0]  # Take first column (median)
-                # Ensure consistent 2D shape
-                if len(model_fcsts.shape) == 1:
-                    model_fcsts = model_fcsts.reshape(-1, 1)
-                model_series_preds.append(model_fcsts)
-            model_preds = np.concatenate(model_series_preds, axis=0)
-            fcsts_list.append(model_preds)
-            # Reset test size to original
-            model.set_test_size(test_size=test_size)
+        h_backup = self.h
+        fcst_list = []
+        # Generate predictions for each dataset
+        for i, trimmed_dataset in enumerate(trimmed_datasets):
+            # Set test size to current series length
+            self.h = trimmed_dataset.max_size
+            fcsts, cols = self._generate_forecasts(
+                dataset=trimmed_dataset,
+                uids=self.uids[i : i + 1],
+                quantiles_=quantiles_,
+                level_=level_,
+                has_level=has_level,
+                step_size=step_size,
+            )
+            fcst_list.append(fcsts)
 
-        # Combine all predictions
-        fcsts = np.hstack(fcsts_list)
+        fcsts = np.vstack(fcst_list)
+        self.h = h_backup
 
         # Add original y values
         original_y = {
@@ -1374,28 +1408,17 @@ class NeuralForecast:
             self.target_col: self.dataset.temporal[:, 0].numpy(),
         }
 
-        # Create forecasts DataFrame
-        cols = self._get_model_names()
-        selected_cols = [
-            col
-            for col in cols
-            if not col.endswith(("-lo", "-hi"))
-            and (not "-" in col or col.endswith("-median"))
-        ]
-        if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(dict(zip(selected_cols, fcsts.T)))
+        # Declare predictions pd.DataFrame
+        if isinstance(fcsts_df, pl_DataFrame):
+            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
             Y_df = pl_DataFrame(original_y)
         else:
-            fcsts = pd.DataFrame(fcsts, columns=selected_cols)
+            fcsts = pd.DataFrame(fcsts, columns=cols)
             Y_df = pd.DataFrame(original_y).reset_index(drop=True)
 
-        # Combine forecasts with dates
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-
-        # Add original values
         fcsts_df = ufp.join(fcsts_df, Y_df, how="left", on=[self.id_col, self.time_col])
 
-        # Apply scaling if needed
         if self.scalers_:
             sizes = ufp.counts_by_id(fcsts_df, self.id_col)["counts"].to_numpy()
             indptr = np.append(0, sizes.cumsum())
@@ -1403,6 +1426,7 @@ class NeuralForecast:
             fcsts_df[invert_cols] = self._scalers_target_inverse_transform(
                 fcsts_df[invert_cols].to_numpy(), indptr
             )
+
         return fcsts_df
 
     # Save list of models with pytorch lightning save_checkpoint function
@@ -1747,7 +1771,19 @@ class NeuralForecast:
                 model.loss, (IQLoss, HuberIQLoss)
             ):
                 # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
-                quantiles_iqloss = np.linspace(0.01, 0.99, 20)
+                quantiles_iqloss = [
+                    0.01,
+                    0.05,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.5,
+                    0.7,
+                    0.8,
+                    0.9,
+                    0.95,
+                    0.99,
+                ]
                 fcsts_list_iqloss = []
                 for i, quantile in enumerate(quantiles_iqloss):
                     model_fcsts = model.predict(
