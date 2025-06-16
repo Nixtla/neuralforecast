@@ -1488,7 +1488,14 @@ class NeuralForecast:
                 continue
 
             model_name = repr(model)
-            model_class_name = model.__class__.__name__.lower()
+            if model.__class__.__name__.lower() in MODEL_FILENAME_DICT:
+                model_class_name = model.__class__.__name__.lower()
+            elif model.__class__.__base__.__name__.lower() in MODEL_FILENAME_DICT:
+                model_class_name = model.__class__.__base__.__name__.lower()
+            else:
+                raise ValueError(
+                    f"Model {model.__class__.__name__} is not supported for saving."
+                )
             alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
@@ -1577,6 +1584,7 @@ class NeuralForecast:
                 alias_to_model = pickle.load(f)
         except FileNotFoundError:
             alias_to_model = {}
+
         for model in models_ckpt:
             model_name = "_".join(model.split("_")[:-1])
             model_class_name = alias_to_model.get(model_name, model_name)
