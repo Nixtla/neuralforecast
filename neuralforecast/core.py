@@ -214,41 +214,6 @@ _type2scaler = {
 }
 
 # %% ../nbs/core.ipynb 9
-def _find_model_class_by_partial_match(model_class_name):
-    """
-    Find a model class by partial matching against MODEL_FILENAME_DICT keys.
-
-    This function handles custom model classes that contain base model names.
-    For example, 'CustomNHITS' would match 'nhits' and return the NHITS class.
-
-    Parameters
-    ----------
-    model_class_name : str
-        The model class name to search for (e.g., 'CustomNHITS', 'MyAutoformer')
-
-    Returns
-    -------
-    model_class : class or None
-        The matched model class, or None if no match found
-    """
-    model_name_lower = model_class_name.lower()
-
-    # Find all keys that are contained in the model name
-    matches = []
-    for key in MODEL_FILENAME_DICT.keys():
-        if key in model_name_lower:
-            matches.append(key)
-
-    if not matches:
-        return None
-
-    # If multiple matches, prioritize the longest one for specificity
-    # This handles cases like 'CustomNBEATSx' matching both 'nbeats' and 'nbeatsx'
-    best_match = max(matches, key=len)
-
-    return MODEL_FILENAME_DICT[best_match]
-
-# %% ../nbs/core.ipynb 10
 class NeuralForecast:
 
     def __init__(
@@ -1499,7 +1464,14 @@ class NeuralForecast:
                 continue
 
             model_name = repr(model)
-            model_class_name = model.__class__.__name__.lower()
+            if model.__class__.__name__.lower() in MODEL_FILENAME_DICT:
+                model_class_name = model.__class__.__name__.lower()
+            elif model.__class__.__base__.__name__.lower() in MODEL_FILENAME_DICT:
+                model_class_name = model.__class__.__base__.__name__.lower()
+            else:
+                raise ValueError(
+                    f"Model {model.__class__.__name__} is not supported for saving."
+                )
             alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
             model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
@@ -1592,20 +1564,9 @@ class NeuralForecast:
         for model in models_ckpt:
             model_name = "_".join(model.split("_")[:-1])
             model_class_name = alias_to_model.get(model_name, model_name)
-
-            # Try exact match first
-            if model_class_name in MODEL_FILENAME_DICT:
-                model_class = MODEL_FILENAME_DICT[model_class_name]
-            else:
-                # If exact match fails, try partial matching
-                model_class = _find_model_class_by_partial_match(model_class_name)
-                if model_class is None:
-                    raise KeyError(
-                        f"No matching model class found for '{model_class_name}'. "
-                        f"Available models: {list(MODEL_FILENAME_DICT.keys())}"
-                    )
-
-            loaded_model = model_class.load(f"{path}/{model}", **kwargs)
+            loaded_model = MODEL_FILENAME_DICT[model_class_name].load(
+                f"{path}/{model}", **kwargs
+            )
             loaded_model.alias = model_name
             models.append(loaded_model)
             if verbose:
