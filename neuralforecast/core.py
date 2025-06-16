@@ -1301,7 +1301,7 @@ class NeuralForecast:
             quantiles_ = level_to_quantiles(level_)
             if self._cs_df is not None:
                 raise NotImplementedError(
-                    "Conformal prediction intervals are not supported for insample predictions. Set level=None"
+                    "One or more models has been trained with conformal prediction intervals. They are not supported for insample predictions. Set level=None"
                 )
 
         if quantiles is not None:
@@ -1311,7 +1311,13 @@ class NeuralForecast:
             level_ = quantiles_to_level(quantiles_)
             if self._cs_df is not None:
                 raise NotImplementedError(
-                    "Conformal prediction intervals are not supported for insample predictions. Set quantiles=None"
+                    "One or more models has been trained with conformal prediction intervals. They are not supported for insample predictions. Set quantiles=None"
+                )
+
+        for model in self.models:
+            if model.MULTIVARIATE:
+                raise NotImplementedError(
+                    f"Model {model} is multivariate. Insample predictions are not supported for multivariate models."
                 )
 
         # Process each series separately
@@ -1757,7 +1763,19 @@ class NeuralForecast:
                 model.loss, (IQLoss, HuberIQLoss)
             ):
                 # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
-                quantiles_iqloss = np.linspace(0.01, 0.99, 20)
+                quantiles_iqloss = [
+                    0.01,
+                    0.05,
+                    0.1,
+                    0.2,
+                    0.3,
+                    0.5,
+                    0.7,
+                    0.8,
+                    0.9,
+                    0.95,
+                    0.99,
+                ]
                 fcsts_list_iqloss = []
                 for i, quantile in enumerate(quantiles_iqloss):
                     model_fcsts = model.predict(
