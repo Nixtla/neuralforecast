@@ -46,22 +46,22 @@ can easily fit your model to larger datasets in long format.
 
 
 ```python
-from neuralforecast.utils import AirPassengersDF
+from neuralforecast.utils import AirPassengersPanel
 ```
 
 
 ```python
-Y_df = AirPassengersDF
+Y_df = AirPassengersPanel
 Y_df.head()
 ```
 
-|     | unique_id | ds         | y     |
-|-----|-----------|------------|-------|
-| 0   | 1.0       | 1949-01-31 | 112.0 |
-| 1   | 1.0       | 1949-02-28 | 118.0 |
-| 2   | 1.0       | 1949-03-31 | 132.0 |
-| 3   | 1.0       | 1949-04-30 | 129.0 |
-| 4   | 1.0       | 1949-05-31 | 121.0 |
+|     | unique_id | ds         | y     | trend | y\_\[lag12\] |
+|-----|-----------|------------|-------|-------|--------------|
+| 0   | Airline1  | 1949-01-31 | 112.0 | 0     | 112.0        |
+| 1   | Airline1  | 1949-02-28 | 118.0 | 1     | 118.0        |
+| 2   | Airline1  | 1949-03-31 | 132.0 | 2     | 132.0        |
+| 3   | Airline1  | 1949-04-30 | 129.0 | 3     | 129.0        |
+| 4   | Airline1  | 1949-05-31 | 121.0 | 4     | 121.0        |
 
 ## 3. Model Training
 
@@ -76,7 +76,7 @@ import logging
 import pandas as pd
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import NHITS
+from neuralforecast.models import NHITS, LSTM
 ```
 
 
@@ -88,7 +88,7 @@ logging.getLogger('pytorch_lightning').setLevel(logging.ERROR)
 ```python
 horizon = 12
 
-# Try different hyperparmeters to improve accuracy.
+# Try different hyperparameters to improve accuracy.
 models = [NHITS(h=horizon,                      # Forecast horizon
                 input_size=2 * horizon,         # Length of input sequence
                 max_steps=100,                  # Number of steps to train
@@ -98,22 +98,6 @@ models = [NHITS(h=horizon,                      # Forecast horizon
           ]
 nf = NeuralForecast(models=models, freq='ME')
 nf.fit(df=Y_df, val_size=horizon)
-```
-
-``` text
-Seed set to 1
-```
-
-``` text
-Sanity Checking: |                                                                                            …
-```
-
-``` text
-Training: |                                                                                                   …
-```
-
-``` text
-Validation: |                                                                                                 …
 ```
 
 ## 4. Predict Insample
@@ -140,10 +124,6 @@ set `step_size=2` and `h=4`.
 Y_hat_insample = nf.predict_insample(step_size=horizon)
 ```
 
-``` text
-Predicting: |                                                                                                 …
-```
-
 The `predict_insample` function returns a pandas DataFrame with the
 following columns: \* `unique_id`: the unique identifier of the time
 series. \* `ds`: the datestamp of the forecast for each row. \*
@@ -159,11 +139,11 @@ Y_hat_insample.head()
 
 |     | unique_id | ds         | cutoff     | NHITS    | y     |
 |-----|-----------|------------|------------|----------|-------|
-| 0   | 1.0       | 1949-01-31 | 1948-12-31 | 0.057849 | 112.0 |
-| 1   | 1.0       | 1949-02-28 | 1948-12-31 | 0.061673 | 118.0 |
-| 2   | 1.0       | 1949-03-31 | 1948-12-31 | 0.044137 | 132.0 |
-| 3   | 1.0       | 1949-04-30 | 1948-12-31 | 0.121791 | 129.0 |
-| 4   | 1.0       | 1949-05-31 | 1948-12-31 | 0.135417 | 121.0 |
+| 0   | Airline1  | 1949-01-31 | 1948-12-31 | 0.064625 | 112.0 |
+| 1   | Airline1  | 1949-02-28 | 1948-12-31 | 0.074300 | 118.0 |
+| 2   | Airline1  | 1949-03-31 | 1948-12-31 | 0.133020 | 132.0 |
+| 3   | Airline1  | 1949-04-30 | 1948-12-31 | 0.221040 | 129.0 |
+| 4   | Airline1  | 1949-05-31 | 1948-12-31 | 0.176580 | 121.0 |
 
 > **Important**
 >
@@ -187,6 +167,58 @@ plot_series(forecasts_df=Y_hat_insample.drop(columns='cutoff'))
 ```
 
 ![](/neuralforecast/docs/capabilities/05_predictInsample_files/figure-markdown_strict/cell-11-output-1.png)
+
+## 6. Insample predictions with prediction intervals
+
+We can also show insample prediction intervals for models trained with a
+distribution loss function. This can be achieved by simply specifying
+the required level in the `predict_insample` function.
+
+Note that the following settings are not yet supported: - Prediction
+intervals on insample predictions on models trained with conformal
+prediction intervals (e.g. a model trained with MAE and conformal
+prediction intervals); - Prediction intervals on insample predictions on
+multivariate models (e.g. a TSMixer model).
+
+
+```python
+from neuralforecast.losses.pytorch import DistributionLoss, GMM
+```
+
+
+```python
+horizon = 12
+
+# Try different hyperparameters to improve accuracy.
+models = [
+            NHITS(h=horizon,
+                input_size=2 * horizon,
+                loss=DistributionLoss(distribution="Poisson", num_samples=50),
+                max_steps=100,
+                scaler_type="robust",
+               ),
+           LSTM(h=horizon,
+                input_size=2 * horizon,
+                loss=GMM(),
+                max_steps=500,
+                scaler_type="robust",
+               ),
+          ]
+nf = NeuralForecast(models=models, freq='ME')
+nf.fit(df=Y_df, val_size=horizon)
+
+Y_hat_insample = nf.predict_insample(
+    step_size=horizon,
+    level=[80],
+)
+```
+
+
+```python
+plot_series(forecasts_df=Y_hat_insample.drop(columns=['cutoff']), level=[80])
+```
+
+![](/neuralforecast/docs/capabilities/05_predictInsample_files/figure-markdown_strict/cell-14-output-1.png)
 
 ## References
 

@@ -183,7 +183,10 @@ target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 ### NeuralForecast.predict_insample
 
 > ``` text
->  NeuralForecast.predict_insample (step_size:int=1)
+>  NeuralForecast.predict_insample (step_size:int=1,
+>                                   level:Optional[List[Union[int,float]]]=N
+>                                   one,
+>                                   quantiles:Optional[List[float]]=None)
 > ```
 
 \*Predict insample with core.NeuralForecast.
@@ -194,12 +197,14 @@ to predict historic values of a time series from the stored dataframe.\*
 |  | **Type** | **Default** | **Details** |
 |------|------------------|-------------------------|-------------------------|
 | step_size | int | 1 | Step size between each window. |
+| level | Optional | None | Confidence levels between 0 and 100. |
+| quantiles | Optional | None | Alternative to level, target quantiles to predict. |
 | **Returns** | **pandas.DataFrame** |  | **DataFrame with insample predictions for all fitted `models`. ** |
 
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1409"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1433"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.save
@@ -236,7 +241,7 @@ Load NeuralForecast
 ------------------------------------------------------------------------
 
 <a
-href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1518"
+href="https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py#L1549"
 target="_blank" style={{ float: "right", fontSize: "smaller" }}>source</a>
 
 ### NeuralForecast.load
@@ -282,6 +287,48 @@ for step_size, test_size in [(7, 0), (9, 0), (7, 5), (9, 5)]:
     # check forecast-points count per series
     cutoffs_by_series = forecasts.groupby(['unique_id', 'cutoff']).size().unstack('unique_id')
     pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
+```
+
+
+```python
+# Test predict_insample
+
+def get_expected_cols(model, level):
+    # index columns
+    n_cols = 4
+    for model in models:
+        if isinstance(loss, (DistributionLoss, PMM, GMM, NBMM)):
+            if level is None:
+                # Variations of DistributionLoss return the sample mean as well
+                n_cols += len(loss.quantiles) + 1
+            else:
+                # Variations of DistributionLoss return the sample mean as well
+                n_cols += 2 * len(level) + 1
+        else:
+            if level is None:
+                # Other probabilistic models return the sample mean as well
+                n_cols += 1
+            # Other probabilistic models return just the levels
+            else:
+                n_cols += len(level) + 1
+    return n_cols
+
+for loss in [
+    # IQLoss(), 
+    DistributionLoss(distribution="Normal", level=[80]),
+    PMM(level=[80]),
+]:
+    for level in [None, [80, 90]]:
+        models = [
+            NHITS(h=12, input_size=12, loss=loss, max_steps=1),
+            LSTM(h=12, input_size=12, loss=loss, max_steps=1, recurrent=True),
+        ]
+        nf = NeuralForecast(models=models, freq='D')
+
+        nf.fit(df=AirPassengersPanel_train)
+        df = nf.predict_insample(step_size=1, level=level)
+        expected_cols = get_expected_cols(models, level)
+        assert df.shape[1] == expected_cols, f'Shape mismatch for {loss} and level={level} in predict_insample: cols={df.shape[1]}, expected_cols={expected_cols}'
 ```
 
 
