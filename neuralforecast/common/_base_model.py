@@ -99,6 +99,7 @@ class BaseModel(pl.LightningModule):
         windows_batch_size: int,
         inference_windows_batch_size: Union[int, None],
         start_padding_enabled: bool,
+        available_sample_fractions: Union[float, List[float]] = 0.0,
         n_series: Union[int, None] = None,
         n_samples: Union[int, None] = 100,
         h_train: int = 1,
@@ -335,6 +336,21 @@ class BaseModel(pl.LightningModule):
             self.inference_windows_batch_size = windows_batch_size
         else:
             self.inference_windows_batch_size = inference_windows_batch_size
+
+        # Filtering training windows by available sample fractions
+        if isinstance(available_sample_fractions, (int, float)):
+            self.min_insample_fraction = float(available_sample_fractions)
+            self.min_outsample_fraction = float(available_sample_fractions)
+        elif (
+            isinstance(available_sample_fractions, (list, tuple))
+            and len(available_sample_fractions) == 2
+        ):
+            self.min_insample_fraction = float(available_sample_fractions[0])
+            self.min_outsample_fraction = float(available_sample_fractions[1])
+        else:
+            raise ValueError(
+                "available_sample_fractions must be a float or a list/tuple of two floats"
+            )
 
         # Optimization
         self.learning_rate = learning_rate
@@ -678,20 +694,28 @@ class BaseModel(pl.LightningModule):
                 windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
 
-            # Sample and Available conditions
+            # Calculate minimum required available points based on fractions
+            min_insample_points = max(
+                1, int(self.input_size * self.min_insample_fraction)
+            )
+            min_outsample_points = max(1, int(self.h * self.min_outsample_fraction))
+
+            # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
             available_condition = windows[:, : self.input_size, available_idx]
             available_condition = torch.sum(
                 available_condition, axis=(1, -1)
             )  # Sum over time & series dimension
-            final_condition = available_condition > 0
+            final_condition = available_condition >= min_insample_points
 
             if self.h > 0:
                 sample_condition = windows[:, self.input_size :, available_idx]
                 sample_condition = torch.sum(
                     sample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
-                final_condition = (sample_condition > 0) & (available_condition > 0)
+                final_condition = (sample_condition >= min_outsample_points) & (
+                    available_condition >= min_insample_points
+                )
 
             windows = windows[final_condition]
 
