@@ -149,6 +149,7 @@ class TimesNet(BaseModel):
     `windows_batch_size` : int (default=64), Number of windows to sample in each training batch.<br>
     `inference_windows_batch_size` : int (default=256), Number of windows to sample in each inference batch.<br>
     `start_padding_enabled` : bool (default=False), If True, the model will pad the time series with zeros at the beginning by input size.<br>
+    `available_sample_fractions`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
     `step_size` : int (default=1), Step size between each window of temporal data.<br>
     `scaler_type` : str (default='standard'), Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed` : int (default=1), Random_seed for pytorch initializer and numpy generators.<br>
@@ -201,6 +202,7 @@ class TimesNet(BaseModel):
         windows_batch_size=64,
         inference_windows_batch_size=256,
         start_padding_enabled=False,
+        available_sample_fractions=0.0,
         step_size: int = 1,
         scaler_type: str = "standard",
         random_seed: int = 1,
@@ -232,6 +234,7 @@ class TimesNet(BaseModel):
             valid_batch_size=valid_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
+            available_sample_fractions=available_sample_fractions,
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,

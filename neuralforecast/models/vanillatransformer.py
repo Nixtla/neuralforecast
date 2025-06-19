@@ -65,6 +65,7 @@ class VanillaTransformer(BaseModel):
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `available_sample_fractions`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
     `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
@@ -118,6 +119,7 @@ class VanillaTransformer(BaseModel):
         windows_batch_size=1024,
         inference_windows_batch_size: int = 1024,
         start_padding_enabled=False,
+        available_sample_fractions=0.0,
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
@@ -149,6 +151,7 @@ class VanillaTransformer(BaseModel):
             windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
+            available_sample_fractions=available_sample_fractions,
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
