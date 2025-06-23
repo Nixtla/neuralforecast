@@ -14,6 +14,7 @@ from typing import List, Dict, Union, Any, Optional, Tuple
 
 import fsspec
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -733,14 +734,8 @@ class BaseModel(pl.LightningModule):
             # For other models, just horizon time steps
             if self.__class__.__name__ == "NHITS":
                 futr_exog_time_steps = self.input_size + horizon
-                print(
-                    f"DEBUG: NHITS detected, using {futr_exog_time_steps} time steps for future exog"
-                )
             else:
                 futr_exog_time_steps = horizon
-                print(
-                    f"DEBUG: Non-NHITS model, using {futr_exog_time_steps} time steps for future exog"
-                )
 
             # Find indices of future exogenous columns
             for exog_col in self.futr_exog_list:
@@ -749,9 +744,6 @@ class BaseModel(pl.LightningModule):
                     exog_data = temporal_data[
                         :, exog_idx, :
                     ]  # [batch_size, time_steps]
-                    print(
-                        f"DEBUG: Available exog_data shape for {exog_col}: {exog_data.shape}"
-                    )
 
                     # Take the required time steps for future exogenous
                     if exog_data.shape[1] >= futr_exog_time_steps:
@@ -765,9 +757,6 @@ class BaseModel(pl.LightningModule):
                             :, -futr_exog_time_steps:
                         ]
 
-                    print(
-                        f"DEBUG: Extracted futr_exog_data shape for {exog_col}: {futr_exog_data.shape}"
-                    )
                     futr_exog_features.append(futr_exog_data)
                 else:
                     print(
@@ -787,16 +776,9 @@ class BaseModel(pl.LightningModule):
                 all_futr_exog = all_futr_exog.reshape(
                     target_features.shape[0], -1
                 )  # [batch_size, n_futr_exog * required_steps]
-                print(f"DEBUG: Final all_futr_exog shape: {all_futr_exog.shape}")
-                print(
-                    f"DEBUG: target_features shape before concat: {target_features.shape}"
-                )
                 target_features = torch.cat(
                     [target_features, all_futr_exog], dim=1
                 )  # [batch_size, prev_features + n_futr_exog * required_steps]
-                print(
-                    f"DEBUG: target_features shape after concat: {target_features.shape}"
-                )
 
         # Extract static exogenous features if model supports them (both univariate and multivariate)
         if has_stat_exog:
@@ -805,7 +787,6 @@ class BaseModel(pl.LightningModule):
                 static_data = dataset_batch[
                     "static"
                 ]  # Shape: [batch_size, n_static_features]
-                print(f"DEBUG: Available static_data shape: {static_data.shape}")
 
                 if self.MULTIVARIATE:
                     # For multivariate models like TSMixerx, static exog is expected as [n_series, n_static_features]
@@ -828,9 +809,6 @@ class BaseModel(pl.LightningModule):
                     static_features = static_features.reshape(
                         -1
                     )  # [n_series * n_static_features]
-                    print(
-                        f"DEBUG: Multivariate static features shape: {static_features.shape}"
-                    )
                     target_features = torch.cat(
                         [
                             target_features,
@@ -840,21 +818,12 @@ class BaseModel(pl.LightningModule):
                         ],
                         dim=1,
                     )
-                    print(
-                        f"DEBUG: target_features shape after multivariate static concat: {target_features.shape}"
-                    )
                 else:
                     # For univariate models like NHITS, static exog is expected as [batch_size, n_static_features]
                     static_features = static_data  # [batch_size, n_static_features]
-                    print(
-                        f"DEBUG: Univariate static features shape: {static_features.shape}"
-                    )
                     target_features = torch.cat(
                         [target_features, static_features], dim=1
                     )  # [batch_size, prev_features + n_static_features]
-                    print(
-                        f"DEBUG: target_features shape after univariate static concat: {target_features.shape}"
-                    )
             else:
                 print(
                     "Warning: Model expects static exogenous features but none found in dataset batch."
@@ -1018,26 +987,12 @@ class BaseModel(pl.LightningModule):
                     futr_exog_size = len(self.futr_exog_list) * (
                         self.input_size + horizon
                     )
-                    print(
-                        f"DEBUG: NHITS multivariate futr_exog_size calculation: {len(self.futr_exog_list)} * ({self.input_size} + {horizon}) = {futr_exog_size}"
-                    )
                 else:
                     futr_exog_size = len(self.futr_exog_list) * horizon
-                    print(
-                        f"DEBUG: Non-NHITS multivariate futr_exog_size calculation: {len(self.futr_exog_list)} * {horizon} = {futr_exog_size}"
-                    )
             if has_stat_exog:
                 stat_exog_size = (
                     len(self.stat_exog_list) * n_series
                 )  # For multivariate: n_stat_features * n_series
-
-            print(
-                f"DEBUG: Multivariate calculated sizes - target: {target_size}, hist_exog: {hist_exog_size}, futr_exog: {futr_exog_size}, stat_exog: {stat_exog_size}"
-            )
-            print(
-                f"DEBUG: Multivariate total expected input size: {target_size + hist_exog_size + futr_exog_size + stat_exog_size}"
-            )
-            print(f"DEBUG: Actual input tensor size: {X_tensor.shape[1]}")
 
             # Split features
             current_idx = 0
@@ -1118,7 +1073,6 @@ class BaseModel(pl.LightningModule):
                 stat_exog = stat_exog_flat[0].reshape(
                     n_series, n_stat_features
                 )  # Take first batch sample
-                print(f"DEBUG: Multivariate static exog reshaped to: {stat_exog.shape}")
             else:
                 stat_exog = None
 
@@ -1144,24 +1098,10 @@ class BaseModel(pl.LightningModule):
                     futr_exog_size = len(self.futr_exog_list) * (
                         self.input_size + horizon
                     )
-                    print(
-                        f"DEBUG: NHITS futr_exog_size calculation: {len(self.futr_exog_list)} * ({self.input_size} + {horizon}) = {futr_exog_size}"
-                    )
                 else:
                     futr_exog_size = len(self.futr_exog_list) * horizon
-                    print(
-                        f"DEBUG: Non-NHITS futr_exog_size calculation: {len(self.futr_exog_list)} * {horizon} = {futr_exog_size}"
-                    )
             if has_stat_exog:
                 stat_exog_size = len(self.stat_exog_list)
-
-            print(
-                f"DEBUG: Calculated sizes - target: {target_size}, hist_exog: {hist_exog_size}, futr_exog: {futr_exog_size}, stat_exog: {stat_exog_size}"
-            )
-            print(
-                f"DEBUG: Total expected input size: {target_size + hist_exog_size + futr_exog_size + stat_exog_size}"
-            )
-            print(f"DEBUG: Actual input tensor size: {X_tensor.shape[1]}")
 
             # Split the flattened input
             current_idx = 0
@@ -1196,26 +1136,17 @@ class BaseModel(pl.LightningModule):
                     horizon = getattr(self, "h", 1)
                     futr_exog_time_steps = self.input_size + horizon
 
-                    print(
-                        f"DEBUG: NHITS reshaping futr_exog from {futr_exog_flat.shape} to ({batch_size}, {n_futr_exog}, {futr_exog_time_steps})"
-                    )
                     # Reshape: [batch_size, n_futr_exog * (input_size + horizon)] -> [batch_size, input_size + horizon, n_futr_exog]
                     futr_exog = futr_exog_flat.reshape(
                         batch_size, n_futr_exog, futr_exog_time_steps
                     )
                     futr_exog = futr_exog.transpose(1, 2)
-                    print(f"DEBUG: NHITS final futr_exog shape: {futr_exog.shape}")
                 else:
                     # Other models expect [batch_size, horizon, n_futr_exog]
                     horizon = getattr(self, "h", 1)
 
-                    print(
-                        f"DEBUG: Non-NHITS reshaping futr_exog from {futr_exog_flat.shape} to ({batch_size}, {n_futr_exog}, {horizon})"
-                    )
-                    # Reshape: [batch_size, n_futr_exog * horizon] -> [batch_size, horizon, n_futr_exog]
                     futr_exog = futr_exog_flat.reshape(batch_size, n_futr_exog, horizon)
                     futr_exog = futr_exog.transpose(1, 2)
-                    print(f"DEBUG: Non-NHITS final futr_exog shape: {futr_exog.shape}")
             else:
                 futr_exog = None
 
@@ -1348,18 +1279,8 @@ class BaseModel(pl.LightningModule):
             # Set model to eval mode
             self.eval()
 
-            # Debug: Print input shape
-            print(f"DEBUG: SHAP input shape: {X_flat.shape}")
-
             # Parse input into model format
             windows_batch = self._parse_shap_input(X_flat)
-
-            # Debug: Print parsed shapes
-            print(f"DEBUG: insample_y shape: {windows_batch['insample_y'].shape}")
-            if windows_batch["hist_exog"] is not None:
-                print(f"DEBUG: hist_exog shape: {windows_batch['hist_exog'].shape}")
-            if windows_batch["futr_exog"] is not None:
-                print(f"DEBUG: futr_exog shape: {windows_batch['futr_exog'].shape}")
 
             with torch.no_grad():
                 try:
@@ -1393,36 +1314,34 @@ class BaseModel(pl.LightningModule):
                     return forecast.cpu().numpy()
 
                 except Exception as e:
-                    print(f"DEBUG: Model forward failed with error: {e}")
-                    print(f"DEBUG: Model class: {self.__class__.__name__}")
-                    print(
-                        f"DEBUG: Model attributes: MULTIVARIATE={getattr(self, 'MULTIVARIATE', 'N/A')}"
-                    )
-                    print(
-                        f"DEBUG: Model attributes: n_series={getattr(self, 'n_series', 'N/A')}"
-                    )
-                    print(
-                        f"DEBUG: Model attributes: input_size={getattr(self, 'input_size', 'N/A')}"
-                    )
                     raise e
 
         return predict_for_shap
 
     def explain_prediction(
         self,
-        dataset: Any,
+        input_df: pd.DataFrame,
+        X_df: Optional[pd.DataFrame] = None,
+        static_df: Optional[pd.DataFrame] = None,
         background_size: int = 100,
         target_samples: Optional[int] = 10,
         explainer_type: str = "kernel",
         aggregate_lags: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Generate SHAP explanations for model predictions (univariate/multivariate, with historical exogenous support).
+        Generate SHAP explanations for model predictions using specific input data.
 
         Parameters:
         -----------
-        dataset : TimeSeriesDataset
-            Dataset to extract samples from
+        input_df : pd.DataFrame
+            Input dataframe with columns: unique_id, ds, y, and any historical exogenous features.
+            Must contain at least input_size periods per series to provide sufficient context.
+        X_df : pd.DataFrame, optional
+            Future exogenous features dataframe with columns: unique_id, ds, and exogenous features.
+            Required if model uses future exogenous features (futr_exog_list).
+        static_df : pd.DataFrame, optional
+            Static exogenous features dataframe with columns: unique_id and static features.
+            Required if model uses static exogenous features (stat_exog_list).
         background_size : int, default=100
             Number of background samples for SHAP
         target_samples : int, default=10
@@ -1441,19 +1360,284 @@ class BaseModel(pl.LightningModule):
         --------
         Dict[str, Any]
             Dictionary containing SHAP values, feature names, and metadata.
-
-        Supported Features:
-        ------------------
-        - Target time series (univariate and multivariate)
-        - Historical exogenous features (models with hist_exog_list)
-        - Future exogenous features: Not supported yet
-        - Static exogenous features: Not supported yet
         """
         try:
             import shap
+            import pandas as pd
+            from neuralforecast.tsdataset import TimeSeriesDataset
         except ImportError:
             raise ImportError(
                 "SHAP library is required for explainability. Install with: pip install shap"
+            )
+
+        # Validate input dataframe has required columns
+        required_cols = ["unique_id", "ds", "y"]
+        missing_cols = [col for col in required_cols if col not in input_df.columns]
+        if missing_cols:
+            raise ValueError(f"input_df missing required columns: {missing_cols}")
+
+        print("DEBUG: Input validation passed")
+        print(f"DEBUG: input_df shape: {input_df.shape}")
+        print(f"DEBUG: input_df unique_ids: {input_df['unique_id'].unique()}")
+        print(f"DEBUG: input_df columns: {list(input_df.columns)}")
+
+        # Check if we have sufficient historical data
+        min_required_periods = self.input_size
+        series_lengths = input_df.groupby("unique_id").size()
+        print(f"DEBUG: Series lengths: {series_lengths.to_dict()}")
+        print(f"DEBUG: Required periods: {min_required_periods}")
+
+        insufficient_series = series_lengths[series_lengths < min_required_periods]
+        if len(insufficient_series) > 0:
+            raise ValueError(
+                f"Some series have insufficient history. Need at least {min_required_periods} periods. "
+                f"Series with insufficient data: {insufficient_series.to_dict()}"
+            )
+
+        print("DEBUG: Historical data validation passed")
+
+        # Validate exogenous features alignment
+        has_hist_exog = (
+            hasattr(self, "EXOGENOUS_HIST")
+            and self.EXOGENOUS_HIST
+            and hasattr(self, "hist_exog_list")
+            and self.hist_exog_list
+        )
+        has_futr_exog = (
+            hasattr(self, "EXOGENOUS_FUTR")
+            and self.EXOGENOUS_FUTR
+            and hasattr(self, "futr_exog_list")
+            and self.futr_exog_list
+        )
+        has_stat_exog = (
+            hasattr(self, "EXOGENOUS_STAT")
+            and self.EXOGENOUS_STAT
+            and hasattr(self, "stat_exog_list")
+            and self.stat_exog_list
+        )
+
+        print(
+            f"DEBUG: Exogenous feature flags - hist: {has_hist_exog}, futr: {has_futr_exog}, stat: {has_stat_exog}"
+        )
+
+        if has_hist_exog:
+            print(f"DEBUG: hist_exog_list: {self.hist_exog_list}")
+        if has_futr_exog:
+            print(f"DEBUG: futr_exog_list: {self.futr_exog_list}")
+        if has_stat_exog:
+            print(f"DEBUG: stat_exog_list: {self.stat_exog_list}")
+
+        # Check historical exogenous features
+        if has_hist_exog:
+            missing_hist_exog = [
+                col for col in self.hist_exog_list if col not in input_df.columns
+            ]
+            if missing_hist_exog:
+                raise ValueError(
+                    f"Model expects historical exogenous features but they're missing from input_df: {missing_hist_exog}"
+                )
+            print("DEBUG: Historical exogenous validation passed")
+
+        # Check future exogenous features
+        if has_futr_exog:
+            if X_df is None:
+                raise ValueError(
+                    "Model expects future exogenous features but X_df is None"
+                )
+            print(f"DEBUG: X_df shape: {X_df.shape}")
+            print(f"DEBUG: X_df unique_ids: {X_df['unique_id'].unique()}")
+            print(f"DEBUG: X_df columns: {list(X_df.columns)}")
+
+            missing_futr_exog = [
+                col for col in self.futr_exog_list if col not in X_df.columns
+            ]
+            if missing_futr_exog:
+                raise ValueError(
+                    f"Model expects future exogenous features but they're missing from X_df: {missing_futr_exog}"
+                )
+
+            # Validate X_df has required columns
+            if "unique_id" not in X_df.columns or "ds" not in X_df.columns:
+                raise ValueError("X_df must contain 'unique_id' and 'ds' columns")
+
+            print("DEBUG: Future exogenous validation passed")
+
+        # Check static exogenous features
+        if has_stat_exog:
+            if static_df is None:
+                raise ValueError(
+                    "Model expects static exogenous features but static_df is None"
+                )
+            print(f"DEBUG: static_df shape: {static_df.shape}")
+            print(f"DEBUG: static_df unique_ids: {static_df['unique_id'].unique()}")
+            print(f"DEBUG: static_df columns: {list(static_df.columns)}")
+
+            missing_stat_exog = [
+                col for col in self.stat_exog_list if col not in static_df.columns
+            ]
+            if missing_stat_exog:
+                raise ValueError(
+                    f"Model expects static exogenous features but they're missing from static_df: {missing_stat_exog}"
+                )
+
+            # Validate static_df has required columns
+            if "unique_id" not in static_df.columns:
+                raise ValueError("static_df must contain 'unique_id' column")
+
+            print("DEBUG: Static exogenous validation passed")
+
+        # Create TimeSeriesDataset from provided dataframes
+        # We need to construct the dataset similar to how it was done during training
+        horizon = getattr(self, "h", 1)
+
+        try:
+            # Instead of using TimeSeriesDataset.from_df() which creates single windows,
+            # we'll create multiple overlapping windows for temporal explanation
+
+            # Combine input_df and X_df if X_df is provided
+            combined_df = input_df.copy()
+
+            if X_df is not None:
+                # Merge future exogenous features with input data
+                combined_df = pd.concat(
+                    [combined_df, X_df], ignore_index=True, sort=False
+                )
+
+                # Fill NaN values that result from the concatenation
+                combined_df["y"] = combined_df["y"].fillna(
+                    0.0
+                )  # Future periods have no target values
+
+                # Fill NaN values in historical exogenous features for future periods
+                if has_hist_exog:
+                    for hist_col in self.hist_exog_list:
+                        if hist_col in combined_df.columns:
+                            combined_df[hist_col] = combined_df[hist_col].fillna(0.0)
+
+                # Fill any remaining NaN values in all columns
+                combined_df = combined_df.fillna(0.0)
+
+            # Create overlapping windows manually for temporal explanation
+            horizon = getattr(self, "h", 1)
+            windows_list = []
+
+            # Group by series to handle each one separately
+            for series_id, series_data in combined_df.groupby("unique_id"):
+                series_data = series_data.sort_values("ds").reset_index(drop=True)
+                series_length = len(series_data)
+
+                print(
+                    f"DEBUG: Creating windows for series {series_id}, length {series_length}"
+                )
+
+                # We need at least input_size + horizon data points to create a valid window
+                min_data_needed = self.input_size + horizon
+                if series_length < min_data_needed:
+                    print(
+                        f"DEBUG: Series {series_id} has insufficient data ({series_length} < {min_data_needed})"
+                    )
+                    continue
+
+                # Calculate how many windows we can create
+                # Each window uses input_size for history + horizon for future
+                max_windows = series_length - min_data_needed + 1
+
+                # Limit number of windows to avoid memory issues
+                max_background_windows = min(
+                    background_size, max_windows - 1
+                )  # Leave at least 1 for target
+                target_windows = min(
+                    target_samples or 1, max_windows - max_background_windows
+                )
+
+                print(
+                    f"DEBUG: Can create {max_windows} windows, using {max_background_windows} background + {target_windows} target"
+                )
+
+                # Create windows (starting from different time points)
+                for window_idx in range(max_background_windows + target_windows):
+                    start_idx = window_idx
+                    end_idx = start_idx + min_data_needed
+
+                    if end_idx > series_length:
+                        break
+
+                    window_data = series_data.iloc[start_idx:end_idx].copy()
+
+                    # Create unique identifier for each window so TimeSeriesDataset treats them as separate series
+                    window_data["unique_id"] = f"{series_id}_window_{window_idx}"
+                    window_data["window_idx"] = window_idx
+                    window_data["original_series_id"] = series_id
+                    window_data["is_target"] = window_idx >= max_background_windows
+
+                    windows_list.append(window_data)
+
+                    print(
+                        f"DEBUG: Created window {window_idx} for series {series_id}: "
+                        f"unique_id={window_data['unique_id'].iloc[0]}, "
+                        f"dates {window_data['ds'].iloc[0]} to {window_data['ds'].iloc[-1]}, "
+                        f"target: {window_data['is_target'].iloc[0]}"
+                    )
+
+            if not windows_list:
+                raise ValueError(
+                    "No valid windows could be created from the provided data"
+                )
+
+            # Combine all windows into a single dataframe
+            all_windows_df = pd.concat(windows_list, ignore_index=True)
+
+            print(f"DEBUG: Created {len(windows_list)} total windows")
+            print(
+                f"DEBUG: Background windows: {sum(1 for w in windows_list if not w['is_target'].iloc[0])}"
+            )
+            print(
+                f"DEBUG: Target windows: {sum(1 for w in windows_list if w['is_target'].iloc[0])}"
+            )
+
+            # Prepare static_df for windows if needed
+            window_static_df = None
+            if static_df is not None:
+                # Create static data for each window (duplicate the original series static data)
+                static_rows = []
+                for window_data in windows_list:
+                    original_series = window_data["original_series_id"].iloc[0]
+                    window_unique_id = window_data["unique_id"].iloc[0]
+
+                    # Find static data for the original series
+                    original_static = static_df[
+                        static_df["unique_id"] == original_series
+                    ]
+                    if len(original_static) > 0:
+                        window_static = original_static.copy()
+                        window_static["unique_id"] = window_unique_id
+                        static_rows.append(window_static)
+
+                if static_rows:
+                    window_static_df = pd.concat(static_rows, ignore_index=True)
+                    print(f"DEBUG: Created static data for {len(static_rows)} windows")
+
+            # Create dataset using the standard method
+            dataset, indices, dates, ds = TimeSeriesDataset.from_df(
+                df=all_windows_df.drop(
+                    ["window_idx", "original_series_id", "is_target"], axis=1
+                ),
+                static_df=window_static_df,
+                id_col="unique_id",
+                time_col="ds",
+                target_col="y",
+            )
+
+            print(f"DEBUG: TimeSeriesDataset created with {len(dataset)} samples")
+
+        except Exception as e:
+            raise ValueError(
+                f"Failed to create TimeSeriesDataset from provided data: {str(e)}"
+            )
+
+        if len(dataset) == 0:
+            raise ValueError(
+                "Created dataset is empty. Check that input data provides sufficient context for predictions."
             )
 
         # Custom collate function to handle pandas Index objects
@@ -1485,42 +1669,54 @@ class BaseModel(pl.LightningModule):
         # Access dataset using neuralforecast's DataLoader with custom collate
         from torch.utils.data import DataLoader
 
-        # Create dataloader to sample from dataset
-        total_samples = min(background_size + (target_samples or 10), len(dataset))
+        # Create dataloader to get all samples
         dataloader = DataLoader(
             dataset,
-            batch_size=total_samples,
-            shuffle=True,
+            batch_size=len(dataset),
+            shuffle=False,  # Don't shuffle - we want chronological order
             collate_fn=custom_collate_fn,
         )
         batch = next(iter(dataloader))
 
+        print(f"DEBUG: Batch keys: {list(batch.keys())}")
+        if "temporal" in batch:
+            print(f"DEBUG: Batch temporal shape: {batch['temporal'].shape}")
+
         # Extract features (handles both univariate and multivariate)
         all_features = self._extract_target_features(batch)
+        print(f"DEBUG: Extracted features shape: {all_features.shape}")
 
-        # Split into background and target samples
+        # Split features based on the window metadata we created
         n_samples = all_features.shape[0]
-        effective_target_samples: int
-        if target_samples is None:
-            effective_target_samples = min(10, n_samples - background_size)
-        else:
-            effective_target_samples = target_samples
 
-        if n_samples < background_size + effective_target_samples:
-            background_size = max(1, n_samples // 2)
-            effective_target_samples = n_samples - background_size
+        # Count background and target windows from our window creation
+        background_windows = sum(1 for w in windows_list if not w["is_target"].iloc[0])
+        target_windows = sum(1 for w in windows_list if w["is_target"].iloc[0])
 
-        # Random sampling for background and targets
-        indices = np.random.choice(
-            n_samples, size=background_size + effective_target_samples, replace=False
+        print(f"DEBUG: Number of feature samples: {n_samples}")
+        print(f"DEBUG: Expected background windows: {background_windows}")
+        print(f"DEBUG: Expected target windows: {target_windows}")
+
+        # The first background_windows samples are background, the rest are target
+        background_indices = list(range(background_windows))
+        target_indices = list(
+            range(background_windows, background_windows + target_windows)
         )
-        background_indices = indices[:background_size]
-        target_indices = indices[
-            background_size : background_size + effective_target_samples
-        ]
+
+        print(f"DEBUG: Background indices: {background_indices}")
+        print(f"DEBUG: Target indices: {target_indices}")
+
+        if len(target_indices) == 0:
+            raise ValueError("No target windows available for explanation.")
 
         background_data = all_features[background_indices]
         target_data = all_features[target_indices]
+
+        print(f"DEBUG: Background data shape: {background_data.shape}")
+        print(f"DEBUG: Target data shape: {target_data.shape}")
+
+        print(f"DEBUG: Background data sample: {background_data[0][:5]}...")
+        print(f"DEBUG: Target data sample: {target_data[0][:5]}...")
 
         # Create SHAP explainer
         prediction_wrapper = self._create_shap_wrapper()
@@ -1556,6 +1752,23 @@ class BaseModel(pl.LightningModule):
             "is_multivariate": self.MULTIVARIATE,
             "aggregate_lags": aggregate_lags,
             "original_feature_names": original_feature_names,  # Keep original for reference
+            "explained_periods": len(
+                target_indices
+            ),  # Number of prediction windows explained
+            "background_periods": len(
+                background_indices
+            ),  # Number of background windows
+            "total_series": len(
+                input_df["unique_id"].unique()
+            ),  # Number of series in input
+            "explanation_type": "temporal_windows",  # New field to indicate this is temporal explanation
+            "window_info": {
+                "input_size": self.input_size,
+                "horizon": getattr(self, "h", 1),
+                "background_windows": len(background_indices),
+                "target_windows": len(target_indices),
+                "total_windows_created": len(windows_list),
+            },
         }
 
         return results

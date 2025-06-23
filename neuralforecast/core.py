@@ -1854,6 +1854,9 @@ class NeuralForecast:
 
     def explain(
         self,
+        input_df: pd.DataFrame,
+        X_df: Optional[pd.DataFrame] = None,
+        static_df: Optional[pd.DataFrame] = None,
         models: Optional[Union[str, List[str]]] = None,
         background_size: int = 100,
         target_samples: Optional[int] = 10,
@@ -1861,10 +1864,19 @@ class NeuralForecast:
         aggregate_lags: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Generate SHAP explanations for fitted models (univariate only, no exogenous features).
+        Generate SHAP explanations for fitted models using specific input data.
 
         Parameters:
         -----------
+        input_df : pd.DataFrame
+            Input dataframe with columns: unique_id, ds, y, and any historical exogenous features.
+            Must contain at least input_size periods per series to provide sufficient context.
+        X_df : pd.DataFrame, optional
+            Future exogenous features dataframe with columns: unique_id, ds, and exogenous features.
+            Required if any model uses future exogenous features (futr_exog_list).
+        static_df : pd.DataFrame, optional
+            Static exogenous features dataframe with columns: unique_id and static features.
+            Required if any model uses static exogenous features (stat_exog_list).
         models : str, List[str], or None, default=None
             Model names/aliases to explain. If None, explains all fitted models.
             If str, explains single model. If List[str], explains specified models.
@@ -1874,6 +1886,13 @@ class NeuralForecast:
             Number of samples to generate explanations for. If None, uses all available samples.
         explainer_type : str, default='kernel'
             Type of SHAP explainer to use ('kernel' only supported currently).
+        aggregate_lags : str or None, default=None
+            How to aggregate SHAP values across lags for each feature:
+            - None: Keep individual lag contributions (y_lag_1, y_lag_2, ...)
+            - 'sum': Sum SHAP values across all lags for each feature (most common)
+            - 'mean': Average SHAP values across lags
+            - 'abs_sum': Sum of absolute SHAP values (total importance regardless of direction)
+            - 'max_abs': Maximum absolute SHAP value across lags (most important single lag)
 
         Returns:
         --------
@@ -1883,17 +1902,28 @@ class NeuralForecast:
 
         Examples:
         ---------
-        >>> nf = NeuralForecast(models=[NBEATS(...), NHITS(...)], freq='D')
-        >>> nf.fit(df)
+        >>> # Prepare your data
+        >>> input_df = pd.DataFrame({
+        ...     'unique_id': ['series1'] * 50 + ['series2'] * 50,
+        ...     'ds': pd.date_range('2020-01-01', periods=50).tolist() * 2,
+        ...     'y': np.random.randn(100),
+        ...     'temperature': np.random.randn(100)  # historical exogenous
+        ... })
         >>>
-        >>> # Explain all models
-        >>> explanations = nf.explain()
+        >>> future_df = pd.DataFrame({
+        ...     'unique_id': ['series1'] * 7 + ['series2'] * 7,
+        ...     'ds': pd.date_range('2020-02-20', periods=7).tolist() * 2,
+        ...     'holiday': [0, 1, 0, 0, 0, 1, 0] * 2  # future exogenous
+        ... })
+        >>>
+        >>> nf = NeuralForecast(models=[NBEATS(...), NHITS(...)], freq='D')
+        >>> nf.fit(train_df)
+        >>>
+        >>> # Explain all models for specific time periods
+        >>> explanations = nf.explain(input_df=input_df, X_df=future_df)
         >>>
         >>> # Explain single model
-        >>> explanations = nf.explain(models='NBEATS')
-        >>>
-        >>> # Explain specific models
-        >>> explanations = nf.explain(models=['NBEATS', 'NHITS'])
+        >>> explanations = nf.explain(input_df=input_df, models='NBEATS')
         >>>
         >>> # Use SHAP directly for plotting
         >>> import shap
@@ -1901,17 +1931,35 @@ class NeuralForecast:
         >>> shap.summary_plot(results['shap_values'], feature_names=results['feature_names'])
         """
 
+        import pandas as pd
+
         # Check if models are fitted
         if not self._fitted:
             raise Exception(
                 "Models must be fitted before generating explanations. Call .fit() first."
             )
 
-        # Check if dataset is available
-        if not hasattr(self, "dataset") or self.dataset is None:
-            raise Exception(
-                "Dataset not available. This might happen if models were loaded from disk."
-            )
+        # Validate input_df
+        if not isinstance(input_df, pd.DataFrame):
+            raise TypeError("input_df must be a pandas DataFrame")
+
+        required_cols = ["unique_id", "ds", "y"]
+        missing_cols = [col for col in required_cols if col not in input_df.columns]
+        if missing_cols:
+            raise ValueError(f"input_df missing required columns: {missing_cols}")
+
+        # Validate optional dataframes
+        if X_df is not None:
+            if not isinstance(X_df, pd.DataFrame):
+                raise TypeError("X_df must be a pandas DataFrame or None")
+            if "unique_id" not in X_df.columns or "ds" not in X_df.columns:
+                raise ValueError("X_df must contain 'unique_id' and 'ds' columns")
+
+        if static_df is not None:
+            if not isinstance(static_df, pd.DataFrame):
+                raise TypeError("static_df must be a pandas DataFrame or None")
+            if "unique_id" not in static_df.columns:
+                raise ValueError("static_df must contain 'unique_id' column")
 
         # Determine which models to explain
         if models is None:
@@ -1944,9 +1992,11 @@ class NeuralForecast:
             model_name = getattr(model, "alias", model.__class__.__name__)
 
             try:
-                # Generate explanation for this model
+                # Generate explanation for this model with new parameters
                 explanation = model.explain_prediction(
-                    dataset=self.dataset,
+                    input_df=input_df,
+                    X_df=X_df,
+                    static_df=static_df,
                     background_size=background_size,
                     target_samples=target_samples,
                     explainer_type=explainer_type,
