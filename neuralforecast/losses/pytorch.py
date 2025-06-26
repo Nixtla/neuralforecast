@@ -1610,7 +1610,7 @@ class BaseISQF(Distribution):
         return self.crps(z)
 
     def log_prob(self, z: torch.Tensor) -> torch.Tensor:
-        return -self.crps(z)
+        return -F.softplus(self.crps(z))
 
     def crps(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -1700,7 +1700,9 @@ class BaseISQF(Distribution):
 def isqf_domain_map(
     input: torch.Tensor,
     tol: float = 1e-4,
-    quantiles: torch.Tensor = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float32),
+    quantiles: torch.Tensor = torch.tensor(
+        [0.01, 0.1, 0.5, 0.9, 0.99], dtype=torch.float32
+    ),
     num_pieces: int = 5,
 ):
     """ISQF Domain Map
