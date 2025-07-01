@@ -1,0 +1,47 @@
+import numpy as np
+import pandas as pd
+import torch
+
+from neuralforecast import NeuralForecast
+from neuralforecast.common._scalers import TemporalNorm
+from neuralforecast.models import NHITS
+from neuralforecast.utils import AirPassengersDF as Y_df
+
+
+# Unit test for masked predict filtering
+# Declare synthetic batch to normalize
+def test_temporal_norm():
+    x1 = 10**0 * np.arange(36)[:, None]
+    x2 = 10**1 * np.arange(36)[:, None]
+
+    np_x = np.concatenate([x1, x2], axis=1)
+    np_x = np.repeat(np_x[None, :,:], repeats=2, axis=0)
+    np_x[0,:,:] = np_x[0,:,:] + 100
+
+    np_mask = np.ones(np_x.shape)
+    np_mask[:, -12:, :] = 0
+
+    print(f'x.shape [batch, time, features]={np_x.shape}')
+    print(f'mask.shape [batch, time, features]={np_mask.shape}')
+
+    # Validate scalers
+    for scaler_type in [None, 'identity', 'standard', 'robust', 'minmax', 'minmax1', 'invariant', 'revin']:
+        x = 1.0*torch.tensor(np_x).unsqueeze(-1)
+        mask = torch.tensor(np_mask).unsqueeze(-1)
+        scaler = TemporalNorm(scaler_type=scaler_type, dim=1, num_features=np_x.shape[-1])
+        x_scaled = scaler.transform(x=x, mask=mask)
+        x_recovered = scaler.inverse_transform(x_scaled)
+        assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
+
+def test_nhits_model():
+    model = NHITS(h=12,
+                  input_size=12*2,
+                  max_steps=1,
+                  windows_batch_size=None,
+                  n_freq_downsample=[1,1,1],
+              scaler_type='minmax')
+
+    nf = NeuralForecast(models=[model], freq='M')
+    nf.fit(df=Y_df)
+    Y_hat = nf.predict(df=Y_df)
+    assert pd.isnull(Y_hat).sum().sum() == 0, 'Predictions should not have NaNs'
