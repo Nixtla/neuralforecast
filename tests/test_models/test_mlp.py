@@ -5,23 +5,17 @@ import numpy as np
 import pandas as pd
 import pytest
 from fastcore.test import test_eq as _test_eq
+from test_helpers import check_args
 
+from neuralforecast.auto import MLP, AutoMLP
+from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
-from neuralforecast.models import MLP
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
 
 
-def test_mlp_model():
-    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-    logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        check_model(MLP, ["airpassengers"])
-
-
-
-# test performance fit/predict method
+def test_mlp_model(suppress_warnings):
+    check_model(MLP, ["airpassengers"])
 
 @pytest.fixture
 def setup_module():
@@ -80,3 +74,30 @@ def test_validation_step(setup_module):
     y_hat_test_w_val = model.predict(dataset=dataset, step_size=1)
     np.testing.assert_almost_equal(y_hat_test_w_val,
                                 y_hat_w_val, decimal=4)
+
+
+def test_automlp(setup_dataset):
+    dataset = setup_dataset
+
+    # Unit test to test that Auto* model contains all required arguments from BaseAuto
+    check_args(AutoMLP, exclude_args=['cls_model'])
+
+    # Unit test for situation: Optuna with updated default config
+    my_config = AutoMLP.get_default_config(h=12, backend='optuna')
+    def my_config_new(trial):
+        config = {**my_config(trial)}
+        config.update({'max_steps': 2, 'val_check_steps': 1, 'input_size': 12, 'hidden_size': 8})
+        return config
+
+    model = AutoMLP(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    assert model.config(MockTrial())['h'] == 12
+    model.fit(dataset=dataset)
+
+    # Unit test for situation: Ray with updated default config
+    my_config = AutoMLP.get_default_config(h=12, backend='ray')
+    my_config['max_steps'] = 2
+    my_config['val_check_steps'] = 1
+    my_config['input_size'] = 12
+    my_config['hidden_size'] = 8
+    model = AutoMLP(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model.fit(dataset=dataset)
