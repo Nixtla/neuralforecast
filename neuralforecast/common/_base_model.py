@@ -1329,46 +1329,39 @@ class BaseModel(pl.LightningModule):
         aggregate_lags: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Generate SHAP explanations for model predictions using specific input data.
-
-        Parameters:
-        -----------
-        input_df : pd.DataFrame
-            Input dataframe with columns: unique_id, ds, y, and any historical exogenous features.
-            Must contain at least input_size periods per series to provide sufficient context.
-        X_df : pd.DataFrame, optional
-            Future exogenous features dataframe with columns: unique_id, ds, and exogenous features.
-            Required if model uses future exogenous features (futr_exog_list).
-        static_df : pd.DataFrame, optional
-            Static exogenous features dataframe with columns: unique_id and static features.
-            Required if model uses static exogenous features (stat_exog_list).
-        background_size : int, default=100
-            Number of background samples for SHAP
-        target_samples : int, default=10
-            Number of samples to explain (None for all)
-        explainer_type : str, default='kernel'
-            Type of SHAP explainer ('kernel', 'deep', etc.)
-        aggregate_lags : str or None, default=None
-            How to aggregate SHAP values across lags for each feature:
-            - None: Keep individual lag contributions (y_lag_1, y_lag_2, ...)
-            - 'sum': Sum SHAP values across all lags for each feature (most common)
-            - 'mean': Average SHAP values across lags
-            - 'abs_sum': Sum of absolute SHAP values (total importance regardless of direction)
-            - 'max_abs': Maximum absolute SHAP value across lags (most important single lag)
-
-        Returns:
-        --------
-        Dict[str, Any]
-            Dictionary containing SHAP values, feature names, and metadata.
+        Generate SHAP explanations for model predictions using specific input data with temporal windowing.
         """
         try:
             import shap
             import pandas as pd
+            import torch
             from neuralforecast.tsdataset import TimeSeriesDataset
+            from torch.utils.data import DataLoader
         except ImportError:
             raise ImportError(
                 "SHAP library is required for explainability. Install with: pip install shap"
             )
+
+        # Custom collate function to handle pandas Index objects - DEFINE FIRST
+        def custom_collate_fn(batch):
+            """Custom collate function that handles pandas Index objects"""
+            if len(batch) == 0:
+                return {}
+
+            first_sample = batch[0]
+            collated = {}
+            for key in first_sample.keys():
+                if key in ["temporal_cols", "static_cols"]:
+                    collated[key] = first_sample[key]
+                elif key == "y_idx":
+                    collated[key] = first_sample[key]
+                else:
+                    values = [sample[key] for sample in batch]
+                    if values[0] is not None:
+                        collated[key] = torch.stack(values)
+                    else:
+                        collated[key] = None
+            return collated
 
         # Validate input dataframe has required columns
         required_cols = ["unique_id", "ds", "y"]
@@ -1379,19 +1372,14 @@ class BaseModel(pl.LightningModule):
         print("DEBUG: Input validation passed")
         print(f"DEBUG: input_df shape: {input_df.shape}")
         print(f"DEBUG: input_df unique_ids: {input_df['unique_id'].unique()}")
-        print(f"DEBUG: input_df columns: {list(input_df.columns)}")
 
         # Check if we have sufficient historical data
         min_required_periods = self.input_size
         series_lengths = input_df.groupby("unique_id").size()
-        print(f"DEBUG: Series lengths: {series_lengths.to_dict()}")
-        print(f"DEBUG: Required periods: {min_required_periods}")
-
         insufficient_series = series_lengths[series_lengths < min_required_periods]
         if len(insufficient_series) > 0:
             raise ValueError(
-                f"Some series have insufficient history. Need at least {min_required_periods} periods. "
-                f"Series with insufficient data: {insufficient_series.to_dict()}"
+                f"Some series have insufficient history. Need at least {min_required_periods} periods."
             )
 
         print("DEBUG: Historical data validation passed")
@@ -1420,14 +1408,7 @@ class BaseModel(pl.LightningModule):
             f"DEBUG: Exogenous feature flags - hist: {has_hist_exog}, futr: {has_futr_exog}, stat: {has_stat_exog}"
         )
 
-        if has_hist_exog:
-            print(f"DEBUG: hist_exog_list: {self.hist_exog_list}")
-        if has_futr_exog:
-            print(f"DEBUG: futr_exog_list: {self.futr_exog_list}")
-        if has_stat_exog:
-            print(f"DEBUG: stat_exog_list: {self.stat_exog_list}")
-
-        # Check historical exogenous features
+        # Validate exogenous features
         if has_hist_exog:
             missing_hist_exog = [
                 col for col in self.hist_exog_list if col not in input_df.columns
@@ -1436,18 +1417,12 @@ class BaseModel(pl.LightningModule):
                 raise ValueError(
                     f"Model expects historical exogenous features but they're missing from input_df: {missing_hist_exog}"
                 )
-            print("DEBUG: Historical exogenous validation passed")
 
-        # Check future exogenous features
         if has_futr_exog:
             if X_df is None:
                 raise ValueError(
                     "Model expects future exogenous features but X_df is None"
                 )
-            print(f"DEBUG: X_df shape: {X_df.shape}")
-            print(f"DEBUG: X_df unique_ids: {X_df['unique_id'].unique()}")
-            print(f"DEBUG: X_df columns: {list(X_df.columns)}")
-
             missing_futr_exog = [
                 col for col in self.futr_exog_list if col not in X_df.columns
             ]
@@ -1455,23 +1430,14 @@ class BaseModel(pl.LightningModule):
                 raise ValueError(
                     f"Model expects future exogenous features but they're missing from X_df: {missing_futr_exog}"
                 )
-
-            # Validate X_df has required columns
             if "unique_id" not in X_df.columns or "ds" not in X_df.columns:
                 raise ValueError("X_df must contain 'unique_id' and 'ds' columns")
 
-            print("DEBUG: Future exogenous validation passed")
-
-        # Check static exogenous features
         if has_stat_exog:
             if static_df is None:
                 raise ValueError(
                     "Model expects static exogenous features but static_df is None"
                 )
-            print(f"DEBUG: static_df shape: {static_df.shape}")
-            print(f"DEBUG: static_df unique_ids: {static_df['unique_id'].unique()}")
-            print(f"DEBUG: static_df columns: {list(static_df.columns)}")
-
             missing_stat_exog = [
                 col for col in self.stat_exog_list if col not in static_df.columns
             ]
@@ -1479,50 +1445,18 @@ class BaseModel(pl.LightningModule):
                 raise ValueError(
                     f"Model expects static exogenous features but they're missing from static_df: {missing_stat_exog}"
                 )
-
-            # Validate static_df has required columns
             if "unique_id" not in static_df.columns:
                 raise ValueError("static_df must contain 'unique_id' column")
 
-            print("DEBUG: Static exogenous validation passed")
-
-        # Create TimeSeriesDataset from provided dataframes
-        # We need to construct the dataset similar to how it was done during training
-        horizon = getattr(self, "h", 1)
-
         try:
-            # Instead of using TimeSeriesDataset.from_df() which creates single windows,
-            # we'll create multiple overlapping windows for temporal explanation
+            # Always use temporal windowing - it's the right approach for time series
+            print("DEBUG: Using temporal windowing approach for all feature types")
 
-            # Combine input_df and X_df if X_df is provided
-            combined_df = input_df.copy()
-
-            if X_df is not None:
-                # Merge future exogenous features with input data
-                combined_df = pd.concat(
-                    [combined_df, X_df], ignore_index=True, sort=False
-                )
-
-                # Fill NaN values that result from the concatenation
-                combined_df["y"] = combined_df["y"].fillna(
-                    0.0
-                )  # Future periods have no target values
-
-                # Fill NaN values in historical exogenous features for future periods
-                if has_hist_exog:
-                    for hist_col in self.hist_exog_list:
-                        if hist_col in combined_df.columns:
-                            combined_df[hist_col] = combined_df[hist_col].fillna(0.0)
-
-                # Fill any remaining NaN values in all columns
-                combined_df = combined_df.fillna(0.0)
-
-            # Create overlapping windows manually for temporal explanation
             horizon = getattr(self, "h", 1)
             windows_list = []
 
             # Group by series to handle each one separately
-            for series_id, series_data in combined_df.groupby("unique_id"):
+            for series_id, series_data in input_df.groupby("unique_id"):
                 series_data = series_data.sort_values("ds").reset_index(drop=True)
                 series_length = len(series_data)
 
@@ -1530,54 +1464,232 @@ class BaseModel(pl.LightningModule):
                     f"DEBUG: Creating windows for series {series_id}, length {series_length}"
                 )
 
-                # We need at least input_size + horizon data points to create a valid window
-                min_data_needed = self.input_size + horizon
-                if series_length < min_data_needed:
-                    print(
-                        f"DEBUG: Series {series_id} has insufficient data ({series_length} < {min_data_needed})"
-                    )
-                    continue
-
-                # Calculate how many windows we can create
-                # Each window uses input_size for history + horizon for future
-                max_windows = series_length - min_data_needed + 1
-
-                # Limit number of windows to avoid memory issues
-                max_background_windows = min(
-                    background_size, max_windows - 1
-                )  # Leave at least 1 for target
-                target_windows = min(
-                    target_samples or 1, max_windows - max_background_windows
-                )
+            # Group by series to handle each one separately
+            for series_id, series_data in input_df.groupby("unique_id"):
+                series_data = series_data.sort_values("ds").reset_index(drop=True)
+                series_length = len(series_data)
 
                 print(
-                    f"DEBUG: Can create {max_windows} windows, using {max_background_windows} background + {target_windows} target"
+                    f"DEBUG: Creating windows for series {series_id}, length {series_length}"
                 )
 
-                # Create windows (starting from different time points)
-                for window_idx in range(max_background_windows + target_windows):
+                # For background windows: we need different amounts of data based on whether future exog is used
+                if has_futr_exog and X_df is not None:
+                    # With future exog: background windows need input_size + horizon to create historical "future" exog
+                    min_background_data = self.input_size + horizon
+                    print(
+                        f"DEBUG: With future exog - background windows need {min_background_data} periods each"
+                    )
+                else:
+                    # Without future exog: background windows only need input_size periods
+                    min_background_data = self.input_size
+                    print(
+                        f"DEBUG: No future exog - background windows need {min_background_data} periods each"
+                    )
+
+                # Calculate how many background windows we can create from historical data
+                # Leave the last input_size periods for the target window
+                available_for_background = series_length - self.input_size
+                max_possible_background = (
+                    available_for_background - min_background_data + 1
+                )
+                max_background_windows = min(background_size, max_possible_background)
+
+                if max_background_windows < 1:
+                    print(
+                        f"DEBUG: Series {series_id} has insufficient data for background windows"
+                    )
+                    print(
+                        f"DEBUG: Need {min_background_data} + {self.input_size} = {min_background_data + self.input_size} total periods"
+                    )
+                    print(f"DEBUG: Have {series_length} periods")
+                    continue
+
+                print(
+                    f"DEBUG: Can create {max_background_windows} background windows + 1 target window"
+                )
+
+                # Get future exogenous data for this series if available
+                series_X_df = None
+                if X_df is not None and has_futr_exog:
+                    series_X_df = (
+                        X_df[X_df["unique_id"] == series_id]
+                        .sort_values("ds")
+                        .reset_index(drop=True)
+                    )
+                    print(
+                        f"DEBUG: Found {len(series_X_df)} future exog periods for series {series_id}"
+                    )
+
+                # Create BACKGROUND windows from historical periods
+                for window_idx in range(max_background_windows):
                     start_idx = window_idx
-                    end_idx = start_idx + min_data_needed
+                    hist_end_idx = start_idx + self.input_size
 
-                    if end_idx > series_length:
-                        break
+                    # Get historical data for this background window
+                    historical_data = series_data.iloc[start_idx:hist_end_idx].copy()
 
-                    window_data = series_data.iloc[start_idx:end_idx].copy()
+                    # Start with the historical data
+                    window_data = historical_data.copy()
 
-                    # Create unique identifier for each window so TimeSeriesDataset treats them as separate series
-                    window_data["unique_id"] = f"{series_id}_window_{window_idx}"
+                    # IMPORTANT: If model expects future exog, background windows MUST have it too!
+                    if series_X_df is not None and has_futr_exog:
+                        print(
+                            f"DEBUG: Background window {window_idx} - adding historical future exog to match model expectations"
+                        )
+
+                        # For background windows: use subsequent historical periods as "future" exog
+                        future_start_idx = hist_end_idx
+                        future_end_idx = future_start_idx + horizon
+
+                        if future_end_idx <= series_length:
+                            # Use actual historical data as "future" exog for this background window
+                            historical_future_data = series_data.iloc[
+                                future_start_idx:future_end_idx
+                            ].copy()
+
+                            if self.__class__.__name__ == "NHITS":
+                                # NHITS needs input_size + horizon periods for future exog
+                                # Use last input_size from historical + horizon from future
+                                hist_futr_start = max(0, hist_end_idx - self.input_size)
+                                hist_futr_data = series_data.iloc[
+                                    hist_futr_start:hist_end_idx
+                                ]
+
+                                # Combine historical + future periods
+                                combined_bg_futr = pd.concat(
+                                    [hist_futr_data, historical_future_data],
+                                    ignore_index=True,
+                                )
+                            else:
+                                # Other models just need horizon periods
+                                combined_bg_futr = historical_future_data
+
+                            # Extract only the future exogenous columns
+                            futr_exog_data = combined_bg_futr[
+                                ["unique_id", "ds"] + self.futr_exog_list
+                            ].copy()
+
+                            # Set y to 0 for future periods
+                            futr_exog_data["y"] = 0.0
+
+                            # Add historical exog columns with 0 values
+                            if has_hist_exog:
+                                for hist_col in self.hist_exog_list:
+                                    futr_exog_data[hist_col] = 0.0
+
+                            # Combine historical + historical "future" exog data
+                            window_data = pd.concat(
+                                [historical_data, futr_exog_data],
+                                ignore_index=True,
+                                sort=False,
+                            )
+
+                            print(
+                                f"DEBUG: Background window {window_idx} using {len(futr_exog_data)} periods of historical future exog"
+                            )
+                        else:
+                            print(
+                                f"DEBUG: Background window {window_idx} - insufficient data for future exog, skipping"
+                            )
+                            continue  # Skip this background window if we can't create proper future exog
+
+                    # Create unique identifier for each background window
+                    window_data["unique_id"] = f"{series_id}_bg_{window_idx}"
                     window_data["window_idx"] = window_idx
                     window_data["original_series_id"] = series_id
-                    window_data["is_target"] = window_idx >= max_background_windows
+                    window_data["is_target"] = False
 
                     windows_list.append(window_data)
 
                     print(
-                        f"DEBUG: Created window {window_idx} for series {series_id}: "
-                        f"unique_id={window_data['unique_id'].iloc[0]}, "
+                        f"DEBUG: Created background window {window_idx} for series {series_id}: "
                         f"dates {window_data['ds'].iloc[0]} to {window_data['ds'].iloc[-1]}, "
-                        f"target: {window_data['is_target'].iloc[0]}"
+                        f"total periods: {len(window_data)}"
                     )
+
+                # Create TARGET window - the actual prediction scenario
+                # Use the most recent input_size periods from training data
+                target_start_idx = series_length - self.input_size
+                target_historical_data = series_data.iloc[target_start_idx:].copy()
+
+                target_window_data = target_historical_data.copy()
+
+                # Add future exogenous data if provided (this creates the actual prediction scenario)
+                if series_X_df is not None and has_futr_exog:
+                    print(
+                        "DEBUG: Target window - adding actual future exog data from X_df"
+                    )
+
+                    # For NHITS: need input_size + horizon future exog periods
+                    if self.__class__.__name__ == "NHITS":
+                        # NHITS needs both historical and future periods for future exog
+                        # Use last input_size periods from historical + all future exog data
+                        hist_futr_start = max(0, series_length - self.input_size)
+                        hist_futr_data = series_data.iloc[hist_futr_start:series_length]
+
+                        # Use the actual future exog data from X_df
+                        actual_futr_data = series_X_df.copy()
+
+                        # Combine them for future exog
+                        futr_exog_data = pd.concat(
+                            [
+                                hist_futr_data[
+                                    ["unique_id", "ds"] + self.futr_exog_list
+                                ],
+                                actual_futr_data[
+                                    ["unique_id", "ds"] + self.futr_exog_list
+                                ],
+                            ],
+                            ignore_index=True,
+                        )
+                    else:
+                        # Other models just need actual future data
+                        futr_exog_data = series_X_df[
+                            ["unique_id", "ds"] + self.futr_exog_list
+                        ].copy()
+
+                    # Set y to 0 for future periods
+                    futr_exog_data["y"] = 0.0
+
+                    # Add historical exog columns with 0 values for future periods
+                    if has_hist_exog:
+                        for hist_col in self.hist_exog_list:
+                            futr_exog_data[hist_col] = 0.0
+
+                    print(
+                        f"DEBUG: Target window using {len(futr_exog_data)} periods of actual future exog"
+                    )
+
+                    # Combine historical + actual future exog data for the target window
+                    target_window_data = pd.concat(
+                        [target_historical_data, futr_exog_data],
+                        ignore_index=True,
+                        sort=False,
+                    )
+
+                # Create unique identifier for target window
+                target_window_data["unique_id"] = f"{series_id}_target"
+                target_window_data["window_idx"] = max_background_windows
+                target_window_data["original_series_id"] = series_id
+                target_window_data["is_target"] = True
+
+                windows_list.append(target_window_data)
+
+                futr_exog_info = (
+                    f"with {len(series_X_df)} future exog periods"
+                    if series_X_df is not None
+                    else "no future exog"
+                )
+                print(
+                    f"DEBUG: Created target window for series {series_id}: "
+                    f"dates {target_historical_data['ds'].iloc[0]} to {target_historical_data['ds'].iloc[-1]}, "
+                    f"periods: {len(target_window_data)}, {futr_exog_info}"
+                )
+
+                print(
+                    f"DEBUG: Total windows created for {series_id}: {max_background_windows} background + 1 target"
+                )
 
             if not windows_list:
                 raise ValueError(
@@ -1586,6 +1698,9 @@ class BaseModel(pl.LightningModule):
 
             # Combine all windows into a single dataframe
             all_windows_df = pd.concat(windows_list, ignore_index=True)
+
+            # Fill any remaining NaN values
+            all_windows_df = all_windows_df.fillna(0.0)
 
             print(f"DEBUG: Created {len(windows_list)} total windows")
             print(
@@ -1598,13 +1713,11 @@ class BaseModel(pl.LightningModule):
             # Prepare static_df for windows if needed
             window_static_df = None
             if static_df is not None:
-                # Create static data for each window (duplicate the original series static data)
                 static_rows = []
                 for window_data in windows_list:
                     original_series = window_data["original_series_id"].iloc[0]
                     window_unique_id = window_data["unique_id"].iloc[0]
 
-                    # Find static data for the original series
                     original_static = static_df[
                         static_df["unique_id"] == original_series
                     ]
@@ -1630,93 +1743,45 @@ class BaseModel(pl.LightningModule):
 
             print(f"DEBUG: TimeSeriesDataset created with {len(dataset)} samples")
 
+            # Use temporal windowing sampling logic
+            dataloader = DataLoader(
+                dataset,
+                batch_size=len(dataset),
+                shuffle=False,
+                collate_fn=custom_collate_fn,
+            )
+            batch = next(iter(dataloader))
+
+            all_features = self._extract_target_features(batch)
+
+            # Count background and target windows
+            background_windows = sum(
+                1 for w in windows_list if not w["is_target"].iloc[0]
+            )
+            target_windows = sum(1 for w in windows_list if w["is_target"].iloc[0])
+
+            background_indices = list(range(background_windows))
+            target_indices = list(
+                range(background_windows, background_windows + target_windows)
+            )
+
+            if len(target_indices) == 0:
+                raise ValueError("No target windows available for explanation.")
+
+            background_data = all_features[background_indices]
+            target_data = all_features[target_indices]
+
+            print(
+                f"DEBUG: Temporal windowing - Background: {background_data.shape}, Target: {target_data.shape}"
+            )
+
         except Exception as e:
             raise ValueError(
                 f"Failed to create TimeSeriesDataset from provided data: {str(e)}"
             )
 
-        if len(dataset) == 0:
-            raise ValueError(
-                "Created dataset is empty. Check that input data provides sufficient context for predictions."
-            )
-
-        # Custom collate function to handle pandas Index objects
-        def custom_collate_fn(batch):
-            """Custom collate function that handles pandas Index objects"""
-            if len(batch) == 0:
-                return {}
-
-            # Get first sample to understand structure
-            first_sample = batch[0]
-
-            collated = {}
-            for key in first_sample.keys():
-                if key in ["temporal_cols", "static_cols"]:
-                    # For pandas Index objects, just take the first one (they should be the same)
-                    collated[key] = first_sample[key]
-                elif key == "y_idx":
-                    # y_idx should be the same for all samples
-                    collated[key] = first_sample[key]
-                else:
-                    # For tensors and other data, use default collation
-                    values = [sample[key] for sample in batch]
-                    if values[0] is not None:
-                        collated[key] = torch.stack(values)
-                    else:
-                        collated[key] = None
-            return collated
-
-        # Access dataset using neuralforecast's DataLoader with custom collate
-        from torch.utils.data import DataLoader
-
-        # Create dataloader to get all samples
-        dataloader = DataLoader(
-            dataset,
-            batch_size=len(dataset),
-            shuffle=False,  # Don't shuffle - we want chronological order
-            collate_fn=custom_collate_fn,
-        )
-        batch = next(iter(dataloader))
-
-        print(f"DEBUG: Batch keys: {list(batch.keys())}")
-        if "temporal" in batch:
-            print(f"DEBUG: Batch temporal shape: {batch['temporal'].shape}")
-
-        # Extract features (handles both univariate and multivariate)
-        all_features = self._extract_target_features(batch)
-        print(f"DEBUG: Extracted features shape: {all_features.shape}")
-
-        # Split features based on the window metadata we created
-        n_samples = all_features.shape[0]
-
-        # Count background and target windows from our window creation
-        background_windows = sum(1 for w in windows_list if not w["is_target"].iloc[0])
-        target_windows = sum(1 for w in windows_list if w["is_target"].iloc[0])
-
-        print(f"DEBUG: Number of feature samples: {n_samples}")
-        print(f"DEBUG: Expected background windows: {background_windows}")
-        print(f"DEBUG: Expected target windows: {target_windows}")
-
-        # The first background_windows samples are background, the rest are target
-        background_indices = list(range(background_windows))
-        target_indices = list(
-            range(background_windows, background_windows + target_windows)
-        )
-
-        print(f"DEBUG: Background indices: {background_indices}")
-        print(f"DEBUG: Target indices: {target_indices}")
-
-        if len(target_indices) == 0:
-            raise ValueError("No target windows available for explanation.")
-
-        background_data = all_features[background_indices]
-        target_data = all_features[target_indices]
-
-        print(f"DEBUG: Background data shape: {background_data.shape}")
-        print(f"DEBUG: Target data shape: {target_data.shape}")
-
-        print(f"DEBUG: Background data sample: {background_data[0][:5]}...")
-        print(f"DEBUG: Target data sample: {target_data[0][:5]}...")
+        if len(target_data) == 0:
+            raise ValueError("No target samples available for explanation.")
 
         # Create SHAP explainer
         prediction_wrapper = self._create_shap_wrapper()
@@ -1751,22 +1816,19 @@ class BaseModel(pl.LightningModule):
             "model_alias": getattr(self, "alias", None),
             "is_multivariate": self.MULTIVARIATE,
             "aggregate_lags": aggregate_lags,
-            "original_feature_names": original_feature_names,  # Keep original for reference
-            "explained_periods": len(
-                target_indices
-            ),  # Number of prediction windows explained
-            "background_periods": len(
-                background_indices
-            ),  # Number of background windows
-            "total_series": len(
-                input_df["unique_id"].unique()
-            ),  # Number of series in input
-            "explanation_type": "temporal_windows",  # New field to indicate this is temporal explanation
+            "original_feature_names": original_feature_names,
+            "explained_periods": len(target_data),
+            "background_periods": len(background_data),
+            "total_series": len(input_df["unique_id"].unique()),
+            "explanation_type": "temporal_windows",
             "window_info": {
                 "input_size": self.input_size,
                 "horizon": getattr(self, "h", 1),
-                "background_windows": len(background_indices),
-                "target_windows": len(target_indices),
+                "background_samples": len(background_data),
+                "target_samples": len(target_data),
+                "has_futr_exog": has_futr_exog,
+                "has_hist_exog": has_hist_exog,
+                "has_stat_exog": has_stat_exog,
                 "total_windows_created": len(windows_list),
             },
         }
