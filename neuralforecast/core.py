@@ -1338,10 +1338,11 @@ class NeuralForecast:
                         self.dataset.indptr[i] : self.dataset.indptr[i + 1]
                     ],
                     temporal_cols=self.dataset.temporal_cols,
+                    static=self.dataset.static,
+                    static_cols=self.dataset.static_cols,
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
                 )
-
                 # Trim the series
                 trimmed_series = TimeSeriesDataset.trim_dataset(
                     dataset=series_dataset,
@@ -1360,6 +1361,8 @@ class NeuralForecast:
                         self.dataset.indptr[i] : self.dataset.indptr[i + 1]
                     ],
                     temporal_cols=self.dataset.temporal_cols,
+                    static=self.dataset.static,
+                    static_cols=self.dataset.static_cols,
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
                 )
