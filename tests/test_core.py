@@ -24,12 +24,27 @@ from ray import tune
 
 import neuralforecast
 from neuralforecast.auto import (
+    MLP,
+    NBEATS,
+    NHITS,
+    RNN,
+    TCN,
+    TFT,
     AutoDilatedRNN,
+    Autoformer,
     AutoMLP,
     AutoNBEATS,
     AutoNBEATSx,
     AutoRNN,
     AutoTCN,
+    DeepAR,
+    DilatedRNN,
+    Informer,
+    NBEATSx,
+    StemGNN,
+    TSMixer,
+    TSMixerx,
+    VanillaTransformer,
 )
 from neuralforecast.core import (
     LSTM,
@@ -55,21 +70,6 @@ from neuralforecast.losses.pytorch import (
     MQLoss,
     QuantileLoss,
 )
-from neuralforecast.models.autoformer import Autoformer
-from neuralforecast.models.deepar import DeepAR
-from neuralforecast.models.dilated_rnn import DilatedRNN
-from neuralforecast.models.informer import Informer
-from neuralforecast.models.mlp import MLP
-from neuralforecast.models.nbeats import NBEATS
-from neuralforecast.models.nbeatsx import NBEATSx
-from neuralforecast.models.nhits import NHITS
-from neuralforecast.models.rnn import RNN
-from neuralforecast.models.stemgnn import StemGNN
-from neuralforecast.models.tcn import TCN
-from neuralforecast.models.tft import TFT
-from neuralforecast.models.tsmixer import TSMixer
-from neuralforecast.models.tsmixerx import TSMixerx
-from neuralforecast.models.vanillatransformer import VanillaTransformer
 from neuralforecast.utils import (
     AirPassengersDF,
     AirPassengersPanel,
