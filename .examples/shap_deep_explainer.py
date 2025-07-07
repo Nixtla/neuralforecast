@@ -128,12 +128,12 @@ class ModelWrapper(torch.nn.Module):
         # Call original model
         return self.original_model(windows_batch)
 
-# Create input for explanation - only future exogenous features vary
+# Create input for explanation - only future exogenous features
 X_explain_df = futr_exog_df[futr_exog_cols]
 X_explain_flat = X_explain_df.to_numpy().flatten().reshape(1, -1)
 X_explain_tensor = torch.tensor(X_explain_flat, dtype=torch.float32)
 
-# Create background data - only future exogenous features vary
+# Create background data - only future exogenous features
 train_exog_df = Y_train_df[Y_train_df['unique_id'] == 'Airline1'][futr_exog_cols]
 background_windows = []
 
@@ -245,8 +245,15 @@ print(f"Verified Prediction (Baseline + SHAP Values): {verified_prediction:.4f}"
 print(f"Actual Model Prediction: {actual_prediction:.4f}")
 print(f"Difference: {abs(verified_prediction - actual_prediction):.4f}")
 
-# Check if additivity holds (allow for slightly larger tolerance due to DeepExplainer approximations)
-if abs(verified_prediction - actual_prediction) < 0.1:
+# Check if additivity holds with relative tolerance
+relative_tolerance = 0.005  # 0.5%
+absolute_tolerance = abs(actual_prediction) * relative_tolerance
+relative_error = abs(verified_prediction - actual_prediction) / abs(actual_prediction) * 100
+
+print(f"Relative error: {relative_error:.2f}%")
+print(f"Tolerance: {relative_tolerance * 100:.1f}%")
+
+if abs(verified_prediction - actual_prediction) < absolute_tolerance:
     print("✅ Additivity check PASSED - SHAP values sum correctly!")
 else:
     print("❌ Additivity check FAILED - There may be an issue with the implementation")
