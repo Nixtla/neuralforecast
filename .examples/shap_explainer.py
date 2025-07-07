@@ -6,8 +6,6 @@ from neuralforecast.core import NeuralForecast
 from neuralforecast.models import MLP
 from utilsforecast.feature_engineering import time_features, fourier
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
-import numpy as np
-import pandas as pd
 
 import shap
 import torch
@@ -71,6 +69,8 @@ background_summary = shap.kmeans(np.array(background_windows), 25)
 # 2. Loop Through Horizons and Explain
 # Store calculated SHAP values for each horizon we want to analyze.
 all_shap_values = {}
+# Store explainers for each horizon step
+all_explainers = {}
 # Let's explain the 1st, 6th, and 12th month predictions.
 # h=1 -> index 0, h=6 -> index 5, h=12 -> index 11
 horizons_to_explain = {'Forecast for 1st Month': 0, 'Forecast for 6th Month': 5, 'Forecast for 12th Month': 11}
@@ -106,6 +106,7 @@ for name, h_idx in horizons_to_explain.items():
     explainer = shap.KernelExplainer(predict_fn, background_summary)
     shap_values = explainer.shap_values(X_explain_flat, nsamples=n_samples)
     all_shap_values[name] = shap_values
+    all_explainers[name] = explainer
     print(f"Finished explaining: {name}")
 
 
@@ -134,6 +135,7 @@ for name, shaps in all_shap_values.items():
 # You must have already run the code that generates these variables.
 name_to_verify = 'Forecast for 1st Month'
 shap_values_to_verify = all_shap_values[name_to_verify]
+explainer_to_verify = all_explainers[name_to_verify]
 h_idx_to_verify = horizons_to_explain[name_to_verify]
 
 # 1. Get the model's actual prediction for the 1st month
@@ -142,7 +144,7 @@ actual_prediction_df = nf.predict(futr_df=futr_exog_df)
 actual_prediction = actual_prediction_df[model.alias].iloc[h_idx_to_verify]
 
 # (Assuming you just ran the loop, the last explainer is for the 12th month, so we can use it directly)
-base_value = explainer.expected_value
+base_value = explainer_to_verify.expected_value
 
 # 3. Sum the SHAP values for the prediction
 sum_of_shap_values = np.sum(shap_values_to_verify)
