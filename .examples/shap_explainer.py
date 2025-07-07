@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from neuralforecast.core import NeuralForecast
 from neuralforecast.models import MLP
 from utilsforecast.feature_engineering import time_features, fourier
-from neuralforecast.utils import AirPassengersPanel
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 import numpy as np
 import pandas as pd
 
@@ -33,11 +33,15 @@ model = MLP(
     input_size=24,
     hist_exog_list=["y_[lag12]"],
     futr_exog_list=["trend", "month", "week", 'sin1_12', 'sin2_12', 'sin3_12', 'sin4_12', 'cos1_12', 'cos2_12', 'cos3_12', 'cos4_12'],
+    stat_exog_list=['airline1'],
     max_steps=200,
     alias="MLP"
 )
 nf = NeuralForecast(models=[model], freq="ME")
-nf.fit(df=Y_train_df[Y_train_df["unique_id"] == "Airline1"])
+nf.fit(
+    df=Y_train_df[Y_train_df["unique_id"] == "Airline1"],
+    static_df=AirPassengersStatic
+)
 
 futr_exog_df = Y_test_df.drop(["y", "y_[lag12]"], axis=1)
 futr_exog_df = futr_exog_df[futr_exog_df['unique_id'] == 'Airline1'].reset_index(drop=True)
@@ -55,7 +59,7 @@ X_explain_flat = X_explain_df.to_numpy().flatten().reshape(1, -1)
 # 1. Create Background Data
 # SHAP needs a background dataset to represent "missing" features.
 # We create this by taking sliding windows of the future exogenous features from the training data.
-train_exog_df = Y_train_df[futr_exog_cols].fillna(0) # Fill any NaNs
+train_exog_df = Y_train_df[futr_exog_cols]
 background_windows = []
 for i in range(len(train_exog_df) - model.h + 1):
     window = train_exog_df.iloc[i:i + model.h].to_numpy()
@@ -72,10 +76,9 @@ all_shap_values = {}
 horizons_to_explain = {'Forecast for 1st Month': 0, 'Forecast for 6th Month': 5, 'Forecast for 12th Month': 11}
 
 print("Calculating SHAP values for different forecast horizons... This may take a few minutes.")
-n_samples = 20 # Samples to use by the KernelExplainer 
+n_samples = 2 # Samples to use by the KernelExplainer 
 # I used low number because it's super slow. The reason is that is getting a lot of predict_fn calls.
 # If this works and its ok we can think in implementing the shap.KernelExplainer specific for predicting a lot of the samples once and then just follow the logic.
-
 for name, h_idx in horizons_to_explain.items():
     # 3. Define the Wrapper Prediction Function
     def predict_fn(X_flat):
