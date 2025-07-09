@@ -99,7 +99,7 @@ class BaseModel(pl.LightningModule):
         windows_batch_size: int,
         inference_windows_batch_size: Union[int, None],
         start_padding_enabled: bool,
-        available_sample_fractions: Union[float, List[float]] = 0.0,
+        training_data_availability_threshold: Union[float, List[float]] = 0.0,
         n_series: Union[int, None] = None,
         n_samples: Union[int, None] = 100,
         h_train: int = 1,
@@ -338,18 +338,43 @@ class BaseModel(pl.LightningModule):
             self.inference_windows_batch_size = inference_windows_batch_size
 
         # Filtering training windows by available sample fractions
-        if isinstance(available_sample_fractions, (int, float)):
-            self.min_insample_fraction = float(available_sample_fractions)
-            self.min_outsample_fraction = float(available_sample_fractions)
+        if isinstance(training_data_availability_threshold, int):
+            raise ValueError(
+                "training_data_availability_threshold cannot be an integer - must be a float"
+            )
+        elif isinstance(training_data_availability_threshold, float):
+            if (
+                training_data_availability_threshold < 0.0
+                or training_data_availability_threshold > 1.0
+            ):
+                raise ValueError(
+                    f"training_data_availability_threshold must be between 0.0 and 1.0, got {training_data_availability_threshold}"
+                )
+            self.min_insample_fraction = training_data_availability_threshold
+            self.min_outsample_fraction = training_data_availability_threshold
         elif (
-            isinstance(available_sample_fractions, (list, tuple))
-            and len(available_sample_fractions) == 2
+            isinstance(training_data_availability_threshold, (list, tuple))
+            and len(training_data_availability_threshold) == 2
         ):
-            self.min_insample_fraction = float(available_sample_fractions[0])
-            self.min_outsample_fraction = float(available_sample_fractions[1])
+            for i, value in enumerate(training_data_availability_threshold):
+                if isinstance(value, int):
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] cannot be an integer - must be a float"
+                    )
+                if not isinstance(value, float):
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] must be a float"
+                    )
+                if value < 0.0 or value > 1.0:
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] must be between 0.0 and 1.0, got {value}"
+                    )
+
+            self.min_insample_fraction = training_data_availability_threshold[0]
+            self.min_outsample_fraction = training_data_availability_threshold[1]
         else:
             raise ValueError(
-                "available_sample_fractions must be a float or a list/tuple of two floats"
+                "training_data_availability_threshold must be a float or a list/tuple of two floats"
             )
 
         # Optimization
