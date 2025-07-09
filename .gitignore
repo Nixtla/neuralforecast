@@ -22,6 +22,7 @@ _proc
 lightning_logs/
 /**/data/
 debug_run
+*.env
 
 longhorizon/
 _old/

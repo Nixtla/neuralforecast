@@ -19,6 +19,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import neuralforecast.losses.pytorch as losses
+import time
 
 from ..losses.pytorch import BasePointLoss, DistributionLoss
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -1259,9 +1260,16 @@ class BaseModel(pl.LightningModule):
         )  # univariate: [Ws, S]; multivariate: [n_series, S]
 
         # Model Predictions
+        start = time.perf_counter()
         output = self(windows_batch)
+        end = time.perf_counter()
+        print(f"Model forward pass took {end - start:.4f} seconds")
+        start = time.perf_counter()
         output = self.loss.domain_map(output)
+        end = time.perf_counter()
+        print(f"Domain mapping took {end - start:.4f} seconds")
 
+        start = time.perf_counter()
         if self.loss.is_distribution_output:
             y_loc, y_scale = self._get_loc_scale(y_idx)
             outsample_y = original_outsample_y
@@ -1273,6 +1281,8 @@ class BaseModel(pl.LightningModule):
             loss = self.loss(
                 y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
             )
+        end = time.perf_counter()
+        print(f"Loss computation took {end - start:.4f} seconds")
 
         if torch.isnan(loss):
             print("Model Parameters", self.hparams)

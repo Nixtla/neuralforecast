@@ -1,3 +1,4 @@
+#%%
 import os
 import glob
 import s3fs
@@ -23,13 +24,7 @@ for path in paths:
     dataset = path.split("/")[-3]
     model_name = path.split("/")[-2]
     loss_name = path.split("/")[-4]
-
-    df = pl.read_parquet(f"s3://{path}", storage_options=storage_options)
-    df = df.with_columns(pl.lit(model_name).alias("model"))
-    df = df.with_columns(pl.lit(loss_name).alias("loss_name"))
-    df = df.rename({f"{model_name}": "values"})
-
-    horizon = df["horizon"].unique().item()
+    horizon = int(path.split("/")[-1].split("_")[1].split(".")[0].replace("h", ""))
 
     # Check if the file already exists
     filename = f"eval/{loss_name}_{dataset}_{horizon}_{model_name}.parquet"
@@ -38,6 +33,10 @@ for path in paths:
         continue
     else:
         print(f"Writing file: {filename}")
+        df = pl.read_parquet(f"s3://{path}", storage_options=storage_options)
+        df = df.with_columns(pl.lit(model_name).alias("model"))
+        df = df.with_columns(pl.lit(loss_name).alias("loss_name"))
+        df = df.rename({f"{model_name}": "values"})
         df.write_parquet(
         f"{filename}",
     )
@@ -49,7 +48,9 @@ df = pl.scan_parquet("eval/*.parquet")
 metrics = ["scaled_crps"]
 new_loss_name = "method"
 final_metric_name = "CRPS"
-df = df.filter(pl.col("metric").is_in(metrics))
+methods = ["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal", "isqf_minmax1_v2"]
+df = df.filter(pl.col("metric").is_in(metrics))\
+       .filter(pl.col("loss_name").is_in(methods))
 df = df.rename({"loss_name": new_loss_name})
 df_base = df.filter(pl.col(new_loss_name) == "normal")
 df = df.join(df_base, on=["dataset", "horizon", "model", "metric"], suffix="_base")
@@ -69,7 +70,7 @@ sns.boxplot(
     x=new_loss_name,
     y=final_metric_name,
     showfliers=False,
-    order=["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal"],
+    order=["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal", "isqf_minmax1_v2"],
     ax=ax,
     )
 plt.xticks(rotation=30)
@@ -81,7 +82,9 @@ df = pl.scan_parquet("eval/*.parquet")
 metrics = ["scaled_crps"]
 new_loss_name = "method"
 final_metric_name = "CRPS"
+methods = ["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal", "isqf_minmax1_v2"]
 df = df.filter(pl.col("metric").is_in(metrics))
+df = df.filter(pl.col("loss_name").is_in(methods))
 df = df.rename({"loss_name": new_loss_name})
 df_base = df.filter(pl.col(new_loss_name) == "normal")
 df = df.join(df_base, on=["dataset", "horizon", "model", "metric"], suffix="_base")
@@ -106,7 +109,7 @@ for i, dataset in enumerate(datasets):
         x=new_loss_name,
         y=final_metric_name,
         showfliers=False,
-        order=["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal"],
+        order=["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal", "isqf_minmax1_v2"],
         ax=ax,
     )
     ax.set_title(dataset)
@@ -218,16 +221,22 @@ df = pl.scan_parquet("eval/*.parquet")
 metrics = ["coverage_level10", "coverage_level20", "coverage_level30", "coverage_level40", "coverage_level50", "coverage_level60", "coverage_level70", "coverage_level80", "coverage_level90"]
 new_loss_name = "method"
 new_metric_name = "coverage"
-datasets = ["ETTm1"]
+datasets = ["ETTh1"]
+horizon = 96
+model = "BiTCN"
+methods = ["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "isqf", "conformal", "isqf_minmax1_v2"]
 
 df = df.filter(pl.col("metric").is_in(metrics))\
-       .filter(pl.col("dataset").is_in(datasets))
+         .filter(pl.col("loss_name").is_in(methods))\
+       .filter(pl.col("dataset").is_in(datasets))\
+         .filter(pl.col("model") == model)\
+         .filter(pl.col("horizon") == horizon)
 df = df.rename({"loss_name": new_loss_name, "values": new_metric_name}).collect()
 
 fig, axs = plt.subplots(nrows=3, ncols=3, figsize=(20, 10))
 sns.set_theme(context={'font.size': 16})
 sns.set_style("dark")
-methods = ["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "conformal"]
+# methods = ["normal", "studentt", "gmm", "hubermqloss", "iqloss", "iqf", "conformal"]
 for i, method in enumerate(methods):
     ax = axs[i // 3, i % 3]
     df_dataset = df.filter(pl.col(new_loss_name) == method)
@@ -255,3 +264,13 @@ for i, method in enumerate(methods):
     ax.set_ylim(0, 1)
 axs[2, 1].axis('off')  # Hide the empty subplot
 axs[2, 2].axis('off')  # Hide the empty subplot
+#%% Best architecture
+import polars as pl
+df = pl.scan_parquet("eval/*.parquet")
+metrics = ["scaled_crps"]
+df = df.filter(pl.col("metric").is_in(metrics))
+df = df.group_by(["model"])\
+         .agg(
+             pl.col("values").mean().alias("mean_values"),
+             pl.col("values").std().alias("std_values"),
+         ).collect()

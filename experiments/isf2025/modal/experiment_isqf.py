@@ -64,14 +64,15 @@ def load_models(horizon, input_size, n_series, seed):
         "num_pieces": num_pieces,
         "quantiles": quantiles,
     }
-    early_stop_patience_steps = 1
+    early_stop_patience_steps = 5
     val_check_steps = 1
-    callbacks = [EarlyStopping(monitor="train_loss", patience=early_stop_patience_steps, mode="min"),]
+    callbacks = [EarlyStopping(monitor="train_loss", patience=early_stop_patience_steps, min_delta=0.02),]
     max_steps = 1000
+    scaler_type = "minmax1"
     models = [    
                NHITS(h=horizon,
                     input_size=input_size,
-                    scaler_type='robust',
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -81,7 +82,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),   
                DLinear(h=horizon,
                     input_size=input_size,
-                    scaler_type='robust',
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -91,7 +92,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ), 
                TiDE(h=horizon,
                     input_size=input_size,
-                    scaler_type='robust',
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -101,7 +102,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ), 
                BiTCN(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -111,7 +112,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),                  
                MLP(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -121,7 +122,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),         
                PatchTST(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -131,7 +132,7 @@ def load_models(horizon, input_size, n_series, seed):
                ),
                TFT(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -141,7 +142,7 @@ def load_models(horizon, input_size, n_series, seed):
                ),
                TSMixer(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     n_series=n_series,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
@@ -152,7 +153,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),                                                                                         
                iTransformer(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     n_series=n_series,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
@@ -163,7 +164,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ), 
                LSTM(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -173,7 +174,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),
                DeepAR(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -193,7 +194,7 @@ def load_models(horizon, input_size, n_series, seed):
             #         ),
                NLinear(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -203,7 +204,7 @@ def load_models(horizon, input_size, n_series, seed):
                ),                   
                NBEATS(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -214,7 +215,7 @@ def load_models(horizon, input_size, n_series, seed):
                TimeMixer(h=horizon,
                     input_size=input_size,
                     n_series=n_series,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -224,7 +225,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),
                VanillaTransformer(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -234,7 +235,7 @@ def load_models(horizon, input_size, n_series, seed):
                     ),   
                TimesNet(h=horizon,
                     input_size=input_size,
-                    scaler_type="robust",
+                    scaler_type=scaler_type,
                     loss=loss(**loss_kwargs),
                     random_seed=seed,
                     # early_stop_patience_steps=early_stop_patience_steps,
@@ -246,7 +247,7 @@ def load_models(horizon, input_size, n_series, seed):
 
     return models
 #%% Run cross-validation
-def cross_validation(dataset, horizon, metrics, seed=1234567, path_prefix="s3://timenet/isf2025/isqf"):
+def cross_validation(dataset, horizon, metrics, seed=1234567, path_prefix="s3://timenet/isf2025/isqf_minmax1_v2"):
     
     id_col = 'unique_id'
     time_col = 'ds'

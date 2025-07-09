@@ -7,8 +7,8 @@ import time
 # from experiment_hubermqloss import cross_validation
 # from experiment_iqloss import cross_validation
 # from experiments.isf2025.modal.experiment_iqf import cross_validation
-# from experiment_isqf import cross_validation
-from experiment_gmm import cross_validation
+from experiment_isqf import cross_validation
+# from experiment_gmm import cross_validation
 
 from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
 from utilsforecast.losses import mae, mse, smape, mqloss, scaled_mqloss, scaled_crps, mase, coverage
