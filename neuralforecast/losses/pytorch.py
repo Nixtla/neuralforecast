@@ -1607,10 +1607,10 @@ class BaseISQF(Distribution):
         return torch.sum(result, dim=-1)
 
     def loss(self, z: torch.Tensor) -> torch.Tensor:
-        return self.crps(z)
+        return F.softplus(self.crps(z))
 
     def log_prob(self, z: torch.Tensor) -> torch.Tensor:
-        return -self.crps(z)
+        return -F.softplus(self.crps(z))
 
     def crps(self, z: torch.Tensor) -> torch.Tensor:
         """
@@ -1723,20 +1723,17 @@ def isqf_domain_map(
     # Because in this case the spline knots could be squeezed together
     # and cause overflow in spline CRPS computation
     num_qk = len(quantiles)
-    n_outputs = 2 * (num_qk - 1) * num_pieces + 2 + num_qk
+    knots_pieces = (num_qk - 1) * num_pieces
+    n_outputs = 2 * knots_pieces + 2 + num_qk
 
     # Reshape: [B, h, N * n_outputs] -> [B, h, N, n_outputs]
-    input = input.reshape(input.shape[0], input.shape[1], -1, n_outputs)
-    start_index = 0
-    spline_knots = input[..., start_index : start_index + (num_qk - 1) * num_pieces]
-    start_index += (num_qk - 1) * num_pieces
-    spline_heights = input[..., start_index : start_index + (num_qk - 1) * num_pieces]
-    start_index += (num_qk - 1) * num_pieces
-    beta_l = input[..., start_index : start_index + 1]
-    start_index += 1
-    beta_r = input[..., start_index : start_index + 1]
-    start_index += 1
-    quantile_knots = F.softplus(input[..., start_index : start_index + num_qk]) + tol
+    input_reshaped = input.reshape(input.shape[0], input.shape[1], -1, n_outputs)
+    spline_knots, spline_heights, beta_l, beta_r, quantile_knots = torch.split(
+        input_reshaped, [knots_pieces, knots_pieces, 1, 1, num_qk], dim=-1
+    )
+    quantile_knots = torch.cat(
+        [quantile_knots[..., :1], F.softplus(quantile_knots[..., 1:]) + tol], dim=-1
+    )
 
     qk_y = torch.cumsum(quantile_knots, dim=-1)
 
