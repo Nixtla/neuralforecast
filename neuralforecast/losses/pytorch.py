@@ -126,7 +126,6 @@ class MAE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -167,7 +166,6 @@ class MSE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -213,7 +211,6 @@ class RMSE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -259,7 +256,6 @@ class MAPE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -310,7 +306,6 @@ class SMAPE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
-        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -467,7 +462,6 @@ class QuantileLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -600,7 +594,6 @@ class MQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2732,16 +2725,16 @@ class NBMM(torch.nn.Module):
 class HuberLoss(BasePointLoss):
     """ Huber Loss
 
-    The Huber loss, employed in robust regression, is a loss function that 
-    exhibits reduced sensitivity to outliers in data when compared to the 
+    The Huber loss, employed in robust regression, is a loss function that
+    exhibits reduced sensitivity to outliers in data when compared to the
     squared error loss. This function is also refered as SmoothL1.
 
-    The Huber loss function is quadratic for small errors and linear for large 
-    errors, with equal values and slopes of the different sections at the two 
+    The Huber loss function is quadratic for small errors and linear for large
+    errors, with equal values and slopes of the different sections at the two
     points where $(y_{\\tau}-\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\hat{y}_{\\tau}|$.
 
     $$ L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
-    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\ 
+    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\
     \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}$$
 
     where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
@@ -2750,7 +2743,7 @@ class HuberLoss(BasePointLoss):
     **Parameters:**<br>
     `delta`: float=1.0, Specifies the threshold at which to change between delta-scaled L1 and L2 loss.
     `horizon_weight`: Tensor of size h, weight for each timestamp of the forecasting window. <br>
-    
+
     **References:**<br>
     [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)
     """
@@ -2765,7 +2758,6 @@ class HuberLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2785,19 +2777,19 @@ class HuberLoss(BasePointLoss):
 class TukeyLoss(BasePointLoss):
     """ Tukey Loss
 
-    The Tukey loss function, also known as Tukey's biweight function, is a 
+    The Tukey loss function, also known as Tukey's biweight function, is a
     robust statistical loss function used in robust statistics. Tukey's loss exhibits
     quadratic behavior near the origin, like the Huber loss; however, it is even more
-    robust to outliers as the loss for large residuals remains constant instead of 
+    robust to outliers as the loss for large residuals remains constant instead of
     scaling linearly.
 
     The parameter $c$ in Tukey's loss determines the ''saturation'' point
-    of the function: Higher values of $c$ enhance sensitivity, while lower values 
+    of the function: Higher values of $c$ enhance sensitivity, while lower values
     increase resistance to outliers.
 
     $$ L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
     =\\begin{cases}{
-    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\ 
+    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
     \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}$$
 
     Please note that the Tukey loss function assumes the data to be stationary or
@@ -2841,7 +2833,6 @@ class TukeyLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2913,7 +2904,6 @@ class HuberQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -3020,7 +3010,6 @@ class HuberMQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
-        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
