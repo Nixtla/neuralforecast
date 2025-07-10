@@ -126,6 +126,7 @@ class MAE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -166,6 +167,7 @@ class MSE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -211,6 +213,7 @@ class RMSE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -256,6 +259,7 @@ class MAPE(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -306,6 +310,7 @@ class SMAPE(BasePointLoss):
         y: torch.Tensor,
         y_hat: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
         **Parameters:**<br>
@@ -462,6 +467,7 @@ class QuantileLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -594,6 +600,7 @@ class MQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2758,6 +2765,7 @@ class HuberLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2833,6 +2841,7 @@ class TukeyLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -2904,6 +2913,7 @@ class HuberQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -3010,6 +3020,7 @@ class HuberMQLoss(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
@@ -3190,6 +3201,7 @@ class Accuracy(BasePointLoss):
         self,
         y: torch.Tensor,
         y_hat: torch.Tensor,
+        y_insample: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
