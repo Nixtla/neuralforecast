@@ -457,6 +457,7 @@ class PredictionIntervals:
     def __init__(
         self,
         n_windows: int = 2,
+        step_size: int = 1,
         method: str = "conformal_distribution",
     ):
         """
@@ -465,6 +466,8 @@ class PredictionIntervals:
         method : str, default is conformal_distribution
             One of the supported methods for the computation of prediction intervals:
             conformal_error or conformal_distribution
+        step_size : int, default is 1
+            Step size for the prediction intervals.
         """
         if n_windows < 2:
             raise ValueError(
@@ -475,11 +478,10 @@ class PredictionIntervals:
             raise ValueError(f"method must be one of {allowed_methods}")
         self.n_windows = n_windows
         self.method = method
+        self.step_size = step_size
 
     def __repr__(self):
-        return (
-            f"PredictionIntervals(n_windows={self.n_windows}, method='{self.method}')"
-        )
+        return f"PredictionIntervals(n_windows={self.n_windows}, method='{self.method}', step_size={self.step_size})"
 
 # %% ../nbs/utils.ipynb 32
 def add_conformal_distribution_intervals(

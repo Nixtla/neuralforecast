@@ -1688,12 +1688,15 @@ class NeuralForecast:
             )
 
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
-        min_samples = self.h * self.prediction_intervals.n_windows + 1
+        min_samples = (
+            self.h
+            + self.prediction_intervals.n_windows * self.prediction_intervals.step_size
+        )
         if min_size < min_samples:
             raise ValueError(
                 "Minimum required samples in each serie for the prediction intervals "
                 f"settings are: {min_samples}, shortest serie has: {min_size}. "
-                "Please reduce the number of windows, horizon or remove those series."
+                "Please reduce the number of windows, horizon, step_size or remove those series."
             )
 
         self._add_level = True
@@ -1701,6 +1704,7 @@ class NeuralForecast:
             df=df,
             static_df=static_df,
             n_windows=self.prediction_intervals.n_windows,
+            step_size=self.prediction_intervals.step_size,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
