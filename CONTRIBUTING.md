@@ -36,13 +36,12 @@ Bug fixes and features are added through pull requests (PRs).
 Create a virtual environment to install the library's dependencies. We recommend [astral's uv](https://github.com/astral-sh/uv).
 Once you've created the virtual environment you should activate it and then install the library in editable mode along with its development dependencies.
 
-Install cpu-only version on Linux OS:
- * The added `--extra-index-url` follows the instructions provided by https://pytorch.org/get-started/locally/ for individual OS platform.
+Install cpu-only version:
 ```bash
 pip install uv
 uv venv --python 3.10
 source .venv/bin/activate
-uv pip install -Ue .[dev] --extra-index-url https://download.pytorch.org/whl/cpu
+uv pip install -Ue .[dev]
 ```
 
 Installation with cuda support
