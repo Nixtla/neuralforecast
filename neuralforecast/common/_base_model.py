@@ -721,9 +721,11 @@ class BaseModel(pl.LightningModule):
 
             # Calculate minimum required available points based on fractions
             min_insample_points = max(
-                1, int(self.input_size * self.min_insample_fraction)
+                1, int(self.input_size * self.min_insample_fraction * self.n_series)
             )
-            min_outsample_points = max(1, int(self.h * self.min_outsample_fraction))
+            min_outsample_points = max(
+                1, int(self.h * self.min_outsample_fraction * self.n_series)
+            )
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")

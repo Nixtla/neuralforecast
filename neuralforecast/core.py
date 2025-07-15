@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['NeuralForecast']
 
-# %% ../nbs/core.ipynb 4
+# %% ../nbs/core.ipynb 5
 import pickle
 import warnings
 from copy import deepcopy
@@ -77,7 +77,7 @@ from neuralforecast.utils import (
     quantiles_to_level,
 )
 
-# %% ../nbs/core.ipynb 5
+# %% ../nbs/core.ipynb 6
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
 warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
@@ -135,7 +135,7 @@ def _insample_times(
     out = ufp.assign_columns(out, "cutoff", actual_cutoffs)
     return out
 
-# %% ../nbs/core.ipynb 7
+# %% ../nbs/core.ipynb 8
 MODEL_FILENAME_DICT = {
     "autoformer": Autoformer,
     "autoautoformer": Autoformer,
@@ -204,7 +204,7 @@ MODEL_FILENAME_DICT = {
     "autotimexer": TimeXer,
 }
 
-# %% ../nbs/core.ipynb 8
+# %% ../nbs/core.ipynb 9
 _type2scaler = {
     "standard": LocalStandardScaler,
     "robust": lambda: LocalRobustScaler(scale="mad"),
@@ -213,7 +213,7 @@ _type2scaler = {
     "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
 }
 
-# %% ../nbs/core.ipynb 9
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
 
     def __init__(
