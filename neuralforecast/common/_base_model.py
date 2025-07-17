@@ -729,19 +729,19 @@ class BaseModel(pl.LightningModule):
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            available_condition = windows[:, : self.input_size, available_idx]
-            available_condition = torch.sum(
-                available_condition, axis=(1, -1)
+            insample_condition = windows[:, : self.input_size, available_idx]
+            insample_condition = torch.sum(
+                insample_condition, axis=(1, -1)
             )  # Sum over time & series dimension
-            final_condition = available_condition >= min_insample_points
+            final_condition = insample_condition >= min_insample_points
 
             if self.h > 0:
-                sample_condition = windows[:, self.input_size :, available_idx]
-                sample_condition = torch.sum(
-                    sample_condition, axis=(1, -1)
+                outsample_condition = windows[:, self.input_size :, available_idx]
+                outsample_condition = torch.sum(
+                    outsample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
-                final_condition = (sample_condition >= min_outsample_points) & (
-                    available_condition >= min_insample_points
+                final_condition = (outsample_condition >= min_outsample_points) & (
+                    insample_condition >= min_insample_points
                 )
 
             windows = windows[final_condition]
