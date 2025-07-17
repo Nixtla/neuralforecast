@@ -206,6 +206,7 @@ class TimeLLM(BaseModel):
     `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
     `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
+    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
     `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
     `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
@@ -267,6 +268,7 @@ class TimeLLM(BaseModel):
         windows_batch_size: int = 1024,
         inference_windows_batch_size: int = 1024,
         start_padding_enabled: bool = False,
+        training_data_availability_threshold=0.0,
         step_size: int = 1,
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
@@ -299,6 +301,7 @@ class TimeLLM(BaseModel):
             windows_batch_size=windows_batch_size,
             inference_windows_batch_size=inference_windows_batch_size,
             start_padding_enabled=start_padding_enabled,
+            training_data_availability_threshold=training_data_availability_threshold,
             step_size=step_size,
             scaler_type=scaler_type,
             drop_last_loader=drop_last_loader,
