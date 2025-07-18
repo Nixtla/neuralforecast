@@ -32,22 +32,26 @@ Bug fixes and features are added through pull requests (PRs).
 * SSH: `git clone git@github.com:Nixtla/neuralforecast.git`
 * GitHub CLI: `gh repo clone Nixtla/neuralforecast`
 
-#### Set up a conda environment
-The repo comes with an `environment.yml` file which contains the libraries needed to run all the tests. In order to set up the environment you must have `conda` installed, we recommend [miniconda](https://docs.conda.io/en/latest/miniconda.html).
+#### Set up an environment
+Create a virtual environment to install the library's dependencies. We recommend [astral's uv](https://github.com/astral-sh/uv).
+Once you've created the virtual environment you should activate it and then install the library in editable mode along with its development dependencies.
 
-Once you have `conda` go to the top level directory of the repository and run the following lines:
-```
-conda create -n neuralforecast python=3.10
-conda activate neuralforecast
-```
-Then, run one of the following commands:
-```
-conda env update -f environment-cpu.yml  # choose this if you want to install the CPU-only version of neuralforecast
-conda env update -f environment-cuda.yml # choose this if you want to install the CUDA-enabled version of neuralforecast
+Install cpu-only version:
+```bash
+pip install uv
+uv venv --python 3.10
+source .venv/bin/activate
+uv pip install -Ue .[dev]
 ```
 
-#### Install the library
-Once you have your environment setup, activate it using `conda activate neuralforecast` and then install the library in editable mode using `pip install -e ".[dev]"`
+Installation with cuda support
+```bash
+pip install uv
+uv venv --python 3.10
+source .venv/bin/activate
+uv pip install -Ue .[dev,cuda]
+```
+
 
 #### Install git hooks
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).

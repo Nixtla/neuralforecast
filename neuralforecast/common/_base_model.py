@@ -99,6 +99,7 @@ class BaseModel(pl.LightningModule):
         windows_batch_size: int,
         inference_windows_batch_size: Union[int, None],
         start_padding_enabled: bool,
+        training_data_availability_threshold: Union[float, List[float]] = 0.0,
         n_series: Union[int, None] = None,
         n_samples: Union[int, None] = 100,
         h_train: int = 1,
@@ -335,6 +336,46 @@ class BaseModel(pl.LightningModule):
             self.inference_windows_batch_size = windows_batch_size
         else:
             self.inference_windows_batch_size = inference_windows_batch_size
+
+        # Filtering training windows by available sample fractions
+        if isinstance(training_data_availability_threshold, int):
+            raise ValueError(
+                "training_data_availability_threshold cannot be an integer - must be a float"
+            )
+        elif isinstance(training_data_availability_threshold, float):
+            if (
+                training_data_availability_threshold < 0.0
+                or training_data_availability_threshold > 1.0
+            ):
+                raise ValueError(
+                    f"training_data_availability_threshold must be between 0.0 and 1.0, got {training_data_availability_threshold}"
+                )
+            self.min_insample_fraction = training_data_availability_threshold
+            self.min_outsample_fraction = training_data_availability_threshold
+        elif (
+            isinstance(training_data_availability_threshold, (list, tuple))
+            and len(training_data_availability_threshold) == 2
+        ):
+            for i, value in enumerate(training_data_availability_threshold):
+                if isinstance(value, int):
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] cannot be an integer - must be a float"
+                    )
+                if not isinstance(value, float):
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] must be a float"
+                    )
+                if value < 0.0 or value > 1.0:
+                    raise ValueError(
+                        f"training_data_availability_threshold[{i}] must be between 0.0 and 1.0, got {value}"
+                    )
+
+            self.min_insample_fraction = training_data_availability_threshold[0]
+            self.min_outsample_fraction = training_data_availability_threshold[1]
+        else:
+            raise ValueError(
+                "training_data_availability_threshold must be a float or a list/tuple of two floats"
+            )
 
         # Optimization
         self.learning_rate = learning_rate
@@ -678,20 +719,30 @@ class BaseModel(pl.LightningModule):
                 windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
 
-            # Sample and Available conditions
+            # Calculate minimum required available points based on fractions
+            min_insample_points = max(
+                1, int(self.input_size * self.min_insample_fraction * self.n_series)
+            )
+            min_outsample_points = max(
+                1, int(self.h * self.min_outsample_fraction * self.n_series)
+            )
+
+            # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            available_condition = windows[:, : self.input_size, available_idx]
-            available_condition = torch.sum(
-                available_condition, axis=(1, -1)
+            insample_condition = windows[:, : self.input_size, available_idx]
+            insample_condition = torch.sum(
+                insample_condition, axis=(1, -1)
             )  # Sum over time & series dimension
-            final_condition = available_condition > 0
+            final_condition = insample_condition >= min_insample_points
 
             if self.h > 0:
-                sample_condition = windows[:, self.input_size :, available_idx]
-                sample_condition = torch.sum(
-                    sample_condition, axis=(1, -1)
+                outsample_condition = windows[:, self.input_size :, available_idx]
+                outsample_condition = torch.sum(
+                    outsample_condition, axis=(1, -1)
                 )  # Sum over time & series dimension
-                final_condition = (sample_condition > 0) & (available_condition > 0)
+                final_condition = (outsample_condition >= min_outsample_points) & (
+                    insample_condition >= min_insample_points
+                )
 
             windows = windows[final_condition]
 
