@@ -42,22 +42,23 @@ pip install uv
 uv venv --python 3.10
 ```
 
+Then, activate the virtual environment:
 - On Linux/MacOS:
-Activate the virtual environment and install the cpu-only or the cuda-enabled version:
-
 ```bash
 source .venv/bin/activate
-uv pip install -Ue .[dev] # cpu-only version
-uv pip install -Ue .[dev, cuda] # cuda version
-```
+``` 
 
 - On Windows:
 ```bash
 .\.venv\Scripts\activate
-uv pip install -Ue .[dev] # cpu-only version
-uv pip install -Ue .[dev, cuda] # cuda version
-```
+``` 
 
+Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-pip-install--torch-backend):
+
+```bash
+uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
+uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
+```
 
 #### Install git hooks
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).

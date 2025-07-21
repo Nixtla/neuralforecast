@@ -17,10 +17,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-13, windows-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        exclude:
-          - os: windows-latest
-            python-version: "3.11"
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_NIXTLA_TMP }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NIXTLA_TMP }}
