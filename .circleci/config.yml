@@ -16,7 +16,8 @@ jobs:
           no_output_timeout: 20m
           command: |
             source .venv/bin/activate
-            uv pip install ".[dev]"            
+            uv pip install ".[dev]"
+            export GIT_PYTHON_REFRESH=quiet
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
     resource_class: xlarge
