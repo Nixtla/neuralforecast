@@ -32,14 +32,12 @@ class xLSTM(BaseModel):
 
     **Parameters:**<br>
     `h`: int, forecast horizon.<br>
-    `input_size`: int, maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon <br>
-    `inference_input_size`: int, maximum sequence length for truncated inference. Default None uses input_size history.<br>
-    `h_train`: int, maximum sequence length for truncated train backpropagation. Default 1.<br>
-    `encoder_n_layers`: int=2, number of layers for the LSTM.<br>
-    `encoder_hidden_size`: int=200, units for the LSTM's hidden state size.<br>
-    `encoder_bias`: bool=True, whether or not to use biases b_ih, b_hh within LSTM units.<br>
-    `encoder_dropout`: float=0., dropout regularization applied to LSTM outputs.<br>
-    `decoder_hidden_size`: int=200, size of hidden layer for the MLP decoder.<br>
+    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+    `encoder_n_blocks`: int=2, number of blocks for the xLSTM.<br>
+    `encoder_hidden_size`: int=128, units for the xLSTM's hidden state size.<br>
+    `encoder_bias`: bool=True, whether or not to use biases within xLSTM blocks.<br>
+    `encoder_dropout`: float=0., dropout regularization applied within xLSTM blocks.<br>
+    `decoder_hidden_size`: int=128, size of hidden layer for the MLP decoder.<br>
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
@@ -87,7 +85,7 @@ class xLSTM(BaseModel):
         input_size: int = -1,
         inference_input_size: Optional[int] = None,
         h_train: int = 1,
-        encoder_n_layers: int = 2,
+        encoder_n_blocks: int = 2,
         encoder_hidden_size: int = 128,
         encoder_bias: bool = True,
         encoder_dropout: float = 0.0,
@@ -165,17 +163,7 @@ class xLSTM(BaseModel):
             **trainer_kwargs
         )
 
-        # LSTM
-        self.encoder_n_layers = encoder_n_layers
-        self.encoder_hidden_size = encoder_hidden_size
-        self.encoder_bias = encoder_bias
-        self.encoder_dropout = encoder_dropout
-
-        # MLP decoder
-        self.decoder_hidden_size = decoder_hidden_size
-        self.decoder_layers = decoder_layers
-
-        # LSTM input size (1 for target variable y)
+        # xLSTM input size (1 for target variable y)
         input_encoder = (
             1 + self.hist_exog_size + self.stat_exog_size + self.futr_exog_size
         )
@@ -187,7 +175,7 @@ class xLSTM(BaseModel):
         block_stack_config = xLSTMBlockStackConfig(
             mlstm_block=mLSTMBlockConfig(),
             context_length=input_size,
-            num_blocks=encoder_n_layers,
+            num_blocks=encoder_n_blocks,
             embedding_dim=encoder_hidden_size,
             bias=encoder_bias,
             dropout=encoder_dropout,
@@ -196,10 +184,10 @@ class xLSTM(BaseModel):
 
         # Decoder MLP
         self.mlp_decoder = MLP(
-            in_features=self.encoder_hidden_size + self.futr_exog_size,
+            in_features=encoder_hidden_size + self.futr_exog_size,
             out_features=self.loss.outputsize_multiplier,
-            hidden_size=self.decoder_hidden_size,
-            num_layers=self.decoder_layers,
+            hidden_size=decoder_hidden_size,
+            num_layers=decoder_layers,
             activation="ReLU",
             dropout=0.0,
         )
