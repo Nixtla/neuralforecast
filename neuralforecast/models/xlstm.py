@@ -191,8 +191,7 @@ class xLSTM(BaseModel):
             activation="ReLU",
             dropout=0.0,
         )
-        if self.h > self.input_size:
-            self.upsample_sequence = nn.Linear(self.input_size, self.h)
+        self.upsample_sequence = nn.Linear(self.input_size, self.h)
 
     def forward(self, windows_batch):
 
@@ -229,20 +228,15 @@ class xLSTM(BaseModel):
         hidden_state = self.hist_encoder(
             encoder_input
         )  # [B, seq_len, rnn_hidden_state]
-        if self.h > self.input_size:
-            hidden_state = hidden_state.permute(
-                0, 2, 1
-            )  # [B, seq_len, rnn_hidden_state] -> [B, rnn_hidden_state, seq_len]
-            hidden_state = self.upsample_sequence(
-                hidden_state
-            )  # [B, rnn_hidden_state, seq_len] -> [B, rnn_hidden_state, h]
-            hidden_state = hidden_state.permute(
-                0, 2, 1
-            )  # [B, rnn_hidden_state, h] -> [B, h, rnn_hidden_state]
-        else:
-            hidden_state = hidden_state[
-                :, -self.h :
-            ]  # [B, seq_len, rnn_hidden_state] -> [B, h, rnn_hidden_state]
+        hidden_state = hidden_state.permute(
+            0, 2, 1
+        )  # [B, seq_len, rnn_hidden_state] -> [B, rnn_hidden_state, seq_len]
+        hidden_state = self.upsample_sequence(
+            hidden_state
+        )  # [B, rnn_hidden_state, seq_len] -> [B, rnn_hidden_state, h]
+        hidden_state = hidden_state.permute(
+            0, 2, 1
+        )  # [B, rnn_hidden_state, h] -> [B, h, rnn_hidden_state]
 
         if self.futr_exog_size > 0:
             futr_exog_futr = futr_exog[:, -self.h :]  # [B, h, F]
@@ -254,4 +248,4 @@ class xLSTM(BaseModel):
             hidden_state
         )  # [B, h, rnn_hidden_state + F] -> [B, seq_len, n_output]
 
-        return output[:, -self.h :]
+        return output
