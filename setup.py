@@ -27,6 +27,8 @@ py_versions = '3.9 3.10 3.11 3.12'.split()
 requirements = cfg.get('requirements','').split()
 aws_requirements = cfg['aws_requirements'].split()
 spark_requirements = cfg['spark_requirements'].split()
+cuda_requirements = cfg.get('cuda_requirements', '').split()
+
 if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').split()
 min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
@@ -48,6 +50,7 @@ setuptools.setup(
         'aws': aws_requirements,
         'spark': spark_requirements,
         'dev': dev_requirements,
+        'cuda': cuda_requirements,
     },
     dependency_links = cfg.get('dep_links','').split(),
     python_requires  = '>=' + cfg['min_python'],

@@ -3,38 +3,39 @@ jobs:
   nbdev-tests:
     resource_class: xlarge
     docker:
-      - image: mambaorg/micromamba:1.5-focal
+      - image: python:3.10-slim
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 git -f environment-cpu.yml
+          command: |
+            pip install uv
+            uv venv --python 3.10
       - run:
           name: Run nbdev tests
           no_output_timeout: 20m
           command: |
-            eval "$(micromamba shell hook --shell bash)"
-            micromamba activate base
-            pip install ".[dev]"
+            source .venv/bin/activate
+            uv pip install ".[dev]"            
             nbdev_test --do_print --timing --n_workers 1
   test-model-performance:
     resource_class: xlarge
     docker:
-      - image: mambaorg/micromamba:1.5-focal
+      - image: python:3.10-slim
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
+          command: |
+            pip install uv
+            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            eval "$(micromamba shell hook --shell bash)"
-            micromamba activate base
-            pip install -e ".[dev]"
-            export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+            source .venv/bin/activate
+            uv pip install -e ".[dev]"
             cd ./action_files/test_models/
-            pip install -r requirements.txt
+            uv pip install -r requirements.txt
             python -m src.models
             python -m src.evaluation
             cd ../../
@@ -44,21 +45,21 @@ jobs:
   test-model-performance2:
     resource_class: xlarge
     docker:
-      - image: mambaorg/micromamba:1.5-focal
+      - image: python:3.10-slim
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
+          command: |
+            pip install uv
+            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            eval "$(micromamba shell hook --shell bash)"
-            micromamba activate base
-            pip install -e ".[dev]"
-            export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+            source .venv/bin/activate
+            uv pip install -e ".[dev]"
             cd ./action_files/test_models/
-            pip install -r requirements.txt
+            uv pip install -r requirements.txt
             python -m src.models2
             python -m src.evaluation2
             cd ../../
@@ -68,21 +69,21 @@ jobs:
   test-multivariate-model-performance:
     resource_class: xlarge
     docker:
-      - image: mambaorg/micromamba:1.5-focal
+      - image: python:3.10-slim
     steps:
       - checkout
       - run:
           name: Install dependencies
-          command: micromamba install -n base -c conda-forge -y python=3.10 -f environment-cpu.yml
+          command: |
+            pip install uv
+            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            eval "$(micromamba shell hook --shell bash)"
-            micromamba activate base
-            pip install -e ".[dev]"
-            export LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+            source .venv/bin/activate
+            uv pip install -e ".[dev]"
             cd ./action_files/test_models/
-            pip install -r requirements.txt
+            uv pip install -r requirements.txt
             python -m src.multivariate_models
             python -m src.multivariate_evaluation
             cd ../../
