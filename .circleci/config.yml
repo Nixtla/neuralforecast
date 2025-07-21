@@ -3,14 +3,14 @@ jobs:
   nbdev-tests:
     resource_class: xlarge
     docker:
-      - image: python:3.10-slim
+      - image: python:3.11-slim
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
             pip install uv
-            uv venv --python 3.10
+            uv venv --python 3.11
       - run:
           name: Run nbdev tests
           no_output_timeout: 20m
