@@ -134,7 +134,8 @@
             "models.timexer.html",
             "models.tsmixer.html",
             "models.tsmixerx.html",
-            "models.vanillatransformer.html"
+            "models.vanillatransformer.html",
+            "models.xlstm.html"
             ]
         },
         "models.html",
