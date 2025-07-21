@@ -1,5 +1,3 @@
-import unittest
-
 import numpy as np
 import torch as t
 
@@ -26,8 +24,9 @@ from neuralforecast.losses.pytorch import (
 
 
 # Test class for pytorch/numpy loss functions
-class TestLoss(unittest.TestCase):
-    def setUp(self):
+class TestLoss:
+    @classmethod
+    def setup_class(self):
         self.num_quantiles = np.random.randint(3, 10)
         self.first_num = np.random.randint(1, 300)
         self.second_num = np.random.randint(1, 300)
@@ -44,33 +43,33 @@ class TestLoss(unittest.TestCase):
         mae_numpy   = mae(self.y, self.y_hat)
         mae_pytorch = MAE()
         mae_pytorch = mae_pytorch(self.y, self.y_hat).numpy()
-        self.assertAlmostEqual(mae_numpy, mae_pytorch, places=6)
+        np.testing.assert_array_almost_equal(mae_numpy, mae_pytorch, decimal=6)
 
     def test_mse(self):
         mse_numpy   = mse(self.y, self.y_hat)
         mse_pytorch = MSE()
         mse_pytorch = mse_pytorch(self.y, self.y_hat).numpy()
-        self.assertAlmostEqual(mse_numpy, mse_pytorch, places=6)
+        np.testing.assert_array_almost_equal(mse_numpy, mse_pytorch, decimal=6)
 
     def test_rmse(self):
         rmse_numpy   = rmse(self.y, self.y_hat)
         rmse_pytorch = RMSE()
         rmse_pytorch = rmse_pytorch(self.y, self.y_hat).numpy()
-        self.assertAlmostEqual(rmse_numpy, rmse_pytorch, places=6)
+        np.testing.assert_array_almost_equal(rmse_numpy, rmse_pytorch, decimal=6)
 
     def test_mape(self):
         mape_numpy   = mape(y=self.y, y_hat=self.y_hat)
         mape_pytorch = MAPE()
         mape_pytorch = mape_pytorch(y=self.y, y_hat=self.y_hat).numpy()
-        self.assertAlmostEqual(mape_numpy, mape_pytorch, places=6)
+        np.testing.assert_array_almost_equal(mape_numpy, mape_pytorch, decimal=6)
 
     def test_smape(self):
         smape_numpy   = smape(self.y, self.y_hat)
         smape_pytorch = SMAPE()
         smape_pytorch = smape_pytorch(self.y, self.y_hat).numpy()
-        self.assertAlmostEqual(smape_numpy, smape_pytorch, places=4)
+        np.testing.assert_array_almost_equal(smape_numpy, smape_pytorch, decimal=6)
 
-    #def test_mase(self):
+    # def test_mase(self):
     #    y_insample = t.rand(self.first_num, self.second_num)
     #    seasonality = 24
     #    # Hourly 24, Daily 7, Weekly 52
@@ -80,7 +79,7 @@ class TestLoss(unittest.TestCase):
     #    mase_object  = MASE(seasonality=seasonality)
     #    mase_pytorch = mase_object(y=self.y, y_hat=self.y_hat,
     #                               y_insample=y_insample).numpy()
-    #    self.assertAlmostEqual(mase_numpy, mase_pytorch, places=2)
+    #    np.testing.assert_array_almost_equal(mase_numpy, mase_pytorch, decimal=2)
 
     #def test_rmae(self):
     #    rmae_numpy   = rmae(self.y, self.y_hat, self.y_hat2)
@@ -92,7 +91,7 @@ class TestLoss(unittest.TestCase):
         quantile_numpy = quantile_loss(self.y, self.y_hat, q = self.q_float)
         quantile_pytorch = QuantileLoss(q = self.q_float)
         quantile_pytorch = quantile_pytorch(self.y, self.y_hat).numpy()
-        self.assertAlmostEqual(quantile_numpy, quantile_pytorch, places=6)
+        np.testing.assert_array_almost_equal(quantile_numpy, quantile_pytorch, decimal=6)
 
     # def test_mqloss(self):
     #     weights = np.ones_like(self.y)
@@ -116,10 +115,9 @@ class TestLoss(unittest.TestCase):
     #                               y_hat=self.y_hat_quantile,
     #                               mask=t.Tensor(weights)).numpy()
 
-    #     self.assertAlmostEqual(mql_np_w,  mql_np_default_w)
-    #     self.assertAlmostEqual(mql_py_w,  mql_py_default_w)
-    #     self.assertAlmostEqual(mql_np_new_w,  mql_py_new_w)
+    #     np.testing.assert_array_almost_equal(mql_np_w,  mql_np_default_w)
+    #     np.testing.assert_array_almost_equal(mql_py_w,  mql_py_default_w)
+    #     np.testing.assert_array_almost_equal(mql_np_new_w,  mql_py_new_w)
 
 
-unittest.main(argv=[''], verbosity=2, exit=False)
 
