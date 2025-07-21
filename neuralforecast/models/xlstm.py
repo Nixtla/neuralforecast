@@ -18,11 +18,9 @@ try:
     from xlstm.xlstm_block_stack import xLSTMBlockStack, xLSTMBlockStackConfig
     from xlstm.blocks.mlstm.block import mLSTMBlockConfig
 
+    IS_XLSTM_INSTALLED = True
 except ImportError:
-    warnings.warn(
-        "xLSTM is not installed. Please install it with `pip install xlstm`.",
-        ImportWarning,
-    )
+    IS_XLSTM_INSTALLED = False
 
 # %% ../../nbs/models.xlstm.ipynb 5
 class xLSTM(BaseModel):
@@ -162,6 +160,11 @@ class xLSTM(BaseModel):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
+
+        if not IS_XLSTM_INSTALLED:
+            raise ImportError(
+                "Please install `xlstm`. You might also need to install `mlstm_kernels` for GPU support."
+            )
 
         # xLSTM input size (1 for target variable y)
         input_encoder = (
