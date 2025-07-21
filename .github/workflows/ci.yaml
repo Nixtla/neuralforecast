@@ -36,8 +36,7 @@ jobs:
       - name: Install pip requirements
         run: >
           pip install uv &&
-          uv pip install --system -i https://download.pytorch.org/whl/cpu "torch>=2.0.0,<=2.6.0" &&
-          uv pip install --system "numpy<2" ".[dev]"
+          uv pip install --system ".[dev]"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars
