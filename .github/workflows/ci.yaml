@@ -43,7 +43,7 @@ jobs:
 
       - name: Tests MacOS
         if: matrix.os == 'macos-latest'
-        run: nbdev_test --do_print --timing --flags polars
+        run: nbdev_test --do_print --timing --n_workers 1 --flags polars
 
       - name: Tests Linux / Windows
         if: matrix.os != 'macos-latest'
