@@ -31,13 +31,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up environment variables for macos
+      - name: MacOS tests
         if: matrix.os == 'macos-latest'
         run: | 
-          echo "PYTORCH_ENABLE_MPS_FALLBACK=1" >> $GITHUB_ENV
-          echo "PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0" >> $GITHUB_ENV
+          pip install uv && uv pip install --system ".[dev]" --torch-backend=cpu
+          uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
 
-      - name: Install pip requirements
+      - name: Linux / Windows tests
+        if: matrix.os != 'macos-latest'
         run: |
           pip install uv && uv pip install --system ".[dev]" --torch-backend=cpu
 
