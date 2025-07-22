@@ -36,22 +36,30 @@ Bug fixes and features are added through pull requests (PRs).
 Create a virtual environment to install the library's dependencies. We recommend [astral's uv](https://github.com/astral-sh/uv).
 Once you've created the virtual environment you should activate it and then install the library in editable mode along with its development dependencies.
 
-Install cpu-only version:
+Install `uv` and create a virtual environment:
 ```bash
 pip install uv
 uv venv --python 3.10
-source .venv/bin/activate
-uv pip install -Ue .[dev]
 ```
 
-Installation with cuda support
+Then, activate the virtual environment:
+- On Linux/MacOS:
 ```bash
-pip install uv
-uv venv --python 3.10
 source .venv/bin/activate
-uv pip install -Ue .[dev,cuda]
-```
+``` 
 
+- On Windows:
+```bash
+.\.venv\Scripts\activate
+``` 
+
+Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-pip-install--torch-backend):
+
+```bash
+uv pip install -e ".[dev]" --torch-backend auto # uv will decide the optimal backend automatically
+uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
+uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
+```
 
 #### Install git hooks
 Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
