@@ -56,6 +56,7 @@ source .venv/bin/activate
 Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-pip-install--torch-backend):
 
 ```bash
+uv pip install -e ".[dev]" --torch-backend auto # uv will decide the optimal backend automatically
 uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
 uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
 ```

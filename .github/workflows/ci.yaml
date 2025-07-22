@@ -41,5 +41,10 @@ jobs:
         run: |
           pip install uv && uv pip install --system ".[dev]" --torch-backend cpu
 
-      - name: Tests
-        run: nbdev_test --do_print --timing --n_workers 0 --flags polars
+      - name: Tests MacOS
+        if: matrix.os == 'macos-latest'
+        run: nbdev_test --do_print --timing --flags polars
+
+      - name: Tests Linux / Windows
+        if: matrix.os != 'macos-latest'
+        run: nbdev_test --do_print --timing --n_workers 0 --flags polars        
