@@ -527,7 +527,7 @@ def test_predict_insample_step_size(setup_airplane_data):
 
 
 def test_predict_insample_diff_loss(setup_airplane_data):
-    AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
+    AirPassengersPanel_train, _ = setup_airplane_data
 
 
     def get_expected_cols(model, level):
@@ -1110,7 +1110,11 @@ def test_save_load_no_dataset(setup_airplane_data):
 def test_enable_checkpointing(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
 
-    # shutil.rmtree("lightning_logs")
+    try:
+        shutil.rmtree("lightning_logs")
+    except:
+        print("Directory does not exist")
+
     fcst = NeuralForecast(
         models=[
             MLP(
@@ -1902,7 +1906,7 @@ def test_neuralforecast_cross_validation_conformal_prediction(setup_airplane_dat
             prediction_intervals=prediction_intervals,
             level=[30, 70]
         )
-    assert "Passing prediction_intervals and/or level is only supported with refit=True." in str(exc_info.value)
+    assert "Passing prediction_intervals is only supported with refit=True." in str(exc_info.value)
 
     # Test that refit=True produces conformal predictions outputs
     cv2 = nf.cross_validation(
