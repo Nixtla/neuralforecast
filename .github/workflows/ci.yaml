@@ -18,9 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-13, windows-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        exclude:
-          - os: windows-latest
-            python-version: "3.11"
+
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID_NIXTLA_TMP }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY_NIXTLA_TMP }}
@@ -33,11 +31,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install pip requirements
-        run: >
-          pip install uv &&
-          uv pip install --system -i https://download.pytorch.org/whl/cpu "torch>=2.0.0,<=2.6.0" &&
-          uv pip install --system "numpy<2" ".[dev]"
+      - name: Install dependencies
+        run: pip install uv && uv pip install --system ".[dev]" --torch-backend cpu
+
+      - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
+        if: matrix.os == 'macos-13'
+        run: uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
 
       - name: Tests
         run: nbdev_test --do_print --timing --n_workers 0 --flags polars
