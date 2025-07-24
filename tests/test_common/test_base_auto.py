@@ -7,7 +7,7 @@ import pytest
 import pytorch_lightning as pl
 from fastcore.test import test_eq as _test_eq
 from nbdev.showdoc import show_doc
-from ray import air, tune
+from ray import tune
 
 from neuralforecast.common._base_auto import BaseAuto
 from neuralforecast.losses.numpy import mae
