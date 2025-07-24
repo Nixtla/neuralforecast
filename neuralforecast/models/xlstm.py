@@ -37,6 +37,8 @@ class xLSTM(BaseModel):
     `encoder_dropout`: float=0., dropout regularization applied within xLSTM blocks.<br>
     `decoder_hidden_size`: int=128, size of hidden layer for the MLP decoder.<br>
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
+    `decoder_dropout`: float=0., dropout regularization applied within the MLP decoder.<br>
+    `decoder_activation`: str='GELU', activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
@@ -66,6 +68,10 @@ class xLSTM(BaseModel):
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
     `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+
+    **References:**<br>
+    -[Maximilian Beck, Korbinian Pöppel, Markus Spanring, Andreas Auer, Oleksandra Prudnikova, Michael Kopp, Günter Klambauer, Johannes Brandstetter, Sepp Hochreiter (2024). "xLSTM: Extended Long Short-Term Memory"](https://arxiv.org/abs/2405.04517)
+
     """
 
     # Class attributes
@@ -86,9 +92,11 @@ class xLSTM(BaseModel):
         encoder_n_blocks: int = 2,
         encoder_hidden_size: int = 128,
         encoder_bias: bool = True,
-        encoder_dropout: float = 0.0,
+        encoder_dropout: float = 0.1,
         decoder_hidden_size: int = 128,
-        decoder_layers: int = 2,
+        decoder_layers: int = 1,
+        decoder_dropout: float = 0.0,
+        decoder_activation: str = "GELU",
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -172,7 +180,7 @@ class xLSTM(BaseModel):
         )
 
         # Architecture
-        self.projection = nn.Linear(
+        self.feature_projection = nn.Linear(
             in_features=input_encoder, out_features=encoder_hidden_size
         )
         block_stack_config = xLSTMBlockStackConfig(
@@ -191,10 +199,10 @@ class xLSTM(BaseModel):
             out_features=self.loss.outputsize_multiplier,
             hidden_size=decoder_hidden_size,
             num_layers=decoder_layers,
-            activation="ReLU",
-            dropout=0.0,
+            activation=decoder_activation,
+            dropout=decoder_dropout,
         )
-        self.upsample_sequence = nn.Linear(self.input_size, self.h)
+        self.temporal_projection = nn.Linear(self.input_size, self.h)
 
     def forward(self, windows_batch):
 
@@ -225,7 +233,7 @@ class xLSTM(BaseModel):
                 (encoder_input, futr_exog[:, :seq_len]), dim=2
             )  # [B, seq_len, 1 + X + S] + [B, seq_len, F] -> [B, seq_len, 1 + X + S + F]
 
-        encoder_input = self.projection(
+        encoder_input = self.feature_projection(
             encoder_input
         )  # [B, seq_len, 1 + X + S + F] -> [B, seq_len, rnn_hidden_state]
         hidden_state = self.hist_encoder(
@@ -234,7 +242,7 @@ class xLSTM(BaseModel):
         hidden_state = hidden_state.permute(
             0, 2, 1
         )  # [B, seq_len, rnn_hidden_state] -> [B, rnn_hidden_state, seq_len]
-        hidden_state = self.upsample_sequence(
+        hidden_state = self.temporal_projection(
             hidden_state
         )  # [B, rnn_hidden_state, seq_len] -> [B, rnn_hidden_state, h]
         hidden_state = hidden_state.permute(
@@ -249,6 +257,6 @@ class xLSTM(BaseModel):
 
         output = self.mlp_decoder(
             hidden_state
-        )  # [B, h, rnn_hidden_state + F] -> [B, seq_len, n_output]
+        )  # [B, h, rnn_hidden_state + F] -> [B, h, n_output]
 
         return output
