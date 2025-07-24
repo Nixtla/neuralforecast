@@ -26,7 +26,7 @@ ACTIVATIONS = [
     "GELU",
     "ELU",
     "SiLU",
-    " Mish",
+    "Mish",
     "GLU",
     "Softsign",
     "Hardshrink",
