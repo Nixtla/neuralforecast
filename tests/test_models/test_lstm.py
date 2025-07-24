@@ -1,9 +1,9 @@
-from test_helpers import check_args
-
 from neuralforecast.auto import AutoLSTM
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import LSTM
+
+from .test_helpers import check_args
 
 
 def test_lstm_model(suppress_warnings):

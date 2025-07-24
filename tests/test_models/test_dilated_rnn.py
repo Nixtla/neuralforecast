@@ -1,9 +1,9 @@
-from test_helpers import check_args
-
 from neuralforecast.auto import AutoDilatedRNN
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import DilatedRNN
+
+from .test_helpers import check_args
 
 
 def test_dilated_rnn(suppress_warnings):

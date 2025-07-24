@@ -4,13 +4,14 @@ import warnings
 import numpy as np
 import pandas as pd
 import pytest
-from test_helpers import check_args
 
 from neuralforecast.auto import NBEATS, AutoNBEATS
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
+
+from .test_helpers import check_args
 
 
 def test_nbeats_model(suppress_warnings):
