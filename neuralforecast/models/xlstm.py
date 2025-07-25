@@ -23,7 +23,7 @@ try:
 except ImportError:
     IS_XLSTM_INSTALLED = False
 
-# %% ../../nbs/models.xlstm.ipynb 6
+# %% ../../nbs/models.xlstm.ipynb 5
 class xLSTM(BaseModel):
     """xLSTM
 
