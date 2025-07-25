@@ -17,12 +17,13 @@ from ..common._modules import MLP
 try:
     from xlstm.xlstm_block_stack import xLSTMBlockStack, xLSTMBlockStackConfig
     from xlstm.blocks.mlstm.block import mLSTMBlockConfig
+    from xlstm.blocks.slstm.block import sLSTMBlockConfig
 
     IS_XLSTM_INSTALLED = True
 except ImportError:
     IS_XLSTM_INSTALLED = False
 
-# %% ../../nbs/models.xlstm.ipynb 5
+# %% ../../nbs/models.xlstm.ipynb 6
 class xLSTM(BaseModel):
     """xLSTM
 
@@ -39,6 +40,7 @@ class xLSTM(BaseModel):
     `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
     `decoder_dropout`: float=0., dropout regularization applied within the MLP decoder.<br>
     `decoder_activation`: str='GELU', activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).<br>
+    `backbone`: str='sLSTM', backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
@@ -97,6 +99,7 @@ class xLSTM(BaseModel):
         decoder_layers: int = 1,
         decoder_dropout: float = 0.0,
         decoder_activation: str = "GELU",
+        backbone: str = "sLSTM",
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -171,7 +174,7 @@ class xLSTM(BaseModel):
 
         if not IS_XLSTM_INSTALLED:
             raise ImportError(
-                "Please install `xlstm`. You might also need to install `mlstm_kernels` for GPU support."
+                "Please install `xlstm`. You also need to install `mlstm_kernels` for backend='mLSTM' and `ninja` for backend='sLSTM'."
             )
 
         # xLSTM input size (1 for target variable y)
@@ -183,14 +186,24 @@ class xLSTM(BaseModel):
         self.feature_projection = nn.Linear(
             in_features=input_encoder, out_features=encoder_hidden_size
         )
-        block_stack_config = xLSTMBlockStackConfig(
-            mlstm_block=mLSTMBlockConfig(),
-            context_length=input_size,
-            num_blocks=encoder_n_blocks,
-            embedding_dim=encoder_hidden_size,
-            bias=encoder_bias,
-            dropout=encoder_dropout,
-        )
+        if backbone == "sLSTM":
+            block_stack_config = xLSTMBlockStackConfig(
+                slstm_block=sLSTMBlockConfig(),
+                context_length=input_size,
+                num_blocks=encoder_n_blocks,
+                embedding_dim=encoder_hidden_size,
+                bias=encoder_bias,
+                dropout=encoder_dropout,
+            )
+        elif backbone == "mLSTM":
+            block_stack_config = xLSTMBlockStackConfig(
+                mlstm_block=mLSTMBlockConfig(),
+                context_length=input_size,
+                num_blocks=encoder_n_blocks,
+                embedding_dim=encoder_hidden_size,
+                bias=encoder_bias,
+                dropout=encoder_dropout,
+            )
         self.hist_encoder = xLSTMBlockStack(block_stack_config)
 
         # Decoder MLP
