@@ -498,32 +498,32 @@ def test_predict_insample_diff_lengths(setup_models_for_insample):
         f"Shape mismatch in predict_insample: {len(forecasts)=}, {expected_size=}"
     )
 
-
-def test_predict_insample_step_size(setup_airplane_data):
+@pytest.mark.parametrize("step_size, test_size", [(7, 0), (9, 0), (7, 5), (9, 5)])
+def test_predict_insample_step_size(setup_airplane_data, step_size, test_size):
     AirPassengersPanel_train, _ = setup_airplane_data
 
     h = 12
     train_end = AirPassengersPanel_train['ds'].max()
     sizes = AirPassengersPanel_train['unique_id'].value_counts().to_numpy()
-    for step_size, test_size in [(7, 0), (9, 0), (7, 5), (9, 5)]:
-        models = [NHITS(h=h, input_size=12, max_steps=1)]
-        nf = NeuralForecast(models=models, freq='M')
-        nf.fit(AirPassengersPanel_train)
-        # Note: only apply set_test_size() upon nf.fit(), otherwise it would have set the test_size = 0
-        nf.models[0].set_test_size(test_size)
 
-        forecasts = nf.predict_insample(step_size=step_size)
-        last_cutoff = train_end - test_size * pd.offsets.MonthEnd() - h * pd.offsets.MonthEnd()
-        n_expected_cutoffs = (sizes[0] - test_size - nf.h + step_size) // step_size
+    models = [NHITS(h=h, input_size=12, max_steps=1)]
+    nf = NeuralForecast(models=models, freq='M')
+    nf.fit(AirPassengersPanel_train)
+    # Note: only apply set_test_size() upon nf.fit(), otherwise it would have set the test_size = 0
+    nf.models[0].set_test_size(test_size)
 
-        # compare cutoff values
-        expected_cutoffs = np.flip(np.array([last_cutoff - step_size * i * pd.offsets.MonthEnd() for i in range(n_expected_cutoffs)]))
-        actual_cutoffs = np.array([pd.Timestamp(x) for x in forecasts[forecasts['unique_id']==nf.uids[1]]['cutoff'].unique()])
-        np.testing.assert_array_equal(expected_cutoffs, actual_cutoffs, err_msg=f"{step_size=},{expected_cutoffs=},{actual_cutoffs=}")
+    forecasts = nf.predict_insample(step_size=step_size)
+    last_cutoff = train_end - test_size * pd.offsets.MonthEnd() - h * pd.offsets.MonthEnd()
+    n_expected_cutoffs = (sizes[0] - test_size - nf.h + step_size) // step_size
 
-        # check forecast-points count per series
-        cutoffs_by_series = forecasts.groupby(['unique_id', 'cutoff']).size().unstack('unique_id')
-        pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
+    # compare cutoff values
+    expected_cutoffs = np.flip(np.array([last_cutoff - step_size * i * pd.offsets.MonthEnd() for i in range(n_expected_cutoffs)]))
+    actual_cutoffs = np.array([pd.Timestamp(x) for x in forecasts[forecasts['unique_id']==nf.uids[1]]['cutoff'].unique()])
+    np.testing.assert_array_equal(expected_cutoffs, actual_cutoffs, err_msg=f"{step_size=},{expected_cutoffs=},{actual_cutoffs=}")
+
+    # check forecast-points count per series
+    cutoffs_by_series = forecasts.groupby(['unique_id', 'cutoff']).size().unstack('unique_id')
+    pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
 
 
 def test_predict_insample_diff_loss(setup_airplane_data):
