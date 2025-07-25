@@ -3,7 +3,6 @@ import pandas as pd
 import polars
 import pytest
 import torch
-from fastcore.test import test_eq as _test_eq
 
 from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
 from neuralforecast.utils import generate_series
@@ -27,8 +26,8 @@ def test_sort_df(setup_data):
         dataset.temporal[:, :-1],
         sorted_temporal_df.drop(columns=["unique_id", "ds"]).values,
     )
-    _test_eq(indices, pd.Series(sorted_temporal_df["unique_id"].unique()))
-    _test_eq(dates, temporal_df.groupby("unique_id", observed=True)["ds"].max().values)
+    np.testing.assert_array_equal(indices, pd.Series(sorted_temporal_df["unique_id"].unique()))
+    np.testing.assert_array_equal(dates, temporal_df.groupby("unique_id", observed=True)["ds"].max().values)
 
 
 def test_data_module(setup_data):
@@ -37,8 +36,8 @@ def test_data_module(setup_data):
 
     data = TimeSeriesDataModule(dataset=dataset, batch_size=batch_size, drop_last=True)
     for batch in data.train_dataloader():
-        _test_eq(batch["temporal"].shape, (batch_size, 2, 500))
-        _test_eq(batch["temporal_cols"], ["y", "available_mask"])
+        assert batch["temporal"].shape == (batch_size, 2, 500)
+        np.testing.assert_array_equal(batch["temporal_cols"], ["y", "available_mask"])
 
 
 def test_static_features(setup_data):
@@ -59,18 +58,16 @@ def test_static_features(setup_data):
     data = TimeSeriesDataModule(dataset=dataset, batch_size=batch_size, drop_last=True)
 
     for batch in data.train_dataloader():
-        _test_eq(batch["temporal"].shape, (batch_size, n_temporal_features + 2, 500))
-        _test_eq(
+        assert batch["temporal"].shape == (batch_size, n_temporal_features + 2, 500)
+        np.testing.assert_array_equal(
             batch["temporal_cols"],
             ["y"]
             + [f"temporal_{i}" for i in range(n_temporal_features)]
             + ["available_mask"],
         )
 
-        _test_eq(batch["static"].shape, (batch_size, n_static_features))
-        _test_eq(
-            batch["static_cols"], [f"static_{i}" for i in range(n_static_features)]
-        )
+        assert batch["static"].shape == (batch_size, n_static_features)
+        np.testing.assert_array_equal(batch["static_cols"], [f"static_{i}" for i in range(n_static_features)])
 
 
 # Testing sort_df=True functionality
@@ -122,8 +119,8 @@ def test_sort_df_mask():
     np.testing.assert_almost_equal(
         dataset_full.temporal.numpy(), dataset_1.temporal.numpy()
     )
-    _test_eq(dataset_full.max_size, dataset_1.max_size)
-    _test_eq(dataset_full.indptr, dataset_1.indptr)
+    np.testing.assert_almost_equal(dataset_full.max_size, dataset_1.max_size)
+    np.testing.assert_almost_equal(dataset_full.indptr, dataset_1.indptr)
 
 
 # Testing trim_dataset functionality

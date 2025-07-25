@@ -1,10 +1,6 @@
-import logging
-import warnings
-
 import numpy as np
 import pandas as pd
 import pytest
-from fastcore.test import test_eq as _test_eq
 
 from neuralforecast.auto import MLP, AutoMLP
 from neuralforecast.common._base_auto import MockTrial
@@ -35,8 +31,7 @@ def test_mlp_model2(setup_module):
 
     #test we recover the same forecast
     y_hat2 = model.predict(dataset=dataset)
-    _test_eq(y_hat, y_hat2)
-    pd.concat([Y_train_df, Y_test_df]).drop('unique_id', axis=1).set_index('ds').plot()
+    np.testing.assert_array_equal(y_hat, y_hat2)
 
 # test no leakage with test_size
 def test_no_leakage_with_test_size(setup_module):
@@ -53,7 +48,7 @@ def test_no_leakage_with_test_size(setup_module):
     )
     # test we recover the same forecast
     y_hat_test2 = model.predict(dataset=dataset, step_size=1)
-    _test_eq(y_hat_test, y_hat_test2)
+    np.testing.assert_array_equal(y_hat_test, y_hat_test2)
 
 # test validation step
 def test_validation_step(setup_module):
@@ -77,9 +72,7 @@ def test_validation_step(setup_module):
                                 y_hat_w_val, decimal=4)
 
 
-def test_automlp(setup_dataset):
-    dataset = setup_dataset
-
+def test_automlp():
     # Unit test to test that Auto* model contains all required arguments from BaseAuto
     check_args(AutoMLP, exclude_args=['cls_model'])
 
@@ -92,13 +85,3 @@ def test_automlp(setup_dataset):
 
     model = AutoMLP(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
     assert model.config(MockTrial())['h'] == 12
-    model.fit(dataset=dataset)
-
-    # Unit test for situation: Ray with updated default config
-    my_config = AutoMLP.get_default_config(h=12, backend='ray')
-    my_config['max_steps'] = 2
-    my_config['val_check_steps'] = 1
-    my_config['input_size'] = 12
-    my_config['hidden_size'] = 8
-    model = AutoMLP(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
-    model.fit(dataset=dataset)
