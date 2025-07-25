@@ -5,8 +5,6 @@ import optuna
 import pandas as pd
 import pytest
 import pytorch_lightning as pl
-from fastcore.test import test_eq as _test_eq
-from nbdev.showdoc import show_doc
 from ray import tune
 
 from neuralforecast.common._base_auto import BaseAuto
@@ -129,8 +127,8 @@ def test_instantiation(setup_config):
         cpus=1,
         gpus=0,
     )
-    _test_eq(str(type(auto.loss)), "<class 'neuralforecast.losses.pytorch.MAE'>")
-    _test_eq(str(type(auto.valid_loss)), "<class 'neuralforecast.losses.pytorch.MSE'>")
+    assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MAE'>"
+    assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
 
 def test_validation_default(setup_config):
     auto = BaseAuto(
@@ -143,5 +141,5 @@ def test_validation_default(setup_config):
         cpus=1,
         gpus=0,
     )
-    _test_eq(str(type(auto.loss)), "<class 'neuralforecast.losses.pytorch.MSE'>")
-    _test_eq(str(type(auto.valid_loss)), "<class 'neuralforecast.losses.pytorch.MSE'>")
+    assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
+    assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
