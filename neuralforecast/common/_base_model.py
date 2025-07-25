@@ -1590,7 +1590,6 @@ class BaseModel(pl.LightningModule):
             torch.cuda.device_count() > 1
         ):
             pred_trainer_kwargs["devices"] = [0]
-            pred_trainer_kwargs["strategy"] = "auto"
 
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
