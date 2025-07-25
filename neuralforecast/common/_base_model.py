@@ -1585,11 +1585,14 @@ class BaseModel(pl.LightningModule):
         )
 
         # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
-        # pred_trainer_kwargs = self.trainer_kwargs.copy()
-        # if (pred_trainer_kwargs.get('accelerator', None) == "gpu") and (torch.cuda.device_count() > 1):
-        #     pred_trainer_kwargs['devices'] = [0]
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+            pred_trainer_kwargs["strategy"] = "auto"
 
-        trainer = pl.Trainer(**self.trainer_kwargs)
+        trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         fcsts = torch.vstack(fcsts)
 
