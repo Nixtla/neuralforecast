@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import torch
 
 from neuralforecast.core import NeuralForecast
-from neuralforecast.models import MLP
+from neuralforecast.models import MLP, NHITS
+from neuralforecast import models as nf_model
 from utilsforecast.feature_engineering import time_features, fourier
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
 
@@ -26,18 +27,33 @@ transformed_df, _ = fourier(AirPassengersPanel, freq='ME', season_length=12, k=4
 Y_train_df = Y_train_df.merge(transformed_df[["unique_id", "ds", 'sin1_12', 'sin2_12', 'sin3_12', 'sin4_12', 'cos1_12', 'cos2_12', 'cos3_12', 'cos4_12']], how="left")
 Y_test_df = Y_test_df.merge(transformed_df[["unique_id", "ds", 'sin1_12', 'sin2_12', 'sin3_12', 'sin4_12', 'cos1_12', 'cos2_12', 'cos3_12', 'cos4_12']], how="left")
 
-# Model setup
-model = MLP(
-    h=12,
-    input_size=24,
-    hist_exog_list=["y_[lag12]"],
-    futr_exog_list=["trend", "month", "week", 'sin1_12', 'sin2_12', 'sin3_12', 'sin4_12', 'cos1_12', 'cos2_12', 'cos3_12', 'cos4_12'],
-    stat_exog_list=['airline1'],
-    max_steps=200,
-    alias="MLP"
-)
+hist_exog_cols = ["y_[lag12]"]
+futr_exog_cols = ["trend", "month", "week", 'sin1_12', 'sin2_12', 'sin3_12', 'sin4_12', 'cos1_12', 'cos2_12', 'cos3_12', 'cos4_12']
+stat_exog_cols = ['airline1']
 
-nf = NeuralForecast(models=[model], freq="ME")
+# Model setup
+models = [
+    MLP(
+        h=12,
+        input_size=24,
+        hist_exog_list=hist_exog_cols,
+        futr_exog_list=futr_exog_cols,
+        stat_exog_list=stat_exog_cols,
+        max_steps=200,
+        alias="MLP"
+    ),
+    NHITS(
+        h=12,
+        input_size=24,
+        hist_exog_list=hist_exog_cols,
+        futr_exog_list=futr_exog_cols,
+        stat_exog_list=stat_exog_cols,
+        max_steps=200,
+        alias="NHITS"
+    )
+]
+
+nf = NeuralForecast(models=models, freq="ME")
 nf.fit(
     df=Y_train_df[Y_train_df["unique_id"] == "Airline1"],
     static_df=AirPassengersStatic
@@ -47,11 +63,6 @@ nf.fit(
 futr_exog_df = Y_test_df.drop(["y", "y_[lag12]"], axis=1)
 futr_exog_df = futr_exog_df[futr_exog_df['unique_id'] == 'Airline1'].reset_index(drop=True)
 
-# Get feature columns
-futr_exog_cols = model.futr_exog_list
-hist_exog_cols = model.hist_exog_list
-stat_exog_cols = model.stat_exog_list
-
 # ==================== DEEPEXPLAINER IMPLEMENTATION ====================
 
 class ModelWrapper(torch.nn.Module):
@@ -59,18 +70,20 @@ class ModelWrapper(torch.nn.Module):
     Wrapper model that converts flattened tensor input to dictionary format
     expected by NeuralForecast MLP model.
     """
-    def __init__(self, original_model, model_config, futr_exog_cols, hist_exog_cols, stat_exog_cols):
+    def __init__(
+            self,
+            model
+        ):
         super().__init__()
-        self.original_model = original_model
-        self.model_config = model_config
-        self.futr_exog_cols = futr_exog_cols
-        self.hist_exog_cols = hist_exog_cols
-        self.stat_exog_cols = stat_exog_cols
+        self.model = model
+        self.futr_exog_cols = model.futr_exog_list
+        self.hist_exog_cols = model.hist_exog_list
+        self.stat_exog_cols = model.stat_exog_list
         
         # Calculate input dimensions (only for existing feature types)
-        self.n_futr_features = len(futr_exog_cols) * model_config.h if futr_exog_cols else 0
-        self.n_hist_exog_features = len(hist_exog_cols) * model_config.input_size if hist_exog_cols else 0
-        self.n_hist_target_features = model_config.input_size
+        self.n_futr_features = len(futr_exog_cols) * self.model.h if futr_exog_cols else 0
+        self.n_hist_exog_features = len(hist_exog_cols) * self.model.input_size if hist_exog_cols else 0
+        self.n_hist_target_features = self.model.input_size
         
         # Get fixed static data (if exists)
         if stat_exog_cols:
@@ -84,7 +97,7 @@ class ModelWrapper(torch.nn.Module):
         # Get fixed historical part of future exogenous features (if exists)
         if futr_exog_cols:
             self.futr_hist_fixed = torch.tensor(
-                Y_train_df[Y_train_df['unique_id'] == 'Airline1'][futr_exog_cols].values[-model_config.input_size:], 
+                Y_train_df[Y_train_df['unique_id'] == 'Airline1'][futr_exog_cols].values[-self.model.input_size:], 
                 dtype=torch.float32
             )
         else:
@@ -105,7 +118,7 @@ class ModelWrapper(torch.nn.Module):
             futr_flat = X_flat[:, idx:idx + self.n_futr_features]
             idx += self.n_futr_features
             
-            futr_pred = futr_flat.reshape(batch_size, self.model_config.h, len(self.futr_exog_cols))
+            futr_pred = futr_flat.reshape(batch_size, self.model.h, len(self.futr_exog_cols))
             futr_hist = self.futr_hist_fixed.unsqueeze(0).repeat(batch_size, 1, 1)
             futr_exog = torch.cat([futr_hist, futr_pred], dim=1)
         else:
@@ -114,14 +127,14 @@ class ModelWrapper(torch.nn.Module):
         # Historical exogenous features (varying or None)
         if self.hist_exog_cols:
             hist_exog_flat = X_flat[:, idx:idx + self.n_hist_exog_features]
-            hist_exog = hist_exog_flat.reshape(batch_size, self.model_config.input_size, len(self.hist_exog_cols))
+            hist_exog = hist_exog_flat.reshape(batch_size, self.model.input_size, len(self.hist_exog_cols))
             idx += self.n_hist_exog_features
         else:
             hist_exog = None
         
         # Historical target values (always present)
         hist_target_flat = X_flat[:, idx:idx + self.n_hist_target_features]
-        insample_y = hist_target_flat.reshape(batch_size, self.model_config.input_size)
+        insample_y = hist_target_flat.reshape(batch_size, self.model.input_size)
         
         # Static exogenous features (constant or None)
         if self.stat_exog_cols:
@@ -138,7 +151,7 @@ class ModelWrapper(torch.nn.Module):
         }
         
         # Call original model
-        return self.original_model(windows_batch)
+        return self.model(windows_batch)
 
 # Create input for explanation - include all varying features
 def create_complete_input_tensor():
@@ -177,7 +190,7 @@ def create_complete_background_data():
     background_samples = []
     
     # Determine the range of valid indices
-    start_idx = model.input_size  # Need historical data
+    start_idx = self.model.input_size  # Need historical data
     if futr_exog_cols:
         end_idx = len(train_df) - model.h + 1  # Need future data
     else:
@@ -222,15 +235,10 @@ else:
 
 background_tensor = torch.tensor(background_data, dtype=torch.float32)
 
-# Create wrapper model for DeepExplainer
+
+
 pytorch_model = nf.models[0]
-wrapper_model = ModelWrapper(
-    pytorch_model, 
-    model, 
-    futr_exog_cols, 
-    hist_exog_cols, 
-    stat_exog_cols
-)
+wrapper_model = ModelWrapper(pytorch_model)
 
 # ==================== SHAP ANALYSIS ====================
 
