@@ -8,21 +8,15 @@ from datetime import date
 from pathlib import Path
 
 import git
-import matplotlib.pyplot as plt
 import numpy as np
 import optuna
 import pandas as pd
 import polars
 import pytest
-import pytorch_lightning as pl
 import s3fs
 import torch
-from polars.testing import assert_frame_equal
-
-# from fastcore.test import test_eq, test_fail
 from ray import tune
 
-import neuralforecast
 from neuralforecast.auto import (
     MLP,
     NBEATS,
