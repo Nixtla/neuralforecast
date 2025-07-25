@@ -15,7 +15,30 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # %% ../../nbs/common.modules.ipynb 5
-ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
+ACTIVATIONS = [
+    "ReLU",
+    "Softplus",
+    "Tanh",
+    "SELU",
+    "LeakyReLU",
+    "PReLU",
+    "Sigmoid",
+    "GELU",
+    "ELU",
+    "SiLU",
+    "Mish",
+    "GLU",
+    "Softsign",
+    "Hardshrink",
+    "Softshrink",
+    "Threshold",
+    "RReLU",
+    "CELU",
+    "LogSigmoid",
+    "Hardtanh",
+    "Hardswish",
+    "Identity",
+]
 
 # %% ../../nbs/common.modules.ipynb 7
 class MLP(nn.Module):
