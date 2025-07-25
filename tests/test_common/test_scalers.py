@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from neuralforecast import NeuralForecast
@@ -10,7 +11,8 @@ from neuralforecast.utils import AirPassengersDF as Y_df
 
 # Unit test for masked predict filtering
 # Declare synthetic batch to normalize
-def test_temporal_norm():
+@pytest.mark.parametrize("scaler_type", [None, 'identity', 'standard', 'robust', 'minmax', 'minmax1', 'invariant', 'revin'])
+def test_temporal_norm(scaler_type):
     x1 = 10**0 * np.arange(36)[:, None]
     x2 = 10**1 * np.arange(36)[:, None]
 
@@ -21,17 +23,13 @@ def test_temporal_norm():
     np_mask = np.ones(np_x.shape)
     np_mask[:, -12:, :] = 0
 
-    print(f'x.shape [batch, time, features]={np_x.shape}')
-    print(f'mask.shape [batch, time, features]={np_mask.shape}')
-
     # Validate scalers
-    for scaler_type in [None, 'identity', 'standard', 'robust', 'minmax', 'minmax1', 'invariant', 'revin']:
-        x = 1.0*torch.tensor(np_x).unsqueeze(-1)
-        mask = torch.tensor(np_mask).unsqueeze(-1)
-        scaler = TemporalNorm(scaler_type=scaler_type, dim=1, num_features=np_x.shape[-1])
-        x_scaled = scaler.transform(x=x, mask=mask)
-        x_recovered = scaler.inverse_transform(x_scaled)
-        assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
+    x = 1.0*torch.tensor(np_x).unsqueeze(-1)
+    mask = torch.tensor(np_mask).unsqueeze(-1)
+    scaler = TemporalNorm(scaler_type=scaler_type, dim=1, num_features=np_x.shape[-1])
+    x_scaled = scaler.transform(x=x, mask=mask)
+    x_recovered = scaler.inverse_transform(x_scaled)
+    assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
 
 def test_nhits_model():
     model = NHITS(h=12,
