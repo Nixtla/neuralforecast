@@ -99,7 +99,7 @@ class xLSTM(BaseModel):
         decoder_layers: int = 1,
         decoder_dropout: float = 0.0,
         decoder_activation: str = "GELU",
-        backbone: str = "sLSTM",
+        backbone: str = "mLSTM",
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,

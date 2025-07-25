@@ -39,7 +39,7 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         AutoNBEATS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
         AutoNHITS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000),
-        xLSTM(h=horizon, input_size=2 * horizon, max_steps=300),
+        xLSTM(h=horizon, input_size=2 * horizon, max_steps=300, backbone='mLSTM',),
     ]
 
     # Models
