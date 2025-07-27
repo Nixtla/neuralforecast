@@ -496,7 +496,14 @@ class NeuralForecast:
             )
             if prediction_intervals is not None:
                 self.prediction_intervals = prediction_intervals
-                self._cs_df = self._conformity_scores(
+
+                # copy of model to prevent error during hyperparmeter tuning with Ray
+                # ValueError: You passed a `param_space` parameter to `Tuner(...)` with unresolved parameters,
+                #  but the search algorithm was already instantiated with a search space.
+                # Make sure that `config` does not contain any more parameter definitions
+                # - include them in the search algorithm's search space if necessary.
+                model_copy = deepcopy(self)
+                self._cs_df = model_copy._conformity_scores(
                     df=df,
                     id_col=id_col,
                     time_col=time_col,
