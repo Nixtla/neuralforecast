@@ -4,9 +4,136 @@ from neuralforecast.compat import SparkDataFrame
 from utilsforecast.compat import DataFrame
 from neuralforecast.common._base_model import BaseModel
 import numpy as np
+import matplotlib.pyplot as plt
 import shap
 
+class NeuralExplainer:
+    def __init__(
+        self,
+        model: BaseModel,
+        df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        futr_exog_df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
+        kmeans_dim: int = 50
+    ):
+        self.model = model
 
+        self.explainer, self.X_explain_tensor, self.background_tensor, self.wrapped_model = create_explainer(
+            model=model, df=df, static_df=static_df,
+            futr_exog_df=futr_exog_df, kmeans_dim=kmeans_dim
+        )
+        self.futr_exog_cols = model.futr_exog_list
+        self.hist_exog_cols = model.hist_exog_list
+        self.stat_exog_cols = model.stat_exog_list
+        self.feature_names = create_complete_feature_names(model, self.futr_exog_cols, self.hist_exog_cols)
+        self.explanations = {}
+        self.all_shap_values = {}
+
+    def get_explanations(
+        self,
+        horizons_to_explain: List[int],
+        check_additivity: bool = True,
+        relative_tolerance: float = 0.01
+    ):
+
+        for horizon in horizons_to_explain:
+            shap_values = self.explainer.shap_values(self.X_explain_tensor, check_additivity=False)
+            horizon_shap = shap_values[0, :, horizon]
+            if check_additivity:
+                test_additivity(horizon, horizon_shap, self.wrapped_model, self.X_explain_tensor, self.background_tensor, relative_tolerance)
+
+            self.all_shap_values[horizon] = horizon_shap
+
+            baseline_input = torch.mean(self.background_tensor, dim=0, keepdim=True)
+            with torch.no_grad():
+                baseline_prediction_tensor = self.wrapped_model(baseline_input)
+                baseline_prediction = baseline_prediction_tensor[0, horizon, 0].item()
+
+            self.explanations[horizon] = shap.Explanation(
+                values=horizon_shap,
+                base_values=baseline_prediction,  # Use actual baseline prediction
+                data=self.X_explain_tensor.numpy().flatten(),
+                feature_names=self.feature_names
+            )
+
+    def plot(
+        self,
+        horizon: int,
+        max_display: int = 10
+    ):
+
+        assert horizon in self.explanations.keys(), f"Horizon: {horizon} is not computed. Call get_explanations with a list containing {horizon}"
+        fig, ax = plt.subplots()
+        shap.plots.bar(self.explanations[horizon], max_display=max_display, show=False)
+        ax.set_title(f"Horizon: {horizon} explanation")
+        fig.tight_layout()
+
+        return fig.show()
+
+
+def test_additivity(
+    horizon: int,
+    shap_values: np.ndarray,
+    wrapped_model: ModelWrapper,
+    X_explain_tensor: torch.Tensor,
+    background_tensor: torch.Tensor,
+    relative_tolerance: float=0.1
+
+):
+    # Get the model's actual prediction using the wrapper model (for consistency)
+    with torch.no_grad():
+        actual_prediction_tensor = wrapped_model(X_explain_tensor)
+        actual_prediction = actual_prediction_tensor[0, horizon, 0].item()
+
+    # Get the baseline prediction using the wrapper model
+    baseline_input = torch.mean(background_tensor, dim=0, keepdim=True)
+    with torch.no_grad():
+        baseline_prediction_tensor = wrapped_model(baseline_input)
+        baseline_prediction = baseline_prediction_tensor[0, horizon, 0].item()
+
+    # Sum the SHAP values for the prediction
+    sum_of_shap_values = np.sum(shap_values)
+
+    # Perform the verification check
+    # DeepExplainer additivity: f(x) = f(baseline) + sum(SHAP values)
+    verified_prediction = baseline_prediction + sum_of_shap_values
+
+    # Check if additivity holds with relative tolerance
+    absolute_tolerance = abs(actual_prediction) * relative_tolerance
+    relative_error = abs(verified_prediction - actual_prediction) / abs(actual_prediction) * 100
+
+    if abs(verified_prediction - actual_prediction) < absolute_tolerance:
+        print(f"✅ Additivity check PASSED for horizon: {horizon} with relative error: {relative_error:.2f}%")
+    else:
+        print(f"❌ Additivity check FAILED for horizon: {horizon} with relative error: {relative_error:.2f}%")
+
+
+# Create comprehensive feature names for all varying features
+def create_complete_feature_names(
+    model: BaseModel,
+    futr_exog_cols: List[str],
+    hist_exog_cols: List[str]
+):
+    """Create feature names for all varying features"""
+    feature_names = []
+    
+    # Future exogenous features (if they exist)
+    if futr_exog_cols:
+        for i in range(model.h):
+            for col in futr_exog_cols:
+                feature_names.append(f'{col}_h{i+1}')
+    
+    # Historical exogenous features (if they exist)
+    if hist_exog_cols:
+        for i in range(model.input_size):
+            for col in hist_exog_cols:
+                feature_names.append(f'{col}_lag{i+1}')
+    
+    # Historical target values (always present)
+    for i in range(model.input_size):
+        feature_names.append(f'y_lag{i+1}')
+    
+    return feature_names
 
 
 class ModelWrapper(torch.nn.Module):
@@ -59,6 +186,7 @@ class ModelWrapper(torch.nn.Module):
             self.futr_hist_fixed = None
     
     def forward(self, X_flat):
+        # TODO: Adapt for NHITS and NBEATS
         """
         Convert flattened tensor input to dictionary format and call original model
         X_flat: [batch_size, n_total_features] where n_total_features = n_futr + n_hist_exog + n_hist_target
@@ -114,7 +242,7 @@ def create_complete_input_tensor(
     model: BaseModel,
     df: Union[DataFrame, SparkDataFrame, Sequence[str]],
     futr_exog_df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
-):
+) -> torch.tensor:
 
     """Create input tensor with all varying features: future exog, hist exog, and hist target"""
     input_components = []
@@ -196,9 +324,9 @@ def create_explainer(
     static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
     futr_exog_df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
     kmeans_dim: int = 50
-):
+) -> shap.Explainer:
     
-    wrapper_model = ModelWrapper(
+    wrapped_model = ModelWrapper(
         model = model,
         df=df,
         static_df=static_df
@@ -222,6 +350,6 @@ def create_explainer(
         background_data = background_summary
 
     background_tensor = torch.tensor(background_data, dtype=torch.float32)
-    explainer = shap.DeepExplainer(wrapper_model, background_tensor)
+    explainer = shap.DeepExplainer(wrapped_model, background_tensor)
 
-    return explainer
+    return explainer, X_explain_tensor, background_tensor, wrapped_model
