@@ -77,7 +77,9 @@ explainer.get_explanations([0,5,11], check_additivity=False)
 # Can check additivity with relative error
 explainer.get_explanations([0,5,11], check_additivity=True) # It stills fails in the 11th prediction (not by much though...)
 #  Plot results for a specific horizon
-explainer.plot(horizon=0)
+explainer.plot(horizon=0).show()
+#  Shows error if horizon isnt computed in get explanations...
+explainer.plot(horizon=2).show()
 # ==================== TODO ====================
 
 # Additional plot: Show breakdown by feature type
