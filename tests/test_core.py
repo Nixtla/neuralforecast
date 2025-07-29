@@ -1,5 +1,5 @@
-import logging
 import os
+import platform
 import shutil
 import sys
 import tempfile
@@ -12,6 +12,7 @@ import numpy as np
 import optuna
 import pandas as pd
 import polars
+import polars.testing
 import pytest
 import s3fs
 import torch
@@ -70,9 +71,6 @@ from neuralforecast.utils import (
     AirPassengersStatic,
     generate_series,
 )
-
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-warnings.filterwarnings("ignore")
 
 
 @pytest.fixture
@@ -520,7 +518,7 @@ def test_predict_insample_step_size(setup_airplane_data, step_size, test_size):
     pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
 
 
-def test_predict_insample_diff_loss(setup_airplane_data):
+def test_predict_insample_diff_loss(setup_test_environment, setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
 
 
@@ -550,9 +548,16 @@ def test_predict_insample_diff_loss(setup_airplane_data):
         PMM(level=[80]),
     ]:
         for level in [None, [80, 90]]:
+            # Use CPU accelerator on macOS to avoid MPS LSTM projection limitation
+            # MPS (Metal Performance Shaders) doesn't support LSTM with projections
+            # which are enabled when recurrent=True
+            lstm_kwargs = {"h": 12, "input_size": 12, "loss": loss, "max_steps": 1, "recurrent": True}
+            if platform.system() == "Darwin":  # macOS
+                lstm_kwargs["accelerator"] = "cpu"
+            
             models = [
                 NHITS(h=12, input_size=12, loss=loss, max_steps=1),
-                LSTM(h=12, input_size=12, loss=loss, max_steps=1, recurrent=True),
+                LSTM(**lstm_kwargs),
             ]
             nf = NeuralForecast(models=models, freq='D')
 
@@ -845,7 +850,7 @@ def test_training_with_an_iterative_dataset(setup_airplane_data):
 
 
 # test cross validation no leakage
-def test_cross_validation(h=12, test_size=12):
+def test_cross_validation(setup_test_environment, h=12, test_size=12):
     df = AirPassengersPanel
     static_df = AirPassengersStatic
     if (test_size - h) % 1:
@@ -1496,13 +1501,13 @@ def test_predict_insample_step_size_polars(setup_airplane_data_polars):
         )
 
         # Check forecast-points count per series
-        cutoffs_by_series = forecasts.group_by(["uid", "cutoff"]).count()
+        cutoffs_by_series = forecasts.group_by(["uid", "cutoff"]).len()
         polars.testing.assert_frame_equal(
             cutoffs_by_series.filter(polars.col("uid") == "Airline1").select(
-                ["cutoff", "count"]
+                ["cutoff", "len"]
             ),
             cutoffs_by_series.filter(polars.col("uid") == "Airline2").select(
-                ["cutoff", "count"]
+                ["cutoff", "len"]
             ),
             check_row_order=False,
         )
