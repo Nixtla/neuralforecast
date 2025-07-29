@@ -1,7 +1,6 @@
 import logging
 import os
-
-os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1" # set before neuralforecast import
+import sys
 import warnings
 
 import pytest
@@ -13,6 +12,9 @@ from neuralforecast.utils import AirPassengersDF as Y_df
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """Configure the environment for all neural forecast tests."""
+    if sys.platform.startswith('darwin'):  
+        os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = "1"
+        
     logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
     logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
     yield
@@ -30,7 +32,7 @@ def suppress_warnings():
 def setup_dataset():
     """Setup train/test dataset for model testing."""
     Y_train_df = Y_df[Y_df.ds <= "1959-12-31"]  # 132 train
-    Y_test_df = Y_df[Y_df.ds > "1959-12-31"]  # 12 test
+    _ = Y_df[Y_df.ds > "1959-12-31"]  # 12 test
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
     return dataset
 
