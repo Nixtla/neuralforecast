@@ -8,7 +8,6 @@ from typing import Optional, Union
 
 import numpy as np
 
-
 # %% ../../nbs/losses.numpy.ipynb 7
 def _divide_no_nan(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
