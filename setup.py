@@ -1,9 +1,6 @@
-import sys
-from configparser import ConfigParser
-
-import setuptools
 from pkg_resources import parse_version
-
+from configparser import ConfigParser
+import setuptools
 assert parse_version(setuptools.__version__)>=parse_version('36.2')
 
 # note: all settings are in settings.ini; edit there, not here
@@ -32,11 +29,6 @@ aws_requirements = cfg['aws_requirements'].split()
 spark_requirements = cfg['spark_requirements'].split()
 
 if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').split()
-# if py version is 3.13 or above for windows, remove ray[tune] from requirements
-# ray[tune] is not supported for python 3.13 on windows
-if cfg['min_python'] >= '3.13' and sys.platform == 'win32':
-    requirements = [req for req in requirements if 'ray[tune]' not in req]
-    print(f"Removed ray[tune] from requirements for Python {sys.version} on platform {sys.platform}")
 min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
 dev_requirements = (cfg.get('dev_requirements') or '').split()
