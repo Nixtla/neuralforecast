@@ -209,7 +209,7 @@ def smape(
     smape = _divide_no_nan(delta_y, scale)
     smape = 2 * np.average(smape, weights=weights, axis=axis)
 
-    if isinstance(smape, float):
+    if np.isscalar(smape):
         assert smape <= 2, "SMAPE should be lower than 200"
     else:
         assert all(smape <= 2), "SMAPE should be lower than 200"
