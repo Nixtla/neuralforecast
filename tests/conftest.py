@@ -1,9 +1,10 @@
+import gc
 import logging
 import os
+import pytest
 import sys
 import warnings
 
-import pytest
 
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
@@ -25,6 +26,11 @@ def setup_test_environment():
     logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
     yield
 
+@pytest.fixture
+def memory_cleanup(request):
+    def finalize():
+        gc.collect()
+    request.addfinalizer(finalize)    
 
 @pytest.fixture
 def suppress_warnings():
@@ -49,3 +55,5 @@ def full_dataset_split():
     Y_train_df = Y_df[Y_df.ds <= "1959-12-31"]  # 132 train
     Y_test_df = Y_df[Y_df.ds > "1959-12-31"]  # 12 test
     return Y_train_df, Y_test_df
+
+
