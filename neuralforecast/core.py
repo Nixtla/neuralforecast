@@ -5,6 +5,7 @@ __all__ = ['NeuralForecast']
 
 # %% ../nbs/core.ipynb 4
 import pickle
+import shap
 import warnings
 from copy import deepcopy
 from itertools import chain
@@ -71,10 +72,17 @@ from neuralforecast.models import (
 )
 from .common._base_auto import BaseAuto, MockTrial
 from neuralforecast.utils import (
+    # Prediction intervals
     PredictionIntervals,
     get_prediction_interval_method,
     level_to_quantiles,
     quantiles_to_level,
+    # Explainability
+    ShapModelWrapper,
+    create_input_tensor_for_series,
+    create_multi_series_background_data,
+    model_predict,
+    create_multi_series_feature_names,
 )
 
 # %% ../nbs/core.ipynb 5
@@ -213,7 +221,7 @@ _type2scaler = {
     "boxcox": lambda: LocalBoxCoxScaler(method="loglik", lower=0.0),
 }
 
-# %% ../nbs/core.ipynb 9
+# %% ../nbs/core.ipynb 10
 class NeuralForecast:
 
     def __init__(
@@ -1855,168 +1863,49 @@ class NeuralForecast:
 
         return col_name
 
-    def explain(
-        self,
-        input_df: pd.DataFrame,
-        X_df: Optional[pd.DataFrame] = None,
-        static_df: Optional[pd.DataFrame] = None,
-        models: Optional[Union[str, List[str]]] = None,
-        background_size: int = 100,
-        target_samples: Optional[int] = 10,
-        explainer_type: str = "kernel",
-        aggregate_lags: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Generate SHAP explanations for fitted models using specific input data.
-
-        Parameters:
-        -----------
-        input_df : pd.DataFrame
-            Input dataframe with columns: unique_id, ds, y, and any historical exogenous features.
-            Must contain at least input_size periods per series to provide sufficient context.
-        X_df : pd.DataFrame, optional
-            Future exogenous features dataframe with columns: unique_id, ds, and exogenous features.
-            Required if any model uses future exogenous features (futr_exog_list).
-        static_df : pd.DataFrame, optional
-            Static exogenous features dataframe with columns: unique_id and static features.
-            Required if any model uses static exogenous features (stat_exog_list).
-        models : str, List[str], or None, default=None
-            Model names/aliases to explain. If None, explains all fitted models.
-            If str, explains single model. If List[str], explains specified models.
-        background_size : int, default=100
-            Number of background samples for SHAP explainer.
-        target_samples : int or None, default=10
-            Number of samples to generate explanations for. If None, uses all available samples.
-        explainer_type : str, default='kernel'
-            Type of SHAP explainer to use ('kernel' only supported currently).
-        aggregate_lags : str or None, default=None
-            How to aggregate SHAP values across lags for each feature:
-            - None: Keep individual lag contributions (y_lag_1, y_lag_2, ...)
-            - 'sum': Sum SHAP values across all lags for each feature (most common)
-            - 'mean': Average SHAP values across lags
-            - 'abs_sum': Sum of absolute SHAP values (total importance regardless of direction)
-            - 'max_abs': Maximum absolute SHAP value across lags (most important single lag)
-
-        Returns:
-        --------
-        Dict[str, Any]
-            Dictionary with model names as keys and explanation results as values.
-            Each explanation contains: shap_values, feature_names, base_values, etc.
-
-        Examples:
-        ---------
-        >>> # Prepare your data
-        >>> input_df = pd.DataFrame({
-        ...     'unique_id': ['series1'] * 50 + ['series2'] * 50,
-        ...     'ds': pd.date_range('2020-01-01', periods=50).tolist() * 2,
-        ...     'y': np.random.randn(100),
-        ...     'temperature': np.random.randn(100)  # historical exogenous
-        ... })
-        >>>
-        >>> future_df = pd.DataFrame({
-        ...     'unique_id': ['series1'] * 7 + ['series2'] * 7,
-        ...     'ds': pd.date_range('2020-02-20', periods=7).tolist() * 2,
-        ...     'holiday': [0, 1, 0, 0, 0, 1, 0] * 2  # future exogenous
-        ... })
-        >>>
-        >>> nf = NeuralForecast(models=[NBEATS(...), NHITS(...)], freq='D')
-        >>> nf.fit(train_df)
-        >>>
-        >>> # Explain all models for specific time periods
-        >>> explanations = nf.explain(input_df=input_df, X_df=future_df)
-        >>>
-        >>> # Explain single model
-        >>> explanations = nf.explain(input_df=input_df, models='NBEATS')
-        >>>
-        >>> # Use SHAP directly for plotting
-        >>> import shap
-        >>> results = explanations['NBEATS']
-        >>> shap.summary_plot(results['shap_values'], feature_names=results['feature_names'])
-        """
-
-        import pandas as pd
-
-        # Check if models are fitted
+    def explain(self, input_df, futr_df, static_df, ids_to_explain, num_samples=100):
         if not self._fitted:
-            raise Exception(
-                "Models must be fitted before generating explanations. Call .fit() first."
+            raise Exception("You must fit the model before explaining its forecasts.")
+
+        all_explanations = {}
+
+        for model in self.models:
+            shap_wrapper_model = ShapModelWrapper(model, input_df, static_df)
+            background_array = create_multi_series_background_data(
+                input_df, shap_wrapper_model
             )
-
-        # Validate input_df
-        if not isinstance(input_df, pd.DataFrame):
-            raise TypeError("input_df must be a pandas DataFrame")
-
-        required_cols = ["unique_id", "ds", "y"]
-        missing_cols = [col for col in required_cols if col not in input_df.columns]
-        if missing_cols:
-            raise ValueError(f"input_df missing required columns: {missing_cols}")
-
-        # Validate optional dataframes
-        if X_df is not None:
-            if not isinstance(X_df, pd.DataFrame):
-                raise TypeError("X_df must be a pandas DataFrame or None")
-            if "unique_id" not in X_df.columns or "ds" not in X_df.columns:
-                raise ValueError("X_df must contain 'unique_id' and 'ds' columns")
-
-        if static_df is not None:
-            if not isinstance(static_df, pd.DataFrame):
-                raise TypeError("static_df must be a pandas DataFrame or None")
-            if "unique_id" not in static_df.columns:
-                raise ValueError("static_df must contain 'unique_id' column")
-
-        # Determine which models to explain
-        if models is None:
-            models_to_explain = self.models
-        else:
-            if isinstance(models, str):
-                models = [models]
-
-            # Find models by alias or class name
-            models_to_explain = []
-            for model in self.models:
-                model_identifier = (
-                    getattr(model, "alias", None) or model.__class__.__name__
-                )
-                if model_identifier in models:
-                    models_to_explain.append(model)
-
-            if not models_to_explain:
-                available_models = [
-                    getattr(m, "alias", None) or m.__class__.__name__
-                    for m in self.models
-                ]
-                raise ValueError(
-                    f"No models found with names {models}. Available models: {available_models}"
-                )
-
-        explanations = {}
-
-        for model in models_to_explain:
-            model_name = getattr(model, "alias", model.__class__.__name__)
-
-            try:
-                # Generate explanation for this model with new parameters
-                explanation = model.explain_prediction(
-                    input_df=input_df,
-                    X_df=X_df,
-                    static_df=static_df,
-                    background_size=background_size,
-                    target_samples=target_samples,
-                    explainer_type=explainer_type,
-                    aggregate_lags=aggregate_lags,
-                )
-
-                explanations[model_name] = explanation
-
-            except Exception as e:
-                warnings.warn(
-                    f"Failed to generate explanation for model {model_name}: {str(e)}"
-                )
-                continue
-
-        if not explanations:
-            raise Exception(
-                "No explanations were generated. Check model compatibility and error messages."
+            background_summary = shap.kmeans(
+                background_array, min(30, len(background_array))
             )
+            background_data = background_summary.data
+            background_tensor = torch.tensor(background_data, dtype=torch.float32)
+            background_sample = background_tensor[:15].numpy()  # Use 15 samples
+            explainer = shap.KernelExplainer(
+                lambda x: model_predict(x, shap_wrapper_model),
+                background_sample,
+                link="identity",
+            )
+            feature_names = create_multi_series_feature_names(shap_wrapper_model)
 
-        return explanations
+            series_explanations = {}
+
+            for unique_id in ids_to_explain:
+                X_explain_tensor = create_input_tensor_for_series(
+                    input_df, unique_id, shap_wrapper_model, futr_df
+                )
+                X_explain_numpy = X_explain_tensor.numpy()
+                shap_values = explainer.shap_values(
+                    X_explain_numpy, nsamples=num_samples
+                )
+
+                series_explanations[unique_id] = {
+                    "shap_values": shap_values,
+                    "input_data": X_explain_numpy,
+                    "base_values": explainer.expected_value,
+                }
+            model_name = model.alias or type(model).__name__
+            all_explanations[model_name] = {
+                "explanations": series_explanations,
+                "feature_names": feature_names,
+            }
+        return all_explanations

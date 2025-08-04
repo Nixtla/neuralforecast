@@ -6,7 +6,9 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
            'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing',
            'PredictionIntervals', 'add_conformal_distribution_intervals', 'add_conformal_error_intervals',
-           'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level']
+           'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level', 'ShapModelWrapper',
+           'create_input_tensor_for_series', 'create_multi_series_background_data', 'model_predict',
+           'create_multi_series_feature_names']
 
 # %% ../nbs/utils.ipynb 3
 import random
@@ -16,6 +18,7 @@ from utilsforecast.compat import DFType
 
 import numpy as np
 import pandas as pd
+import torch
 
 # %% ../nbs/utils.ipynb 6
 def generate_series(
@@ -630,3 +633,257 @@ def quantiles_to_level(quantiles: List[float]) -> List[Union[int, float]]:
             ]
         )
     )
+
+# %% ../nbs/utils.ipynb 38
+class ShapModelWrapper(torch.nn.Module):
+    """
+    SHAP wrapper model that converts flattened tensor input to dictionary format
+    and handles multiple series dynamically.
+    """
+
+    def __init__(self, original_model, train_df, static_df):
+        super().__init__()
+        self.original_model = original_model
+        self.train_df = train_df
+        self.static_df = static_df
+        self.futr_exog_cols = original_model.futr_exog_list
+        self.hist_exog_cols = original_model.hist_exog_list
+        self.stat_exog_cols = original_model.stat_exog_list
+        self.input_size = original_model.input_size
+        self.h = original_model.h
+
+        # Calculate input dimensions
+        self.n_futr_features = (
+            len(self.futr_exog_cols) * (self.input_size + self.h)
+            if self.futr_exog_cols
+            else 0
+        )
+        self.n_hist_exog_features = (
+            len(self.hist_exog_cols) * self.input_size if self.hist_exog_cols else 0
+        )
+        self.n_hist_target_features = self.input_size
+        self.n_series_features = 1  # unique_id encoded as integer
+
+        # Create mapping for unique_ids to static features (only if static features exist)
+        self.static_mapping = {}
+        if self.stat_exog_cols and static_df is not None:
+            for unique_id in static_df["unique_id"].unique():
+                static_values = static_df[static_df["unique_id"] == unique_id][
+                    self.stat_exog_cols
+                ].values[0]
+                self.static_mapping[unique_id] = torch.tensor(
+                    static_values, dtype=torch.float32
+                )
+
+        # Create unique_id to integer mapping using training data
+        available_unique_ids = sorted(self.train_df["unique_id"].unique())
+        self.unique_id_to_int = {uid: i for i, uid in enumerate(available_unique_ids)}
+        self.int_to_unique_id = {i: uid for uid, i in self.unique_id_to_int.items()}
+
+    def forward(self, X_flat):
+        """
+        Convert flattened tensor input to dictionary format and call original model
+        X_flat: [batch_size, n_total_features] where features include series_id + futr_exog + hist_exog + hist_target
+        """
+        batch_size = X_flat.shape[0]
+
+        # Split the input tensor
+        idx = 0
+
+        # Series identifier (first feature)
+        series_ids = X_flat[:, idx : idx + self.n_series_features].long().flatten()
+        idx += self.n_series_features
+
+        # Future exogenous features (varying or None)
+        if self.futr_exog_cols:
+            futr_flat = X_flat[:, idx : idx + self.n_futr_features]
+            idx += self.n_futr_features
+            futr_exog = futr_flat.reshape(
+                batch_size, self.input_size + self.h, len(self.futr_exog_cols)
+            )
+        else:
+            futr_exog = None
+
+        # Historical exogenous features (varying or None)
+        if self.hist_exog_cols:
+            hist_exog_flat = X_flat[:, idx : idx + self.n_hist_exog_features]
+            hist_exog = hist_exog_flat.reshape(
+                batch_size, self.input_size, len(self.hist_exog_cols)
+            )
+            idx += self.n_hist_exog_features
+        else:
+            hist_exog = None
+
+        # Historical target values (always present)
+        hist_target_flat = X_flat[:, idx : idx + self.n_hist_target_features]
+        insample_y = hist_target_flat.reshape(batch_size, self.input_size)
+
+        # Static exogenous features (varies by series, None if no static features)
+        if self.stat_exog_cols and self.static_mapping:
+            stat_exog_batch = []
+            for i in range(batch_size):
+                series_int = series_ids[i].item()
+                unique_id = self.int_to_unique_id[series_int]
+                stat_exog_batch.append(self.static_mapping[unique_id])
+            stat_exog = torch.stack(stat_exog_batch)
+        else:
+            stat_exog = None
+
+        # Create windows_batch dictionary
+        windows_batch = {
+            "insample_y": insample_y.unsqueeze(-1),
+            "futr_exog": futr_exog,
+            "hist_exog": hist_exog,
+            "stat_exog": stat_exog,
+            "insample_mask": torch.ones(batch_size, self.input_size, dtype=torch.bool),
+        }
+
+        # Call original model
+        return self.original_model(windows_batch)
+
+# %% ../nbs/utils.ipynb 39
+def create_input_tensor_for_series(train_df, unique_id, wrapper_model, futr_df=None):
+    """Create input tensor for a specific series"""
+    # Get series-specific data
+    train_series = train_df[train_df["unique_id"] == unique_id]
+
+    input_components = []
+    futr_exog_cols = wrapper_model.futr_exog_cols
+    hist_exog_cols = wrapper_model.hist_exog_cols
+    input_size = wrapper_model.input_size
+
+    # Series identifier (encoded as integer)
+    series_int = wrapper_model.unique_id_to_int[unique_id]
+    input_components.append(np.array([series_int]))
+
+    # Future exogenous features (if they exist) - FULL LENGTH (historical + future)
+    if futr_exog_cols:
+        if futr_df is None:
+            raise ValueError("You must pass a futr_df if futr_exog_list is specified.")
+        # Prepare future exogenous data for this series
+        futr_exog_series = futr_df[futr_df["unique_id"] == unique_id].reset_index(
+            drop=True
+        )
+        # Get historical part
+        futr_hist_data = train_series[futr_exog_cols].values[-input_size:]
+        # Get future part
+        futr_pred_data = futr_exog_series[futr_exog_cols].values
+        # Combine and flatten
+        full_futr_data = np.vstack([futr_hist_data, futr_pred_data]).flatten()
+        input_components.append(full_futr_data)
+
+    # Historical exogenous features (if they exist)
+    if hist_exog_cols:
+        hist_exog_data = train_series[hist_exog_cols].values[-input_size:].flatten()
+        input_components.append(hist_exog_data)
+
+    # Historical target values (always present)
+    hist_target_data = train_series["y"].values[-input_size:]
+    input_components.append(hist_target_data)
+
+    # Combine all features
+    complete_input = np.concatenate(input_components)
+    return torch.tensor(complete_input, dtype=torch.float32).reshape(1, -1)
+
+# %% ../nbs/utils.ipynb 40
+def create_multi_series_background_data(train_df, wrapper_model):
+    """Create background data including samples from all series"""
+    background_samples = []
+
+    futr_exog_cols = wrapper_model.futr_exog_cols
+    hist_exog_cols = wrapper_model.hist_exog_cols
+    input_size = wrapper_model.input_size
+    horizon = wrapper_model.h
+
+    for unique_id in train_df["unique_id"].unique():
+        train_series = train_df[train_df["unique_id"] == unique_id]
+
+        # Determine the range of valid indices
+        start_idx = input_size
+        if futr_exog_cols:
+            end_idx = len(train_series) - horizon + 1
+        else:
+            end_idx = len(train_series)
+
+        # Sample fewer points per series to keep total background size manageable
+        for i in range(start_idx, end_idx, 6):  # Increased stride for efficiency
+            sample_components = []
+
+            # Series identifier
+            series_int = wrapper_model.unique_id_to_int[unique_id]
+            sample_components.append(np.array([series_int]))
+
+            # Future exogenous features (if they exist) - FULL LENGTH
+            if futr_exog_cols:
+                futr_hist_data = (
+                    train_series[futr_exog_cols]
+                    .iloc[i - input_size : i]
+                    .to_numpy()
+                    .flatten()
+                )
+                futr_pred_data = (
+                    train_series[futr_exog_cols]
+                    .iloc[i : i + horizon]
+                    .to_numpy()
+                    .flatten()
+                )
+                full_futr_data = np.concatenate([futr_hist_data, futr_pred_data])
+                sample_components.append(full_futr_data)
+
+            # Historical exogenous features (if they exist)
+            if hist_exog_cols:
+                hist_exog_window = (
+                    train_series[hist_exog_cols]
+                    .iloc[i - input_size : i]
+                    .to_numpy()
+                    .flatten()
+                )
+                sample_components.append(hist_exog_window)
+
+            # Historical target values
+            hist_target_window = train_series["y"].iloc[i - input_size : i].to_numpy()
+            sample_components.append(hist_target_window)
+
+            # Combine all features
+            complete_sample = np.concatenate(sample_components)
+            background_samples.append(complete_sample)
+
+    return np.array(background_samples)
+
+# %% ../nbs/utils.ipynb 41
+def model_predict(X, wrapper_model):
+    """Prediction function that takes numpy array and returns predictions"""
+    X_tensor = torch.tensor(X, dtype=torch.float32)
+    with torch.no_grad():
+        predictions = wrapper_model(X_tensor)
+    return predictions.numpy()
+
+# %% ../nbs/utils.ipynb 42
+def create_multi_series_feature_names(wrapper_model):
+    """Create feature names for multi-series input"""
+    feature_names = ["series_id"]
+    futr_exog_cols = wrapper_model.futr_exog_cols
+    hist_exog_cols = wrapper_model.hist_exog_cols
+    input_size = wrapper_model.input_size
+    horizon = wrapper_model.h
+
+    # Future exogenous features (if they exist) - FULL LENGTH
+    if futr_exog_cols:
+        for i in range(input_size):
+            for col in futr_exog_cols:
+                feature_names.append(f"{col}_hist_lag{i+1}")
+        for i in range(horizon):
+            for col in futr_exog_cols:
+                feature_names.append(f"{col}_h{i+1}")
+
+    # Historical exogenous features (if they exist)
+    if hist_exog_cols:
+        for i in range(input_size):
+            for col in hist_exog_cols:
+                feature_names.append(f"{col}_lag{i+1}")
+
+    # Historical target values (always present)
+    for i in range(input_size):
+        feature_names.append(f"y_lag{i+1}")
+
+    return feature_names
