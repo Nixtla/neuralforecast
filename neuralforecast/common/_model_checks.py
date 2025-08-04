@@ -23,14 +23,18 @@ FREQ = "D"
 
 # 1 series, no exogenous
 N_SERIES_1 = 1
-df = generate_series(n_series=N_SERIES_1, seed=seed, freq=FREQ, equal_ends=True)
+df = generate_series(
+    n_series=N_SERIES_1, max_length=120, seed=seed, freq=FREQ, equal_ends=True
+)
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_1 = df[df.ds < max_ds]
 Y_TEST_DF_1 = df[df.ds >= max_ds]
 
 # 5 series, no exogenous
 N_SERIES_2 = 5
-df = generate_series(n_series=N_SERIES_2, seed=seed, freq=FREQ, equal_ends=True)
+df = generate_series(
+    n_series=N_SERIES_2, max_length=120, seed=seed, freq=FREQ, equal_ends=True
+)
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_2 = df[df.ds < max_ds]
 Y_TEST_DF_2 = df[df.ds >= max_ds]
@@ -39,6 +43,7 @@ Y_TEST_DF_2 = df[df.ds >= max_ds]
 N_SERIES_3 = 1
 df, STATIC_3 = generate_series(
     n_series=N_SERIES_3,
+    max_length=120,
     n_static_features=2,
     n_temporal_features=2,
     seed=seed,
@@ -53,6 +58,7 @@ Y_TEST_DF_3 = df[df.ds >= max_ds]
 N_SERIES_4 = 5
 df, STATIC_4 = generate_series(
     n_series=N_SERIES_4,
+    max_length=120,
     n_static_features=2,
     n_temporal_features=2,
     seed=seed,
