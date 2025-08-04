@@ -6,6 +6,7 @@ __all__ = ['seed', 'test_size', 'FREQ', 'N_SERIES_1', 'df', 'max_ds', 'Y_TRAIN_D
            'Y_TRAIN_DF_4', 'Y_TEST_DF_4', 'check_loss_functions', 'check_airpassengers', 'check_model']
 
 # %% ../../nbs/common.model_checks.ipynb 4
+import gc
 import pandas as pd
 import neuralforecast.losses.pytorch as losses
 
@@ -92,6 +93,7 @@ def _run_model_tests(model_class, config):
     fcst = NeuralForecast(models=[model], freq=FREQ)
     fcst.fit(df=Y_TRAIN_DF_2, val_size=24)
     _ = fcst.predict(futr_df=Y_TEST_DF_2)
+    del fcst
 
     if model.EXOGENOUS_STAT and model.EXOGENOUS_FUTR:
         # DF_3
@@ -117,6 +119,8 @@ def _run_model_tests(model_class, config):
         fcst = NeuralForecast(models=[model], freq=FREQ)
         fcst.fit(df=Y_TRAIN_DF_4, static_df=STATIC_4, val_size=24)
         _ = fcst.predict(futr_df=Y_TEST_DF_4)
+        del fcst
+    gc.collect()
 
 
 # Tests a model against every loss function
