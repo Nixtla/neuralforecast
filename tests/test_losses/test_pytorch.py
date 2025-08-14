@@ -16,29 +16,24 @@ from neuralforecast.losses.pytorch import (
 # attribute is correctly instantiated
 def test_MQLoss_level():
     check = MQLoss(level=[80, 90])
-    assert len(check.quantiles), 5
+    assert len(check.quantiles) == 5
 
 def test_MQLoss_quantiles():
     check = MQLoss(quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
-    print(check.output_names)
-    print(check.quantiles)
-    assert len(check.quantiles), 5
+    assert len(check.quantiles) == 5
 
     check = MQLoss(quantiles=[0.0100, 0.1000, 0.9000, 0.9900])
-    assert len(check.quantiles), 4
+    assert len(check.quantiles) == 4
 
 
 # Unit tests
 # Check that default quantile is set to 0.5 at initialization
-def test_IQLoss_default_quantile():
+def test_IQLoss_default_and_update_quantile():
     check = IQLoss()
-    assert check.q, 0.5
+    assert check.q == 0.5
 
-# Check that quantiles are correctly updated - prediction
-def test_IQLoss_update_quantile():
-    check = IQLoss()
     check.update_quantile([0.7])
-    assert check.q, 0.7
+    assert check.q == 0.7
 
 
 # Unit tests to check DistributionLoss' stored quantiles
@@ -51,14 +46,12 @@ def test_DistributionLoss_quantiles():
     check = DistributionLoss(
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900]
     )
-    print(check.output_names)
-    print(check.quantiles)
-    assert len(check.quantiles), 5
+    assert len(check.quantiles) == 5
 
     check = DistributionLoss(
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.9000, 0.9900]
     )
-    assert len(check.quantiles), 4
+    assert len(check.quantiles) == 4
 
 # Unit tests to check DistributionLoss' horizon weight
 def test_DistributionLoss_horizon_weight():
@@ -76,35 +69,30 @@ def test_DistributionLoss_horizon_weight():
     distr_args = loss.scale_decouple(y_hat, y_loc, y_scale)
     distr_args_weighted = loss_with_hweights.scale_decouple(y_hat, y_loc, y_scale)
 
-    assert loss(y, distr_args), loss_with_hweights(y, distr_args_weighted)
+    assert loss(y, distr_args) == loss_with_hweights(y, distr_args_weighted)
 
 
 # Unit tests to check PMM's stored quantiles
 # attribute is correctly instantiated
 def test_PMM_level():
     check = PMM(n_components=2, level=[80, 90])
-    assert len(check.quantiles), 5
+    assert len(check.quantiles) == 5
 
 def test_PMM_quantiles():
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
-    print(check.output_names)
-    print(check.quantiles)
-    assert len(check.quantiles), 5
+    assert len(check.quantiles) == 5
 
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.9000, 0.9900])
-    assert len(check.quantiles), 4
+    assert len(check.quantiles) == 4
 
 # Unit tests
 # Check that default quantile is set to 0.5 at initialization
-def test_HuberIQLoss_init():
+def test_HuberIQLoss_init_and_update():
     check = HuberIQLoss()
-    assert check.q, 0.5
+    assert check.q == 0.5
 
-# Check that quantiles are correctly updated - prediction
-def test_HuberIQLoss_update_quantile():
-    check = HuberIQLoss()
     check.update_quantile([0.7])
-    assert check.q, 0.7
+    assert check.q == 0.7
 
 
 # Each 1 is an error, there are 6 datapoints.
