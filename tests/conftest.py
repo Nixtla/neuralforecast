@@ -1,6 +1,13 @@
-import logging
+# Set MPS fallback environment variables before any imports
 import os
 import sys
+
+# Critical: Set these environment variables BEFORE PyTorch is imported
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"  # Removes MPS memory ceiling
+os.environ["DEVICE"] = "cpu"  # Optional: if your code uses this
+
+import logging
 import warnings
 
 import pytest
@@ -12,15 +19,7 @@ from neuralforecast.utils import AirPassengersDF as Y_df
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """Configure the environment for all neural forecast tests."""
-    is_mac_ci = sys.platform.startswith('darwin') and os.getenv("CI", "false").lower() == "true"
-
-    if is_mac_ci:
-        # Disable memory cap (careful!) or force CPU mode
-        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-        os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"  # Removes MPS memory ceiling
-        os.environ["DEVICE"] = "cpu"  # Optional: if your code uses this
-        logging.warning("Running on macOS CI – forcing MPS fallback settings")
-
+    logging.warning("Running on macOS CI - forcing MPS fallback settings")
     logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
     logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
     yield
