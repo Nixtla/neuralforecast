@@ -71,6 +71,8 @@ from neuralforecast.utils import (
     generate_series,
 )
 
+from .test_helpers import assert_equal_dfs, get_expected_size
+
 
 @pytest.fixture
 def setup():
@@ -419,15 +421,6 @@ def test_inplace_model_fitting(setup_airplane_data):
         "models stored trajectories should not be empty"
     )
 
-def get_expected_size(df, h, test_size, step_size):
-    expected_size = 0
-    uids = df["unique_id"].unique()
-    for uid in uids:
-        input_len = len(df[df["unique_id"] == uid])
-        expected_size += ((input_len - test_size - h) / step_size + 1) * h
-    return expected_size
-
-
 @pytest.fixture
 def setup_models_for_insample():
     h = 12
@@ -517,7 +510,7 @@ def test_predict_insample_step_size(setup_airplane_data, step_size, test_size):
     pd.testing.assert_series_equal(cutoffs_by_series['Airline1'], cutoffs_by_series['Airline2'], check_names=False)
 
 
-def test_predict_insample_diff_loss(setup_test_environment, setup_airplane_data):
+def test_predict_insample_diff_loss(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
 
 
@@ -619,130 +612,6 @@ def test_aliases(setup_airplane_data):
             "NHITS",
         ]
 
-# # Unit test for core/model interactions
-# config = {
-#     "input_size": tune.choice([12, 24]),
-#     "hidden_size": 256,
-#     "max_steps": 1,
-#     "val_check_steps": 1,
-#     "step_size": 12,
-# }
-
-# config_drnn = {
-#     "input_size": tune.choice([-1]),
-#     "encoder_hidden_size": tune.choice([5, 10]),
-#     "max_steps": 1,
-#     "val_check_steps": 1,
-#     "step_size": 1,
-# }
-
-# fcst = NeuralForecast(
-#     models=[
-#         AutoDilatedRNN(h=12, config=config_drnn, cpus=1, num_samples=2),
-#         DeepAR(
-#             h=12,
-#             input_size=24,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#         ),
-#         DilatedRNN(
-#             h=12,
-#             input_size=-1,
-#             encoder_hidden_size=10,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         RNN(
-#             h=12,
-#             input_size=-1,
-#             encoder_hidden_size=10,
-#             max_steps=1,
-#             inference_input_size=24,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         TCN(
-#             h=12,
-#             input_size=-1,
-#             encoder_hidden_size=10,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         AutoMLP(h=12, config=config, cpus=1, num_samples=2),
-#         NBEATSx(
-#             h=12,
-#             input_size=12,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         NHITS(h=12, input_size=24, loss=MQLoss(level=[80]), max_steps=1),
-#         NHITS(
-#             h=12,
-#             input_size=12,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         DLinear(h=12, input_size=24, max_steps=1),
-#         MLP(
-#             h=12,
-#             input_size=12,
-#             max_steps=1,
-#             stat_exog_list=["airline1"],
-#             futr_exog_list=["trend"],
-#             hist_exog_list=["y_[lag12]"],
-#         ),
-#         TFT(h=12, input_size=24, max_steps=1),
-#         VanillaTransformer(h=12, input_size=24, max_steps=1),
-#         Informer(h=12, input_size=24, max_steps=1),
-#         Autoformer(h=12, input_size=24, max_steps=1),
-#         FEDformer(h=12, input_size=24, max_steps=1),
-#         PatchTST(h=12, input_size=24, max_steps=1),
-#         TimesNet(h=12, input_size=24, max_steps=1),
-#         StemGNN(h=12, input_size=24, n_series=2, max_steps=1, scaler_type="robust"),
-#         TSMixer(h=12, input_size=24, n_series=2, max_steps=1, scaler_type="robust"),
-#         TSMixerx(h=12, input_size=24, n_series=2, max_steps=1, scaler_type="robust"),
-#     ],
-#     freq="M",
-# )
-# fcst.fit(df=AirPassengersPanel_train, static_df=AirPassengersStatic)
-# forecasts = fcst.predict(futr_df=AirPassengersPanel_test)
-# forecasts
-# fig, ax = plt.subplots(1, 1, figsize=(20, 7))
-# plot_df = pd.concat([AirPassengersPanel_train, forecasts.reset_index()]).set_index("ds")
-
-# plot_df[plot_df["unique_id"] == "Airline1"].drop(
-#     ["unique_id", "trend", "y_[lag12]"], axis=1
-# ).plot(ax=ax, linewidth=2)
-
-# ax.set_title("AirPassengers Forecast", fontsize=22)
-# ax.set_ylabel("Monthly Passengers", fontsize=20)
-# ax.set_xlabel("Timestamp [t]", fontsize=20)
-# ax.legend(prop={"size": 15})
-# ax.grid()
-# fig, ax = plt.subplots(1, 1, figsize=(20, 7))
-# plot_df = pd.concat([AirPassengersPanel_train, forecasts.reset_index()]).set_index("ds")
-
-# plot_df[plot_df["unique_id"] == "Airline2"].drop(
-#     ["unique_id", "trend", "y_[lag12]"], axis=1
-# ).plot(ax=ax, linewidth=2)
-
-# ax.set_title("AirPassengers Forecast", fontsize=22)
-# ax.set_ylabel("Monthly Passengers", fontsize=20)
-# ax.set_xlabel("Timestamp [t]", fontsize=20)
-# ax.legend(prop={"size": 15})
-# ax.grid()
-
-
 def config_optuna(trial):
     return {
         "input_size": trial.suggest_categorical("input_size", [12, 24]),
@@ -819,37 +688,8 @@ def test_training_with_an_iterative_dataset(setup_airplane_data):
     )
 
 
-# config = {
-#     "input_size": tune.choice([12, 24]),
-#     "hidden_size": 256,
-#     "max_steps": 1,
-#     "val_check_steps": 1,
-#     "step_size": 12,
-# }
-
-# config_drnn = {
-#     "input_size": tune.choice([-1]),
-#     "encoder_hidden_size": tune.choice([5, 10]),
-#     "max_steps": 1,
-#     "val_check_steps": 1,
-#     "step_size": 1,
-# }
-
-# fcst = NeuralForecast(
-#     models=[
-#         DilatedRNN(h=12, input_size=-1, encoder_hidden_size=10, max_steps=1),
-#         AutoMLP(h=12, config=config, cpus=1, num_samples=1),
-#         NHITS(h=12, input_size=12, max_steps=1),
-#     ],
-#     freq="M",
-# )
-# cv_df = fcst.cross_validation(
-#     df=AirPassengersPanel, static_df=AirPassengersStatic, n_windows=3, step_size=1
-# )
-
-
 # test cross validation no leakage
-def test_cross_validation(setup_test_environment, h=12, test_size=12):
+def test_cross_validation(h=12, test_size=12):
     df = AirPassengersPanel
     static_df = AirPassengersStatic
     if (test_size - h) % 1:
@@ -1090,7 +930,7 @@ def test_save_load(setup_airplane_data):
 def test_save_load_no_dataset(setup_airplane_data):
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
 
-    # shutil.rmtree("examples/debug_run")
+    shutil.rmtree("examples/debug_run")
     fcst = NeuralForecast(
         models=[DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1)],
         freq="M",
@@ -1163,17 +1003,6 @@ def test_no_checkpointing(setup_airplane_data):
     assert no_chkpt_found == True
 
 
-# # test short time series
-# config = {"input_size": tune.choice([12, 24]), "max_steps": 1, "val_check_steps": 1}
-
-# fcst = NeuralForecast(
-#     models=[AutoNBEATS(h=12, config=config, cpus=1, num_samples=2)], freq="M"
-# )
-
-# AirPassengersShort = AirPassengersPanel.tail(36 + 144).reset_index(drop=True)
-# forecasts = fcst.cross_validation(AirPassengersShort, val_size=48, n_windows=1)
-
-
 # test validation scale BaseWindows
 def test_validation_scale_basewindows(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -1244,99 +1073,28 @@ def test_order_of_variables_no_effect_on_val_loss(setup_airplane_data):
     assert valid_losses[-1][1] > 10, "Validation loss is too low"
 
 
-def test_neural_forecast_missing_variables(setup_airplane_data):
+@pytest.mark.parametrize("model,expected_error", [
+    (NHITS(h=12, input_size=24, max_steps=50, hist_exog_list=["not_included"], scaler_type="robust"),
+     "historical exogenous variables not found in input dataset"),
+    (NHITS(h=12, input_size=24, max_steps=50, futr_exog_list=["not_included"], scaler_type="robust"),
+     "future exogenous variables not found in input dataset"),
+    (NHITS(h=12, input_size=24, max_steps=50, stat_exog_list=["not_included"], scaler_type="robust"),
+     "static exogenous variables not found in input dataset"),
+    (LSTM(h=12, input_size=24, max_steps=50, hist_exog_list=["not_included"], scaler_type="robust"),
+     "historical exogenous variables not found in input dataset"),
+    (LSTM(h=12, input_size=24, max_steps=50, futr_exog_list=["not_included"], scaler_type="robust"),
+     "future exogenous variables not found in input dataset"),
+    (LSTM(h=12, input_size=24, max_steps=50, stat_exog_list=["not_included"], scaler_type="robust"),
+     "static exogenous variables not found in input dataset"),
+])
+def test_neural_forecast_missing_variables(setup_airplane_data, model, expected_error):
     """Test that fit fails appropriately when variables are not in dataframe."""
     AirPassengersPanel_train, _ = setup_airplane_data
 
-    # Test Base Windows models with missing historical exogenous variables
-    models = [
-        NHITS(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            hist_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
+    nf = NeuralForecast(models=[model], freq="M")
     with pytest.raises(Exception) as exc_info:
         nf.fit(AirPassengersPanel_train)
-    assert "historical exogenous variables not found in input dataset" in str(exc_info.value)
-
-    # Test Base Windows models with missing future exogenous variables
-    models = [
-        NHITS(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            futr_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception) as exc_info:
-        nf.fit(AirPassengersPanel_train)
-    assert "future exogenous variables not found in input dataset" in str(exc_info.value)
-
-    # Test Base Windows models with missing static exogenous variables
-    models = [
-        NHITS(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            stat_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception) as exc_info:
-        nf.fit(AirPassengersPanel_train)
-    assert "static exogenous variables not found in input dataset" in str(exc_info.value)
-
-    # Test Base Recurrent models with missing historical exogenous variables
-    models = [
-        LSTM(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            hist_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception) as exc_info:
-        nf.fit(AirPassengersPanel_train)
-    assert "historical exogenous variables not found in input dataset" in str(exc_info.value)
-
-    # Test Base Recurrent models with missing future exogenous variables
-    models = [
-        LSTM(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            futr_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception) as exc_info:
-        nf.fit(AirPassengersPanel_train)
-    assert "future exogenous variables not found in input dataset" in str(exc_info.value)
-
-    # Test Base Recurrent models with missing static exogenous variables
-    models = [
-        LSTM(
-            h=12,
-            input_size=24,
-            max_steps=1,
-            stat_exog_list=["not_included"],
-            scaler_type="robust",
-        )
-    ]
-    nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception) as exc_info:
-        nf.fit(AirPassengersPanel_train)
-    assert "static exogenous variables not found in input dataset" in str(exc_info.value)
+    assert expected_error in str(exc_info.value)
 
 
 def test_neural_forecast_unused_variables(setup_airplane_data):
@@ -1387,9 +1145,11 @@ def test_neural_forecast_unused_variables(setup_airplane_data):
     )
 
 
-def test_neural_forecast_pandas_polars_compatibility(setup_airplane_data):
+def test_neural_forecast_pandas_polars_compatibility(setup_airplane_data, setup_airplane_data_polars):
     """Test that NeuralForecast produces identical results with Pandas and Polars dataframes."""
     AirPassengersPanel_train, _ = setup_airplane_data
+    AirPassengers_pl, AirPassengersStatic_pl = setup_airplane_data_polars
+
     AirPassengersStatic = pd.DataFrame(
         {
             "unique_id": ["H196", "H256"],
@@ -1397,16 +1157,6 @@ def test_neural_forecast_pandas_polars_compatibility(setup_airplane_data):
             "airline2": [1, 0],
         }
     )
-
-    # Set up column renaming for Polars
-    renamer = {"unique_id": "uid", "ds": "time", "y": "target"}
-    inverse_renamer = {v: k for k, v in renamer.items()}
-
-    # Create Polars dataframes
-    AirPassengers_pl = polars.from_pandas(AirPassengersPanel_train)
-    AirPassengers_pl = AirPassengers_pl.rename(renamer)
-    AirPassengersStatic_pl = polars.from_pandas(AirPassengersStatic)
-    AirPassengersStatic_pl = AirPassengersStatic_pl.rename({"unique_id": "uid"})
 
     models = [LSTM(h=12, input_size=24, max_steps=5, scaler_type="robust")]
 
@@ -1435,14 +1185,6 @@ def test_neural_forecast_pandas_polars_compatibility(setup_airplane_data):
         time_col="time",
         target_col="target",
     )
-
-    def assert_equal_dfs(pandas_df, polars_df):
-        """Helper function to compare Pandas and Polars dataframes."""
-        mapping = {k: v for k, v in inverse_renamer.items() if k in polars_df}
-        pd.testing.assert_frame_equal(
-            pandas_df,
-            polars_df.rename(mapping).to_pandas(),
-        )
 
     # Assert that results are identical between Pandas and Polars
     assert_equal_dfs(preds, preds_pl)
@@ -1792,83 +1534,70 @@ def test_neuralforecast_lr_scheduler_optimizer_warning(setup_airplane_data):
                 for w in issued_warnings
             ), f"Expected optimizer warning not found for {nf_model.__name__}"
 
-
-def test_neuralforecast_lr_scheduler_kwargs_warning(setup_airplane_data):
+@pytest.mark.parametrize("nf_model", [NHITS, RNN, StemGNN])
+def test_neuralforecast_lr_scheduler_kwargs_warning(setup_airplane_data, nf_model):
     """Test that passing lr_scheduler_kwargs without lr_scheduler produces expected warnings."""
     AirPassengersPanel_train, _ = setup_airplane_data
 
     # Test that if we pass in "lr_scheduler_kwargs" but not "lr_scheduler", we expect a warning
     # Tests consider models implemented using different base classes such as BaseWindows, BaseRecurrent, BaseMultivariate
+    params = {
+        "h": 12,
+        "input_size": 24,
+        "max_steps": 1,
+        "lr_scheduler_kwargs": {"optimizer": torch.optim.Adadelta, "factor": 0.22},
+    }
+    if nf_model.__name__ == "StemGNN":
+        params.update({"n_series": 2})
 
-    for nf_model in [NHITS, RNN, StemGNN]:
-        params = {
-            "h": 12,
-            "input_size": 24,
-            "max_steps": 1,
-            "lr_scheduler_kwargs": {"optimizer": torch.optim.Adadelta, "factor": 0.22},
-        }
-        if nf_model.__name__ == "StemGNN":
-            params.update({"n_series": 2})
+    models = [nf_model(**params)]
+    nf = NeuralForecast(models=models, freq="M")
 
-        models = [nf_model(**params)]
-        nf = NeuralForecast(models=models, freq="M")
-
-        with warnings.catch_warnings(record=True) as issued_warnings:
-            warnings.simplefilter("always", UserWarning)
-            nf.fit(AirPassengersPanel_train)
-            assert any(
-                "ignoring lr_scheduler_kwargs as the lr_scheduler is not specified"
-                in str(w.message)
-                for w in issued_warnings
-            ), f"Expected lr_scheduler_kwargs warning not found for {nf_model.__name__}"
-
-# # test conformal prediction, method=conformal_distribution
-
-# prediction_intervals = PredictionIntervals()
-
-# models = []
-# for nf_model in [NHITS, RNN, TSMixer]:
-#     params = {"h": 12, "input_size": 24, "max_steps": 1}
-#     if nf_model.__name__ == "TSMixer":
-#         params.update({"n_series": 2})
-#     models.append(nf_model(**params))
+    with warnings.catch_warnings(record=True) as issued_warnings:
+        warnings.simplefilter("always", UserWarning)
+        nf.fit(AirPassengersPanel_train)
+        assert any(
+            "ignoring lr_scheduler_kwargs as the lr_scheduler is not specified"
+            in str(w.message)
+            for w in issued_warnings
+        ), f"Expected lr_scheduler_kwargs warning not found for {nf_model.__name__}"
 
 
-# nf = NeuralForecast(models=models, freq="M")
-# nf.fit(AirPassengersPanel_train, prediction_intervals=prediction_intervals)
-# preds = nf.predict(futr_df=AirPassengersPanel_test, level=[90])
-# # test conformal prediction works for polar dataframe
+@pytest.mark.parametrize("nf_model", [NHITS, RNN, TSMixer])
+def test_neuralforecast_conformal_prediction(setup_airplane_data, setup_airplane_data_polars, nf_model):
+    """Test conformal prediction, method=conformal_distribution."""
+    AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
+    AirPassengers_pl, AirPassengersStatic_pl = setup_airplane_data_polars
 
-# prediction_intervals = PredictionIntervals()
-
-# models = []
-# for nf_model in [NHITS, RNN, TSMixer]:
-#     params = {"h": 12, "input_size": 24, "max_steps": 1}
-#     if nf_model.__name__ == "TSMixer":
-#         params.update({"n_series": 2})
-#     models.append(nf_model(**params))
+    prediction_intervals = PredictionIntervals()
 
 
-# nf = NeuralForecast(models=models, freq="1mo")
-# nf.fit(
-#     AirPassengers_pl,
-#     prediction_intervals=prediction_intervals,
-#     time_col="time",
-#     id_col="uid",
-#     target_col="target",
-# )
-# preds = nf.predict(level=[90])
-# # test conformal prediction, method=conformal_error
+    params = {"h": 12, "input_size": 24, "max_steps": 1}
+    if nf_model.__name__ == "TSMixer":
+        params.update({"n_series": 2})
+    models = [nf_model(**params)]
 
-# prediction_intervals = PredictionIntervals(method="conformal_error")
 
-# models = []
-# for nf_model in [NHITS, RNN, TSMixer]:
-#     params = {"h": 12, "input_size": 24, "max_steps": 1}
-#     if nf_model.__name__ == "TSMixer":
-#         params.update({"n_series": 2})
-#     models.append(nf_model(**params))
+    nf = NeuralForecast(models=models, freq="M")
+    nf.fit(AirPassengersPanel_train, prediction_intervals=prediction_intervals)
+    preds = nf.predict(futr_df=AirPassengersPanel_test, level=[90])
 
+    assert "unique_id" in preds.columns
+    assert "ds" in preds.columns
+    assert any(col.startswith(nf_model.__name__) for col in preds.columns)
+
+    # test conformal prediction works for polar dataframe
+    nf = NeuralForecast(models=models, freq="1mo")
+    nf.fit(
+        AirPassengers_pl,
+        prediction_intervals=prediction_intervals,
+        time_col="time",
+        id_col="uid",
+        target_col="target",
+    )
+    preds = nf.predict(level=[90])
+    assert "uid" in preds.columns
+    assert any(col.startswith(nf_model.__name__) for col in preds.columns)
 
 def test_neuralforecast_cross_validation_conformal_prediction(setup_airplane_data):
     """Test cross validation can support conformal prediction with proper refit parameter."""
