@@ -870,11 +870,12 @@ class NeuralForecast:
                             f"Model {model} has future exogenous features, "
                             "which is not compatible with setting a larger horizon during prediction."
                         )
-
-            else:
+            elif h < self.h:
                 raise ValueError(
                     f"The specified horizon h={h} must be greater than the horizon of the fitted models: {self.h}."
                 )
+            else:
+                h = self.h
         else:
             h = self.h
 
@@ -1085,6 +1086,8 @@ class NeuralForecast:
                 continue
 
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
+            if h > self.h:
+                model.set_test_size(self.h + (n_windows - 1) * step_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, h=h, **data_kwargs
             )
@@ -1217,18 +1220,24 @@ class NeuralForecast:
                     if model.futr_exog_list:
                         raise NotImplementedError(
                             f"Model {model} has future exogenous features, "
-                            "which is not compatible with setting a larger horizon during prediction."
+                            "which is not compatible with setting a larger horizon during cross-validation."
                         )
-            else:
+                if refit:
+                    raise NotImplementedError(
+                        f"Cross-validation with refit=True and a prediction horizon ({h}) larger than the fitted model horizon ({self.h}) is not supported. Set refit=False or h=None."
+                    )
+            elif h < self.h:
                 raise ValueError(
                     f"The specified horizon h={h} must be greater than the horizon of the fitted models: {self.h}."
                 )
+            else:
+                h = self.h
         else:
             h = self.h
 
         if n_windows is None and test_size is None:
             raise Exception("you must define `n_windows` or `test_size`.")
-        if test_size is None:
+        if test_size is None and h is not None:
             test_size = h + step_size * (n_windows - 1)
         elif n_windows is None:
             if (test_size - h) % step_size:
