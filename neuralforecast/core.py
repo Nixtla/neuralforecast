@@ -568,7 +568,9 @@ class NeuralForecast:
 
         self._fitted = True
 
-    def make_future_dataframe(self, df: Optional[DFType] = None) -> DFType:
+    def make_future_dataframe(
+        self, df: Optional[DFType] = None, h: Optional[int] = None
+    ) -> DFType:
         """Create a dataframe with all ids and future times in the forecasting horizon.
 
         Parameters
@@ -576,6 +578,8 @@ class NeuralForecast:
         df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             Only required if this is different than the one used in the fit step.
+        h : int, optional (default=None)
+            Forecasting horizon.
         """
         if not self._fitted:
             raise Exception("You must fit the model first.")
@@ -592,17 +596,19 @@ class NeuralForecast:
         else:
             uids = self.uids
             last_times = self.last_dates
+        if h is None:
+            h = self.h
         return ufp.make_future_dataframe(
             uids=uids,
             last_times=last_times,
             freq=self.freq,
-            h=self.h,
+            h=h,
             id_col=self.id_col,
             time_col=self.time_col,
         )
 
     def get_missing_future(
-        self, futr_df: DFType, df: Optional[DFType] = None
+        self, futr_df: DFType, df: Optional[DFType] = None, h: Optional[int] = None
     ) -> DFType:
         """Get the missing ids and times combinations in `futr_df`.
 
@@ -613,8 +619,10 @@ class NeuralForecast:
         df : pandas or polars DataFrame, optional (default=None)
             DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             Only required if this is different than the one used in the fit step.
+        h : int, optional (default=None)
+            Forecasting horizon.
         """
-        expected = self.make_future_dataframe(df)
+        expected = self.make_future_dataframe(df, h=h)
         ids = [self.id_col, self.time_col]
         return ufp.anti_join(expected, futr_df[ids], on=ids)
 
@@ -690,6 +698,7 @@ class NeuralForecast:
         static_df: Optional[SparkDataFrame],
         futr_df: Optional[SparkDataFrame],
         engine,
+        h: Optional[int] = None,
     ):
         import fugue.api as fa
 
@@ -702,6 +711,7 @@ class NeuralForecast:
             id_col,
             time_col,
             target_col,
+            h,
         ) -> pd.DataFrame:
             from neuralforecast import NeuralForecast
 
@@ -729,7 +739,7 @@ class NeuralForecast:
                 df = df.drop(columns=static_cols)
             else:
                 static_df = None
-            return nf.predict(df=df, static_df=static_df, futr_df=futr_df)
+            return nf.predict(df=df, static_df=static_df, futr_df=futr_df, h=h)
 
         # df
         if isinstance(df, SparkDataFrame):
@@ -793,6 +803,7 @@ class NeuralForecast:
                 id_col=self.id_col,
                 time_col=self.time_col,
                 target_col=self.target_col,
+                h=h,
             ),
         )
 
@@ -805,6 +816,7 @@ class NeuralForecast:
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
         quantiles: Optional[List[float]] = None,
+        h: Optional[int] = None,
         **data_kwargs,
     ):
         """Predict with core.NeuralForecast.
@@ -828,6 +840,8 @@ class NeuralForecast:
             Confidence levels between 0 and 100.
         quantiles : list of floats, optional (default=None)
             Alternative to level, target quantiles to predict.
+        h : int, optional (default=None)
+            Forecasting horizon. If None, uses the horizon of the fitted models.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -842,6 +856,27 @@ class NeuralForecast:
 
         if not self._fitted:
             raise Exception("You must fit the model before predicting.")
+
+        if h is not None:
+            if h > self.h:
+                for model in self.models:
+                    if model.hist_exog_list:
+                        raise NotImplementedError(
+                            f"Model {model} has historic exogenous features, "
+                            "which is not compatible with setting a larger horizon during prediction."
+                        )
+                    if model.futr_exog_list:
+                        raise NotImplementedError(
+                            f"Model {model} has future exogenous features, "
+                            "which is not compatible with setting a larger horizon during prediction."
+                        )
+
+            else:
+                raise ValueError(
+                    f"The specified horizon h={h} must be greater than the horizon of the fitted models: {self.h}."
+                )
+        else:
+            h = self.h
 
         quantiles_ = None
         level_ = None
@@ -885,6 +920,7 @@ class NeuralForecast:
                 static_df=static_df,
                 futr_df=futr_df,
                 engine=engine,
+                h=h,
             )
 
         if is_dataset_local_files and df is None:
@@ -915,7 +951,7 @@ class NeuralForecast:
             uids=uids,
             last_times=last_dates,
             freq=self.freq,
-            h=self.h,
+            h=h,
             id_col=self.id_col,
             time_col=self.time_col,
         )
@@ -928,11 +964,19 @@ class NeuralForecast:
             futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
             if futr_df.shape[0] < fcsts_df.shape[0]:
                 if df is None:
-                    expected_cmd = "make_future_dataframe()"
-                    missing_cmd = "get_missing_future(futr_df)"
+                    if h != self.h:
+                        expected_cmd = f"make_future_dataframe(h={h})"
+                        missing_cmd = f"get_missing_future(futr_df, h={h})"
+                    else:
+                        expected_cmd = "make_future_dataframe()"
+                        missing_cmd = "get_missing_future(futr_df)"
                 else:
-                    expected_cmd = "make_future_dataframe(df)"
-                    missing_cmd = "get_missing_future(futr_df, df)"
+                    if h != self.h:
+                        expected_cmd = f"make_future_dataframe(df, h={h})"
+                        missing_cmd = f"get_missing_future(futr_df, df, h={h})"
+                    else:
+                        expected_cmd = "make_future_dataframe(df)"
+                        missing_cmd = "get_missing_future(futr_df, df)"
                 raise ValueError(
                     "There are missing combinations of ids and times in `futr_df`.\n"
                     f"You can run the `{expected_cmd}` method to get the expected combinations or "
@@ -958,11 +1002,12 @@ class NeuralForecast:
             quantiles_=quantiles_,
             level_=level_,
             has_level=has_level,
+            h=h,
             **data_kwargs,
         )
 
         if self.scalers_:
-            indptr = np.append(0, np.full(len(uids), self.h).cumsum())
+            indptr = np.append(0, np.full(len(uids), h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
 
         # Declare predictions pd.DataFrame
@@ -991,6 +1036,7 @@ class NeuralForecast:
         id_col: str,
         time_col: str,
         target_col: str,
+        h: int,
         **data_kwargs,
     ) -> DataFrame:
         if (df is None) and not (hasattr(self, "dataset")):
@@ -1021,7 +1067,7 @@ class NeuralForecast:
             times=self.ds,
             uids=self.uids,
             indptr=self.dataset.indptr,
-            h=self.h,
+            h=h,
             test_size=test_size,
             step_size=step_size,
             id_col=id_col,
@@ -1040,7 +1086,7 @@ class NeuralForecast:
 
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
             model_fcsts = model.predict(
-                self.dataset, step_size=step_size, **data_kwargs
+                self.dataset, step_size=step_size, h=h, **data_kwargs
             )
 
             # Append predictions in memory placeholder
@@ -1054,8 +1100,8 @@ class NeuralForecast:
         if self.scalers_ or needs_trim:
             indptr = np.arange(
                 0,
-                n_windows * self.h * (self.dataset.n_groups + 1),
-                n_windows * self.h,
+                n_windows * h * (self.dataset.n_groups + 1),
+                n_windows * h,
                 dtype=np.int32,
             )
             if self.scalers_:
@@ -1106,6 +1152,7 @@ class NeuralForecast:
         prediction_intervals: Optional[PredictionIntervals] = None,
         level: Optional[List[Union[int, float]]] = None,
         quantiles: Optional[List[float]] = None,
+        h: Optional[int] = None,
         **data_kwargs,
     ) -> DataFrame:
         """Temporal Cross-Validation with core.NeuralForecast.
@@ -1148,6 +1195,8 @@ class NeuralForecast:
             Confidence levels between 0 and 100.
         quantiles : list of floats, optional (default=None)
             Alternative to level, target quantiles to predict.
+        h : int, optional (default=None)
+            Forecasting horizon. If None, uses the horizon of the fitted models.
         data_kwargs : kwargs
             Extra arguments to be passed to the dataset within each model.
 
@@ -1157,7 +1206,26 @@ class NeuralForecast:
             DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
         """
-        h = self.h
+        if h is not None:
+            if h > self.h:
+                for model in self.models:
+                    if model.hist_exog_list:
+                        raise NotImplementedError(
+                            f"Model {model} has historic exogenous features, "
+                            "which is not compatible with setting a larger horizon during cross-validation."
+                        )
+                    if model.futr_exog_list:
+                        raise NotImplementedError(
+                            f"Model {model} has future exogenous features, "
+                            "which is not compatible with setting a larger horizon during prediction."
+                        )
+            else:
+                raise ValueError(
+                    f"The specified horizon h={h} must be greater than the horizon of the fitted models: {self.h}."
+                )
+        else:
+            h = self.h
+
         if n_windows is None and test_size is None:
             raise Exception("you must define `n_windows` or `test_size`.")
         if test_size is None:
@@ -1200,6 +1268,7 @@ class NeuralForecast:
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
+                h=h,
                 **data_kwargs,
             )
         if df is None:
@@ -1208,7 +1277,7 @@ class NeuralForecast:
         splits = ufp.backtest_splits(
             df,
             n_windows=n_windows,
-            h=self.h,
+            h=h,
             id_col=id_col,
             time_col=time_col,
             freq=self.freq,
@@ -1245,6 +1314,7 @@ class NeuralForecast:
                 verbose=verbose,
                 level=level,
                 quantiles=quantiles,
+                h=h,
                 **data_kwargs,
             )
             preds = ufp.join(preds, cutoffs, on=id_col, how="left")
@@ -1728,6 +1798,7 @@ class NeuralForecast:
         quantiles_: Optional[List[float]] = None,
         level_: Optional[List[Union[int, float]]] = None,
         has_level: Optional[bool] = False,
+        h: Optional[int] = None,
         **data_kwargs,
     ) -> np.array:
         fcsts_list: List = []
@@ -1752,7 +1823,7 @@ class NeuralForecast:
                 and callable(model.loss.update_quantile)
             ):
                 model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                    dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
                 )
                 fcsts_list.append(model_fcsts)
                 col_names = []
@@ -1793,7 +1864,7 @@ class NeuralForecast:
                 fcsts_list_iqloss = []
                 for i, quantile in enumerate(quantiles_iqloss):
                     model_fcsts = model.predict(
-                        dataset=dataset, quantiles=[quantile], **data_kwargs
+                        dataset=dataset, quantiles=[quantile], h=h, **data_kwargs
                     )
                     fcsts_list_iqloss.append(model_fcsts)
                 fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
@@ -1816,7 +1887,7 @@ class NeuralForecast:
                         " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
                     )
                 model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, **data_kwargs
+                    dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
                 )
                 prediction_interval_method = get_prediction_interval_method(
                     self.prediction_intervals.method
@@ -1835,7 +1906,7 @@ class NeuralForecast:
                 cols.extend([model_name] + out_cols)
             # base case: quantiles or levels are not supported or provided as arguments
             else:
-                model_fcsts = model.predict(dataset=dataset, **data_kwargs)
+                model_fcsts = model.predict(dataset=dataset, h=h, **data_kwargs)
                 fcsts_list.append(model_fcsts)
                 cols.extend(model_name + n for n in model.loss.output_names)
             model.set_test_size(old_test_size)  # Set back to original value
