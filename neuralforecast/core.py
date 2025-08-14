@@ -68,6 +68,7 @@ from neuralforecast.models import (
     KAN,
     RMoK,
     TimeXer,
+    xLSTM,
 )
 from .common._base_auto import BaseAuto, MockTrial
 from neuralforecast.utils import (
@@ -202,6 +203,8 @@ MODEL_FILENAME_DICT = {
     "autormok": RMoK,
     "timexer": TimeXer,
     "autotimexer": TimeXer,
+    "xlstm": xLSTM,
+    "autoxlstm": xLSTM,
 }
 
 # %% ../nbs/core.ipynb 8
