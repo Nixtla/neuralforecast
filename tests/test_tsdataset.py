@@ -15,6 +15,7 @@ def setup_data():
     )
     sorted_temporal_df = temporal_df.sort_values(["unique_id", "ds"])
     unsorted_temporal_df = sorted_temporal_df.sample(frac=1.0)
+
     dataset, indices, dates, ds = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
     return temporal_df, sorted_temporal_df, dataset, indices, dates, ds
 
@@ -122,24 +123,21 @@ def test_sort_df_mask():
     np.testing.assert_almost_equal(dataset_full.max_size, dataset_1.max_size)
     np.testing.assert_almost_equal(dataset_full.indptr, dataset_1.indptr)
 
-
-# Testing trim_dataset functionality
-def test_trim_dataset():
+@pytest.fixture
+def temporal_df():
     n_static_features = 0
     n_temporal_features = 2
 
-    # temporal_df = generate_series(
-    #     n_series=1000,
-    #     n_static_features=n_static_features,
-    #     n_temporal_features=n_temporal_features,
-    #     equal_ends=False,
-    # )
-    temporal_df = generate_series(n_series=100,
+    return generate_series(n_series=100,
                                   min_length=50,
                                   max_length=100,
                                   n_static_features=n_static_features,
                                   n_temporal_features=n_temporal_features,
                                   equal_ends=False)
+
+
+# Testing trim_dataset functionality
+def test_trim_dataset(temporal_df):
 
     n_static_features = 2
     n_temporal_features = 4
@@ -166,20 +164,11 @@ def test_trim_dataset():
     )
 
 
-def test_polars_integration():
-    n_static_features = 0
-    n_temporal_features = 2
-    temporal_df = generate_series(n_series=100,
-                                min_length=50,
-                                max_length=100,
-                                n_static_features=n_static_features,
-                                n_temporal_features=n_temporal_features,
-                                equal_ends=False)
-
+def test_polars_integration(temporal_df):
     _, static_df = generate_series(n_series=1000,
-                                         n_static_features=2,
-                                         n_temporal_features=4,
-                                         equal_ends=False)
+                                   n_static_features=2,
+                                   n_temporal_features=4,
+                                   equal_ends=False)
     dataset, indices, dates, ds = TimeSeriesDataset.from_df(df=temporal_df, static_df=static_df)
 
 
