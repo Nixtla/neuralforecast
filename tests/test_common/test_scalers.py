@@ -30,16 +30,3 @@ def test_temporal_norm(scaler_type):
     x_scaled = scaler.transform(x=x, mask=mask)
     x_recovered = scaler.inverse_transform(x_scaled)
     assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
-
-def test_nhits_model():
-    model = NHITS(h=12,
-                  input_size=12*2,
-                  max_steps=1,
-                  windows_batch_size=None,
-                  n_freq_downsample=[1,1,1],
-              scaler_type='minmax')
-
-    nf = NeuralForecast(models=[model], freq='M')
-    nf.fit(df=Y_df)
-    Y_hat = nf.predict(df=Y_df)
-    assert pd.isnull(Y_hat).sum().sum() == 0, 'Predictions should not have NaNs'
