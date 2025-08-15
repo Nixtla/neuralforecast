@@ -1247,7 +1247,7 @@ def test_predict_insample_step_size_polars(setup_airplane_data_polars):
 # Test if any of the inputs contains NaNs with available_mask = 1, fit shall raise error
 # input type is pandas.DataFrame
 # available_mask is explicitly given
-def test_masks_polars():
+def test_masks_pandas():
     n_static_features = 2
     n_temporal_features = 4
     temporal_df, static_df = generate_series(
