@@ -29,4 +29,11 @@ clean:
 	rm -f docs/*.md
 	find docs/mintlify -name "*.mdx" -exec rm -f {} +
 
+check_links:
+	# check if mintlify is installed
+	if ! command -v mint &> /dev/null; then \
+		npm i -g mint; \
+	fi
+	cd docs/mintlify && mint broken-links
+
 all_docs: load_docs_scripts api_docs examples_docs format_docs
