@@ -865,11 +865,6 @@ class NeuralForecast:
                             f"Model {model} has historic exogenous features, "
                             "which is not compatible with setting a larger horizon during prediction."
                         )
-                    if model.futr_exog_list:
-                        raise NotImplementedError(
-                            f"Model {model} has future exogenous features, "
-                            "which is not compatible with setting a larger horizon during prediction."
-                        )
             elif h < self.h:
                 raise ValueError(
                     f"The specified horizon h={h} must be greater than the horizon of the fitted models: {self.h}."
@@ -1086,12 +1081,9 @@ class NeuralForecast:
                 continue
 
             model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
-            if h > self.h:
-                model.set_test_size(self.h + (n_windows - 1) * step_size)
             model_fcsts = model.predict(
                 self.dataset, step_size=step_size, h=h, **data_kwargs
             )
-
             # Append predictions in memory placeholder
             fcsts_list.append(model_fcsts)
 
@@ -1217,14 +1209,11 @@ class NeuralForecast:
                             f"Model {model} has historic exogenous features, "
                             "which is not compatible with setting a larger horizon during cross-validation."
                         )
-                    if model.futr_exog_list:
-                        raise NotImplementedError(
-                            f"Model {model} has future exogenous features, "
-                            "which is not compatible with setting a larger horizon during cross-validation."
-                        )
-                if refit:
-                    raise NotImplementedError(
-                        f"Cross-validation with refit=True and a prediction horizon ({h}) larger than the fitted model horizon ({self.h}) is not supported. Set refit=False or h=None."
+                # Refit is not supported with cross-validation on longer horizons than the trained horizon
+                if not refit:
+                    raise ValueError(
+                        f"The specified horizon h={h} is larger than the horizon of the fitted models: {self.h}. "
+                        "Set refit=True in this setting."
                     )
             elif h < self.h:
                 raise ValueError(
@@ -1312,7 +1301,7 @@ class NeuralForecast:
             else:
                 predict_df = train
             needed_futr_exog = self._get_needed_futr_exog()
-            if needed_futr_exog:
+            if needed_futr_exog or h > self.h:
                 futr_df: Optional[DataFrame] = test
             else:
                 futr_df = None
@@ -1480,6 +1469,7 @@ class NeuralForecast:
                 level_=level_,
                 has_level=has_level,
                 step_size=step_size,
+                h=self.h,
             )
             fcst_list.append(fcsts)
 
@@ -1804,10 +1794,10 @@ class NeuralForecast:
         self,
         dataset: TimeSeriesDataset,
         uids: Series,
+        h: int | None,
         quantiles_: Optional[List[float]] = None,
         level_: Optional[List[Union[int, float]]] = None,
         has_level: Optional[bool] = False,
-        h: Optional[int] = None,
         **data_kwargs,
     ) -> np.array:
         fcsts_list: List = []
@@ -1815,7 +1805,7 @@ class NeuralForecast:
         count_names = {"model": 0}
         for model in self.models:
             old_test_size = model.get_test_size()
-            model.set_test_size(self.h)  # To predict h steps ahead
+            model.set_test_size(h)  # To predict h steps ahead
 
             # Increment model name if the same model is used more than once
             model_name = repr(model)
