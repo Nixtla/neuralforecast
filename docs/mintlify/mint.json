@@ -1,0 +1,79 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Nixtla",
+  "logo": {
+    "light": "/light.png",
+    "dark": "/dark.png"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0E0E0E",
+    "light": "#FAFAFA",
+    "dark": "#0E0E0E",
+    "anchors": {
+      "from": "#2AD0CA",
+      "to": "#0E00F8"
+    }
+  },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/Nixtla/hierarchicalforecast"
+  },
+  "navigation": [
+    {
+      "group": "",
+      "pages": ["index"]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "examples/Installation",
+        "examples/TourismSmall",
+        "examples/TourismSmallPolars",
+        "examples/Introduction"
+      ]
+    },
+    {
+      "group": "Tutorials",
+      "pages": [
+        {
+          "group": "Point Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourism",
+            "examples/AustralianPrisonPopulation",
+            "examples/NonNegativeReconciliation"
+          ]
+        },
+        {
+          "group": "Probabilistic Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourism-Intervals",
+            "examples/AustralianDomesticTourism-Bootstraped-Intervals",
+            "examples/AustralianDomesticTourism-Permbu-Intervals",
+            "examples/TourismLarge-Evaluation"
+          ]
+        },
+        {
+          "group": "Temporal Reconciliation",
+          "pages": [
+            "examples/AustralianDomesticTourismTemporal",
+            "examples/AustralianDomesticTourismCrossTemporal",
+            "examples/M3withThief",
+            "examples/LocalGlobalAggregation"
+          ]
+        },
+        "examples/MLFrameworksExample"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "core",
+        "methods",
+        "probabilistic_methods",
+        "evaluation",
+        "utils"
+      ]
+    }
+  ]
+}
