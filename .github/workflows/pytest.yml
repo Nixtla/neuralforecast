@@ -34,9 +34,14 @@ jobs:
         if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
         run: uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
 
-      - name: Run pytest
+      - name: Run pytest (macos)
         if: runner.os == 'macOS' && matrix.os == 'macos-14-xlarge'
         env:
           PYTORCH_ENABLE_MPS_FALLBACK: 1
           PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
         run: pytest tests
+
+      - name: Run pytest (ubuntu and windows)
+        if: (matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest')
+        run: pytest tests
+
