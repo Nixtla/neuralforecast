@@ -55,7 +55,7 @@ class TestLoss:
         rmse_numpy   = rmse(self.y, self.y_hat)
         rmse_pytorch = RMSE()
         rmse_pytorch = rmse_pytorch(self.y, self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(rmse_numpy, rmse_pytorch, decimal=6)
+        np.testing.assert_array_almost_equal(rmse_numpy, rmse_pytorch, rtol=1e-6, atol=1e-6)
 
     def test_mape(self):
         mape_numpy   = mape(y=self.y, y_hat=self.y_hat)
