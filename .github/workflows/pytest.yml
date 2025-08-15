@@ -28,7 +28,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install uv pytest && uv pip install --system ".[dev]" fugue[dask,spark]>=0.8.1 "dask<=2024.12.1"
+        run: pip install uv pytest && uv pip install --system ".[dev]" --torch-backend cpu
+
+      - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
+        run: uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
 
       - name: Run pytest
         if: runner.os == 'macOS' && matrix.os == 'macos-14-xlarge'
