@@ -23,14 +23,18 @@ FREQ = "D"
 
 # 1 series, no exogenous
 N_SERIES_1 = 1
-df = generate_series(n_series=N_SERIES_1, seed=seed, freq=FREQ, equal_ends=True)
+df = generate_series(
+    n_series=N_SERIES_1, seed=seed, freq=FREQ, equal_ends=True, max_length=75
+)
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_1 = df[df.ds < max_ds]
 Y_TEST_DF_1 = df[df.ds >= max_ds]
 
 # 5 series, no exogenous
 N_SERIES_2 = 5
-df = generate_series(n_series=N_SERIES_2, seed=seed, freq=FREQ, equal_ends=True)
+df = generate_series(
+    n_series=N_SERIES_2, seed=seed, freq=FREQ, equal_ends=True, max_length=75
+)
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_2 = df[df.ds < max_ds]
 Y_TEST_DF_2 = df[df.ds >= max_ds]
@@ -44,6 +48,7 @@ df, STATIC_3 = generate_series(
     seed=seed,
     freq=FREQ,
     equal_ends=True,
+    max_length=75,
 )
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_3 = df[df.ds < max_ds]
@@ -161,6 +166,10 @@ def check_loss_functions(model_class):
             "enable_progress_bar": False,
             "enable_model_summary": False,
             "val_check_steps": 2,
+            "batch_size": 8,
+            "windows_batch_size": 8,
+            "valid_batch_size": 8,
+            "inference_windows_batch_size": 8,
         }
         try:
             _run_model_tests(model_class, config)
@@ -190,6 +199,10 @@ def check_airpassengers(model_class):
         "enable_progress_bar": False,
         "enable_model_summary": False,
         "val_check_steps": 2,
+        "batch_size": 8,
+        "windows_batch_size": 8,
+        "valid_batch_size": 8,
+        "inference_windows_batch_size": 8,
     }
 
     if model_class.MULTIVARIATE:
