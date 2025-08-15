@@ -1794,7 +1794,7 @@ class NeuralForecast:
         self,
         dataset: TimeSeriesDataset,
         uids: Series,
-        h: int | None,
+        h: Union[int, None],
         quantiles_: Optional[List[float]] = None,
         level_: Optional[List[Union[int, float]]] = None,
         has_level: Optional[bool] = False,
