@@ -1301,7 +1301,7 @@ class NeuralForecast:
             else:
                 predict_df = train
             needed_futr_exog = self._get_needed_futr_exog()
-            if needed_futr_exog or h > self.h:
+            if needed_futr_exog:
                 futr_df: Optional[DataFrame] = test
             else:
                 futr_df = None
