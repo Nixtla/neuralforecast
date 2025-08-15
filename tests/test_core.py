@@ -1625,7 +1625,7 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
 
     # Create a simple model with MAE loss and no scaler to avoid MPS compatibility issues
     params = {"h": 12, "input_size": 24, "max_steps": 1, "loss": MAE(), "scaler_type": None}
-    if model.__name__ == "TSMixer":
+    if model is TSMixer:
         params.update({"n_series": 2})
 
     model = model(**params)
@@ -1636,7 +1636,7 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     preds = nf.predict(futr_df=AirPassengersPanel_test)
     assert "unique_id" in preds.columns
     assert "ds" in preds.columns
-    assert any(col.startswith(model.__name__) for col in preds.columns)
+    assert any(col.startswith(str(model)) for col in preds.columns)
 
     # Test quantile prediction (with conformal prediction)
     preds_quantile = nf.predict(futr_df=AirPassengersPanel_test, quantiles=[0.2, 0.3])
