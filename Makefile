@@ -18,6 +18,9 @@ format_docs:
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
 	find docs/mintlify -name "*.mdx" -exec sed -i.bak '/^:::/d' {} + && find docs/mintlify -name "*.bak" -delete
+	
+	# replace {'loss' with \\{'loss' in the hyperparam tuning notebook
+	find docs/mintlify -name "*.mdx" -exec sed -i.bak "s/{'loss'/\\\\{'loss'/g" {} + && find docs/mintlify -name "*.bak" -delete
 
 preview_docs:
 	cd docs/mintlify && mintlify dev
