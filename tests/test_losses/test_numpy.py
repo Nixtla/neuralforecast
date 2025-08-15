@@ -43,31 +43,32 @@ class TestLoss:
         mae_numpy   = mae(self.y, self.y_hat)
         mae_pytorch = MAE()
         mae_pytorch = mae_pytorch(self.y, self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(mae_numpy, mae_pytorch, decimal=6)
+        np.testing.assert_allclose(mae_numpy, mae_pytorch, rtol=1e-6, atol=1e-6)
 
     def test_mse(self):
         mse_numpy   = mse(self.y, self.y_hat)
         mse_pytorch = MSE()
         mse_pytorch = mse_pytorch(self.y, self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(mse_numpy, mse_pytorch, decimal=6)
+        np.testing.assert_allclose(mse_numpy, mse_pytorch, rtol=1e-6, atol=1e-6)
 
     def test_rmse(self):
         rmse_numpy   = rmse(self.y, self.y_hat)
         rmse_pytorch = RMSE()
         rmse_pytorch = rmse_pytorch(self.y, self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(rmse_numpy, rmse_pytorch, rtol=1e-6, atol=1e-6)
+        np.testing.assert_allclose(rmse_numpy, rmse_pytorch, rtol=1e-6, atol=1e-6)
 
     def test_mape(self):
         mape_numpy   = mape(y=self.y, y_hat=self.y_hat)
         mape_pytorch = MAPE()
         mape_pytorch = mape_pytorch(y=self.y, y_hat=self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(mape_numpy, mape_pytorch, decimal=6)
+        np.testing.assert_allclose(mape_numpy, mape_pytorch, rtol=1e-6, atol=1e-6)
+
 
     def test_smape(self):
         smape_numpy   = smape(self.y, self.y_hat)
         smape_pytorch = SMAPE()
         smape_pytorch = smape_pytorch(self.y, self.y_hat).numpy()
-        np.testing.assert_array_almost_equal(smape_numpy, smape_pytorch, decimal=6)
+        np.testing.assert_allclose(smape_numpy, smape_pytorch, rtol=1e-6, atol=1e-6)
 
     # def test_mase(self):
     #    y_insample = t.rand(self.first_num, self.second_num)
