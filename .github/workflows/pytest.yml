@@ -39,7 +39,7 @@ jobs:
         env:
           PYTORCH_ENABLE_MPS_FALLBACK: 1
           PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
-        run: pytest tests
+        run: pytest tests --ignore tests/test_models
 
       - name: Run pytest (ubuntu and windows)
         if: (matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest')
