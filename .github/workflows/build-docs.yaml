@@ -32,7 +32,7 @@ jobs:
       - name: Check broken links with Mintlify
         run: |
           npm i -g mint
-          mint broken-links
+          cd docs/mintlify && mint broken-links
 
       - name: Deploy
         if: github.event_name == 'push'
