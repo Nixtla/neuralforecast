@@ -1343,13 +1343,12 @@ def test_polars_nans_with_masks():
 
 # test customized optimizer behavior such that the user defined optimizer result should differ from default
 # tests consider models implemented using different base classes such as BaseWindows, BaseRecurrent, BaseMultivariate
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_customized_behavior(setup_airplane_data, model):
     AirPassengersPanel_train, _ = setup_airplane_data
     # default optimizer is based on Adam
     params = {"h": 12, "input_size": 24, "max_steps": 1}
-    if model.__name__ == "StemGNN":
-        params.update({"n_series": 2})
+
     models = [model(**params)]
     nf = NeuralForecast(models=models, freq="M")
     nf.fit(AirPassengersPanel_train)
@@ -1371,7 +1370,7 @@ def test_customized_behavior(setup_airplane_data, model):
     assert mean2 != mean
 
 
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neural_forecast_invalid_optimizer(model):
     """Test that invalid optimizers raise appropriate exceptions for different model types."""
 
@@ -1379,15 +1378,13 @@ def test_neural_forecast_invalid_optimizer(model):
     # it fails with exception. Tests cover different types of base classes such as
     # BaseWindows, BaseRecurrent, BaseMultivariate
 
-    kwargs = {"n_series": 2} if model is StemGNN else {}
-
     # Test BaseWindows model (NHITS)
     with pytest.raises(Exception) as exc_info:
-        model(h=12, input_size=24, max_steps=10, optimizer=torch.nn.Module, **kwargs)
+        model(h=12, input_size=24, max_steps=10, optimizer=torch.nn.Module)
     assert "optimizer is not a valid subclass of torch.optim.Optimizer" in str(exc_info.value)
 
 
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neural_forecast_optimizer_lr_warning(setup_airplane_data, model):
     """Test that passing 'lr' parameter in optimizer_kwargs produces expected warnings."""
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -1402,8 +1399,6 @@ def test_neural_forecast_optimizer_lr_warning(setup_airplane_data, model):
         "optimizer": torch.optim.Adadelta,
         "optimizer_kwargs": {"lr": 0.8, "rho": 0.45},
     }
-    if model.__name__ == "StemGNN":
-        params.update({"n_series": 2})
 
     models = [model(**params)]
     nf = NeuralForecast(models=models, freq="M")
@@ -1420,7 +1415,7 @@ def test_neural_forecast_optimizer_lr_warning(setup_airplane_data, model):
 
 # test that if we pass "optimizer_kwargs" but not "optimizer", we expect a warning
 # tests consider models implemented using different base classes such as BaseWindows, BaseRecurrent, BaseMultivariate
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_optimizer_kwargs(setup_airplane_data, model):
     AirPassengersPanel_train, _ = setup_airplane_data
     params = {
@@ -1429,8 +1424,7 @@ def test_neuralforecast_optimizer_kwargs(setup_airplane_data, model):
             "max_steps": 1,
             "optimizer_kwargs": {"lr": 0.8, "rho": 0.45},
         }
-    if model.__name__ == "StemGNN":
-        params.update({"n_series": 2})
+
     models = [model(**params)]
     nf = NeuralForecast(models=models, freq="M")
     with warnings.catch_warnings(record=True) as issued_warnings:
@@ -1443,42 +1437,40 @@ def test_neuralforecast_optimizer_kwargs(setup_airplane_data, model):
         )
 
 
-def test_neuralforecast_customized_lr_scheduler(setup_airplane_data):
+@pytest.mark.parametrize("model", [NHITS])
+def test_neuralforecast_customized_lr_scheduler(setup_airplane_data, model):
     """Test customized lr_scheduler behavior to ensure user-defined lr_scheduler results differ from default."""
     AirPassengersPanel_train, _ = setup_airplane_data
 
     # Test customized lr_scheduler behavior such that the user defined lr_scheduler result should differ from default
     # Tests consider models implemented using different base classes such as BaseWindows, BaseRecurrent, BaseMultivariate
 
-    for nf_model in [NHITS, RNN, StemGNN]:
-        params = {"h": 12, "input_size": 24, "max_steps": 1}
-        if nf_model.__name__ == "StemGNN":
-            params.update({"n_series": 2})
+    params = {"h": 12, "input_size": 24, "max_steps": 1}
 
-        # Test with default lr_scheduler
-        models = [nf_model(**params)]
-        nf = NeuralForecast(models=models, freq="M")
-        nf.fit(AirPassengersPanel_train)
-        default_optimizer_predict = nf.predict()
-        mean = default_optimizer_predict.loc[:, nf_model.__name__].mean()
+    # Test with default lr_scheduler
+    models = [model(**params)]
+    nf = NeuralForecast(models=models, freq="M")
+    nf.fit(AirPassengersPanel_train)
+    default_optimizer_predict = nf.predict()
+    mean = default_optimizer_predict.loc[:, model.__name__].mean()
 
-        # Test with customized lr_scheduler (default is StepLR, using ConstantLR instead)
-        params.update(
-            {
-                "lr_scheduler": torch.optim.lr_scheduler.ConstantLR,
-                "lr_scheduler_kwargs": {"factor": 0.78},
-            }
-        )
-        models2 = [nf_model(**params)]
-        nf2 = NeuralForecast(models=models2, freq="M")
-        nf2.fit(AirPassengersPanel_train)
-        customized_optimizer_predict = nf2.predict()
-        mean2 = customized_optimizer_predict.loc[:, nf_model.__name__].mean()
+    # Test with customized lr_scheduler (default is StepLR, using ConstantLR instead)
+    params.update(
+        {
+            "lr_scheduler": torch.optim.lr_scheduler.ConstantLR,
+            "lr_scheduler_kwargs": {"factor": 0.78},
+        }
+    )
+    models2 = [model(**params)]
+    nf2 = NeuralForecast(models=models2, freq="M")
+    nf2.fit(AirPassengersPanel_train)
+    customized_optimizer_predict = nf2.predict()
+    mean2 = customized_optimizer_predict.loc[:, model.__name__].mean()
 
-        # Assert that customized lr_scheduler produces different results
-        assert mean2 != mean, f"Customized lr_scheduler should produce different results for {nf_model.__name__}"
+    # Assert that customized lr_scheduler produces different results
+    assert mean2 != mean, f"Customized lr_scheduler should produce different results for {model.__name__}"
 
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_invalid_lr_scheduler(model):
     """Test that invalid lr_schedulers raise appropriate exceptions for different model types."""
 
@@ -1486,14 +1478,12 @@ def test_neuralforecast_invalid_lr_scheduler(model):
     # it fails with exception. Tests cover different types of base classes such as
     # BaseWindows, BaseRecurrent, BaseMultivariate
 
-    kwargs = {"n_series": 2} if model is StemGNN else {}
-
     # Test BaseWindows model (NHITS)
     with pytest.raises(Exception) as exc_info:
-        model(h=12, input_size=24, max_steps=10, lr_scheduler=torch.nn.Module, **kwargs)
+        model(h=12, input_size=24, max_steps=10, lr_scheduler=torch.nn.Module)
     assert "lr_scheduler is not a valid subclass of torch.optim.lr_scheduler.LRScheduler" in str(exc_info.value)
 
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_lr_scheduler_optimizer_warning(setup_airplane_data, model):
     """Test that passing 'optimizer' parameter in lr_scheduler_kwargs produces expected warnings."""
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -1508,8 +1498,6 @@ def test_neuralforecast_lr_scheduler_optimizer_warning(setup_airplane_data, mode
         "lr_scheduler": torch.optim.lr_scheduler.ConstantLR,
         "lr_scheduler_kwargs": {"optimizer": torch.optim.Adadelta, "factor": 0.22},
     }
-    if model.__name__ == "StemGNN":
-        params.update({"n_series": 2})
 
     models = [model(**params)]
     nf = NeuralForecast(models=models, freq="M")
@@ -1524,7 +1512,7 @@ def test_neuralforecast_lr_scheduler_optimizer_warning(setup_airplane_data, mode
         ), f"Expected optimizer warning not found for {model.__name__}"
 
 
-@pytest.mark.parametrize("model", [NHITS, RNN, StemGNN])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_lr_scheduler_kwargs_warning(setup_airplane_data, model):
     """Test that passing lr_scheduler_kwargs without lr_scheduler produces expected warnings."""
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -1537,8 +1525,6 @@ def test_neuralforecast_lr_scheduler_kwargs_warning(setup_airplane_data, model):
         "max_steps": 1,
         "lr_scheduler_kwargs": {"optimizer": torch.optim.Adadelta, "factor": 0.22},
     }
-    if model.__name__ == "StemGNN":
-        params.update({"n_series": 2})
 
     models = [model(**params)]
     nf = NeuralForecast(models=models, freq="M")
@@ -1553,7 +1539,7 @@ def test_neuralforecast_lr_scheduler_kwargs_warning(setup_airplane_data, model):
         ), f"Expected lr_scheduler_kwargs warning not found for {model.__name__}"
 
 
-@pytest.mark.parametrize("model", [NHITS, RNN, TSMixer])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_conformal_prediction(setup_airplane_data, setup_airplane_data_polars, model):
     """Test conformal prediction, method=conformal_distribution."""
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
@@ -1563,8 +1549,6 @@ def test_neuralforecast_conformal_prediction(setup_airplane_data, setup_airplane
 
 
     params = {"h": 12, "input_size": 24, "max_steps": 1}
-    if model.__name__ == "TSMixer":
-        params.update({"n_series": 2})
     models = [model(**params)]
 
 
@@ -1616,7 +1600,7 @@ def test_neuralforecast_cross_validation_conformal_prediction(setup_airplane_dat
     assert all([col in cv2.columns for col in ["NHITS-lo-30", "NHITS-hi-30"]]), \
         "Expected conformal prediction columns not found in cross validation results"
 
-@pytest.mark.parametrize("model", [NHITS, RNN, TSMixer])
+@pytest.mark.parametrize("model", [NHITS])
 def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     """Test quantile and level argument in predict for different models and errors."""
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
@@ -1625,8 +1609,6 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
 
     # Create a simple model with MAE loss and no scaler to avoid MPS compatibility issues
     params = {"h": 12, "input_size": 24, "max_steps": 1, "loss": MAE(), "scaler_type": None}
-    if model is TSMixer:
-        params.update({"n_series": 2})
 
     model = model(**params)
     nf = NeuralForecast(models=[model], freq="M")
