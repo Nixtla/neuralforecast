@@ -1469,7 +1469,7 @@ class NeuralForecast:
                 level_=level_,
                 has_level=has_level,
                 step_size=step_size,
-                h=self.h,
+                h=None,
             )
             fcst_list.append(fcsts)
 
@@ -1805,7 +1805,9 @@ class NeuralForecast:
         count_names = {"model": 0}
         for model in self.models:
             old_test_size = model.get_test_size()
-            model.set_test_size(h)  # To predict h steps ahead
+            model.set_test_size(
+                h if h is not None else self.h
+            )  # To predict h steps ahead
 
             # Increment model name if the same model is used more than once
             model_name = repr(model)

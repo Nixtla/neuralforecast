@@ -1412,7 +1412,7 @@ class BaseModel(pl.LightningModule):
 
         return y_hat
 
-    def _maybe_get_quantile_idx(self, quantile: float) -> int | None:
+    def _maybe_get_quantile_idx(self, quantile: float) -> Union[int, None]:
         if isinstance(self.loss, DISTRIBUTION_LOSSES + MULTIQUANTILE_LOSSES):
             try:
                 idx_quantile = (self.loss.quantiles == quantile).nonzero().item()
