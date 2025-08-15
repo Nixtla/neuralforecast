@@ -10,7 +10,7 @@ for file in Path("docs").glob("*.md"):
     text = file.read_text()
     text = comment_pat.sub("", text)
     text = anchor_pat.sub("", text)
-    module_name = file.name.split(".")[-2]
+    module_name = ".".join(file.name.split(".")[1:-1])
     output_file = output_path / (module_name + ".mdx")
     output_file.write_text(text)
 
