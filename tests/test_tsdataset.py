@@ -16,13 +16,14 @@ def setup_data():
     sorted_temporal_df = temporal_df.sort_values(["unique_id", "ds"])
     unsorted_temporal_df = sorted_temporal_df.sample(frac=1.0)
 
-    dataset, indices, dates, ds = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
-    return temporal_df, sorted_temporal_df, dataset, indices, dates, ds
+    return temporal_df, sorted_temporal_df, unsorted_temporal_df
 
 
 # Testing sort_df=True functionality
 def test_sort_df(setup_data):
-    temporal_df, sorted_temporal_df, dataset, indices, dates, ds = setup_data
+    temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
+    dataset, indices, dates, ds = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
+
     np.testing.assert_allclose(
         dataset.temporal[:, :-1],
         sorted_temporal_df.drop(columns=["unique_id", "ds"]).values,
@@ -32,7 +33,9 @@ def test_sort_df(setup_data):
 
 
 def test_data_module(setup_data):
-    temporal_df, sorted_temporal_df, dataset, indices, dates, ds = setup_data
+    temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
+    dataset, indices, dates, ds = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
+
     batch_size = 128
 
     data = TimeSeriesDataModule(dataset=dataset, batch_size=batch_size, drop_last=True)
@@ -42,7 +45,7 @@ def test_data_module(setup_data):
 
 
 def test_static_features(setup_data):
-    temporal_df, sorted_temporal_df, dataset, indices, dates, ds = setup_data
+    temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
     batch_size = 128
     n_static_features = 2
     n_temporal_features = 4
