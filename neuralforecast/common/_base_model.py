@@ -1689,9 +1689,7 @@ class BaseModel(pl.LightningModule):
 
         # Determine the number of predictions to make in case h > self.h
         self.n_predicts = 1
-        if h is None or h <= self.h:
-            h = self.h
-        elif h > self.h:
+        if h is not None and h > self.h:
             if not self.RECURRENT:
                 self.n_predicts = math.ceil(h / self.h)
                 assert (
@@ -1709,7 +1707,8 @@ class BaseModel(pl.LightningModule):
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         fcsts = torch.vstack(fcsts)
-        fcsts = fcsts[:, :h]
+        if h is not None:
+            fcsts = fcsts[:, :h]
 
         if self.MULTIVARIATE:
             # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
