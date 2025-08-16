@@ -1,0 +1,47 @@
+name: pytest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  all-tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-14-xlarge, windows-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install uv pytest && uv pip install --system ".[dev]" --torch-backend cpu
+
+      - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
+        run: uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
+
+      - name: Run pytest (macos)
+        if: runner.os == 'macOS' && matrix.os == 'macos-14-xlarge'
+        env:
+          PYTORCH_ENABLE_MPS_FALLBACK: 1
+          PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
+        run: pytest tests --ignore tests/test_common --ignore tests/test_models --ignore tests/test_core.py
+
+      - name: Run pytest (ubuntu and windows)
+        if: (matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest')
+        run: pytest tests
+
