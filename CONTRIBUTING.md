@@ -15,7 +15,7 @@
 
 Bug fixes and features are added through pull requests (PRs).
 
-##  PR submission guidelines
+## PR submission guidelines
 
 * Keep each PR focused. While it's more convenient, do not combine several unrelated fixes together. Create as many branches as needing to keep each PR focused.
 * Ensure that your PR includes a test that fails without your patch, and passes with it.
@@ -28,30 +28,36 @@ Bug fixes and features are added through pull requests (PRs).
 ### Local setup for working on a PR
 
 #### Clone the repository
+
 * HTTPS: `git clone https://github.com/Nixtla/neuralforecast.git`
 * SSH: `git clone git@github.com:Nixtla/neuralforecast.git`
 * GitHub CLI: `gh repo clone Nixtla/neuralforecast`
 
 #### Set up an environment
+
 Create a virtual environment to install the library's dependencies. We recommend [astral's uv](https://github.com/astral-sh/uv).
 Once you've created the virtual environment you should activate it and then install the library in editable mode along with its development dependencies.
 
 Install `uv` and create a virtual environment:
+
 ```bash
 pip install uv
 uv venv --python 3.10
 ```
 
 Then, activate the virtual environment:
-- On Linux/MacOS:
+
+* On Linux/MacOS:
+
 ```bash
 source .venv/bin/activate
-``` 
+```
 
-- On Windows:
+* On Windows:
+
 ```bash
 .\.venv\Scripts\activate
-``` 
+```
 
 Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-pip-install--torch-backend):
 
@@ -61,35 +67,61 @@ uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
 uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
 ```
 
-#### Install git hooks
-Before doing any changes to the code, please install the git hooks that run automatic scripts during each commit and merge to strip the notebooks of superfluous metadata (and avoid merge conflicts).
+You can install other optional dependencies using
+
+```sh
+uv pip install -e ".[dev,aws,spark]"
 ```
-nbdev_install_hooks
+
+#### Install pre-commit hooks
+
+```sh
 pre-commit install
+pre-commit run --files neuralforecast/*
 ```
 
-### Preview Changes
-You can preview changes in your local browser before pushing by using the `nbdev_preview`.
+#### Running tests
 
-### Building the library
-The library is built using the notebooks contained in the `nbs` folder. If you want to make any changes to the library you have to find the relevant notebook, make your changes and then call:
+To run the tests, run
+
+```sh
+uv run pytest
 ```
-nbdev_export
+
+#### Viewing documentation locally
+
+The new documentation pipeline relies on `quarto`, `mintlify` and `lazydocs`.
+
+#### install quarto
+
+Install `quarto` from &rarr; [this link](https://quarto.org/docs/get-started/)
+
+#### install mintlify
+
+> [!NOTE]
+> Please install Node.js before proceeding.
+
+```sh
+npm i -g mint
 ```
 
-### Running tests
-If you're working on the local interface you can just use `nbdev_test --n_workers 1 --do_print --timing`. 
+For additional instructions, you can read about it &rarr; [this link](https://mintlify.com/docs/installation).
 
-### Cleaning notebooks
-Since the notebooks output cells can vary from run to run (even if they produce the same outputs) the notebooks are cleaned before committing them. Please make sure to run `nbdev_clean --clear_all` before committing your changes. If you clean the library's notebooks with this command please backtrack the changes you make to the example notebooks `git checkout nbs/docs`, unless you intend to change the examples.
+```sh
+uv pip install -e '.[dev]' lazydocs
+make all_docs
+```
+
+Finally to view the documentation
+
+```sh
+make preview_docs
+```
 
 ## Do you want to contribute to the documentation?
 
-* Docs are automatically created from the notebooks in the `nbs` folder.
-* In order to modify the documentation:
-    1. Find the relevant notebook.
-    2. Make your changes.
-    3. Run all cells.
-    4. If you are modifying library notebooks (not in `nbs/docs`), clear all outputs using `Edit > Clear All Outputs`.
-    5. Run `nbdev_preview`.
-    6. Clean the notebook metadata using `nbdev_clean`.
+* The docs are automatically generated from the docstrings in the `neuralforecast` folder.
+* To contribute, ensure your docstrings follow the Google style format.
+* Once your docstring is correctly written, the documentation framework will scrape it and regenerate the corresponding `.mdx` files and your changes will then appear in the updated docs.
+* To contribute, examples/how-to-guides, make sure you submit clean notebooks, with cleared formatted LaTeX, links and images.
+* Make an appropriate entry in the `mint.json` file.

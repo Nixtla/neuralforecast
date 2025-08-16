@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  nbdev-tests:
+  pytest:
     resource_class: xlarge
     docker:
       - image: python:3.10-slim
@@ -12,13 +12,13 @@ jobs:
             pip install uv
             uv venv --python 3.10
       - run:
-          name: Run nbdev tests
+          name: Run pytest
           no_output_timeout: 20m
           command: |
             source .venv/bin/activate
             uv pip install ".[dev]"            
             export GIT_PYTHON_REFRESH=quiet
-            nbdev_test --do_print --timing --n_workers 1
+            pytest
   test-model-performance:
     resource_class: xlarge
     docker:
@@ -95,7 +95,7 @@ jobs:
 workflows:
   sample:
     jobs:
-      - nbdev-tests
+      - pytest
       - test-model-performance
       - test-model-performance2
       - test-multivariate-model-performance

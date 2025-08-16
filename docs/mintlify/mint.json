@@ -1,0 +1,158 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Nixtla",
+  "logo": {
+    "light": "/light.png",
+    "dark": "/dark.png"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0E0E0E",
+    "light": "#FAFAFA",
+    "dark": "#0E0E0E",
+    "anchors": {
+      "from": "#2AD0CA",
+      "to": "#0E00F8"
+    }
+  },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/Nixtla/neuralforecast"
+  },
+  "topAnchor": {
+    "name": "NeuralForecast",
+    "icon": "brain-circuit"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "docs/getting-started/01_introduction",
+        "docs/getting-started/02_quickstart",
+        "docs/getting-started/04_installation",
+        "docs/getting-started/05_datarequirements"
+      ]
+    },
+    {
+      "group": "Capabilities",
+      "pages": [
+        "docs/capabilities/01_overview",
+        "docs/capabilities/02_objectives",
+        "docs/capabilities/03_exogenous_variables",
+        "docs/capabilities/08_cross_validation",
+        "docs/capabilities/04_hyperparameter_tuning",
+        "docs/capabilities/05_predictInsample",
+        "docs/capabilities/06_save_load_models",
+        "docs/capabilities/07_time_series_scaling"
+      ]
+    },
+    {
+      "group": "Tutorials",
+      "pages": [
+        {
+          "group":"Forecasting",
+          "pages":[
+            "docs/tutorials/01_getting_started_complete",
+            "docs/tutorials/02_cross_validation",
+            "docs/tutorials/04_longhorizon_nhits",
+            "docs/tutorials/05_longhorizon_transformers",
+            "docs/tutorials/07_forecasting_tft",
+            "docs/tutorials/08_multivariate_tsmixer"   
+          ]
+        },        
+        {
+          "group":"Probabilistic Forecasting",
+          "pages":[
+            "docs/tutorials/03_uncertainty_quantification",
+            "docs/tutorials/06_longhorizon_probabilistic",
+            "docs/tutorials/20_conformal_prediction"
+          ]
+        },   
+        {
+          "group":"Special Topics",
+          "pages":[
+            "docs/tutorials/09_hierarchical_forecasting",
+            "docs/tutorials/10_distributed_neuralforecast",
+            "docs/tutorials/11_intermittent_data",
+            "docs/tutorials/12_using_mlflow",
+            "docs/tutorials/13_robust_forecasting",
+            "docs/tutorials/14_interpretable_decompositions",
+            "docs/tutorials/15_comparing_methods",
+            "docs/tutorials/16_temporal_classification",
+            "docs/tutorials/17_transfer_learning",
+            "docs/tutorials/18_adding_models",
+            "docs/tutorials/19_large_datasets"    
+          ]
+        }               
+      ]
+    },
+    {
+      "group": "Use cases",
+      "pages": [
+        "docs/use-cases/electricity_peak_forecasting",
+        "docs/use-cases/predictive_maintenance"
+      ]
+    },    
+    {
+      "group": "API Reference",
+      "pages": [
+        "core",
+        {
+          "group": "Models",
+          "pages": [
+            "models.autoformer",
+            "models.bitcn",
+            "models.deepar",
+            "models.deepnpts",
+            "models.dilated_rnn",
+            "models.dlinear",
+            "models.fedformer",
+            "models.gru",
+            "models.hint",
+            "models.informer",
+            "models.itransformer",
+            "models.kan",
+            "models.lstm",
+            "models.mlp",
+            "models.mlpmultivariate",
+            "models.nbeats",
+            "models.nbeatsx",
+            "models.nhits",
+            "models.nlinear",
+            "models.patchtst",
+            "models.rmok",
+            "models.rnn",
+            "models.softs",
+            "models.stemgnn",
+            "models.tcn",
+            "models.tft",
+            "models.tide",
+            "models.timellm",
+            "models.timemixer",
+            "models.timesnet",
+            "models.timexer",
+            "models.tsmixer",
+            "models.tsmixerx",
+            "models.vanillatransformer",
+            "models.xlstm"
+            ]
+        },
+        "models",
+        {
+          "group": "Train/Evaluation",
+          "pages": [
+            "losses.pytorch", 
+            "losses.numpy"
+          ]
+        },
+        {
+          "group": "Utils",
+          "pages": [
+            "tsdataset", 
+            "utils"
+          ]
+        }
+      ]
+    }
+  ]
+}
