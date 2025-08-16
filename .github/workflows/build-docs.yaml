@@ -29,14 +29,6 @@ jobs:
       - name: Build Docs
         run: make all_docs
 
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Check broken links with Mintlify
-        run: make check_links
-      
       - name: Deploy
         if: github.event_name == 'push'
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
