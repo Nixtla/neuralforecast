@@ -1689,11 +1689,16 @@ class BaseModel(pl.LightningModule):
 
         # Determine the number of predictions to make in case h > self.h
         self.n_predicts = 1
-        if h is not None and h > self.h and not self.RECURRENT:
-            self.n_predicts = math.ceil(h / self.h)
-            assert (
-                self.test_size > self.h
-            ), f"Test size should be larger than horizon h={self.h} for direct recursive prediction."
+        if h is None or h <= self.h:
+            h = self.h
+        elif h > self.h:
+            if not self.RECURRENT:
+                self.n_predicts = math.ceil(h / self.h)
+                assert (
+                    self.test_size > self.h
+                ), f"Test size should be larger than horizon h={self.h} for direct recursive prediction."
+            else:
+                self.h = h
 
         datamodule = TimeSeriesDataModule(
             dataset=dataset,
@@ -1704,6 +1709,7 @@ class BaseModel(pl.LightningModule):
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         fcsts = torch.vstack(fcsts)
+        fcsts = fcsts[:, :h]
 
         if self.MULTIVARIATE:
             # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
@@ -1715,6 +1721,7 @@ class BaseModel(pl.LightningModule):
 
         # Reset n_predicts
         self.n_predicts = 1
+        self.h = self.horizon_backup
 
         return fcsts
 
