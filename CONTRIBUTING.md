@@ -125,3 +125,38 @@ make preview_docs
 * Once your docstring is correctly written, the documentation framework will scrape it and regenerate the corresponding `.mdx` files and your changes will then appear in the updated docs.
 * To contribute, examples/how-to-guides, make sure you submit clean notebooks, with cleared formatted LaTeX, links and images.
 * Make an appropriate entry in the `mint.json` file.
+
+### Example google-style docstring
+
+```py
+def function_name(parameter1, parameter2):
+    """Brief summary of the function's purpose.
+
+    Detailed explanation of what the function does, its behavior, and any
+    important considerations. This section can span multiple lines.
+
+    Args:
+        parameter1 (type): Description of parameter1.
+        parameter2 (type): Description of parameter2.
+
+    Returns:
+        type: Description of the return value.
+
+    Raises:
+        ExceptionType: Description of the circumstances under which this
+                       exception is raised.
+
+    Example:
+        Examples can be provided to demonstrate how to use the function.
+        Literal blocks can be included for code snippets::
+
+            result = function_name(10, 'hello')
+            print(result)
+
+    Notes:
+        Any additional notes or important information.
+    """
+    # Function implementation
+    pass
+
+```
