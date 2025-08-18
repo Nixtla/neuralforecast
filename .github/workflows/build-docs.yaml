@@ -1,9 +1,10 @@
 name: build-docs
 on:
-  push:
-    branches: [main]
+  release:
+    types: [released]
   pull_request:
-    branches: [main]
+    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   build-docs:
