@@ -16,15 +16,14 @@ def get_bottomup_P(S: np.ndarray):
     Creates BottomUp hierarchical \"projection\" matrix is defined as:
     $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
 
-    **Parameters:**<br>
-    `S`: Summing matrix of size (`base`, `bottom`).<br>
+    Args:
+        S (np.ndarray): Summing matrix of size (`base`, `bottom`).
 
-    **Returns:**<br>
-    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+    Returns:
+        np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
 
-    **References:**<br>
-    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). \"Data aggregation and information loss\". The American
-    Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
+    References:
+        - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
     """
     n_series = len(S)
     n_agg = n_series - S.shape[1]
@@ -41,16 +40,14 @@ def get_mintrace_ols_P(S: np.ndarray):
 
     $$\mathbf{P}_{\\text{MinTraceOLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{S}\\right)^{-1}\mathbf{S}^{\intercal}$$
 
-    **Parameters:**<br>
-    `S`: Summing matrix of size (`base`, `bottom`).<br>
+    Args:
+        S (np.ndarray): Summing matrix of size (`base`, `bottom`).
 
-    **Returns:**<br>
-    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+    Returns:
+        np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
 
-    **References:**<br>
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
-    forecast reconciliation". Stat Comput 30, 1167–1182,
-    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    References:
+        - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
     """
     n_hiers, n_bottom = S.shape
     n_agg = n_hiers - n_bottom
@@ -77,16 +74,14 @@ def get_mintrace_wls_P(S: np.ndarray):
     $$\mathbf{P}_{\\text{MinTraceWLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\\right)^{-1}
     \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
 
-    **Parameters:**<br>
-    `S`: Summing matrix of size (`base`, `bottom`).<br>
+    Args:
+        S (np.ndarray): Summing matrix of size (`base`, `bottom`).
 
-    **Returns:**<br>
-    `P`: Reconciliation matrix of size (`bottom`, `base`).<br>
+    Returns:
+        np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
 
-    **References:**<br>
-    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). \"Optimal non-negative
-    forecast reconciliation". Stat Comput 30, 1167–1182,
-    https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+    References:
+        - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
     """
     n_hiers, n_bottom = S.shape
     n_agg = n_hiers - n_bottom
@@ -121,18 +116,18 @@ class HINT:
     accuracy and training robustness. HINT ensures the forecast coherence via bootstrap
     sample reconciliation that restores the aggregation constraints into its base samples.
 
-    Available reconciliations:<br>
-    - BottomUp<br>
-    - MinTraceOLS<br>
-    - MinTraceWLS<br>
+    Available reconciliations:
+        - BottomUp
+        - MinTraceOLS
+        - MinTraceWLS
     - Identity
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `model`: NeuralForecast model, instantiated model class from [architecture collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).<br>
-    `S`: np.ndarray, dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).<br>
-    `reconciliation`: str, HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].<br>
-    `alias`: str, optional,  Custom name of the model.<br>
+    Args:
+        h (int): Forecast horizon.
+        model (NeuralForecast model): Instantiated model class from [architecture collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).
+        S (np.ndarray): Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+        reconciliation (str): HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].
+        alias (str, optional): Custom name of the model.
     """
 
     def __init__(
@@ -194,18 +189,19 @@ class HINT:
     ):
         """HINT.fit
 
-        HINT trains on the entire hierarchical dataset, by minimizing a composite log likelihood objective.
-        HINT framework integrates `TemporalNorm` into the neural forecast architecture for a scale-decoupled
-        optimization that robustifies cross-learning the hierachy's series scales.
+        HINT trains on the entire hierarchical dataset, by minimizing a composite log 
+        likelihood objective. HINT framework integrates `TemporalNorm` into the neural 
+        forecast architecture for a scale-decoupled optimization that robustifies 
+        cross-learning the hierachy's series scales.
 
-        **Parameters:**<br>
-        `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
-        `val_size`: int, size of the validation set, (default 0).<br>
-        `test_size`: int, size of the test set, (default 0).<br>
-        `random_seed`: int, random seed for the prediction.<br>
+        Args:
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset)
+            val_size (int): size of the validation set, (default 0).
+            test_size (int): size of the test set, (default 0).
+            random_seed (int): random seed for the prediction.
 
-        **Returns:**<br>
-        `self`: A fitted base `NeuralForecast` model.<br>
+        Returns:
+            self: A fitted base `NeuralForecast` model.
         """
         model = self.model.fit(
             dataset=dataset,
@@ -228,14 +224,14 @@ class HINT:
         HINT restores the hierarchical aggregation constraints using
         bootstrapped sample reconciliation.
 
-        **Parameters:**<br>
-        `dataset`: NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)<br>
-        `step_size`: int, steps between sequential predictions, (default 1).<br>
-        `random_seed`: int, random seed for the prediction.<br>
-        `**data_kwarg`: additional parameters for the dataset module.<br>
+        Args:
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset)
+            step_size (int): steps between sequential predictions, (default 1).
+            random_seed (int): random seed for the prediction.
+            **data_kwarg: additional parameters for the dataset module.
 
-        **Returns:**<br>
-        `y_hat`: numpy predictions of the `NeuralForecast` model.<br>
+        Returns:
+            y_hat: numpy predictions of the `NeuralForecast` model.
         """
         # Non-reconciled predictions
         if self.reconciliation == "Identity":
@@ -297,7 +293,7 @@ class HINT:
 
         Save the HINT fitted model to disk.
 
-        **Parameters:**<br>
-        `path`: str, path to save the model.<br>
+        Args:
+            path (str): path to save the model.
         """
         self.model.save(path)

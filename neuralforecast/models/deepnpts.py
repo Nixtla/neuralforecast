@@ -21,44 +21,44 @@ class DeepNPTS(BaseModel):
 
     Deep Non-Parametric Time Series Forecaster (`DeepNPTS`) is a baseline model for time-series forecasting. This model generates predictions by (weighted) sampling from the empirical distribution according to a learnable strategy. The strategy is learned by exploiting the information across multiple related time series.
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `hidden_size`: int=32, hidden size of dense layers.<br>
-    `batch_norm`: bool=True, if True, applies Batch Normalization after each dense layer in the network.<br>
-    `dropout`: float=0.1, dropout.<br>
-    `n_layers`: int=2, number of dense layers.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): Forecast horizon.
+        input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
+        hidden_size (int): hidden size of dense layers.
+        batch_norm (bool): if True, applies Batch Normalization after each dense layer in the network.
+        dropout (float): dropout.
+        n_layers (int): number of dense layers.
+        stat_exog_list (list): static exogenous columns.
+        hist_exog_list (list): historic exogenous columns.
+        futr_exog_list (list): future exogenous columns.
+        exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
+        loss (PyTorch module): instantiated train loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch).
+        max_steps (int): maximum number of training steps.
+        learning_rate (float): Learning rate between (0, 1).
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): Number of validation iterations before early stopping.
+        val_check_steps (int): Number of training steps between every validation loss check.
+        batch_size (int): number of different series in each batch.
+        valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size.
+        windows_batch_size (int): number of windows to sample in each training batch, default uses all.
+        inference_windows_batch_size (int): number of windows to sample in each inference batch, -1 uses all.
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+        step_size (int): step size between each window of temporal data.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtlaverse.nixtla.io/neuralforecast/common.scalers).
+        random_seed (int): random_seed for pytorch initializer and numpy generators.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): optional,  Custom name of the model.
+        optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
+        optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
+        lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
-    **References**<br>
-    - [Rangapuram, Syama Sundar, Jan Gasthaus, Lorenzo Stella, Valentin Flunkert, David Salinas, Yuyang Wang, and Tim Januschowski (2023). "Deep Non-Parametric Time Series Forecaster". arXiv.](https://arxiv.org/abs/2312.14657)<br>
+    References:
+        - [Rangapuram, Syama Sundar, Jan Gasthaus, Lorenzo Stella, Valentin Flunkert, David Salinas, Yuyang Wang, and Tim Januschowski (2023). "Deep Non-Parametric Time Series Forecaster". arXiv.](https://arxiv.org/abs/2312.14657)
 
     """
 
