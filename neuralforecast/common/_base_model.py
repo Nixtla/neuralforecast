@@ -1662,10 +1662,11 @@ class BaseModel(pl.LightningModule):
 
         Args:
             dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).
-            test_size (int): Test size for temporal cross-validation.
-            step_size (int): Step size between each window.
-            random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
-            quantiles (list): Target quantiles to predict.
+            test_size (int): Test size for temporal cross-validation. Defaults to None.
+            step_size (int): Step size between each window. Defaults to 1.
+            random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. Defaults to None.
+            quantiles (list): Target quantiles to predict. Defaults to None.
+            h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_module_kwargs (dict): PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
 
         Returns:

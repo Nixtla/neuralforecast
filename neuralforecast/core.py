@@ -800,6 +800,7 @@ class NeuralForecast:
             engine (spark session): Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
             level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
             quantiles (list of floats, optional): Alternative to level, target quantiles to predict. Defaults to None.
+            h (int, optional): Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None.
             data_kwargs (kwargs): Extra arguments to be passed to the dataset within each model.
 
         Returns:
@@ -1129,6 +1130,7 @@ class NeuralForecast:
             prediction_intervals (PredictionIntervals, optional): Configuration to calibrate prediction intervals (Conformal Prediction). Defaults to None.
             level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
             quantiles (list of floats, optional): Alternative to level, target quantiles to predict. Defaults to None.
+            h (int, optional): Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None.
             data_kwargs (kwargs): Extra arguments to be passed to the dataset within each model.
 
         Returns:
