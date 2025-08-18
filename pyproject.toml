@@ -1,20 +1,89 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuralforecast"
+dynamic = ["version"]
+description = "Time series forecasting suite using deep learning models"
+authors = [
+    {name = "Nixtla", email = "business@nixtla.io"}
+]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["time-series", "forecasting", "deep-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "coreforecast>=0.0.6",
+    "fsspec",
+    "numpy>=1.21.6",
+    "pandas>=1.3.5",
+    "torch>=2.0.0",
+    "pytorch-lightning>=2.0.0",
+    "ray[tune]>=2.2.0",
+    "optuna",
+    "utilsforecast>=0.2.3",
+]
+
+[project.optional-dependencies]
+spark = ["fugue", "pyspark>=3.5"]
+aws = ["fsspec[s3]"]
+dev = [
+    "black",
+    "gitpython",
+    "hyperopt",
+    "ipython<=8.32.0",
+    "matplotlib",
+    "mypy",
+    "ninja",
+    "polars",
+    "pre-commit",
+    "pyarrow",
+    "ruff",
+    "s3fs",
+    "transformers",
+    "xlstm",
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/Nixtla/neuralforecast/"
+Documentation = "https://nixtlaverse.nixtla.io/neuralforecast/"
+
+[tool.setuptools.dynamic]
+version = {attr = "neuralforecast.__version__"}
+
+[tool.setuptools]
+packages = ["neuralforecast"]
+
 [tool.ruff]
 target-version = "py39"
 line-length = 88
-# Enable Pyflakes `E` and `F` codes by default.
-lint.select = [
-#    "E",
-#    "W", # see: https://pypi.org/project/pycodestyle
-    "F", # see: https://pypi.org/project/pyflakes
-#    "I", #see: https://pypi.org/project/isort/
-#    "D", # see: https://pypi.org/project/pydocstyle
-#    "N", # see: https://pypi.org/project/pep8-naming
-#    "S", # see: https://pypi.org/project/flake8-bandit
-]
-
+lint.select = ["F"]
 
 [tool.mypy]
 ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = 'neuralforecast.compat'
 ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=neuralforecast",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=80",
+]
