@@ -1,0 +1,84 @@
+---
+title: Installation
+---
+
+> Install NeuralForecast with pip or conda
+
+You can install the *released version* of `NeuralForecast` from the
+[Python package index](https://pypi.org) with:
+
+```shell
+pip install neuralforecast
+```
+
+or
+
+```shell
+conda install -c conda-forge neuralforecast
+```
+
+> **Tip**
+>
+> Neural Forecasting methods profit from using GPU computation. Be sure
+> to have Cuda installed.
+
+> **Warning**
+>
+> We are constantly updating neuralforecast, so we suggest fixing the
+> version to avoid issues. `pip install neuralforecast=="1.0.0"`
+
+> **Tip**
+>
+> We recommend installing your libraries inside a python virtual or
+> [conda
+> environment](https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html).
+
+## Extras
+
+You can use the following extras to add optional functionality:
+
+-   distributed training with spark: `pip install neuralforecast[spark]`
+-   saving and loading from S3: `pip install neuralforecast[aws]`
+
+#### User our env (optional)
+
+If you don’t have a Conda environment and need tools like Numba, Pandas,
+NumPy, Jupyter, Tune, and Nbdev you can use ours by following these
+steps:
+
+1.  Clone the NeuralForecast repo:
+
+```bash
+$ git clone https://github.com/Nixtla/neuralforecast.git && cd neuralforecast
+```
+
+1.  Create the environment using [astral’s
+    uv](https://github.com/astral-sh/uv):
+
+```bash
+$ pip install uv
+$ uv venv --python 3.10
+
+```
+
+1.  Activate the environment:
+
+-   On Linux/MacOS:
+
+```bash
+$ source .venv/bin/activate
+```
+
+-   On Windows:
+
+```bash
+$ .\.venv\Scripts\activate
+```
+
+1.  Install NeuralForecast Dev
+
+```bash
+$ uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
+$ uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
+```
+
