@@ -29,50 +29,50 @@ class xLSTM(BaseModel):
 
     xLSTM encoder, with MLP decoder.
 
-    **Parameters:**<br>
-    `h`: int, forecast horizon.<br>
-    `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
-    `encoder_n_blocks`: int=2, number of blocks for the xLSTM.<br>
-    `encoder_hidden_size`: int=128, units for the xLSTM's hidden state size.<br>
-    `encoder_bias`: bool=True, whether or not to use biases within xLSTM blocks.<br>
-    `encoder_dropout`: float=0., dropout regularization applied within xLSTM blocks.<br>
-    `decoder_hidden_size`: int=128, size of hidden layer for the MLP decoder.<br>
-    `decoder_layers`: int=2, number of layers for the MLP decoder.<br>
-    `decoder_dropout`: float=0., dropout regularization applied within the MLP decoder.<br>
-    `decoder_activation`: str='GELU', activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).<br>
-    `backbone`: str='sLSTM', backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `exclude_insample_y`: bool=False, whether to exclude the target variable from the input.<br>
-    `recurrent`: bool=False, whether to produce forecasts recursively (True) or direct (False).<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of differentseries in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
-    `windows_batch_size`: int=128, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch, -1 uses all.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int=1, random_seed for pytorch initializer and numpy generators.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): forecast horizon.
+        input_size (int): considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].
+        encoder_n_blocks (int): number of blocks for the xLSTM.
+        encoder_hidden_size (int): units for the xLSTM's hidden state size.
+        encoder_bias (bool): whether or not to use biases within xLSTM blocks.
+        encoder_dropout (float): dropout regularization applied within xLSTM blocks.
+        decoder_hidden_size (int): size of hidden layer for the MLP decoder.
+        decoder_layers (int): number of layers for the MLP decoder.
+        decoder_dropout (float): dropout regularization applied within the MLP decoder.
+        decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).
+        backbone (str): backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.
+        futr_exog_list (list): future exogenous columns.
+        hist_exog_list (list): historic exogenous columns.
+        stat_exog_list (list): static exogenous columns.
+        exclude_insample_y (bool): whether to exclude the target variable from the input.
+        recurrent (bool): whether to produce forecasts recursively (True) or direct (False).
+        loss (nn.Module): instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        valid_loss (nn.Module): instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        max_steps (int): maximum number of training steps.
+        learning_rate (float): Learning rate between (0, 1).
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): Number of validation iterations before early stopping.
+        val_check_steps (int): Number of training steps between every validation loss check.
+        batch_size (int): number of differentseries in each batch.
+        valid_batch_size (int): number of different series in each validation and test batch.
+        windows_batch_size (int): number of windows to sample in each training batch, default uses all.
+        inference_windows_batch_size (int): number of windows to sample in each inference batch, -1 uses all.
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+        step_size (int): step size between each window of temporal data.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).
+        random_seed (int): random_seed for pytorch initializer and numpy generators.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): optional,  Custom name of the model.
+        optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
+        optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
+        lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int): keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
-    **References:**<br>
-    -[Maximilian Beck, Korbinian Pöppel, Markus Spanring, Andreas Auer, Oleksandra Prudnikova, Michael Kopp, Günter Klambauer, Johannes Brandstetter, Sepp Hochreiter (2024). "xLSTM: Extended Long Short-Term Memory"](https://arxiv.org/abs/2405.04517)
+    References:
+        - [Maximilian Beck, Korbinian Pöppel, Markus Spanring, Andreas Auer, Oleksandra Prudnikova, Michael Kopp, Günter Klambauer, Johannes Brandstetter, Sepp Hochreiter (2024). "xLSTM: Extended Long Short-Term Memory"](https://arxiv.org/abs/2405.04517)
 
     """
 
