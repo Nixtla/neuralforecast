@@ -732,7 +732,7 @@ Domain mapping for predicted values.
 
 
 ## <kbd>class</kbd> `relMSE`
-Relative Mean Squared Error Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. $$ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) = \frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})} $$ 
+Relative Mean Squared Error Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. $$ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) = rac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})} $$ 
 
 
 
@@ -742,10 +742,8 @@ Relative Mean Squared Error Computes Relative Mean Squared Error (relMSE), as pr
  - <b>`horizon_weight`</b>:  Tensor of size h, weight for each timestamp of the forecasting window. 
 
 References: 
-    - [Hyndman, R. J and Koehler, A. B. (2006).  "Another look at measures of forecast accuracy", 
- - <b>`International Journal of Forecasting, Volume 22, Issue 4.](https`</b>: //www.sciencedirect.com/science/article/pii/S0169207006000239)<br/> 
-    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. 
- - <b>`Submitted to the International Journal Forecasting, Working paper available at arxiv.](https`</b>: //arxiv.org/pdf/2110.13179.pdf) 
+    - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br/> 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf) 
 
 
 
@@ -1055,9 +1053,9 @@ Tweedie Distribution.
 
 The Tweedie distribution is a compound probability, special case of exponential dispersion models EDMs defined by its mean-variance relationship. The distribution particularly useful to model sparse series as the probability has possitive mass at zero but otherwise is continuous. 
 
-$Y \sim \mathrm{ED}(\mu,\sigma^{2}) \qquad \mathbb{P}(y|\mu ,\sigma^{2})=h(\sigma^{2},y) \exp \left({\frac {\theta y-A(\theta )}{\sigma^{2}}}\right)$<br/> 
+$$ Y \sim \mathrm{ED}(\mu,\sigma^{2}) \qquad \mathbb{P}(y|\mu ,\sigma^{2})=h(\sigma^{2},y) \exp \left({\frac {\theta y-A(\theta )}{\sigma^{2}}}\right) $$ 
 
-$\mu =A'(\theta ) \qquad \mathrm{Var}(Y) = \sigma^{2} \mu^{\rho}$ 
+$$ \mu =A'(\theta ) \qquad \mathrm{Var}(Y) = \sigma^{2} \mu^{\rho} $$ 
 
 Cases of the variance relationship include Normal (`rho` = 0), Poisson (`rho` = 1), Gamma (`rho` = 2), inverse Gaussian (`rho` = 3). 
 
@@ -1402,7 +1400,7 @@ For observations z and splines defined in [qk_x[k], qk_x[k+1]].
 
 Computes the quantile level alpha_tilde such that: 
 - alpha_tilde = q^{-1}(z) if z is in-between qk_x[k] and qk_x[k+1] 
-- alpha_tilde = qk_x[k] if z<qk_x[k] 
+- alpha_tilde = qk_x[k] if z< qk_x[k] 
 - alpha_tilde = qk_x[k+1] if z>qk_x[k+1] 
 
 
@@ -1879,7 +1877,7 @@ Poisson Mixture Mesh
 
 This Poisson Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) = \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)$$ 
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) = \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right) $$ 
 
 
 
@@ -1893,8 +1891,7 @@ $$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathc
  - <b>`horizon_correlation`</b> (bool, optional):  Whether or not model horizon correlations. Defaults to False. 
 
 References: 
-    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.  Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
- - <b>`Journal Forecasting, Working paper available at arxiv.](https`</b>: //arxiv.org/pdf/2110.13179.pdf) 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf) 
 
 
 
@@ -2025,7 +2022,7 @@ Gaussian Mixture Mesh
 
 This Gaussian Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)$$ 
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right) $$ 
 
 
 
@@ -2174,7 +2171,7 @@ Negative Binomial Mixture Mesh
 
 This N. Binomial Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
 
-$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)$$ 
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right) $$ 
 
 
 
@@ -2321,7 +2318,7 @@ The Huber loss, employed in robust regression, is a loss function that exhibits 
 
 The Huber loss function is quadratic for small errors and linear for large errors, with equal values and slopes of the different sections at the two points where $(y_{\tau}-\hat{y}_{\tau})^{2}$=$|y_{\tau}-\hat{y}_{\tau}|$. 
 
-$$ L_{\delta}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \    \delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}$$ 
+$$ L_{\delta}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \    \delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases} $$ 
 
 where $\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear, and can be tuned to control the trade-off between robustness and accuracy in the predictions. 
 
@@ -2388,7 +2385,7 @@ The Tukey loss function, also known as Tukey's biweight function, is a robust st
 
 The parameter $c$ in Tukey's loss determines the ''saturation'' point of the function: Higher values of $c$ enhance sensitivity, while lower values increase resistance to outliers. 
 
-$$ L_{c}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{ \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \    \frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}$$ 
+$$ L_{c}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{ \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \    \frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases} $$ 
 
 Please note that the Tukey loss function assumes the data to be stationary or normalized beforehand. If the error values are excessively large, the algorithm may need help to converge during optimization. It is advisable to employ small learning rates. 
 
@@ -2536,10 +2533,18 @@ The Huberized Multi-Quantile loss (HuberMQL) is a modified version of the multi-
 
 $$ \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) $$ 
 
-**Parameters:**<br/>  level (int list, optional): Probability levels for prediction intervals (Defaults median). Defaults to [80, 90].  quantiles (float list, optional): Alternative to level, quantiles to estimate from y distribution. Defaults to None.  delta (float, optional): Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0.  horizon_weight (Union[torch.Tensor, None], optional): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+
+**Args:**
+ 
+ - <b>`level`</b> (int list, optional):  Probability levels for prediction intervals (Defaults median). Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level, quantiles to estimate from y distribution. Defaults to None. 
+ - <b>`delta`</b> (float, optional):  Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0. 
+ - <b>`horizon_weight`</b> (Union[torch.Tensor, None], optional):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
 
 References: 
-    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
+    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) 
+    - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
 
 
 
@@ -2595,7 +2600,7 @@ Implicit Huber Quantile Loss
 
 Computes the huberized quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network. HuberIQLoss measures the deviation of a huberized quantile forecast. By weighting the absolute deviation in a non symmetric way, the loss pays more attention to under or over estimation. 
 
-$$ \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} + q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} $$ 
+$$ \mathrm{HuberIQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} + q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} $$ 
 
 
 
@@ -2746,13 +2751,9 @@ where $\mathbf{\hat{y}}^{(q}_{\tau}$ is the estimated quantile, and $y_{i,\tau}$
  - <b>`quantiles`</b> (float list, optional):  Alternative to level, quantiles to estimate from y distribution. Defaults to None. 
 
 References: 
-    - [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts". 
- - <b>`International Journal of Forecasting.](https`</b>: //www.sciencedirect.com/science/article/pii/S0169207010000063) 
-    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). 
- - <b>`"The M5 uncertainty competition`</b>:  Results, findings and conclusions". 
- - <b>`International Journal of Forecasting.](https`</b>: //www.sciencedirect.com/science/article/pii/S0169207021001722) 
-    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". 
- - <b>`Proceedings of the 38th International Conference on Machine Learning (ICML).](https`</b>: //proceedings.mlr.press/v139/rangapuram21a.html) 
+    - [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063) 
+    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). "The M5 uncertainty competition: Results, findings and conclusions". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722) 
+    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html) 
 
 
 
