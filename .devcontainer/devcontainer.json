@@ -1,0 +1,54 @@
+{
+  "name": "Nixtla Development Environment for NeuralForecast",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10.18",
+  "hostRequirements": {
+      "cpus": 4,
+      "memory": "16gb",
+      "storage": "32gb"
+  },
+  "onCreateCommand": "make devenv",
+  "forwardPorts": [
+    8888
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.defaultInterpreterPath": ".venv/bin/python",
+        "python.pythonPath": ".venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
+        },
+        "notebook.python.defaultInterpreterPath": ".venv/bin/python",
+        "notebook.codeActionsOnSave": {
+          "source.fixAll": "explicit",
+          "source.organizeImports": "explicit"
+        },
+        "ruff.nativeServer": "on",
+        "python.languageServer": "Default",
+        "debug.internalConsoleOptions": "neverOpen",
+        "extensions.ignoreRecommendations": true,
+        "files.insertFinalNewline": true
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.mypy",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter@2025.2.0",
+        "charliermarsh.ruff@2025.22.0",
+        "GitHub.copilot",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  },
+  "features": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.12.2": {},
+        "ghcr.io/va-h/devcontainers-features/uv:1": {}
+  }
+}
