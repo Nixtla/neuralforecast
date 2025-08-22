@@ -81,7 +81,6 @@ from neuralforecast.utils import (
     ShapModelWrapper,
     create_input_tensor_for_series,
     create_multi_series_background_data,
-    model_predict,
     create_multi_series_feature_names,
 )
 
@@ -1863,49 +1862,232 @@ class NeuralForecast:
 
         return col_name
 
-    def explain(self, input_df, futr_df, static_df, ids_to_explain, num_samples=100):
+    # def explain(self, input_df, futr_df, static_df, ids_to_explain, num_samples=100):
+    #     if not self._fitted:
+    #         raise Exception("You must fit the model before explaining its forecasts.")
+
+    #     all_explanations = {}
+
+    #     for model in self.models:
+    #         shap_wrapper_model = ShapModelWrapper(model, input_df, static_df)
+    #         background_array = create_multi_series_background_data(input_df, shap_wrapper_model)
+    #         background_summary = shap.kmeans(background_array, min(30, len(background_array)))
+    #         background_data = background_summary.data
+    #         background_tensor = torch.tensor(background_data, dtype=torch.float32)
+    #         background_sample = background_tensor[:15].numpy() # Use 15 samples
+    #         explainer = shap.KernelExplainer(lambda x: model_predict(x, shap_wrapper_model), background_sample, link="identity")
+    #         feature_names = create_multi_series_feature_names(shap_wrapper_model)
+
+    #         series_explanations = {}
+
+    #         for unique_id in ids_to_explain:
+    #             X_explain_tensor = create_input_tensor_for_series(input_df, unique_id, shap_wrapper_model, futr_df)
+    #             X_explain_numpy = X_explain_tensor.numpy()
+    #             shap_values = explainer.shap_values(X_explain_numpy, nsamples=num_samples)
+
+    #             series_explanations[unique_id] = {
+    #                 "shap_values": shap_values,
+    #                 "input_data": X_explain_numpy,
+    #                 "base_values": explainer.expected_value
+    #             }
+    #         model_name = model.alias or type(model).__name__
+    #         all_explanations[model_name] = {
+    #             "explanations": series_explanations,
+    #             "feature_names": feature_names
+    #         }
+    #     return all_explanations
+
+    def explain(
+        self,
+        input_df,
+        futr_df,
+        static_df,
+        ids_to_explain,
+        num_samples=100,
+        horizon_idx=None,
+    ):
+        """
+        Generate SHAP explanations for specified series
+
+        Args:
+            input_df: Training dataframe
+            futr_df: Future exogenous variables dataframe
+            static_df: Static features dataframe
+            ids_to_explain: List of unique_ids to explain
+            num_samples: Number of samples for KernelExplainer
+            horizon_idx: If specified, explain predictions for this specific horizon (0 to h-1)
+                        If None, explain mean predictions across all horizons
+        """
         if not self._fitted:
             raise Exception("You must fit the model before explaining its forecasts.")
 
         all_explanations = {}
 
         for model in self.models:
-            shap_wrapper_model = ShapModelWrapper(model, input_df, static_df)
+            # Create wrapper with the already fitted NeuralForecast object
+            shap_wrapper_model = ShapModelWrapper(
+                nf_object=self,  # Pass the fitted NeuralForecast object
+                model=model,
+                train_df=input_df,
+                static_df=static_df,
+                futr_df=futr_df,
+            )
+
+            # Create background data
             background_array = create_multi_series_background_data(
-                input_df, shap_wrapper_model
+                input_df, shap_wrapper_model, n_samples_per_series=10
             )
-            background_summary = shap.kmeans(
-                background_array, min(30, len(background_array))
-            )
-            background_data = background_summary.data
-            background_tensor = torch.tensor(background_data, dtype=torch.float32)
-            background_sample = background_tensor[:15].numpy()  # Use 15 samples
+
+            # Use K-means to summarize background data if too large
+            if len(background_array) > 30:
+                background_summary = shap.kmeans(background_array, 30)
+                background_data = background_summary.data
+            else:
+                background_data = background_array
+
+            # Create prediction function for SHAP
+            def model_predict_fn(X):
+                """Prediction function that uses nf.predict() with the fitted model"""
+                return shap_wrapper_model.predict_batch(X, horizon_idx=horizon_idx)
+
+            # Create explainer
             explainer = shap.KernelExplainer(
-                lambda x: model_predict(x, shap_wrapper_model),
-                background_sample,
+                model_predict_fn,
+                background_data,
                 link="identity",
             )
+
+            # Get feature names
             feature_names = create_multi_series_feature_names(shap_wrapper_model)
 
             series_explanations = {}
 
             for unique_id in ids_to_explain:
-                X_explain_tensor = create_input_tensor_for_series(
+                # Create input for this series
+                X_explain = create_input_tensor_for_series(
                     input_df, unique_id, shap_wrapper_model, futr_df
                 )
-                X_explain_numpy = X_explain_tensor.numpy()
-                shap_values = explainer.shap_values(
-                    X_explain_numpy, nsamples=num_samples
-                )
+
+                # Calculate SHAP values
+                shap_values = explainer.shap_values(X_explain, nsamples=num_samples)
+
+                # Remove series_id from SHAP values (first feature)
+                # series_id is just metadata, not a real feature
+                if shap_values.ndim == 2:
+                    shap_values = shap_values[:, 1:]  # Remove first column (series_id)
+                else:
+                    shap_values = shap_values[1:]  # Remove first element (series_id)
+
+                # Also remove series_id from input data for consistency
+                X_explain_no_series_id = X_explain[:, 1:]
 
                 series_explanations[unique_id] = {
                     "shap_values": shap_values,
-                    "input_data": X_explain_numpy,
+                    "input_data": X_explain_no_series_id,
                     "base_values": explainer.expected_value,
+                    "horizon_idx": horizon_idx,
                 }
+
+            # Remove series_id from feature names
+            feature_names_no_series_id = feature_names[1:]  # Skip 'series_id'
+
             model_name = model.alias or type(model).__name__
             all_explanations[model_name] = {
                 "explanations": series_explanations,
-                "feature_names": feature_names,
+                "feature_names": feature_names_no_series_id,
             }
+
         return all_explanations
+
+    # def explain(self, input_df, futr_df, static_df, ids_to_explain, num_samples=100, horizon_idx=None):
+    #     """
+    #     Generate SHAP explanations for specified series
+    #     """
+    #     if not self._fitted:
+    #         raise Exception("You must fit the model before explaining its forecasts.")
+
+    #     all_explanations = {}
+
+    #     for model in self.models:
+    #         # Create wrapper with the already fitted NeuralForecast object
+    #         shap_wrapper_model = ShapModelWrapper(
+    #             nf_object=self,
+    #             model=model,
+    #             train_df=input_df,
+    #             static_df=static_df,
+    #             futr_df=futr_df
+    #         )
+
+    #         # Create background data
+    #         background_array = create_multi_series_background_data(
+    #             input_df,
+    #             shap_wrapper_model,
+    #             n_samples_per_series=10
+    #         )
+
+    #         # Create feature groups (for grouping the data)
+    #         feature_groups, group_names = create_feature_groups(shap_wrapper_model)
+    #         feature_groups_no_id = feature_groups[1:]  # Skip series_id
+    #         group_names_no_id = group_names[1:]  # Skip series_id
+
+    #         # Group the background data
+    #         background_grouped = group_features_data(background_array, feature_groups_no_id)
+    #         background_grouped_no_id = background_grouped[:, 1:]  # Remove series_id
+
+    #         # Use K-means on grouped data (without series_id)
+    #         if len(background_grouped_no_id) > 30:
+    #             background_summary = shap.kmeans(background_grouped_no_id, 30)
+    #             background_data = background_summary.data
+    #         else:
+    #             background_data = background_grouped_no_id
+
+    #         series_explanations = {}
+
+    #         for unique_id in ids_to_explain:
+    #             # Create input for this series
+    #             X_explain = create_input_tensor_for_series(
+    #                 input_df, unique_id, shap_wrapper_model, futr_df
+    #             )
+
+    #             # Group the features and get series_id
+    #             X_explain_grouped = group_features_data(X_explain, feature_groups_no_id)
+    #             actual_series_id = X_explain_grouped[0, 0]
+    #             X_explain_grouped_no_id = X_explain_grouped[:, 1:]  # Remove series_id
+
+    #             # Create prediction function WITH the series_id baked in (closure)
+    #             def model_predict_fn_grouped(X_grouped_no_id):
+    #                 """Prediction function that uses the captured series_id"""
+    #                 n_samples = X_grouped_no_id.shape[0]
+    #                 # Add back the series_id for this specific series
+    #                 X_with_id = np.column_stack([
+    #                     np.full(n_samples, actual_series_id),  # Use captured series_id
+    #                     X_grouped_no_id
+    #                 ])
+    #                 X_expanded = expand_grouped_features(X_with_id, feature_groups, background_array.shape[1])
+    #                 return shap_wrapper_model.predict_batch(X_expanded, horizon_idx=horizon_idx)
+
+    #             # Create explainer for THIS series (reuses background_data)
+    #             explainer = shap.KernelExplainer(
+    #                 model_predict_fn_grouped,
+    #                 background_data,
+    #                 link="identity",
+    #                 l1_reg="auto",
+    #             )
+
+    #             # Calculate SHAP values
+    #             shap_values = explainer.shap_values(X_explain_grouped_no_id, nsamples=num_samples)
+
+    #             series_explanations[unique_id] = {
+    #                 "shap_values": shap_values,
+    #                 "input_data": X_explain_grouped_no_id,
+    #                 "base_values": explainer.expected_value,
+    #                 "horizon_idx": horizon_idx,
+    #             }
+
+    #         model_name = model.alias or type(model).__name__
+    #         all_explanations[model_name] = {
+    #             "explanations": series_explanations,
+    #             "feature_names": group_names_no_id
+    #         }
+
+    #     return all_explanations
