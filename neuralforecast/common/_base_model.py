@@ -1613,6 +1613,7 @@ class BaseModel(pl.LightningModule):
             step_size (int): Step size between each window.
             random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
             quantiles (list): Target quantiles to predict.
+            explainer_config (dict): configuration for explanations.
             **data_module_kwargs (dict): PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
 
         Returns:

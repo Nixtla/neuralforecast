@@ -954,40 +954,25 @@ class NeuralForecast:
 
         Use stored fitted `models` to explain large set of time series from DataFrame `df`.
 
-        Parameters
-        ----------
-        horizons : list of int, optional (default=None)
-            List of horizons to explain. If None, all horizons are explained.
-        series : list of int, optional (default=[0])
-            List of series to explain for multivariate models. Default is [0] (first series).
-        outputs : list of int, optional (default=[0])
-            List of outputs to explain for models with multiple outputs. Default is [0] (first output).
-        explainer : str (default='IntegratedGradients')
-            Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'.
-            If the explainer is not available in captum, an error will be raised.
-        df : pandas, polars or spark DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
-            If a DataFrame is passed, it is used to generate forecasts.
-        static_df : pandas, polars or spark DataFrame, optional (default=None)
-            DataFrame with columns [`unique_id`] and static exogenous.
-        futr_df : pandas, polars or spark DataFrame, optional (default=None)
-            DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous.
-        verbose : bool (default=False)
-            Print processing steps.
-        engine : spark session
-            Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
-        level : list of ints or floats, optional (default=None)
-            Confidence levels between 0 and 100.
-        quantiles : list of floats, optional (default=None)
-            Alternative to level, target quantiles to predict.
-        data_kwargs : kwargs
-            Extra arguments to be passed to the dataset within each model.
+        Args:
+            horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
+            series (list of int, optional): List of series to explain for multivariate models. Defaults to [0] (first series).
+            outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
+            explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'. Defaults to 'IntegratedGradients'.
+            df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If a DataFrame is passed, it is used to generate forecasts. Defaults to None.
+            static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
+            futr_df (pandas, polars or spark DataFrame, optional): DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None.
+            verbose (bool): Print processing steps. Defaults to False.
+            engine (spark session): Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+            level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
+            quantiles (list of floats, optional): Alternative to level, target quantiles to predict. Defaults to None.
+            data_kwargs (kwargs): Extra arguments to be passed to the dataset within each model.
 
-        Returns
-        -------
-        fcsts_df : pandas or polars DataFrame
-            DataFrame with insample `models` columns for point predictions and probabilistic
+        Returns:
+            fcsts_df (pandas or polars DataFrame): DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
+            explanations (list): List of explanations for the predictions.
         """
         # TODO: Add protections
         # TODO: Issues with this approach: not every model in models has the same number of outputs, or series, that can be problematic.
