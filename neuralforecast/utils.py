@@ -8,7 +8,6 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 
 
 import random
-from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 from typing import List, Optional, Tuple, Union
 
@@ -699,9 +698,224 @@ def quantiles_to_level(quantiles: List[float]) -> List[Union[int, float]]:
         )
     )
 
+# class ShapModelWrapper:
+#     """
+#     SHAP wrapper that uses nf.predict() to properly handle scaling
+#     """
+
+#     def __init__(self, nf_object, model, train_df, static_df, futr_df=None):
+#         self.nf = nf_object  # Already fitted NeuralForecast object
+#         self.model = model
+#         self.train_df = train_df
+#         self.static_df = static_df
+#         self.futr_df = futr_df
+#         self.freq = nf_object.freq
+
+#         self.futr_exog_cols = model.futr_exog_list
+#         self.hist_exog_cols = model.hist_exog_list
+#         self.stat_exog_cols = model.stat_exog_list
+#         self.input_size = model.input_size
+#         self.h = model.h
+#         self.model_alias = model.alias or type(model).__name__
+#         self.model.trainer_kwargs["logger"] = False
+
+#         # Calculate input dimensions
+#         self.n_futr_features = (
+#             len(self.futr_exog_cols) * (self.input_size + self.h)
+#             if self.futr_exog_cols
+#             else 0
+#         )
+#         self.n_hist_exog_features = (
+#             len(self.hist_exog_cols) * self.input_size if self.hist_exog_cols else 0
+#         )
+#         self.n_hist_target_features = self.input_size
+#         self.n_series_features = 1  # unique_id encoded as integer
+
+#         # Create unique_id to integer mapping
+#         available_unique_ids = sorted(self.train_df["unique_id"].unique())
+#         self.unique_id_to_int = {uid: i for i, uid in enumerate(available_unique_ids)}
+#         self.int_to_unique_id = {i: uid for uid, i in self.unique_id_to_int.items()}
+
+#         # Store static features mapping if needed
+#         self.static_mapping = {}
+#         if self.stat_exog_cols and static_df is not None:
+#             for unique_id in static_df["unique_id"].unique():
+#                 static_values = static_df[static_df["unique_id"] == unique_id][
+#                     self.stat_exog_cols
+#                 ].values[0]
+#                 self.static_mapping[unique_id] = static_values
+
+#     def _predict_single_sample(self, x_flat_single, horizon_idx=None):
+#         """Process a single sample - extracted from predict_batch for parallelization"""
+#         # Parse the flattened input
+#         idx = 0
+
+#         # Series identifier
+#         series_int = int(x_flat_single[idx])
+#         unique_id = self.int_to_unique_id[series_int]
+#         idx += self.n_series_features
+
+#         # Future exogenous features (if present)
+#         temp_futr_df = None
+#         if self.futr_exog_cols and self.futr_df is not None:
+#             futr_flat = x_flat_single[idx : idx + self.n_futr_features]
+#             idx += self.n_futr_features
+
+#             # Reshape to (input_size + h, n_futr_features)
+#             futr_reshaped = futr_flat.reshape(
+#                 self.input_size + self.h, len(self.futr_exog_cols)
+#             )
+
+#             # Get the future part only (last h timesteps)
+#             futr_future = futr_reshaped[-self.h :, :]
+
+#             # Create future DataFrame with dummy consecutive dates
+#             series_train_data = self.train_df[self.train_df["unique_id"] == unique_id]
+#             last_train_date = series_train_data["ds"].iloc[-1]
+
+#             if pd.api.types.is_datetime64_any_dtype(series_train_data["ds"]):
+#                 future_dates = pd.date_range(
+#                     start=last_train_date, periods=self.h + 1, freq=self.freq
+#                 )[1:]
+#             else:
+#                 future_dates = np.arange(
+#                     last_train_date + 1, last_train_date + self.h + 1
+#                 )
+
+#             temp_futr_df = pd.DataFrame(futr_future, columns=self.futr_exog_cols)
+#             temp_futr_df["ds"] = future_dates[: self.h]
+#             temp_futr_df["unique_id"] = unique_id
+
+#         # Create a copy of ALL training data
+#         temp_train_df = self.train_df.copy()
+#         series_mask = temp_train_df["unique_id"] == unique_id
+#         series_indices = temp_train_df[series_mask].index
+
+#         # Historical exogenous features (if present)
+#         if self.hist_exog_cols:
+#             hist_exog_flat = x_flat_single[idx : idx + self.n_hist_exog_features]
+#             hist_exog_reshaped = hist_exog_flat.reshape(
+#                 self.input_size, len(self.hist_exog_cols)
+#             )
+#             idx += self.n_hist_exog_features
+
+#             last_indices = series_indices[-self.input_size :]
+#             for i, col in enumerate(self.hist_exog_cols):
+#                 temp_train_df.loc[last_indices, col] = hist_exog_reshaped[:, i]
+
+#         # Historical target values
+#         hist_target = x_flat_single[idx : idx + self.n_hist_target_features]
+
+#         last_indices = series_indices[-self.input_size :]
+#         temp_train_df.loc[last_indices, "y"] = hist_target
+
+#         # Prepare futr_df for ALL series
+#         if temp_futr_df is not None:
+#             all_futr_df = []
+#             for uid in temp_train_df["unique_id"].unique():
+#                 if uid == unique_id:
+#                     all_futr_df.append(temp_futr_df)
+#                 else:
+#                     if self.futr_df is not None:
+#                         other_series_futr = self.futr_df[
+#                             self.futr_df["unique_id"] == uid
+#                         ].copy()
+#                         if len(other_series_futr) > 0:
+#                             other_series_futr = other_series_futr.iloc[: self.h]
+#                             all_futr_df.append(other_series_futr)
+#                         else:
+#                             other_train_data = temp_train_df[
+#                                 temp_train_df["unique_id"] == uid
+#                             ]
+#                             last_date = other_train_data["ds"].iloc[-1]
+
+#                             if pd.api.types.is_datetime64_any_dtype(
+#                                 other_train_data["ds"]
+#                             ):
+#                                 future_dates = pd.date_range(
+#                                     start=last_date, periods=self.h + 1, freq=self.freq
+#                                 )[1:]
+#                             else:
+#                                 future_dates = np.arange(
+#                                     last_date + 1, last_date + self.h + 1
+#                                 )
+
+#                             dummy_futr = pd.DataFrame()
+#                             for col in self.futr_exog_cols:
+#                                 dummy_futr[col] = np.zeros(self.h)
+#                             dummy_futr["ds"] = future_dates[: self.h]
+#                             dummy_futr["unique_id"] = uid
+#                             all_futr_df.append(dummy_futr)
+
+#             combined_futr_df = (
+#                 pd.concat(all_futr_df, ignore_index=True) if all_futr_df else None
+#             )
+#         else:
+#             combined_futr_df = None
+
+#         # Use the already fitted NeuralForecast object to predict
+#         forecast = self.nf.predict(
+#             df=temp_train_df, static_df=self.static_df, futr_df=combined_futr_df
+#         )
+
+#         # Extract predictions for this series
+#         series_forecast = forecast[forecast["unique_id"] == unique_id].reset_index(
+#             drop=True
+#         )
+
+#         if len(series_forecast) == 0:
+#             raise ValueError(f"No predictions found for series {unique_id}")
+
+#         if self.model_alias not in series_forecast.columns:
+#             model_cols = [
+#                 col for col in series_forecast.columns if col not in ["unique_id", "ds"]
+#             ]
+#             if model_cols:
+#                 actual_model_col = model_cols[0]
+#             else:
+#                 raise ValueError(
+#                     f"Model column {self.model_alias} not found in forecast columns: {series_forecast.columns.tolist()}"
+#                 )
+#         else:
+#             actual_model_col = self.model_alias
+
+#         if horizon_idx is not None:
+#             if horizon_idx >= len(series_forecast):
+#                 raise IndexError(
+#                     f"horizon_idx {horizon_idx} is out of bounds. Only {len(series_forecast)} horizons available."
+#                 )
+#             pred = series_forecast[actual_model_col].iloc[horizon_idx]
+#         else:
+#             pred = series_forecast[actual_model_col].mean()
+
+#         return pred
+
+#     def predict_batch(self, X_flat, horizon_idx=None):
+#         """
+#         Convert flattened input to DataFrames and use nf.predict()
+#         Now with parallel processing for better performance
+#         """
+#         batch_size = X_flat.shape[0]
+
+#         # Use ThreadPoolExecutor for parallel processing
+#         max_workers = min(4, batch_size)  # Don't create more threads than samples
+
+#         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#             # Submit all tasks
+#             futures = [
+#                 executor.submit(self._predict_single_sample, X_flat[b], horizon_idx)
+#                 for b in range(batch_size)
+#             ]
+
+#             # Collect results in order
+#             predictions = [future.result() for future in futures]
+
+#         return np.array(predictions)
+
 class ShapModelWrapper:
     """
     SHAP wrapper that uses nf.predict() to properly handle scaling
+    Optimized version using batch prediction with artificial unique_ids
     """
 
     def __init__(self, nf_object, model, train_df, static_df, futr_df=None):
@@ -746,14 +960,17 @@ class ShapModelWrapper:
                 ].values[0]
                 self.static_mapping[unique_id] = static_values
 
-    def _predict_single_sample(self, x_flat_single, horizon_idx=None):
-        """Process a single sample - extracted from predict_batch for parallelization"""
+    def _process_sample_to_dataframes(self, x_flat_single, artificial_id):
+        """
+        Process a single sample and create DataFrames for it
+        Returns: (train_df_portion, futr_df_portion, original_series_id)
+        """
         # Parse the flattened input
         idx = 0
 
         # Series identifier
         series_int = int(x_flat_single[idx])
-        unique_id = self.int_to_unique_id[series_int]
+        original_unique_id = self.int_to_unique_id[series_int]
         idx += self.n_series_features
 
         # Future exogenous features (if present)
@@ -771,7 +988,7 @@ class ShapModelWrapper:
             futr_future = futr_reshaped[-self.h :, :]
 
             # Create future DataFrame with dummy consecutive dates
-            series_train_data = self.train_df[self.train_df["unique_id"] == unique_id]
+            series_train_data = self.train_df[self.train_df["unique_id"] == original_unique_id]
             last_train_date = series_train_data["ds"].iloc[-1]
 
             if pd.api.types.is_datetime64_any_dtype(series_train_data["ds"]):
@@ -785,12 +1002,13 @@ class ShapModelWrapper:
 
             temp_futr_df = pd.DataFrame(futr_future, columns=self.futr_exog_cols)
             temp_futr_df["ds"] = future_dates[: self.h]
-            temp_futr_df["unique_id"] = unique_id
+            temp_futr_df["unique_id"] = artificial_id
 
-        # Create a copy of ALL training data
-        temp_train_df = self.train_df.copy()
-        series_mask = temp_train_df["unique_id"] == unique_id
-        series_indices = temp_train_df[series_mask].index
+        # Create a copy of the specific series training data
+        series_train_data = self.train_df[self.train_df["unique_id"] == original_unique_id].copy()
+        
+        # Change unique_id to artificial_id
+        series_train_data["unique_id"] = artificial_id
 
         # Historical exogenous features (if present)
         if self.hist_exog_cols:
@@ -800,72 +1018,124 @@ class ShapModelWrapper:
             )
             idx += self.n_hist_exog_features
 
-            last_indices = series_indices[-self.input_size :]
+            # Update last input_size rows with new historical exogenous values
             for i, col in enumerate(self.hist_exog_cols):
-                temp_train_df.loc[last_indices, col] = hist_exog_reshaped[:, i]
+                series_train_data.iloc[-self.input_size :, series_train_data.columns.get_loc(col)] = hist_exog_reshaped[:, i]
 
         # Historical target values
         hist_target = x_flat_single[idx : idx + self.n_hist_target_features]
 
-        last_indices = series_indices[-self.input_size :]
-        temp_train_df.loc[last_indices, "y"] = hist_target
+        # Update last input_size rows with new target values
+        series_train_data.iloc[-self.input_size :, series_train_data.columns.get_loc("y")] = hist_target
 
-        # Prepare futr_df for ALL series
-        if temp_futr_df is not None:
-            all_futr_df = []
-            for uid in temp_train_df["unique_id"].unique():
-                if uid == unique_id:
-                    all_futr_df.append(temp_futr_df)
+        return series_train_data, temp_futr_df, original_unique_id
+
+    def _create_futr_df_for_all_series(self, combined_train_df, artificial_series_futr_data, artificial_ids):
+        """
+        Create complete futr_df that includes future data for ALL series in combined_train_df
+        """
+        if not self.futr_exog_cols:
+            return None
+            
+        all_futr_dfs = []
+        all_unique_ids_in_train = combined_train_df["unique_id"].unique()
+        
+        for uid in all_unique_ids_in_train:
+            if uid in artificial_ids:
+                # This is an artificial series - use the provided future data
+                idx = artificial_ids.index(uid)
+                temp_futr_df = artificial_series_futr_data[idx]
+                if temp_futr_df is not None:
+                    all_futr_dfs.append(temp_futr_df)
                 else:
-                    if self.futr_df is not None:
-                        other_series_futr = self.futr_df[
-                            self.futr_df["unique_id"] == uid
-                        ].copy()
-                        if len(other_series_futr) > 0:
-                            other_series_futr = other_series_futr.iloc[: self.h]
-                            all_futr_df.append(other_series_futr)
+                    # Create dummy future data if none provided
+                    series_train_data = combined_train_df[combined_train_df["unique_id"] == uid]
+                    last_date = series_train_data["ds"].iloc[-1]
+                    
+                    if pd.api.types.is_datetime64_any_dtype(series_train_data["ds"]):
+                        future_dates = pd.date_range(
+                            start=last_date, periods=self.h + 1, freq=self.freq
+                        )[1:]
+                    else:
+                        future_dates = np.arange(
+                            last_date + 1, last_date + self.h + 1
+                        )
+
+                    dummy_futr = pd.DataFrame()
+                    for col in self.futr_exog_cols:
+                        dummy_futr[col] = np.zeros(self.h)
+                    dummy_futr["ds"] = future_dates[:self.h]
+                    dummy_futr["unique_id"] = uid
+                    all_futr_dfs.append(dummy_futr)
+            else:
+                # This is an original series - use original futr_df data
+                if self.futr_df is not None:
+                    other_series_futr = self.futr_df[self.futr_df["unique_id"] == uid].copy()
+                    if len(other_series_futr) > 0:
+                        other_series_futr = other_series_futr.iloc[:self.h]
+                        all_futr_dfs.append(other_series_futr)
+                    else:
+                        # Create dummy future data for original series without futr_df
+                        series_train_data = combined_train_df[combined_train_df["unique_id"] == uid]
+                        last_date = series_train_data["ds"].iloc[-1]
+
+                        if pd.api.types.is_datetime64_any_dtype(series_train_data["ds"]):
+                            future_dates = pd.date_range(
+                                start=last_date, periods=self.h + 1, freq=self.freq
+                            )[1:]
                         else:
-                            other_train_data = temp_train_df[
-                                temp_train_df["unique_id"] == uid
-                            ]
-                            last_date = other_train_data["ds"].iloc[-1]
+                            future_dates = np.arange(
+                                last_date + 1, last_date + self.h + 1
+                            )
 
-                            if pd.api.types.is_datetime64_any_dtype(
-                                other_train_data["ds"]
-                            ):
-                                future_dates = pd.date_range(
-                                    start=last_date, periods=self.h + 1, freq=self.freq
-                                )[1:]
-                            else:
-                                future_dates = np.arange(
-                                    last_date + 1, last_date + self.h + 1
-                                )
+                        dummy_futr = pd.DataFrame()
+                        for col in self.futr_exog_cols:
+                            dummy_futr[col] = np.zeros(self.h)
+                        dummy_futr["ds"] = future_dates[:self.h]
+                        dummy_futr["unique_id"] = uid
+                        all_futr_dfs.append(dummy_futr)
+                else:
+                    # No original futr_df provided - create dummy data
+                    series_train_data = combined_train_df[combined_train_df["unique_id"] == uid]
+                    last_date = series_train_data["ds"].iloc[-1]
 
-                            dummy_futr = pd.DataFrame()
-                            for col in self.futr_exog_cols:
-                                dummy_futr[col] = np.zeros(self.h)
-                            dummy_futr["ds"] = future_dates[: self.h]
-                            dummy_futr["unique_id"] = uid
-                            all_futr_df.append(dummy_futr)
+                    if pd.api.types.is_datetime64_any_dtype(series_train_data["ds"]):
+                        future_dates = pd.date_range(
+                            start=last_date, periods=self.h + 1, freq=self.freq
+                        )[1:]
+                    else:
+                        future_dates = np.arange(
+                            last_date + 1, last_date + self.h + 1
+                        )
 
-            combined_futr_df = (
-                pd.concat(all_futr_df, ignore_index=True) if all_futr_df else None
-            )
-        else:
-            combined_futr_df = None
+                    dummy_futr = pd.DataFrame()
+                    for col in self.futr_exog_cols:
+                        dummy_futr[col] = np.zeros(self.h)
+                    dummy_futr["ds"] = future_dates[:self.h]
+                    dummy_futr["unique_id"] = uid
+                    all_futr_dfs.append(dummy_futr)
+        
+        return pd.concat(all_futr_dfs, ignore_index=True) if all_futr_dfs else None
 
-        # Use the already fitted NeuralForecast object to predict
-        forecast = self.nf.predict(
-            df=temp_train_df, static_df=self.static_df, futr_df=combined_futr_df
-        )
+    def _create_combined_static_df(self, artificial_ids, original_series_ids):
+        """Handle static features for artificial series"""
+        if self.static_df is None:
+            return None
+            
+        artificial_static_rows = []
+        for artificial_id, original_id in zip(artificial_ids, original_series_ids):
+            static_row = self.static_df[self.static_df["unique_id"] == original_id].copy()
+            static_row["unique_id"] = artificial_id
+            artificial_static_rows.append(static_row)
+        
+        return pd.concat([self.static_df] + artificial_static_rows, ignore_index=True)
 
-        # Extract predictions for this series
-        series_forecast = forecast[forecast["unique_id"] == unique_id].reset_index(
-            drop=True
-        )
+    def _extract_prediction_from_forecast(self, forecast, artificial_id, horizon_idx):
+        """Extract prediction for a specific artificial series"""
+        series_forecast = forecast[forecast["unique_id"] == artificial_id].reset_index(drop=True)
 
         if len(series_forecast) == 0:
-            raise ValueError(f"No predictions found for series {unique_id}")
+            raise ValueError(f"No predictions found for series {artificial_id}")
 
         if self.model_alias not in series_forecast.columns:
             model_cols = [
@@ -893,24 +1163,54 @@ class ShapModelWrapper:
 
     def predict_batch(self, X_flat, horizon_idx=None):
         """
-        Convert flattened input to DataFrames and use nf.predict()
-        Now with parallel processing for better performance
+        Optimized batch prediction using artificial unique_ids
         """
         batch_size = X_flat.shape[0]
-
-        # Use ThreadPoolExecutor for parallel processing
-        max_workers = min(4, batch_size)  # Don't create more threads than samples
-
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            futures = [
-                executor.submit(self._predict_single_sample, X_flat[b], horizon_idx)
-                for b in range(batch_size)
-            ]
-
-            # Collect results in order
-            predictions = [future.result() for future in futures]
-
+        
+        # Create artificial unique_ids to avoid conflicts with existing ones
+        artificial_ids = [f"shap_batch_{i}" for i in range(batch_size)]
+        
+        # Process all samples into DataFrames
+        all_train_dfs = []
+        all_futr_dfs = []
+        original_series_ids = []
+        
+        for i, x_flat_single in enumerate(X_flat):
+            artificial_id = artificial_ids[i]
+            temp_train_df, temp_futr_df, original_id = self._process_sample_to_dataframes(
+                x_flat_single, artificial_id
+            )
+            
+            all_train_dfs.append(temp_train_df)
+            all_futr_dfs.append(temp_futr_df)
+            original_series_ids.append(original_id)
+        
+        # Combine training DataFrames (original + all artificial series)
+        combined_train_df = pd.concat([self.train_df] + all_train_dfs, ignore_index=True)
+        
+        # Create combined future DataFrame
+        combined_futr_df = None
+        if self.futr_exog_cols:
+            combined_futr_df = self._create_futr_df_for_all_series(
+                combined_train_df, all_futr_dfs, artificial_ids
+            )
+        
+        # Handle static features
+        combined_static_df = self._create_combined_static_df(artificial_ids, original_series_ids)
+        
+        # Single batch prediction call!
+        forecast = self.nf.predict(
+            df=combined_train_df, 
+            static_df=combined_static_df, 
+            futr_df=combined_futr_df
+        )
+        
+        # Extract predictions for each artificial series
+        predictions = []
+        for artificial_id in artificial_ids:
+            pred = self._extract_prediction_from_forecast(forecast, artificial_id, horizon_idx)
+            predictions.append(pred)
+        
         return np.array(predictions)
 
 def create_input_tensor_for_series(train_df, unique_id, wrapper_model, futr_df=None):
