@@ -93,7 +93,7 @@ class BiTCN(BaseModel):
     `h`: int, forecast horizon.<br>
     `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
     `hidden_size`: int=16, units for the TCN's hidden state size.<br>
-    `dropout`: float=0.1, dropout rate used for the dropout layers throughout the architecture.<br>
+    `dropout`: float=0.5, dropout rate used for the dropout layers throughout the architecture.<br>
     `futr_exog_list`: str list, future exogenous columns.<br>
     `hist_exog_list`: str list, historic exogenous columns.<br>
     `stat_exog_list`: str list, static exogenous columns.<br>
