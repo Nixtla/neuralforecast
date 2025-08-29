@@ -863,6 +863,16 @@ class BaseModel(pl.LightningModule):
         # Broadcasts scale if necessary and inverts normalization
         add_channel_dim = y_hat.ndim > 3
         y_loc, y_scale = self._get_loc_scale(y_idx, add_channel_dim=add_channel_dim)
+        if hasattr(self, 'explain') and self.explain and y_hat.shape[0] != y_loc.shape[0]:
+            # Repeat scaler parameters to match explanation batch size
+            repeat_factor = y_hat.shape[0] // y_loc.shape[0]
+            if y_hat.shape[0] % y_loc.shape[0] == 0:
+                y_loc = y_loc.repeat(repeat_factor, *([1] * (y_loc.ndim - 1)))
+                y_scale = y_scale.repeat(repeat_factor, *([1] * (y_scale.ndim - 1)))
+            else:
+                batch_indices = torch.arange(y_hat.shape[0]) % y_loc.shape[0]
+                y_loc = y_loc[batch_indices]
+                y_scale = y_scale[batch_indices]
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         return y_hat
