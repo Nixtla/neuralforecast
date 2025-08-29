@@ -1017,7 +1017,17 @@ class NeuralForecast:
         )
 
         # Collect explanations here from self.explainer_results
-        explanations = []
+        explanations = {}
+        for model in self.models:
+            if hasattr(model, "explanations") and model.explanations is not None:
+                model_name = model.__class__.__name__
+                explanations[model_name] = {
+                        "insample": model.explanations["insample_explanations"],
+                        "futr_exog": model.explanations["futr_exog_explanations"],
+                        "hist_exog": model.explanations["hist_exog_explanations"],
+                        "stat_exog": model.explanations["stat_exog_explanations"],
+                        "baseline_predictions": model.explanations["baseline_predictions"]
+                    }
 
         return fcsts_df, explanations
 

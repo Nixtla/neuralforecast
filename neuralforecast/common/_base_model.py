@@ -1466,6 +1466,7 @@ class BaseModel(pl.LightningModule):
             futr_exog_explanations = []
             hist_exog_explanations = []
             stat_exog_explanations = []
+            baseline_predictions = []
 
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
@@ -1512,6 +1513,7 @@ class BaseModel(pl.LightningModule):
                     futr_exog_explanation,
                     hist_exog_explanation,
                     stat_exog_explanation,
+                    baseline_prediction,
                 ) = self._explain_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
@@ -1528,6 +1530,7 @@ class BaseModel(pl.LightningModule):
                     hist_exog_explanations.append(hist_exog_explanation)
                 if stat_exog_explanation is not None:
                     stat_exog_explanations.append(stat_exog_explanation)
+                baseline_predictions.append(baseline_prediction)
 
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)
@@ -1541,12 +1544,17 @@ class BaseModel(pl.LightningModule):
                 hist_exog_explanations = torch.cat(hist_exog_explanations, dim=0)
             if stat_exog_explanations:
                 stat_exog_explanations = torch.cat(stat_exog_explanations, dim=0)
+            if baseline_predictions and baseline_predictions[0] is not None:
+                baseline_predictions = torch.cat(baseline_predictions, dim=0)
+            else:
+                baseline_predictions = None
             return (
                 y_hat,
                 insample_explanations,
                 futr_exog_explanations,
                 hist_exog_explanations,
                 stat_exog_explanations,
+                baseline_predictions,
             )
         else:
             return y_hat
@@ -1658,6 +1666,7 @@ class BaseModel(pl.LightningModule):
             futr_exog_explanations = []
             hist_exog_explanations = []
             stat_exog_explanations = []
+            baseline_predictions = []
             for tensors in out:
                 (
                     fcst,
@@ -1665,6 +1674,7 @@ class BaseModel(pl.LightningModule):
                     futr_exog_explanation,
                     hist_exog_explanation,
                     stat_exog_explanation,
+                    baseline_prediction
                 ) = tensors
                 fcsts.append(fcst)
                 insample_explanations.append(insample_explanation)
@@ -1674,6 +1684,7 @@ class BaseModel(pl.LightningModule):
                     hist_exog_explanations.append(hist_exog_explanation)
                 if self.stat_exog_list:
                     stat_exog_explanations.append(stat_exog_explanation)
+                baseline_predictions.append(baseline_prediction)
 
             fcsts = torch.vstack(fcsts)
             insample_explanations = torch.vstack(insample_explanations)
@@ -1683,10 +1694,22 @@ class BaseModel(pl.LightningModule):
                 hist_exog_explanations = torch.vstack(hist_exog_explanations)
             if stat_exog_explanations:
                 stat_exog_explanations = torch.vstack(stat_exog_explanations)
+            if baseline_predictions and baseline_predictions[0] is not None:
+                baseline_predictions = torch.vstack(baseline_predictions)
+            else:
+                baseline_predictions = None
+            self.explanations = {
+                'insample_explanations': insample_explanations,
+                'futr_exog_explanations': futr_exog_explanations if futr_exog_explanations else None,
+                'hist_exog_explanations': hist_exog_explanations if hist_exog_explanations else None,
+                'stat_exog_explanations': stat_exog_explanations if stat_exog_explanations else None,
+                'baseline_predictions': baseline_predictions
+            }
         else:
             trainer = pl.Trainer(**pred_trainer_kwargs)
             fcsts = trainer.predict(self, datamodule=datamodule)
             fcsts = torch.vstack(fcsts)
+            self.explanations = None
 
         if self.MULTIVARIATE:
             # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
@@ -1738,7 +1761,7 @@ class BaseModel(pl.LightningModule):
         self.decompose_forecast = False  # Default decomposition back to false
         fcsts = torch.vstack(fcsts)
         return tensor_to_numpy(fcsts)
-
+    
     def _predict_step_wrapper(
         self,
         insample_y,
@@ -1914,9 +1937,49 @@ class BaseModel(pl.LightningModule):
                             attributions[param_positions["stat_exog"]]
                         )
 
+        explainer_class = self.explainer_config["explainer"]
+        explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
+        additive_explainers = ['IntegratedGradients', 'ShapleyValueSampling', 'KernelShap']
+
+        if explainer_name in additive_explainers:
+            # Create baseline inputs (all zeros, matching Captum's default)
+            baseline_insample_y = torch.zeros_like(insample_y)
+            baseline_mask = torch.zeros_like(insample_mask)
+            baseline_futr_exog = torch.zeros_like(futr_exog) if futr_exog is not None else None
+            baseline_hist_exog = torch.zeros_like(hist_exog) if hist_exog is not None else None
+            baseline_stat_exog = torch.zeros_like(stat_exog) if stat_exog is not None else None
+            
+            # Compute baseline predictions with same shape as explanations
+            baseline_predictions = torch.empty(
+                size=y_hat_shape,
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
+            
+            # Compute baseline for each horizon/series/output combination
+            for horizon in horizons:
+                for series_idx in series:
+                    for output_idx in output_index:
+                        baseline_pred = self._predict_step_wrapper(
+                            insample_y=baseline_insample_y,
+                            insample_mask=baseline_mask,
+                            futr_exog=baseline_futr_exog,
+                            hist_exog=baseline_hist_exog,
+                            stat_exog=baseline_stat_exog,
+                            y_idx=y_idx,
+                            output_horizon=horizon,
+                            output_series=series_idx,
+                            output_index=output_idx,
+                        )
+                        baseline_predictions[:, horizon, series_idx, output_idx] = baseline_pred
+        else:
+            # For Lime and InputXGradient, baseline predictions don't make sense
+            baseline_predictions = None
+
         return (
             insample_explanations,
             futr_exog_explanations,
             hist_exog_explanations,
             stat_exog_explanations,
+            baseline_predictions
         )
