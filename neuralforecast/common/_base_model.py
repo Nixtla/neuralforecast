@@ -1710,9 +1710,9 @@ class BaseModel(pl.LightningModule):
                 baseline_predictions = None
             self.explanations = {
                 'insample_explanations': insample_explanations,
-                'futr_exog_explanations': futr_exog_explanations if futr_exog_explanations else None,
-                'hist_exog_explanations': hist_exog_explanations if hist_exog_explanations else None,
-                'stat_exog_explanations': stat_exog_explanations if stat_exog_explanations else None,
+                'futr_exog_explanations': futr_exog_explanations if futr_exog_explanations is not None else None,
+                'hist_exog_explanations': hist_exog_explanations if hist_exog_explanations is not None else None,
+                'stat_exog_explanations': stat_exog_explanations if stat_exog_explanations is not None else None,
                 'baseline_predictions': baseline_predictions
             }
         else:
