@@ -2,6 +2,7 @@ __all__ = ['NeuralForecast']
 
 
 import pickle
+import shap
 import warnings
 from copy import deepcopy
 from itertools import chain
@@ -65,10 +66,16 @@ from neuralforecast.tsdataset import (
     _FilesDataset,
 )
 from neuralforecast.utils import (
+    # Prediction intervals
     PredictionIntervals,
     get_prediction_interval_method,
     level_to_quantiles,
     quantiles_to_level,
+    # Explainability
+    ShapModelWrapper,
+    create_input_tensor_for_series,
+    create_multi_series_background_data,
+    create_multi_series_feature_names,
 )
 
 from .common._base_auto import BaseAuto, MockTrial
@@ -1785,3 +1792,112 @@ class NeuralForecast:
             col_name = f"{model_name}-median"
 
         return col_name
+    
+    def explain(
+        self,
+        input_df,
+        futr_df,
+        static_df,
+        ids_to_explain,
+        num_samples=100,
+        horizon_idx=None,
+    ):
+        """
+        Generate SHAP explanations for specified series
+
+        Args:
+            input_df: Training dataframe
+            futr_df: Future exogenous variables dataframe
+            static_df: Static features dataframe
+            ids_to_explain: List of unique_ids to explain
+            num_samples: Number of samples for KernelExplainer
+            horizon_idx: If specified, explain predictions for this specific horizon (0 to h-1)
+                        If None, explain mean predictions across all horizons
+        """
+        if not self._fitted:
+            raise Exception("You must fit models before explaining its forecasts.")
+        if self.scalers_:
+            raise NotImplementedError(
+                """
+                Explainability is not supported when using time series scaling as additivity won't hold. 
+                Instead, specify scaler_type in the initialization of the model and 
+                set local_scaler_type=None in the NeuralForecast object.
+                """)
+
+        all_explanations = {}
+
+        for model in self.models:
+            # Create wrapper with the already fitted NeuralForecast object
+            shap_wrapper_model = ShapModelWrapper(
+                nf_object=self,  # Pass the fitted NeuralForecast object
+                model=model,
+                train_df=input_df,
+                static_df=static_df,
+                futr_df=futr_df,
+            )
+
+            # Create background data
+            background_array = create_multi_series_background_data(
+                input_df, shap_wrapper_model, n_samples_per_series=10
+            )
+
+            # Use K-means to summarize background data if too large
+            if len(background_array) > 30:
+                background_summary = shap.kmeans(background_array, 30)
+                background_data = background_summary.data
+            else:
+                background_data = background_array
+
+            # Create prediction function for SHAP
+            def model_predict_fn(X):
+                """Prediction function that uses nf.predict() with the fitted model"""
+                return shap_wrapper_model.predict_batch(X, horizon_idx=horizon_idx)
+
+            # Create explainer
+            explainer = shap.KernelExplainer(
+                model_predict_fn,
+                background_data,
+                link="identity",
+            )
+
+            # Get feature names
+            feature_names = create_multi_series_feature_names(shap_wrapper_model)
+
+            series_explanations = {}
+
+            for unique_id in ids_to_explain:
+                # Create input for this series
+                X_explain = create_input_tensor_for_series(
+                    input_df, unique_id, shap_wrapper_model, futr_df
+                )
+
+                # Calculate SHAP values
+                shap_values = explainer.shap_values(X_explain, nsamples=num_samples)
+
+                # Remove series_id from SHAP values (first feature)
+                # series_id is just metadata, not a real feature
+                if shap_values.ndim == 2:
+                    shap_values = shap_values[:, 1:]  # Remove first column (series_id)
+                else:
+                    shap_values = shap_values[1:]  # Remove first element (series_id)
+
+                # Also remove series_id from input data for consistency
+                X_explain_no_series_id = X_explain[:, 1:]
+
+                series_explanations[unique_id] = {
+                    "shap_values": shap_values,
+                    "input_data": X_explain_no_series_id,
+                    "base_values": explainer.expected_value,
+                    "horizon_idx": horizon_idx,
+                }
+
+            # Remove series_id from feature names
+            feature_names_no_series_id = feature_names[1:]  # Skip 'series_id'
+
+            model_name = model.alias or type(model).__name__
+            all_explanations[model_name] = {
+                "explanations": series_explanations,
+                "feature_names": feature_names_no_series_id,
+            }
+
+        return all_explanations
