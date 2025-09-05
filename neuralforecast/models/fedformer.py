@@ -406,9 +406,9 @@ class FEDformer(BaseModel):
     Args:
         h (int): forecast horizon.
         input_size (int): maximum sequence length for truncated train backpropagation.
-        stat_exog_list (str list): static exogenous columns.
-        hist_exog_list (str list): historic exogenous columns.
-        futr_exog_list (str list): future exogenous columns.
+        stat_exog_list (List[str]): static exogenous columns.
+        hist_exog_list (List[str]): historic exogenous columns.
+        futr_exog_list (List[str]): future exogenous columns.
         decoder_input_size_multiplier (float): multiplier for the input size of the decoder.
         version (str): version of the model.
         modes (int): number of modes for the Fourier block.
@@ -447,7 +447,7 @@ class FEDformer(BaseModel):
         **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
-        - [Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://ojs.aaai.org/index.php/AAAI/article/view/27695)
+        - [Tian Zhou, et al. "FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting" Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://arxiv.org/abs/2201.12740)
 
     """
 

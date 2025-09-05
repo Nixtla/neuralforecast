@@ -329,7 +329,7 @@ class DilatedRNN(BaseModel):
         **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
-        - [DilatedRNN: Dilated Recurrent Neural Networks for Time-Series Forecasting](https://arxiv.org/abs/1702.08431)
+        - [DilatedRNN: Dilated Recurrent Neural Networks for Time-Series Forecasting](https://arxiv.org/pdf/1710.02224)
     """
 
     # Class attributes

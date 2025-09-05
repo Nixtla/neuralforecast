@@ -41,7 +41,7 @@ class xLSTM(BaseModel):
         decoder_dropout (float): dropout regularization applied within the MLP decoder.
         decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).
         backbone (str): backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.
-        futr_exog_list (list): future exogenous columns.
+        futr_exog_list (List[str]): future exogenous columns.
         hist_exog_list (list): historic exogenous columns.
         stat_exog_list (list): static exogenous columns.
         exclude_insample_y (bool): whether to exclude the target variable from the input.
