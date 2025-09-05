@@ -400,9 +400,9 @@ The FEDformer model utilizes a three-component approach to define its embedding:
  
  - <b>`h`</b> (int):  forecast horizon. 
  - <b>`input_size`</b> (int):  maximum sequence length for truncated train backpropagation. 
- - <b>`stat_exog_list`</b> (str list):  static exogenous columns. 
- - <b>`hist_exog_list`</b> (str list):  historic exogenous columns. 
- - <b>`futr_exog_list`</b> (str list):  future exogenous columns. 
+ - <b>`stat_exog_list`</b> (List[str]):  static exogenous columns. 
+ - <b>`hist_exog_list`</b> (List[str]):  historic exogenous columns. 
+ - <b>`futr_exog_list`</b> (List[str]):  future exogenous columns. 
  - <b>`decoder_input_size_multiplier`</b> (float):  multiplier for the input size of the decoder. 
  - <b>`version`</b> (str):  version of the model. 
  - <b>`modes`</b> (int):  number of modes for the Fourier block. 
@@ -441,7 +441,7 @@ The FEDformer model utilizes a three-component approach to define its embedding:
  - <b>`**trainer_kwargs (int)`</b>:   keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). 
 
 References: 
-    - [Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://ojs.aaai.org/index.php/AAAI/article/view/27695) 
+    - [Tian Zhou, et al. "FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting" Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://arxiv.org/abs/2201.12740) 
 
 
 
