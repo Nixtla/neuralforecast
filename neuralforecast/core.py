@@ -935,6 +935,102 @@ class NeuralForecast:
 
         return fcsts_df
 
+    def explain(
+        self,
+        horizons: Optional[list[int]] = None,
+        series: list[int] = [0],
+        outputs: list[int] = [0],
+        explainer: str = "IntegratedGradients",
+        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        verbose: bool = False,
+        engine=None,
+        level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
+        **data_kwargs,
+    ):
+        """Explain with core.NeuralForecast.
+
+        Use stored fitted `models` to explain large set of time series from DataFrame `df`.
+
+        Args:
+            horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
+            series (list of int, optional): List of series to explain for multivariate models. Defaults to [0] (first series).
+            outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
+            explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'. Defaults to 'IntegratedGradients'.
+            df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If a DataFrame is passed, it is used to generate forecasts. Defaults to None.
+            static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
+            futr_df (pandas, polars or spark DataFrame, optional): DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None.
+            verbose (bool): Print processing steps. Defaults to False.
+            engine (spark session): Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+            level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
+            quantiles (list of floats, optional): Alternative to level, target quantiles to predict. Defaults to None.
+            data_kwargs (kwargs): Extra arguments to be passed to the dataset within each model.
+
+        Returns:
+            fcsts_df (pandas or polars DataFrame): DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
+            explanations (list): List of explanations for the predictions.
+        """
+        # TODO: Add protections
+        # TODO: Issues with this approach: not every model in models has the same number of outputs, or series, that can be problematic.
+        if horizons is None:
+            horizons = list(range(self.h))
+
+        try:
+            import captum
+        except ImportError:
+            raise ImportError(
+                "Captum is not installed. Please install it with `pip install captum`."
+            )
+        if not hasattr(captum.attr, explainer):
+            raise ValueError(f"Explainer {explainer} is not available in captum.")
+        if explainer not in [
+            "IntegratedGradients",
+            "ShapleyValueSampling",
+            "Lime",
+            "KernelShap",
+            "InputXGradient",
+        ]:
+            raise ValueError(
+                f"Explainer {explainer} is not supported. Supported explainers are: IntegratedGradients, ShapleyValueSampling, Lime, KernelShap, InputXGradient."
+            )
+
+        explainer_config = {
+            "explainer": captum.attr.__dict__[explainer],
+            "horizons": horizons,
+            "series": series,
+            "outputs": outputs,
+        }
+        fcsts_df = self.predict(
+            df=df,
+            static_df=static_df,
+            futr_df=futr_df,
+            verbose=verbose,
+            engine=engine,
+            level=level,
+            quantiles=quantiles,
+            explainer_config=explainer_config,
+            **data_kwargs,
+        )
+
+        # Collect explanations here from self.explainer_results
+        explanations = {}
+        for model in self.models:
+            if hasattr(model, "explanations") and model.explanations is not None:
+                model_name = model.__class__.__name__
+                explanations[model_name] = {
+                        "insample": model.explanations["insample_explanations"],
+                        "futr_exog": model.explanations["futr_exog_explanations"],
+                        "hist_exog": model.explanations["hist_exog_explanations"],
+                        "stat_exog": model.explanations["stat_exog_explanations"],
+                        "baseline_predictions": model.explanations["baseline_predictions"]
+                    }
+
+        return fcsts_df, explanations
+
     def _reset_models(self):
         self.models = [deepcopy(model) for model in self.models_init]
         if self._fitted:
