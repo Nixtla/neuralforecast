@@ -124,7 +124,9 @@ make preview_docs
 * To contribute, ensure your docstrings follow the Google style format.
 * Once your docstring is correctly written, the documentation framework will scrape it and regenerate the corresponding `.mdx` files and your changes will then appear in the updated docs.
 * To contribute, examples/how-to-guides, make sure you submit clean notebooks, with cleared formatted LaTeX, links and images.
-* Make an appropriate entry in the `mint.json` file.
+* Make an appropriate entry in the `docs/mintlify/mint.json` file.
+* Run `make all_docs` to regenerate the documentation.
+* Run `make preview_docs` to view and test the documentation locally.
 
 ### Example google-style docstring
 

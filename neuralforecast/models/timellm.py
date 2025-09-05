@@ -174,56 +174,56 @@ class TimeLLM(BaseModel):
     It trains a reprogramming layer that translates the observed series into a language task. This is fed to the LLM and an output
     projection layer translates the output back to numerical predictions.
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `patch_len`: int=16, length of patch.<br>
-    `stride`: int=8, stride of patch.<br>
-    `d_ff`: int=128, dimension of fcn.<br>
-    `top_k`: int=5, top tokens to consider.<br>
-    `d_llm`: int=768, hidden dimension of LLM.<br> # LLama7b:4096; GPT2-small:768; BERT-base:768
-    `d_model`: int=32, dimension of model.<br>
-    `n_heads`: int=8, number of heads in attention layer.<br>
-    `enc_in`: int=7, encoder input size.<br>
-    `dec_in`: int=7, decoder input size.<br>
-    `llm` = None, Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-    `llm_config` = Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-    `llm_tokenizer` = Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
-    `llm_num_hidden_layers` = 32, hidden layers in LLM
-    `llm_output_attention`: bool = True, whether to output attention in encoder.<br>
-    `llm_output_hidden_states`: bool = True, whether to output hidden states.<br>
-    `prompt_prefix`: str=None, prompt to inform the LLM about the dataset.<br>
-    `dropout`: float=0.1, dropout rate.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): Forecast horizon.
+        input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
+        patch_len (int): length of patch. Default: 16
+        stride (int): stride of patch. Default: 8
+        d_ff (int): dimension of fcn. Default: 128
+        top_k (int): top tokens to consider. Default: 5
+        d_llm (int): hidden dimension of LLM. Default: 768 # LLama7b:4096; GPT2-small:768; BERT-base:768
+        d_model (int): dimension of model. Default: 32
+        n_heads (int): number of heads in attention layer. Default: 8
+        enc_in (int): encoder input size. Default: 7
+        dec_in (int): decoder input size. Default: 7
+        llm (str): Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+        llm_config (dict): Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
+        llm_tokenizer (str): Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
+        llm_num_hidden_layers (int): hidden layers in LLM. Default: 32
+        llm_output_attention (bool): whether to output attention in encoder. Default: True
+        llm_output_hidden_states (bool): whether to output hidden states. Default: True
+        prompt_prefix (str): prompt to inform the LLM about the dataset. Default: None
+        dropout (float): dropout rate. Default: 0.1
+        stat_exog_list (list): static exogenous columns.
+        hist_exog_list (list): historic exogenous columns.
+        futr_exog_list (list): future exogenous columns.
+        loss (PyTorch module): instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        learning_rate (float): Learning rate between (0, 1). Default: 1e-3
+        max_steps (int): maximum number of training steps. Default: 1000
+        val_check_steps (int): Number of training steps between every validation loss check. Default: 100
+        batch_size (int): number of different series in each batch. Default: 32
+        valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size. Default: None
+        windows_batch_size (int): number of windows to sample in each training batch, default uses all. Default: 1024
+        inference_windows_batch_size (int): number of windows to sample in each inference batch. Default: 1024
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size. Default: False
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
+        step_size (int): step size between each window of temporal data. Default: 1
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. Default: -1
+        early_stop_patience_steps (int): Number of validation iterations before early stopping. Default: -1
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html). Default: 'identity'
+        random_seed (int): random_seed for pytorch initializer and numpy generators. Default: 1
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch. Default: False
+        alias (str): optional,  Custom name of the model.
+        optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
+        optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
+        lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
-    **References:**<br>
-    -[Ming Jin, Shiyu Wang, Lintao Ma, Zhixuan Chu, James Y. Zhang, Xiaoming Shi, Pin-Yu Chen, Yuxuan Liang, Yuan-Fang Li, Shirui Pan, Qingsong Wen. "Time-LLM: Time Series Forecasting by Reprogramming Large Language Models"](https://arxiv.org/abs/2310.01728)
+    References:
+        - [Ming Jin, Shiyu Wang, Lintao Ma, Zhixuan Chu, James Y. Zhang, Xiaoming Shi, Pin-Yu Chen, Yuxuan Liang, Yuan-Fang Li, Shirui Pan, Qingsong Wen. "Time-LLM: Time Series Forecasting by Reprogramming Large Language Models"](https://arxiv.org/abs/2310.01728)
 
     """
 
