@@ -67,7 +67,8 @@ class GRU(BaseModel):
         **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
-        - [Zeng, Ailing, et al. "Are transformers effective for time series forecasting?." Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://ojs.aaai.org/index.php/AAAI/article/view/27695)
+        - [Junyoung Chung, Caglar Gulcehre, KyungHyun Cho, Yoshua Bengio (2014). "Empirical Evaluation of Gated Recurrent Neural Networks on Sequence Modeling".](https://arxiv.org/abs/1412.3555)
+        - [Kyunghyun Cho, Bart van Merrienboer, Dzmitry Bahdanau, Yoshua Bengio (2014). "On the Properties of Neural Machine Translation: Encoder-Decoder Approaches".](https://arxiv.org/abs/1409.1259)
     """
 
     # Class attributes
