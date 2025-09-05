@@ -125,8 +125,8 @@ def test_autoformer_training_and_prediction(setup_autoformer_data, basic_autofor
     y_hat = model.predict(dataset=dataset)
     
     # Check output shape
-    assert y_hat.shape == (12, 1), f"Expected shape (12, 1), got {y_hat.shape}"
-
+    assert y_hat.shape == (12,), f"Expected shape (12,), got {y_hat.shape}"
+    
     # Check that predictions are finite
     assert np.all(np.isfinite(y_hat)), "Predictions contain non-finite values"
     
@@ -145,7 +145,7 @@ def test_autoformer_with_validation(setup_autoformer_data, basic_autoformer):
     y_hat_w_val = model.predict(dataset=dataset)
     
     # Check output shape and finite values
-    assert y_hat_w_val.shape == (12, 1), f"Expected shape (12, 1), got {y_hat_w_val.shape}"
+    assert y_hat_w_val.shape == (12,), f"Expected shape (12,), got {y_hat_w_val.shape}"
     assert np.all(np.isfinite(y_hat_w_val)), "Predictions with validation contain non-finite values"
 
 
