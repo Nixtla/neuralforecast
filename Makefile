@@ -1,4 +1,5 @@
 devenv:
+	uv venv --python 3.11
 	uv pip install -e ".[dev,aws,spark]" --torch-backend auto
 	uv run pre-commit install
 
