@@ -1,11 +1,12 @@
 devenv:
-	uv venv --python 3.11
+	uv sync --quiet --dev --frozen
 	uv pip install -e ".[dev,aws,spark]" --torch-backend auto
 	uv run pre-commit install
 
 init_codespace:
 	npm install -g @anthropic-ai/claude-code
 	git pull || true
+	uv sync --quiet --dev --frozen	
 
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
