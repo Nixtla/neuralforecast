@@ -2,9 +2,9 @@
   "name": "Nixtla Development Environment for NeuralForecast",
   "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
   "hostRequirements": {
-      "cpus": 4,
-      "memory": "16gb",
-      "storage": "32gb"
+      "cpus": 8,
+      "memory": "32gb",
+      "storage": "64gb"
   },
   "customizations": {
     "vscode": {
