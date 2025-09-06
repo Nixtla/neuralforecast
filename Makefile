@@ -1,6 +1,5 @@
 devenv:
-	uv sync --quiet --dev --extra --frozen
-	uv pip install -e ".[dev,aws,spark]" --torch-backend auto
+	uv sync --quiet --all-extras --frozen
 	uv run pre-commit install
 
 init_codespace:
