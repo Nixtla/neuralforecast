@@ -5,7 +5,7 @@ devenv:
 init_codespace:
 	npm install -g @anthropic-ai/claude-code
 	git pull || true
-	uv sync --quiet --dev --frozen	
+	uv sync --quiet --all-extras --frozen	
 
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
