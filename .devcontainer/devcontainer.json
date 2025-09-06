@@ -50,9 +50,6 @@
   "forwardPorts": [
     8888
   ],
-  "containerEnv": {
-    "UV_NO_SYNC": "1"
-  },
   "onCreateCommand": "make devenv",
   "postCreateCommand": "make init_codespace",
   "waitFor": "postCreateCommand",  
