@@ -1,6 +1,6 @@
 # Set MPS fallback environment variables before any imports
 import os
-import sys
+import numpy as np
 
 # Critical: Set these environment variables BEFORE PyTorch is imported
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
@@ -14,6 +14,7 @@ import pytest
 
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
+from neuralforecast.utils import AirPassengersPanel
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -48,3 +49,16 @@ def full_dataset_split():
     Y_train_df = Y_df[Y_df.ds <= "1959-12-31"]  # 132 train
     Y_test_df = Y_df[Y_df.ds > "1959-12-31"]  # 12 test
     return Y_train_df, Y_test_df
+
+
+@pytest.fixture
+def setup_airplane_data():
+    AirPassengersPanel_train = AirPassengersPanel[
+        AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]
+    ].reset_index(drop=True)
+    AirPassengersPanel_test = AirPassengersPanel[
+        AirPassengersPanel["ds"] >= AirPassengersPanel["ds"].values[-12]
+    ].reset_index(drop=True)
+    AirPassengersPanel_test["y"] = np.nan
+    AirPassengersPanel_test["y_[lag12]"] = np.nan
+    return AirPassengersPanel_train, AirPassengersPanel_test
