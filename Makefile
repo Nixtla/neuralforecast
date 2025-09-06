@@ -1,5 +1,5 @@
 devenv:
-	uv sync --quiet --dev --frozen
+	uv sync --quiet --dev --extra --frozen
 	uv pip install -e ".[dev,aws,spark]" --torch-backend auto
 	uv run pre-commit install
 
