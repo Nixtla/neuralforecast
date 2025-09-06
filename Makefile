@@ -3,6 +3,10 @@ devenv:
 	. .venv/bin/activate; uv pip install -e ".[dev,aws,spark]" --torch-backend auto
 	. .venv/bin/activate; pre-commit install
 
+init_codespace:
+	git pull || true
+	uv sync --quiet --dev --frozen
+
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
 		git clone -b scripts https://github.com/Nixtla/docs.git docs-scripts --single-branch; \
