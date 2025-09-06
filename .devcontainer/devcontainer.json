@@ -41,14 +41,18 @@
                 "charliermarsh.ruff@2025.22.0",
                 "GitHub.copilot",
                 "tamasfe.even-better-toml",
-                "42Crunch.vscode-openapi"
+                "42Crunch.vscode-openapi",
+                "anthropic.claude-code"
             ]
         }
     }
   },
   "forwardPorts": [
     8888
-  ],  
+  ],
+  "containerEnv": {
+    "UV_NO_SYNC": "1"
+  },
   "onCreateCommand": "make devenv",
   "postCreateCommand": "make init_codespace",
   "waitFor": "postCreateCommand",  

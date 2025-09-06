@@ -4,6 +4,7 @@ devenv:
 	. .venv/bin/activate; pre-commit install
 
 init_codespace:
+	npm install -g @anthropic-ai/claude-code
 	git pull || true
 	uv sync --quiet --dev --frozen
 
