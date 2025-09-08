@@ -98,8 +98,8 @@ class BiTCN(BaseModel):
         hist_exog_list (list): historic exogenous columns.
         stat_exog_list (list): static exogenous columns.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True. Default: False.
-        loss (nn.Module): PyTorch module, instantiated train loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch).
-        valid_loss (nn.Module): PyTorch module, instantiated valid loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch).
+        loss (nn.Module): PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (nn.Module): PyTorch module, instantiated valid loss class from [losses collection](./losses.pytorch).
         max_steps (int): maximum number of training steps. Default: 1000.
         learning_rate (float): Learning rate between (0, 1). Default: 1e-3.
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. Default: -1.
@@ -112,7 +112,7 @@ class BiTCN(BaseModel):
         start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size. Default: False.
         training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior). Default: 0.0.
         step_size (int): step size between each window of temporal data. Default: 1.
-        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtlaverse.nixtla.io/neuralforecast/common.scalers). Default: 'identity'.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). Default: 'identity'.
         random_seed (int): random_seed for pytorch initializer and numpy generators. Default: 1.
         drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch. Default: False.
         alias (str): optional,  Custom name of the model. Default: None.

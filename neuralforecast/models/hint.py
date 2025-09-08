@@ -195,7 +195,7 @@ class HINT:
         cross-learning the hierachy's series scales.
 
         Args:
-            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset)
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
             val_size (int): size of the validation set, (default 0).
             test_size (int): size of the test set, (default 0).
             random_seed (int): random seed for the prediction.
@@ -225,7 +225,7 @@ class HINT:
         bootstrapped sample reconciliation.
 
         Args:
-            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset)
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
             step_size (int): steps between sequential predictions, (default 1).
             random_seed (int): random seed for the prediction.
             **data_kwarg: additional parameters for the dataset module.
