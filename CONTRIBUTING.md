@@ -42,7 +42,7 @@ Install `uv` and create a virtual environment:
 
 ```bash
 pip install uv
-uv venv --python 3.10
+uv venv --python 3.11
 ```
 
 Then, activate the virtual environment:
