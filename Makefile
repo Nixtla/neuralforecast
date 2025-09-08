@@ -1,3 +1,12 @@
+devenv:
+	uv sync --quiet --all-extras --frozen
+	uv run pre-commit install
+
+init_codespace:
+	npm install -g @anthropic-ai/claude-code
+	git pull || true
+	uv sync --quiet --all-extras --frozen	
+
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
 		git clone -b scripts https://github.com/Nixtla/docs.git docs-scripts --single-branch; \
