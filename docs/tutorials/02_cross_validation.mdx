@@ -128,11 +128,9 @@ from neuralforecast.losses.pytorch import MQLoss
 ```
 
 In this tutorial, we will use `neuralforecast's`
-[MPL](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html),
-[NBEATS](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html),
-and
-[NHITS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html)
-models.
+[MPL](../../models.mlp#class-mlp),
+[NBEATS](../../models.nbeats#class-nbeats), and
+[NHITS](../../models.nhits#class-nhits) models.
 
 First, we need to create a list of models and then instantiate the
 `NeuralForecast` class. For each model, we’ll define the following
@@ -155,7 +153,7 @@ hyperparameters:
 > how well a model has predicted a specific quantile of the actual
 > distribution, penalizing overestimations and underestimations
 > asymmetrically based on the quantile’s value. For more details see
-> [here](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#multi-quantile-loss-mqloss).
+> [here](../../losses.pytorch#class-mqloss).
 
 While there are other hyperparameters that can be defined for each
 model, we’ll use the default values for the purposes of this tutorial.
