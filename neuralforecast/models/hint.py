@@ -124,8 +124,8 @@ class HINT:
 
     Args:
         h (int): Forecast horizon.
-        model (NeuralForecast model): Instantiated model class from [architecture collection](https://nixtla.github.io/neuralforecast/models.pytorch.html).
-        S (np.ndarray): Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate).
+        model (NeuralForecast model): Instantiated model class from [architecture collection](./models).
+        S (np.ndarray): Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](../hierarchicalforecast/utils#function-aggregate).
         reconciliation (str): HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].
         alias (str, optional): Custom name of the model.
     """

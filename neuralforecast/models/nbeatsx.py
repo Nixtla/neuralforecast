@@ -301,8 +301,8 @@ class NBEATSx(BaseModel):
         mlp_units (List[List[int]]): Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).
         dropout_prob_theta (float): Float between (0, 1). Dropout for N-BEATS basis.
         activation (str): activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].
-        loss (PyTorch module): instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
@@ -315,7 +315,7 @@ class NBEATSx(BaseModel):
         start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
         training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
         step_size (int): step size between each window of temporal data.
-        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): random seed initialization for replicability.
         drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
         alias (str): optional,  Custom name of the model.

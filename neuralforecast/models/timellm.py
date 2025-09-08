@@ -197,8 +197,8 @@ class TimeLLM(BaseModel):
         stat_exog_list (list): static exogenous columns.
         hist_exog_list (list): historic exogenous columns.
         futr_exog_list (list): future exogenous columns.
-        loss (PyTorch module): instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
         learning_rate (float): Learning rate between (0, 1). Default: 1e-3
         max_steps (int): maximum number of training steps. Default: 1000
         val_check_steps (int): Number of training steps between every validation loss check. Default: 100
@@ -211,7 +211,7 @@ class TimeLLM(BaseModel):
         step_size (int): step size between each window of temporal data. Default: 1
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. Default: -1
         early_stop_patience_steps (int): Number of validation iterations before early stopping. Default: -1
-        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html). Default: 'identity'
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). Default: 'identity'
         random_seed (int): random_seed for pytorch initializer and numpy generators. Default: 1
         drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch. Default: False
         alias (str): optional,  Custom name of the model.

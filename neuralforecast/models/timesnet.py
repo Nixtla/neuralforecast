@@ -136,8 +136,8 @@ class TimesNet(BaseModel):
         top_k (int): Number of periods.
         num_kernels (int): Number of kernels for the Inception block.
         encoder_layers (int): Number of encoder layers.
-        loss (PyTorch module): Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
-        valid_loss (PyTorch module): Instantiated validation loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): Instantiated validation loss class from [losses collection](./losses.pytorch).
         max_steps (int): Maximum number of training steps.
         learning_rate (float): Learning rate.
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. If -1, no learning rate decay is performed.
@@ -150,7 +150,7 @@ class TimesNet(BaseModel):
         start_padding_enabled (bool): If True, the model will pad the time series with zeros at the beginning by input size.
         training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
         step_size (int): Step size between each window of temporal data.
-        scaler_type (str): Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).
+        scaler_type (str): Type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): Random_seed for pytorch initializer and numpy generators.
         drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full batch.
         alias (str): optional (default=None), Custom name of the model.
