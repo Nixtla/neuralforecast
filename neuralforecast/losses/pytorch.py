@@ -245,7 +245,7 @@ class MAPE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+        - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
 
     def __init__(self, horizon_weight=None):
@@ -295,7 +295,7 @@ class SMAPE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+        - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
 
     def __init__(self, horizon_weight=None):
