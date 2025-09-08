@@ -141,8 +141,8 @@ Available reconciliations:
 **Args:**
  
  - <b>`h`</b> (int):  Forecast horizon. 
- - <b>`model`</b> (NeuralForecast model):  Instantiated model class from [architecture collection](https://nixtla.github.io/neuralforecast/models.pytorch.html). 
- - <b>`S`</b> (np.ndarray):  Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](https://nixtla.github.io/hierarchicalforecast/utils.html#aggregate). 
+ - <b>`model`</b> (NeuralForecast model):  Instantiated model class from [architecture collection](./models). 
+ - <b>`S`</b> (np.ndarray):  Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](../hierarchicalforecast/utils#function-aggregate). 
  - <b>`reconciliation`</b> (str):  HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS']. 
  - <b>`alias`</b> (str, optional):  Custom name of the model. 
 
@@ -185,7 +185,7 @@ HINT trains on the entire hierarchical dataset, by minimizing a composite log  l
 
 **Args:**
  
- - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset) 
+ - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) 
  - <b>`val_size`</b> (int):  size of the validation set, (default 0). 
  - <b>`test_size`</b> (int):  size of the test set, (default 0). 
  - <b>`random_seed`</b> (int):  random seed for the prediction. 
@@ -228,7 +228,7 @@ After fitting a base model on the entire hierarchical dataset. HINT restores the
 
 **Args:**
  
- - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtlaverse.nixtla.io/neuralforecast/tsdataset) 
+ - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) 
  - <b>`step_size`</b> (int):  steps between sequential predictions, (default 1). 
  - <b>`random_seed`</b> (int):  random seed for the prediction. 
  - <b>`**data_kwarg`</b>:  additional parameters for the dataset module. 

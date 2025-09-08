@@ -186,8 +186,8 @@ Simple Kolmogorov-Arnold Network (KAN). This network uses the Kolmogorov-Arnold 
  - <b>`hist_exog_list`</b> (str list):  historic exogenous columns. 
  - <b>`futr_exog_list`</b> (str list):  future exogenous columns. 
  - <b>`exclude_insample_y`</b> (bool):  the model skips the autoregressive features y[t-input_size:t] if True. 
- - <b>`loss`</b> (PyTorch module):  instantiated train loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch). 
- - <b>`valid_loss`</b> (PyTorch module):  instantiated valid loss class from [losses collection](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch). 
+ - <b>`loss`</b> (PyTorch module):  instantiated train loss class from [losses collection](./losses.pytorch). 
+ - <b>`valid_loss`</b> (PyTorch module):  instantiated valid loss class from [losses collection](./losses.pytorch). 
  - <b>`max_steps`</b> (int):  maximum number of training steps. 
  - <b>`learning_rate`</b> (float):  Learning rate between (0, 1). 
  - <b>`num_lr_decays`</b> (int):  Number of learning rate decays, evenly distributed across max_steps. 
@@ -200,7 +200,7 @@ Simple Kolmogorov-Arnold Network (KAN). This network uses the Kolmogorov-Arnold 
  - <b>`start_padding_enabled`</b> (bool):  if True, the model will pad the time series with zeros at the beginning, by input size. 
  - <b>`training_data_availability_threshold`</b> (Union[float, List[float]]):  minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior). 
  - <b>`step_size`</b> (int):  step size between each window of temporal data. 
- - <b>`scaler_type`</b> (str):  type of scaler for temporal inputs normalization see [temporal scalers](https://nixtlaverse.nixtla.io/neuralforecast/common.scalers). 
+ - <b>`scaler_type`</b> (str):  type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). 
  - <b>`random_seed`</b> (int):  random_seed for pytorch initializer and numpy generators. 
  - <b>`drop_last_loader`</b> (bool):  if True `TimeSeriesDataLoader` drops last non-full batch. 
  - <b>`alias`</b> (str):  optional,  Custom name of the model. 

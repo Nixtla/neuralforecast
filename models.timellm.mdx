@@ -248,8 +248,8 @@ It trains a reprogramming layer that translates the observed series into a langu
  - <b>`stat_exog_list`</b> (list):  static exogenous columns. 
  - <b>`hist_exog_list`</b> (list):  historic exogenous columns. 
  - <b>`futr_exog_list`</b> (list):  future exogenous columns. 
- - <b>`loss`</b> (PyTorch module):  instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html). 
- - <b>`valid_loss`</b> (PyTorch module):  instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html). 
+ - <b>`loss`</b> (PyTorch module):  instantiated train loss class from [losses collection](./losses.pytorch). 
+ - <b>`valid_loss`</b> (PyTorch module):  instantiated valid loss class from [losses collection](./losses.pytorch). 
  - <b>`learning_rate`</b> (float):  Learning rate between (0, 1). Default: 1e-3 
  - <b>`max_steps`</b> (int):  maximum number of training steps. Default: 1000 
  - <b>`val_check_steps`</b> (int):  Number of training steps between every validation loss check. Default: 100 
@@ -262,7 +262,7 @@ It trains a reprogramming layer that translates the observed series into a langu
  - <b>`step_size`</b> (int):  step size between each window of temporal data. Default: 1 
  - <b>`num_lr_decays`</b> (int):  Number of learning rate decays, evenly distributed across max_steps. Default: -1 
  - <b>`early_stop_patience_steps`</b> (int):  Number of validation iterations before early stopping. Default: -1 
- - <b>`scaler_type`</b> (str):  type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html). Default: 'identity' 
+ - <b>`scaler_type`</b> (str):  type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). Default: 'identity' 
  - <b>`random_seed`</b> (int):  random_seed for pytorch initializer and numpy generators. Default: 1 
  - <b>`drop_last_loader`</b> (bool):  if True `TimeSeriesDataLoader` drops last non-full batch. Default: False 
  - <b>`alias`</b> (str):  optional,  Custom name of the model. 

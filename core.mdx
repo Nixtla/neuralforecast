@@ -39,8 +39,7 @@ The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralFor
 
 **Args:**
  
- - <b>`models`</b> (List[typing.Any]):  Instantiated `neuralforecast.models` 
- - <b>`see [collection here](https`</b>: //nixtla.github.io/neuralforecast/models.html). 
+ - <b>`models`</b> (List[typing.Any]):  Instantiated `neuralforecast.models`  see [collection here](./models). 
  - <b>`freq`</b> (str or int):  Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. 
  - <b>`local_scaler_type`</b> (str, optional):  Scaler to apply per-serie to all features before fitting, which is inverted after predicting.  Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. 
 

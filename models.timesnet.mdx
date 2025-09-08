@@ -122,8 +122,8 @@ The TimesNet univariate model tackles the challenge of modeling multiple intrape
  - <b>`top_k`</b> (int):  Number of periods. 
  - <b>`num_kernels`</b> (int):  Number of kernels for the Inception block. 
  - <b>`encoder_layers`</b> (int):  Number of encoder layers. 
- - <b>`loss`</b> (PyTorch module):  Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html). 
- - <b>`valid_loss`</b> (PyTorch module):  Instantiated validation loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html). 
+ - <b>`loss`</b> (PyTorch module):  Instantiated train loss class from [losses collection](./losses.pytorch). 
+ - <b>`valid_loss`</b> (PyTorch module):  Instantiated validation loss class from [losses collection](./losses.pytorch). 
  - <b>`max_steps`</b> (int):  Maximum number of training steps. 
  - <b>`learning_rate`</b> (float):  Learning rate. 
  - <b>`num_lr_decays`</b> (int):  Number of learning rate decays, evenly distributed across max_steps. If -1, no learning rate decay is performed. 
@@ -136,7 +136,7 @@ The TimesNet univariate model tackles the challenge of modeling multiple intrape
  - <b>`start_padding_enabled`</b> (bool):  If True, the model will pad the time series with zeros at the beginning by input size. 
  - <b>`training_data_availability_threshold`</b> (Union[float, List[float]]):  minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior). 
  - <b>`step_size`</b> (int):  Step size between each window of temporal data. 
- - <b>`scaler_type`</b> (str):  Type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html). 
+ - <b>`scaler_type`</b> (str):  Type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). 
  - <b>`random_seed`</b> (int):  Random_seed for pytorch initializer and numpy generators. 
  - <b>`drop_last_loader`</b> (bool):  If True `TimeSeriesDataLoader` drops last non-full batch. 
  - <b>`alias`</b> (str):  optional (default=None), Custom name of the model. 
