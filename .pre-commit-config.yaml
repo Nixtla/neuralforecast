@@ -12,3 +12,8 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports]
         exclude: 'setup.py'
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: requirements-txt-fixer
