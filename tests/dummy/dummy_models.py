@@ -9,7 +9,7 @@ from neuralforecast.losses.pytorch import MAE
 
 
 class DummyUnivariate(BaseModel):
-    """DummyUniivariate - A simple dummy univariate model for testing recurrent predictions.
+    """DummyUnivariate - A simple dummy univariate model for testing recurrent predictions.
     
     This model implements a seasonal naive prediction strategy.
     It simply feeds back the seasonality-lagged (seasonal length hard-coded = forecast horizon)
