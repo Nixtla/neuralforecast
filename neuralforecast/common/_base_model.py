@@ -1368,7 +1368,14 @@ class BaseModel(pl.LightningModule):
                 if i < self.n_predicts - 1:
                     # Update temporal of the batch with predictions
                     temporal = batch["temporal"]
-                    temporal[:, y_idx, -self.h :] = y_hat_median.squeeze(-1)
+                    if self.MULTIVARIATE:
+                        y_hat_median = y_hat_median.swapaxes(0, 2)
+                        y_hat_median = y_hat_median.swapaxes(1, 2)
+                        y_hat_median = y_hat_median.squeeze()
+                    else:
+                        y_hat_median = y_hat_median.squeeze(-1)
+
+                    temporal[:, y_idx, -self.h :] = y_hat_median
 
                     # Concatenate next futr_temporal
                     idx = i * self.h
