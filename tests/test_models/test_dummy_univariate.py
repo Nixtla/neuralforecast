@@ -16,12 +16,12 @@ class TestDummyUnivariate:
         )
         test_df[TimeSeriesDatasetEnum.Target] = np.nan
 
-        train_h = 4
+        h = 4
         longer_h = 10
         input_size = 14
 
         model = DummyUnivariate(
-            h=train_h,
+            h=h,
             input_size=input_size,
             futr_exog_list=calendar_cols,
         )
@@ -32,7 +32,29 @@ class TestDummyUnivariate:
         )
         # dummy fit
         nf.fit(df=train_df)
+
+        # standard forecast
+        forecasts = nf.predict(futr_df=test_df)
+        np.testing.assert_almost_equal(
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline1"][
+                "DummyUnivariate"
+            ].values,
+            np.array(
+                [463.0, 407.0, 362.0, 405.0]
+            ),
+        )
+        np.testing.assert_almost_equal(
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline2"][
+                "DummyUnivariate"
+            ].values,
+            np.array(
+                [763.0, 707.0, 662.0, 705.0]
+            ),
+        )
+
+        # longer horizon forecast
         forecasts = nf.predict(futr_df=test_df, h=longer_h)
+
         np.testing.assert_almost_equal(
             forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline1"][
                 "DummyUnivariate"
