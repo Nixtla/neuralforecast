@@ -1,7 +1,4 @@
-
-
-
-__all__ = ['DistributedConfig', 'BaseModel']
+__all__ = ["DistributedConfig", "BaseModel"]
 
 
 import inspect
@@ -1335,7 +1332,9 @@ class BaseModel(pl.LightningModule):
 
         return y_hat
 
-    def _predict_step_direct(self, batch, batch_idx, recursive=False, trim_window_size=0):
+    def _predict_step_direct(
+        self, batch, batch_idx, recursive=False, trim_window_size=0
+    ):
         temporal_cols = batch["temporal_cols"]
         if recursive:
             # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
@@ -1343,11 +1342,11 @@ class BaseModel(pl.LightningModule):
             y_idx = batch["y_idx"]
             y_hats = []
             total_test_size = self.test_size
-            remainder =  self.test_size % self.h
+            remainder = self.test_size % self.h
 
             cutoff = -total_test_size + self.h
-            futr_temporal = batch["temporal"][:, :, cutoff :]
-            batch["temporal"] = batch["temporal"][:, :, : cutoff]
+            futr_temporal = batch["temporal"][:, :, cutoff:]
+            batch["temporal"] = batch["temporal"][:, :, :cutoff]
             # _create_windows() in next iteration with recursive=False depends on self.test_size
             self.test_size = self.h
             for i in range(self.n_predicts):
@@ -1357,7 +1356,7 @@ class BaseModel(pl.LightningModule):
                     "recursive": False,
                 }
                 if i == self.n_predicts - 1 and remainder > 0:
-                    # The last window creation needs to consider the remainder 
+                    # The last window creation needs to consider the remainder
                     # if test_size is not multiple of h
                     pred_kwargs.update({"trim_window_size": remainder})
                 y_hat = self._predict_step_direct(**pred_kwargs)
@@ -1383,7 +1382,9 @@ class BaseModel(pl.LightningModule):
             self.test_size = total_test_size
         else:
             windows_temporal, static, static_cols = self._create_windows(
-                batch, step="predict", trim_window_size=trim_window_size,
+                batch,
+                step="predict",
+                trim_window_size=trim_window_size,
             )
             n_windows = len(windows_temporal)
             y_idx = batch["y_idx"]
