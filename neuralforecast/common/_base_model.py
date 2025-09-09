@@ -701,9 +701,9 @@ class BaseModel(pl.LightningModule):
             model.load_state_dict(content["state_dict"], strict=True)
         return model
 
-    def _create_windows(self, batch, step):
+    def _create_windows(self, batch, step, trim_window_size=0):
         # Parse common data
-        window_size = self.input_size + self.h
+        window_size = self.input_size + self.h - trim_window_size
         temporal_cols = batch["temporal_cols"]
         temporal = batch["temporal"]
 
@@ -791,7 +791,8 @@ class BaseModel(pl.LightningModule):
                         value=0.0,
                     )
                 predict_step_size = self.predict_step_size
-                cutoff = -self.input_size - self.test_size
+                # the cutoff should be trimmed as well if applicable
+                cutoff = -self.input_size - self.test_size + trim_window_size
                 temporal = temporal[:, :, cutoff:]
 
             elif step == "val":
@@ -1334,7 +1335,7 @@ class BaseModel(pl.LightningModule):
 
         return y_hat
 
-    def _predict_step_direct(self, batch, batch_idx, recursive=False):
+    def _predict_step_direct(self, batch, batch_idx, recursive=False, trim_window_size=0):
         temporal_cols = batch["temporal_cols"]
         if recursive:
             # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
@@ -1342,11 +1343,25 @@ class BaseModel(pl.LightningModule):
             y_idx = batch["y_idx"]
             y_hats = []
             total_test_size = self.test_size
-            futr_temporal = batch["temporal"][:, :, -total_test_size + self.h :]
-            batch["temporal"] = batch["temporal"][:, :, : -total_test_size + self.h]
+            remainder =  self.test_size % self.h
+
+            cutoff = -total_test_size + self.h
+            futr_temporal = batch["temporal"][:, :, cutoff :]
+            batch["temporal"] = batch["temporal"][:, :, : cutoff]
+            # _create_windows() in next iteration with recursive=False depends on self.test_size
             self.test_size = self.h
             for i in range(self.n_predicts):
-                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+                pred_kwargs = {
+                    "batch": batch,
+                    "batch_idx": batch_idx,
+                    "recursive": False,
+                }
+                if i == self.n_predicts - 1 and remainder > 0:
+                    # The last window creation needs to consider the remainder 
+                    # if test_size is not multiple of h
+                    pred_kwargs.update({"trim_window_size": remainder})
+                y_hat = self._predict_step_direct(**pred_kwargs)
+
                 y_hats.append(y_hat)
                 y_hat_median = y_hat
                 if median_idx:
@@ -1368,7 +1383,7 @@ class BaseModel(pl.LightningModule):
             self.test_size = total_test_size
         else:
             windows_temporal, static, static_cols = self._create_windows(
-                batch, step="predict"
+                batch, step="predict", trim_window_size=trim_window_size,
             )
             n_windows = len(windows_temporal)
             y_idx = batch["y_idx"]
