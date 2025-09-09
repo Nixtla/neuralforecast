@@ -1002,7 +1002,7 @@ class NeuralForecast:
             "explainer": captum.attr.__dict__[explainer],
             "horizons": horizons,
             "series": series,
-            "outputs": outputs,
+            "output_index": outputs,
         }
         fcsts_df = self.predict(
             df=df,
