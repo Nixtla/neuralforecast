@@ -12,9 +12,12 @@ import warnings
 
 import pytest
 
+from neuralforecast.common.enums import TimeSeriesDatasetEnum
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
 from neuralforecast.utils import AirPassengersPanel
+
+from tests.helpers.data import air_passengers
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -62,3 +65,27 @@ def setup_airplane_data():
     AirPassengersPanel_test["y"] = np.nan
     AirPassengersPanel_test["y_[lag12]"] = np.nan
     return AirPassengersPanel_train, AirPassengersPanel_test
+
+
+class LongerHorizonTestData:
+    def __init__(self):
+        self.h = 4
+        self.input_size = 14
+        self.longer_h = 10
+
+        train_df, test_df, calendar_cols, _ = air_passengers(
+            h=12, augment_calendar=True
+        )
+        test_df[TimeSeriesDatasetEnum.Target] = np.nan
+        self.train_df = train_df
+        self.test_df = test_df
+        self.calendar_cols = calendar_cols
+        self.n_series = 2
+
+        self.series1_id = "Airline1"
+        self.series2_id = "Airline2"
+
+
+@pytest.fixture
+def longer_horizon_test():
+    yield LongerHorizonTestData()

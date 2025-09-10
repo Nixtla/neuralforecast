@@ -2,28 +2,17 @@ import numpy as np
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
-
 from tests.dummy.dummy_models import DummyUnivariate
-from tests.helpers.data import air_passengers
 
 
 class TestDummyUnivariate:
     """Test suite for univariate dummy models to validate horizon predictions functionality."""
 
-    def test_larger_horizon(self):
-        train_df, test_df, calendar_cols, _ = air_passengers(
-            h=12, augment_calendar=True
-        )
-        test_df[TimeSeriesDatasetEnum.Target] = np.nan
-
-        h = 4
-        longer_h = 10
-        input_size = 14
-
+    def test_larger_horizon(self, longer_horizon_test):
         model = DummyUnivariate(
-            h=h,
-            input_size=input_size,
-            futr_exog_list=calendar_cols,
+            h=longer_horizon_test.h,
+            input_size=longer_horizon_test.input_size,
+            futr_exog_list=longer_horizon_test.calendar_cols,
         )
 
         nf = NeuralForecast(
@@ -31,12 +20,12 @@ class TestDummyUnivariate:
             freq="ME",
         )
         # dummy fit
-        nf.fit(df=train_df)
+        nf.fit(df=longer_horizon_test.train_df)
 
         # standard forecast
-        forecasts = nf.predict(futr_df=test_df)
+        forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline1"][
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series1_id][
                 "DummyUnivariate"
             ].values,
             np.array(
@@ -44,7 +33,7 @@ class TestDummyUnivariate:
             ),
         )
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline2"][
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series2_id][
                 "DummyUnivariate"
             ].values,
             np.array(
@@ -53,10 +42,10 @@ class TestDummyUnivariate:
         )
 
         # longer horizon forecast
-        forecasts = nf.predict(futr_df=test_df, h=longer_h)
+        forecasts = nf.predict(futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h)
 
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline1"][
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series1_id][
                 "DummyUnivariate"
             ].values,
             np.array(
@@ -64,7 +53,7 @@ class TestDummyUnivariate:
             ),
         )
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == "Airline2"][
+            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series2_id][
                 "DummyUnivariate"
             ].values,
             np.array(
