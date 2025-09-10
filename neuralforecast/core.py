@@ -1001,18 +1001,18 @@ class NeuralForecast:
 
         models_to_explain = []
         skipped_models = []
-
+        
         for model in self.models:
             model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
             
-            # Check for multivariate models (not supported yet)
+            # Check for multivariate models
             if model.MULTIVARIATE:
                 skipped_models.append(model_name)
                 if verbose:
                     warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
                 continue
                 
-            # Check for DistributionLoss (not supported yet)
+            # Check for DistributionLoss
             if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
                 loss_name = model.loss.__class__.__name__
                 skipped_models.append(model_name)
@@ -1025,13 +1025,30 @@ class NeuralForecast:
                     )
                 continue
                 
+            # Check for recurrent models with IntegratedGradients
+            if model.RECURRENT and explainer == "IntegratedGradients":
+                skipped_models.append(model_name)
+                if verbose:
+                    warnings.warn(
+                        f"Skipping {model_name}: IntegratedGradients is not compatible with recurrent models. "
+                        "Please either set recurrent=False when initializing the model, or use a different explainer. "
+                    )
+                continue
+                
             models_to_explain.append(model)
         
         if not models_to_explain:
-            raise ValueError(
-                f"No models support explanations. The following models were skipped: {', '.join(skipped_models)}. "
-                f"Explanations require univariate models with point losses or non-parametric probabilistic losses. "
+            # Build a more specific error message based on what was skipped
+            error_msg = "No models support explanations with the current configuration. "
+            if any(model.RECURRENT for model in self.models) and explainer == "IntegratedGradients":
+                error_msg += (
+                    "IntegratedGradients is not compatible with recurrent models. "
+                    "Either set recurrent=False or use a different explainer. "
+                )
+            error_msg += (
+                f"The following models were skipped: {', '.join(skipped_models)}. "
             )
+            raise ValueError(error_msg)
         
         # Temporarily replace self.models with only explainable models
         original_models = self.models
