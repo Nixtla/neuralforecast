@@ -215,6 +215,7 @@ _type2scaler = {
 
 
 class NeuralForecast:
+    models: List[Any]
 
     def __init__(
         self,
@@ -944,19 +945,19 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
-        verbose: bool = False,
+        verbose: bool = True,
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
         quantiles: Optional[List[float]] = None,
         **data_kwargs,
     ):
-        """Explain with core.NeuralForecast.
+        """(BETA) - Explain with core.NeuralForecast.
 
         Use stored fitted `models` to explain large set of time series from DataFrame `df`.
 
         Args:
             horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
-            series (list of int, optional): List of series to explain for multivariate models. Defaults to [0] (first series).
+            series (list of int, optional): List of series to explain for multivariate models. Defaults to [0] (first series). Multivariate models are not supported yet.
             outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
             explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'. Defaults to 'IntegratedGradients'.
             df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
@@ -998,36 +999,86 @@ class NeuralForecast:
                 f"Explainer {explainer} is not supported. Supported explainers are: IntegratedGradients, ShapleyValueSampling, Lime, KernelShap, InputXGradient."
             )
 
+        models_to_explain = []
+        skipped_models = []
+
+        for model in self.models:
+            model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
+            
+            # Check for multivariate models (not supported yet)
+            if model.MULTIVARIATE:
+                skipped_models.append(model_name)
+                if verbose:
+                    warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
+                continue
+                
+            # Check for DistributionLoss (not supported yet)
+            if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
+                loss_name = model.loss.__class__.__name__
+                skipped_models.append(model_name)
+                if verbose:
+                    warnings.warn(
+                        f"Skipping {model_name}: Explanations are not currently supported for {model_name} with {loss_name}. "
+                        f"Please use a point loss (MAE, MSE, etc.) or a non-parametric probabilistic loss (MQLoss, IQLoss, etc.). "
+                        f"Point losses and non-parametric probabilistic losses are listed here: "
+                        f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives"
+                    )
+                continue
+                
+            models_to_explain.append(model)
+        
+        if not models_to_explain:
+            raise ValueError(
+                f"No models support explanations. The following models were skipped: {', '.join(skipped_models)}. "
+                f"Explanations require univariate models with point losses or non-parametric probabilistic losses. "
+            )
+        
+        # Temporarily replace self.models with only explainable models
+        original_models = self.models
+        self.models = models_to_explain
+
         explainer_config = {
             "explainer": captum.attr.__dict__[explainer],
             "horizons": horizons,
             "series": series,
             "output_index": outputs,
         }
-        fcsts_df = self.predict(
-            df=df,
-            static_df=static_df,
-            futr_df=futr_df,
-            verbose=verbose,
-            engine=engine,
-            level=level,
-            quantiles=quantiles,
-            explainer_config=explainer_config,
-            **data_kwargs,
-        )
 
-        # Collect explanations here from self.explainer_results
+        try:
+            fcsts_df = self.predict(
+                df=df,
+                static_df=static_df,
+                futr_df=futr_df,
+                verbose=verbose,
+                engine=engine,
+                level=level,
+                quantiles=quantiles,
+                explainer_config=explainer_config,
+                **data_kwargs,
+            )
+        finally:
+            # Restore original models
+            self.models = original_models
+
+        if self.scalers_:
+            warnings.warn(
+                "You used a global scaler, so explanations will be scaled. Additivity may not hold, but the relative importance is still correct. "
+                "To have explanations in the same scale as the original data, use window scaling by setting scaler_type when initializing a model instead of local_scaler_type in the NeuralForecast object. "
+                "Read more on the two types of temporal scaling here: https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/time_series_scaling "
+            )
+
+        # Collect explanations from models that were explained
         explanations = {}
-        for model in self.models:
+        for model in models_to_explain:
             if hasattr(model, "explanations") and model.explanations is not None:
-                model_name = model.__class__.__name__
+                model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
                 explanations[model_name] = {
-                        "insample": model.explanations["insample_explanations"],
-                        "futr_exog": model.explanations["futr_exog_explanations"],
-                        "hist_exog": model.explanations["hist_exog_explanations"],
-                        "stat_exog": model.explanations["stat_exog_explanations"],
-                        "baseline_predictions": model.explanations["baseline_predictions"]
-                    }
+                    "insample": model.explanations["insample_explanations"],
+                    "futr_exog": model.explanations["futr_exog_explanations"],
+                    "hist_exog": model.explanations["hist_exog_explanations"],
+                    "stat_exog": model.explanations["stat_exog_explanations"],
+                    "baseline_predictions": model.explanations["baseline_predictions"]
+                }
 
         return fcsts_df, explanations
 
