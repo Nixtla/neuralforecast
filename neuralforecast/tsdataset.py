@@ -32,8 +32,9 @@ class TimeSeriesLoader(DataLoader):
         dataset: Dataset to load data from.
         batch_size (int, optional): How many samples per batch to load. Defaults to 1.
         shuffle (bool, optional): Set to True to have the data reshuffled at every epoch. Defaults to False.
-        sampler (Sampler or Iterable, optional): Defines the strategy to draw samples from the dataset.
-            Can be any Iterable with __len__ implemented. If specified, shuffle must not be specified.
+        sampler (Sampler or Iterable, optional): Defines the strategy to draw samples from the dataset. 
+        Can be any Iterable with __len__ implemented. If specified, shuffle must not be specified. Defaults to None.
+        drop_last (bool, optional): Set to True to drop the last incomplete batch. Defaults to False.
         **kwargs: Additional keyword arguments for DataLoader.
     """
 
