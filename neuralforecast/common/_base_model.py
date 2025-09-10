@@ -320,6 +320,7 @@ class BaseModel(pl.LightningModule):
         self.input_size = input_size
         self.windows_batch_size = windows_batch_size
         self.start_padding_enabled = start_padding_enabled
+        self.predict_horizon = None  # Used in recurrent prediction whereby predict h > h_train
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
@@ -1135,7 +1136,7 @@ class BaseModel(pl.LightningModule):
         # Initialize results array
         n_outputs = len(self.loss.output_names)
         y_hat = torch.zeros(
-            (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
+            (insample_y.shape[0], self.predict_horizon, self.n_series, n_outputs),
             device=insample_y.device,
             dtype=insample_y.dtype,
         )
@@ -1163,7 +1164,7 @@ class BaseModel(pl.LightningModule):
         )
 
         # Horizon prediction recursively
-        for tau in range(1, self.horizon_backup):
+        for tau in range(1, self.predict_horizon):
             # Set exogenous
             if self.hist_exog_size > 0:
                 hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
@@ -1718,6 +1719,11 @@ class BaseModel(pl.LightningModule):
             pred_trainer_kwargs["strategy"] = "auto"
 
         # Determine the number of predictions to make in case h > self.h
+        if h is None:
+            self.predict_horizon = self.horizon_backup
+        else:
+            self.predict_horizon = h
+
         self.n_predicts = 1
         if h is not None and h > self.h:
             if not self.RECURRENT:
