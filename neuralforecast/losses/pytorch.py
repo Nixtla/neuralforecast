@@ -245,7 +245,7 @@ class MAPE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+        - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
 
     def __init__(self, horizon_weight=None):
@@ -295,7 +295,7 @@ class SMAPE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+        - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
     """
 
     def __init__(self, horizon_weight=None):
@@ -386,20 +386,18 @@ class relMSE(BasePointLoss):
     """Relative Mean Squared Error
     Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006)
     as an alternative to percentage errors, to avoid measure unstability.
-    $$ \mathrm{relMSE}(\\mathbf{y}, \\mathbf{\hat{y}}, \\mathbf{\hat{y}}^{benchmark}) =
-    \\frac{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}})}{\mathrm{MSE}(\\mathbf{y}, \\mathbf{\hat{y}}^{benchmark})} $$
+    $$
+    \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) =
+    \frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})}
+    $$
 
     Args:
         y_train: Numpy array, deprecated.
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        - [Hyndman, R. J and Koehler, A. B. (2006).
-           "Another look at measures of forecast accuracy",
-           International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
-        - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
-           "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures.
-           Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+        - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
 
     def __init__(self, y_train=None, horizon_weight=None):
@@ -443,7 +441,9 @@ class QuantileLoss(BasePointLoss):
     loss pays more attention to under or over estimation.
     A common value for q is 0.5 for the deviation from the median (Pinball loss).
 
-    $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
+    $$
+    \mathrm{QL}(\mathbf{y}_{\\tau}, \mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big)
+    $$
 
     Args:
         q (float): Between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.
@@ -521,7 +521,9 @@ class MQLoss(BasePointLoss):
     a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
 
-    $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
+    $$
+    \mathrm{MQL}(\mathbf{y}_{\\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\\tau})
+    $$
 
     The limit behavior of MQL allows to measure the accuracy
     of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
@@ -530,7 +532,9 @@ class MQLoss(BasePointLoss):
     and treats the CRPS integral with a left Riemann approximation, averaging over
     uniformly distanced quantiles.
 
-    $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
+    $$
+    \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq
+    $$
 
     Args:
         level (List[int], optional): Probability levels for prediction intervals. Defaults to [80, 90].
@@ -673,7 +677,9 @@ class IQLoss(QuantileLoss):
     By weighting the absolute deviation in a non symmetric way, the
     loss pays more attention to under or over estimation.
 
-    $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
+    $$
+    \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big)
+    $$
 
     Args:
         cos_embedding_dim (int, optional): Cosine embedding dimension. Defaults to 64.
@@ -924,10 +930,14 @@ class Tweedie(Distribution):
     The distribution particularly useful to model sparse series as the probability has
     possitive mass at zero but otherwise is continuous.
 
-    $Y \sim \mathrm{ED}(\\mu,\\sigma^{2}) \qquad
-    \mathbb{P}(y|\\mu ,\\sigma^{2})=h(\\sigma^{2},y) \\exp \\left({\\frac {\\theta y-A(\\theta )}{\\sigma^{2}}}\\right)$<br>
+    $$
+    Y \sim \mathrm{ED}(\\mu,\\sigma^{2}) \qquad
+    \mathbb{P}(y|\\mu ,\\sigma^{2})=h(\\sigma^{2},y) \\exp \\left({\\frac {\\theta y-A(\\theta )}{\\sigma^{2}}}\\right)
+    $$
 
-    $\mu =A'(\\theta ) \qquad \mathrm{Var}(Y) = \\sigma^{2} \\mu^{\\rho}$
+    $$
+    \mu =A'(\\theta ) \qquad \mathrm{Var}(Y) = \\sigma^{2} \\mu^{\\rho}
+    $$
 
     Cases of the variance relationship include Normal (`rho` = 0), Poisson (`rho` = 1),
     Gamma (`rho` = 2), inverse Gaussian (`rho` = 3).
@@ -1407,7 +1417,7 @@ class BaseISQF(Distribution):
 
         Computes the quantile level alpha_tilde such that:
         - alpha_tilde = q^{-1}(z) if z is in-between qk_x[k] and qk_x[k+1]
-        - alpha_tilde = qk_x[k] if z<qk_x[k]
+        - alpha_tilde = qk_x[k] if z< qk_x[k]
         - alpha_tilde = qk_x[k+1] if z>qk_x[k+1]
 
         Args:
@@ -2006,7 +2016,9 @@ class DistributionLoss(torch.nn.Module):
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
+        $$
+        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
+        $$
 
         where $\\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -2036,10 +2048,12 @@ class PMM(torch.nn.Module):
     This Poisson Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
+    $$
+    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
     \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
     \prod_{\\beta\in[g_{i}]}
-    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)$$
+    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)
+    $$
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2050,12 +2064,10 @@ class PMM(torch.nn.Module):
         horizon_correlation (bool, optional): Whether or not model horizon correlations. Defaults to False.
 
     References:
-        - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.
-            Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International
-            Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
+        - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
 
-    def __init__(   
+    def __init__(
         self,
         n_components=10,
         level=[80, 90],
@@ -2227,7 +2239,9 @@ class PMM(torch.nn.Module):
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
+        $$
+        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
+        $$
 
         where $\\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -2261,11 +2275,13 @@ class GMM(torch.nn.Module):
     This Gaussian Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
+    $$
+    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
     \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
     \prod_{\\beta\in[g_{i}]}
     \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
-    \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)$$
+    \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)
+    $$
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2491,11 +2507,13 @@ class NBMM(torch.nn.Module):
     This N. Binomial Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$ \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
+    $$
+    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
     \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
     \prod_{\\beta\in[g_{i}]}
     \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
-    \mathrm{NBinomial}(y_{\\beta,\\tau}, \hat{r}_{\\beta,\\tau,k}, \hat{p}_{\\beta,\\tau,k})\\right)$$
+    \mathrm{NBinomial}(y_{\\beta,\\tau}, \hat{r}_{\\beta,\\tau,k}, \hat{p}_{\\beta,\\tau,k})\\right)
+    $$
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2692,7 +2710,9 @@ class NBMM(torch.nn.Module):
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
+        $$
+        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
+        $$
 
         where $\\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -2724,9 +2744,11 @@ class HuberLoss(BasePointLoss):
     errors, with equal values and slopes of the different sections at the two
     points where $(y_{\\tau}-\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\hat{y}_{\\tau}|$.
 
-    $$ L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
+    $$
+    L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
     =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\
-    \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}$$
+    \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}
+    $$
 
     where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
     and can be tuned to control the trade-off between robustness and accuracy in the predictions.
@@ -2779,10 +2801,12 @@ class TukeyLoss(BasePointLoss):
     of the function: Higher values of $c$ enhance sensitivity, while lower values
     increase resistance to outliers.
 
-    $$ L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
+    $$
+    L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
     =\\begin{cases}{
     \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
-    \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}$$
+    \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}
+    $$
 
     Please note that the Tukey loss function assumes the data to be stationary or
     normalized beforehand. If the error values are excessively large, the algorithm
@@ -2874,9 +2898,11 @@ class HuberQLoss(BasePointLoss):
     The loss pays more attention to under/over-estimation depending on the quantile parameter $q$;
     and controls the trade-off between robustness and accuracy in the predictions with the parameter $delta$.
 
-    $$ \mathrm{HuberQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
+    $$
+    \mathrm{HuberQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
     (1-q)\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} \geq y_{\\tau} \} +
-    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \} $$
+    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \}
+    $$
 
     Args:
         delta (float, optional): Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0.
@@ -2937,10 +2963,12 @@ class HuberMQLoss(BasePointLoss):
     more attention to under/over-estimation depending on the quantile list $[q_{1},q_{2},\dots]$ parameter.
     It controls the trade-off between robustness and prediction accuracy with the parameter $\\delta$.
 
-    $$ \mathrm{HuberMQL}_{\delta}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) =
-    \\frac{1}{n} \\sum_{q_{i}} \mathrm{HuberQL}_{\\delta}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
+    $$
+    \mathrm{HuberMQL}_{\delta}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) =
+    \\frac{1}{n} \\sum_{q_{i}} \mathrm{HuberQL}_{\\delta}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau})
+    $$
 
-    **Parameters:**<br>
+    Args:
         level (int list, optional): Probability levels for prediction intervals (Defaults median). Defaults to [80, 90].
         quantiles (float list, optional): Alternative to level, quantiles to estimate from y distribution. Defaults to None.
         delta (float, optional): Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0.
@@ -2948,7 +2976,7 @@ class HuberMQLoss(BasePointLoss):
 
     References:
         - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)
-    [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+        - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
     """
 
     def __init__(
@@ -3014,7 +3042,7 @@ class HuberMQLoss(BasePointLoss):
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
         """
-        **Parameters:**<br>
+        Args:
             y (torch.Tensor): Actual values.
             y_hat (torch.Tensor): Predicted values.
             mask (Union[torch.Tensor, None], optional): Specifies date stamps per serie to consider in loss. Defaults to None.
@@ -3059,9 +3087,11 @@ class HuberIQLoss(HuberQLoss):
     By weighting the absolute deviation in a non symmetric way, the
     loss pays more attention to under or over estimation.
 
-    $$ \mathrm{HuberQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
+    $$
+    \mathrm{HuberIQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
     (1-q)\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} \geq y_{\\tau} \} +
-    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \} $$
+    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \}
+    $$
 
     Args:
         quantile_sampling (str, optional): Sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. Defaults to 'uniform'.
@@ -3166,7 +3196,9 @@ class Accuracy(BasePointLoss):
     This evaluation metric is only meant for evalution, as it
     is not differentiable.
 
-    $$ \mathrm{Accuracy}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \mathrm{1}\{\\mathbf{y}_{\\tau}==\\mathbf{\hat{y}}_{\\tau}\} $$
+    $$
+    \mathrm{Accuracy}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \mathrm{1}\{\\mathbf{y}_{\\tau}==\\mathbf{\hat{y}}_{\\tau}\}
+    $$
 
     """
 
@@ -3227,9 +3259,11 @@ class sCRPS(BasePointLoss):
     This metric averages percentual weighted absolute deviations as
     defined by the quantile losses.
 
-    $$ \mathrm{sCRPS}(\\mathbf{\hat{y}}^{(q)}_{\\tau}, \mathbf{y}_{\\tau}) = \\frac{2}{N} \sum_{i}
+    $$
+    \mathrm{sCRPS}(\\mathbf{\hat{y}}^{(q)}_{\\tau}, \mathbf{y}_{\\tau}) = \\frac{2}{N} \sum_{i}
     \int^{1}_{0}
-    \\frac{\mathrm{QL}(\\mathbf{\hat{y}}^{(q}_{\\tau} y_{i,\\tau})_{q}}{\sum_{i} | y_{i,\\tau} |} dq $$
+    \\frac{\mathrm{QL}(\\mathbf{\hat{y}}^{(q}_{\\tau} y_{i,\\tau})_{q}}{\sum_{i} | y_{i,\\tau} |} dq
+    $$
 
     where $\\mathbf{\hat{y}}^{(q}_{\\tau}$ is the estimated quantile, and $y_{i,\\tau}$
     are the target variable realizations.
@@ -3239,14 +3273,9 @@ class sCRPS(BasePointLoss):
         quantiles (float list, optional): Alternative to level, quantiles to estimate from y distribution. Defaults to None.
 
     References:
-        - [Gneiting, Tilmann. (2011). \"Quantiles as optimal point forecasts\".
-        International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)
-        - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022).
-        \"The M5 uncertainty competition: Results, findings and conclusions\".
-        International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)
-        - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021).
-        \"End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series\".
-        Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
+        - [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063)
+        - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). "The M5 uncertainty competition: Results, findings and conclusions". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722)
+        - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html)
     """
 
     def __init__(self, level=[80, 90], quantiles=None):
