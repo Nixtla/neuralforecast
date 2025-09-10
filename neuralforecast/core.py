@@ -1090,11 +1090,11 @@ class NeuralForecast:
             if hasattr(model, "explanations") and model.explanations is not None:
                 model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
                 explanations[model_name] = {
-                    "insample": model.explanations["insample_explanations"],
-                    "futr_exog": model.explanations["futr_exog_explanations"],
-                    "hist_exog": model.explanations["hist_exog_explanations"],
-                    "stat_exog": model.explanations["stat_exog_explanations"],
-                    "baseline_predictions": model.explanations["baseline_predictions"]
+                    "insample": model.explanations["insample_explanations"],           # [batch_size, horizon, n_series, n_output, input_size, 2 (y attribution, mask attribution)]
+                    "futr_exog": model.explanations["futr_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size+horizon, n_futr_features]
+                    "hist_exog": model.explanations["hist_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size, n_hist_features]
+                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features]
+                    "baseline_predictions": model.explanations["baseline_predictions"] # [batch_size, horizon, n_series, n_output]
                 }
 
         return fcsts_df, explanations
