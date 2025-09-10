@@ -519,49 +519,48 @@ class TFT(BaseModel):
     with and interpretable multi-head attention layer and a multi-step forecasting
     strategy decoder.
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `tgt_size`: int=1, target size.<br>
-    `stat_exog_list`: str list, static continuous columns.<br>
-    `hist_exog_list`: str list, historic continuous columns.<br>
-    `futr_exog_list`: str list, future continuous columns.<br>
-    `hidden_size`: int, units of embeddings and encoders.<br>
-    `n_head`: int=4, number of attention heads in temporal fusion decoder.<br>
-    `attn_dropout`: float (0, 1), dropout of fusion decoder's attention layer.<br>
-    `grn_activation`: str, activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].<br>
-    `n_rnn_layers`: int=1, number of RNN layers.<br>
-    `rnn_type`: str="lstm", recurrent neural network (RNN) layer type from ["lstm","gru"].<br>
-    `one_rnn_initial_state`:str=False, Initialize all rnn layers with the same initial states computed from static covariates.<br>
-    `dropout`: float (0, 1), dropout of inputs VSNs.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch.<br>
-    `windows_batch_size`: int=None, windows sampled from rolled data, default uses all.<br>
-    `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random seed initialization for replicability.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): Forecast horizon.
+        input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
+        tgt_size (int): target size.
+        stat_exog_list (str list): static continuous columns.
+        hist_exog_list (str list): historic continuous columns.
+        futr_exog_list (str list): future continuous columns.
+        hidden_size (int): units of embeddings and encoders.
+        n_head (int): number of attention heads in temporal fusion decoder.
+        attn_dropout (float): dropout of fusion decoder's attention layer.
+        grn_activation (str): activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].
+        n_rnn_layers (int): number of RNN layers.
+        rnn_type (str): recurrent neural network (RNN) layer type from ["lstm","gru"].
+        one_rnn_initial_state (str): Initialize all rnn layers with the same initial states computed from static covariates.
+        dropout (float): dropout of inputs VSNs.
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        max_steps (int): maximum number of training steps.
+        learning_rate (float): Learning rate between (0, 1).
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): Number of validation iterations before early stopping.
+        val_check_steps (int): Number of training steps between every validation loss check.
+        batch_size (int): number of different series in each batch.
+        valid_batch_size (int): number of different series in each validation and test batch.
+        windows_batch_size (int): windows sampled from rolled data, default uses all.
+        inference_windows_batch_size (int): number of windows to sample in each inference batch, -1 uses all.
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+        step_size (int): step size between each window of temporal data.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
+        random_seed (int): random seed initialization for replicability.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): optional,  Custom name of the model.
+        optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
+        optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
+        lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
-    **References:**<br>
-    - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister,
-    "Temporal Fusion Transformers for interpretable multi-horizon time series forecasting"](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
+    References:
+        - [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister, "Temporal Fusion Transformers for interpretable multi-horizon time series forecasting"](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
     """
 
     # Class attributes
