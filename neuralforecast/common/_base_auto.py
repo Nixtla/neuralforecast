@@ -431,7 +431,7 @@ class BaseAuto(pl.LightningModule):
         self.stat_exog_list = self.model.stat_exog_list
         return self
 
-    def predict(self, dataset, step_size=1, **data_kwargs):
+    def predict(self, dataset, step_size=1, h=None, **data_kwargs):
         """BaseAuto.predict
 
         Predictions of the best performing model on validation.
@@ -439,13 +439,13 @@ class BaseAuto(pl.LightningModule):
         Args:
             dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)
             step_size (int): Steps between sequential predictions, (default 1).
+            h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_kwarg: Additional parameters for the dataset module.
-            random_seed (int): Random seed for hyperparameter exploration algorithms (not implemented).
 
         Returns:
             y_hat: Numpy predictions of the `NeuralForecast` model.
         """
-        return self.model.predict(dataset=dataset, step_size=step_size, **data_kwargs)
+        return self.model.predict(dataset=dataset, step_size=step_size, h=h, **data_kwargs)
 
     def set_test_size(self, test_size):
         self.model.set_test_size(test_size)
