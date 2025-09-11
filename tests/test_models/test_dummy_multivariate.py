@@ -26,32 +26,38 @@ class TestDummyMultivariate:
         # standard forecast
         forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series1_id][
-                "DummyMultivariate"
-            ].values,
+            forecasts[
+                forecasts[TimeSeriesDatasetEnum.UniqueId]
+                == longer_horizon_test.series1_id
+            ]["DummyMultivariate"].values,
             np.array([463.0, 407.0, 362.0, 405.0]),
         )
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series2_id][
-                "DummyMultivariate"
-            ].values,
+            forecasts[
+                forecasts[TimeSeriesDatasetEnum.UniqueId]
+                == longer_horizon_test.series2_id
+            ]["DummyMultivariate"].values,
             np.array([763.0, 707.0, 662.0, 705.0]),
         )
 
         # longer horizon forecast
-        forecasts = nf.predict(futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h)
+        forecasts = nf.predict(
+            futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h
+        )
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series1_id][
-                "DummyMultivariate"
-            ].values,
+            forecasts[
+                forecasts[TimeSeriesDatasetEnum.UniqueId]
+                == longer_horizon_test.series1_id
+            ]["DummyMultivariate"].values,
             np.array(
                 [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
             ),
         )
         np.testing.assert_almost_equal(
-            forecasts[forecasts[TimeSeriesDatasetEnum.UniqueId] == longer_horizon_test.series2_id][
-                "DummyMultivariate"
-            ].values,
+            forecasts[
+                forecasts[TimeSeriesDatasetEnum.UniqueId]
+                == longer_horizon_test.series2_id
+            ]["DummyMultivariate"].values,
             np.array(
                 [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 763.0, 707.0]
             ),

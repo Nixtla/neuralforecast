@@ -104,8 +104,8 @@ class TestDummyRecurrent:
         else:
             if isinstance(loss, DISTRIBUTION_LOSSES + MULTIQUANTILE_LOSSES):
                 if isinstance(loss, DISTRIBUTION_LOSSES):
-                    assert 1 == model._maybe_get_quantile_idx(quantile)
+                    assert model._maybe_get_quantile_idx(quantile) == 1
                 else:
-                    assert 0 == model._maybe_get_quantile_idx(quantile)
+                    assert model._maybe_get_quantile_idx(quantile) == 0
             else:
                 model._maybe_get_quantile_idx(quantile) is None
