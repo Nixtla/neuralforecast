@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
@@ -10,7 +11,7 @@ class TestDummyMultivariate:
 
     def test_larger_horizon(self, longer_horizon_test):
         model = DummyMultivariate(
-            h=longer_horizon_test.train_h,
+            h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
             n_series=longer_horizon_test.n_series,
             futr_exog_list=longer_horizon_test.calendar_cols,
@@ -62,3 +63,25 @@ class TestDummyMultivariate:
                 [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 763.0, 707.0]
             ),
         )
+
+        # cross-validation using a different h parameter
+        with pytest.raises(
+            ValueError,
+            match="The specified horizon h={} is larger than the horizon of the fitted models: {}. Set refit=True in this setting.".format(
+                longer_horizon_test.cross_val_h, longer_horizon_test.h
+            ),
+        ):
+            nf.cross_validation(
+                df=longer_horizon_test.train_df,
+                n_windows=2,
+                h=longer_horizon_test.cross_val_h,
+            )
+
+        cross_val_df = nf.cross_validation(
+            df=longer_horizon_test.train_df,
+            n_windows=2,
+            h=longer_horizon_test.cross_val_h,
+            refit=True,
+        )
+        assert cross_val_df[TimeSeriesDatasetEnum.Target].mean() > 0.0
+        assert cross_val_df["DummyMultivariate"].mean() > 0.0

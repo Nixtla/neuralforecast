@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
@@ -57,3 +58,25 @@ class TestDummyRecurrent:
             ]["DummyRecurrent"].values,
             np.array([705.0] * 10),
         )
+
+        # cross-validation using a different h parameter
+        with pytest.raises(
+            ValueError,
+            match="The specified horizon h={} is larger than the horizon of the fitted models: {}. Set refit=True in this setting.".format(
+                longer_horizon_test.cross_val_h, longer_horizon_test.h
+            ),
+        ):
+            nf.cross_validation(
+                df=longer_horizon_test.train_df,
+                n_windows=2,
+                h=longer_horizon_test.cross_val_h,
+            )
+
+        cross_val_df = nf.cross_validation(
+            df=longer_horizon_test.train_df,
+            n_windows=2,
+            h=longer_horizon_test.cross_val_h,
+            refit=True,
+        )
+        assert cross_val_df[TimeSeriesDatasetEnum.Target].mean() > 0.0
+        assert cross_val_df["DummyRecurrent"].mean() > 0.0

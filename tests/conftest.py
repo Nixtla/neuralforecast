@@ -72,6 +72,7 @@ class LongerHorizonTestData:
         self.h = 4
         self.input_size = 14
         self.longer_h = 10
+        self.cross_val_h = 7
 
         train_df, test_df, calendar_cols, _ = air_passengers(
             h=12, augment_calendar=True
