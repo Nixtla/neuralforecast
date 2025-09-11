@@ -307,7 +307,13 @@ class DummyRecurrent(BaseModel):
 
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]  # [B, L, N]
+        futr_exog = windows_batch["futr_exog"]
 
         # Create predictions by shifting the input sequence
         y_pred = insample_y[:, -1, :] * self.w
+
+        if self.futr_exog_size > 0:
+            # we only consider a single futr_exog feature, that is why '0' in the dimension
+            # simply multiply with the given futr_exog
+            y_pred = y_pred * futr_exog[:, -1:, 0]
         return y_pred.unsqueeze(-1)  # [B, 1, N]
