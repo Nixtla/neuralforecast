@@ -699,9 +699,9 @@ class BaseModel(pl.LightningModule):
             model.load_state_dict(content["state_dict"], strict=True)
         return model
 
-    def _create_windows(self, batch, step, trim_window_size=0):
+    def _create_windows(self, batch, step):
         # Parse common data
-        window_size = self.input_size + self.h - trim_window_size
+        window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
         temporal = batch["temporal"]
 
@@ -789,8 +789,7 @@ class BaseModel(pl.LightningModule):
                         value=0.0,
                     )
                 predict_step_size = self.predict_step_size
-                # the cutoff should be trimmed as well if applicable
-                cutoff = -self.input_size - self.test_size + trim_window_size
+                cutoff = -self.input_size - self.test_size
                 temporal = temporal[:, :, cutoff:]
 
             elif step == "val":
@@ -1347,20 +1346,20 @@ class BaseModel(pl.LightningModule):
 
             cutoff = -total_test_size + self.h
             futr_temporal = batch["temporal"][:, :, cutoff:]
+            if remainder > 0:
+                # to handle edge case: our original design assumes that prediction is based on fitted horizon (h)
+                # if predict's h argument is not multiple of fitted horizon, the change in array will introduce
+                # side-effect. This ensures that future_temporal has forecast zone to be multiple of h.
+                padded_zeroes = torch.zeros(
+                    [futr_temporal.shape[0], futr_temporal.shape[1], remainder], device=futr_temporal.device
+                )
+                futr_temporal = torch.cat([futr_temporal, padded_zeroes], dim=-1)
+
             batch["temporal"] = batch["temporal"][:, :, :cutoff]
             # _create_windows() in next iteration with recursive=False depends on self.test_size
             self.test_size = self.h
             for i in range(self.n_predicts):
-                pred_kwargs = {
-                    "batch": batch,
-                    "batch_idx": batch_idx,
-                    "recursive": False,
-                }
-                if i == self.n_predicts - 1 and remainder > 0:
-                    # The last window creation needs to consider the remainder
-                    # if test_size is not multiple of h
-                    pred_kwargs.update({"trim_window_size": remainder})
-                y_hat = self._predict_step_direct(**pred_kwargs)
+                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
 
                 y_hats.append(y_hat)
                 y_hat_median = y_hat
@@ -1392,7 +1391,6 @@ class BaseModel(pl.LightningModule):
             windows_temporal, static, static_cols = self._create_windows(
                 batch,
                 step="predict",
-                trim_window_size=trim_window_size,
             )
             n_windows = len(windows_temporal)
             y_idx = batch["y_idx"]
