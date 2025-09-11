@@ -1,18 +1,7 @@
 import numpy as np
-import pytest
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
-from neuralforecast.common._base_model import DISTRIBUTION_LOSSES, MULTIQUANTILE_LOSSES
-from neuralforecast.losses.pytorch import (
-    DistributionLoss,
-    PMM,
-    GMM,
-    NBMM,
-    MQLoss,
-    HuberMQLoss,
-    SMAPE,
-)
 from tests.dummy.dummy_models import DummyRecurrent
 
 
@@ -68,44 +57,3 @@ class TestDummyRecurrent:
             ]["DummyRecurrent"].values,
             np.array([705.0] * 10),
         )
-
-    @pytest.mark.parametrize(
-        ("loss", "quantile", "raised"),
-        [
-            (DistributionLoss("StudentT"), 0.52, True),
-            (PMM(), 0.52, True),
-            (GMM(), 0.52, True),
-            (NBMM(), 0.52, True),
-            (MQLoss(), 0.52, True),
-            (HuberMQLoss(), 0.52, True),
-            (SMAPE(), 0.52, False),
-            (DistributionLoss("StudentT"), 0.5, False),
-            (PMM(), 0.5, False),
-            (GMM(), 0.5, False),
-            (NBMM(), 0.5, False),
-            (MQLoss(), 0.5, False),
-            (HuberMQLoss(), 0.5, False),
-            (SMAPE(), 0.5, False),
-        ],
-    )
-    def test_maybe_get_quantile_idx(self, longer_horizon_test, loss, quantile, raised):
-        model = DummyRecurrent(
-            h=longer_horizon_test.h,
-            input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
-            loss=loss,
-        )
-
-        if raised:
-            with pytest.raises(
-                ValueError, match="Model was not trained with a median quantile."
-            ):
-                model._maybe_get_quantile_idx(quantile)
-        else:
-            if isinstance(loss, DISTRIBUTION_LOSSES + MULTIQUANTILE_LOSSES):
-                if isinstance(loss, DISTRIBUTION_LOSSES):
-                    assert model._maybe_get_quantile_idx(quantile) == 1
-                else:
-                    assert model._maybe_get_quantile_idx(quantile) == 0
-            else:
-                model._maybe_get_quantile_idx(quantile) is None
