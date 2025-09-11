@@ -815,6 +815,12 @@ class NeuralForecast:
 
         if h is not None:
             if h > self.h:
+                if self.prediction_intervals is not None:
+                    raise ValueError(
+                        f"The specified horizon h={h} is larger than the horizon of the fitted models: {self.h}. "
+                        "Forecast with prediction intervals requires a refit with the specified horizon."
+                    )
+
                 for model in self.models:
                     if model.hist_exog_list:
                         raise NotImplementedError(
