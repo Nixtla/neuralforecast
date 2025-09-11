@@ -815,7 +815,9 @@ class NeuralForecast:
 
         if h is not None:
             if h > self.h:
-                if self.prediction_intervals is not None:
+                if getattr(self, "prediction_intervals", None) is not None:
+                    # if only cross_validation called without fit() called first, prediction_intervals
+                    # attribute is not defined
                     raise ValueError(
                         f"The specified horizon h={h} is larger than the horizon of the fitted models: {self.h}. "
                         "Forecast with prediction intervals requires a refit with the specified horizon."
