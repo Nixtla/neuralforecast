@@ -111,7 +111,7 @@ class DummyUnivariate(BaseModel):
         if self.futr_exog_size > 0:
             # we only consider a single futr_exog feature, that is why '0' in the last dimension
             # simply multiply with the given futr_exog
-            y_pred = y_pred * futr_exog[:, -self.seasonality:, 0].unsqueeze(-1)
+            y_pred = y_pred * futr_exog[:, -self.seasonality :, 0].unsqueeze(-1)
         return y_pred
 
 
@@ -209,9 +209,15 @@ class DummyMultivariate(BaseModel):
     def forward(self, windows_batch):
         """Forward pass that implements multivariate seasonal naive prediction."""
         insample_y = windows_batch["insample_y"]  # [B, L, N]
+        futr_exog = windows_batch["futr_exog"]  # [B, F, L, N]
 
         # Create predictions by shifting the input sequence
         y_pred = insample_y[:, -self.seasonality :, :] * self.w  # [B, h, N]
+
+        if self.futr_exog_size > 0:
+            # we only consider a single futr_exog feature, that is why '0' in the dimension
+            # simply multiply with the given futr_exog
+            y_pred = y_pred * futr_exog[:, 0, -self.seasonality :, :].squeeze(1)
         return y_pred
 
 
@@ -220,6 +226,7 @@ class DummyRecurrent(BaseModel):
 
     This model implements a lagged-1 prediction strategy for time series.
     """
+
     # Class attributes
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
@@ -302,5 +309,5 @@ class DummyRecurrent(BaseModel):
         insample_y = windows_batch["insample_y"]  # [B, L, N]
 
         # Create predictions by shifting the input sequence
-        y_pred = insample_y[:, -1, :] * self.w  
-        return y_pred.unsqueeze(-1) # [B, 1, N]
+        y_pred = insample_y[:, -1, :] * self.w
+        return y_pred.unsqueeze(-1)  # [B, 1, N]
