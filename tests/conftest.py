@@ -80,7 +80,7 @@ class LongerHorizonTestData:
         test_df[TimeSeriesDatasetEnum.Target] = np.nan
         self.train_df = train_df
         self.test_df = test_df
-        self.calendar_cols = calendar_cols
+        self.futr_exog_list = calendar_cols
         self.n_series = 2
 
         self.series1_id = "Airline1"

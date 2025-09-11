@@ -15,7 +15,6 @@ class TestDummyMultivariate:
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
             n_series=longer_horizon_test.n_series,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
 
         nf = NeuralForecast(
@@ -91,7 +90,6 @@ class TestDummyMultivariate:
         model = DummyMultivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
         nf = NeuralForecast(
             models=[model],

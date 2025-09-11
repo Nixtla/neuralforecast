@@ -14,7 +14,6 @@ class TestDummyRecurrent:
         model = DummyRecurrent(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
 
         nf = NeuralForecast(
@@ -86,7 +85,6 @@ class TestDummyRecurrent:
         model = DummyRecurrent(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
         nf = NeuralForecast(
             models=[model],

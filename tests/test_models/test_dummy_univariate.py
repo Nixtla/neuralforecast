@@ -27,7 +27,6 @@ class TestDummyUnivariate:
         model = DummyUnivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
 
         nf = NeuralForecast(
@@ -104,7 +103,6 @@ class TestDummyUnivariate:
         model = DummyUnivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
         )
         nf = NeuralForecast(
             models=[model],
@@ -122,15 +120,16 @@ class TestDummyUnivariate:
         # forecast with longer horizon not supported
         with pytest.raises(ValueError, match=error_msg):
             nf.predict(
-                futr_df=longer_horizon_test.test_df, 
+                futr_df=longer_horizon_test.test_df,
                 h=longer_horizon_test.longer_h,
-                level=[80]
+                level=[80],
             )
 
-        forecasts = nf.predict(futr_df=longer_horizon_test.test_df, h=longer_horizon_test.h, level=[80])
+        forecasts = nf.predict(
+            futr_df=longer_horizon_test.test_df, h=longer_horizon_test.h, level=[80]
+        )
         assert "DummyUnivariate-lo-80" in forecasts.columns
         assert "DummyUnivariate-hi-80" in forecasts.columns
-                
 
     @pytest.mark.parametrize(
         ("loss", "quantile", "raised"),
@@ -155,7 +154,6 @@ class TestDummyUnivariate:
         model = DummyUnivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
             loss=loss,
         )
 
@@ -178,7 +176,6 @@ class TestDummyUnivariate:
         model = DummyUnivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
             loss=loss_type(),
         )
 
@@ -197,18 +194,18 @@ class TestDummyUnivariate:
             "DummyUnivariate_ql0.5"
         ].count()
         expected = pd.Series(
-            data=[longer_horizon_test.longer_h]*2,
+            data=[longer_horizon_test.longer_h] * 2,
             index=[longer_horizon_test.series1_id, longer_horizon_test.series2_id],
             name="DummyUnivariate_ql0.5",
         )
         expected.index.name = TimeSeriesDatasetEnum.UniqueId
         pd.testing.assert_series_equal(group_cnt, expected)
-    
+
     def test_hist_exog_failed(self, longer_horizon_test):
         model = DummyUnivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
-            futr_exog_list=longer_horizon_test.calendar_cols,
+            futr_exog_list=longer_horizon_test.futr_exog_list,
             hist_exog_list=longer_horizon_test.hist_exog_list,
         )
 
@@ -217,7 +214,7 @@ class TestDummyUnivariate:
             freq="ME",
         )
         # dummy fit
-        nf.fit(df=longer_horizon_test.train_df)        
+        nf.fit(df=longer_horizon_test.train_df)
         err_msg = (
             "Model DummyUnivariate has historic exogenous features, which is not "
             "compatible with setting a larger horizon during prediction."
@@ -226,7 +223,9 @@ class TestDummyUnivariate:
             NotImplementedError,
             match=err_msg,
         ):
-            nf.predict(futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h)
+            nf.predict(
+                futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h
+            )
 
         err_msg2 = (
             "Model DummyUnivariate has historic exogenous features, which is not "
