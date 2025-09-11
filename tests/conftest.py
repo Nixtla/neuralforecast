@@ -85,6 +85,7 @@ class LongerHorizonTestData:
 
         self.series1_id = "Airline1"
         self.series2_id = "Airline2"
+        self.hist_exog_list = ["y_[lag12]"]
 
 
 @pytest.fixture
