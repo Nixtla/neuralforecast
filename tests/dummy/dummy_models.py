@@ -15,7 +15,7 @@ class DummyUnivariate(BaseModel):
     It simply feeds back the seasonality-lagged (seasonal length hard-coded = forecast horizon)
     values for predictions
 
-    Caveat: This only works when h <= input_size but good enough for testing.
+    Caveat: This only works when h <= input_size and h hard-coded as seasonlity size
     """
 
     # Class attributes
@@ -92,16 +92,26 @@ class DummyUnivariate(BaseModel):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
+        assert input_size >= h, "h must be <= input_size"
         self.seasonality = h
         # just to have some learnable parameters
         self.w = nn.Parameter(torch.tensor([1.0], requires_grad=True))
 
     def forward(self, windows_batch):
-        """Forward pass that implements seasonal naive prediction."""
-        insample_y = windows_batch["insample_y"]  # [B, L, n_series]
+        """Forward pass that implements seasonal naive prediction.
+
+        This implementation assumes that we always forecast at a fixed window size as
+        suggested by training h.
+        """
+        insample_y = windows_batch["insample_y"]  # [B, L, 1]
+        futr_exog = windows_batch["futr_exog"]
 
         # Create predictions by shifting the input sequence
-        y_pred = insample_y[:, -self.seasonality :, :] * self.w  # [B, h, n_series]
+        y_pred = insample_y[:, -self.seasonality :, :] * self.w  # [B, h, 1]
+        if self.futr_exog_size > 0:
+            # we only consider a single futr_exog feature, that is why '0' in the last dimension
+            # simply multiply with the given futr_exog
+            y_pred = y_pred * futr_exog[:, -self.seasonality:, 0].unsqueeze(-1)
         return y_pred
 
 
@@ -112,7 +122,7 @@ class DummyMultivariate(BaseModel):
     It simply feeds back the seasonality-lagged (seasonal length hard-coded = forecast horizon)
     values for predictions
 
-    Caveat: This only works when h <= input_size but good enough for testing.
+    Caveat: This only works when h <= input_size and h hard-coded as seasonlity size
     """
 
     # Class attributes
@@ -191,6 +201,7 @@ class DummyMultivariate(BaseModel):
             dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
+        assert input_size >= h, "h must be <= input_size"
         self.seasonality = h
         # just to have some learnable parameters
         self.w = nn.Parameter(torch.tensor([1.0], requires_grad=True))
