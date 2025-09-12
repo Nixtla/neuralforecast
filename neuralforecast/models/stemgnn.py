@@ -146,41 +146,38 @@ class StemGNN(BaseModel):
     inter-series correlations in the spectral domain, by combining Graph Fourier Transform (GFT)
     and Discrete Fourier Transform (DFT).
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `n_series`: int, number of time-series.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `n_stacks`: int=2, number of stacks in the model.<br>
-    `multi_layer`: int=5, multiplier for FC hidden size on StemGNN blocks.<br>
-    `dropout_rate`: float=0.5, dropout rate.<br>
-    `leaky_rate`: float=0.2, alpha for LeakyReLU layer on Latent Correlation layer.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int, number of windows in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=32, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=32, number of windows to sample in each inference batch, -1 uses all.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='robust', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): Forecast horizon.
+        input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
+        n_series (int): number of time-series.
+        futr_exog_list (str list): future exogenous columns.
+        hist_exog_list (str list): historic exogenous columns.
+        stat_exog_list (str list): static exogenous columns.
+        n_stacks (int): number of stacks in the model.
+        multi_layer (int): multiplier for FC hidden size on StemGNN blocks.
+        dropout_rate (float): dropout rate.
+        leaky_rate (float): alpha for LeakyReLU layer on Latent Correlation layer.
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        max_steps (int): maximum number of training steps.
+        learning_rate (float): Learning rate between (0, 1).
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): Number of validation iterations before early stopping.
+        val_check_steps (int): Number of training steps between every validation loss check.
+        batch_size (int): number of windows in each batch.
+        valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size.
+        windows_batch_size (int): number of windows to sample in each training batch, default uses all.
+        inference_windows_batch_size (int): number of windows to sample in each inference batch, -1 uses all.
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+        step_size (int): step size between each window of temporal data.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
+        random_seed (int): random_seed for pytorch initializer and numpy generators.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): optional,  Custom name of the model.
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
     """
 
     # Class attributes

@@ -1650,7 +1650,7 @@ class BaseModel(pl.LightningModule):
         disk memory, to get them change `enable_checkpointing=True` in `__init__`.
 
         Args:
-            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset).
             val_size (int): Validation size for temporal cross-validation.
             random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
             test_size (int): Test size for temporal cross-validation.
@@ -1683,11 +1683,11 @@ class BaseModel(pl.LightningModule):
         Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
         Args:
-            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](https://nixtla.github.io/neuralforecast/tsdataset.html).
-            test_size (int): Test size for temporal cross-validation. Defaults to None.
-            step_size (int): Step size between each window. Defaults to 1.
-            random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. Defaults to None.
-            quantiles (list): Target quantiles to predict. Defaults to None.
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset).
+            test_size (int): Test size for temporal cross-validation.
+            step_size (int): Step size between each window.
+            random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
+            quantiles (list): Target quantiles to predict.
             h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_module_kwargs (dict): PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
 
@@ -1772,7 +1772,7 @@ class BaseModel(pl.LightningModule):
         Available methods are `ESRNN`, `NHITS`, `NBEATS`, and `NBEATSx`.
 
         Args:
-            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation here](https://nixtla.github.io/neuralforecast/tsdataset.html).
+            dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation here](./tsdataset).
             step_size (int): Step size between each window of temporal data.
             random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
             quantiles (list): Target quantiles to predict.

@@ -617,9 +617,9 @@ class _MultiheadAttention(nn.Module):
         """
         Multi Head Attention Layer
         Input shape:
-            Q:       [batch_size (bs) x max_q_len x hidden_size]
-            K, V:    [batch_size (bs) x q_len x hidden_size]
-            mask:    [q_len x q_len]
+            Q:       [batch_size (bs) x max_q_len x hidden_size] (query)
+            K, V:    [batch_size (bs) x q_len x hidden_size] (key, value)
+            mask:    [q_len x q_len] (optional)
         """
         super().__init__()
         d_k = hidden_size // n_heads if d_k is None else d_k
@@ -813,57 +813,57 @@ class PatchTST(BaseModel):
     - segmentation of time series into windows (patches) which are served as input tokens to Transformer
     - channel-independence, where each channel contains a single univariate time series.
 
-    **Parameters:**<br>
-    `h`: int, Forecast horizon. <br>
-    `input_size`: int, autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].<br>
-    `stat_exog_list`: str list, static exogenous columns.<br>
-    `hist_exog_list`: str list, historic exogenous columns.<br>
-    `futr_exog_list`: str list, future exogenous columns.<br>
-    `exclude_insample_y`: bool=False, the model skips the autoregressive features y[t-input_size:t] if True.<br>
-    `encoder_layers`: int, number of layers for encoder.<br>
-    `n_heads`: int=16, number of multi-head's attention.<br>
-    `hidden_size`: int=128, units of embeddings and encoders.<br>
-    `linear_hidden_size`: int=256, units of linear layer.<br>
-    `dropout`: float=0.1, dropout rate for residual connection.<br>
-    `fc_dropout`: float=0.1, dropout rate for linear layer.<br>
-    `head_dropout`: float=0.1, dropout rate for Flatten head layer.<br>
-    `attn_dropout`: float=0.1, dropout rate for attention layer.<br>
-    `patch_len`: int=32, length of patch. Note: patch_len = min(patch_len, input_size + stride).<br>
-    `stride`: int=16, stride of patch.<br>
-    `revin`: bool=True, bool to use RevIn.<br>
-    `revin_affine`: bool=False, bool to use affine in RevIn.<br>
-    `revin_subtract_last`: bool=False, bool to use substract last in RevIn.<br>
-    `activation`: str='ReLU', activation from ['gelu','relu'].<br>
-    `res_attention`: bool=False, bool to use residual attention.<br>
-    `batch_normalization`: bool=False, bool to use batch normalization.<br>
-    `learn_pos_embed`: bool=True, bool to learn positional embedding.<br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `max_steps`: int=1000, maximum number of training steps.<br>
-    `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
-    `num_lr_decays`: int=-1, Number of learning rate decays, evenly distributed across max_steps.<br>
-    `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br>
-    `val_check_steps`: int=100, Number of training steps between every validation loss check.<br>
-    `batch_size`: int=32, number of different series in each batch.<br>
-    `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br>
-    `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br>
-    `inference_windows_batch_size`: int=1024, number of windows to sample in each inference batch.<br>
-    `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
-    `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
-    `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
-    `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
-    `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
-    `alias`: str, optional,  Custom name of the model.<br>
-    `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br>
-    `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br>
-    `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br>
-    `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br>
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br>
-    `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br>
+    Args:
+        h (int): forecast horizon.
+        input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
+        stat_exog_list (str list): static exogenous columns.
+        hist_exog_list (str list): historic exogenous columns.
+        futr_exog_list (str list): future exogenous columns.
+        exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
+        encoder_layers (int): number of layers for encoder.
+        n_heads (int): number of multi-head's attention.
+        hidden_size (int): units of embeddings and encoders.
+        linear_hidden_size (int): units of linear layer.
+        dropout (float): dropout rate for residual connection.
+        fc_dropout (float): dropout rate for linear layer.
+        head_dropout (float): dropout rate for Flatten head layer.
+        attn_dropout (float): dropout rate for attention layer.
+        patch_len (int): length of patch. Note: patch_len = min(patch_len, input_size + stride).
+        stride (int): stride of patch.
+        revin (bool): bool to use RevIn.
+        revin_affine (bool): bool to use affine in RevIn.
+        revin_subtract_last (bool): bool to use substract last in RevIn.
+        activation (str): activation from ['gelu','relu'].
+        res_attention (bool): bool to use residual attention.
+        batch_normalization (bool): bool to use batch normalization.
+        learn_pos_embed (bool): bool to learn positional embedding.
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        max_steps (int): maximum number of training steps.
+        learning_rate (float): learning rate between (0, 1).
+        num_lr_decays (int): number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): number of validation iterations before early stopping.
+        val_check_steps (int): number of training steps between every validation loss check.
+        batch_size (int): number of different series in each batch.
+        valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size.
+        windows_batch_size (int): number of windows to sample in each training batch, default uses all.
+        inference_windows_batch_size (int): number of windows to sample in each inference batch.
+        start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size.
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+        step_size (int): step size between each window of temporal data.
+        scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
+        random_seed (int): random_seed for pytorch initializer and numpy generators.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): optional,  Custom name of the model.
+        optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
+        optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
+        lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
+        lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
+        dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
-    **References:**<br>
-    -[Nie, Y., Nguyen, N. H., Sinthong, P., & Kalagnanam, J. (2022). "A Time Series is Worth 64 Words: Long-term Forecasting with Transformers"](https://arxiv.org/pdf/2211.14730.pdf)
+    References:
+        - [Nie, Y., Nguyen, N. H., Sinthong, P., & Kalagnanam, J. (2022). "A Time Series is Worth 64 Words: Long-term Forecasting with Transformers"](https://arxiv.org/pdf/2211.14730.pdf)
     """
 
     # Class attributes

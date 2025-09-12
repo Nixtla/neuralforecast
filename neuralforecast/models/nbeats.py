@@ -22,12 +22,12 @@ def generate_legendre_basis(length, n_basis):
     """
     Generates Legendre polynomial basis functions.
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of basis functions to generate.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of basis functions to generate.
 
     Returns:
-    - legendre_basis (ndarray): An array of Legendre basis functions.
+        legendre_basis (ndarray): An array of Legendre basis functions.
     """
     x = np.linspace(-1, 1, length)  # Legendre polynomials are defined on [-1, 1]
     legendre_basis = np.zeros((length, n_basis))
@@ -42,12 +42,12 @@ def generate_polynomial_basis(length, n_basis):
     """
     Generates standard polynomial basis functions.
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of polynomial functions to generate.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of polynomial functions to generate.
 
     Returns:
-    - poly_basis (ndarray): An array of polynomial basis functions.
+        poly_basis (ndarray): An array of polynomial basis functions.
     """
     return np.concatenate(
         [
@@ -61,12 +61,12 @@ def generate_changepoint_basis(length, n_basis):
     """
     Generates changepoint basis functions with automatically spaced changepoints.
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of changepoint functions to generate.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of changepoint functions to generate.
 
     Returns:
-    - changepoint_basis (ndarray): An array of changepoint basis functions.
+        changepoint_basis (ndarray): An array of changepoint basis functions.
     """
     x = np.linspace(0, 1, length)[:, None]  # Shape: (length, 1)
     changepoint_locations = np.linspace(0, 1, n_basis + 1)[1:][
@@ -79,12 +79,12 @@ def generate_piecewise_linear_basis(length, n_basis):
     """
     Generates piecewise linear basis functions (linear splines).
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of piecewise linear basis functions to generate.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of piecewise linear basis functions to generate.
 
     Returns:
-    - pw_linear_basis (ndarray): An array of piecewise linear basis functions.
+        pw_linear_basis (ndarray): An array of piecewise linear basis functions.
     """
     x = np.linspace(0, 1, length)
     knots = np.linspace(0, 1, n_basis + 1)
@@ -113,12 +113,12 @@ def generate_spline_basis(length, n_basis):
     """
     Generates cubic spline basis functions.
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of basis functions.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of basis functions.
 
     Returns:
-    - spline_basis (ndarray): An array of cubic spline basis functions.
+        spline_basis (ndarray): An array of cubic spline basis functions.
     """
     if n_basis < 4:
         raise ValueError(
@@ -139,12 +139,12 @@ def generate_chebyshev_basis(length, n_basis):
     """
     Generates Chebyshev polynomial basis functions.
 
-    Parameters:
-    - n_points (int): Number of data points.
-    - n_functions (int): Number of Chebyshev polynomials to generate.
+    Args:
+        length (int): Number of data points.
+        n_basis (int): Number of Chebyshev polynomials to generate.
 
     Returns:
-    - chebyshev_basis (ndarray): An array of Chebyshev polynomial basis functions.
+        chebyshev_basis (ndarray): An array of Chebyshev polynomial basis functions.
     """
     x = np.linspace(-1, 1, length)
     chebyshev_basis = np.zeros((length, n_basis))
@@ -347,8 +347,8 @@ class NBEATS(BaseModel):
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br>
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br>
     `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br>
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).<br>
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).<br>
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch).<br>
     `max_steps`: int=1000, maximum number of training steps.<br>
     `learning_rate`: float=1e-3, Learning rate between (0, 1).<br>
     `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br>
@@ -361,7 +361,7 @@ class NBEATS(BaseModel):
     `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br>
     `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
     `step_size`: int=1, step size between each window of temporal data.<br>
-    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://nixtla.github.io/neuralforecast/common.scalers.html).<br>
+    `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).<br>
     `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br>
     `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br>
     `alias`: str, optional,  Custom name of the model.<br>

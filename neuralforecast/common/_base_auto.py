@@ -46,10 +46,10 @@ class BaseAuto(pl.LightningModule):
     heavily relies on a strong correlation between the validation and test periods.
 
     Args:
-        cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](https://nixtla.github.io/neuralforecast/models.html).
+        cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](./models).
         h (int): Forecast horizon
-        loss (PyTorch module): Instantiated train loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
-        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](https://nixtla.github.io/neuralforecast/losses.pytorch.html).
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
         config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
         For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
@@ -372,7 +372,7 @@ class BaseAuto(pl.LightningModule):
         the validation set that sequentially precedes the test set.
 
         Args:
-            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)
+            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
             val_size (int): Size of temporal validation set (needs to be bigger than 0).
             test_size (int): Size of temporal test set (default 0).
             random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
@@ -437,7 +437,7 @@ class BaseAuto(pl.LightningModule):
         Predictions of the best performing model on validation.
 
         Args:
-            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](https://nixtla.github.io/neuralforecast/tsdataset.html)
+            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
             step_size (int): Steps between sequential predictions, (default 1).
             h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_kwarg: Additional parameters for the dataset module.
