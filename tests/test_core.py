@@ -20,7 +20,6 @@ from ray import tune
 
 from neuralforecast.auto import (
     MLP,
-    NBEATS,
     NHITS,
     RNN,
     TCN,
@@ -28,10 +27,8 @@ from neuralforecast.auto import (
     AutoDilatedRNN,
     Autoformer,
     AutoMLP,
-    AutoNBEATS,
     AutoNBEATSx,
     AutoRNN,
-    AutoTCN,
     DeepAR,
     DilatedRNN,
     Informer,
@@ -54,18 +51,12 @@ from neuralforecast.core import (
 from neuralforecast.losses.pytorch import (
     GMM,
     MAE,
-    MSE,
     NBMM,
     PMM,
     DistributionLoss,
-    HuberIQLoss,
-    HuberMQLoss,
-    HuberQLoss,
     MQLoss,
-    QuantileLoss,
 )
 from neuralforecast.utils import (
-    AirPassengersDF,
     AirPassengersPanel,
     AirPassengersStatic,
     generate_series,
@@ -118,20 +109,6 @@ def test_cutoff_deltas(setup, step_size, freq, days):
     )
     assert cutoff_deltas.nunique() == 1
     assert cutoff_deltas.unique()[0] == pd.Timedelta(f"{days}D")
-
-
-@pytest.fixture
-def setup_airplane_data():
-    AirPassengersPanel_train = AirPassengersPanel[
-        AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]
-    ].reset_index(drop=True)
-    AirPassengersPanel_test = AirPassengersPanel[
-        AirPassengersPanel["ds"] >= AirPassengersPanel["ds"].values[-12]
-    ].reset_index(drop=True)
-    AirPassengersPanel_test["y"] = np.nan
-    AirPassengersPanel_test["y_[lag12]"] = np.nan
-    return AirPassengersPanel_train, AirPassengersPanel_test
-
 
 @pytest.fixture
 def setup_airplane_data_polars(setup_airplane_data):
@@ -448,7 +425,7 @@ def test_predict_insample(setup_airplane_data, setup_models_for_insample):
     h = 12
 
     nf = NeuralForecast(models=models, freq="M")
-    cv = nf.cross_validation(
+    _ = nf.cross_validation(
         df=AirPassengersPanel_train,
         static_df=AirPassengersStatic,
         val_size=0,
@@ -472,7 +449,7 @@ def test_predict_insample_diff_lengths(setup_models_for_insample):
     diff_len_df = generate_series(n_series=n_series, max_length=100)
 
     nf = NeuralForecast(models=models, freq="D")
-    cv = nf.cross_validation(
+    _ = nf.cross_validation(
         df=diff_len_df, val_size=0, test_size=test_size, n_windows=None
     )
 
@@ -695,7 +672,6 @@ def test_cross_validation(h=12, test_size=12):
     if (test_size - h) % 1:
         raise Exception("`test_size - h` should be module `step_size`")
 
-    n_windows = int((test_size - h) / 1) + 1
     Y_test_df = df.groupby("unique_id").tail(test_size)
     Y_train_df = df.drop(Y_test_df.index)
     config = {
