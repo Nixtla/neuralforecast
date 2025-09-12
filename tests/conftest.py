@@ -74,13 +74,14 @@ class LongerHorizonTestData:
         self.longer_h = 10
         self.cross_val_h = 7
 
-        train_df, test_df, calendar_cols, _ = air_passengers(
+        train_df, test_df, calendar_cols, static_cols = air_passengers(
             h=12, augment_calendar=True
         )
         test_df[TimeSeriesDatasetEnum.Target] = np.nan
         self.train_df = train_df
         self.test_df = test_df
         self.futr_exog_list = calendar_cols
+        self.static_cols = static_cols
         self.n_series = 2
 
         self.series1_id = "Airline1"
