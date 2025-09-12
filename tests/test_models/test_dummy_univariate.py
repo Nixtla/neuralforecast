@@ -114,7 +114,7 @@ class TestDummyUnivariate:
         )
         error_msg = (
             "The specified horizon h=10 is larger than the horizon of the fitted models: 4. "
-            "Forecast with prediction intervals requires a refit with the specified horizon."
+            "Forecast with prediction intervals is not supported."
         )
 
         # forecast with longer horizon not supported

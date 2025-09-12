@@ -101,7 +101,7 @@ class TestDummyMultivariate:
         )
         error_msg = (
             "The specified horizon h=10 is larger than the horizon of the fitted models: 4. "
-            "Forecast with prediction intervals requires a refit with the specified horizon."
+            "Forecast with prediction intervals is not supported."
         )
 
         # forecast with longer horizon not supported
@@ -117,6 +117,7 @@ class TestDummyMultivariate:
         )
         assert "DummyMultivariate-lo-80" in forecasts.columns
         assert "DummyMultivariate-hi-80" in forecasts.columns
+
 
     def test_futr_exog(self, longer_horizon_test):
         model = DummyMultivariate(
