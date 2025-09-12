@@ -1,5 +1,6 @@
 import os
 import pytest
+import sys
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import (
@@ -10,6 +11,13 @@ from neuralforecast.models import (
 from neuralforecast.utils import AirPassengersPanel
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason=(
+        "RuntimeError: MPS backend out of memory (MPS allocated: 8.00 MB, other allocations: 16.00 KB). Tried to allocate 256 bytes on shared pool."
+        "Test failed in MacOS as shown by https://github.com/Nixtla/neuralforecast/actions/runs/17668835879/job/50215797674?pr=1368"
+    )
+)
 @pytest.mark.parametrize(
     "model,kwargs",
     [
@@ -22,6 +30,7 @@ from neuralforecast.utils import AirPassengersPanel
     ],
 )
 def test_backward_comptability(model, kwargs, save_model=False):
+    # Fixture generated with save_model=True, on codespace env (Ubuntu)
     save_path = "./tests/backward_comp/data/{}".format(model.__name__)
     horizon = 12
     panel = AirPassengersPanel.copy()
