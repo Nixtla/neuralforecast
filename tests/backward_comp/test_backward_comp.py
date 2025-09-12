@@ -1,0 +1,47 @@
+import os
+import pytest
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import (
+    DeepAR,
+    NLinear,
+    TSMixer,
+)
+from neuralforecast.utils import AirPassengersPanel
+
+
+@pytest.mark.parametrize(
+    "model,kwargs",
+    [
+        (
+            DeepAR,
+            {"h": 5, "input_size": 12, "max_steps": 2, "futr_exog_list": ["trend"]},
+        ),
+        (NLinear, {"h": 5, "input_size": 12, "max_steps": 2}),
+        (TSMixer, {"h": 5, "input_size": 12, "n_series": 2, "max_steps": 2}),
+    ],
+)
+def test_backward_comptability(model, kwargs, save_model=False):
+    save_path = "./tests/backward_comp/data/{}".format(model.__name__)
+    horizon = 12
+    panel = AirPassengersPanel.copy()
+    train_df = panel[panel.ds < panel["ds"].values[-horizon]]  # 132 train
+    test_df = panel[panel.ds >= panel["ds"].values[-horizon]]
+
+    if save_model:
+        nf = NeuralForecast(
+            models=[model(**kwargs)],
+            freq="ME",
+        )
+
+        nf.fit(df=train_df)
+        nf.predict(futr_df=test_df)
+        os.makedirs(save_path, exist_ok=True)
+        nf.save(path=save_path, model_index=None, overwrite=True, save_dataset=True)
+    else:
+        # backwarc compatibility test
+        fcst = NeuralForecast.load(path=save_path)
+        # standard forecast
+        fcst.predict(futr_df=test_df)
+        # prediction with longer horizon
+        fcst.predict(futr_df=test_df, h=horizon)
