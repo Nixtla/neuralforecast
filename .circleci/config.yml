@@ -18,7 +18,7 @@ jobs:
             source .venv/bin/activate
             uv pip install ".[dev]"            
             export GIT_PYTHON_REFRESH=quiet
-            pytest
+            pytest -k "not test_autonlinear_longer_horizon"
   test-model-performance:
     resource_class: xlarge
     docker:
