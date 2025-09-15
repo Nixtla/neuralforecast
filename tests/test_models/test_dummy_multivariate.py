@@ -86,6 +86,40 @@ class TestDummyMultivariate:
         assert cross_val_df[TimeSeriesDatasetEnum.Target].mean() > 0.0
         assert cross_val_df["DummyMultivariate"].mean() > 0.0
 
+
+    def test_single_series(self, longer_horizon_test):
+        assert longer_horizon_test.single_train_df[TimeSeriesDatasetEnum.UniqueId].nunique() == 1
+        assert longer_horizon_test.single_test_df[TimeSeriesDatasetEnum.UniqueId].nunique() == 1
+        model = DummyMultivariate(
+            h=longer_horizon_test.h,
+            input_size=longer_horizon_test.input_size,
+            n_series=longer_horizon_test.single_n_series,
+        )
+
+        nf = NeuralForecast(
+            models=[model],
+            freq="ME",
+        )
+        # dummy fit
+        nf.fit(df=longer_horizon_test.single_train_df)
+        # standard forecast
+        forecasts = nf.predict(futr_df=longer_horizon_test.single_test_df)
+        np.testing.assert_almost_equal(
+            forecasts["DummyMultivariate"].values,
+            np.array([463.0, 407.0, 362.0, 405.0]),
+        )
+
+        # longer horizon forecast
+        forecasts = nf.predict(
+            futr_df=longer_horizon_test.single_test_df, h=longer_horizon_test.longer_h
+        )
+        np.testing.assert_almost_equal(
+            forecasts["DummyMultivariate"].values,
+            np.array(
+                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
+            ),
+        )
+
     def test_conformal_prediction(self, longer_horizon_test):
         model = DummyMultivariate(
             h=longer_horizon_test.h,

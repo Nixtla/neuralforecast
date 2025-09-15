@@ -1371,7 +1371,7 @@ class BaseModel(pl.LightningModule):
                     if self.MULTIVARIATE:
                         y_hat_median = y_hat_median.swapaxes(0, 2)
                         y_hat_median = y_hat_median.swapaxes(1, 2)
-                        y_hat_median = y_hat_median.squeeze()
+                        y_hat_median = y_hat_median.squeeze(1)
                     else:
                         y_hat_median = y_hat_median.squeeze(-1)
 

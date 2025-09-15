@@ -1,4 +1,5 @@
 # Set MPS fallback environment variables before any imports
+import copy
 import os
 import numpy as np
 
@@ -87,6 +88,13 @@ class LongerHorizonTestData:
         self.series1_id = "Airline1"
         self.series2_id = "Airline2"
         self.hist_exog_list = ["y_[lag12]"]
+
+        # for test on single series if required
+        single_train_df = copy.deepcopy(train_df)
+        self.single_train_df = single_train_df[single_train_df[TimeSeriesDatasetEnum.UniqueId] == self.series1_id]
+        single_test_df = copy.deepcopy(test_df)
+        self.single_test_df = single_test_df[single_test_df[TimeSeriesDatasetEnum.UniqueId] == self.series1_id]
+        self.single_n_series = 1
 
 
 @pytest.fixture
