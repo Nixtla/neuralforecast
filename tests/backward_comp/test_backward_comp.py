@@ -54,3 +54,4 @@ def test_backward_comptability(model, kwargs, save_model=False):
         fcst.predict(df=train_df, futr_df=test_df)
         # prediction with longer horizon
         fcst.predict(df=train_df, futr_df=test_df, h=horizon)
+        fcst.cross_validation(df=train_df, n_windows=2)
