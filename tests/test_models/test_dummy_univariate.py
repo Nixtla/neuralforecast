@@ -117,12 +117,18 @@ class TestDummyUnivariate:
             "Forecast with prediction intervals is not supported."
         )
 
-        # forecast with longer horizon not supported
+        # forecast, cross_validation with longer horizon not supported
         with pytest.raises(ValueError, match=error_msg):
             nf.predict(
                 futr_df=longer_horizon_test.test_df,
                 h=longer_horizon_test.longer_h,
                 level=[80],
+            )
+        with pytest.raises(ValueError, match=error_msg):
+            nf.cross_validation(
+                df=longer_horizon_test.train_df,
+                n_windows=2,
+                h=longer_horizon_test.longer_h,
             )
 
         forecasts = nf.predict(
