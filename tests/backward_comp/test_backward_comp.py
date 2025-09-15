@@ -46,11 +46,11 @@ def test_backward_comptability(model, kwargs, save_model=False):
         nf.fit(df=train_df)
         nf.predict(futr_df=test_df)
         os.makedirs(save_path, exist_ok=True)
-        nf.save(path=save_path, model_index=None, overwrite=True, save_dataset=True)
+        nf.save(path=save_path, model_index=None, overwrite=True, save_dataset=False)
     else:
         # backwarc compatibility test
         fcst = NeuralForecast.load(path=save_path)
         # standard forecast
-        fcst.predict(futr_df=test_df)
+        fcst.predict(df=train_df, futr_df=test_df)
         # prediction with longer horizon
-        fcst.predict(futr_df=test_df, h=horizon)
+        fcst.predict(df=train_df, futr_df=test_df, h=horizon)
