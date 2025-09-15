@@ -23,8 +23,10 @@ class TestDummyRecurrent:
         # dummy fit
         nf.fit(df=longer_horizon_test.train_df)
 
-        # standard forecast
+        # standard forecast, also test consistency of predict_horizon upon prediction
+        assert nf.models[0].predict_horizon == longer_horizon_test.h
         forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
+        assert nf.models[0].predict_horizon == longer_horizon_test.h
         np.testing.assert_almost_equal(
             forecasts[
                 forecasts[TimeSeriesDatasetEnum.UniqueId]

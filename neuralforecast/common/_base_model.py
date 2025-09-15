@@ -320,7 +320,7 @@ class BaseModel(pl.LightningModule):
         self.input_size = input_size
         self.windows_batch_size = windows_batch_size
         self.start_padding_enabled = start_padding_enabled
-        self.predict_horizon = None  # Used in recurrent prediction whereby predict h > h_train
+        self.predict_horizon = self.horizon_backup  # Used in recurrent prediction whereby predict h > h_train
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
@@ -1755,6 +1755,7 @@ class BaseModel(pl.LightningModule):
         # Reset n_predicts
         self.n_predicts = 1
         self.h = self.horizon_backup
+        self.predict_horizon = self.horizon_backup
 
         return fcsts
 
