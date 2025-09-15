@@ -973,7 +973,7 @@ class NeuralForecast:
         Returns:
             fcsts_df (pandas or polars DataFrame): DataFrame with insample `models` columns for point predictions and probabilistic
             predictions for all fitted `models`.
-            explanations (list): List of explanations for the predictions.
+            explanations (dict): Dictionary of explanations for the predictions.
         """
         # TODO: Add protections
         # TODO: Issues with this approach: not every model in models has the same number of outputs, or series, that can be problematic.
