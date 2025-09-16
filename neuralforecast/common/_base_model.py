@@ -2015,6 +2015,44 @@ class BaseModel(pl.LightningModule):
             # For Lime and InputXGradient, there's no additivity, so set baseline predictions to None
             baseline_predictions = None
 
+        horizons = self.explainer_config.get("horizons", list(range(self.h)))
+        output_index = self.explainer_config.get("output_index", list(range(y_hat_shape[-1])))
+        # series = self.explainer_config.get("series", list(range(self.n_series))) TODO: when multivariate is supported
+
+        if len(horizons) != self.h:
+            insample_explanations = insample_explanations[:, horizons, :, :, :, :]
+            if futr_exog_explanations is not None:
+                futr_exog_explanations = futr_exog_explanations[:, horizons, :, :, :]
+            if hist_exog_explanations is not None:
+                hist_exog_explanations = hist_exog_explanations[:, horizons, :, :, :]
+            if stat_exog_explanations is not None:
+                stat_exog_explanations = stat_exog_explanations[:, horizons, :, :, :]
+            if baseline_predictions is not None:
+                baseline_predictions = baseline_predictions[:, horizons, :, :]
+        
+        # TODO: Slice series when multivariate is supported
+        # if len(series) != self.n_series:
+        #     insample_explanations = insample_explanations[:, :, series, :, :, :]
+        #     if futr_exog_explanations is not None:
+        #         futr_exog_explanations = futr_exog_explanations[:, :, series, :, :]
+        #     if hist_exog_explanations is not None:
+        #         hist_exog_explanations = hist_exog_explanations[:, :, series, :, :]
+        #     if stat_exog_explanations is not None:
+        #         stat_exog_explanations = stat_exog_explanations[:, :, series, :, :]
+        #     if baseline_predictions is not None:
+        #         baseline_predictions = baseline_predictions[:, :, series, :]
+        
+        if len(output_index) != y_hat_shape[-1]:
+            insample_explanations = insample_explanations[:, :, :, output_index, :, :]
+            if futr_exog_explanations is not None:
+                futr_exog_explanations = futr_exog_explanations[:, :, :, output_index, :]
+            if hist_exog_explanations is not None:
+                hist_exog_explanations = hist_exog_explanations[:, :, :, output_index, :]
+            if stat_exog_explanations is not None:
+                stat_exog_explanations = stat_exog_explanations[:, :, :, output_index, :]
+            if baseline_predictions is not None:
+                baseline_predictions = baseline_predictions[:, :, :, output_index]
+
         return (
             insample_explanations,
             futr_exog_explanations,

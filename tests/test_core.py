@@ -20,7 +20,6 @@ from ray import tune
 
 from neuralforecast.auto import (
     MLP,
-    NBEATS,
     NHITS,
     RNN,
     TCN,
@@ -28,10 +27,8 @@ from neuralforecast.auto import (
     AutoDilatedRNN,
     Autoformer,
     AutoMLP,
-    AutoNBEATS,
     AutoNBEATSx,
     AutoRNN,
-    AutoTCN,
     DeepAR,
     DilatedRNN,
     Informer,
@@ -54,18 +51,12 @@ from neuralforecast.core import (
 from neuralforecast.losses.pytorch import (
     GMM,
     MAE,
-    MSE,
     NBMM,
     PMM,
     DistributionLoss,
-    HuberIQLoss,
-    HuberMQLoss,
-    HuberQLoss,
     MQLoss,
-    QuantileLoss,
 )
 from neuralforecast.utils import (
-    AirPassengersDF,
     AirPassengersPanel,
     AirPassengersStatic,
     generate_series,
@@ -448,7 +439,7 @@ def test_predict_insample(setup_airplane_data, setup_models_for_insample):
     h = 12
 
     nf = NeuralForecast(models=models, freq="M")
-    cv = nf.cross_validation(
+    _ = nf.cross_validation(
         df=AirPassengersPanel_train,
         static_df=AirPassengersStatic,
         val_size=0,
@@ -472,7 +463,7 @@ def test_predict_insample_diff_lengths(setup_models_for_insample):
     diff_len_df = generate_series(n_series=n_series, max_length=100)
 
     nf = NeuralForecast(models=models, freq="D")
-    cv = nf.cross_validation(
+    _ = nf.cross_validation(
         df=diff_len_df, val_size=0, test_size=test_size, n_windows=None
     )
 
@@ -695,7 +686,7 @@ def test_cross_validation(h=12, test_size=12):
     if (test_size - h) % 1:
         raise Exception("`test_size - h` should be module `step_size`")
 
-    n_windows = int((test_size - h) / 1) + 1
+    _ = int((test_size - h) / 1) + 1
     Y_test_df = df.groupby("unique_id").tail(test_size)
     Y_train_df = df.drop(Y_test_df.index)
     config = {
@@ -1635,3 +1626,202 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     # Should have level columns for conformal predictions
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
+
+@pytest.mark.parametrize("explainer", ["IntegratedGradients", "InputXGradient"])
+def test_explainability(explainer):
+    "Test that explanations are returned or skipped depending on model and configuration"
+    Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
+    Y_test_df = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
+    futr_df = Y_test_df.drop(columns=["y", "y_[lag12]"])
+    static_df = AirPassengersStatic.drop(columns=["airline2"])
+
+    h = 12
+    input_size = 2*h
+    batch_size = Y_train_df["unique_id"].nunique()
+    n_stat_exog = len(static_df.drop(columns="unique_id").columns)
+
+    base_config = {
+        "h": h,
+        "input_size": input_size,
+        "scaler_type": "robust",
+        "max_steps": 2
+    }
+
+    models = [
+        NHITS(**base_config),
+        NHITS(
+            **base_config,
+            hist_exog_list=["y_[lag12]"],
+            futr_exog_list=["trend"],
+            stat_exog_list=['airline1'],
+            alias="NHITS-exog",
+        ),
+        NHITS(
+            **base_config,
+            loss=MQLoss(level=[80]),
+            alias="NHITS-MQLoss"
+        ),
+        NHITS( # Gets skipped because of DistributionLoss
+            **base_config,
+            loss=DistributionLoss(distribution="Normal", level=[80]),
+            alias="NHITS-DistributionLoss"
+        ),
+        LSTM(
+            **base_config,
+            recurrent=False,
+        ),
+        LSTM( # Gets skiped when explainer is IntegratedGradients
+            **base_config,
+            recurrent=True,
+            accelerator="cpu",
+            alias="LSTM-recurrent"
+        ),
+        TSMixer( # Gets skipped because it's multivariate
+            **base_config,
+            n_series=2,
+        )
+    ]
+
+    nf = NeuralForecast(models=models, freq="ME")
+    nf.fit(df=Y_train_df, static_df=AirPassengersStatic)
+    preds_df, explanations = nf.explain(
+        outputs=[0], # Get only 1 ouput
+        static_df=AirPassengersStatic,
+        futr_df=futr_df, 
+        explainer=explainer
+    )
+
+    # Determine which models should have explanations
+    expected_explanations = set()
+    skipped_models = set()
+    
+    for model in models:
+        model_name = model.alias or model.__class__.__name__
+        
+        # Check skip conditions
+        if model.MULTIVARIATE:
+            skipped_models.add(model_name)
+        elif hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
+            skipped_models.add(model_name)
+        elif model.RECURRENT and explainer == "IntegratedGradients":
+            skipped_models.add(model_name)
+        else:
+            expected_explanations.add(model_name)
+    
+    assert set(explanations.keys()) == expected_explanations, f"Expected {expected_explanations}, got {set(explanations.keys())}"
+
+    # Verify skipped models have no explanations
+    for model_name in skipped_models:
+        assert model_name not in explanations
+
+    # Verify explained models have predictions
+    for model_name in expected_explanations:
+        assert any(model_name in col for col in preds_df.columns), f"Model {model_name} should have predictions but doesn't"
+
+    # Test explained model
+    for model_name in expected_explanations:
+        expl = explanations[model_name]
+        
+        # Basic structure tests
+        assert expl["insample"] is not None
+        if model_name == "LSTM-recurrent":
+            input_size = input_size + h
+        expected_insample_shape = (
+            batch_size,   # batch_size
+            h,            # horizons
+            1,            # n_series (1 for univariate)
+            1,            # n_outputs
+            input_size,   # n_input_steps
+            2             # (y_attr, mask_attr)
+        )
+        assert expl["insample"].shape == expected_insample_shape
+        
+        # Test additivity for additive explainers
+        if explainer == "IntegratedGradients":
+            expected_baseline_shape = (
+                batch_size, # batch_size
+                h,          # horizons
+                1,          # n_series (1 for univariate)
+                1           # n_outputs
+            )
+            assert expl["baseline_predictions"] is not None
+            assert expl["baseline_predictions"].shape == expected_baseline_shape
+            _test_model_additivity(preds_df, expl, model_name, batch_size, h)
+        else:
+            assert expl["baseline_predictions"] is None
+        
+        # Check exogenous if model has them
+        model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
+        if model.futr_exog_list:
+            expected_futr_shape = (
+                batch_size,                # batch size
+                h,                         # horizons
+                1,                         # n_series (1 for univariate)
+                1,                         # n_outputs
+                input_size+h,              # n_input_steps (past + future)
+                len(model.futr_exog_list), # number of features
+            )
+            assert expl["futr_exog"] is not None
+            assert expl["futr_exog"].shape == expected_futr_shape
+        if model.hist_exog_list:
+            expected_hist_shape = (
+                batch_size,                # batch size
+                h,                         # horizons
+                1,                         # n_series (1 for univariate)
+                1,                         # n_outputs
+                input_size,                # n_input_steps (past)
+                len(model.hist_exog_list), # number of features
+            )
+            assert expl["hist_exog"] is not None
+            assert expl["hist_exog"].shape == expected_hist_shape
+        if model.stat_exog_list:
+            expected_stat_shape = (
+                batch_size,  # batch size
+                h,           # horizons
+                1,           # n_series (1 for univariate)
+                1,           # n_outputs
+                n_stat_exog, # number of features
+            )
+            assert expl["stat_exog"] is not None
+            assert expl["stat_exog"].shape == expected_stat_shape
+
+def _test_model_additivity(preds_df, expl, model_name, batch_size, h):
+    """Test if sum of attributions and baseline predictions equal forecasts"""
+    pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
+    preds = preds_df[pred_col].values
+    attribution_predictions = []
+
+    for batch_idx in range(batch_size):
+        for horizon_idx in range(h):
+            baseline = float(expl["baseline_predictions"][batch_idx, horizon_idx, 0, 0].cpu())
+
+            total_attr = 0
+            
+            # Insample (y + mask)
+            insample_attr = expl["insample"][batch_idx, horizon_idx, 0, 0, :, :].sum()
+            total_attr += float(insample_attr.cpu())
+            
+            # Historical exogenous
+            if not isinstance(expl["hist_exog"], list):
+                hist_attr = expl["hist_exog"][batch_idx, horizon_idx, 0, 0, :, :].sum()
+                total_attr += float(hist_attr.cpu())
+            
+            # Future exogenous
+            if not isinstance(expl["futr_exog"], list):
+                futr_attr = expl["futr_exog"][batch_idx, horizon_idx, 0, 0, :, :].sum()
+                total_attr += float(futr_attr.cpu())
+            
+            # Static exogenous
+            if not isinstance(expl["stat_exog"], list):
+                stat_attr = expl["stat_exog"][batch_idx, horizon_idx, 0, 0, :].sum()
+                total_attr += float(stat_attr.cpu())
+            
+            pred_from_attr = baseline + total_attr
+            attribution_predictions.append(pred_from_attr)
+    
+    np.testing.assert_allclose(
+        preds,
+        attribution_predictions,
+        rtol=1e-3,
+        err_msg="Attribution predictions do not match model predictions"
+    )
