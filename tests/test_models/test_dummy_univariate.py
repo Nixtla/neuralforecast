@@ -36,10 +36,8 @@ class TestDummyUnivariate:
         # dummy fit
         nf.fit(df=longer_horizon_test.train_df)
 
-        # standard forecast, also test consistency of predict_horizon upon prediction
-        assert nf.models[0].predict_horizon == longer_horizon_test.h
+        # standard forecast
         forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
-        assert nf.models[0].predict_horizon == longer_horizon_test.h
         np.testing.assert_almost_equal(
             forecasts[
                 forecasts[TimeSeriesDatasetEnum.UniqueId]
@@ -55,10 +53,12 @@ class TestDummyUnivariate:
             np.array([763.0, 707.0, 662.0, 705.0]),
         )
 
-        # longer horizon forecast
+        # longer horizon forecast, also test consistency of predict_horizon upon prediction
+        assert nf.models[0].predict_horizon == longer_horizon_test.h
         forecasts = nf.predict(
             futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h
         )
+        assert nf.models[0].predict_horizon == longer_horizon_test.h
 
         np.testing.assert_almost_equal(
             forecasts[
