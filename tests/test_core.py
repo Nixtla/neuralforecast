@@ -1628,7 +1628,8 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     assert len(level_cols) > 0
 
 @pytest.mark.parametrize("explainer", ["IntegratedGradients", "InputXGradient"])
-def test_explainability(explainer):
+@pytest.mark.parametrize("use_polars", [True, False])
+def test_explainability(explainer, use_polars):
     "Test that explanations are returned or skipped depending on model and configuration"
     Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
     Y_test_df = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -1682,11 +1683,17 @@ def test_explainability(explainer):
         )
     ]
 
-    nf = NeuralForecast(models=models, freq="ME")
-    nf.fit(df=Y_train_df, static_df=AirPassengersStatic)
+    freq="ME"
+    if use_polars:
+        Y_train_df = polars.from_pandas(Y_train_df)
+        static_df = polars.from_pandas(static_df)
+        futr_df = polars.from_pandas(futr_df)
+        freq="1mo"
+    nf = NeuralForecast(models=models, freq=freq)
+    nf.fit(df=Y_train_df, static_df=static_df)
     preds_df, explanations = nf.explain(
         outputs=[0], # Get only 1 ouput
-        static_df=AirPassengersStatic,
+        static_df=static_df,
         futr_df=futr_df, 
         explainer=explainer
     )
@@ -1724,15 +1731,16 @@ def test_explainability(explainer):
         
         # Basic structure tests
         assert expl["insample"] is not None
+        expected_input_size = input_size
         if model_name == "LSTM-recurrent":
-            input_size = input_size + h
+            expected_input_size = input_size + h
         expected_insample_shape = (
-            batch_size,   # batch_size
-            h,            # horizons
-            1,            # n_series (1 for univariate)
-            1,            # n_outputs
-            input_size,   # n_input_steps
-            2             # (y_attr, mask_attr)
+            batch_size,           # batch_size
+            h,                    # horizons
+            1,                    # n_series (1 for univariate)
+            1,                    # n_outputs
+            expected_input_size,  # n_input_steps
+            2                     # (y_attr, mask_attr)
         )
         assert expl["insample"].shape == expected_insample_shape
         
@@ -1746,7 +1754,7 @@ def test_explainability(explainer):
             )
             assert expl["baseline_predictions"] is not None
             assert expl["baseline_predictions"].shape == expected_baseline_shape
-            _test_model_additivity(preds_df, expl, model_name, batch_size, h)
+            _test_model_additivity(preds_df, expl, model_name, batch_size, h, use_polars)
         else:
             assert expl["baseline_predictions"] is None
         
@@ -1785,10 +1793,13 @@ def test_explainability(explainer):
             assert expl["stat_exog"] is not None
             assert expl["stat_exog"].shape == expected_stat_shape
 
-def _test_model_additivity(preds_df, expl, model_name, batch_size, h):
+def _test_model_additivity(preds_df, expl, model_name, batch_size, h, use_polars):
     """Test if sum of attributions and baseline predictions equal forecasts"""
     pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
-    preds = preds_df[pred_col].values
+    if use_polars:
+        preds = preds_df[pred_col].to_numpy()
+    else:
+        preds = preds_df[pred_col].values
     attribution_predictions = []
 
     for batch_idx in range(batch_size):
