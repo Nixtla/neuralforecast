@@ -1265,46 +1265,19 @@ class BaseModel(pl.LightningModule):
         # Inverse normalization and sampling
         if self.loss.is_distribution_output:
             y_loc, y_scale = self._get_loc_scale(y_idx)
-            
-            # Handle batch size mismatch during explanations
-            # TODO: Find out why explanation with DistributionLoss is different from nf.predict
-            # This logic "works" in the sense that it doesn't make the function crash.
-            # But predictions from explanations are different than when we use nf.predict
-            # I think it's because sampling methods clash with the gradient flow
-            # For now, we add protection and prevent explanations with DistributionLoss 
-            if hasattr(self, 'explain') and self.explain:
-                output_batch_size = output_batch[0].shape[0]
-                if output_batch_size != y_loc.shape[0]:
-                    repeat_factor = output_batch_size // y_loc.shape[0]
-                    if output_batch_size % y_loc.shape[0] == 0:
-                        y_loc = y_loc.repeat(repeat_factor, *([1] * (y_loc.ndim - 1)))
-                        y_scale = y_scale.repeat(repeat_factor, *([1] * (y_scale.ndim - 1)))
-                    else:
-                        batch_indices = torch.arange(output_batch_size) % y_loc.shape[0]
-                        y_loc = y_loc[batch_indices]
-                        y_scale = y_scale[batch_indices]
-            
             # Always compute distribution args (needed for both explain and normal mode)
             distr_args = self.loss.scale_decouple(
                 output=output_batch, loc=y_loc, scale=y_scale
             )
+            # Normal mode: full distribution processing with sampling
+            _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
+            y_hat = torch.concat((sample_mean, quants), axis=-1)
             
-            if hasattr(self, 'explain') and self.explain:
-                # For explanations: only return the mean (differentiable)
-                distr = self.loss.get_distribution(distr_args)
-                mean = distr.mean
-                # Return only mean with shape [batch, horizon, series, 1]
-                y_hat = mean.unsqueeze(-1)
-            else:
-                # Normal mode: full distribution processing with sampling
-                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-                y_hat = torch.concat((sample_mean, quants), axis=-1)
-                
-                if self.loss.return_params:
-                    distr_args = torch.stack(distr_args, dim=-1)
-                    if distr_args.ndim > 4:
-                        distr_args = distr_args.flatten(-2, -1)
-                    y_hat = torch.concat((y_hat, distr_args), axis=-1)
+            if self.loss.return_params:
+                distr_args = torch.stack(distr_args, dim=-1)
+                if distr_args.ndim > 4:
+                    distr_args = distr_args.flatten(-2, -1)
+                y_hat = torch.concat((y_hat, distr_args), axis=-1)
         else:
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
 
@@ -1978,7 +1951,7 @@ class BaseModel(pl.LightningModule):
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
-        additive_explainers = ['IntegratedGradients', 'ShapleyValueSampling', 'KernelShap']
+        additive_explainers = ['IntegratedGradients', 'ShapleyValueSampling']
 
         if explainer_name in additive_explainers:
             # Create baseline inputs (all zeros, matching Captum's default)
@@ -2012,12 +1985,11 @@ class BaseModel(pl.LightningModule):
                         )
                         baseline_predictions[:, horizon, series_idx, i] = baseline_pred
         else:
-            # For Lime and InputXGradient, there's no additivity, so set baseline predictions to None
+            # For InputXGradient, there's no additivity, so set baseline predictions to None
             baseline_predictions = None
 
         horizons = self.explainer_config.get("horizons", list(range(self.h)))
         output_index = self.explainer_config.get("output_index", list(range(y_hat_shape[-1])))
-        # series = self.explainer_config.get("series", list(range(self.n_series))) TODO: when multivariate is supported
 
         if len(horizons) != self.h:
             insample_explanations = insample_explanations[:, horizons, :, :, :, :]
@@ -2029,18 +2001,6 @@ class BaseModel(pl.LightningModule):
                 stat_exog_explanations = stat_exog_explanations[:, horizons, :, :, :]
             if baseline_predictions is not None:
                 baseline_predictions = baseline_predictions[:, horizons, :, :]
-        
-        # TODO: Slice series when multivariate is supported
-        # if len(series) != self.n_series:
-        #     insample_explanations = insample_explanations[:, :, series, :, :, :]
-        #     if futr_exog_explanations is not None:
-        #         futr_exog_explanations = futr_exog_explanations[:, :, series, :, :]
-        #     if hist_exog_explanations is not None:
-        #         hist_exog_explanations = hist_exog_explanations[:, :, series, :, :]
-        #     if stat_exog_explanations is not None:
-        #         stat_exog_explanations = stat_exog_explanations[:, :, series, :, :]
-        #     if baseline_predictions is not None:
-        #         baseline_predictions = baseline_predictions[:, :, series, :]
         
         if len(output_index) != y_hat_shape[-1]:
             insample_explanations = insample_explanations[:, :, :, output_index, :, :]

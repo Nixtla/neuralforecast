@@ -991,8 +991,8 @@ class NeuralForecast:
         if explainer not in [
             "IntegratedGradients",
             "ShapleyValueSampling",
-            "Lime",
-            "KernelShap",
+            # "Lime",
+            # "KernelShap",
             "InputXGradient",
         ]:
             raise ValueError(
