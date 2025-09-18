@@ -184,7 +184,7 @@ class TestDummyUnivariate:
         (MAE(), "DummyUnivariate"), 
         (DistributionLoss(distribution="Normal"), "DummyUnivariate"), 
         (IQLoss(), "DummyUnivariate_ql0.5"), 
-        # (MQLoss(), "DummyUnivariate-median"),  # TODO: Fix MQLoss longer horizon prediction
+        (MQLoss(), "DummyUnivariate-median"),
         (HuberIQLoss(), "DummyUnivariate_ql0.5")
         ])
     def test_various_loss_types(self, longer_horizon_test, loss_type, target_col):

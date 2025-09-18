@@ -221,7 +221,7 @@ class TestDummyMultivariate:
         (MAE(), "DummyMultivariate"), 
         (DistributionLoss(distribution="Normal"), "DummyMultivariate"), 
         (IQLoss(), "DummyMultivariate_ql0.5"),
-        # (MQLoss(), "DummyMultivariate-median"), 
+        (MQLoss(), "DummyMultivariate-median"), 
         (HuberIQLoss(), "DummyMultivariate_ql0.5")
         ]
     )

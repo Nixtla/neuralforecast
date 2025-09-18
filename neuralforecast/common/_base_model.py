@@ -1363,7 +1363,7 @@ class BaseModel(pl.LightningModule):
 
                 y_hats.append(y_hat)
                 y_hat_median = y_hat
-                if median_idx:
+                if median_idx is not None:
                     y_hat_median = y_hat[..., median_idx]
                 if i < self.n_predicts - 1:
                     # Update temporal of the batch with predictions
