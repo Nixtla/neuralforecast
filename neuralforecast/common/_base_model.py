@@ -1,10 +1,8 @@
-
-
-
-__all__ = ['DistributedConfig', 'BaseModel']
+__all__ = ["DistributedConfig", "BaseModel"]
 
 
 import inspect
+import math
 import random
 import warnings
 from contextlib import contextmanager
@@ -29,6 +27,17 @@ from neuralforecast.tsdataset import (
 
 from ..losses.pytorch import BasePointLoss, DistributionLoss
 from ..utils import get_indexer_raise_missing
+
+DISTRIBUTION_LOSSES = (
+    losses.DistributionLoss,
+    losses.PMM,
+    losses.GMM,
+    losses.NBMM,
+)
+MULTIQUANTILE_LOSSES = (
+    losses.MQLoss,
+    losses.HuberMQLoss,
+)
 from ._scalers import TemporalNorm
 
 
@@ -133,6 +142,7 @@ class BaseModel(pl.LightningModule):
         if not self.MULTIVARIATE:
             n_series = 1
         self.n_series = n_series
+        self.n_predicts = 1
 
         # Protections for previous recurrent models
         if input_size < 1:
@@ -310,6 +320,7 @@ class BaseModel(pl.LightningModule):
         self.input_size = input_size
         self.windows_batch_size = windows_batch_size
         self.start_padding_enabled = start_padding_enabled
+        self.predict_horizon = self.horizon_backup  # Used in recurrent prediction whereby predict h > h_train
 
         # Padder to complete train windows,
         # example y=[1,2,3,4,5] h=3 -> last y_output = [5,0,0]
@@ -1124,7 +1135,7 @@ class BaseModel(pl.LightningModule):
         # Initialize results array
         n_outputs = len(self.loss.output_names)
         y_hat = torch.zeros(
-            (insample_y.shape[0], self.horizon_backup, self.n_series, n_outputs),
+            (insample_y.shape[0], self.predict_horizon, self.n_series, n_outputs),
             device=insample_y.device,
             dtype=insample_y.dtype,
         )
@@ -1152,7 +1163,7 @@ class BaseModel(pl.LightningModule):
         )
 
         # Horizon prediction recursively
-        for tau in range(1, self.horizon_backup):
+        for tau in range(1, self.predict_horizon):
             # Set exogenous
             if self.hist_exog_size > 0:
                 hist_exog_current = hist_exog[:, self.input_size + tau - 1].unsqueeze(1)
@@ -1270,6 +1281,169 @@ class BaseModel(pl.LightningModule):
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
 
         return y_hat
+
+    def _predict_step_recurrent(self, batch, batch_idx):
+        self.input_size = self.inference_input_size
+        temporal_cols = batch["temporal_cols"]
+        windows_temporal, static, static_cols = self._create_windows(
+            batch, step="predict"
+        )
+        n_windows = len(windows_temporal)
+        y_idx = batch["y_idx"]
+
+        # Number of windows in batch
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+        y_hats = []
+        for i in range(n_batches):
+            # Create and normalize windows [Ws, L+H, C]
+            w_idxs = np.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._sample_windows(
+                windows_temporal,
+                static,
+                static_cols,
+                temporal_cols,
+                step="predict",
+                w_idxs=w_idxs,
+            )
+            windows = self._normalization(windows=windows, y_idx=y_idx)
+
+            # Parse windows
+            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
+
+            y_hat = self._predict_step_recurrent_batch(
+                insample_y=insample_y,
+                insample_mask=insample_mask,
+                futr_exog=futr_exog,
+                hist_exog=hist_exog,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+            )
+
+            y_hats.append(y_hat)
+        y_hat = torch.cat(y_hats, dim=0)
+        self.input_size = self.input_size_backup
+
+        return y_hat
+
+    def _predict_step_direct(
+        self, batch, batch_idx, recursive=False, trim_window_size=0
+    ):
+        temporal_cols = batch["temporal_cols"]
+        if recursive:
+            # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
+            median_idx = self._maybe_get_quantile_idx(quantile=0.5)
+            y_idx = batch["y_idx"]
+            y_hats = []
+            total_test_size = self.test_size
+            remainder = self.test_size % self.h
+
+            cutoff = -total_test_size + self.h
+            futr_temporal = batch["temporal"][:, :, cutoff:]
+            if remainder > 0:
+                # to handle edge case: our original design assumes that prediction is based on fitted horizon (h)
+                # if predict's h argument is not multiple of fitted horizon, the change in array will introduce
+                # side-effect. This ensures that future_temporal has forecast zone to be multiple of h.
+                padded_zeroes = torch.zeros(
+                    [futr_temporal.shape[0], futr_temporal.shape[1], remainder], device=futr_temporal.device
+                )
+                futr_temporal = torch.cat([futr_temporal, padded_zeroes], dim=-1)
+
+            batch["temporal"] = batch["temporal"][:, :, :cutoff]
+            # _create_windows() in next iteration with recursive=False depends on self.test_size
+            self.test_size = self.h
+            for i in range(self.n_predicts):
+                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+
+                y_hats.append(y_hat)
+                y_hat_median = y_hat
+                if median_idx is not None:
+                    y_hat_median = y_hat[..., median_idx]
+                if i < self.n_predicts - 1:
+                    # Update temporal of the batch with predictions
+                    temporal = batch["temporal"]
+                    if self.MULTIVARIATE:
+                        y_hat_median = y_hat_median.swapaxes(0, 2)
+                        y_hat_median = y_hat_median.swapaxes(1, 2)
+                        y_hat_median = y_hat_median.squeeze(1)
+                    else:
+                        y_hat_median = y_hat_median.squeeze(-1)
+
+                    temporal[:, y_idx, -self.h :] = y_hat_median
+
+                    # Concatenate next futr_temporal
+                    idx = i * self.h
+                    next_futr_temporal = futr_temporal[:, :, idx : idx + self.h]
+                    temporal = torch.cat((temporal, next_futr_temporal), dim=-1)
+
+                    # Update batch
+                    batch["temporal"] = temporal
+
+            y_hat = torch.cat(y_hats, dim=1)
+            self.test_size = total_test_size
+        else:
+            windows_temporal, static, static_cols = self._create_windows(
+                batch,
+                step="predict",
+            )
+            n_windows = len(windows_temporal)
+            y_idx = batch["y_idx"]
+
+            # Number of windows in batch
+            windows_batch_size = self.inference_windows_batch_size
+            if windows_batch_size < 0:
+                windows_batch_size = n_windows
+            n_batches = int(np.ceil(n_windows / windows_batch_size))
+            y_hats = []
+            for i in range(n_batches):
+                # Create and normalize windows [Ws, L+H, C]
+                w_idxs = np.arange(
+                    i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+                )
+                windows = self._sample_windows(
+                    windows_temporal,
+                    static,
+                    static_cols,
+                    temporal_cols,
+                    step="predict",
+                    w_idxs=w_idxs,
+                )
+                windows = self._normalization(windows=windows, y_idx=y_idx)
+
+                # Parse windows
+                insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                    self._parse_windows(batch, windows)
+                )
+
+                y_hat = self._predict_step_direct_batch(
+                    insample_y=insample_y,
+                    insample_mask=insample_mask,
+                    futr_exog=futr_exog,
+                    hist_exog=hist_exog,
+                    stat_exog=stat_exog,
+                    y_idx=y_idx,
+                )
+
+                y_hats.append(y_hat)
+            y_hat = torch.cat(y_hats, dim=0)
+
+        return y_hat
+
+    def _maybe_get_quantile_idx(self, quantile: float) -> Union[int, None]:
+        if isinstance(self.loss, DISTRIBUTION_LOSSES + MULTIQUANTILE_LOSSES):
+            try:
+                idx_quantile = (self.loss.quantiles == quantile).nonzero().item()
+                offset = 1 if isinstance(self.loss, DISTRIBUTION_LOSSES) else 0
+                return idx_quantile + offset
+            except:
+                raise ValueError("Model was not trained with a median quantile.")
+        return None
 
     def training_step(self, batch, batch_idx):
         # Set horizon to h_train in case of recurrent model to speed up training
@@ -1446,65 +1620,11 @@ class BaseModel(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         if self.RECURRENT:
-            self.input_size = self.inference_input_size
-
-        temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols = self._create_windows(
-            batch, step="predict"
-        )
-        n_windows = len(windows_temporal)
-        y_idx = batch["y_idx"]
-
-        # Number of windows in batch
-        windows_batch_size = self.inference_windows_batch_size
-        if windows_batch_size < 0:
-            windows_batch_size = n_windows
-        n_batches = int(np.ceil(n_windows / windows_batch_size))
-        y_hats = []
-        for i in range(n_batches):
-            # Create and normalize windows [Ws, L+H, C]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            return self._predict_step_recurrent(batch, batch_idx)
+        else:
+            return self._predict_step_direct(
+                batch, batch_idx, recursive=self.n_predicts > 1
             )
-            windows = self._sample_windows(
-                windows_temporal,
-                static,
-                static_cols,
-                temporal_cols,
-                step="predict",
-                w_idxs=w_idxs,
-            )
-            windows = self._normalization(windows=windows, y_idx=y_idx)
-
-            # Parse windows
-            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
-                self._parse_windows(batch, windows)
-            )
-
-            if self.RECURRENT:
-                y_hat = self._predict_step_recurrent_batch(
-                    insample_y=insample_y,
-                    insample_mask=insample_mask,
-                    futr_exog=futr_exog,
-                    hist_exog=hist_exog,
-                    stat_exog=stat_exog,
-                    y_idx=y_idx,
-                )
-            else:
-                y_hat = self._predict_step_direct_batch(
-                    insample_y=insample_y,
-                    insample_mask=insample_mask,
-                    futr_exog=futr_exog,
-                    hist_exog=hist_exog,
-                    stat_exog=stat_exog,
-                    y_idx=y_idx,
-                )
-
-            y_hats.append(y_hat)
-        y_hat = torch.cat(y_hats, dim=0)
-        self.input_size = self.input_size_backup
-
-        return y_hat
 
     def fit(
         self,
@@ -1555,6 +1675,7 @@ class BaseModel(pl.LightningModule):
         step_size=1,
         random_seed=None,
         quantiles=None,
+        h=None,
         **data_module_kwargs,
     ):
         """Predict.
@@ -1567,6 +1688,7 @@ class BaseModel(pl.LightningModule):
             step_size (int): Step size between each window.
             random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
             quantiles (list): Target quantiles to predict.
+            h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_module_kwargs (dict): PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
 
         Returns:
@@ -1585,11 +1707,6 @@ class BaseModel(pl.LightningModule):
 
         self.predict_step_size = step_size
         self.decompose_forecast = False
-        datamodule = TimeSeriesDataModule(
-            dataset=dataset,
-            valid_batch_size=self.valid_batch_size,
-            **data_module_kwargs,
-        )
 
         # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
         pred_trainer_kwargs = self.trainer_kwargs.copy()
@@ -1599,9 +1716,33 @@ class BaseModel(pl.LightningModule):
             pred_trainer_kwargs["devices"] = [0]
             pred_trainer_kwargs["strategy"] = "auto"
 
+        # Determine the number of predictions to make in case h > self.h
+        if h is None:
+            self.predict_horizon = self.horizon_backup
+        else:
+            self.predict_horizon = h
+
+        self.n_predicts = 1
+        if h is not None and h > self.h:
+            if not self.RECURRENT:
+                self.n_predicts = math.ceil(h / self.h)
+                assert (
+                    self.test_size > self.h
+                ), f"Test size should be larger than horizon h={self.h} for direct recursive prediction."
+            else:
+                self.h = h
+
+        datamodule = TimeSeriesDataModule(
+            dataset=dataset,
+            valid_batch_size=self.valid_batch_size,
+            **data_module_kwargs,
+        )
+
         trainer = pl.Trainer(**pred_trainer_kwargs)
         fcsts = trainer.predict(self, datamodule=datamodule)
         fcsts = torch.vstack(fcsts)
+        if h is not None:
+            fcsts = fcsts[:, :h]
 
         if self.MULTIVARIATE:
             # [B, h, n_series (, Q)] -> [n_series, B, h (, Q)]
@@ -1610,6 +1751,12 @@ class BaseModel(pl.LightningModule):
 
         fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
+
+        # Reset n_predicts
+        self.n_predicts = 1
+        self.h = self.horizon_backup
+        self.predict_horizon = self.horizon_backup
+
         return fcsts
 
     def decompose(

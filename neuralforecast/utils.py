@@ -291,8 +291,6 @@ AirPassengersStatic = pd.DataFrame(
     {"unique_id": unique_id, "airline1": airline1_dummy, "airline2": airline2_dummy}
 )
 
-AirPassengersPanel.groupby("unique_id").tail(4)
-
 
 class TimeFeature:
     def __init__(self):

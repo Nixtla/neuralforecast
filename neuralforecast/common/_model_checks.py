@@ -182,19 +182,18 @@ def check_loss_functions(model_class):
 
 # Tests a model against the AirPassengers dataset
 def check_airpassengers(model_class):
-    print(f"{model_class.__name__}: checking forecast AirPassengers dataset")
+    h = 12
     Y_train_df = AirPassengersPanel[
-        AirPassengersPanel.ds < AirPassengersPanel["ds"].values[-12]
+        AirPassengersPanel.ds < AirPassengersPanel["ds"].values[-h]
     ]  # 132 train
     Y_test_df = AirPassengersPanel[
-        AirPassengersPanel.ds >= AirPassengersPanel["ds"].values[-12]
+        AirPassengersPanel.ds >= AirPassengersPanel["ds"].values[-h]
     ].reset_index(
         drop=True
     )  # 12 test
-
     config = {
         "max_steps": 2,
-        "h": 12,
+        "h": h,
         "input_size": 24,
         "enable_progress_bar": False,
         "enable_model_summary": False,
@@ -210,11 +209,14 @@ def check_airpassengers(model_class):
     # Normal forecast
     fcst = NeuralForecast(models=[model_class(**config)], freq="M")
     fcst.fit(df=Y_train_df, static_df=AirPassengersStatic)
-    _ = fcst.predict(futr_df=Y_test_df)
+    fcst.predict(futr_df=Y_test_df)
+
+    # Longer horizon forecast
+    fcst.predict(h=(h + 3))
 
     # Cross-validation
     fcst = NeuralForecast(models=[model_class(**config)], freq="M")
-    _ = fcst.cross_validation(
+    fcst.cross_validation(
         df=AirPassengersPanel, static_df=AirPassengersStatic, n_windows=2, step_size=12
     )
 
