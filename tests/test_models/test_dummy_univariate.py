@@ -180,13 +180,16 @@ class TestDummyUnivariate:
             else:
                 model._maybe_get_quantile_idx(quantile) is None
 
-    @pytest.mark.parametrize("loss_type,target_col", [
-        (MAE(), "DummyUnivariate"), 
-        (DistributionLoss(distribution="Normal"), "DummyUnivariate"), 
-        (IQLoss(), "DummyUnivariate_ql0.5"), 
-        (MQLoss(), "DummyUnivariate-median"),
-        (HuberIQLoss(), "DummyUnivariate_ql0.5")
-        ])
+    @pytest.mark.parametrize(
+        "loss_type,target_col",
+        [
+            (MAE(), "DummyUnivariate"),
+            (DistributionLoss(distribution="Normal"), "DummyUnivariate"),
+            (IQLoss(), "DummyUnivariate_ql0.5"),
+            (MQLoss(), "DummyUnivariate-median"),
+            (HuberIQLoss(), "DummyUnivariate_ql0.5"),
+        ],
+    )
     def test_various_loss_types(self, longer_horizon_test, loss_type, target_col):
         model = DummyUnivariate(
             h=longer_horizon_test.h,

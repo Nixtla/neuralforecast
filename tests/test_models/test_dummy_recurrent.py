@@ -175,12 +175,16 @@ class TestDummyRecurrent:
             else:
                 model._maybe_get_quantile_idx(quantile) is None
 
-    @pytest.mark.parametrize("loss_type,target_col", [
-        (MAE(), "DummyRecurrent"), 
-        (DistributionLoss(distribution="Normal"), "DummyRecurrent"), 
-        (IQLoss(), "DummyRecurrent_ql0.5"), 
-        (MQLoss(), "DummyRecurrent-median"), 
-        (HuberIQLoss(), "DummyRecurrent_ql0.5")])
+    @pytest.mark.parametrize(
+        "loss_type,target_col",
+        [
+            (MAE(), "DummyRecurrent"),
+            (DistributionLoss(distribution="Normal"), "DummyRecurrent"),
+            (IQLoss(), "DummyRecurrent_ql0.5"),
+            (MQLoss(), "DummyRecurrent-median"),
+            (HuberIQLoss(), "DummyRecurrent_ql0.5"),
+        ],
+    )
     def test_various_loss_types(self, longer_horizon_test, loss_type, target_col):
         model = DummyRecurrent(
             h=longer_horizon_test.h,

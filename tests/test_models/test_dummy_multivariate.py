@@ -103,10 +103,17 @@ class TestDummyMultivariate:
         assert cross_val_df[TimeSeriesDatasetEnum.Target].mean() > 0.0
         assert cross_val_df["DummyMultivariate"].mean() > 0.0
 
-
     def test_single_series(self, longer_horizon_test):
-        assert longer_horizon_test.single_train_df[TimeSeriesDatasetEnum.UniqueId].nunique() == 1
-        assert longer_horizon_test.single_test_df[TimeSeriesDatasetEnum.UniqueId].nunique() == 1
+        assert (
+            longer_horizon_test.single_train_df[
+                TimeSeriesDatasetEnum.UniqueId
+            ].nunique()
+            == 1
+        )
+        assert (
+            longer_horizon_test.single_test_df[TimeSeriesDatasetEnum.UniqueId].nunique()
+            == 1
+        )
         model = DummyMultivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
@@ -217,13 +224,15 @@ class TestDummyMultivariate:
             else:
                 model._maybe_get_quantile_idx(quantile) is None
 
-    @pytest.mark.parametrize("loss_type,target_col", [
-        (MAE(), "DummyMultivariate"), 
-        (DistributionLoss(distribution="Normal"), "DummyMultivariate"), 
-        (IQLoss(), "DummyMultivariate_ql0.5"),
-        (MQLoss(), "DummyMultivariate-median"), 
-        (HuberIQLoss(), "DummyMultivariate_ql0.5")
-        ]
+    @pytest.mark.parametrize(
+        "loss_type,target_col",
+        [
+            (MAE(), "DummyMultivariate"),
+            (DistributionLoss(distribution="Normal"), "DummyMultivariate"),
+            (IQLoss(), "DummyMultivariate_ql0.5"),
+            (MQLoss(), "DummyMultivariate-median"),
+            (HuberIQLoss(), "DummyMultivariate_ql0.5"),
+        ],
     )
     def test_various_loss_types(self, longer_horizon_test, loss_type, target_col):
         model = DummyMultivariate(
