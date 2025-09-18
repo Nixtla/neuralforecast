@@ -1523,6 +1523,7 @@ class BaseModel(pl.LightningModule):
                     futr_exog_explanation,
                     hist_exog_explanation,
                     stat_exog_explanation,
+                    baseline_prediction,
                 ) = self._explain_batch(
                     insample_y=insample_y,
                     insample_mask=insample_mask,
@@ -1532,14 +1533,6 @@ class BaseModel(pl.LightningModule):
                     y_idx=y_idx,
                     y_hat_shape=y_hat.shape,
                 )
-                baseline_prediction = self._predict_step_direct_batch(
-                    insample_y=insample_y * 0,
-                    insample_mask=insample_mask * 0,
-                    futr_exog=futr_exog * 0 if futr_exog is not None else None,
-                    hist_exog=hist_exog * 0 if hist_exog is not None else None,
-                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
-                    y_idx=y_idx,
-                ).unsqueeze(-1)
                 insample_explanations.append(insample_explanation)
                 if futr_exog_explanation is not None:
                     futr_exog_explanations.append(futr_exog_explanation)
@@ -1839,8 +1832,10 @@ class BaseModel(pl.LightningModule):
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
         param_positions = {"insample_y": 0, "insample_mask": 1}
+        add_dim = False
         if len(y_hat_shape) == 3:
             y_hat_shape = y_hat_shape + (1,)
+            add_dim = True
         shape = list(y_hat_shape)
         shape[1] = len(horizons)
         shape[3] = len(output_index)
@@ -1955,6 +1950,34 @@ class BaseModel(pl.LightningModule):
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
                         stat_exog_explanations[:, i, j, k] = stat_exog_attr
 
+
+        explainer_class = self.explainer_config["explainer"]
+        explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
+        additive_explainers = ['IntegratedGradients', 'ShapleyValueSampling']                
+        if explainer_name in additive_explainers:
+            if self.RECURRENT:
+                baseline_prediction = self._predict_step_recurrent_batch(
+                    insample_y=insample_y * 0,
+                    insample_mask=insample_mask * 0,
+                    futr_exog=futr_exog * 0 if futr_exog is not None else None,
+                    hist_exog=hist_exog * 0 if hist_exog is not None else None,
+                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    y_idx=y_idx,
+                )                
+            else:
+                baseline_prediction = self._predict_step_direct_batch(
+                    insample_y=insample_y * 0,
+                    insample_mask=insample_mask * 0,
+                    futr_exog=futr_exog * 0 if futr_exog is not None else None,
+                    hist_exog=hist_exog * 0 if hist_exog is not None else None,
+                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    y_idx=y_idx,
+                )
+            if add_dim:
+                baseline_prediction = baseline_prediction.unsqueeze(-1)
+        else:
+            baseline_prediction = None
+
         horizons = self.explainer_config.get("horizons", list(range(self.h)))
         output_index = self.explainer_config.get("output_index", list(range(y_hat_shape[-1])))
 
@@ -1963,4 +1986,5 @@ class BaseModel(pl.LightningModule):
             futr_exog_explanations,
             hist_exog_explanations,
             stat_exog_explanations,
+            baseline_prediction
         )
