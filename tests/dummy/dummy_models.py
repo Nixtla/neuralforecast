@@ -112,6 +112,16 @@ class DummyUnivariate(BaseModel):
             # we only consider a single futr_exog feature, that is why '0' in the last dimension
             # simply multiply with the given futr_exog
             y_pred = y_pred * futr_exog[:, -self.seasonality :, 0].unsqueeze(-1)
+
+        # Expand output to match loss function requirements
+        batch_size = y_pred.shape[0]
+        if self.loss.outputsize_multiplier > 1:
+            # For distribution losses, we need to output multiple parameters
+            # Repeat the prediction for each required parameter
+            # e.g. this differs from NeuralNetwork that we do not learn parameters such as
+            # loc (location),scale for Distribution(distribution="normal")
+            y_pred = y_pred.repeat(1, 1, self.loss.outputsize_multiplier)
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)
         return y_pred
 
 
@@ -218,6 +228,16 @@ class DummyMultivariate(BaseModel):
             # we only consider a single futr_exog feature, that is why '0' in the dimension
             # simply multiply with the given futr_exog
             y_pred = y_pred * futr_exog[:, 0, -self.seasonality :, :].squeeze(1)
+
+        # Expand output to match loss  function requirements
+        batch_size = y_pred.shape[0] # (1024, 4, 2), I need to find similar treatment to check the impact on n.
+        if self.loss.outputsize_multiplier > 1:
+            # For distribution losses, we need to output multiple parameters
+            # Repeat the prediction for each required parameter
+            # e.g. this differs from NeuralNetwork that we do not learn parameters such as
+            # loc (location),scale for Distribution(distribution="normal")
+            y_pred = y_pred.repeat(1, 1, self.loss.outputsize_multiplier)
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier*self.n_series)
         return y_pred
 
 
@@ -316,4 +336,16 @@ class DummyRecurrent(BaseModel):
             # we only consider a single futr_exog feature, that is why '0' in the dimension
             # simply multiply with the given futr_exog
             y_pred = y_pred * futr_exog[:, -1:, 0]
-        return y_pred.unsqueeze(-1)  # [B, 1, N]
+
+        y_pred = y_pred.unsqueeze(-1)  # [B, 1, N]
+
+        # Expand output to match loss function requirements
+        batch_size = y_pred.shape[0]
+        if self.loss.outputsize_multiplier > 1:
+            # For distribution losses, we need to output multiple parameters
+            # Repeat the prediction for each required parameter
+            # e.g. this differs from NeuralNetwork that we do not learn parameters such as
+            # loc (location),scale for Distribution(distribution="normal")
+            y_pred = y_pred.repeat(1, 1, self.loss.outputsize_multiplier)
+        y_pred = y_pred.reshape(batch_size, 1, self.loss.outputsize_multiplier)
+        return y_pred

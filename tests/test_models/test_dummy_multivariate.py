@@ -11,6 +11,7 @@ from neuralforecast.losses.pytorch import (
     GMM,
     HuberIQLoss,
     IQLoss,
+    MAE,
     NBMM,
     MQLoss,
     HuberMQLoss,
@@ -216,13 +217,20 @@ class TestDummyMultivariate:
             else:
                 model._maybe_get_quantile_idx(quantile) is None
 
-    @pytest.mark.parametrize("loss_type", [IQLoss, HuberIQLoss])
-    def test_iqloss(self, longer_horizon_test, loss_type):
+    @pytest.mark.parametrize("loss_type,target_col", [
+        (MAE(), "DummyMultivariate"), 
+        (DistributionLoss(distribution="Normal"), "DummyMultivariate"), 
+        (IQLoss(), "DummyMultivariate_ql0.5"),
+        # (MQLoss(), "DummyMultivariate-median"), 
+        (HuberIQLoss(), "DummyMultivariate_ql0.5")
+        ]
+    )
+    def test_various_loss_types(self, longer_horizon_test, loss_type, target_col):
         model = DummyMultivariate(
             h=longer_horizon_test.h,
             input_size=longer_horizon_test.input_size,
             n_series=longer_horizon_test.n_series,
-            loss=loss_type(),
+            loss=loss_type,
         )
 
         nf = NeuralForecast(
@@ -237,12 +245,12 @@ class TestDummyMultivariate:
             futr_df=longer_horizon_test.test_df, h=longer_horizon_test.longer_h
         )
         group_cnt = forecasts.groupby(TimeSeriesDatasetEnum.UniqueId)[
-            "DummyMultivariate_ql0.5"
+            target_col
         ].count()
         expected = pd.Series(
             data=[longer_horizon_test.longer_h] * 2,
             index=[longer_horizon_test.series1_id, longer_horizon_test.series2_id],
-            name="DummyMultivariate_ql0.5",
+            name=target_col,
         )
         expected.index.name = TimeSeriesDatasetEnum.UniqueId
         pd.testing.assert_series_equal(group_cnt, expected)
