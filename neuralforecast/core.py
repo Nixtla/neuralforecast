@@ -991,12 +991,10 @@ class NeuralForecast:
         if explainer not in [
             "IntegratedGradients",
             "ShapleyValueSampling",
-            "Lime",
-            "KernelShap",
             "InputXGradient",
         ]:
             raise ValueError(
-                f"Explainer {explainer} is not supported. Supported explainers are: IntegratedGradients, ShapleyValueSampling, Lime, KernelShap, InputXGradient."
+                f"Explainer {explainer} is not supported. Supported explainers are: IntegratedGradients, ShapleyValueSampling, InputXGradient."
             )
 
         models_to_explain = []
