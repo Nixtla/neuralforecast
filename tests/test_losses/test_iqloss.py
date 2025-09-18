@@ -1,13 +1,22 @@
 # %% Test IQLoss for all types of architectures
 import matplotlib.pyplot as plt
 import pandas as pd
+import pytest
+import sys
+
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
 from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN
 from neuralforecast.losses.pytorch import IQLoss
 from tests.helpers.data import air_passengers
 
-
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason=(
+        "RuntimeError: MPS backend out of memory (MPS allocated: 8.00 MB, other allocations: 16.00 KB). Tried to allocate 256 bytes on shared pool."
+        "Test failed in MacOS as shown by https://github.com/Nixtla/neuralforecast/actions/runs/17818711510/job/50656840114?pr=1368"
+    )
+)
 def test_iqloss(show_plot=False):
     Y_train_df, Y_test_df, _, AirPassengersStatic = air_passengers(h=12)
 
