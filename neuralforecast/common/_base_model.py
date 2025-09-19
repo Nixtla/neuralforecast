@@ -19,6 +19,7 @@ import torch.nn.functional as F
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 import neuralforecast.losses.pytorch as losses
+from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.tsdataset import (
     BaseTimeSeriesDataset,
     TimeSeriesDataModule,
@@ -2158,7 +2159,7 @@ class BaseModel(pl.LightningModule):
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
-        additive_explainers = ['IntegratedGradients', 'ShapleyValueSampling']
+        additive_explainers = ExplainerEnum.AddictiveExplainers
 
         if explainer_name in additive_explainers:
             # Create baseline inputs (all zeros, matching Captum's default)

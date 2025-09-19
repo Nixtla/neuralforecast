@@ -22,7 +22,7 @@ from coreforecast.scalers import (
 )
 from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
-
+from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.models import (
     GRU,
     KAN,
@@ -985,7 +985,7 @@ class NeuralForecast:
         horizons: Optional[list[int]] = None,
         series: list[int] = [0],
         outputs: list[int] = [0],
-        explainer: str = "IntegratedGradients",
+        explainer: str = ExplainerEnum.IntegratedGradients,
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
@@ -1032,15 +1032,10 @@ class NeuralForecast:
             )
         if not hasattr(captum.attr, explainer):
             raise ValueError(f"Explainer {explainer} is not available in captum.")
-        if explainer not in [
-            "IntegratedGradients",
-            "ShapleyValueSampling",
-            # "Lime",
-            # "KernelShap",
-            "InputXGradient",
-        ]:
+        if explainer not in ExplainerEnum.AllExplainers:
+            all_explainers = ", ".join(ExplainerEnum.AllExplainers)
             raise ValueError(
-                f"Explainer {explainer} is not supported. Supported explainers are: IntegratedGradients, ShapleyValueSampling, Lime, KernelShap, InputXGradient."
+                f"Explainer {explainer} is not supported. Supported explainers are: {all_explainers}."
             )
 
         models_to_explain = []
@@ -1070,11 +1065,11 @@ class NeuralForecast:
                 continue
                 
             # Check for recurrent models with IntegratedGradients
-            if model.RECURRENT and explainer == "IntegratedGradients":
+            if model.RECURRENT and explainer == ExplainerEnum.IntegratedGradients:
                 skipped_models.append(model_name)
                 if verbose:
                     warnings.warn(
-                        f"Skipping {model_name}: IntegratedGradients is not compatible with recurrent models. "
+                        f"Skipping {model_name}: {ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
                         "Please either set recurrent=False when initializing the model, or use a different explainer. "
                     )
                 continue
@@ -1084,9 +1079,9 @@ class NeuralForecast:
         if not models_to_explain:
             # Build a more specific error message based on what was skipped
             error_msg = "No models support explanations with the current configuration. "
-            if any(model.RECURRENT for model in self.models) and explainer == "IntegratedGradients":
+            if any(model.RECURRENT for model in self.models) and explainer == ExplainerEnum.IntegratedGradients:
                 error_msg += (
-                    "IntegratedGradients is not compatible with recurrent models. "
+                    f"{ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
                     "Either set recurrent=False or use a different explainer. "
                 )
             error_msg += (

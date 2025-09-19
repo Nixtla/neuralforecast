@@ -38,6 +38,7 @@ from neuralforecast.auto import (
     TSMixerx,
     VanillaTransformer,
 )
+from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.core import (
     LSTM,
     DLinear,
@@ -1612,7 +1613,7 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
 
-@pytest.mark.parametrize("explainer", ["IntegratedGradients", "InputXGradient"])
+@pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])
 def test_explainability(explainer, use_polars):
     "Test that explanations are returned or skipped depending on model and configuration"
@@ -1695,7 +1696,7 @@ def test_explainability(explainer, use_polars):
             skipped_models.add(model_name)
         elif hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
             skipped_models.add(model_name)
-        elif model.RECURRENT and explainer == "IntegratedGradients":
+        elif model.RECURRENT and explainer == ExplainerEnum.IntegratedGradients:
             skipped_models.add(model_name)
         else:
             expected_explanations.add(model_name)
@@ -1730,7 +1731,7 @@ def test_explainability(explainer, use_polars):
         assert expl["insample"].shape == expected_insample_shape
         
         # Test additivity for additive explainers
-        if explainer == "IntegratedGradients":
+        if explainer == ExplainerEnum.IntegratedGradients:
             expected_baseline_shape = (
                 batch_size, # batch_size
                 h,          # horizons
