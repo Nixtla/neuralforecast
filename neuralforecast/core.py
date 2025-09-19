@@ -1017,10 +1017,12 @@ class NeuralForecast:
             predictions for all fitted `models`.
             explanations (dict): Dictionary of explanations for the predictions.
         """
-        # TODO: Add protections
-        # TODO: Issues with this approach: not every model in models has the same number of outputs, or series, that can be problematic.
         if horizons is None:
             horizons = list(range(self.h))
+        elif not horizons or len(horizons) > self.h or any(h < 0 or h >= self.h for h in horizons):
+            raise ValueError(
+                f"Invalid indices. Make sure to select horizon steps within {list(range(self.h))} or set it to None to explain all horizon steps"
+            )
 
         try:
             import captum
@@ -1086,6 +1088,24 @@ class NeuralForecast:
                 f"The following models were skipped: {', '.join(skipped_models)}. "
             )
             raise ValueError(error_msg)
+        
+        # Determine minimum outputs across all models
+        min_outputs = min(
+            model.loss.outputsize_multiplier if hasattr(model.loss, 'outputsize_multiplier')
+            else len(model.loss.output_names) if hasattr(model.loss, 'output_names')
+            else 1
+            for model in models_to_explain
+        )
+
+        # Validate outputs
+        if outputs is None:
+            outputs = [0]  # Default to first output
+        elif not outputs or any(o < 0 or o >= min_outputs for o in outputs):
+            raise ValueError(
+                f"Invalid output indices. Based on the models being explained, valid outputs are in {list(range(min_outputs))}. "
+                f"You must set valid output indices for all models, which is the minimum number of ouputs amongst all models. "
+                f"You can always set outputs=None to default to [0] (first output)."
+            )
         
         # Temporarily replace self.models with only explainable models
         original_models = self.models
