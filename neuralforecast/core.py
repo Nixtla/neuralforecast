@@ -1064,15 +1064,38 @@ class NeuralForecast:
                     )
                 continue
                 
-            # Check for recurrent models with IntegratedGradients
-            if model.RECURRENT and explainer == ExplainerEnum.IntegratedGradients:
-                skipped_models.append(model_name)
-                if verbose:
-                    warnings.warn(
-                        f"Skipping {model_name}: {ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
-                        "Please either set recurrent=False when initializing the model, or use a different explainer. "
-                    )
-                continue
+            # Check for recurrent models with incompatible configurations
+            if model.RECURRENT:
+                # Check for IntegratedGradients incompatibility
+                if explainer == "IntegratedGradients":
+                    skipped_models.append(model_name)
+                    if verbose:
+                        warnings.warn(
+                            f"Skipping {model_name}: IntegratedGradients is not compatible with recurrent models. "
+                            f"Either set recurrent=False when initializing the model, or use a different explainer."
+                        )
+                    continue
+                
+                # Check for InputXGradient + GPU incompatibility (cudnn error)
+                if explainer == "InputXGradient":
+                    using_gpu = False
+                    if hasattr(model, 'trainer_kwargs'):
+                        accelerator = model.trainer_kwargs.get('accelerator', 'auto')
+                        using_gpu = (accelerator == 'gpu' or 
+                                    (accelerator == 'auto' and torch.cuda.is_available()))
+                    elif torch.cuda.is_available():
+                        using_gpu = True
+                    
+                    if using_gpu:
+                        skipped_models.append(model_name)
+                        if verbose:
+                            warnings.warn(
+                                f"Skipping {model_name}: InputXGradient with recurrent models on GPU causes cudnn errors. "
+                                f"To fix this, either: 1) Set recurrent=False when initializing the model, "
+                                f"2) Use ShapleyValueSampling instead, or "
+                                f"3) Set accelerator='cpu' and devices=1 when initializing the model."
+                            )
+                        continue
                 
             models_to_explain.append(model)
         
