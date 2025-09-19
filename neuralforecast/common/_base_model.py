@@ -1817,6 +1817,10 @@ class BaseModel(pl.LightningModule):
         Returns:
             None
         """
+        if h is not None and explainer_config is not None:
+            # TODO remove this if the constraint is no longer applicable.
+            raise ValueError("Prediction explaination is not supported for specified horizon during the call of predict()")
+
         self._check_exog(dataset)
         self._restart_seed(random_seed)
         if "quantile" in data_module_kwargs:
