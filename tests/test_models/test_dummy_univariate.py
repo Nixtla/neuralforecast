@@ -37,13 +37,14 @@ class TestDummyUnivariate:
             "horizons": None,
             "series": [0],
             "output_index": [0],
-        }
-
+        }        
+        
         with pytest.raises(
             ValueError,
-            match="Prediction explaination is not supported for specified horizon during the call of predict\(\)",
+            match="Prediction explaination is not supported for prediction horizon larger than the horizon of the fitted models",
         ):
-            model.predict(dataset=dataset, h=10, explainer_config=mocked_config)
+            model.predict(dataset=dataset,h=longer_horizon_test.longer_h, explainer_config=mocked_config)
+
 
     def test_larger_horizon(self, longer_horizon_test):
         model = DummyUnivariate(
