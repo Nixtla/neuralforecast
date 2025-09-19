@@ -1132,6 +1132,8 @@ class NeuralForecast:
                     "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features]
                     "baseline_predictions": model.explanations["baseline_predictions"] # [batch_size, horizon, n_series, n_output]
                 }
+                # Delete explanations attribute once extracted
+                delattr(model, "explanations")
 
         return fcsts_df, explanations
 
