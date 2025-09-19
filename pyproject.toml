@@ -40,6 +40,7 @@ spark = ["fugue", "pyspark>=3.5"]
 aws = ["fsspec[s3]"]
 dev = [
     "black",
+    "captum",
     "gitpython",
     "hyperopt",
     "ipython<=8.32.0",
