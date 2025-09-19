@@ -875,16 +875,11 @@ class BaseModel(pl.LightningModule):
         # Broadcasts scale if necessary and inverts normalization
         add_channel_dim = y_hat.ndim > 3
         y_loc, y_scale = self._get_loc_scale(y_idx, add_channel_dim=add_channel_dim)
-        if hasattr(self, 'explain') and self.explain and y_hat.shape[0] != y_loc.shape[0]:
-            # Repeat scaler parameters to match explanation batch size
-            repeat_factor = y_hat.shape[0] // y_loc.shape[0]
-            if y_hat.shape[0] % y_loc.shape[0] == 0:
-                y_loc = y_loc.repeat(repeat_factor, *([1] * (y_loc.ndim - 1)))
-                y_scale = y_scale.repeat(repeat_factor, *([1] * (y_scale.ndim - 1)))
-            else:
-                batch_indices = torch.arange(y_hat.shape[0]) % y_loc.shape[0]
-                y_loc = y_loc[batch_indices]
-                y_scale = y_scale[batch_indices]
+        if hasattr(self, "explain") and self.explain and y_hat.shape[0] != y_loc.shape[0]:
+            # n_repeats is always a multiple of the batch size
+            n_repeats = y_hat.shape[0] // y_loc.shape[0]
+            y_loc = y_loc.repeat(n_repeats, *([1] * (y_loc.ndim - 1)))
+            y_scale = y_scale.repeat(n_repeats, *([1] * (y_scale.ndim - 1)))
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         return y_hat
@@ -2033,15 +2028,27 @@ class BaseModel(pl.LightningModule):
         y_hat_shape,
     ):
 
+        # Attribute the input
+        horizons = self.explainer_config.get("horizons", list(range(self.h)))
+        series = list(range(self.n_series))
+        output_index = self.explainer_config.get(
+            "output_index", list(range(y_hat_shape[-1]))
+        )
+
         # Start with required inputs
         insample_y.requires_grad_()
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
         param_positions = {"insample_y": 0, "insample_mask": 1}
+        add_dim = False
         if len(y_hat_shape) == 3:
             y_hat_shape = y_hat_shape + (1,)
+            add_dim = True
+        shape = list(y_hat_shape)
+        shape[1] = len(horizons)
+        shape[3] = len(output_index)            
         insample_explanations = torch.empty(
-            size=(*y_hat_shape, insample_y.shape[1], 2),
+            size=(*shape, insample_y.shape[1], 2),
             device=insample_y.device,
             dtype=insample_y.dtype,
         )
@@ -2058,13 +2065,13 @@ class BaseModel(pl.LightningModule):
             pos += 1
             if futr_exog.ndim == 3:
                 futr_exog_explanations = torch.empty(
-                    size=(*y_hat_shape, futr_exog.shape[1], futr_exog.shape[2]),
+                    size=(*shape, futr_exog.shape[1], futr_exog.shape[2]),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
             else:
                 futr_exog_explanations = torch.empty(
-                    size=(*y_hat_shape, futr_exog.shape[2], futr_exog.shape[1]),
+                    size=(*shape, futr_exog.shape[2], futr_exog.shape[1]),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
@@ -2077,13 +2084,13 @@ class BaseModel(pl.LightningModule):
             pos += 1
             if hist_exog.ndim == 3:
                 hist_exog_explanations = torch.empty(
-                    size=(*y_hat_shape, hist_exog.shape[1], hist_exog.shape[2]),
+                    size=(*shape, hist_exog.shape[1], hist_exog.shape[2]),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
             else:
                 hist_exog_explanations = torch.empty(
-                    size=(*y_hat_shape, hist_exog.shape[2], hist_exog.shape[1]),
+                    size=(*shape, hist_exog.shape[2], hist_exog.shape[1]),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
@@ -2095,22 +2102,15 @@ class BaseModel(pl.LightningModule):
             param_positions["stat_exog"] = pos
             pos += 1
             stat_exog_explanations = torch.empty(
-                size=(*y_hat_shape, stat_exog.shape[1]),
+                size=(*shape, stat_exog.shape[1]),
                 device=stat_exog.device,
                 dtype=stat_exog.dtype,
             )
 
-        # Attribute the input
-        horizons = self.explainer_config.get("horizons", list(range(self.h)))
-        series = self.explainer_config.get("series", list(range(self.n_series)))
-        output_index = self.explainer_config.get(
-            "output_index", list(range(y_hat_shape[-1]))
-        )
-
         # Loop over horizons, series and output_indices
-        for horizon in horizons:
-            for series_idx in series:
-                for output_idx in output_index:
+        for i, horizon in enumerate(horizons):
+            for j, series_idx in enumerate(series):
+                for k, output_idx in enumerate(output_index):
                     forward_fn = lambda *args: self._predict_step_wrapper(
                         insample_y=args[param_positions["insample_y"]],
                         insample_mask=args[param_positions["insample_mask"]],
@@ -2138,88 +2138,59 @@ class BaseModel(pl.LightningModule):
                     attributions = attributor.attribute(
                         input_batch,
                     )
-                    insample_explanations[:, horizon, series_idx, output_idx, :, 0] = (
-                        attributions[0].squeeze(-1)
-                    )
-                    insample_explanations[:, horizon, series_idx, output_idx, :, 1] = (
-                        attributions[1].squeeze(-1)
-                    )
+
+                    insample_attr = attributions[0].squeeze(-1)
+                    insample_explanations[:, i, j, k, :, 0] = insample_attr
+
+                    insample_mask_attr = attributions[1].squeeze(-1)
+                    insample_explanations[:, i, j, k, :, 1] = insample_mask_attr
+
                     if "futr_exog" in param_positions:
-                        futr_exog_explanations[:, horizon, series_idx, output_idx] = (
-                            attributions[param_positions["futr_exog"]]
-                        )
+                        futr_exog_attr = attributions[param_positions["futr_exog"]]
+                        futr_exog_explanations[:, i, j, k] = futr_exog_attr
+
                     if "hist_exog" in param_positions:
-                        hist_exog_explanations[:, horizon, series_idx, output_idx] = (
-                            attributions[param_positions["hist_exog"]]
-                        )
+                        hist_exog_attr = attributions[param_positions["hist_exog"]]
+                        hist_exog_explanations[:, i, j, k] = hist_exog_attr
+
                     if "stat_exog" in param_positions:
-                        stat_exog_explanations[:, horizon, series_idx, output_idx] = (
-                            attributions[param_positions["stat_exog"]]
-                        )
+                        stat_exog_attr = attributions[param_positions["stat_exog"]]
+                        stat_exog_explanations[:, i, j, k] = stat_exog_attr
+                     
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
-        additive_explainers = ExplainerEnum.AddictiveExplainers
+        additive_explainers = ExplainerEnum.AdditiveExplainers
 
+        explainer_class = self.explainer_config["explainer"]
+        explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
+        additive_explainers = ExplainerEnum.AdditiveExplainers
         if explainer_name in additive_explainers:
-            # Create baseline inputs (all zeros, matching Captum's default)
-            baseline_insample_y = torch.zeros_like(insample_y)
-            baseline_mask = torch.zeros_like(insample_mask)
-            baseline_futr_exog = torch.zeros_like(futr_exog) if futr_exog is not None else None
-            baseline_hist_exog = torch.zeros_like(hist_exog) if hist_exog is not None else None
-            baseline_stat_exog = torch.zeros_like(stat_exog) if stat_exog is not None else None
-            
-            # Compute baseline predictions with same shape as explanations
-            baseline_predictions = torch.empty(
-                size=(*y_hat_shape[:3], len(output_index)),  # Only specified outputs
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
-            
-            # Compute baseline for each horizon/series/output combination
-            for horizon in horizons:
-                for series_idx in series:
-                    for i, output_idx in enumerate(output_index):
-                        baseline_pred = self._predict_step_wrapper(
-                            insample_y=baseline_insample_y,
-                            insample_mask=baseline_mask,
-                            futr_exog=baseline_futr_exog,
-                            hist_exog=baseline_hist_exog,
-                            stat_exog=baseline_stat_exog,
-                            y_idx=y_idx,
-                            output_horizon=horizon,
-                            output_series=series_idx,
-                            output_index=output_idx,
-                        )
-                        baseline_predictions[:, horizon, series_idx, i] = baseline_pred
+            if self.RECURRENT:
+                baseline_predictions = self._predict_step_recurrent_batch(
+                    insample_y=insample_y * 0,
+                    insample_mask=insample_mask * 0,
+                    futr_exog=futr_exog * 0 if futr_exog is not None else None,
+                    hist_exog=hist_exog * 0 if hist_exog is not None else None,
+                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    y_idx=y_idx,
+                )                
+            else:
+                baseline_predictions = self._predict_step_direct_batch(
+                    insample_y=insample_y * 0,
+                    insample_mask=insample_mask * 0,
+                    futr_exog=futr_exog * 0 if futr_exog is not None else None,
+                    hist_exog=hist_exog * 0 if hist_exog is not None else None,
+                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    y_idx=y_idx,
+                )
+            if add_dim:
+                baseline_predictions = baseline_predictions.unsqueeze(-1)
+            baseline_predictions = baseline_predictions.index_select(1, torch.tensor(horizons, device=baseline_predictions.device))
+            baseline_predictions = baseline_predictions.index_select(2, torch.tensor(series, device=baseline_predictions.device))
+            baseline_predictions = baseline_predictions.index_select(3, torch.tensor(output_index, device=baseline_predictions.device))
         else:
-            # For InputXGradient, there's no additivity, so set baseline predictions to None
             baseline_predictions = None
-
-        horizons = self.explainer_config.get("horizons", list(range(self.h)))
-        output_index = self.explainer_config.get("output_index", list(range(y_hat_shape[-1])))
-
-        if len(horizons) != self.h:
-            insample_explanations = insample_explanations[:, horizons, :, :, :, :]
-            if futr_exog_explanations is not None:
-                futr_exog_explanations = futr_exog_explanations[:, horizons, :, :, :]
-            if hist_exog_explanations is not None:
-                hist_exog_explanations = hist_exog_explanations[:, horizons, :, :, :]
-            if stat_exog_explanations is not None:
-                stat_exog_explanations = stat_exog_explanations[:, horizons, :, :, :]
-            if baseline_predictions is not None:
-                baseline_predictions = baseline_predictions[:, horizons, :, :]
-        
-        if len(output_index) != y_hat_shape[-1]:
-            insample_explanations = insample_explanations[:, :, :, output_index, :, :]
-            if futr_exog_explanations is not None:
-                futr_exog_explanations = futr_exog_explanations[:, :, :, output_index, :]
-            if hist_exog_explanations is not None:
-                hist_exog_explanations = hist_exog_explanations[:, :, :, output_index, :]
-            if stat_exog_explanations is not None:
-                stat_exog_explanations = stat_exog_explanations[:, :, :, output_index, :]
-            if baseline_predictions is not None:
-                baseline_predictions = baseline_predictions[:, :, :, output_index]
 
         return (
             insample_explanations,

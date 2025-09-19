@@ -1615,7 +1615,8 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
 
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])
-def test_explainability(explainer, use_polars):
+@pytest.mark.parametrize("horizons", [list(range(12)), [0, 5]])
+def test_explainability(explainer, use_polars, horizons):
     "Test that explanations are returned or skipped depending on model and configuration"
     Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
     Y_test_df = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -1624,7 +1625,7 @@ def test_explainability(explainer, use_polars):
 
     h = 12
     input_size = 2*h
-    batch_size = Y_train_df["unique_id"].nunique()
+    n_series = Y_train_df["unique_id"].nunique()
     n_stat_exog = len(static_df.drop(columns="unique_id").columns)
 
     base_config = {
@@ -1677,8 +1678,11 @@ def test_explainability(explainer, use_polars):
         freq="1mo"
     nf = NeuralForecast(models=models, freq=freq)
     nf.fit(df=Y_train_df, static_df=static_df)
+
+    outputs = [0]
     preds_df, explanations = nf.explain(
-        outputs=[0], # Get only 1 ouput
+        outputs=outputs, # Get only 1 ouput
+        horizons=horizons, # Get all horizons
         static_df=static_df,
         futr_df=futr_df, 
         explainer=explainer
@@ -1714,55 +1718,59 @@ def test_explainability(explainer, use_polars):
     # Test explained model
     for model_name in expected_explanations:
         expl = explanations[model_name]
-        
+
         # Basic structure tests
         assert expl["insample"] is not None
         expected_input_size = input_size
         if model_name == "LSTM-recurrent":
             expected_input_size = input_size + h
+        
+        batch_size = n_series
+        n_series_ = 1
         expected_insample_shape = (
             batch_size,           # batch_size
-            h,                    # horizons
-            1,                    # n_series (1 for univariate)
-            1,                    # n_outputs
+            len(horizons),        # horizons
+            n_series_,           # n_series (1 for univariate)
+            len(outputs),         # n_outputs
             expected_input_size,  # n_input_steps
             2                     # (y_attr, mask_attr)
         )
         assert expl["insample"].shape == expected_insample_shape
         
         # Test additivity for additive explainers
-        if explainer == ExplainerEnum.IntegratedGradients:
+        if explainer == "IntegratedGradients":
             expected_baseline_shape = (
-                batch_size, # batch_size
-                h,          # horizons
-                1,          # n_series (1 for univariate)
-                1           # n_outputs
+                batch_size,           # batch_size
+                len(horizons),        # horizons
+                n_series_,           # n_series (1 for univariate)
+                len(outputs)          # n_outputs
             )
             assert expl["baseline_predictions"] is not None
             assert expl["baseline_predictions"].shape == expected_baseline_shape
-            _test_model_additivity(preds_df, expl, model_name, batch_size, h, use_polars)
+            _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons)
         else:
             assert expl["baseline_predictions"] is None
+            
         
         # Check exogenous if model has them
         model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
         if model.futr_exog_list:
             expected_futr_shape = (
                 batch_size,                # batch size
-                h,                         # horizons
-                1,                         # n_series (1 for univariate)
-                1,                         # n_outputs
-                input_size+h,              # n_input_steps (past + future)
-                len(model.futr_exog_list), # number of features
+                len(horizons),              # horizons
+                n_series_,                # n_series (1 for univariate)
+                len(outputs),               # n_outputs
+                input_size+h,               # n_input_steps (past + future)
+                len(model.futr_exog_list),  # number of features
             )
             assert expl["futr_exog"] is not None
             assert expl["futr_exog"].shape == expected_futr_shape
         if model.hist_exog_list:
             expected_hist_shape = (
                 batch_size,                # batch size
-                h,                         # horizons
-                1,                         # n_series (1 for univariate)
-                1,                         # n_outputs
+                len(horizons),         # horizons
+                n_series_,         # n_series (1 for univariate)
+                len(outputs),         # n_outputs
                 input_size,                # n_input_steps (past)
                 len(model.hist_exog_list), # number of features
             )
@@ -1771,54 +1779,44 @@ def test_explainability(explainer, use_polars):
         if model.stat_exog_list:
             expected_stat_shape = (
                 batch_size,  # batch size
-                h,           # horizons
-                1,           # n_series (1 for univariate)
-                1,           # n_outputs
+                len(horizons),         # horizons
+                n_series_,         # n_series (1 for univariate)
+                len(outputs),         # n_outputs
                 n_stat_exog, # number of features
             )
             assert expl["stat_exog"] is not None
             assert expl["stat_exog"].shape == expected_stat_shape
 
-def _test_model_additivity(preds_df, expl, model_name, batch_size, h, use_polars):
+def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons):
     """Test if sum of attributions and baseline predictions equal forecasts"""
     pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
     if use_polars:
         preds = preds_df[pred_col].to_numpy()
     else:
         preds = preds_df[pred_col].values
-    attribution_predictions = []
 
-    for batch_idx in range(batch_size):
-        for horizon_idx in range(h):
-            baseline = float(expl["baseline_predictions"][batch_idx, horizon_idx, 0, 0].cpu())
-
-            total_attr = 0
-            
-            # Insample (y + mask)
-            insample_attr = expl["insample"][batch_idx, horizon_idx, 0, 0, :, :].sum()
-            total_attr += float(insample_attr.cpu())
-            
-            # Historical exogenous
-            if not isinstance(expl["hist_exog"], list):
-                hist_attr = expl["hist_exog"][batch_idx, horizon_idx, 0, 0, :, :].sum()
-                total_attr += float(hist_attr.cpu())
-            
-            # Future exogenous
-            if not isinstance(expl["futr_exog"], list):
-                futr_attr = expl["futr_exog"][batch_idx, horizon_idx, 0, 0, :, :].sum()
-                total_attr += float(futr_attr.cpu())
-            
-            # Static exogenous
-            if not isinstance(expl["stat_exog"], list):
-                stat_attr = expl["stat_exog"][batch_idx, horizon_idx, 0, 0, :].sum()
-                total_attr += float(stat_attr.cpu())
-            
-            pred_from_attr = baseline + total_attr
-            attribution_predictions.append(pred_from_attr)
+    # Sum over n_outputs (-1) and n_series (-2), shape (batch_size, h, n_series, n_outputs) -> (batch_size, h)
+    baseline = expl["baseline_predictions"].sum(dim=(-1, -2))  
     
+    # Sum over channels (-1), input_sequence (-2), n_outputs (-3), n_series (-4)
+    sum_dims = (-1, -2, -3, -4) 
+    insample_attr = expl["insample"].sum(dim=sum_dims)
+    futr_attr = expl["futr_exog"].sum(dim=sum_dims) if not isinstance(expl["futr_exog"], list) else 0
+    hist_attr = expl["hist_exog"].sum(dim=sum_dims) if not isinstance(expl["hist_exog"], list) else 0
+    
+    # Static doesn't have the input_sequence dimension, as it is static across that dimension
+    sum_dims = (-1, -2, -3)  # Sum over channels (-1), n_outputs (-2), n_series (-3)
+    stat_attr = expl["stat_exog"].sum(dim=sum_dims) if not isinstance(expl["stat_exog"], list) else 0
+    
+    total_attr = insample_attr + futr_attr + hist_attr + stat_attr
+    pred_from_attr = baseline + total_attr  # Shape: (n_series, h)
+
+    preds = preds.reshape(n_series, h)
+    preds = preds[:, horizons]
+
     np.testing.assert_allclose(
+        pred_from_attr.cpu().numpy(),
         preds,
-        attribution_predictions,
         rtol=1e-3,
         err_msg="Attribution predictions do not match model predictions"
     )

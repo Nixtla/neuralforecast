@@ -10,9 +10,7 @@ class TimeSeriesDatasetEnum(str, Enum):
 class ExplainerEnum(str, Enum):
     IntegratedGradients = "IntegratedGradients"
     ShapleyValueSampling = "ShapleyValueSampling"
-    Lime = "Lime"
-    KernelShap = "KernelShap"
     InputXGradient = "InputXGradient"
 
-    AddictiveExplainers = [IntegratedGradients, ShapleyValueSampling]
-    AllExplainers = [IntegratedGradients, ShapleyValueSampling, Lime, KernelShap, InputXGradient]
+    AdditiveExplainers = [IntegratedGradients, ShapleyValueSampling]
+    AllExplainers = [IntegratedGradients, ShapleyValueSampling, InputXGradient]

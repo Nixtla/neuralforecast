@@ -983,7 +983,6 @@ class NeuralForecast:
     def explain(
         self,
         horizons: Optional[list[int]] = None,
-        series: list[int] = [0],
         outputs: list[int] = [0],
         explainer: str = ExplainerEnum.IntegratedGradients,
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
@@ -1001,9 +1000,8 @@ class NeuralForecast:
 
         Args:
             horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
-            series (list of int, optional): List of series to explain for multivariate models. Defaults to [0] (first series). Multivariate models are not supported yet.
             outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
-            explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'. Defaults to 'IntegratedGradients'.
+            explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'InputXGradient'. Defaults to 'IntegratedGradients'.
             df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts. Defaults to None.
             static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
@@ -1096,7 +1094,6 @@ class NeuralForecast:
         explainer_config = {
             "explainer": captum.attr.__dict__[explainer],
             "horizons": horizons,
-            "series": series,
             "output_index": outputs,
         }
 
