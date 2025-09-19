@@ -116,6 +116,57 @@ Temporal Cross-Validation with core.NeuralForecast.
 
 
 
+### <kbd>method</kbd> `explain`
+
+```python
+explain(
+    horizons: Optional[list[int]] = None,
+    series: list[int] = [0],
+    outputs: list[int] = [0],
+    explainer: str = 'IntegratedGradients',
+    df: Optional[DataFrame, DataFrame, DataFrame] = None,
+    static_df: Optional[DataFrame, DataFrame, DataFrame] = None,
+    futr_df: Optional[DataFrame, DataFrame, DataFrame] = None,
+    verbose: bool = True,
+    engine=None,
+    level: Optional[List[Union[int, float]]] = None,
+    quantiles: Optional[List[float]] = None,
+    **data_kwargs
+)
+```
+
+(BETA) - Explain with core.NeuralForecast. 
+
+Use stored fitted `models` to explain large set of time series from DataFrame `df`. 
+
+
+
+**Args:**
+ 
+ - <b>`horizons`</b> (list of int, optional):  List of horizons to explain. If None, all horizons are explained. Defaults to None. 
+ - <b>`series`</b> (list of int, optional):  List of series to explain for multivariate models. Defaults to [0] (first series). Multivariate models are not supported yet. 
+ - <b>`outputs`</b> (list of int, optional):  List of outputs to explain for models with multiple outputs. Defaults to [0] (first output). 
+ - <b>`explainer`</b> (str):  Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'Lime', 'KernelShap', 'InputXGradient'. Defaults to 'IntegratedGradients'. 
+ - <b>`df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables. If a DataFrame is passed, it is used to generate forecasts. Defaults to None. 
+ - <b>`static_df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with columns [`unique_id`] and static exogenous. Defaults to None. 
+ - <b>`futr_df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None. 
+ - <b>`verbose`</b> (bool):  Print processing steps. Defaults to False. 
+ - <b>`engine`</b> (spark session):  Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. 
+ - <b>`level`</b> (list of ints or floats, optional):  Confidence levels between 0 and 100. Defaults to None. 
+ - <b>`quantiles`</b> (list of floats, optional):  Alternative to level, target quantiles to predict. Defaults to None. 
+ - <b>`data_kwargs`</b> (kwargs):  Extra arguments to be passed to the dataset within each model. 
+
+
+
+**Returns:**
+ 
+ - <b>`fcsts_df`</b> (pandas or polars DataFrame):  DataFrame with insample `models` columns for point predictions and probabilistic predictions for all fitted `models`. 
+ - <b>`explanations`</b> (dict):  Dictionary of explanations for the predictions. 
+
+---
+
+
+
 ### <kbd>method</kbd> `fit`
 
 ```python
