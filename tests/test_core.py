@@ -110,20 +110,6 @@ def test_cutoff_deltas(setup, step_size, freq, days):
     assert cutoff_deltas.nunique() == 1
     assert cutoff_deltas.unique()[0] == pd.Timedelta(f"{days}D")
 
-
-@pytest.fixture
-def setup_airplane_data():
-    AirPassengersPanel_train = AirPassengersPanel[
-        AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]
-    ].reset_index(drop=True)
-    AirPassengersPanel_test = AirPassengersPanel[
-        AirPassengersPanel["ds"] >= AirPassengersPanel["ds"].values[-12]
-    ].reset_index(drop=True)
-    AirPassengersPanel_test["y"] = np.nan
-    AirPassengersPanel_test["y_[lag12]"] = np.nan
-    return AirPassengersPanel_train, AirPassengersPanel_test
-
-
 @pytest.fixture
 def setup_airplane_data_polars(setup_airplane_data):
     """Create polars version of airplane data with renamed columns."""
@@ -686,7 +672,6 @@ def test_cross_validation(h=12, test_size=12):
     if (test_size - h) % 1:
         raise Exception("`test_size - h` should be module `step_size`")
 
-    _ = int((test_size - h) / 1) + 1
     Y_test_df = df.groupby("unique_id").tail(test_size)
     Y_train_df = df.drop(Y_test_df.index)
     config = {
