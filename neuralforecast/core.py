@@ -1062,7 +1062,7 @@ class NeuralForecast:
                         f"Skipping {model_name}: Explanations are not currently supported for {model_name} with {loss_name}. "
                         f"Please use a point loss (MAE, MSE, etc.) or a non-parametric probabilistic loss (MQLoss, IQLoss, etc.). "
                         f"Point losses and non-parametric probabilistic losses are listed here: "
-                        f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives"
+                        f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html"
                     )
                 continue
                 
@@ -1162,7 +1162,7 @@ class NeuralForecast:
             warnings.warn(
                 "You used a global scaler, so explanations will be scaled. Additivity may not hold, but the relative importance is still correct. "
                 "To have explanations in the same scale as the original data, use window scaling by setting scaler_type when initializing a model instead of local_scaler_type in the NeuralForecast object. "
-                "Read more on the two types of temporal scaling here: https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/time_series_scaling "
+                "Read more on the two types of temporal scaling here: https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/time_series_scaling.html "
             )
 
         # Collect explanations from models that were explained

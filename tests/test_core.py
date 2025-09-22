@@ -1730,7 +1730,7 @@ def test_explainability(explainer, use_polars, horizons):
         expected_insample_shape = (
             batch_size,           # batch_size
             len(horizons),        # horizons
-            n_series_,           # n_series (1 for univariate)
+            n_series_,            # n_series (1 for univariate)
             len(outputs),         # n_outputs
             expected_input_size,  # n_input_steps
             2                     # (y_attr, mask_attr)
@@ -1742,7 +1742,7 @@ def test_explainability(explainer, use_polars, horizons):
             expected_baseline_shape = (
                 batch_size,           # batch_size
                 len(horizons),        # horizons
-                n_series_,           # n_series (1 for univariate)
+                n_series_,            # n_series (1 for univariate)
                 len(outputs)          # n_outputs
             )
             assert expl["baseline_predictions"] is not None
@@ -1756,9 +1756,9 @@ def test_explainability(explainer, use_polars, horizons):
         model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
         if model.futr_exog_list:
             expected_futr_shape = (
-                batch_size,                # batch size
+                batch_size,                 # batch size
                 len(horizons),              # horizons
-                n_series_,                # n_series (1 for univariate)
+                n_series_,                  # n_series (1 for univariate)
                 len(outputs),               # n_outputs
                 input_size+h,               # n_input_steps (past + future)
                 len(model.futr_exog_list),  # number of features
@@ -1768,9 +1768,9 @@ def test_explainability(explainer, use_polars, horizons):
         if model.hist_exog_list:
             expected_hist_shape = (
                 batch_size,                # batch size
-                len(horizons),         # horizons
-                n_series_,         # n_series (1 for univariate)
-                len(outputs),         # n_outputs
+                len(horizons),             # horizons
+                n_series_,                 # n_series (1 for univariate)
+                len(outputs),              # n_outputs
                 input_size,                # n_input_steps (past)
                 len(model.hist_exog_list), # number of features
             )
@@ -1778,11 +1778,11 @@ def test_explainability(explainer, use_polars, horizons):
             assert expl["hist_exog"].shape == expected_hist_shape
         if model.stat_exog_list:
             expected_stat_shape = (
-                batch_size,  # batch size
-                len(horizons),         # horizons
-                n_series_,         # n_series (1 for univariate)
-                len(outputs),         # n_outputs
-                n_stat_exog, # number of features
+                batch_size,    # batch size
+                len(horizons), # horizons
+                n_series_,     # n_series (1 for univariate)
+                len(outputs),  # n_outputs
+                n_stat_exog,   # number of features
             )
             assert expl["stat_exog"] is not None
             assert expl["stat_exog"].shape == expected_stat_shape
