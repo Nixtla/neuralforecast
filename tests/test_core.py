@@ -38,6 +38,7 @@ from neuralforecast.auto import (
     TSMixerx,
     VanillaTransformer,
 )
+from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.core import (
     LSTM,
     DLinear,
@@ -1611,3 +1612,211 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     # Should have level columns for conformal predictions
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
+
+@pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
+@pytest.mark.parametrize("use_polars", [True, False])
+@pytest.mark.parametrize("horizons", [list(range(12)), [0, 5]])
+def test_explainability(explainer, use_polars, horizons):
+    "Test that explanations are returned or skipped depending on model and configuration"
+    Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
+    Y_test_df = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
+    futr_df = Y_test_df.drop(columns=["y", "y_[lag12]"])
+    static_df = AirPassengersStatic.drop(columns=["airline2"])
+
+    h = 12
+    input_size = 2*h
+    n_series = Y_train_df["unique_id"].nunique()
+    n_stat_exog = len(static_df.drop(columns="unique_id").columns)
+
+    base_config = {
+        "h": h,
+        "input_size": input_size,
+        "scaler_type": "robust",
+        "max_steps": 2
+    }
+
+    models = [
+        NHITS(**base_config),
+        NHITS(
+            **base_config,
+            hist_exog_list=["y_[lag12]"],
+            futr_exog_list=["trend"],
+            stat_exog_list=['airline1'],
+            alias="NHITS-exog",
+        ),
+        NHITS(
+            **base_config,
+            loss=MQLoss(level=[80]),
+            alias="NHITS-MQLoss"
+        ),
+        NHITS( # Gets skipped because of DistributionLoss
+            **base_config,
+            loss=DistributionLoss(distribution="Normal", level=[80]),
+            alias="NHITS-DistributionLoss"
+        ),
+        LSTM(
+            **base_config,
+            recurrent=False,
+        ),
+        LSTM( # Gets skiped when explainer is IntegratedGradients
+            **base_config,
+            recurrent=True,
+            accelerator="cpu",
+            alias="LSTM-recurrent"
+        ),
+        TSMixer( # Gets skipped because it's multivariate
+            **base_config,
+            n_series=2,
+        )
+    ]
+
+    freq="ME"
+    if use_polars:
+        Y_train_df = polars.from_pandas(Y_train_df)
+        static_df = polars.from_pandas(static_df)
+        futr_df = polars.from_pandas(futr_df)
+        freq="1mo"
+    nf = NeuralForecast(models=models, freq=freq)
+    nf.fit(df=Y_train_df, static_df=static_df)
+
+    outputs = [0]
+    preds_df, explanations = nf.explain(
+        outputs=outputs, # Get only 1 ouput
+        horizons=horizons, # Get all horizons
+        static_df=static_df,
+        futr_df=futr_df, 
+        explainer=explainer
+    )
+
+    # Determine which models should have explanations
+    expected_explanations = set()
+    skipped_models = set()
+    
+    for model in models:
+        model_name = model.alias or model.__class__.__name__
+        
+        # Check skip conditions
+        if model.MULTIVARIATE:
+            skipped_models.add(model_name)
+        elif hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
+            skipped_models.add(model_name)
+        elif model.RECURRENT and explainer == ExplainerEnum.IntegratedGradients:
+            skipped_models.add(model_name)
+        else:
+            expected_explanations.add(model_name)
+    
+    assert set(explanations.keys()) == expected_explanations, f"Expected {expected_explanations}, got {set(explanations.keys())}"
+
+    # Verify skipped models have no explanations
+    for model_name in skipped_models:
+        assert model_name not in explanations
+
+    # Verify explained models have predictions
+    for model_name in expected_explanations:
+        assert any(model_name in col for col in preds_df.columns), f"Model {model_name} should have predictions but doesn't"
+
+    # Test explained model
+    for model_name in expected_explanations:
+        expl = explanations[model_name]
+
+        # Basic structure tests
+        assert expl["insample"] is not None
+        expected_input_size = input_size
+        if model_name == "LSTM-recurrent":
+            expected_input_size = input_size + h
+        
+        batch_size = n_series
+        n_series_ = 1
+        expected_insample_shape = (
+            batch_size,           # batch_size
+            len(horizons),        # horizons
+            n_series_,            # n_series (1 for univariate)
+            len(outputs),         # n_outputs
+            expected_input_size,  # n_input_steps
+            2                     # (y_attr, mask_attr)
+        )
+        assert expl["insample"].shape == expected_insample_shape
+        
+        # Test additivity for additive explainers
+        if explainer == "IntegratedGradients":
+            expected_baseline_shape = (
+                batch_size,           # batch_size
+                len(horizons),        # horizons
+                n_series_,            # n_series (1 for univariate)
+                len(outputs)          # n_outputs
+            )
+            assert expl["baseline_predictions"] is not None
+            assert expl["baseline_predictions"].shape == expected_baseline_shape
+            _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons)
+        else:
+            assert expl["baseline_predictions"] is None
+            
+        
+        # Check exogenous if model has them
+        model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
+        if model.futr_exog_list:
+            expected_futr_shape = (
+                batch_size,                 # batch size
+                len(horizons),              # horizons
+                n_series_,                  # n_series (1 for univariate)
+                len(outputs),               # n_outputs
+                input_size+h,               # n_input_steps (past + future)
+                len(model.futr_exog_list),  # number of features
+            )
+            assert expl["futr_exog"] is not None
+            assert expl["futr_exog"].shape == expected_futr_shape
+        if model.hist_exog_list:
+            expected_hist_shape = (
+                batch_size,                # batch size
+                len(horizons),             # horizons
+                n_series_,                 # n_series (1 for univariate)
+                len(outputs),              # n_outputs
+                input_size,                # n_input_steps (past)
+                len(model.hist_exog_list), # number of features
+            )
+            assert expl["hist_exog"] is not None
+            assert expl["hist_exog"].shape == expected_hist_shape
+        if model.stat_exog_list:
+            expected_stat_shape = (
+                batch_size,    # batch size
+                len(horizons), # horizons
+                n_series_,     # n_series (1 for univariate)
+                len(outputs),  # n_outputs
+                n_stat_exog,   # number of features
+            )
+            assert expl["stat_exog"] is not None
+            assert expl["stat_exog"].shape == expected_stat_shape
+
+def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons):
+    """Test if sum of attributions and baseline predictions equal forecasts"""
+    pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
+    if use_polars:
+        preds = preds_df[pred_col].to_numpy()
+    else:
+        preds = preds_df[pred_col].values
+
+    # Sum over n_outputs (-1) and n_series (-2), shape (batch_size, h, n_series, n_outputs) -> (batch_size, h)
+    baseline = expl["baseline_predictions"].sum(dim=(-1, -2))  
+    
+    # Sum over channels (-1), input_sequence (-2), n_outputs (-3), n_series (-4)
+    sum_dims = (-1, -2, -3, -4) 
+    insample_attr = expl["insample"].sum(dim=sum_dims)
+    futr_attr = expl["futr_exog"].sum(dim=sum_dims) if not isinstance(expl["futr_exog"], list) else 0
+    hist_attr = expl["hist_exog"].sum(dim=sum_dims) if not isinstance(expl["hist_exog"], list) else 0
+    
+    # Static doesn't have the input_sequence dimension, as it is static across that dimension
+    sum_dims = (-1, -2, -3)  # Sum over channels (-1), n_outputs (-2), n_series (-3)
+    stat_attr = expl["stat_exog"].sum(dim=sum_dims) if not isinstance(expl["stat_exog"], list) else 0
+    
+    total_attr = insample_attr + futr_attr + hist_attr + stat_attr
+    pred_from_attr = baseline + total_attr  # Shape: (n_series, h)
+
+    preds = preds.reshape(n_series, h)
+    preds = preds[:, horizons]
+
+    np.testing.assert_allclose(
+        pred_from_attr.cpu().numpy(),
+        preds,
+        rtol=1e-3,
+        err_msg="Attribution predictions do not match model predictions"
+    )

@@ -22,7 +22,7 @@ from coreforecast.scalers import (
 )
 from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
-
+from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.models import (
     GRU,
     KAN,
@@ -215,6 +215,7 @@ _type2scaler = {
 
 
 class NeuralForecast:
+    models: List[Any]
 
     def __init__(
         self,
@@ -978,6 +979,208 @@ class NeuralForecast:
         fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
         return fcsts_df
+
+    def explain(
+        self,
+        horizons: Optional[list[int]] = None,
+        outputs: list[int] = [0],
+        explainer: str = ExplainerEnum.IntegratedGradients,
+        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        verbose: bool = True,
+        engine=None,
+        level: Optional[List[Union[int, float]]] = None,
+        quantiles: Optional[List[float]] = None,
+        **data_kwargs,
+    ):
+        """(BETA) - Explain with core.NeuralForecast.
+
+        Use stored fitted `models` to explain large set of time series from DataFrame `df`.
+
+        Args:
+            horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
+            outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
+            explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'InputXGradient'. Defaults to 'IntegratedGradients'.
+            df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+            If a DataFrame is passed, it is used to generate forecasts. Defaults to None.
+            static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
+            futr_df (pandas, polars or spark DataFrame, optional): DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None.
+            verbose (bool): Print processing steps. Defaults to False.
+            engine (spark session): Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
+            level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
+            quantiles (list of floats, optional): Alternative to level, target quantiles to predict. Defaults to None.
+            data_kwargs (kwargs): Extra arguments to be passed to the dataset within each model.
+
+        Returns:
+            fcsts_df (pandas or polars DataFrame): DataFrame with insample `models` columns for point predictions and probabilistic
+            predictions for all fitted `models`.
+            explanations (dict): Dictionary of explanations for the predictions.
+        """
+        warnings.warn("This function is beta and subject to change.")
+
+        if horizons is None:
+            horizons = list(range(self.h))
+        elif not horizons or len(horizons) > self.h or any(h < 0 or h >= self.h for h in horizons):
+            raise ValueError(
+                f"Invalid indices. Make sure to select horizon steps within {list(range(self.h))} or set it to None to explain all horizon steps"
+            )
+
+        try:
+            import captum
+        except ImportError:
+            raise ImportError(
+                "Captum is not installed. Please install it with `pip install captum`."
+            )
+        if not hasattr(captum.attr, explainer):
+            raise ValueError(f"Explainer {explainer} is not available in captum.")
+        if explainer not in ExplainerEnum.AllExplainers:
+            all_explainers = ", ".join(ExplainerEnum.AllExplainers)
+            raise ValueError(
+                f"Explainer {explainer} is not supported. Supported explainers are: {all_explainers}."
+            )
+
+        models_to_explain = []
+        skipped_models = []
+        
+        for model in self.models:
+            model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
+            
+            # Check for multivariate models
+            if model.MULTIVARIATE:
+                skipped_models.append(model_name)
+                if verbose:
+                    warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
+                continue
+                
+            # Check for DistributionLoss
+            if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
+                loss_name = model.loss.__class__.__name__
+                skipped_models.append(model_name)
+                if verbose:
+                    warnings.warn(
+                        f"Skipping {model_name}: Explanations are not currently supported for {model_name} with {loss_name}. "
+                        f"Please use a point loss (MAE, MSE, etc.) or a non-parametric probabilistic loss (MQLoss, IQLoss, etc.). "
+                        f"Point losses and non-parametric probabilistic losses are listed here: "
+                        f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html"
+                    )
+                continue
+                
+            # Check for recurrent models with incompatible configurations
+            if model.RECURRENT:
+                # Check for IntegratedGradients incompatibility
+                if explainer == "IntegratedGradients":
+                    skipped_models.append(model_name)
+                    if verbose:
+                        warnings.warn(
+                            f"Skipping {model_name}: IntegratedGradients is not compatible with recurrent models. "
+                            f"Either set recurrent=False when initializing the model, or use a different explainer."
+                        )
+                    continue
+                
+                # Check for InputXGradient + GPU incompatibility (cudnn error)
+                if explainer == "InputXGradient":
+                    using_gpu = False
+                    if hasattr(model, 'trainer_kwargs'):
+                        accelerator = model.trainer_kwargs.get('accelerator', 'auto')
+                        using_gpu = (accelerator == 'gpu' or 
+                                    (accelerator == 'auto' and torch.cuda.is_available()))
+                    elif torch.cuda.is_available():
+                        using_gpu = True
+                    
+                    if using_gpu:
+                        skipped_models.append(model_name)
+                        if verbose:
+                            warnings.warn(
+                                f"Skipping {model_name}: InputXGradient with recurrent models on GPU causes cudnn errors. "
+                                f"To fix this, either: 1) Set recurrent=False when initializing the model, "
+                                f"2) Use ShapleyValueSampling instead, or "
+                                f"3) Set accelerator='cpu' and devices=1 when initializing the model."
+                            )
+                        continue
+                
+            models_to_explain.append(model)
+        
+        if not models_to_explain:
+            # Build a more specific error message based on what was skipped
+            error_msg = "No models support explanations with the current configuration. "
+            if any(model.RECURRENT for model in self.models) and explainer == ExplainerEnum.IntegratedGradients:
+                error_msg += (
+                    f"{ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
+                    "Either set recurrent=False or use a different explainer. "
+                )
+            error_msg += (
+                f"The following models were skipped: {', '.join(skipped_models)}. "
+            )
+            raise ValueError(error_msg)
+        
+        # Determine minimum outputs across all models
+        min_outputs = min(
+            model.loss.outputsize_multiplier if hasattr(model.loss, 'outputsize_multiplier')
+            else len(model.loss.output_names) if hasattr(model.loss, 'output_names')
+            else 1
+            for model in models_to_explain
+        )
+
+        # Validate outputs
+        if outputs is None:
+            outputs = [0]  # Default to first output
+        elif not outputs or any(o < 0 or o >= min_outputs for o in outputs):
+            raise ValueError(
+                f"Invalid output indices. Based on the models being explained, valid outputs are in {list(range(min_outputs))}. "
+                f"You must set valid output indices for all models, which is the minimum number of ouputs amongst all models. "
+                f"You can always set outputs=None to default to [0] (first output)."
+            )
+        
+        # Temporarily replace self.models with only explainable models
+        original_models = self.models
+        self.models = models_to_explain
+
+        explainer_config = {
+            "explainer": captum.attr.__dict__[explainer],
+            "horizons": horizons,
+            "output_index": outputs,
+        }
+
+        try:
+            fcsts_df = self.predict(
+                df=df,
+                static_df=static_df,
+                futr_df=futr_df,
+                verbose=verbose,
+                engine=engine,
+                level=level,
+                quantiles=quantiles,
+                explainer_config=explainer_config,
+                **data_kwargs,
+            )
+        finally:
+            # Restore original models
+            self.models = original_models
+
+        if self.scalers_:
+            warnings.warn(
+                "You used a global scaler, so explanations will be scaled. Additivity may not hold, but the relative importance is still correct. "
+                "To have explanations in the same scale as the original data, use window scaling by setting scaler_type when initializing a model instead of local_scaler_type in the NeuralForecast object. "
+                "Read more on the two types of temporal scaling here: https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/time_series_scaling.html "
+            )
+
+        # Collect explanations from models that were explained
+        explanations = {}
+        for model in models_to_explain:
+            if hasattr(model, "explanations") and model.explanations is not None:
+                model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
+                explanations[model_name] = {
+                    "insample": model.explanations["insample_explanations"],           # [batch_size, horizon, n_series, n_output, input_size, 2 (y attribution, mask attribution)]
+                    "futr_exog": model.explanations["futr_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size+horizon, n_futr_features]
+                    "hist_exog": model.explanations["hist_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size, n_hist_features]
+                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features]
+                    "baseline_predictions": model.explanations["baseline_predictions"] # [batch_size, horizon, n_series, n_output]
+                }
+                # Delete explanations attribute once extracted
+                delattr(model, "explanations")
+
+        return fcsts_df, explanations
 
     def _reset_models(self):
         self.models = [deepcopy(model) for model in self.models_init]
