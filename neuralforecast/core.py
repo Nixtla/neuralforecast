@@ -1017,6 +1017,8 @@ class NeuralForecast:
             predictions for all fitted `models`.
             explanations (dict): Dictionary of explanations for the predictions.
         """
+        warnings.warn("This function is beta and subject to change.")
+
         if horizons is None:
             horizons = list(range(self.h))
         elif not horizons or len(horizons) > self.h or any(h < 0 or h >= self.h for h in horizons):
