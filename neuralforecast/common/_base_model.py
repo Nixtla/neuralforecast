@@ -1815,7 +1815,7 @@ class BaseModel(pl.LightningModule):
         """
         if h is not None and h > self.horizon_backup and explainer_config is not None:
             # TODO remove this if the constraint is no longer applicable.
-            raise ValueError("Prediction explaination is not supported for prediction horizon larger than the horizon of the fitted models")
+            raise ValueError("Prediction explanation is not supported for prediction horizon larger than the horizon of the fitted models")
 
         self._check_exog(dataset)
         self._restart_seed(random_seed)
