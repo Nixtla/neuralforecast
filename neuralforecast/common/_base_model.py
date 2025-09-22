@@ -2162,9 +2162,6 @@ class BaseModel(pl.LightningModule):
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
         additive_explainers = ExplainerEnum.AdditiveExplainers
 
-        explainer_class = self.explainer_config["explainer"]
-        explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
-        additive_explainers = ExplainerEnum.AdditiveExplainers
         if explainer_name in additive_explainers:
             if self.RECURRENT:
                 baseline_predictions = self._predict_step_recurrent_batch(
