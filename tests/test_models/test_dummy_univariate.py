@@ -41,7 +41,7 @@ class TestDummyUnivariate:
         
         with pytest.raises(
             ValueError,
-            match="Prediction explaination is not supported for prediction horizon larger than the horizon of the fitted models",
+            match="Prediction explanation is not supported for prediction horizon larger than the horizon of the fitted models",
         ):
             model.predict(dataset=dataset,h=longer_horizon_test.longer_h, explainer_config=mocked_config)
 
