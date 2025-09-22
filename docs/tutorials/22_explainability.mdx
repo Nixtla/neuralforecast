@@ -111,9 +111,7 @@ Once the model is trained, we can get feature attributions using the
 
 This method takes the following parameters: - `horizons`: List of
 horizons to explain. If None, all horizons are explained. Defaults to
-None. - `series`: List of series to explain for multivariate models.
-Defaults to \[0\] (first series). Multivariate models are not supported
-yet. - `outputs`: List of outputs to explain for models with multiple
+None. - `outputs`: List of outputs to explain for models with multiple
 outputs. Defaults to \[0\] (first output). This is useful when we have
 models trained with a probabilistic loss. We will explore that later in
 the tutorial. - `explainer`: Name of the explainer to use. Options are
@@ -184,7 +182,7 @@ explainer does not have the additivity property, the value will be set
 to None.
 
 We will touch upon the additivity property in a later section. For now,
-just know that “IntegratedGradients” has the additive property, meaning
+just know that `IntegratedGradients` has the additive property, meaning
 that taking the sum of baseline predictions and feature attributions
 results in the final forecast made by the model.
 
@@ -456,13 +454,12 @@ scenario.
 
 **Notes:** - **Local/Global**: All explainers are local, because they
 only explain how a specific input affects a specific forecast. -
-**Additivity Property**: Whether the sum feature attributions and
+**Additivity Property**: Whether the sum of the feature attributions and
 baseline predictions result in the final forecast. - **Speed**: - Very
 fast: Single gradient computation - Fast: Multiple gradient computations
-(Integrated Gradients) - Medium: Multiple model evaluations (model
-fitting for LIME) - Slow: Many model evaluations for sampling-based
-methods - Very Slow: Exponential complexity in worst case (exact Shapley
-values)
+(Integrated Gradients) - Medium: Multiple model evaluations - Slow: Many
+model evaluations for sampling-based methods - Very Slow: Exponential
+complexity in worst case (exact Shapley values)
 
 #### Integrated Gradients
 
@@ -526,7 +523,7 @@ LSTM and GRU models.
 
 ### Explaining models with different loss functions
 
-Currently, explanations are supported for models trained with: - point
+Currently, explanations are supported for models trained with: - Point
 loss functions (MAE, MSE, RMSE, etc.) - Non-parametric probabilistic
 losses (IQLoss, MQLoss, etc.)
 
