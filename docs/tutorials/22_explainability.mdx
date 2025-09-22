@@ -2,15 +2,6 @@
 title: Explainability for Deep Learning Forecasting Models
 ---
 
-
-```python
-%set_env PYTORCH_ENABLE_MPS_FALLBACK=1
-```
-
-``` text
-env: PYTORCH_ENABLE_MPS_FALLBACK=1
-```
-
 In this detailed tutorial, we discover how to explain forecasts made
 with models from *neuralforecast*.
 
@@ -61,7 +52,8 @@ static exogenous variable (`Airline1`)
 
 That way, we see that we can handle attributions for all types of
 exogenous features. For more information on the types of exogenous
-features, read [this tutorial](../capabilities/03_exogenous_variables).
+features, read [this
+tutorial](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/exogenous_variables.html).
 
 ```python
 Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -302,7 +294,7 @@ shap_explanation = shap.Explanation(
 shap.plots.waterfall(shap_explanation)
 ```
 
-![](22_explainability_files/figure-markdown_strict/cell-11-output-1.png)
+![](22_explainability_files/figure-markdown_strict/cell-10-output-1.png)
 
 As you can see, we now have a nice waterfall plot showing the baseline
 prediction, E\[f(X)\] = 396.163, and how each features contributes to
@@ -315,7 +307,7 @@ example, we can do a simple bar plot as shown below.
 shap.plots.bar(shap_explanation)
 ```
 
-![](22_explainability_files/figure-markdown_strict/cell-12-output-1.png)
+![](22_explainability_files/figure-markdown_strict/cell-11-output-1.png)
 
 In both figures above, we have the breakdown of each feature at each
 timestep. This can make the plots crowded or it can be a level of
@@ -370,7 +362,7 @@ shap_explanation = shap.Explanation(
 shap.plots.waterfall(shap_explanation)
 ```
 
-![](22_explainability_files/figure-markdown_strict/cell-13-output-1.png)
+![](22_explainability_files/figure-markdown_strict/cell-12-output-1.png)
 
 As you can see from the plot above, we have combined all inputs of each
 type of feature into a single category, so we can see how each overall
@@ -531,7 +523,8 @@ We do not support yet explaining models trained with parametric loss
 functions, like Normal, Student’s T, etc.
 
 For more information on the different loss functions supported in
-*neuralforecast*, read [here](../capabilities/02_objectives).
+*neuralforecast*, read
+[here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html).
 
 #### Explaning a model with a probablistic loss function
 
