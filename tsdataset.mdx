@@ -1,0 +1,453 @@
+
+
+
+
+# <kbd>module</kbd> `neuralforecast.tsdataset`
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `TimeSeriesLoader`
+TimeSeriesLoader DataLoader. 
+
+Small change to PyTorch's Data loader. Combines a dataset and a sampler, and provides an iterable over the given dataset. 
+
+The class `~torch.utils.data.DataLoader` supports both map-style and iterable-style datasets with single- or multi-process loading, customizing loading order and optional automatic batching (collation) and memory pinning. 
+
+
+
+**Args:**
+ 
+ - <b>`dataset`</b>:  Dataset to load data from. 
+ - <b>`batch_size`</b> (int, optional):  How many samples per batch to load. Defaults to 1. 
+ - <b>`shuffle`</b> (bool, optional):  Set to True to have the data reshuffled at every epoch. Defaults to False. 
+ - <b>`sampler`</b> (Sampler or Iterable, optional):  Defines the strategy to draw samples from the dataset.  Can be any Iterable with __len__ implemented. If specified, shuffle must not be specified. Defaults to None. 
+ - <b>`drop_last`</b> (bool, optional):  Set to True to drop the last incomplete batch. Defaults to False. 
+ - <b>`**kwargs`</b>:  Additional keyword arguments for DataLoader. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(dataset, **kwargs)
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> multiprocessing_context
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `BaseTimeSeriesDataset`
+Base class for time series datasets. 
+
+
+
+**Args:**
+ 
+ - <b>`temporal_cols`</b>:  Column names for temporal features. 
+ - <b>`max_size`</b> (int):  Maximum size of time series. 
+ - <b>`min_size`</b> (int):  Minimum size of time series. 
+ - <b>`y_idx`</b> (int):  Index of target variable. 
+ - <b>`static`</b> (Optional):  Static features array. 
+ - <b>`static_cols`</b> (Optional):  Column names for static features. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    temporal_cols,
+    max_size: int,
+    min_size: int,
+    y_idx: int,
+    static=None,
+    static_cols=None
+)
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `TimeSeriesDataset`
+Time series dataset implementation. 
+
+
+
+**Args:**
+ 
+ - <b>`temporal`</b>:  Temporal data array. 
+ - <b>`temporal_cols`</b>:  Column names for temporal features. 
+ - <b>`indptr`</b>:  Index pointers for time series grouping. 
+ - <b>`y_idx`</b> (int):  Index of target variable. 
+ - <b>`static`</b> (Optional):  Static features array. 
+ - <b>`static_cols`</b> (Optional):  Column names for static features. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    temporal,
+    temporal_cols,
+    indptr,
+    y_idx: int,
+    static=None,
+    static_cols=None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `align`
+
+```python
+align(
+    df: Union[DataFrame, DataFrame],
+    id_col: str,
+    time_col: str,
+    target_col: str
+) → TimeSeriesDataset
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `append`
+
+```python
+append(futr_dataset: 'TimeSeriesDataset') → TimeSeriesDataset
+```
+
+Add future observations to the dataset. 
+
+
+
+**Args:**
+ 
+ - <b>`futr_dataset`</b> (TimeSeriesDataset):  Future dataset to append. 
+
+
+
+**Returns:**
+ 
+ - <b>`TimeSeriesDataset`</b>:  Copy of dataset with future observations appended. 
+
+
+
+**Raises:**
+ 
+ - <b>`ValueError`</b>:  If datasets have different number of groups. 
+
+---
+
+
+
+### <kbd>method</kbd> `from_df`
+
+```python
+from_df(df, static_df=None, id_col='unique_id', time_col='ds', target_col='y')
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `trim_dataset`
+
+```python
+trim_dataset(dataset, left_trim: int = 0, right_trim: int = 0)
+```
+
+Trim temporal information from a dataset. 
+
+Returns temporal indexes [t+left:t-right] for all series. 
+
+
+
+**Args:**
+ 
+ - <b>`dataset`</b>:  Dataset to trim. 
+ - <b>`left_trim`</b> (int, optional):  Number of observations to trim from the left. Defaults to 0. 
+ - <b>`right_trim`</b> (int, optional):  Number of observations to trim from the right. Defaults to 0. 
+
+
+
+**Returns:**
+ 
+ - <b>`TimeSeriesDataset`</b>:  Trimmed dataset. 
+
+
+
+**Raises:**
+ 
+ - <b>`Exception`</b>:  If trim size exceeds minimum series length. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_dataset`
+
+```python
+update_dataset(
+    dataset,
+    futr_df,
+    id_col='unique_id',
+    time_col='ds',
+    target_col='y'
+)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `LocalFilesTimeSeriesDataset`
+Time series dataset that loads data from local files. 
+
+
+
+**Args:**
+ 
+ - <b>`files_ds`</b> (List[str]):  List of file paths. 
+ - <b>`temporal_cols`</b>:  Column names for temporal features. 
+ - <b>`id_col`</b> (str):  Name of ID column. 
+ - <b>`time_col`</b> (str):  Name of time column. 
+ - <b>`target_col`</b> (str):  Name of target column. 
+ - <b>`last_times`</b>:  Last time for each time series. 
+ - <b>`indices`</b>:  Series indices. 
+ - <b>`max_size`</b> (int):  Maximum size of time series. 
+ - <b>`min_size`</b> (int):  Minimum size of time series. 
+ - <b>`y_idx`</b> (int):  Index of target variable. 
+ - <b>`static`</b> (Optional):  Static features array. 
+ - <b>`static_cols`</b> (Optional):  Column names for static features. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    files_ds: List[str],
+    temporal_cols,
+    id_col: str,
+    time_col: str,
+    target_col: str,
+    last_times,
+    indices,
+    max_size: int,
+    min_size: int,
+    y_idx: int,
+    static=None,
+    static_cols=None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `from_data_directories`
+
+```python
+from_data_directories(
+    directories,
+    static_df=None,
+    exogs=[],
+    id_col='unique_id',
+    time_col='ds',
+    target_col='y'
+)
+```
+
+Create dataset from data directories. 
+
+Expects directories to be a list of directories of the form [unique_id=id_0, unique_id=id_1, ...]. Each directory should contain the timeseries corresponding to that unique_id, represented as a pandas or polars DataFrame. The timeseries can be entirely contained in one parquet file or split between multiple, but within each parquet files the timeseries should be sorted by time. 
+
+
+
+**Args:**
+ 
+ - <b>`directories`</b>:  List of directory paths. 
+ - <b>`static_df`</b> (Optional):  Static features DataFrame. 
+ - <b>`exogs`</b> (List, optional):  List of exogenous variable names. Defaults to []. 
+ - <b>`id_col`</b> (str, optional):  Name of ID column. Defaults to "unique_id". 
+ - <b>`time_col`</b> (str, optional):  Name of time column. Defaults to "ds". 
+ - <b>`target_col`</b> (str, optional):  Name of target column. Defaults to "y". 
+
+
+
+**Returns:**
+ 
+ - <b>`LocalFilesTimeSeriesDataset`</b>:  Dataset created from directories. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `TimeSeriesDataModule`
+PyTorch Lightning data module for time series datasets. 
+
+
+
+**Args:**
+ 
+ - <b>`dataset`</b> (BaseTimeSeriesDataset):  Time series dataset. 
+ - <b>`batch_size`</b> (int, optional):  Batch size for training. Defaults to 32. 
+ - <b>`valid_batch_size`</b> (int, optional):  Batch size for validation. Defaults to 1024. 
+ - <b>`drop_last`</b> (bool, optional):  Whether to drop the last incomplete batch. Defaults to False. 
+ - <b>`shuffle_train`</b> (bool, optional):  Whether to shuffle training data. Defaults to True. 
+ - <b>`**dataloaders_kwargs`</b>:  Additional keyword arguments for data loaders. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    dataset: BaseTimeSeriesDataset,
+    batch_size=32,
+    valid_batch_size=1024,
+    drop_last=False,
+    shuffle_train=True,
+    **dataloaders_kwargs
+)
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> hparams
+
+The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For the frozen set of initial hyperparameters, use :attr:`hparams_initial`. 
+
+
+
+**Returns:**
+  Mutable hyperparameters dictionary 
+
+---
+
+#### <kbd>property</kbd> hparams_initial
+
+The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only. Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`. 
+
+
+
+**Returns:**
+ 
+ - <b>`AttributeDict`</b>:  immutable initial hyperparameters 
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `predict_dataloader`
+
+```python
+predict_dataloader()
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `train_dataloader`
+
+```python
+train_dataloader()
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `val_dataloader`
+
+```python
+val_dataloader()
+```
+
+
+
+
+
+

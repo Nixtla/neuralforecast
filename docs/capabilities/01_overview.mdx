@@ -1,0 +1,81 @@
+---
+title: Forecasting Models
+---
+
+NeuralForecast currently offers the following models.
+
+| Model<sup>1</sup>    | AutoModel<sup>2</sup>    | Family<sup>3</sup> | Univariate / Multivariate<sup>4</sup> | Forecast Type<sup>5</sup> | Exogenous<sup>6</sup> |
+|:------|:--------|:-----------|:--------------------|:-----------|:-------------|
+| `Autoformer`         | `AutoAutoformer`         | Transformer        | Univariate                            | Direct                    | F                     |
+| `BiTCN`              | `AutoBiTCN`              | CNN                | Univariate                            | Direct                    | F/H/S                 |
+| `DeepAR`             | `AutoDeepAR`             | RNN                | Univariate                            | Direct                    | F/S                   |
+| `DeepNPTS`           | `AutoDeepNPTS`           | MLP                | Univariate                            | Direct                    | F/H/S                 |
+| `DilatedRNN`         | `AutoDilatedRNN`         | RNN                | Univariate                            | Direct                    | F/H/S                 |
+| `FEDformer`          | `AutoFEDformer`          | Transformer        | Univariate                            | Direct                    | F                     |
+| `GRU`                | `AutoGRU`                | RNN                | Univariate                            | Both<sup>8</sup>          | F/H/S                 |
+| `HINT`               | `AutoHINT`               | Any<sup>7</sup>    | Both<sup>7</sup>                      | Both<sup>7</sup>          | F/H/S                 |
+| `Informer`           | `AutoInformer`           | Transformer        | Univariate                            | Direct                    | F                     |
+| `iTransformer`       | `AutoiTransformer`       | Transformer        | Multivariate                          | Direct                    | \-                    |
+| `KAN`                | `AutoKAN`                | KAN                | Univariate                            | Direct                    | F/H/S                 |
+| `LSTM`               | `AutoLSTM`               | RNN                | Univariate                            | Both<sup>8</sup>          | F/H/S                 |
+| `MLP`                | `AutoMLP`                | MLP                | Univariate                            | Direct                    | F/H/S                 |
+| `MLPMultivariate`    | `AutoMLPMultivariate`    | MLP                | Multivariate                          | Direct                    | F/H/S                 |
+| `NBEATS`             | `AutoNBEATS`             | MLP                | Univariate                            | Direct                    | \-                    |
+| `NBEATSx`            | `AutoNBEATSx`            | MLP                | Univariate                            | Direct                    | F/H/S                 |
+| `NHITS`              | `AutoNHITS`              | MLP                | Univariate                            | Direct                    | F/H/S                 |
+| `NLinear`            | `AutoNLinear`            | MLP                | Univariate                            | Direct                    | \-                    |
+| `PatchTST`           | `AutoPatchTST`           | Transformer        | Univariate                            | Direct                    | \-                    |
+| `RMoK`               | `AutoRMoK`               | KAN                | Multivariate                          | Direct                    | \-                    |
+| `RNN`                | `AutoRNN`                | RNN                | Univariate                            | Both<sup>8</sup>          | F/H/S                 |
+| `SOFTS`              | `AutoSOFTS`              | MLP                | Multivariate                          | Direct                    | \-                    |
+| `StemGNN`            | `AutoStemGNN`            | GNN                | Multivariate                          | Direct                    | \-                    |
+| `TCN`                | `AutoTCN`                | CNN                | Univariate                            | Direct                    | F/H/S                 |
+| `TFT`                | `AutoTFT`                | Transformer        | Univariate                            | Direct                    | F/H/S                 |
+| `TiDE`               | `AutoTiDE`               | MLP                | Univariate                            | Direct                    | F/H/S                 |
+| `TimeMixer`          | `AutoTimeMixer`          | MLP                | Multivariate                          | Direct                    | \-                    |
+| `TimeLLM`            | \-                       | LLM                | Univariate                            | Direct                    | \-                    |
+| `TimesNet`           | `AutoTimesNet`           | CNN                | Univariate                            | Direct                    | F                     |
+| `TimeXer`            | `AutoTimeXer`            | Transformer        | Multivariate                          | Direct                    | F                     |
+| `TSMixer`            | `AutoTSMixer`            | MLP                | Multivariate                          | Direct                    | \-                    |
+| `TSMixerx`           | `AutoTSMixerx`           | MLP                | Multivariate                          | Direct                    | F/H/S                 |
+| `VanillaTransformer` | `AutoVanillaTransformer` | Transformer        | Univariate                            | Direct                    | F                     |
+| `xLSTM`              | `AutoxLSTM`              | mLSTM              | Univariate                            | Direct                    | F/H/S                 |
+
+1.  **Model**: The model name.
+2.  **AutoModel**: NeuralForecast offers most models also in an Auto\*
+    version, in which the hyperparameters of the underlying model are
+    automatically optimized and the best-performing model for a
+    validation set is selected. The optimization methods include grid
+    search, random search, and Bayesian optimization.
+3.  **Family**: The main neural network architecture underpinning the
+    model.
+4.  **Univariate / Multivariate**: A multivariate model explicitly
+    models the interactions between multiple time series in a dataset
+    and will provide predictions for multiple time series concurrently.
+    In contrast, a univariate model trained on multiple time series
+    implicitly models interactions between multiple time series and
+    provides predictions for single time series concurrently.
+    Multivariate models are typically computationally expensive and
+    empirically do not necessarily offer better forecasting performance
+    compared to using a univariate model.
+5.  **Forecast Type**: Direct forecast models are models that produce
+    all steps in the forecast horizon at once. In contrast, recursive
+    forecast models predict one-step ahead, and subsequently use the
+    prediction to compute the next step in the forecast horizon, and so
+    forth. Direct forecast models typically suffer less from bias and
+    variance propagation as compared to recursive forecast models,
+    whereas recursive models can be computationally less expensive.
+6.  **Exogenous**: Whether the model accepts exogenous variables. This
+    can be exogenous variables that contain information about the past
+    and future (F), about the past only (*historical*, H), or that
+    contain static information (*static*, S).
+7.  **HINT** is a modular framework that can combine any type of neural
+    architecture with task-specialized mixture probability and advanced
+    hierarchical reconciliation strategies.
+8.  Models that can produce forecasts recursively and direct. For
+    example, the RNN model uses an RNN to encode the past sequence, and
+    subsequently the user can choose between producing forecasts
+    recursively using the RNN or direct using an MLP that uses the
+    encoded sequence as input. The models feature an `recursive=False`
+    feature that sets how they produce forecasts.
+

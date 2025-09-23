@@ -1,0 +1,29 @@
+---
+title: Optimization Objectives
+---
+
+NeuralForecast is a highly modular framework capable of augmenting a
+wide variety of robust neural network architectures with different point
+or probability outputs as defined by their optimization objectives.
+
+## Point losses
+
+| Scale-Dependent                             | Percentage-Errors                             | Scale-Independent                           | Robust                                                    |
+|:-----------------|:-------------------|:-----------------|:---------------|
+| [**MAE**](../../losses.pytorch#class-mae)   | [**MAPE**](../../losses.pytorch#class-mape)   | [**MASE**](../../losses.pytorch#class-mase) | [**Huber**](../losses.pytorch#class-huberloss)            |
+| [**MSE**](../../losses.pytorch#class-mse)   | [**sMAPE**](../../losses.pytorch#class-smape) |                                             | [**Tukey**](../../losses.pytorch#class-tukeyloss)         |
+| [**RMSE**](../../losses.pytorch#class-rmse) |                                               |                                             | [**HuberMQLoss**](../../losses.pytorch#class-hubermqloss) |
+
+## Probabilistic losses
+
+| Parametric Probabilities                                             | Non-Parametric Probabilities                                |
+|:-----------------------------------|:-----------------------------------|
+| [**Normal**](../../losses.pytorch#class-distributionloss)            | [**QuantileLoss**](../../losses.pytorch#class-quantileloss) |
+| [**StudenT**](../../losses.pytorch#class-distributionloss)           | [**MQLoss**](../../losses.pytorch#class-mqloss)             |
+| [**Poisson**](../../losses.pytorch#class-distributionloss)           | [**HuberQLoss**](../../losses.pytorch#class-huberiqloss)    |
+| [**Negative Binomial**](../../losses.pytorch#class-distributionloss) | [**HuberMQLoss**](../../losses.pytorch#class-hubermqloss)   |
+| [**Tweedie**](../../losses.pytorch#class-distributionloss)           | [**IQLoss**](../../losses.pytorch#class-iqloss)             |
+| [**PMM**](../../losses.pytorch#class-pmm)                            | [**HuberIQLoss**](../../losses.pytorch#class-huberiqloss)   |
+| [**GMM**](../../losses.pytorch#class-gmm)                            | [**ISQF**](../../losses.pytorch#class-isqf)                 |
+| [**NBMM**](../../losses.pytorch#class-nbmm)                          |                                                             |
+

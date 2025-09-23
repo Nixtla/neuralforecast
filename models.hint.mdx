@@ -1,0 +1,276 @@
+
+
+
+
+# <kbd>module</kbd> `neuralforecast.models.hint`
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_bottomup_P`
+
+```python
+get_bottomup_P(S: ndarray)
+```
+
+BottomUp Reconciliation Matrix. 
+
+Creates BottomUp hierarchical "projection" matrix is defined as: $$\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$ 
+
+
+
+**Args:**
+ 
+ - <b>`S`</b> (np.ndarray):  Summing matrix of size (`base`, `bottom`). 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Reconciliation matrix of size (`bottom`, `base`). 
+
+References: 
+    - [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_mintrace_ols_P`
+
+```python
+get_mintrace_ols_P(S: ndarray)
+```
+
+MinTraceOLS Reconciliation Matrix. 
+
+Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al. 
+
+$$\mathbf{P}_{\text{MinTraceOLS}}=\left(\mathbf{S}^{\intercal}\mathbf{S}\right)^{-1}\mathbf{S}^{\intercal}$$ 
+
+
+
+**Args:**
+ 
+ - <b>`S`</b> (np.ndarray):  Summing matrix of size (`base`, `bottom`). 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Reconciliation matrix of size (`bottom`, `base`). 
+
+References: 
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_mintrace_wls_P`
+
+```python
+get_mintrace_wls_P(S: ndarray)
+```
+
+MinTraceOLS Reconciliation Matrix. 
+
+Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al. Depending on a weighted GLS estimator and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$. 
+
+$$ \mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})$$ 
+
+$$\mathbf{P}_{\text{MinTraceWLS}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1} \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$ 
+
+
+
+**Args:**
+ 
+ - <b>`S`</b> (np.ndarray):  Summing matrix of size (`base`, `bottom`). 
+
+
+
+**Returns:**
+ 
+ - <b>`np.ndarray`</b>:  Reconciliation matrix of size (`bottom`, `base`). 
+
+References: 
+    - [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_identity_P`
+
+```python
+get_identity_P(S: ndarray)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `HINT`
+HINT 
+
+The Hierarchical Mixture Networks (HINT) are a highly modular framework that combines SoTA neural forecast architectures with a task-specialized mixture probability and advanced hierarchical reconciliation strategies. This powerful combination allows HINT to produce accurate and coherent probabilistic forecasts. 
+
+HINT's incorporates a `TemporalNorm` module into any neural forecast architecture, the module normalizes inputs into the network's non-linearities operating range and recomposes its output's scales through a global skip connection, improving accuracy and training robustness. HINT ensures the forecast coherence via bootstrap sample reconciliation that restores the aggregation constraints into its base samples. 
+
+Available reconciliations: 
+    - BottomUp 
+    - MinTraceOLS 
+    - MinTraceWLS 
+- Identity 
+
+
+
+**Args:**
+ 
+ - <b>`h`</b> (int):  Forecast horizon. 
+ - <b>`model`</b> (NeuralForecast model):  Instantiated model class from [architecture collection](./models). 
+ - <b>`S`</b> (np.ndarray):  Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](../hierarchicalforecast/utils#function-aggregate). 
+ - <b>`reconciliation`</b> (str):  HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS']. 
+ - <b>`alias`</b> (str, optional):  Custom name of the model. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    h: int,
+    S: ndarray,
+    model,
+    reconciliation: str,
+    alias: Optional[str] = None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `fit`
+
+```python
+fit(dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None)
+```
+
+HINT.fit 
+
+HINT trains on the entire hierarchical dataset, by minimizing a composite log  likelihood objective. HINT framework integrates `TemporalNorm` into the neural  forecast architecture for a scale-decoupled optimization that robustifies  cross-learning the hierachy's series scales. 
+
+
+
+**Args:**
+ 
+ - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) 
+ - <b>`val_size`</b> (int):  size of the validation set, (default 0). 
+ - <b>`test_size`</b> (int):  size of the test set, (default 0). 
+ - <b>`random_seed`</b> (int):  random seed for the prediction. 
+
+
+
+**Returns:**
+ 
+ - <b>`self`</b>:  A fitted base `NeuralForecast` model. 
+
+---
+
+
+
+### <kbd>method</kbd> `get_test_size`
+
+```python
+get_test_size()
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `predict`
+
+```python
+predict(dataset, step_size=1, random_seed=None, **data_module_kwargs)
+```
+
+HINT.predict 
+
+After fitting a base model on the entire hierarchical dataset. HINT restores the hierarchical aggregation constraints using bootstrapped sample reconciliation. 
+
+
+
+**Args:**
+ 
+ - <b>`dataset`</b> (TimeSeriesDataset):  NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) 
+ - <b>`step_size`</b> (int):  steps between sequential predictions, (default 1). 
+ - <b>`random_seed`</b> (int):  random seed for the prediction. 
+ - <b>`**data_kwarg`</b>:  additional parameters for the dataset module. 
+
+
+
+**Returns:**
+ 
+ - <b>`y_hat`</b>:  numpy predictions of the `NeuralForecast` model. 
+
+---
+
+
+
+### <kbd>method</kbd> `save`
+
+```python
+save(path)
+```
+
+HINT.save 
+
+Save the HINT fitted model to disk. 
+
+
+
+**Args:**
+ 
+ - <b>`path`</b> (str):  path to save the model. 
+
+---
+
+
+
+### <kbd>method</kbd> `set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+
+
+
+
+

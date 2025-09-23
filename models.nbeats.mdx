@@ -1,0 +1,608 @@
+
+
+
+
+# <kbd>module</kbd> `neuralforecast.models.nbeats`
+
+
+
+
+**Global Variables**
+---------------
+- **ACTIVATIONS**
+
+---
+
+
+
+## <kbd>function</kbd> `generate_legendre_basis`
+
+```python
+generate_legendre_basis(length, n_basis)
+```
+
+Generates Legendre polynomial basis functions. 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of basis functions to generate. 
+
+
+
+**Returns:**
+ 
+ - <b>`legendre_basis`</b> (ndarray):  An array of Legendre basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_polynomial_basis`
+
+```python
+generate_polynomial_basis(length, n_basis)
+```
+
+Generates standard polynomial basis functions. 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of polynomial functions to generate. 
+
+
+
+**Returns:**
+ 
+ - <b>`poly_basis`</b> (ndarray):  An array of polynomial basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_changepoint_basis`
+
+```python
+generate_changepoint_basis(length, n_basis)
+```
+
+Generates changepoint basis functions with automatically spaced changepoints. 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of changepoint functions to generate. 
+
+
+
+**Returns:**
+ 
+ - <b>`changepoint_basis`</b> (ndarray):  An array of changepoint basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_piecewise_linear_basis`
+
+```python
+generate_piecewise_linear_basis(length, n_basis)
+```
+
+Generates piecewise linear basis functions (linear splines). 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of piecewise linear basis functions to generate. 
+
+
+
+**Returns:**
+ 
+ - <b>`pw_linear_basis`</b> (ndarray):  An array of piecewise linear basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_linear_hat_basis`
+
+```python
+generate_linear_hat_basis(length, n_basis)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_spline_basis`
+
+```python
+generate_spline_basis(length, n_basis)
+```
+
+Generates cubic spline basis functions. 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of basis functions. 
+
+
+
+**Returns:**
+ 
+ - <b>`spline_basis`</b> (ndarray):  An array of cubic spline basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `generate_chebyshev_basis`
+
+```python
+generate_chebyshev_basis(length, n_basis)
+```
+
+Generates Chebyshev polynomial basis functions. 
+
+
+
+**Args:**
+ 
+ - <b>`length`</b> (int):  Number of data points. 
+ - <b>`n_basis`</b> (int):  Number of Chebyshev polynomials to generate. 
+
+
+
+**Returns:**
+ 
+ - <b>`chebyshev_basis`</b> (ndarray):  An array of Chebyshev polynomial basis functions. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_basis`
+
+```python
+get_basis(length, n_basis, basis)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `IdentityBasis`
+
+
+
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(backcast_size: int, forecast_size: int, out_features: int = 1)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(theta: Tensor) → Tuple[Tensor, Tensor]
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `TrendBasis`
+
+
+
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    n_basis: int,
+    backcast_size: int,
+    forecast_size: int,
+    out_features: int = 1,
+    basis='polynomial'
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(theta: Tensor) → Tuple[Tensor, Tensor]
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SeasonalityBasis`
+
+
+
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    harmonics: int,
+    backcast_size: int,
+    forecast_size: int,
+    out_features: int = 1
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(theta: Tensor) → Tuple[Tensor, Tensor]
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `NBEATSBlock`
+N-BEATS block which takes a basis function as an argument. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    input_size: int,
+    n_theta: int,
+    mlp_units: list,
+    basis: Module,
+    dropout_prob: float,
+    activation: str
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(insample_y: Tensor) → Tuple[Tensor, Tensor]
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `NBEATS`
+NBEATS 
+
+The Neural Basis Expansion Analysis for Time Series (NBEATS), is a simple and yet effective architecture, it is built with a deep stack of MLPs with the doubly residual connections. It has a generic and interpretable architecture depending on the blocks it uses. Its interpretable architecture is recommended for scarce data settings, as it regularizes its predictions through projections unto harmonic and trend basis well-suited for most forecasting tasks. 
+
+**Parameters:**<br/> `h`: int, forecast horizon.<br/> `input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br/> `n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.<br/> `n_polynomials`: int, DEPRECATED - polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.<br/> `basis`: str, Type of basis function to use in the trend stack. Choose one from ['legendre', 'polynomial', 'changepoint', 'piecewise_linear', 'linear_hat', 'spline', 'chebyshev']<br/> `n_basis`: int, the degree of the basis function for the trend stack. Note that it will only be used if a trend stack is used.<br/> `stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].<br/> `n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).<br/> `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).<br/> `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.<br/> `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].<br/> `shared_weights`: bool, If True, all blocks within each stack will share parameters. <br/> `loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).<br/> `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch).<br/> `max_steps`: int=1000, maximum number of training steps.<br/> `learning_rate`: float=1e-3, Learning rate between (0, 1).<br/> `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.<br/> `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.<br/> `val_check_steps`: int=100, Number of training steps between every validation loss check.<br/> `batch_size`: int=32, number of different series in each batch.<br/> `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.<br/> `windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.<br/> `inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.<br/> `start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.<br/> `training_data_availability_threshold`: Union[float, List[float]]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br/> `step_size`: int=1, step size between each window of temporal data.<br/> `scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).<br/> `random_seed`: int, random_seed for pytorch initializer and numpy generators.<br/> `drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.<br/> `alias`: str, optional,  Custom name of the model.<br/> `optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).<br/> `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.<br/> `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).<br/> `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.<br/> `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. <br/> `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).<br/> 
+
+**References:**<br/> 
+-[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, Yoshua Bengio (2019). "N-BEATS: Neural basis expansion analysis for interpretable time series forecasting".](https://arxiv.org/abs/1905.10437) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    h,
+    input_size,
+    n_harmonics: int = 2,
+    n_polynomials: Optional[int] = None,
+    n_basis: int = 2,
+    basis: str = 'polynomial',
+    stack_types: list = ['identity', 'trend', 'seasonality'],
+    n_blocks: list = [1, 1, 1],
+    mlp_units: list = [[512, 512], [512, 512], [512, 512]],
+    dropout_prob_theta: float = 0.0,
+    activation: str = 'ReLU',
+    shared_weights: bool = False,
+    loss=MAE(),
+    valid_loss=None,
+    max_steps: int = 1000,
+    learning_rate: float = 0.001,
+    num_lr_decays: int = 3,
+    early_stop_patience_steps: int = -1,
+    val_check_steps: int = 100,
+    batch_size: int = 32,
+    valid_batch_size: Optional[int] = None,
+    windows_batch_size: int = 1024,
+    inference_windows_batch_size: int = -1,
+    start_padding_enabled=False,
+    training_data_availability_threshold=0.0,
+    step_size: int = 1,
+    scaler_type: str = 'identity',
+    random_seed: int = 1,
+    drop_last_loader: bool = False,
+    alias: Optional[str] = None,
+    optimizer=None,
+    optimizer_kwargs=None,
+    lr_scheduler=None,
+    lr_scheduler_kwargs=None,
+    dataloader_kwargs=None,
+    **trainer_kwargs
+)
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> automatic_optimization
+
+If set to ``False`` you are responsible for calling ``.backward()``, ``.step()``, ``.zero_grad()``. 
+
+---
+
+#### <kbd>property</kbd> current_epoch
+
+The current epoch in the ``Trainer``, or 0 if not attached. 
+
+---
+
+#### <kbd>property</kbd> device
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> device_mesh
+
+Strategies like ``ModelParallelStrategy`` will create a device mesh that can be accessed in the :meth:`~pytorch_lightning.core.hooks.ModelHooks.configure_model` hook to parallelize the LightningModule. 
+
+---
+
+#### <kbd>property</kbd> dtype
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> example_input_array
+
+The example input array is a specification of what the module can consume in the :meth:`forward` method. The return type is interpreted as follows: 
+
+
+-   Single tensor: It is assumed the model takes a single argument, i.e.,  ``model.forward(model.example_input_array)`` 
+-   Tuple: The input array should be interpreted as a sequence of positional arguments, i.e.,  ``model.forward(*model.example_input_array)`` 
+-   Dict: The input array represents named keyword arguments, i.e.,  ``model.forward(**model.example_input_array)`` 
+
+---
+
+#### <kbd>property</kbd> fabric
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> global_rank
+
+The index of the current process across all nodes and devices. 
+
+---
+
+#### <kbd>property</kbd> global_step
+
+Total training batches seen across all epochs. 
+
+If no Trainer is attached, this property is 0. 
+
+---
+
+#### <kbd>property</kbd> hparams
+
+The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user. For the frozen set of initial hyperparameters, use :attr:`hparams_initial`. 
+
+
+
+**Returns:**
+  Mutable hyperparameters dictionary 
+
+---
+
+#### <kbd>property</kbd> hparams_initial
+
+The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only. Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`. 
+
+
+
+**Returns:**
+ 
+ - <b>`AttributeDict`</b>:  immutable initial hyperparameters 
+
+---
+
+#### <kbd>property</kbd> local_rank
+
+The index of the current process within a single node. 
+
+---
+
+#### <kbd>property</kbd> logger
+
+Reference to the logger object in the Trainer. 
+
+---
+
+#### <kbd>property</kbd> loggers
+
+Reference to the list of loggers in the Trainer. 
+
+---
+
+#### <kbd>property</kbd> on_gpu
+
+Returns ``True`` if this model is currently located on a GPU. 
+
+Useful to set flags around the LightningModule for different CPU vs GPU behavior. 
+
+---
+
+#### <kbd>property</kbd> strict_loading
+
+Determines how Lightning loads this model using `.load_state_dict(..., strict=model.strict_loading)`. 
+
+---
+
+#### <kbd>property</kbd> trainer
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `create_stack`
+
+```python
+create_stack(
+    stack_types,
+    n_blocks,
+    input_size,
+    h,
+    mlp_units,
+    dropout_prob_theta,
+    activation,
+    shared_weights,
+    n_harmonics,
+    n_basis,
+    basis_type
+)
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(windows_batch)
+```
+
+
+
+
+
+

@@ -1,0 +1,560 @@
+
+
+
+
+# <kbd>module</kbd> `neuralforecast.utils`
+
+
+
+
+**Global Variables**
+---------------
+- **AirPassengers**
+- **unique_id**
+- **ds**
+- **y**
+- **airline1_dummy**
+- **airline2_dummy**
+
+---
+
+
+
+## <kbd>function</kbd> `generate_series`
+
+```python
+generate_series(
+    n_series: int,
+    freq: str = 'D',
+    min_length: int = 50,
+    max_length: int = 500,
+    n_temporal_features: int = 0,
+    n_static_features: int = 0,
+    equal_ends: bool = False,
+    seed: int = 0
+) → DataFrame
+```
+
+Generate Synthetic Panel Series. 
+
+Generates `n_series` of frequency `freq` of different lengths in the interval [`min_length`, `max_length`]. If `n_temporal_features > 0`, then each serie gets temporal features with random values. If `n_static_features > 0`, then a static dataframe is returned along the temporal dataframe. If `equal_ends == True` then all series end at the same date. 
+
+
+
+**Args:**
+ 
+ - <b>`n_series`</b> (int):  Number of series for synthetic panel. 
+ - <b>`freq`</b> (str, optional):  Frequency of the data, panda's available frequencies. Defaults to "D". 
+ - <b>`min_length`</b> (int, optional):  Minimal length of synthetic panel's series. Defaults to 50. 
+ - <b>`max_length`</b> (int, optional):  Maximal length of synthetic panel's series. Defaults to 500. 
+ - <b>`n_temporal_features`</b> (int, optional):  Number of temporal exogenous variables for synthetic panel's series. Defaults to 0. 
+ - <b>`n_static_features`</b> (int, optional):  Number of static exogenous variables for synthetic panel's series. Defaults to 0. 
+ - <b>`equal_ends`</b> (bool, optional):  If True, series finish in the same date stamp `ds`. Defaults to False. 
+ - <b>`seed`</b> (int, optional):  Random seed for reproducibility. Defaults to 0. 
+
+
+
+**Returns:**
+ 
+ - <b>`pd.DataFrame`</b>:  Synthetic panel with columns [`unique_id`, `ds`, `y`] and exogenous. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `time_features_from_frequency_str`
+
+```python
+time_features_from_frequency_str(freq_str: str) → List[TimeFeature]
+```
+
+Returns a list of time features that will be appropriate for the given frequency string. 
+
+
+
+**Args:**
+ 
+ - <b>`freq_str`</b> (str):  Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[TimeFeature]`</b>:  List of time features appropriate for the frequency. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `augment_calendar_df`
+
+```python
+augment_calendar_df(df, freq='H')
+```
+
+Augment a dataframe with calendar features based on frequency. 
+
+Frequency mappings: 
+- Q - [month] 
+- M - [month] 
+- W - [Day of month, week of year] 
+- D - [Day of week, day of month, day of year] 
+- B - [Day of week, day of month, day of year] 
+- H - [Hour of day, day of week, day of month, day of year] 
+- T - [Minute of hour*, hour of day, day of week, day of month, day of year] 
+- S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year] 
+
+*minute returns a number from 0-3 corresponding to the 15 minute period it falls into. 
+
+
+
+**Args:**
+ 
+ - <b>`df`</b> (pd.DataFrame):  DataFrame to augment with calendar features. 
+ - <b>`freq`</b> (str, optional):  Frequency string for determining which features to add. Defaults to "H". 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[pd.DataFrame, List[str]]`</b>:  Tuple of (augmented DataFrame, list of feature column names). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_indexer_raise_missing`
+
+```python
+get_indexer_raise_missing(idx: Index, vals: List[str]) → List[int]
+```
+
+Get index positions for values, raising error if any are missing. 
+
+
+
+**Args:**
+ 
+ - <b>`idx`</b> (pd.Index):  Index to search in. 
+ - <b>`vals`</b> (List[str]):  Values to find indices for. 
+
+
+
+**Returns:**
+ 
+ - <b>`List[int]`</b>:  List of index positions. 
+
+
+
+**Raises:**
+ 
+ - <b>`ValueError`</b>:  If any values are missing from the index. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `add_conformal_distribution_intervals`
+
+```python
+add_conformal_distribution_intervals(
+    model_fcsts: <built-in function array>,
+    cs_df: ~DFType,
+    model: str,
+    cs_n_windows: int,
+    n_series: int,
+    horizon: int,
+    level: Optional[List[Union[int, float]]] = None,
+    quantiles: Optional[List[float]] = None
+) → Tuple[<built-in function array>, List[str]]
+```
+
+Add conformal intervals based on conformal scores using distribution strategy. 
+
+This strategy creates forecast paths based on errors and calculates quantiles using those paths. 
+
+
+
+**Args:**
+ 
+ - <b>`model_fcsts`</b> (np.array):  Model forecasts array. 
+ - <b>`cs_df`</b> (DFType):  DataFrame containing conformal scores. 
+ - <b>`model`</b> (str):  Model name. 
+ - <b>`cs_n_windows`</b> (int):  Number of conformal score windows. 
+ - <b>`n_series`</b> (int):  Number of series. 
+ - <b>`horizon`</b> (int):  Forecast horizon. 
+ - <b>`level`</b> (Optional[List[Union[int, float]]], optional):  Confidence levels for prediction intervals. Defaults to None. 
+ - <b>`quantiles`</b> (Optional[List[float]], optional):  Quantiles for prediction intervals. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[np.array, List[str]]`</b>:  Tuple of (forecasts with intervals, column names). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `add_conformal_error_intervals`
+
+```python
+add_conformal_error_intervals(
+    model_fcsts: <built-in function array>,
+    cs_df: ~DFType,
+    model: str,
+    cs_n_windows: int,
+    n_series: int,
+    horizon: int,
+    level: Optional[List[Union[int, float]]] = None,
+    quantiles: Optional[List[float]] = None
+) → Tuple[<built-in function array>, List[str]]
+```
+
+Add conformal intervals based on conformal scores using error strategy. 
+
+This strategy creates prediction intervals based on absolute errors. 
+
+
+
+**Args:**
+ 
+ - <b>`model_fcsts`</b> (np.array):  Model forecasts array. 
+ - <b>`cs_df`</b> (DFType):  DataFrame containing conformal scores. 
+ - <b>`model`</b> (str):  Model name. 
+ - <b>`cs_n_windows`</b> (int):  Number of conformal score windows. 
+ - <b>`n_series`</b> (int):  Number of series. 
+ - <b>`horizon`</b> (int):  Forecast horizon. 
+ - <b>`level`</b> (Optional[List[Union[int, float]]], optional):  Confidence levels for prediction intervals. Defaults to None. 
+ - <b>`quantiles`</b> (Optional[List[float]], optional):  Quantiles for prediction intervals. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[np.array, List[str]]`</b>:  Tuple of (forecasts with intervals, column names). 
+
+
+---
+
+
+
+## <kbd>function</kbd> `get_prediction_interval_method`
+
+```python
+get_prediction_interval_method(method: str)
+```
+
+Get the prediction interval method function by name. 
+
+
+
+**Args:**
+ 
+ - <b>`method`</b> (str):  Name of the prediction interval method. 
+
+
+
+**Returns:**
+ 
+ - <b>`Callable`</b>:  The corresponding method function. 
+
+
+
+**Raises:**
+ 
+ - <b>`ValueError`</b>:  If the method is not supported. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `level_to_quantiles`
+
+```python
+level_to_quantiles(level: List[Union[int, float]]) → List[float]
+```
+
+Convert a list of confidence levels to quantiles. 
+
+
+
+**Args:**
+ 
+ - <b>`level`</b> (List[Union[int, float]]):  List of confidence levels (e.g., [80, 90]). 
+
+
+
+**Returns:**
+ 
+ - <b>`List[float]`</b>:  List of corresponding quantiles. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `quantiles_to_level`
+
+```python
+quantiles_to_level(quantiles: List[float]) → List[Union[int, float]]
+```
+
+Convert a list of quantiles to confidence levels. 
+
+
+
+**Args:**
+ 
+ - <b>`quantiles`</b> (List[float]):  List of quantiles (e.g., [0.1, 0.5, 0.9]). 
+
+
+
+**Returns:**
+ 
+ - <b>`List[Union[int, float]]`</b>:  List of corresponding confidence levels. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `TimeFeature`
+
+
+
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `SecondOfMinute`
+Second of minute encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `MinuteOfHour`
+Minute of hour encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `HourOfDay`
+Hour of day encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `DayOfWeek`
+Day of week encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `DayOfMonth`
+Day of month encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `DayOfYear`
+Day of year encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `MonthOfYear`
+Month of year encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `WeekOfYear`
+Week of year encoded as value between [-0.5, 0.5]. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `PredictionIntervals`
+Class for storing prediction intervals metadata information. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(n_windows: int = 2, method: str = 'conformal_distribution')
+```
+
+Initialize PredictionIntervals. 
+
+
+
+**Args:**
+ 
+ - <b>`n_windows`</b> (int, optional):  Number of windows to evaluate. Defaults to 2. 
+ - <b>`method`</b> (str, optional):  One of the supported methods for the computation of prediction intervals:  conformal_error or conformal_distribution. Defaults to "conformal_distribution". 
+
+
+
+
+
