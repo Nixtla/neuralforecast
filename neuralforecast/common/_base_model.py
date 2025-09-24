@@ -1433,7 +1433,12 @@ class BaseModel(pl.LightningModule):
                     current_batch = {k: v.clone() if torch.is_tensor(v) else v for k, v in batch.items()}
                 
                 # Make predictions for this step
-                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+                result = self._predict_step_direct(batch, batch_idx, recursive=False)
+                if isinstance(result, tuple):
+                    y_hat = result[0]
+                else:
+                    y_hat = result
+                
                 y_hats.append(y_hat)
                 
                 # Generate explanations for this recursive step if needed
@@ -1494,6 +1499,8 @@ class BaseModel(pl.LightningModule):
                         )
                         
                         if insample_explanation is not None:
+                            print(f"DEBUG: Appending explanations for recursive step {i}")
+                            print(f"DEBUG: insample_explanation shape: {insample_explanation.shape}")
                             step_insample_explanations.append(insample_explanation)
                             if futr_exog_explanation is not None:
                                 step_futr_exog_explanations.append(futr_exog_explanation)
@@ -2140,6 +2147,12 @@ class BaseModel(pl.LightningModule):
         recursive_step=0,
         prev_attributions=None,
     ):
+        # Handle dimension adjustment early
+        add_dim = False
+        if len(y_hat_shape) == 3:
+            y_hat_shape = y_hat_shape + (1,)
+            add_dim = True
+        
         # Determine which horizons to explain in this recursive step
         step_start = recursive_step * self.h
         step_end = min((recursive_step + 1) * self.h, self.predict_horizon)
@@ -2230,10 +2243,7 @@ class BaseModel(pl.LightningModule):
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
         param_positions = {"insample_y": 0, "insample_mask": 1}
-        add_dim = False
-        if len(y_hat_shape) == 3:
-            y_hat_shape = y_hat_shape + (1,)
-            add_dim = True
+        
         shape = list(y_hat_shape)
         shape[1] = len(local_horizons)
         shape[3] = len(output_index)            
@@ -2347,7 +2357,6 @@ class BaseModel(pl.LightningModule):
                     if "stat_exog" in param_positions:
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
                         stat_exog_explanations[:, i, j, k] = stat_exog_attr
-                     
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
@@ -2374,9 +2383,25 @@ class BaseModel(pl.LightningModule):
                 )
             if add_dim:
                 baseline_predictions = baseline_predictions.unsqueeze(-1)
-            baseline_predictions = baseline_predictions.index_select(1, torch.tensor(local_horizons, device=baseline_predictions.device))
-            baseline_predictions = baseline_predictions.index_select(2, torch.tensor(series, device=baseline_predictions.device))
-            baseline_predictions = baseline_predictions.index_select(3, torch.tensor(output_index, device=baseline_predictions.device))
+            
+            # Select the horizons we need
+            valid_indices = []
+            for h in local_horizons:
+                if h < baseline_predictions.shape[1]:
+                    valid_indices.append(h)
+                else:
+                    valid_indices.append(0)  # Use horizon 0 as placeholder for out-of-range
+            
+            baseline_predictions = baseline_predictions[:, valid_indices]
+            
+            # Now select series and output indices
+            baseline_predictions = baseline_predictions[:, :, series]
+            baseline_predictions = baseline_predictions[:, :, :, output_index]
+            
+            # Zero out any invalid horizons
+            for idx, h in enumerate(local_horizons):
+                if h >= self.h:
+                    baseline_predictions[:, idx] = 0
         else:
             baseline_predictions = None
 
