@@ -1499,8 +1499,6 @@ class BaseModel(pl.LightningModule):
                         )
                         
                         if insample_explanation is not None:
-                            print(f"DEBUG: Appending explanations for recursive step {i}")
-                            print(f"DEBUG: insample_explanation shape: {insample_explanation.shape}")
                             step_insample_explanations.append(insample_explanation)
                             if futr_exog_explanation is not None:
                                 step_futr_exog_explanations.append(futr_exog_explanation)
