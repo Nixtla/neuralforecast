@@ -1301,7 +1301,7 @@ class NeuralForecast:
         self,
         df: Optional[DataFrame] = None,
         static_df: Optional[DataFrame] = None,
-        n_windows: int = 1,
+        n_windows: Union[int, None] = 1,
         step_size: int = 1,
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
@@ -1326,7 +1326,7 @@ class NeuralForecast:
             df (pandas or polars DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
                 If None, a previously stored dataset is required. Defaults to None.
             static_df (pandas or polars DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
-            n_windows (int): Number of windows used for cross validation. Defaults to 1.
+            n_windows (int, None): Number of windows used for cross validation. If None, define `test_size`. Defaults to 1.
             step_size (int): Step size between each window. Defaults to 1.
             val_size (int, optional): Length of validation size. If passed, set `n_windows=None`. Defaults to 0.
             test_size (int, optional): Length of test size. If passed, set `n_windows=None`. Defaults to None.
@@ -1385,7 +1385,7 @@ class NeuralForecast:
             test_size = h + step_size * (n_windows - 1)
         elif n_windows is None:
             if (test_size - h) % step_size:
-                raise Exception("`test_size - h` should be module `step_size`")
+                raise Exception("`test_size - h` must be divisible by `step_size`")
             n_windows = int((test_size - h) / step_size) + 1
         else:
             raise Exception("you must define `n_windows` or `test_size` but not both")
