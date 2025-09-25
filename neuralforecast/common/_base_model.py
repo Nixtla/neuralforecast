@@ -2145,9 +2145,7 @@ class BaseModel(pl.LightningModule):
         y_idx,
         y_hat_shape,
         recursive_step=0,
-        prev_attributions=None,
     ):
-        # Handle dimension adjustment early
         add_dim = False
         if len(y_hat_shape) == 3:
             y_hat_shape = y_hat_shape + (1,)
@@ -2157,7 +2155,7 @@ class BaseModel(pl.LightningModule):
         step_start = recursive_step * self.h
         step_end = min((recursive_step + 1) * self.h, self.predict_horizon)
         
-        # Get the horizons we want to explain
+        # Get the horizons to explain
         all_horizons = self.explainer_config.get("horizons", list(range(self.predict_horizon)))
         
         # Filter to only horizons in this recursive step
@@ -2384,24 +2382,17 @@ class BaseModel(pl.LightningModule):
             if add_dim:
                 baseline_predictions = baseline_predictions.unsqueeze(-1)
             
-            # Select the horizons we need
-            valid_indices = []
-            for h in local_horizons:
-                if h < baseline_predictions.shape[1]:
-                    valid_indices.append(h)
-                else:
-                    valid_indices.append(0)  # Use horizon 0 as placeholder for out-of-range
+            baseline_output = torch.zeros(
+                (baseline_predictions.shape[0], len(local_horizons), len(series), len(output_index)),
+                device=baseline_predictions.device,
+                dtype=baseline_predictions.dtype
+            )
             
-            baseline_predictions = baseline_predictions[:, valid_indices]
-            
-            # Now select series and output indices
-            baseline_predictions = baseline_predictions[:, :, series]
-            baseline_predictions = baseline_predictions[:, :, :, output_index]
-            
-            # Zero out any invalid horizons
             for idx, h in enumerate(local_horizons):
-                if h >= self.h:
-                    baseline_predictions[:, idx] = 0
+                if h < baseline_predictions.shape[1]:
+                    baseline_output[:, idx] = baseline_predictions[:, h, series][:, :, output_index]
+            
+            baseline_predictions = baseline_output
         else:
             baseline_predictions = None
 
