@@ -1394,7 +1394,7 @@ class BaseModel(pl.LightningModule):
         else:
             return y_hat
 
-    def _predict_step_direct(self, batch, batch_idx, recursive=False, trim_window_size=0):
+    def _predict_step_direct(self, batch, batch_idx, recursive=False):
         temporal_cols = batch["temporal_cols"]
         if recursive:
             # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
