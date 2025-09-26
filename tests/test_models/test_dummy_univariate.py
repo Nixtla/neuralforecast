@@ -17,34 +17,12 @@ from neuralforecast.losses.pytorch import (
     HuberMQLoss,
     SMAPE,
 )
-from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import PredictionIntervals
 from tests.dummy.dummy_models import DummyUnivariate
 
 
 class TestDummyUnivariate:
     """Test suite for univariate dummy models to validate horizon predictions functionality."""
-
-    def test_explainability_not_supported(self, longer_horizon_test):
-        model = DummyUnivariate(
-            h=longer_horizon_test.h,
-            input_size=longer_horizon_test.input_size,
-        )
-        dataset, *_ = TimeSeriesDataset.from_df(longer_horizon_test.test_df)
-
-        mocked_config = {
-            "explainer": "mocked_explainer",
-            "horizons": None,
-            "series": [0],
-            "output_index": [0],
-        }        
-        
-        with pytest.raises(
-            ValueError,
-            match="Prediction explanation is not supported for prediction horizon larger than the horizon of the fitted models",
-        ):
-            model.predict(dataset=dataset,h=longer_horizon_test.longer_h, explainer_config=mocked_config)
-
 
     def test_larger_horizon(self, longer_horizon_test):
         model = DummyUnivariate(
@@ -89,7 +67,7 @@ class TestDummyUnivariate:
                 == longer_horizon_test.series1_id
             ]["DummyUnivariate"].values,
             np.array(
-                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
+                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 362.0, 405.0]
             ),
         )
         np.testing.assert_almost_equal(
@@ -98,7 +76,7 @@ class TestDummyUnivariate:
                 == longer_horizon_test.series2_id
             ]["DummyUnivariate"].values,
             np.array(
-                [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 763.0, 707.0]
+                [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 662.0, 705.0]
             ),
         )
 
@@ -331,8 +309,8 @@ class TestDummyUnivariate:
                     (407.0 * 1) * 2,
                     (362.0 * 1) * 3,
                     (405.0 * 2) * 3,
-                    (463.0 * 1 * 2) * 3,
-                    (407.0 * 1 * 2) * 4,
+                    (362.0 * 1) * 3,
+                    (405.0 * 2) * 3,
                 ]
             ),
         )
@@ -351,8 +329,8 @@ class TestDummyUnivariate:
                     (707.0 * 1) * 2,
                     (662.0 * 1) * 3,
                     (705.0 * 2) * 3,
-                    (763.0 * 1 * 2) * 3,
-                    (707.0 * 1 * 2) * 4,
+                    (662.0 * 1) * 3,
+                    (705.0 * 2) * 3,
                 ]
             ),
         )

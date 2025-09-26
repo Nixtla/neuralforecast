@@ -988,6 +988,7 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        h: Optional[int] = None,
         verbose: bool = True,
         engine=None,
         level: Optional[List[Union[int, float]]] = None,
@@ -1006,6 +1007,7 @@ class NeuralForecast:
             If a DataFrame is passed, it is used to generate forecasts. Defaults to None.
             static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous. Defaults to None.
             futr_df (pandas, polars or spark DataFrame, optional): DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None.
+            h (int): The forecast horizon. Can be larger than the horizon set during training.
             verbose (bool): Print processing steps. Defaults to False.
             engine (spark session): Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe.
             level (list of ints or floats, optional): Confidence levels between 0 and 100. Defaults to None.
@@ -1019,11 +1021,17 @@ class NeuralForecast:
         """
         warnings.warn("This function is beta and subject to change.")
 
+        if h is None:
+            h_explain = self.h  # Default to model's training horizon
+        else:
+            h_explain = h
+        
+        # Validate and set horizons
         if horizons is None:
-            horizons = list(range(self.h))
-        elif not horizons or len(horizons) > self.h or any(h < 0 or h >= self.h for h in horizons):
+            horizons = list(range(h_explain))
+        elif not horizons or len(horizons) > h_explain or any(h < 0 or h >= h_explain for h in horizons):
             raise ValueError(
-                f"Invalid indices. Make sure to select horizon steps within {list(range(self.h))} or set it to None to explain all horizon steps"
+                f"Invalid indices. Make sure to select horizon steps within {list(range(h_explain))} or set it to None to explain all horizon steps"
             )
 
         try:
@@ -1147,6 +1155,7 @@ class NeuralForecast:
                 df=df,
                 static_df=static_df,
                 futr_df=futr_df,
+                h=h_explain,
                 verbose=verbose,
                 engine=engine,
                 level=level,

@@ -1616,7 +1616,8 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])
 @pytest.mark.parametrize("horizons", [list(range(12)), [0, 5]])
-def test_explainability(explainer, use_polars, horizons):
+@pytest.mark.parametrize("recursive_horizon", [True, False])
+def test_explainability(explainer, use_polars, horizons, recursive_horizon):
     "Test that explanations are returned or skipped depending on model and configuration"
     Y_train_df = AirPassengersPanel[AirPassengersPanel['ds'] < AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
     Y_test_df = AirPassengersPanel[AirPassengersPanel['ds'] >= AirPassengersPanel['ds'].values[-12]].reset_index(drop=True)
@@ -1624,15 +1625,22 @@ def test_explainability(explainer, use_polars, horizons):
     static_df = AirPassengersStatic.drop(columns=["airline2"])
 
     h = 12
+    h_train = h
     input_size = 2*h
     n_series = Y_train_df["unique_id"].nunique()
     n_stat_exog = len(static_df.drop(columns="unique_id").columns)
 
+    if recursive_horizon:
+        # For recursive test: train with h=6, predict with h=12
+        h_train = 6
+        input_size = 6
+
     base_config = {
-        "h": h,
+        "h": h_train,
         "input_size": input_size,
         "scaler_type": "robust",
-        "max_steps": 2
+        "max_steps": 2,
+        "accelerator": "cpu",
     }
 
     models = [
@@ -1661,7 +1669,6 @@ def test_explainability(explainer, use_polars, horizons):
         LSTM( # Gets skiped when explainer is IntegratedGradients
             **base_config,
             recurrent=True,
-            accelerator="cpu",
             alias="LSTM-recurrent"
         ),
         TSMixer( # Gets skipped because it's multivariate
@@ -1669,6 +1676,25 @@ def test_explainability(explainer, use_polars, horizons):
             n_series=2,
         )
     ]
+    if recursive_horizon:
+        recursive_config = {
+            "h": h_train,
+            "input_size": input_size,
+            "scaler_type": "robust",
+            "max_steps": 2,
+            "accelerator": "cpu",
+        }
+        models = [
+            NHITS(
+                **recursive_config,
+                futr_exog_list=["trend"],
+                stat_exog_list=['airline1'],
+            ),
+            LSTM(
+                **recursive_config,
+                recurrent=False,
+            ),
+        ]
 
     freq="ME"
     if use_polars:
@@ -1684,7 +1710,8 @@ def test_explainability(explainer, use_polars, horizons):
         outputs=outputs, # Get only 1 ouput
         horizons=horizons, # Get all horizons
         static_df=static_df,
-        futr_df=futr_df, 
+        futr_df=futr_df,
+        h=h, 
         explainer=explainer
     )
 
@@ -1723,7 +1750,7 @@ def test_explainability(explainer, use_polars, horizons):
         assert expl["insample"] is not None
         expected_input_size = input_size
         if model_name == "LSTM-recurrent":
-            expected_input_size = input_size + h
+            expected_input_size = input_size + h_train
         
         batch_size = n_series
         n_series_ = 1
@@ -1755,12 +1782,16 @@ def test_explainability(explainer, use_polars, horizons):
         # Check exogenous if model has them
         model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
         if model.futr_exog_list:
+            if recursive_horizon:
+                futr_temporal_size = model.input_size + model.h
+            else:
+                futr_temporal_size = model.input_size + h
             expected_futr_shape = (
                 batch_size,                 # batch size
                 len(horizons),              # horizons
                 n_series_,                  # n_series (1 for univariate)
                 len(outputs),               # n_outputs
-                input_size+h,               # n_input_steps (past + future)
+                futr_temporal_size,         # n_input_steps (past + future)
                 len(model.futr_exog_list),  # number of features
             )
             assert expl["futr_exog"] is not None
@@ -1771,7 +1802,7 @@ def test_explainability(explainer, use_polars, horizons):
                 len(horizons),             # horizons
                 n_series_,                 # n_series (1 for univariate)
                 len(outputs),              # n_outputs
-                input_size,                # n_input_steps (past)
+                model.input_size,          # n_input_steps (past)
                 len(model.hist_exog_list), # number of features
             )
             assert expl["hist_exog"] is not None
