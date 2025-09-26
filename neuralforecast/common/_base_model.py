@@ -1405,28 +1405,6 @@ class BaseModel(pl.LightningModule):
             futr_temporal = batch["temporal"][:, :, -total_test_size + self.h :]
             batch["temporal"] = batch["temporal"][:, :, : -total_test_size + self.h]
             self.test_size = self.h
-
-            # # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
-            # median_idx = self._maybe_get_quantile_idx(quantile=0.5)
-            # y_idx = batch["y_idx"]
-            # y_hats = []
-            # total_test_size = self.test_size
-            # remainder = self.test_size % self.h
-
-            # cutoff = -total_test_size + self.h
-            # futr_temporal = batch["temporal"][:, :, cutoff:]
-            # if remainder > 0:
-            #     # to handle edge case: our original design assumes that prediction is based on fitted horizon (h)
-            #     # if predict's h argument is not multiple of fitted horizon, the change in array will introduce
-            #     # side-effect. This ensures that future_temporal has forecast zone to be multiple of h.
-            #     padded_zeroes = torch.zeros(
-            #         [futr_temporal.shape[0], futr_temporal.shape[1], remainder], device=futr_temporal.device
-            #     )
-            #     futr_temporal = torch.cat([futr_temporal, padded_zeroes], dim=-1)
-
-            # batch["temporal"] = batch["temporal"][:, :, :cutoff]
-            # # _create_windows() in next iteration with recursive=False depends on self.test_size
-            # self.test_size = self.h
             
             # Initialize explanation storage if explaining
             if hasattr(self, 'explain') and self.explain:
