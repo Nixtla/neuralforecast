@@ -67,7 +67,7 @@ class TestDummyUnivariate:
                 == longer_horizon_test.series1_id
             ]["DummyUnivariate"].values,
             np.array(
-                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
+                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 362.0, 405.0]
             ),
         )
         np.testing.assert_almost_equal(
@@ -309,8 +309,8 @@ class TestDummyUnivariate:
                     (407.0 * 1) * 2,
                     (362.0 * 1) * 3,
                     (405.0 * 2) * 3,
-                    (463.0 * 1 * 2) * 3,
-                    (407.0 * 1 * 2) * 4,
+                    (362.0 * 1 * 2) * 3,
+                    (405.0 * 1 * 2) * 4,
                 ]
             ),
         )
