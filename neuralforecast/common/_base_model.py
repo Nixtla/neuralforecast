@@ -1393,6 +1393,103 @@ class BaseModel(pl.LightningModule):
             )        
         else:
             return y_hat
+        
+    def _compute_explanations_for_step(
+        self,
+        batch,
+        temporal_cols,
+        y_idx,
+        recursive_step=0,
+        y_hat_shape=None,
+        first_iteration=False,
+    ):
+        """Compute explanations for a single prediction step."""
+        # Create windows and normalize for explanations
+        windows_temporal, static, static_cols = self._create_windows(
+            batch, step="predict"
+        )
+        n_windows = len(windows_temporal)
+
+        # Process windows in batches
+        windows_batch_size = self.inference_windows_batch_size
+        if windows_batch_size < 0:
+            windows_batch_size = n_windows
+        n_batches = int(np.ceil(n_windows / windows_batch_size))
+
+        step_insample_explanations = []
+        step_futr_exog_explanations = []
+        step_hist_exog_explanations = []
+        step_stat_exog_explanations = []
+        step_baseline_predictions = []
+
+        for j in range(n_batches):
+            w_idxs = np.arange(
+                j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows)
+            )
+            windows = self._sample_windows(
+                windows_temporal,
+                static,
+                static_cols,
+                temporal_cols,
+                step="predict",
+                w_idxs=w_idxs,
+            )
+            windows = self._normalization(windows=windows, y_idx=y_idx)
+
+            # Parse windows
+            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
+                self._parse_windows(batch, windows)
+            )
+
+            # Get shape if needed (first iteration of recursive)
+            if first_iteration and y_hat_shape is None:
+                dummy_y_hat = self._predict_step_direct_batch(
+                    insample_y=insample_y[:1],
+                    insample_mask=insample_mask[:1],
+                    futr_exog=futr_exog[:1] if futr_exog is not None else None,
+                    hist_exog=hist_exog[:1] if hist_exog is not None else None,
+                    stat_exog=stat_exog[:1] if stat_exog is not None else None,
+                    y_idx=y_idx,
+                )
+                y_hat_shape = (insample_y.shape[0],) + dummy_y_hat.shape[1:]
+
+            # Compute explanations
+            (
+                insample_explanation,
+                futr_exog_explanation,
+                hist_exog_explanation,
+                stat_exog_explanation,
+                baseline_prediction,
+            ) = self._explain_batch(
+                insample_y=insample_y,
+                insample_mask=insample_mask,
+                futr_exog=futr_exog,
+                hist_exog=hist_exog,
+                stat_exog=stat_exog,
+                y_idx=y_idx,
+                y_hat_shape=y_hat_shape,
+                recursive_step=recursive_step,
+            )
+
+            if insample_explanation is not None:
+                step_insample_explanations.append(insample_explanation)
+                if futr_exog_explanation is not None:
+                    step_futr_exog_explanations.append(futr_exog_explanation)
+                if hist_exog_explanation is not None:
+                    step_hist_exog_explanations.append(hist_exog_explanation)
+                if stat_exog_explanation is not None:
+                    step_stat_exog_explanations.append(stat_exog_explanation)
+                if baseline_prediction is not None:
+                    step_baseline_predictions.append(baseline_prediction)
+
+        # Concatenate window batches
+        insample = torch.cat(step_insample_explanations, dim=0) if step_insample_explanations else None
+        futr_exog = torch.cat(step_futr_exog_explanations, dim=0) if step_futr_exog_explanations else None
+        hist_exog = torch.cat(step_hist_exog_explanations, dim=0) if step_hist_exog_explanations else None
+        stat_exog = torch.cat(step_stat_exog_explanations, dim=0) if step_stat_exog_explanations else None
+        baseline = torch.cat(step_baseline_predictions, dim=0) if step_baseline_predictions else None
+
+        return insample, futr_exog, hist_exog, stat_exog, baseline, y_hat_shape
 
     def _predict_step_direct(self, batch, batch_idx, recursive=False):
         temporal_cols = batch["temporal_cols"]
@@ -1406,113 +1503,61 @@ class BaseModel(pl.LightningModule):
             batch["temporal"] = batch["temporal"][:, :, : -total_test_size + self.h]
             self.test_size = self.h
             
+            # Check if we should compute explanations
+            explain_state = hasattr(self, 'explain') and self.explain
+            
             # Initialize explanation storage if explaining
-            if hasattr(self, 'explain') and self.explain:
+            if explain_state:
                 all_insample_explanations = []
                 all_futr_exog_explanations = []
                 all_hist_exog_explanations = []
                 all_stat_exog_explanations = []
                 all_baseline_predictions = []
+                y_hat_shape = None
             
             for i in range(self.n_predicts):
-                # Store the current batch state for explanations
-                if hasattr(self, 'explain') and self.explain:
-                    current_batch = {k: v.clone() if torch.is_tensor(v) else v for k, v in batch.items()}
+                # Generate explanations BEFORE modifying batch
+                if explain_state:
+                    (insample, futr_exog, hist_exog, stat_exog, baseline, y_hat_shape) = \
+                        self._compute_explanations_for_step(
+                            batch=batch,
+                            temporal_cols=temporal_cols,
+                            y_idx=y_idx,
+                            recursive_step=i,
+                            y_hat_shape=y_hat_shape,
+                            first_iteration=(i == 0),
+                        )
+                    
+                    if insample is not None:
+                        all_insample_explanations.append(insample)
+                        if futr_exog is not None:
+                            all_futr_exog_explanations.append(futr_exog)
+                        if hist_exog is not None:
+                            all_hist_exog_explanations.append(hist_exog)
+                        if stat_exog is not None:
+                            all_stat_exog_explanations.append(stat_exog)
+                        if baseline is not None:
+                            all_baseline_predictions.append(baseline)
+                
+                # Temporarily disable explanations for the recursive call
+                if explain_state:
+                    self.explain = False
                 
                 # Make predictions for this step
-                result = self._predict_step_direct(batch, batch_idx, recursive=False)
-                if isinstance(result, tuple):
-                    y_hat = result[0]
-                else:
-                    y_hat = result
+                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+                
+                # Restore explanation state
+                if explain_state:
+                    self.explain = True
                 
                 y_hats.append(y_hat)
                 
-                # Generate explanations for this recursive step if needed
-                if hasattr(self, 'explain') and self.explain:
-                    # Create windows and normalize for explanations
-                    windows_temporal, static, static_cols = self._create_windows(
-                        current_batch, step="predict"
-                    )
-                    n_windows = len(windows_temporal)
-                    
-                    # Process windows in batches (same as non-recursive case)
-                    windows_batch_size = self.inference_windows_batch_size
-                    if windows_batch_size < 0:
-                        windows_batch_size = n_windows
-                    n_batches = int(np.ceil(n_windows / windows_batch_size))
-                    
-                    step_insample_explanations = []
-                    step_futr_exog_explanations = []
-                    step_hist_exog_explanations = []
-                    step_stat_exog_explanations = []
-                    step_baseline_predictions = []
-                    
-                    for j in range(n_batches):
-                        w_idxs = np.arange(
-                            j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows)
-                        )
-                        windows = self._sample_windows(
-                            windows_temporal,
-                            static,
-                            static_cols,
-                            temporal_cols,
-                            step="predict",
-                            w_idxs=w_idxs,
-                        )
-                        windows = self._normalization(windows=windows, y_idx=y_idx)
-                        
-                        # Parse windows
-                        insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
-                            self._parse_windows(current_batch, windows)
-                        )
-                        
-                        # Get explanations for this recursive step
-                        (
-                            insample_explanation,
-                            futr_exog_explanation,
-                            hist_exog_explanation,
-                            stat_exog_explanation,
-                            baseline_prediction,
-                        ) = self._explain_batch(
-                            insample_y=insample_y,
-                            insample_mask=insample_mask,
-                            futr_exog=futr_exog,
-                            hist_exog=hist_exog,
-                            stat_exog=stat_exog,
-                            y_idx=y_idx,
-                            y_hat_shape=y_hat.shape,
-                            recursive_step=i,
-                        )
-                        
-                        if insample_explanation is not None:
-                            step_insample_explanations.append(insample_explanation)
-                            if futr_exog_explanation is not None:
-                                step_futr_exog_explanations.append(futr_exog_explanation)
-                            if hist_exog_explanation is not None:
-                                step_hist_exog_explanations.append(hist_exog_explanation)
-                            if stat_exog_explanation is not None:
-                                step_stat_exog_explanations.append(stat_exog_explanation)
-                            if baseline_prediction is not None:
-                                step_baseline_predictions.append(baseline_prediction)
-                    
-                    # Concatenate window batches for this step
-                    if step_insample_explanations:
-                        all_insample_explanations.append(torch.cat(step_insample_explanations, dim=0))
-                        if step_futr_exog_explanations:
-                            all_futr_exog_explanations.append(torch.cat(step_futr_exog_explanations, dim=0))
-                        if step_hist_exog_explanations:
-                            all_hist_exog_explanations.append(torch.cat(step_hist_exog_explanations, dim=0))
-                        if step_stat_exog_explanations:
-                            all_stat_exog_explanations.append(torch.cat(step_stat_exog_explanations, dim=0))
-                        if step_baseline_predictions:
-                            all_baseline_predictions.append(torch.cat(step_baseline_predictions, dim=0))
-                
                 # Update temporal with predictions for next iteration
-                y_hat_median = y_hat
-                if median_idx is not None:
-                    y_hat_median = y_hat[..., median_idx]
                 if i < self.n_predicts - 1:
+                    y_hat_median = y_hat
+                    if median_idx is not None:
+                        y_hat_median = y_hat[..., median_idx]
+                    
                     # Update temporal of the batch with predictions
                     temporal = batch["temporal"]
                     if self.MULTIVARIATE:
@@ -1536,7 +1581,7 @@ class BaseModel(pl.LightningModule):
             self.test_size = total_test_size
             
             # Return with concatenated explanations if explaining
-            if hasattr(self, 'explain') and self.explain:
+            if explain_state:
                 # Concatenate explanations across all recursive steps
                 insample_explanations = torch.cat(all_insample_explanations, dim=1) if all_insample_explanations else None
                 futr_exog_explanations = torch.cat(all_futr_exog_explanations, dim=1) if all_futr_exog_explanations else None
@@ -1556,6 +1601,7 @@ class BaseModel(pl.LightningModule):
                 return y_hat
         
         else:
+            # Non-recursive case remains unchanged
             windows_temporal, static, static_cols = self._create_windows(
                 batch,
                 step="predict",
@@ -1621,6 +1667,7 @@ class BaseModel(pl.LightningModule):
                         stat_exog=stat_exog,
                         y_idx=y_idx,
                         y_hat_shape=y_hat.shape,
+                        recursive_step=0,  # Non-recursive is always step 0
                     )
                     insample_explanations.append(insample_explanation)
                     if futr_exog_explanation is not None:
@@ -2367,17 +2414,9 @@ class BaseModel(pl.LightningModule):
             if add_dim:
                 baseline_predictions = baseline_predictions.unsqueeze(-1)
             
-            baseline_output = torch.zeros(
-                (baseline_predictions.shape[0], len(local_horizons), len(series), len(output_index)),
-                device=baseline_predictions.device,
-                dtype=baseline_predictions.dtype
-            )
-            
-            for idx, h in enumerate(local_horizons):
-                if h < baseline_predictions.shape[1]:
-                    baseline_output[:, idx] = baseline_predictions[:, h, series][:, :, output_index]
-            
-            baseline_predictions = baseline_output
+            baseline_predictions = baseline_predictions.index_select(1, torch.tensor(local_horizons, device=baseline_predictions.device))
+            baseline_predictions = baseline_predictions.index_select(2, torch.tensor(series, device=baseline_predictions.device))
+            baseline_predictions = baseline_predictions.index_select(3, torch.tensor(output_index, device=baseline_predictions.device))
         else:
             baseline_predictions = None
 
