@@ -1401,7 +1401,6 @@ class BaseModel(pl.LightningModule):
         y_idx,
         recursive_step=0,
         y_hat_shape=None,
-        first_iteration=False,
     ):
         """Compute explanations for a single prediction step."""
         # Create windows and normalize for explanations
@@ -1440,18 +1439,6 @@ class BaseModel(pl.LightningModule):
             insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
                 self._parse_windows(batch, windows)
             )
-
-            # Get shape if needed (first iteration of recursive)
-            if first_iteration and y_hat_shape is None:
-                dummy_y_hat = self._predict_step_direct_batch(
-                    insample_y=insample_y[:1],
-                    insample_mask=insample_mask[:1],
-                    futr_exog=futr_exog[:1] if futr_exog is not None else None,
-                    hist_exog=hist_exog[:1] if hist_exog is not None else None,
-                    stat_exog=stat_exog[:1] if stat_exog is not None else None,
-                    y_idx=y_idx,
-                )
-                y_hat_shape = (insample_y.shape[0],) + dummy_y_hat.shape[1:]
 
             # Compute explanations
             (
@@ -1493,6 +1480,7 @@ class BaseModel(pl.LightningModule):
 
     def _predict_step_direct(self, batch, batch_idx, recursive=False):
         temporal_cols = batch["temporal_cols"]
+        explain_state = hasattr(self, 'explain') and self.explain
         if recursive:
             # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
             median_idx = self._maybe_get_quantile_idx(quantile=0.5)
@@ -1503,9 +1491,6 @@ class BaseModel(pl.LightningModule):
             batch["temporal"] = batch["temporal"][:, :, : -total_test_size + self.h]
             self.test_size = self.h
             
-            # Check if we should compute explanations
-            explain_state = hasattr(self, 'explain') and self.explain
-            
             # Initialize explanation storage if explaining
             if explain_state:
                 all_insample_explanations = []
@@ -1513,32 +1498,8 @@ class BaseModel(pl.LightningModule):
                 all_hist_exog_explanations = []
                 all_stat_exog_explanations = []
                 all_baseline_predictions = []
-                y_hat_shape = None
             
             for i in range(self.n_predicts):
-                # Generate explanations BEFORE modifying batch
-                if explain_state:
-                    (insample, futr_exog, hist_exog, stat_exog, baseline, y_hat_shape) = \
-                        self._compute_explanations_for_step(
-                            batch=batch,
-                            temporal_cols=temporal_cols,
-                            y_idx=y_idx,
-                            recursive_step=i,
-                            y_hat_shape=y_hat_shape,
-                            first_iteration=(i == 0),
-                        )
-                    
-                    if insample is not None:
-                        all_insample_explanations.append(insample)
-                        if futr_exog is not None:
-                            all_futr_exog_explanations.append(futr_exog)
-                        if hist_exog is not None:
-                            all_hist_exog_explanations.append(hist_exog)
-                        if stat_exog is not None:
-                            all_stat_exog_explanations.append(stat_exog)
-                        if baseline is not None:
-                            all_baseline_predictions.append(baseline)
-                
                 # Temporarily disable explanations for the recursive call
                 if explain_state:
                     self.explain = False
@@ -1551,6 +1512,28 @@ class BaseModel(pl.LightningModule):
                     self.explain = True
                 
                 y_hats.append(y_hat)
+                
+                # Generate explanations
+                if explain_state:
+                    (insample, futr_exog, hist_exog, stat_exog, baseline, _) = \
+                        self._compute_explanations_for_step(
+                            batch=batch,
+                            temporal_cols=temporal_cols,
+                            y_idx=y_idx,
+                            recursive_step=i,
+                            y_hat_shape=y_hat.shape,
+                        )
+                    
+                    if insample is not None:
+                        all_insample_explanations.append(insample)
+                        if futr_exog is not None:
+                            all_futr_exog_explanations.append(futr_exog)
+                        if hist_exog is not None:
+                            all_hist_exog_explanations.append(hist_exog)
+                        if stat_exog is not None:
+                            all_stat_exog_explanations.append(stat_exog)
+                        if baseline is not None:
+                            all_baseline_predictions.append(baseline)
                 
                 # Update temporal with predictions for next iteration
                 if i < self.n_predicts - 1:
@@ -1616,7 +1599,7 @@ class BaseModel(pl.LightningModule):
             n_batches = int(np.ceil(n_windows / windows_batch_size))
             y_hats = []
 
-            if hasattr(self, "explain") and self.explain:
+            if explain_state:
                 insample_explanations = []
                 futr_exog_explanations = []
                 hist_exog_explanations = []
@@ -1652,7 +1635,7 @@ class BaseModel(pl.LightningModule):
                     y_idx=y_idx,
                 )
 
-                if hasattr(self, "explain") and self.explain:
+                if explain_state:
                     (
                         insample_explanation,
                         futr_exog_explanation,
@@ -1682,7 +1665,7 @@ class BaseModel(pl.LightningModule):
 
             y_hat = torch.cat(y_hats, dim=0)
             
-            if hasattr(self, "explain") and self.explain:
+            if explain_state:
                 insample_explanations = torch.cat(insample_explanations, dim=0)
                 if futr_exog_explanations:
                     futr_exog_explanations = torch.cat(futr_exog_explanations, dim=0)
@@ -2267,8 +2250,6 @@ class BaseModel(pl.LightningModule):
         )
 
         # Start with required inputs
-        insample_y = insample_y.float()
-        insample_mask = insample_mask.float()
         insample_y.requires_grad_()
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
@@ -2289,7 +2270,6 @@ class BaseModel(pl.LightningModule):
         # Add optional parameters and track their positions
         futr_exog_explanations = None
         if futr_exog is not None:
-            futr_exog = futr_exog.float()
             futr_exog.requires_grad_()
             input_batch = input_batch + (futr_exog,)
             param_positions["futr_exog"] = pos
@@ -2309,7 +2289,6 @@ class BaseModel(pl.LightningModule):
 
         hist_exog_explanations = None
         if hist_exog is not None:
-            hist_exog = hist_exog.float()
             hist_exog.requires_grad_()
             input_batch = input_batch + (hist_exog,)
             param_positions["hist_exog"] = pos
@@ -2329,7 +2308,6 @@ class BaseModel(pl.LightningModule):
 
         stat_exog_explanations = None
         if stat_exog is not None:
-            stat_exog = stat_exog.float()
             stat_exog.requires_grad_()
             input_batch = input_batch + (stat_exog,)
             param_positions["stat_exog"] = pos
