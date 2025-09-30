@@ -68,7 +68,7 @@ class TestDummyMultivariate:
                 == longer_horizon_test.series1_id
             ]["DummyMultivariate"].values,
             np.array(
-                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
+                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 362.0, 405.0]
             ),
         )
         np.testing.assert_almost_equal(
@@ -77,7 +77,7 @@ class TestDummyMultivariate:
                 == longer_horizon_test.series2_id
             ]["DummyMultivariate"].values,
             np.array(
-                [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 763.0, 707.0]
+                [763.0, 707.0, 662.0, 705.0, 763.0, 707.0, 662.0, 705.0, 662.0, 705.0]
             ),
         )
 
@@ -140,7 +140,7 @@ class TestDummyMultivariate:
         np.testing.assert_almost_equal(
             forecasts["DummyMultivariate"].values,
             np.array(
-                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 463.0, 407.0]
+                [463.0, 407.0, 362.0, 405.0, 463.0, 407.0, 362.0, 405.0, 362.0, 405.0]
             ),
         )
 
@@ -315,8 +315,8 @@ class TestDummyMultivariate:
                     (407.0 * 1) * 2,
                     (362.0 * 1) * 3,
                     (405.0 * 2) * 3,
-                    (463.0 * 1 * 2) * 3,
-                    (407.0 * 1 * 2) * 4,
+                    (362.0 * 1) * 3,
+                    (405.0 * 2) * 3,
                 ]
             ),
         )
@@ -335,8 +335,8 @@ class TestDummyMultivariate:
                     (707.0 * 1) * 2,
                     (662.0 * 1) * 3,
                     (705.0 * 2) * 3,
-                    (763.0 * 1 * 2) * 3,
-                    (707.0 * 1 * 2) * 4,
+                    (662.0 * 1) * 3,
+                    (705.0 * 2) * 3,
                 ]
             ),
         )
