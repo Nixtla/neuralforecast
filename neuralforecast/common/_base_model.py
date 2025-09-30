@@ -1306,7 +1306,8 @@ class BaseModel(pl.LightningModule):
         n_batches = int(np.ceil(n_windows / windows_batch_size))
         y_hats = []
 
-        if hasattr(self, "explain") and self.explain:
+        explain_state = hasattr(self, "explain") and self.explain
+        if explain_state:
             insample_explanations = []
             futr_exog_explanations = []
             hist_exog_explanations = []
@@ -1342,7 +1343,7 @@ class BaseModel(pl.LightningModule):
                 y_idx=y_idx,
             )
 
-            if hasattr(self, "explain") and self.explain:
+            if explain_state:
                 (
                     insample_explanation,
                     futr_exog_explanation,
@@ -1371,7 +1372,7 @@ class BaseModel(pl.LightningModule):
         y_hat = torch.cat(y_hats, dim=0)
         self.input_size = self.input_size_backup
 
-        if hasattr(self, "explain") and self.explain:
+        if explain_state:
             insample_explanations = torch.cat(insample_explanations, dim=0)
             if futr_exog_explanations:
                 futr_exog_explanations = torch.cat(futr_exog_explanations, dim=0)
@@ -1480,7 +1481,7 @@ class BaseModel(pl.LightningModule):
 
     def _predict_step_direct(self, batch, batch_idx, recursive=False):
         temporal_cols = batch["temporal_cols"]
-        explain_state = hasattr(self, 'explain') and self.explain
+        explain_state = hasattr(self, "explain") and self.explain
         if recursive:
             # We need to predict recursively, so we use the median quantile if it exists to feed back as insample_y
             median_idx = self._maybe_get_quantile_idx(quantile=0.5)
