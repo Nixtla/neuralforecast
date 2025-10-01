@@ -126,6 +126,7 @@ explain(
     df: Optional[DataFrame, DataFrame, DataFrame] = None,
     static_df: Optional[DataFrame, DataFrame, DataFrame] = None,
     futr_df: Optional[DataFrame, DataFrame, DataFrame] = None,
+    h: Optional[int] = None,
     verbose: bool = True,
     engine=None,
     level: Optional[List[Union[int, float]]] = None,
@@ -148,6 +149,7 @@ Use stored fitted `models` to explain large set of time series from DataFrame `d
  - <b>`df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables. If a DataFrame is passed, it is used to generate forecasts. Defaults to None. 
  - <b>`static_df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with columns [`unique_id`] and static exogenous. Defaults to None. 
  - <b>`futr_df`</b> (pandas, polars or spark DataFrame, optional):  DataFrame with [`unique_id`, `ds`] columns and `df`'s future exogenous. Defaults to None. 
+ - <b>`h`</b> (int):  The forecast horizon. Can be larger than the horizon set during training. 
  - <b>`verbose`</b> (bool):  Print processing steps. Defaults to False. 
  - <b>`engine`</b> (spark session):  Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. 
  - <b>`level`</b> (list of ints or floats, optional):  Confidence levels between 0 and 100. Defaults to None. 
