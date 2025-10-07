@@ -201,14 +201,12 @@ plot_series(df, Y_hat_df, max_insample_length=24*5)
 
 ![](07_time_series_scaling_files/figure-markdown_strict/cell-11-output-1.png)
 
-> **Important**
->
-> The inverse scaling is performed by the `Neuralforecast` class before
-> returning the final forecasts. Therefore, the hyperparmater selection
-> with `Auto` models and validation loss for early stopping or model
-> selection are performed on the scaled data. Different types of scaling
-> with the `Neuralforecast` class can’t be automatically compared with
-> `Auto` models.
+The inverse scaling is performed by the `Neuralforecast` class before
+returning the final forecasts. Therefore, the hyperparmater selection
+with `Auto` models and validation loss for early stopping or model
+selection are performed on the scaled data. Different types of scaling
+with the `Neuralforecast` class can’t be automatically compared with
+`Auto` models.
 
 ## 4. Temporal Window normalization during training
 
@@ -298,15 +296,13 @@ plot_series(df, Y_hat_df, max_insample_length=24*5)
 
 ![](07_time_series_scaling_files/figure-markdown_strict/cell-15-output-1.png)
 
-> **Important**
->
-> For most applications, models with temporal normalization (section 4)
-> produced more accurate forecasts than time series scaling (section 3).
-> However, with temporal normalization models lose the information of
-> the relative level between different windows. In some cases this
-> global information within time series is crucial, for instance when an
-> exogenous variables contains the dosage of a medication. In these
-> cases, time series scaling (section 3) is preferred.
+For most applications, models with temporal normalization (section 4)
+produced more accurate forecasts than time series scaling (section 3).
+However, with temporal normalization models lose the information of the
+relative level between different windows. In some cases this global
+information within time series is crucial, for instance when an
+exogenous variables contains the dosage of a medication. In these cases,
+time series scaling (section 3) is preferred.
 
 ## References
 

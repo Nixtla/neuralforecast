@@ -83,10 +83,8 @@ Y_df.groupby('unique_id').head(2)
 | 345600 | OT        | 2016-07-01 00:00:00 | 1.018032  |
 | 345601 | OT        | 2016-07-01 00:15:00 | 0.980124  |
 
-> **Important**
->
-> DataFrames must include all `['unique_id', 'ds', 'y']` columns. Make
-> sure `y` column does not have missing or non-numeric values.
+DataFrames must include all `['unique_id', 'ds', 'y']` columns. Make
+sure `y` column does not have missing or non-numeric values.
 
 Next, plot the `HUFL` variable marking the validation and train splits.
 
