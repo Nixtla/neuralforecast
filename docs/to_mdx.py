@@ -52,4 +52,4 @@ if __name__ == "__main__":
     process_files(args.input_dir)
 
     # Step 2: Always copy the README
-    copy_readme()
+    # copy_readme()
