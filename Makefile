@@ -5,7 +5,7 @@ devenv:
 init_codespace:
 	npm install -g @anthropic-ai/claude-code
 	git pull || true
-	uv sync --quiet --all-extras --frozen	
+	uv sync --quiet --all-extras --frozen
 
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
@@ -13,8 +13,7 @@ load_docs_scripts:
 	fi
 
 api_docs:
-	lazydocs .neuralforecast --no-watermark
-	python docs/to_mdx.py
+	python docs/to_mdx.py docs
 
 examples_docs:
 	mkdir -p nbs/_extensions
@@ -27,7 +26,7 @@ format_docs:
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
 	find docs/mintlify -name "*.mdx" -exec sed -i.bak '/^:::/d' {} + && find docs/mintlify -name "*.bak" -delete
-	
+
 	# replace {'loss' with \\{'loss' in the hyperparam tuning notebook
 	find docs/mintlify -name "*.mdx" -exec sed -i.bak "s/{'loss'/\\\\{'loss'/g" {} + && find docs/mintlify -name "*.bak" -delete
 
