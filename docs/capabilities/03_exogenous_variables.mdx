@@ -25,9 +25,11 @@ We will show you how to include exogenous variables in the data, specify
 variables to a model, and produce forecasts using future exogenous
 variables.
 
-This Guide assumes basic knowledge on the NeuralForecast library. For a
-minimal example visit the [Getting
-Started](../getting-started/02_quickstart.ipynb) guide.
+> **Important**
+>
+> This Guide assumes basic knowledge on the NeuralForecast library. For
+> a minimal example visit the [Getting
+> Started](../getting-started/02_quickstart.ipynb) guide.
 
 You can run these experiments using GPU with Google Colab.
 
@@ -181,8 +183,10 @@ Seed set to 1
 > `scaler_type` hyperparameter. The scaler will scale all the temporal
 > features: the target variable `y`, historic and future variables.
 
-Make sure future and historic variables are correctly placed. Defining
-historic variables as future variables will lead to data leakage.
+> **Important**
+>
+> Make sure future and historic variables are correctly placed. Defining
+> historic variables as future variables will lead to data leakage.
 
 Next, pass the datasets to the `df` and `static_df` inputs of the `fit`
 method.
@@ -216,9 +220,11 @@ futr_df.head()
 | 3   | FR        | 2016-11-01 03:00:00 | 45991.0      | 1        |
 | 4   | FR        | 2016-11-01 04:00:00 | 45378.0      | 1        |
 
-Make sure `futr_df` has informations for the entire forecast horizon. In
-this example, we are forecasting 24 hours ahead, so `futr_df` must have
-24 rows for each time series.
+> **Important**
+>
+> Make sure `futr_df` has informations for the entire forecast horizon.
+> In this example, we are forecasting 24 hours ahead, so `futr_df` must
+> have 24 rows for each time series.
 
 Finally, use the `predict` method to forecast the day-ahead prices.
 

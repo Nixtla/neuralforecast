@@ -144,10 +144,12 @@ nhits_config = {
 }
 ```
 
-Configuration dictionaries are not interchangeable between models since
-they have different hyperparameters. Refer to
-https://nixtla.github.io/neuralforecast/models.html for a complete list
-of each model’s hyperparameters.
+> **Important**
+>
+> Configuration dictionaries are not interchangeable between models
+> since they have different hyperparameters. Refer to
+> https://nixtla.github.io/neuralforecast/models.html for a complete
+> list of each model’s hyperparameters.
 
 ### 3.b Instantiate `Auto` model
 
@@ -359,9 +361,11 @@ model = AutoNHITS(
 )
 ```
 
-Configuration dictionaries and search algorithms for `Tune` and `Optuna`
-are not interchangeable! Use the appropriate type of search algorithm
-and custom configuration dictionary for each backend.
+> **Important**
+>
+> Configuration dictionaries and search algorithms for `Tune` and
+> `Optuna` are not interchangeable! Use the appropriate type of search
+> algorithm and custom configuration dictionary for each backend.
 
 ### 4.c Train model and predict with `Core` class
 
