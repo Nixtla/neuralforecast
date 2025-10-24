@@ -43,3 +43,6 @@ nbs/_extensions
 .quarto
 
 *.png
+PR_READY_SUMMARY.md
+PR_DESCRIPTION.md
+.claude/settings.local.json
