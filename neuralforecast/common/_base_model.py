@@ -1524,7 +1524,6 @@ class BaseModel(pl.LightningModule):
                             recursive_step=i,
                             y_hat_shape=y_hat.shape,
                         )
-                    
                     if insample is not None:
                         all_insample_explanations.append(insample)
                         if futr_exog is not None:
@@ -1572,7 +1571,7 @@ class BaseModel(pl.LightningModule):
                 hist_exog_explanations = torch.cat(all_hist_exog_explanations, dim=1) if all_hist_exog_explanations else None
                 stat_exog_explanations = torch.cat(all_stat_exog_explanations, dim=1) if all_stat_exog_explanations else None
                 baseline_predictions = torch.cat(all_baseline_predictions, dim=1) if all_baseline_predictions else None
-                
+                print(f"DEBUG: _predict_step_direct returning y_hat shape: {y_hat.shape}, explanations shape: {insample_explanations.shape if insample_explanations is not None else None}")
                 return (
                     y_hat,
                     insample_explanations,
@@ -1876,9 +1875,10 @@ class BaseModel(pl.LightningModule):
         if self.RECURRENT:
             return self._predict_step_recurrent(batch, batch_idx)
         else:
-            return self._predict_step_direct(
-                batch, batch_idx, recursive=self.n_predicts > 1
-            )
+            result = self._predict_step_direct(batch, batch_idx, recursive=self.n_predicts > 1)
+            if self.explain and isinstance(result, tuple):
+                print(f"predict_step passing through explanations shape: {result[1].shape if len(result) > 1 and result[1] is not None else None}")
+            return result
 
     def fit(
         self,
