@@ -1,0 +1,2799 @@
+
+
+
+
+# <kbd>module</kbd> `neuralforecast.losses.pytorch`
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `level_to_outputs`
+
+```python
+level_to_outputs(level)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `quantiles_to_outputs`
+
+```python
+quantiles_to_outputs(quantiles)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `weighted_average`
+
+```python
+weighted_average(x: Tensor, weights: Optional[Tensor] = None, dim=None) → Tensor
+```
+
+Computes the weighted average of a given tensor across a given dim. 
+
+Masks values associated with weight zero, meaning instead of `nan * 0 = nan` you will get `0 * 0 = 0`. 
+
+
+
+**Args:**
+ 
+ - <b>`x`</b> (torch.Tensor):  Input tensor, of which the average must be computed. 
+ - <b>`weights`</b> (Optional[torch.Tensor], optional):  Weights tensor, of the same shape as `x`. Defaults to None. 
+ - <b>`dim`</b> (optional):  The dim along which to average `x`. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  The tensor with values averaged along the specified `dim`. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `bernoulli_scale_decouple`
+
+```python
+bernoulli_scale_decouple(output, loc=None, scale=None)
+```
+
+Bernoulli Scale Decouple. 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds Bernoulli domain protection to the distribution parameters. 
+
+
+
+**Args:**
+ 
+ - <b>`output`</b>:  Model output tensor. 
+ - <b>`loc`</b> (optional):  Location parameter. Defaults to None. 
+ - <b>`scale`</b> (optional):  Scale parameter. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Processed probabilities. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `student_scale_decouple`
+
+```python
+student_scale_decouple(output, loc=None, scale=None, eps: float = 0.1)
+```
+
+Student-T Scale Decouple. 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds StudentT domain protection to the distribution parameters. 
+
+
+
+**Args:**
+ 
+ - <b>`output`</b>:  Model output tensor. 
+ - <b>`loc`</b> (optional):  Location parameter. Defaults to None. 
+ - <b>`scale`</b> (optional):  Scale parameter. Defaults to None. 
+ - <b>`eps`</b> (float, optional):  Epsilon value for numerical stability. Defaults to 0.1. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Processed degrees of freedom, mean, and scale parameters. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `normal_scale_decouple`
+
+```python
+normal_scale_decouple(output, loc=None, scale=None, eps: float = 0.2)
+```
+
+Normal Scale Decouple. 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds Normal domain protection to the distribution parameters. 
+
+
+
+**Args:**
+ 
+ - <b>`output`</b>:  Model output tensor. 
+ - <b>`loc`</b> (optional):  Location parameter. Defaults to None. 
+ - <b>`scale`</b> (optional):  Scale parameter. Defaults to None. 
+ - <b>`eps`</b> (float, optional):  Epsilon value for numerical stability. Defaults to 0.2. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Processed mean and standard deviation parameters. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `poisson_scale_decouple`
+
+```python
+poisson_scale_decouple(output, loc=None, scale=None)
+```
+
+Poisson Scale Decouple 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds Poisson domain protection to the distribution parameters. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `nbinomial_scale_decouple`
+
+```python
+nbinomial_scale_decouple(output, loc=None, scale=None)
+```
+
+Negative Binomial Scale Decouple 
+
+Stabilizes model's output optimization, by learning total count and logits based on anchoring `loc`, `scale`. Also adds Negative Binomial domain protection to the distribution parameters. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `est_lambda`
+
+```python
+est_lambda(mu, rho)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `est_alpha`
+
+```python
+est_alpha(rho)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `est_beta`
+
+```python
+est_beta(mu, rho)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>function</kbd> `tweedie_domain_map`
+
+```python
+tweedie_domain_map(input: Tensor, rho: float = 1.5)
+```
+
+Maps output of neural network to domain of distribution loss 
+
+
+---
+
+
+
+## <kbd>function</kbd> `tweedie_scale_decouple`
+
+```python
+tweedie_scale_decouple(output, loc=None, scale=None)
+```
+
+Tweedie Scale Decouple 
+
+Stabilizes model's output optimization, by learning total count and logits based on anchoring `loc`, `scale`. Also adds Tweedie domain protection to the distribution parameters. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `isqf_domain_map`
+
+```python
+isqf_domain_map(
+    input: Tensor,
+    tol: float = 0.0001,
+    quantiles: Tensor = tensor([0.1000, 0.5000, 0.9000]),
+    num_pieces: int = 5
+)
+```
+
+ISQF Domain Map Maps input into distribution constraints, by construction input's last dimension is of matching `distr_args` length. 
+
+
+
+**Args:**
+ 
+ - <b>`input`</b> (torch.Tensor):  Tensor of dimensions [B, H, N * n_outputs]. 
+ - <b>`tol`</b> (float, optional):  Tolerance. Defaults to 1e-4. 
+ - <b>`quantiles`</b> (torch.Tensor, optional):  Quantiles used for ISQF (i.e. x-positions for the knots). Defaults to torch.tensor([0.1, 0.5, 0.9], dtype=torch.float32). 
+ - <b>`num_pieces`</b> (int, optional):  Number of pieces used for each quantile spline. Defaults to 5. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with tensors of ISQF distribution arguments. 
+
+
+---
+
+
+
+## <kbd>function</kbd> `isqf_scale_decouple`
+
+```python
+isqf_scale_decouple(output, loc=None, scale=None)
+```
+
+ISQF Scale Decouple 
+
+Stabilizes model's output optimization. We simply pass through the location and the scale to the (transformed) distribution constructor 
+
+
+---
+
+
+
+## <kbd>class</kbd> `BasePointLoss`
+Base class for point loss functions. 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+ - <b>`outputsize_multiplier`</b> (Optional[int]):  Multiplier for the output size. Defaults to None. 
+ - <b>`output_names`</b> (Optional[List[str]]):  Names of the outputs. Defaults to None. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None, outputsize_multiplier=None, output_names=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `MAE`
+Mean Absolute Error. 
+
+Calculates Mean Absolute Error between `y` and `y_hat`. MAE measures the relative prediction accuracy of a forecasting method by calculating the deviation of the prediction and the true value at a given time and averages these devations over the length of the series. 
+
+$$ \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}| $$ 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `MSE`
+Mean Squared Error. 
+
+Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the relative prediction accuracy of a forecasting method by calculating the squared deviation of the prediction and the true value at a given time, and averages these devations over the length of the series. 
+
+$$ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `RMSE`
+Root Mean Squared Error. 
+
+Calculates Root Mean Squared Error between `y` and `y_hat`. RMSE measures the relative prediction accuracy of a forecasting method by calculating the squared deviation of the prediction and the observed value at a given time and averages these devations over the length of the series. Finally the RMSE will be in the same scale as the original time series so its comparison with other series is possible only if they share a common scale. RMSE has a direct connection to the L2 norm. 
+
+$$ \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `MAPE`
+Mean Absolute Percentage Error 
+
+Calculates Mean Absolute Percentage Error  between `y` and `y_hat`. MAPE measures the relative prediction accuracy of a forecasting method by calculating the percentual deviation of the prediction and the observed value at a given time and averages these devations over the length of the series. The closer to zero an observed value is, the higher penalty MAPE loss assigns to the corresponding error. 
+
+$$ \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b>:  Tensor of size h, weight for each timestamp of the forecasting window. 
+
+References: 
+    - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `SMAPE`
+Symmetric Mean Absolute Percentage Error 
+
+Calculates Symmetric Mean Absolute Percentage Error between `y` and `y_hat`. SMAPE measures the relative prediction accuracy of a forecasting method by calculating the relative deviation of the prediction and the observed value scaled by the sum of the absolute values for the prediction and observed value at a given time, then averages these devations over the length of the series. This allows the SMAPE to have bounds between 0% and 200% which is desireble compared to normal MAPE that may be undetermined when the target is zero. 
+
+$$ \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`horizon_weight`</b>:  Tensor of size h, weight for each timestamp of the forecasting window. 
+
+References: 
+    - [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `MASE`
+Mean Absolute Scaled Error Calculates the Mean Absolute Scaled Error between `y` and `y_hat`. MASE measures the relative prediction accuracy of a forecasting method by comparinng the mean absolute errors of the prediction and the observed value against the mean absolute errors of the seasonal naive model. The MASE partially composed the Overall Weighted Average (OWA), used in the M4 Competition. 
+
+$$ \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`seasonality`</b>:  Int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1. 
+ - <b>`horizon_weight`</b>:  Tensor of size h, weight for each timestamp of the forecasting window. 
+
+References: 
+ - <b>`[Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https`</b>: //www.sciencedirect.com/science/article/pii/S0169207006000239)<br/> 
+ - <b>`[Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition`</b>:  100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(seasonality: int, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `relMSE`
+Relative Mean Squared Error Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006) as an alternative to percentage errors, to avoid measure unstability. $$ \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) = rac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`y_train`</b>:  Numpy array, deprecated. 
+ - <b>`horizon_weight`</b>:  Tensor of size h, weight for each timestamp of the forecasting window. 
+
+References: 
+    - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br/> 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(y_train=None, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `QuantileLoss`
+Quantile Loss. 
+
+Computes the quantile loss between `y` and `y_hat`. QL measures the deviation of a quantile forecast. By weighting the absolute deviation in a non symmetric way, the loss pays more attention to under or over estimation. A common value for q is 0.5 for the deviation from the median (Pinball loss). 
+
+$$ \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`q`</b> (float):  Between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level. 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+ - <b>`[Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https`</b>: //www.jstor.org/stable/1913643) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(q, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `MQLoss`
+Multi-Quantile loss 
+
+Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`. MQL calculates the average multi-quantile Loss for a given set of quantiles, based on the absolute difference between predicted quantiles and observed values. 
+
+$$ \mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) $$ 
+
+The limit behavior of MQL allows to measure the accuracy of a full predictive distribution $\mathbf{\hat{F}}_{\tau}$ with the continuous ranked probability score (CRPS). This can be achieved through a numerical integration technique, that discretizes the quantiles and treats the CRPS integral with a left Riemann approximation, averaging over uniformly distanced quantiles. 
+
+$$ \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq $$ 
+
+
+
+**Args:**
+ 
+ - <b>`level`</b> (List[int], optional):  Probability levels for prediction intervals. Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (Optional[List[float]]):  Alternative to level, quantiles to estimate from y distribution. Defaults to None. 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+ - <b>`[Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https`</b>: //www.jstor.org/stable/1913643) 
+ - <b>`[James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https`</b>: //www.jstor.org/stable/2629907) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(level=[80, 90], quantiles=None, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Reshapes input tensor to match the expected output format. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Input tensor. 
+        - Univariate: [B, H, 1 * Q] 
+        - Multivariate: [B, H, N * Q] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Reshaped tensor with shape [B, H, N, Q]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `QuantileLayer`
+Implicit Quantile Layer from the paper IQN for Distributional Reinforcement Learning. 
+
+Code from GluonTS: https://github.com/awslabs/gluonts/blob/61133ef6e2d88177b32ace4afc6843ab9a7bc8cd/src/gluonts/torch/distributions/implicit_quantile_network.py 
+
+References:  Dabney et al. 2018. https://arxiv.org/abs/1806.06923 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(num_output: int, cos_embedding_dim: int = 128)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `forward`
+
+```python
+forward(tau: Tensor) → Tensor
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `IQLoss`
+Implicit Quantile Loss. 
+
+Computes the quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network. IQL measures the deviation of a quantile forecast. By weighting the absolute deviation in a non symmetric way, the loss pays more attention to under or over estimation. 
+
+$$ \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`cos_embedding_dim`</b> (int, optional):  Cosine embedding dimension. Defaults to 64. 
+ - <b>`concentration0`</b> (float, optional):  Beta distribution concentration parameter. Defaults to 1.0. 
+ - <b>`concentration1`</b> (float, optional):  Beta distribution concentration parameter. Defaults to 1.0. 
+ - <b>`horizon_weight`</b> (Optional[torch.Tensor]):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+ - <b>`Gouttes, Adèle, Kashif Rasul, Mateusz Koren, Johannes Stephan, and Tofigh Naghibi, "Probabilistic Time Series Forecasting with Implicit Quantile Networks". http`</b>: //arxiv.org/abs/2107.03743 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    cos_embedding_dim=64,
+    concentration0=1.0,
+    concentration1=1.0,
+    horizon_weight=None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat)
+```
+
+Adds IQN network to output of network. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Input tensor. 
+        - Univariate: [B, h, 1] 
+        - Multivariate: [B, h, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Domain mapped tensor. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: List[float] = [0.5])
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `Tweedie`
+Tweedie Distribution. 
+
+The Tweedie distribution is a compound probability, special case of exponential dispersion models EDMs defined by its mean-variance relationship. The distribution particularly useful to model sparse series as the probability has possitive mass at zero but otherwise is continuous. 
+
+$$ Y \sim \mathrm{ED}(\mu,\sigma^{2}) \qquad \mathbb{P}(y|\mu ,\sigma^{2})=h(\sigma^{2},y) \exp \left({\frac {\theta y-A(\theta )}{\sigma^{2}}}\right) $$ 
+
+$$ \mu =A'(\theta ) \qquad \mathrm{Var}(Y) = \sigma^{2} \mu^{\rho} $$ 
+
+Cases of the variance relationship include Normal (`rho` = 0), Poisson (`rho` = 1), Gamma (`rho` = 2), inverse Gaussian (`rho` = 3). 
+
+
+
+**Args:**
+ 
+ - <b>`log_mu`</b> (torch.Tensor):  Tensor with log of means. 
+ - <b>`rho`</b> (float):  Tweedie variance power (1,2). Fixed across all observations. 
+ - <b>`validate_args`</b> (optional):  Validation arguments. Defaults to None. 
+
+
+
+**Note:**
+
+> sigma2: Tweedie variance. Currently fixed in 1. 
+>References: - Tweedie, M. C. K. (1984). An index which distinguishes between some important exponential families. Statistics: Applications and New Directions. Proceedings of the Indian Statistical Institute Golden Jubilee International Conference (Eds. J. K. Ghosh and J. Roy), pp. 579-604. Calcutta: Indian Statistical Institute. - Jorgensen, B. (1987). Exponential Dispersion Models. Journal of the Royal Statistical Society. Series B (Methodological), 49(2), 127–162. http://www.jstor.org/stable/2345415 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(log_mu, rho, validate_args=None)
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> batch_shape
+
+Returns the shape over which parameters are batched. 
+
+---
+
+#### <kbd>property</kbd> event_shape
+
+Returns the shape of a single sample (without batching). 
+
+---
+
+#### <kbd>property</kbd> mean
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> mode
+
+Returns the mode of the distribution. 
+
+---
+
+#### <kbd>property</kbd> stddev
+
+Returns the standard deviation of the distribution. 
+
+---
+
+#### <kbd>property</kbd> variance
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `log_prob`
+
+```python
+log_prob(y_true)
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `sample`
+
+```python
+sample(sample_shape=torch.Size([]))
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `ISQF`
+Distribution class for the Incremental (Spline) Quantile Function. 
+
+
+
+**Args:**
+ 
+ - <b>`spline_knots`</b> (torch.Tensor):  Tensor parametrizing the x-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces) 
+ - <b>`spline_heights`</b> (torch.Tensor):  Tensor parametrizing the y-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces) 
+ - <b>`beta_l`</b> (torch.Tensor):  Tensor containing the non-negative learnable parameter of the left tail. Shape: (*batch_shape,) 
+ - <b>`beta_r`</b> (torch.Tensor):  Tensor containing the non-negative learnable parameter of the right tail. Shape: (*batch_shape,) 
+ - <b>`qk_y`</b> (torch.Tensor):  Tensor containing the increasing y-positions of the quantile knots. Shape: (*batch_shape, num_qk) 
+ - <b>`qk_x`</b> (torch.Tensor):  Tensor containing the increasing x-positions of the quantile knots. Shape: (*batch_shape, num_qk) 
+ - <b>`loc`</b> (torch.Tensor):  Tensor containing the location in case of a transformed random variable. Shape: (*batch_shape,) 
+ - <b>`scale`</b> (torch.Tensor):  Tensor containing the scale in case of a transformed random variable. Shape: (*batch_shape,) 
+
+References: 
+ - <b>`Park, Youngsuk, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, and Yuyang Wang (2022). "Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting". https`</b>: //proceedings.mlr.press/v151/park22a.html 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    spline_knots: Tensor,
+    spline_heights: Tensor,
+    beta_l: Tensor,
+    beta_r: Tensor,
+    qk_y: Tensor,
+    qk_x: Tensor,
+    loc: Tensor,
+    scale: Tensor,
+    validate_args=None
+) → None
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> batch_shape
+
+Returns the shape over which parameters are batched. 
+
+---
+
+#### <kbd>property</kbd> event_shape
+
+Returns the shape of a single sample (without batching). 
+
+---
+
+#### <kbd>property</kbd> has_rsample
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> mean
+
+Function used to compute the empirical mean 
+
+---
+
+#### <kbd>property</kbd> mode
+
+Returns the mode of the distribution. 
+
+---
+
+#### <kbd>property</kbd> stddev
+
+Returns the standard deviation of the distribution. 
+
+---
+
+#### <kbd>property</kbd> variance
+
+Returns the variance of the distribution. 
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `crps`
+
+```python
+crps(y: Tensor) → Tensor
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `BaseISQF`
+Base distribution class for the Incremental (Spline) Quantile Function. 
+
+
+
+**Args:**
+ 
+ - <b>`spline_knots`</b> (torch.Tensor):  Tensor parametrizing the x-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces) 
+ - <b>`spline_heights`</b> (torch.Tensor):  Tensor parametrizing the y-positions of the spline knots. Shape: (*batch_shape, (num_qk-1), num_pieces) 
+ - <b>`beta_l`</b> (torch.Tensor):  Tensor containing the non-negative learnable parameter of the left tail. (*batch_shape,) 
+ - <b>`beta_r`</b> (torch.Tensor):  Tensor containing the non-negative learnable parameter of the right tail. (*batch_shape,) 
+ - <b>`qk_y`</b> (torch.Tensor):  Tensor containing the increasing y-positions of the quantile knots. Shape: (*batch_shape, num_qk) 
+ - <b>`qk_x`</b> (torch.Tensor):  Tensor containing the increasing x-positions of the quantile knots. Shape: (*batch_shape, num_qk) 
+ - <b>`tol`</b> (float, optional):  Tolerance hyperparameter for numerical stability. Defaults to 1e-4. 
+ - <b>`validate_args`</b> (bool, optional):  Whether to validate arguments. Defaults to False. 
+
+References: 
+ - <b>`Park, Youngsuk, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, and Yuyang Wang (2022). "Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting". https`</b>: //proceedings.mlr.press/v151/park22a.html 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    spline_knots: Tensor,
+    spline_heights: Tensor,
+    beta_l: Tensor,
+    beta_r: Tensor,
+    qk_y: Tensor,
+    qk_x: Tensor,
+    tol: float = 0.0001,
+    validate_args: bool = False
+) → None
+```
+
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> arg_constraints
+
+Returns a dictionary from argument names to :class:`~torch.distributions.constraints.Constraint` objects that should be satisfied by each argument of this distribution. Args that are not tensors need not appear in this dict. 
+
+---
+
+#### <kbd>property</kbd> batch_shape
+
+
+
+
+
+---
+
+#### <kbd>property</kbd> event_shape
+
+Returns the shape of a single sample (without batching). 
+
+---
+
+#### <kbd>property</kbd> mean
+
+Returns the mean of the distribution. 
+
+---
+
+#### <kbd>property</kbd> mode
+
+Returns the mode of the distribution. 
+
+---
+
+#### <kbd>property</kbd> stddev
+
+Returns the standard deviation of the distribution. 
+
+---
+
+#### <kbd>property</kbd> support
+
+Returns a :class:`~torch.distributions.constraints.Constraint` object representing this distribution's support. 
+
+---
+
+#### <kbd>property</kbd> variance
+
+Returns the variance of the distribution. 
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `cdf`
+
+```python
+cdf(z: Tensor) → Tensor
+```
+
+Computes the quantile level alpha_tilde such that q(alpha_tilde) = z. 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Tensor of shape = (*batch_shape,) 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Quantile level alpha_tilde. 
+
+---
+
+
+
+### <kbd>method</kbd> `cdf_spline`
+
+```python
+cdf_spline(z: Tensor) → Tensor
+```
+
+For observations z and splines defined in [qk_x[k], qk_x[k+1]]. 
+
+Computes the quantile level alpha_tilde such that: 
+- alpha_tilde = q^{-1}(z) if z is in-between qk_x[k] and qk_x[k+1] 
+- alpha_tilde = qk_x[k] if z< qk_x[k] 
+- alpha_tilde = qk_x[k+1] if z>qk_x[k+1] 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Observation. Shape: (*batch_shape,) 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Corresponding quantile level alpha_tilde. Shape: (*batch_shape, num_qk-1) 
+
+---
+
+
+
+### <kbd>method</kbd> `cdf_tail`
+
+```python
+cdf_tail(z: Tensor, left_tail: bool = True) → Tensor
+```
+
+Computes the quantile level alpha_tilde such that: 
+
+
+- alpha_tilde = q^{-1}(z) if z is in the tail region 
+- alpha_tilde = qk_x_l or qk_x_r if z is in the non-tail region 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Observation. Shape: (*batch_shape,) 
+ - <b>`left_tail`</b> (bool, optional):  If True, compute alpha_tilde for the left tail. Otherwise, compute alpha_tilde for the right tail. Defaults to True. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Corresponding quantile level alpha_tilde. Shape: (*batch_shape,) 
+
+---
+
+
+
+### <kbd>method</kbd> `crps`
+
+```python
+crps(z: Tensor) → Tensor
+```
+
+Compute CRPS in analytical form. 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Observation to evaluate. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  CRPS value. 
+
+---
+
+
+
+### <kbd>method</kbd> `crps_spline`
+
+```python
+crps_spline(z: Tensor) → Tensor
+```
+
+Compute CRPS in analytical form for the spline. 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Observation to evaluate. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  CRPS value for the spline. 
+
+---
+
+
+
+### <kbd>method</kbd> `crps_tail`
+
+```python
+crps_tail(z: Tensor, left_tail: bool = True) → Tensor
+```
+
+Compute CRPS in analytical form for left/right tails. 
+
+
+
+**Args:**
+ 
+ - <b>`z`</b> (torch.Tensor):  Observation to evaluate. Shape: (*batch_shape,) 
+ - <b>`left_tail`</b> (bool, optional):  If True, compute CRPS for the left tail. Otherwise, compute CRPS for the right tail. Defaults to True. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Tensor containing the CRPS, of the same shape as z. 
+
+---
+
+
+
+### <kbd>method</kbd> `log_prob`
+
+```python
+log_prob(z: Tensor) → Tensor
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `loss`
+
+```python
+loss(z: Tensor) → Tensor
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `parameterize_qk`
+
+```python
+parameterize_qk(quantile_knots: Tensor) → Tuple[Tensor, Tensor, Tensor, Tensor]
+```
+
+Function to parameterize the x or y positions of the num_qk quantile knots. 
+
+
+
+**Args:**
+ 
+ - <b>`quantile_knots`</b> (torch.Tensor):  x or y positions of the quantile knots. Shape: (*batch_shape, num_qk) 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]`</b>:  A tuple containing: 
+        - qk: x or y positions of the quantile knots (qk), with index=1, ..., num_qk-1. Shape: (*batch_shape, num_qk-1) 
+        - qk_plus: x or y positions of the quantile knots (qk), with index=2, ..., num_qk. Shape: (*batch_shape, num_qk-1) 
+        - qk_l: x or y positions of the left-most quantile knot (qk). Shape: (*batch_shape) 
+        - qk_r: x or y positions of the right-most quantile knot (qk). Shape: (*batch_shape) 
+
+---
+
+
+
+### <kbd>method</kbd> `parameterize_spline`
+
+```python
+parameterize_spline(
+    spline_knots: Tensor,
+    qk: Tensor,
+    qk_plus: Tensor,
+    tol: float = 0.0001
+) → Tuple[Tensor, Tensor]
+```
+
+Function to parameterize the x or y positions of the spline knots. 
+
+
+
+**Args:**
+ 
+ - <b>`spline_knots`</b> (torch.Tensor):  Variable that parameterizes the spline knot positions. 
+ - <b>`qk`</b> (torch.Tensor):  x or y positions of the quantile knots (qk), with index=1, ..., num_qk-1. Shape: (*batch_shape, num_qk-1) 
+ - <b>`qk_plus`</b> (torch.Tensor):  x or y positions of the quantile knots (qk), with index=2, ..., num_qk. Shape: (*batch_shape, num_qk-1) 
+ - <b>`tol`</b> (float, optional):  Tolerance hyperparameter for numerical stability. Defaults to 1e-4. 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[torch.Tensor, torch.Tensor]`</b>:  A tuple containing: 
+        - sk: x or y positions of the spline knots (sk). Shape: (*batch_shape, num_qk-1, num_pieces) 
+        - delta_sk: difference of x or y positions of the spline knots (sk). Shape: (*batch_shape, num_qk-1, num_pieces) 
+
+---
+
+
+
+### <kbd>method</kbd> `parameterize_tail`
+
+```python
+parameterize_tail(
+    beta: Tensor,
+    qk_x: Tensor,
+    qk_y: Tensor
+) → Tuple[Tensor, Tensor]
+```
+
+Function to parameterize the tail parameters. 
+
+Note that the exponential tails are given by: q(alpha) = a_l log(alpha) + b_l if left tail q(alpha) = a_r log(1-alpha) + b_r if right tail 
+
+Where: a_l=1/beta_l, b_l=-a_l*log(qk_x_l)+q(qk_x_l) a_r=1/beta_r, b_r=a_r*log(1-qk_x_r)+q(qk_x_r) 
+
+
+
+**Args:**
+ 
+ - <b>`beta`</b> (torch.Tensor):  Parameterizes the left or right tail. Shape: (*batch_shape,) 
+ - <b>`qk_x`</b> (torch.Tensor):  Left- or right-most x-positions of the quantile knots. Shape: (*batch_shape,) 
+ - <b>`qk_y`</b> (torch.Tensor):  Left- or right-most y-positions of the quantile knots. Shape: (*batch_shape,) 
+
+
+
+**Returns:**
+ 
+ - <b>`Tuple[torch.Tensor, torch.Tensor]`</b>:  A tuple containing: 
+        - tail_a: a_l or a_r as described above 
+        - tail_b: b_l or b_r as described above 
+
+---
+
+
+
+### <kbd>method</kbd> `quantile`
+
+```python
+quantile(alpha: Tensor) → Tensor
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `quantile_internal`
+
+```python
+quantile_internal(alpha: Tensor, dim: Optional[int] = None) → Tensor
+```
+
+Evaluates the quantile function at the quantile levels input_alpha. 
+
+
+
+**Args:**
+ 
+ - <b>`alpha`</b> (torch.Tensor):  Tensor of shape = (*batch_shape,) if axis=None, or containing an additional axis on the specified position, otherwise. 
+ - <b>`dim`</b> (Optional[int], optional):  Index of the axis containing the different quantile levels which are to be computed. Read the description below for detailed information. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Quantiles tensor, of the same shape as alpha. 
+
+---
+
+
+
+### <kbd>method</kbd> `quantile_spline`
+
+```python
+quantile_spline(alpha: Tensor, dim: Optional[int] = None) → Tensor
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `quantile_tail`
+
+```python
+quantile_tail(
+    alpha: Tensor,
+    dim: Optional[int] = None,
+    left_tail: bool = True
+) → Tensor
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `rsample`
+
+```python
+rsample(sample_shape: Size = torch.Size([])) → Tensor
+```
+
+Function used to draw random samples 
+
+
+
+**Args:**
+ 
+ - <b>`sample_shape`</b> (torch.Size, optional):  Shape of the sample. Defaults to torch.Size(). 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Random samples. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `DistributionLoss`
+DistributionLoss 
+
+This PyTorch module wraps the `torch.distribution` classes allowing it to interact with NeuralForecast models modularly. It shares the negative log-likelihood as the optimization objective and a sample method to generate empirically the quantiles defined by the `level` list. 
+
+Additionally, it implements a distribution transformation that factorizes the scale-dependent likelihood parameters into a base scale and a multiplier efficiently learnable within the network's non-linearities operating ranges. 
+
+Available distributions: 
+- Poisson 
+- Normal 
+- StudentT 
+- NegativeBinomial 
+- Tweedie 
+- Bernoulli (Temporal Classifiers) 
+- ISQF (Incremental Spline Quantile Function) 
+
+
+
+**Args:**
+ 
+ - <b>`distribution`</b> (str):  Identifier of a torch.distributions.Distribution class. 
+ - <b>`level`</b> (float list):  Confidence levels for prediction intervals. 
+ - <b>`quantiles`</b> (float list):  Alternative to level list, target quantiles. 
+ - <b>`num_samples`</b> (int):  Number of samples for the empirical quantiles. 
+ - <b>`return_params`</b> (bool):  Whether or not return the Distribution parameters. 
+ - <b>`horizon_weight`</b> (Tensor):  Tensor of size h, weight for each timestamp of the forecasting window. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with tensors of ISQF distribution arguments. 
+
+References: 
+    - [PyTorch Probability Distributions Package: StudentT.](https://pytorch.org/docs/stable/distributions.html#studentt) 
+    - [David Salinas, Valentin Flunkert, Jan Gasthaus, Tim Januschowski (2020). "DeepAR: Probabilistic forecasting with autoregressive recurrent networks". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888) 
+    - [Park, Youngsuk, Danielle Maddix, François-Xavier Aubet, Kelvin Kan, Jan Gasthaus, and Yuyang Wang (2022). "Learning Quantile Functions without Quantile Crossing for Distribution-free Time Series Forecasting".](https://proceedings.mlr.press/v151/park22a.html) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    distribution,
+    level=[80, 90],
+    quantiles=None,
+    num_samples=1000,
+    return_params=False,
+    horizon_weight=None,
+    **distribution_kwargs
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `get_distribution`
+
+```python
+get_distribution(distr_args, **distribution_kwargs) → Distribution
+```
+
+Construct the associated Pytorch Distribution, given the collection of constructor arguments and, optionally, location and scale tensors. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+
+
+
+**Returns:**
+ 
+ - <b>`Distribution`</b>:  AffineTransformed distribution. 
+
+---
+
+
+
+### <kbd>method</kbd> `sample`
+
+```python
+sample(distr_args: Tensor, num_samples: Optional[int] = None)
+```
+
+Construct the empirical quantiles from the estimated Distribution, sampling from it `num_samples` independently. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+ - <b>`num_samples`</b> (int, optional):  Overwrite number of samples for the empirical quantiles. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with samples, sample mean, and quantiles. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: Optional[List[float]] = None)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `PMM`
+Poisson Mixture Mesh 
+
+This Poisson Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
+
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) = \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`n_components`</b> (int, optional):  The number of mixture components. Defaults to 10. 
+ - <b>`level`</b> (float list, optional):  Confidence levels for prediction intervals. Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level list, target quantiles. Defaults to None. 
+ - <b>`return_params`</b> (bool, optional):  Whether or not return the Distribution parameters. Defaults to False. 
+ - <b>`batch_correlation`</b> (bool, optional):  Whether or not model batch correlations. Defaults to False. 
+ - <b>`horizon_correlation`</b> (bool, optional):  Whether or not model horizon correlations. Defaults to False. 
+
+References: 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    n_components=10,
+    level=[80, 90],
+    quantiles=None,
+    num_samples=1000,
+    return_params=False,
+    batch_correlation=False,
+    horizon_correlation=False,
+    weighted=False
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(output: Tensor)
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `get_distribution`
+
+```python
+get_distribution(distr_args) → Distribution
+```
+
+Construct the associated Pytorch Distribution, given the collection of constructor arguments and, optionally, location and scale tensors. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+
+
+
+**Returns:**
+ 
+ - <b>`Distribution`</b>:  AffineTransformed distribution. 
+
+---
+
+
+
+### <kbd>method</kbd> `sample`
+
+```python
+sample(distr_args: Tensor, num_samples: Optional[int] = None)
+```
+
+Construct the empirical quantiles from the estimated Distribution, sampling from it `num_samples` independently. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+ - <b>`num_samples`</b> (int, optional):  Overwrite number of samples for the empirical quantiles. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with samples, sample mean, and quantiles. 
+
+---
+
+
+
+### <kbd>method</kbd> `scale_decouple`
+
+```python
+scale_decouple(
+    output,
+    loc: Optional[Tensor] = None,
+    scale: Optional[Tensor] = None
+)
+```
+
+Scale Decouple 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds domain protection to the distribution parameters. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: Optional[List[float]] = None)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `GMM`
+Gaussian Mixture Mesh 
+
+This Gaussian Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
+
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`n_components`</b> (int, optional):  The number of mixture components. Defaults to 10. 
+ - <b>`level`</b> (float list, optional):  Confidence levels for prediction intervals. Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level list, target quantiles. Defaults to None. 
+ - <b>`return_params`</b> (bool, optional):  Whether or not return the Distribution parameters. Defaults to False. 
+ - <b>`batch_correlation`</b> (bool, optional):  Whether or not model batch correlations. Defaults to False. 
+ - <b>`horizon_correlation`</b> (bool, optional):  Whether or not model horizon correlations. Defaults to False. 
+ - <b>`weighted`</b> (bool, optional):  Whether or not model weighted components. Defaults to False. 
+ - <b>`num_samples`</b> (int, optional):  Number of samples for the empirical quantiles. Defaults to 1000. 
+
+References: 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.  Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+ - <b>`Journal Forecasting, Working paper available at arxiv.](https`</b>: //arxiv.org/pdf/2110.13179.pdf) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    n_components=1,
+    level=[80, 90],
+    quantiles=None,
+    num_samples=1000,
+    return_params=False,
+    batch_correlation=False,
+    horizon_correlation=False,
+    weighted=False
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(output: Tensor)
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `get_distribution`
+
+```python
+get_distribution(distr_args) → Distribution
+```
+
+Construct the associated Pytorch Distribution, given the collection of constructor arguments and, optionally, location and scale tensors. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+
+
+
+**Returns:**
+ 
+ - <b>`Distribution`</b>:  AffineTransformed distribution. 
+
+---
+
+
+
+### <kbd>method</kbd> `sample`
+
+```python
+sample(distr_args: Tensor, num_samples: Optional[int] = None)
+```
+
+Construct the empirical quantiles from the estimated Distribution, sampling from it `num_samples` independently. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+ - <b>`num_samples`</b> (int, optional):  Overwrite number of samples for the empirical quantiles. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with samples, sample mean, and quantiles. 
+
+---
+
+
+
+### <kbd>method</kbd> `scale_decouple`
+
+```python
+scale_decouple(
+    output,
+    loc: Optional[Tensor] = None,
+    scale: Optional[Tensor] = None,
+    eps: float = 0.2
+)
+```
+
+Scale Decouple 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds domain protection to the distribution parameters. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: Optional[List[float]] = None)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `NBMM`
+Negative Binomial Mixture Mesh 
+
+This N. Binomial Mixture statistical model assumes independence across groups of data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group. 
+
+$$ \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) = \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)= \prod_{\beta\in[g_{i}]} \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`n_components`</b> (int, optional):  The number of mixture components. Defaults to 10. 
+ - <b>`level`</b> (float list, optional):  Confidence levels for prediction intervals. Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level list, target quantiles. Defaults to None. 
+ - <b>`return_params`</b> (bool, optional):  Whether or not return the Distribution parameters. Defaults to False. 
+ - <b>`weighted`</b> (bool, optional):  Whether or not model weighted components. Defaults to False. 
+ - <b>`num_samples`</b> (int, optional):  Number of samples for the empirical quantiles. Defaults to 1000. 
+
+References: 
+    - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker.  Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International 
+ - <b>`Journal Forecasting, Working paper available at arxiv.](https`</b>: //arxiv.org/pdf/2110.13179.pdf) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    n_components=1,
+    level=[80, 90],
+    quantiles=None,
+    num_samples=1000,
+    return_params=False,
+    weighted=False
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(output: Tensor)
+```
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `get_distribution`
+
+```python
+get_distribution(distr_args) → Distribution
+```
+
+Construct the associated Pytorch Distribution, given the collection of constructor arguments and, optionally, location and scale tensors. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+
+
+
+**Returns:**
+ 
+ - <b>`Distribution`</b>:  AffineTransformed distribution. 
+
+---
+
+
+
+### <kbd>method</kbd> `sample`
+
+```python
+sample(distr_args: Tensor, num_samples: Optional[int] = None)
+```
+
+Construct the empirical quantiles from the estimated Distribution, sampling from it `num_samples` independently. 
+
+
+
+**Args:**
+ 
+ - <b>`distr_args`</b> (torch.Tensor):  Constructor arguments for the underlying Distribution type. 
+ - <b>`num_samples`</b> (int, optional):  Overwrite number of samples for the empirical quantiles. Defaults to None. 
+
+
+
+**Returns:**
+ 
+ - <b>`tuple`</b>:  Tuple with samples, sample mean, and quantiles. 
+
+---
+
+
+
+### <kbd>method</kbd> `scale_decouple`
+
+```python
+scale_decouple(
+    output,
+    loc: Optional[Tensor] = None,
+    scale: Optional[Tensor] = None,
+    eps: float = 0.2
+)
+```
+
+Scale Decouple 
+
+Stabilizes model's output optimization, by learning residual variance and residual location based on anchoring `loc`, `scale`. Also adds domain protection to the distribution parameters. 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: Optional[List[float]] = None)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `HuberLoss`
+Huber Loss 
+
+The Huber loss, employed in robust regression, is a loss function that exhibits reduced sensitivity to outliers in data when compared to the squared error loss. This function is also refered as SmoothL1. 
+
+The Huber loss function is quadratic for small errors and linear for large errors, with equal values and slopes of the different sections at the two points where $(y_{\tau}-\hat{y}_{\tau})^{2}$=$|y_{\tau}-\hat{y}_{\tau}|$. 
+
+$$ L_{\delta}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \    \delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases} $$ 
+
+where $\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear, and can be tuned to control the trade-off between robustness and accuracy in the predictions. 
+
+
+
+**Args:**
+ 
+ - <b>`delta`</b> (float, optional):  Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0. 
+ - <b>`horizon_weight`</b> (Union[torch.Tensor, None], optional):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(delta: float = 1.0, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `TukeyLoss`
+Tukey Loss 
+
+The Tukey loss function, also known as Tukey's biweight function, is a robust statistical loss function used in robust statistics. Tukey's loss exhibits quadratic behavior near the origin, like the Huber loss; however, it is even more robust to outliers as the loss for large residuals remains constant instead of scaling linearly. 
+
+The parameter $c$ in Tukey's loss determines the ''saturation'' point of the function: Higher values of $c$ enhance sensitivity, while lower values increase resistance to outliers. 
+
+$$ L_{c}(y_{\tau},\; \hat{y}_{\tau}) =\begin{cases}{ \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \    \frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases} $$ 
+
+Please note that the Tukey loss function assumes the data to be stationary or normalized beforehand. If the error values are excessively large, the algorithm may need help to converge during optimization. It is advisable to employ small learning rates. 
+
+
+
+**Args:**
+ 
+ - <b>`c`</b> (float, optional):  Specifies the Tukey loss' threshold on which residuals are no longer considered. Defaults to 4.685. 
+ - <b>`normalize`</b> (bool, optional):  Wether normalization is performed within Tukey loss' computation. Defaults to True. 
+
+References: 
+    - [Beaton, A. E., and Tukey, J. W. (1974). "The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data."](https://www.jstor.org/stable/1267936) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(c: float = 4.685, normalize: bool = True)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values 
+    - shape: [B, H, 1] for univariate 
+    - shape: [B, H, N] for multivariate 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Transformed values. 
+    - shape: [B, H, 1] for univariate 
+    - shape: [B, H, N] for multivariate 
+
+---
+
+
+
+### <kbd>method</kbd> `masked_mean`
+
+```python
+masked_mean(x, mask, dim)
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `HuberQLoss`
+Huberized Quantile Loss 
+
+The Huberized quantile loss is a modified version of the quantile loss function that combines the advantages of the quantile loss and the Huber loss. It is commonly used in regression tasks, especially when dealing with data that contains outliers or heavy tails. 
+
+The Huberized quantile loss between `y` and `y_hat` measure the Huber Loss in a non-symmetric way. The loss pays more attention to under/over-estimation depending on the quantile parameter $q$; and controls the trade-off between robustness and accuracy in the predictions with the parameter $delta$. 
+
+$$ \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} + q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`delta`</b> (float, optional):  Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0. 
+ - <b>`q`</b> (float, optional):  The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level. Defaults to 0.5. 
+ - <b>`horizon_weight`</b> (Union[torch.Tensor, None], optional):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) 
+    - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(q, delta: float = 1.0, horizon_weight=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
+---
+
+
+
+## <kbd>class</kbd> `HuberMQLoss`
+Huberized Multi-Quantile loss 
+
+The Huberized Multi-Quantile loss (HuberMQL) is a modified version of the multi-quantile loss function that combines the advantages of the quantile loss and the Huber loss. HuberMQL is commonly used in regression tasks, especially when dealing with data that contains outliers or heavy tails. The loss function pays more attention to under/over-estimation depending on the quantile list $[q_{1},q_{2},\dots]$ parameter. It controls the trade-off between robustness and prediction accuracy with the parameter $\delta$. 
+
+$$ \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau}) $$ 
+
+
+
+**Args:**
+ 
+ - <b>`level`</b> (int list, optional):  Probability levels for prediction intervals (Defaults median). Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level, quantiles to estimate from y distribution. Defaults to None. 
+ - <b>`delta`</b> (float, optional):  Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0. 
+ - <b>`horizon_weight`</b> (Union[torch.Tensor, None], optional):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+
+References: 
+    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) 
+    - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    level=[80, 90],
+    quantiles=None,
+    delta: float = 1.0,
+    horizon_weight=None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values. 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Transformed values. 
+    - shape: [B, H, 1 * Q] for univariate 
+    - shape: [B, H, N * Q] for multivariate 
+
+
+---
+
+
+
+## <kbd>class</kbd> `HuberIQLoss`
+Implicit Huber Quantile Loss 
+
+Computes the huberized quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network. HuberIQLoss measures the deviation of a huberized quantile forecast. By weighting the absolute deviation in a non symmetric way, the loss pays more attention to under or over estimation. 
+
+$$ \mathrm{HuberIQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} + q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \} $$ 
+
+
+
+**Args:**
+ 
+ - <b>`quantile_sampling`</b> (str, optional):  Sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. Defaults to 'uniform'. 
+ - <b>`horizon_weight`</b> (Union[torch.Tensor, None], optional):  Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None. 
+ - <b>`delta`</b> (float, optional):  Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0. 
+
+References: 
+    - [Gouttes, Adèle, Kashif Rasul, Mateusz Koren, Johannes Stephan, and Tofigh Naghibi, "Probabilistic Time Series Forecasting with Implicit Quantile Networks".](http://arxiv.org/abs/2107.03743) 
+    - [Huber Peter, J (1964). "Robust Estimation of a Location Parameter". Annals of Statistics](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full) 
+    - [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(
+    cos_embedding_dim=64,
+    concentration0=1.0,
+    concentration1=1.0,
+    delta=1.0,
+    horizon_weight=None
+)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat)
+```
+
+Adds IQN network to output of network 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values. 
+
+
+    - shape: [B, h, 1] for univariate 
+    - shape: [B, h, N] for multivariate 
+
+---
+
+
+
+### <kbd>method</kbd> `update_quantile`
+
+```python
+update_quantile(q: List[float] = [0.5])
+```
+
+
+
+
+
+
+---
+
+
+
+## <kbd>class</kbd> `Accuracy`
+Accuracy 
+
+Computes the accuracy between categorical `y` and `y_hat`. This evaluation metric is only meant for evalution, as it is not differentiable. 
+
+$$ \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\} $$ 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__()
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values. 
+
+
+    - shape: [B, H, 1] for univariate 
+    - shape: [B, H, N] for multivariate 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Transformed values. 
+    - shape: [B, H, 1] for univariate 
+    - shape: [B, H, N] for multivariate 
+
+
+---
+
+
+
+## <kbd>class</kbd> `sCRPS`
+Scaled Continues Ranked Probability Score 
+
+Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021), to measure the accuracy of predicted quantiles `y_hat` compared to the observation `y`. 
+
+This metric averages percentual weighted absolute deviations as defined by the quantile losses. 
+
+$$ \mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i} \int^{1}_{0} \frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq $$ 
+
+where $\mathbf{\hat{y}}^{(q}_{\tau}$ is the estimated quantile, and $y_{i,\tau}$ are the target variable realizations. 
+
+
+
+**Args:**
+ 
+ - <b>`level`</b> (int list, optional):  Probability levels for prediction intervals (Defaults median). Defaults to [80, 90]. 
+ - <b>`quantiles`</b> (float list, optional):  Alternative to level, quantiles to estimate from y distribution. Defaults to None. 
+
+References: 
+    - [Gneiting, Tilmann. (2011). "Quantiles as optimal point forecasts". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207010000063) 
+    - [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, Zhi Chen, Anil Gaba, Ilia Tsetlin, Robert L. Winkler. (2022). "The M5 uncertainty competition: Results, findings and conclusions". International Journal of Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207021001722) 
+    - [Syama Sundar Rangapuram, Lucien D Werner, Konstantinos Benidis, Pedro Mercado, Jan Gasthaus, Tim Januschowski. (2021). "End-to-End Learning of Coherent Probabilistic Forecasts for Hierarchical Time Series". Proceedings of the 38th International Conference on Machine Learning (ICML).](https://proceedings.mlr.press/v139/rangapuram21a.html) 
+
+
+
+### <kbd>method</kbd> `__init__`
+
+```python
+__init__(level=[80, 90], quantiles=None)
+```
+
+
+
+
+
+
+
+
+---
+
+
+
+### <kbd>method</kbd> `domain_map`
+
+```python
+domain_map(y_hat: Tensor)
+```
+
+Domain mapping for predicted values. 
+
+
+
+**Args:**
+ 
+ - <b>`y_hat`</b> (torch.Tensor):  Predicted values tensor. 
+        - Univariate: [B, H, 1] 
+        - Multivariate: [B, H, N] 
+
+
+
+**Returns:**
+ 
+ - <b>`torch.Tensor`</b>:  Mapped values tensor with shape [B, H, N]. 
+
+
