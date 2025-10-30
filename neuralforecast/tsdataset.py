@@ -466,22 +466,29 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         import pyarrow.parquet as pq
+        import pyarrow as pa
         
         temporal_cols = self.temporal_cols.copy()
+        path = self.files_ds[idx]
         
-        # Read only necessary rows, not entire file
-        parquet_file = pq.ParquetFile(self.files_ds[idx])
-        total_rows = parquet_file.metadata.num_rows
+        if Path(path).is_dir():
+            parquet_files = sorted(Path(path).glob("*.parquet"))
+            tables = [pq.read_table(f, columns=temporal_cols.tolist()) for f in parquet_files]
+            full_table = pa.concat_tables(tables)
+            total_rows = full_table.num_rows
+        else:
+            parquet_file = pq.ParquetFile(path)
+            total_rows = parquet_file.metadata.num_rows
+            full_table = parquet_file.read(columns=temporal_cols.tolist())
         
-        # Only read up to max_size rows (most recent)
+        # Only keep most recent max_size rows
         rows_to_read = min(self.max_size, total_rows)
         start_row = max(0, total_rows - rows_to_read)
         
-        table = parquet_file.read(columns=temporal_cols.tolist())
         if start_row > 0:
-            table = table.slice(start_row, rows_to_read)
+            full_table = full_table.slice(start_row, rows_to_read)
         
-        data = table.to_pandas().to_numpy()
+        data = full_table.to_pandas().to_numpy()
         
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
