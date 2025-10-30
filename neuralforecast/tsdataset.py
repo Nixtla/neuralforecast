@@ -465,33 +465,43 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
+        import pyarrow.parquet as pq
+        
         temporal_cols = self.temporal_cols.copy()
-        data = pd.read_parquet(
-            self.files_ds[idx], columns=temporal_cols.tolist()
-        ).to_numpy()
+        
+        # Read only necessary rows, not entire file
+        parquet_file = pq.ParquetFile(self.files_ds[idx])
+        total_rows = parquet_file.metadata.num_rows
+        
+        # Only read up to max_size rows (most recent)
+        rows_to_read = min(self.max_size, total_rows)
+        start_row = max(0, total_rows - rows_to_read)
+        
+        table = parquet_file.read(columns=temporal_cols.tolist())
+        if start_row > 0:
+            table = table.slice(start_row, rows_to_read)
+        
+        data = table.to_pandas().to_numpy()
+        
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
         data = self._as_torch_copy(data)
 
-        # Pad the temporal data to the left
         temporal = torch.zeros(
             size=(len(temporal_cols), self.max_size), dtype=torch.float32
         )
-        temporal[: len(temporal_cols), -len(data) :] = data.permute(1, 0)
+        temporal[:, -len(data):] = data.T
 
-        # Add static data if available
         static = None if self.static is None else self.static[idx, :]
 
-        item = dict(
+        return dict(
             temporal=temporal,
             temporal_cols=temporal_cols,
             static=static,
             static_cols=self.static_cols,
             y_idx=self.y_idx,
         )
-
-        return item
 
     @staticmethod
     def from_data_directories(
@@ -501,6 +511,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         id_col="unique_id",
         time_col="ds",
         target_col="y",
+        max_size_limit=None,
     ):
         """Create dataset from data directories.
 
@@ -581,6 +592,8 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
+            if max_size_limit is not None:
+                max_size = min(max_size, max_size_limit)
             ids.append(uid)
             last_times.append(last_time)
 

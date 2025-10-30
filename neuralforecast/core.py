@@ -387,6 +387,7 @@ class NeuralForecast:
         id_col: str,
         time_col: str,
         target_col: str,
+        max_size_limit: Optional[int] = None,
     ):
         if self.local_scaler_type is not None:
             raise ValueError(
@@ -407,6 +408,7 @@ class NeuralForecast:
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
+            max_size_limit=max_size_limit,
         )
 
     def fit(
@@ -506,12 +508,18 @@ class NeuralForecast:
                 raise ValueError(
                     "All entries in the list of files must be of type string"
                 )
+            
+            max_input_size = max(model.input_size for model in self.models)
+            max_h = max(model.h for model in self.models)
+            max_size_limit = 2*max_input_size + max_h + val_size
+
             self.dataset = self._prepare_fit_for_local_files(
                 files_list=df,
                 static_df=static_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
+                max_size_limit=max_size_limit,
             )
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
