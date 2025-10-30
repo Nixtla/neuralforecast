@@ -471,7 +471,14 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         temporal_cols = self.temporal_cols.copy()
         path = self.files_ds[idx]
         
+        print(f"DEBUG: path = {path}")
+        print(f"DEBUG: is_dir = {Path(path).is_dir()}")
+        print(f"DEBUG: exists = {Path(path).exists()}")
+        
         if Path(path).is_dir():
+            parquet_files = sorted(Path(path).glob("*.parquet"))
+            print(f"DEBUG: Found {len(parquet_files)} parquet files")
+            print(f"DEBUG: Files = {parquet_files}")
             parquet_files = sorted(Path(path).glob("*.parquet"))
             tables = [pq.read_table(f, columns=temporal_cols.tolist()) for f in parquet_files]
             full_table = pa.concat_tables(tables)
