@@ -466,36 +466,26 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         import pyarrow.parquet as pq
-        import pyarrow as pa
+        import pyarrow.dataset as ds
         
         temporal_cols = self.temporal_cols.copy()
         path = self.files_ds[idx]
         
-        print(f"DEBUG: path = {path}")
-        print(f"DEBUG: is_dir = {Path(path).is_dir()}")
-        print(f"DEBUG: exists = {Path(path).exists()}")
-        
         if Path(path).is_dir():
-            parquet_files = sorted(Path(path).glob("*.parquet"))
-            print(f"DEBUG: Found {len(parquet_files)} parquet files")
-            print(f"DEBUG: Files = {parquet_files}")
-            parquet_files = sorted(Path(path).glob("*.parquet"))
-            tables = [pq.read_table(f, columns=temporal_cols.tolist()) for f in parquet_files]
-            full_table = pa.concat_tables(tables)
-            total_rows = full_table.num_rows
+            dataset = ds.dataset(path, format='parquet')
+            table = dataset.to_table(columns=temporal_cols.tolist())
         else:
-            parquet_file = pq.ParquetFile(path)
-            total_rows = parquet_file.metadata.num_rows
-            full_table = parquet_file.read(columns=temporal_cols.tolist())
+            table = pq.read_table(path, columns=temporal_cols.tolist())
         
-        # Only keep most recent max_size rows
+        total_rows = table.num_rows
+        
         rows_to_read = min(self.max_size, total_rows)
         start_row = max(0, total_rows - rows_to_read)
         
         if start_row > 0:
-            full_table = full_table.slice(start_row, rows_to_read)
+            table = table.slice(start_row, rows_to_read)
         
-        data = full_table.to_pandas().to_numpy()
+        data = table.to_pandas().to_numpy()
         
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
