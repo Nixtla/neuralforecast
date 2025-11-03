@@ -2447,9 +2447,8 @@ dependencies = [
     { name = "numpy", version = "2.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "optuna" },
     { name = "pandas" },
-    { name = "pydantic" },
     { name = "pytorch-lightning" },
-    { name = "ray", extra = ["tune"] },
+    { name = "ray", extra = ["train", "tune"] },
     { name = "torch" },
     { name = "utilsforecast" },
 ]
@@ -2505,12 +2504,11 @@ requires-dist = [
     { name = "polars", marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pyarrow", marker = "extra == 'dev'" },
-    { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyspark", marker = "extra == 'spark'", specifier = ">=3.5" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytorch-lightning", specifier = ">=2.0.0" },
-    { name = "ray", extras = ["tune"], specifier = ">=2.2.0" },
+    { name = "ray", extras = ["train", "tune"], specifier = ">=2.2.0" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "s3fs", marker = "extra == 'dev'" },
     { name = "torch", specifier = ">=2.4.0" },
@@ -3876,6 +3874,14 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+train = [
+    { name = "fsspec" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "tensorboardx" },
+]
 tune = [
     { name = "fsspec" },
     { name = "pandas" },
