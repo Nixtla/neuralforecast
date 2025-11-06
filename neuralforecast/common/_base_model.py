@@ -1524,7 +1524,6 @@ class BaseModel(pl.LightningModule):
                             recursive_step=i,
                             y_hat_shape=y_hat.shape,
                         )
-                    
                     if insample is not None:
                         all_insample_explanations.append(insample)
                         if futr_exog is not None:
@@ -1572,7 +1571,6 @@ class BaseModel(pl.LightningModule):
                 hist_exog_explanations = torch.cat(all_hist_exog_explanations, dim=1) if all_hist_exog_explanations else None
                 stat_exog_explanations = torch.cat(all_stat_exog_explanations, dim=1) if all_stat_exog_explanations else None
                 baseline_predictions = torch.cat(all_baseline_predictions, dim=1) if all_baseline_predictions else None
-                
                 return (
                     y_hat,
                     insample_explanations,
@@ -1876,9 +1874,7 @@ class BaseModel(pl.LightningModule):
         if self.RECURRENT:
             return self._predict_step_recurrent(batch, batch_idx)
         else:
-            return self._predict_step_direct(
-                batch, batch_idx, recursive=self.n_predicts > 1
-            )
+            return self._predict_step_direct(batch, batch_idx, recursive=self.n_predicts > 1)
 
     def fit(
         self,
