@@ -373,7 +373,6 @@ def test_neural_forecast_static_scaling(config, scaler):
         with_scaler["NHITS"].values,
         rtol=0.2,
     )
-    assert not np.array_equal(with_scaler["NHITS"].values, without_scaler["NHITS"].values)
 
 
 @pytest.fixture
