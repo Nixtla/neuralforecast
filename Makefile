@@ -5,7 +5,7 @@ devenv:
 init_codespace:
 	npm install -g @anthropic-ai/claude-code
 	git pull || true
-	uv sync --quiet --all-extras --frozen	
+	uv sync --quiet --all-extras --frozen
 
 load_docs_scripts:
 	if [ ! -d "docs-scripts" ] ; then \
@@ -27,7 +27,7 @@ format_docs:
 	sed -i -e 's/_docs/docs/g' ./docs-scripts/docs-final-formatting.bash
 	bash ./docs-scripts/docs-final-formatting.bash
 	find docs/mintlify -name "*.mdx" -exec sed -i.bak '/^:::/d' {} + && find docs/mintlify -name "*.bak" -delete
-	
+
 	# replace {'loss' with \\{'loss' in the hyperparam tuning notebook
 	find docs/mintlify -name "*.mdx" -exec sed -i.bak "s/{'loss'/\\\\{'loss'/g" {} + && find docs/mintlify -name "*.bak" -delete
 
@@ -46,3 +46,6 @@ check_links:
 	cd docs/mintlify && mintlify broken-links
 
 all_docs: load_docs_scripts api_docs examples_docs format_docs
+
+licenses:
+	pip-licenses --format=markdown --with-authors --with-urls | grep -E "GPL|AGPL|LGPL|MPL" > THIRD_PARTY_LICENSES.md
