@@ -233,7 +233,7 @@ class NeuralForecast:
             models (List[typing.Any]): Instantiated `neuralforecast.models`
                 see [collection here](./models).
             freq (str or int): Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
-            local_scaler_type (str, optional): Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
+            local_scaler_type (str, optional): Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting.
                 Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None.
             local_static_scaler_type (str, optional): Scaler to apply to static exogenous features before fitting.
                 Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None.
