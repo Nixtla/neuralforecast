@@ -1,24 +1,19 @@
 """
-UR2CUTE: Using Repetitively 2 CNNs for Unsteady Timeseries Estimation
+UR2CUTE: Using Repetitively 2 CNNs for Unsteady Timeseries Estimation.
 
-A dual CNN approach for intermittent time series forecasting that combines:
-1. A CNN-based classification model to predict demand occurrence (zero vs. non-zero)
-2. A CNN-based regression model to estimate the magnitude of demand
-
-This two-step hurdle approach significantly improves forecasting accuracy for
-intermittent demand patterns characterized by periods of zero demand followed
-by random non-zero demand.
+The model uses a dual-CNN hurdle architecture tailored for intermittent demand:
+1. A classifier estimates the probability of observing non-zero demand.
+2. A regressor estimates the demand magnitude when demand occurs.
 
 References:
 -----------
-Mirshahi, S., Brandtner, P., & Komínková Oplatková, Z. (2024).
+Mirshahi, S., Brandtner, P., & Kominkova Oplatkova, Z. (2024).
 Intermittent Time Series Demand Forecasting Using Dual Convolutional Neural Networks.
-MENDEL — Soft Computing Journal, 30(1).
+MENDEL -- Soft Computing Journal, 30(1).
 """
 
 import torch
 import torch.nn as nn
-import numpy as np
 from typing import Optional
 
 from neuralforecast.common._base_model import BaseModel
@@ -205,9 +200,9 @@ class UR2CUTE(BaseModel):
 
     References
     ----------
-    Mirshahi, S., Brandtner, P., & Komínková Oplatková, Z. (2024).
+    Mirshahi, S., Brandtner, P., & Kominkova Oplatkova, Z. (2024).
     Intermittent Time Series Demand Forecasting Using Dual Convolutional Neural Networks.
-    MENDEL — Soft Computing Journal, 30(1).
+    MENDEL -- Soft Computing Journal, 30(1).
     """
 
     # Model configuration flags for NeuralForecast framework
@@ -232,9 +227,26 @@ class UR2CUTE(BaseModel):
         val_check_steps: int = 100,
         batch_size: int = 32,
         random_seed: int = 1,
+        valid_batch_size: Optional[int] = None,
+        windows_batch_size: int = 1024,
+        inference_windows_batch_size: int = -1,
+        start_padding_enabled: bool = True,
+        training_data_availability_threshold=0.0,
+        step_size: int = 1,
+        scaler_type: str = "identity",
+        drop_last_loader: bool = False,
+        alias: Optional[str] = None,
+        optimizer=None,
+        optimizer_kwargs=None,
+        lr_scheduler=None,
+        lr_scheduler_kwargs=None,
+        dataloader_kwargs=None,
         **trainer_kwargs
     ):
         # Initialize BaseModel with all required parameters
+        if "num_sanity_val_steps" not in trainer_kwargs:
+            trainer_kwargs["num_sanity_val_steps"] = 0
+
         super(UR2CUTE, self).__init__(
             h=h,
             input_size=input_size,
@@ -244,7 +256,21 @@ class UR2CUTE(BaseModel):
             max_steps=max_steps,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
+            valid_batch_size=valid_batch_size,
+            windows_batch_size=windows_batch_size,
+            inference_windows_batch_size=inference_windows_batch_size,
+            start_padding_enabled=start_padding_enabled,
+            training_data_availability_threshold=training_data_availability_threshold,
+            step_size=step_size,
+            scaler_type=scaler_type,
             random_seed=random_seed,
+            drop_last_loader=drop_last_loader,
+            alias=alias,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            lr_scheduler=lr_scheduler,
+            lr_scheduler_kwargs=lr_scheduler_kwargs,
+            dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs
         )
 
@@ -254,12 +280,27 @@ class UR2CUTE(BaseModel):
         self.dropout_regression = dropout_regression
         self.classification_weight = classification_weight
 
+        self._return_components = False
+        self._auto_threshold_enabled = (
+            isinstance(self.classification_threshold, str)
+            and self.classification_threshold.lower() == "auto"
+        )
+        if self._auto_threshold_enabled:
+            self.classification_threshold_: Optional[float] = None
+        else:
+            self.classification_threshold_ = float(self.classification_threshold)
+        self._zero_demand_count = 0.0
+        self._total_demand_count = 0.0
+
         # Models will be initialized in setup() after we know input dimensions
         self.classifier = None
         self.regressor = None
 
         # Loss for classification (Binary Cross Entropy)
-        self.bce_loss = nn.BCELoss()
+        self.bce_loss = nn.BCELoss(reduction="none")
+
+        # Initialize models immediately so parameters are registered before optimizer setup
+        self._build_models()
 
     def _build_models(self):
         """
@@ -283,6 +324,47 @@ class UR2CUTE(BaseModel):
             forecast_horizon=self.h,
             dropout_rate=self.dropout_regression
         )
+
+    def _current_threshold(self) -> float:
+        if self.classification_threshold_ is not None:
+            return float(self.classification_threshold_)
+        return 0.5
+
+    def _update_auto_threshold_stats(self, outsample_y: torch.Tensor, mask: torch.Tensor) -> None:
+        if not self._auto_threshold_enabled:
+            return
+
+        if mask is None:
+            mask = torch.ones_like(outsample_y)
+
+        valid_mask = mask > 0.0
+        total = valid_mask.sum()
+        if total.item() == 0:
+            return
+
+        zeros = torch.logical_and(valid_mask, torch.eq(outsample_y, 0.0)).sum()
+        self._zero_demand_count += zeros.item()
+        self._total_demand_count += total.item()
+
+    def _compute_classification_loss(
+        self,
+        predictions: torch.Tensor,
+        targets: torch.Tensor,
+        mask: torch.Tensor,
+    ) -> torch.Tensor:
+        mask = mask if mask is not None else torch.ones_like(predictions)
+        mask = mask.float()
+        loss = self.bce_loss(predictions, targets) * mask
+        valid = mask.sum()
+        if valid.item() == 0:
+            return torch.tensor(0.0, device=predictions.device)
+        return loss.sum() / valid
+
+    def on_train_epoch_end(self) -> None:
+        if self._auto_threshold_enabled and self._total_demand_count > 0:
+            ratio = self._zero_demand_count / self._total_demand_count
+            self.classification_threshold_ = round(float(ratio), 2)
+        return super().on_train_epoch_end()
 
     def forward(self, windows_batch):
         """
@@ -321,38 +403,26 @@ class UR2CUTE(BaseModel):
         x = insample_y.permute(0, 2, 1)
 
         # Classification: predict probability of non-zero demand
-        # Output shape: [batch, h]
         order_prob = self.classifier(x)
 
         # Regression: predict magnitude of demand
-        # Output shape: [batch, h]
-        quantity_pred = self.regressor(x)
+        quantity_pred = torch.relu(self.regressor(x))
 
-        # Apply ReLU to ensure non-negative predictions
-        quantity_pred = torch.relu(quantity_pred)
-
-        # During training, return both components for loss calculation
-        # During inference, combine them based on threshold
-        if self.training:
-            # Return dictionary with both outputs for custom loss calculation
+        if self._return_components:
             return {
-                'classification': order_prob,
-                'regression': quantity_pred
+                "classification": order_prob,
+                "regression": quantity_pred,
             }
-        else:
-            # During inference, combine predictions using threshold
-            # If classification probability > threshold, use regression; else 0
-            threshold_tensor = torch.full_like(order_prob, self.classification_threshold)
-            forecast = torch.where(
-                order_prob > threshold_tensor,
-                quantity_pred,
-                torch.zeros_like(quantity_pred)
-            )
 
-            # Reshape to [batch, h, 1] to match BaseModel expectations
-            forecast = forecast.unsqueeze(-1)
+        threshold_value = self._current_threshold()
+        threshold_tensor = torch.full_like(order_prob, threshold_value)
+        forecast = torch.where(
+            order_prob > threshold_tensor,
+            quantity_pred,
+            torch.zeros_like(quantity_pred),
+        )
 
-            return forecast
+        return forecast.unsqueeze(-1)
 
     def training_step(self, batch, batch_idx):
         """
@@ -411,33 +481,36 @@ class UR2CUTE(BaseModel):
 
         # Get targets - squeeze to remove last dimension
         outsample_y = outsample_y.squeeze(-1)  # [batch, h]
+        outsample_mask = outsample_mask.squeeze(-1)
 
-        # Forward pass
-        outputs = self(windows_batch)
+        # Forward pass (request both outputs)
+        self._return_components = True
+        try:
+            outputs = self(windows_batch)
+        finally:
+            self._return_components = False
 
         # Calculate classification targets (1 if non-zero, 0 if zero)
         classification_target = (outsample_y > 0).float()  # [batch, h]
+        self._update_auto_threshold_stats(outsample_y, outsample_mask)
 
-        # Calculate classification loss (BCE)
-        classification_loss = self.bce_loss(
-            outputs['classification'],
-            classification_target
+        # Calculate classification loss (masked BCE)
+        classification_loss = self._compute_classification_loss(
+            outputs["classification"],
+            classification_target,
+            outsample_mask,
         )
 
         # Calculate regression loss only on non-zero samples
-        # Create mask for non-zero targets
-        nonzero_mask = (outsample_y > 0).float()
+        nonzero_mask = (outsample_y > 0).float() * outsample_mask
 
-        # Compute regression loss
         if nonzero_mask.sum() > 0:
-            # Apply loss function (from BaseModel.loss)
             regression_loss = self.loss(
-                outputs['regression'].unsqueeze(-1),  # [batch, h, 1]
+                outputs["regression"].unsqueeze(-1),  # [batch, h, 1]
                 outsample_y.unsqueeze(-1),            # [batch, h, 1]
-                mask=nonzero_mask.unsqueeze(-1)       # [batch, h, 1]
+                mask=nonzero_mask.unsqueeze(-1),      # [batch, h, 1]
             )
         else:
-            # If no non-zero samples in batch, only use classification loss
             regression_loss = torch.tensor(0.0, device=self.device)
 
         # Combined loss
@@ -452,9 +525,21 @@ class UR2CUTE(BaseModel):
         self.log("train_regression_loss", regression_loss, prog_bar=False, on_step=False, on_epoch=True)
 
         # Calculate and log classification accuracy
-        predicted_class = (outputs['classification'] > 0.5).float()
-        accuracy = (predicted_class == classification_target).float().mean()
-        self.log("train_classification_accuracy", accuracy, prog_bar=False, on_step=False, on_epoch=True)
+        predicted_class = (outputs["classification"] > 0.5).float()
+        if outsample_mask.sum() > 0:
+            accuracy = (
+                ((predicted_class == classification_target).float() * outsample_mask).sum()
+                / outsample_mask.sum()
+            )
+        else:
+            accuracy = torch.tensor(0.0, device=self.device)
+        self.log(
+            "train_classification_accuracy",
+            accuracy,
+            prog_bar=False,
+            on_step=False,
+            on_epoch=True,
+        )
 
         return total_loss
 
@@ -474,6 +559,9 @@ class UR2CUTE(BaseModel):
         torch.Tensor
             Combined validation loss
         """
+        if self.val_size == 0:
+            return torch.tensor(0.0, device=self.device)
+
         # Extract y_idx and temporal_cols from batch
         y_idx = batch["y_idx"]
         temporal_cols = batch["temporal_cols"]
@@ -505,23 +593,29 @@ class UR2CUTE(BaseModel):
         )
 
         outsample_y = outsample_y.squeeze(-1)
+        outsample_mask = outsample_mask.squeeze(-1)
 
         # Forward pass
-        outputs = self(windows_batch)
+        self._return_components = True
+        try:
+            outputs = self(windows_batch)
+        finally:
+            self._return_components = False
 
         # Calculate losses (same as training)
         classification_target = (outsample_y > 0).float()
-        classification_loss = self.bce_loss(
-            outputs['classification'],
-            classification_target
+        classification_loss = self._compute_classification_loss(
+            outputs["classification"],
+            classification_target,
+            outsample_mask,
         )
 
-        nonzero_mask = (outsample_y > 0).float()
+        nonzero_mask = (outsample_y > 0).float() * outsample_mask
         if nonzero_mask.sum() > 0:
             regression_loss = self.loss(
-                outputs['regression'].unsqueeze(-1),
+                outputs["regression"].unsqueeze(-1),
                 outsample_y.unsqueeze(-1),
-                mask=nonzero_mask.unsqueeze(-1)
+                mask=nonzero_mask.unsqueeze(-1),
             )
         else:
             regression_loss = torch.tensor(0.0, device=self.device)
@@ -537,8 +631,20 @@ class UR2CUTE(BaseModel):
         self.log("val_regression_loss", regression_loss, prog_bar=False, on_step=False, on_epoch=True)
 
         # Calculate and log classification accuracy
-        predicted_class = (outputs['classification'] > 0.5).float()
-        accuracy = (predicted_class == classification_target).float().mean()
-        self.log("val_classification_accuracy", accuracy, prog_bar=False, on_step=False, on_epoch=True)
+        predicted_class = (outputs["classification"] > 0.5).float()
+        if outsample_mask.sum() > 0:
+            accuracy = (
+                ((predicted_class == classification_target).float() * outsample_mask).sum()
+                / outsample_mask.sum()
+            )
+        else:
+            accuracy = torch.tensor(0.0, device=self.device)
+        self.log(
+            "val_classification_accuracy",
+            accuracy,
+            prog_bar=False,
+            on_step=False,
+            on_epoch=True,
+        )
 
         return total_loss
