@@ -33,7 +33,6 @@ nbs/_extensions/mintlify
 .coverage*
 
 # ignore files created in the docs folder
-docs/*.md
 docs/**/*.mdx
 
 docs-scripts
