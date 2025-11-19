@@ -97,7 +97,7 @@ its dilation.
 Consider a batch of one element, the dilated convolution operation on the
 $t$ time step is defined:
 
-$\\mathrm{Conv1D}(\\mathbf{x},\\mathbf{w})(t) = (\\mathbf{x}_{[\*d]} \\mathbf{w})(t) = \\sum^{K}_{k=1} w\_{k} \\mathbf{x}\_{t-dk}$
+$\mathrm{Conv1D}(\mathbf{x},\mathbf{w})(t) = (\mathbf{x}_{[\*d]} \mathbf{w})(t) = \sum^{K}_{k=1} w\_{k} \mathbf{x}\_{t-dk}$
 
 where $d$ is the dilation factor, $K$ is the kernel size, $t-dk$ is the index of
 the considered past observation. The dilation effectively applies a filter with skip
