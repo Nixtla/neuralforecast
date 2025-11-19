@@ -3,8 +3,22 @@ name: pytest
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'Makefile'
+      - '**.md'
+      - 'nbs/**'
+      - '.github/workflows/build-docs.yaml'
+      - '.gitignore'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'Makefile'
+      - '**.md'
+      - 'nbs/**'
+      - '.github/workflows/build-docs.yaml'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
