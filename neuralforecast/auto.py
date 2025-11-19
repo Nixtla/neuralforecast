@@ -87,7 +87,7 @@ class AutoRNN(BaseAuto):
     ):
         """Auto RNN
 
-        **Parameters:**<br>
+        **Parameters:**
 
         """
         # Define search space, input/output sizes
