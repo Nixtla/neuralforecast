@@ -6,18 +6,10 @@ from typing import Any, Dict, Optional
 import griffe
 import yaml
 from griffe2md import ConfigDict, render_object_docs
-import re
 
 # Suppress griffe warnings
 logging.getLogger("griffe").setLevel(logging.ERROR)
 
-
-def replace_slashes(match):
-    # Get the content between $ signs
-    content = match.group(1)
-    # Replace double backslashes with single backslashes
-    fixed = content.replace("\\\\", "\\")
-    return f"${fixed}$"
 
 class MkDocstringsParser:
     def __init__(self):
@@ -130,7 +122,6 @@ class MkDocstringsParser:
             markdown_docs = render_object_docs(obj, config)  # type: ignore
 
             markdown_docs = markdown_docs.replace(f"### `{to_replace}.", "### `")
-            markdown_docs = re.sub(r"\$([^$]+)\$", replace_slashes, markdown_docs)
 
             return markdown_docs
 
