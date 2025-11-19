@@ -6,13 +6,18 @@ from typing import Any, Dict, Optional
 import griffe
 import yaml
 from griffe2md import ConfigDict, render_object_docs
-
-# from rich.console import Console
-# from rich.markdown import Markdown
+import re
 
 # Suppress griffe warnings
 logging.getLogger("griffe").setLevel(logging.ERROR)
 
+
+def replace_slashes(match):
+    # Get the content between $ signs
+    content = match.group(1)
+    # Replace double backslashes with single backslashes
+    fixed = content.replace("\\\\", "\\")
+    return f"${fixed}$"
 
 class MkDocstringsParser:
     def __init__(self):
@@ -125,6 +130,7 @@ class MkDocstringsParser:
             markdown_docs = render_object_docs(obj, config)  # type: ignore
 
             markdown_docs = markdown_docs.replace(f"### `{to_replace}.", "### `")
+            markdown_docs = re.sub(r"\$([^$]+)\$", replace_slashes, markdown_docs)
 
             return markdown_docs
 
@@ -206,6 +212,11 @@ if __name__ == "__main__":
       show_source: true
       show_signature: true
 """
+    math_test="""::: neuralforecast.common._scalers.invariant_statistics
+    options:
+      members: []
+      heading_level: 3
+"""
 
     print("Class documentation:")
     print(parser.process_markdown(test_class))
@@ -213,8 +224,6 @@ if __name__ == "__main__":
     print("Function documentation:")
     fn = parser.process_markdown(test_function)
     print(fn)
-    # console = Console()
-    # console.print(Markdown(fn))
-
-    # args = parser.get_args()
-    # parser.process_file(args.input_file, args.output_file)
+    print("\n" + "=" * 50 + "\n")
+    print("Math documentation:")
+    print(parser.process_markdown(math_test))
