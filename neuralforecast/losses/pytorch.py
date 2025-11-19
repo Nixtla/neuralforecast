@@ -343,7 +343,7 @@ class MASE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+        [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
         [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
     """
 
@@ -396,7 +396,7 @@ class relMSE(BasePointLoss):
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+        - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
         - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
 
@@ -2027,7 +2027,7 @@ class DistributionLoss(torch.nn.Module):
             y (torch.Tensor): Actual values.
             distr_args (torch.Tensor): Constructor arguments for the underlying Distribution type.
             loc (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape + event_shape. Defaults to None.
-               of the resulting distribution.<br>
+               of the resulting distribution.
             scale (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution. Defaults to None.
             mask (Union[torch.Tensor, None], optional): Specifies date stamps per serie to consider in loss. Defaults to None.
