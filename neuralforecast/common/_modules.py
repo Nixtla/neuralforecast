@@ -104,7 +104,7 @@ class Chomp1d(nn.Module):
 
 
 class CausalConv1d(nn.Module):
-    """Causal Convolution 1d
+    r"""Causal Convolution 1d
 
     Receives `x` input of dim [N,C_in,T], and computes a causal convolution
     in the time dimension. Skipping the H steps of the forecast horizon, through
@@ -112,7 +112,9 @@ class CausalConv1d(nn.Module):
     Consider a batch of one element, the dilated convolution operation on the
     $t$ time step is defined:
 
-    $\mathrm{Conv1D}(\mathbf{x},\mathbf{w})(t) = (\mathbf{x}_{[*d]} \mathbf{w})(t) = \sum^{K}_{k=1} w_{k} \mathbf{x}_{t-dk}$
+    ```math
+    \mathrm{Conv1D}(\mathbf{x},\mathbf{w})(t) = (\mathbf{x}_{[*d]} \mathbf{w})(t) = \sum^{K}_{k=1} w_{k} \mathbf{x}_{t-dk}
+    ```
 
     where $d$ is the dilation factor, $K$ is the kernel size, $t-dk$ is the index of
     the considered past observation. The dilation effectively applies a filter with skip
