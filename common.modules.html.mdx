@@ -1,0 +1,342 @@
+---
+output-file: common.modules.html
+title: NN Modules
+---
+
+
+## 1. MLP
+
+Multi-Layer Perceptron
+
+### `MLP`
+
+```python
+MLP(in_features, out_features, activation, hidden_size, num_layers, dropout)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Multi-Layer Perceptron Class
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_features` | <code>[int](#int)</code> | Dimension of input. | *required*
+`out_features` | <code>[int](#int)</code> | Dimension of output. | *required*
+`activation` | <code>[str](#str)</code> | Activation function to use. | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of hidden layers. | *required*
+`num_layers` | <code>[int](#int)</code> | Number of hidden layers. | *required*
+`dropout` | <code>[float](#float)</code> | Dropout rate. | *required*
+
+## 2. Temporal Convolutions
+
+For long time in deep learning, sequence modelling was synonymous with
+recurrent networks, yet several papers have shown that simple
+convolutional architectures can outperform canonical recurrent networks
+like LSTMs by demonstrating longer effective memory.
+
+**References**
+
+-[van den Oord, A., Dieleman, S., Zen, H., Simonyan,
+K., Vinyals, O., Graves, A., Kalchbrenner, N., Senior, A. W., &
+Kavukcuoglu, K. (2016). Wavenet: A generative model for raw audio.
+Computing Research Repository, abs/1609.03499. URL:
+http://arxiv.org/abs/1609.03499.
+arXiv:1609.03499.](https://arxiv.org/abs/1609.03499)
+
+-[Shaojie Bai,
+Zico Kolter, Vladlen Koltun. (2018). An Empirical Evaluation of Generic
+Convolutional and Recurrent Networks for Sequence Modeling. Computing
+Research Repository, abs/1803.01271. URL:
+https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)
+
+### `Chomp1d`
+
+```python
+Chomp1d(horizon)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Chomp1d
+
+Receives `x` input of dim [N,C,T], and trims it so that only
+'time available' information is used.
+Used by one dimensional causal convolutions `CausalConv1d`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`horizon` | <code>[int](#int)</code> | Length of outsample values to skip. | *required*
+
+### CausalConv1d
+
+### `CausalConv1d`
+
+```python
+CausalConv1d(
+    in_channels,
+    out_channels,
+    kernel_size,
+    padding,
+    dilation,
+    activation,
+    stride=1,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Causal Convolution 1d
+
+Receives `x` input of dim [N,C_in,T], and computes a causal convolution
+in the time dimension. Skipping the H steps of the forecast horizon, through
+its dilation.
+Consider a batch of one element, the dilated convolution operation on the
+$t$ time step is defined:
+
+$\\mathrm{Conv1D}(\\mathbf{x},\\mathbf{w})(t) = (\\mathbf{x}_{[\*d]} \\mathbf{w})(t) = \\sum^{K}_{k=1} w\_{k} \\mathbf{x}\_{t-dk}$
+
+where $d$ is the dilation factor, $K$ is the kernel size, $t-dk$ is the index of
+the considered past observation. The dilation effectively applies a filter with skip
+connections. If $d=1$ one recovers a normal convolution.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_channels` | <code>[int](#int)</code> | Dimension of `x` input's initial channels. | *required*
+`out_channels` | <code>[int](#int)</code> | Dimension of `x` outputs's channels. | *required*
+`activation` | <code>[str](#str)</code> | Identifying activations from PyTorch activations. | *required*
+`padding` | <code>[int](#int)</code> | Number of zero padding used to the left. | *required*
+`kernel_size` | <code>[int](#int)</code> | Convolution's kernel size. | *required*
+`dilation` | <code>[int](#int)</code> | Dilation skip connections. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| torch.Tensor: Torch tensor of dim [N,C_out,T] activation(conv1d(inputs, kernel) + bias).
+
+### TemporalConvolutionEncoder
+
+
+
+## 3. Transformers
+
+**References**
+
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)
+
+- [Haixu Wu, Jiehui
+Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)
+
+### `TransEncoder`
+
+```python
+TransEncoder(attn_layers, conv_layers=None, norm_layer=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+#### `TransEncoder.attn_layers`
+
+```python
+attn_layers = nn.ModuleList(attn_layers)
+```
+
+#### `TransEncoder.conv_layers`
+
+```python
+conv_layers = nn.ModuleList(conv_layers) if conv_layers is not None else None
+```
+
+#### `TransEncoder.forward`
+
+```python
+forward(x, attn_mask=None)
+```
+
+#### `TransEncoder.norm`
+
+```python
+norm = norm_layer
+```
+
+### `TransEncoderLayer`
+
+```python
+TransEncoderLayer(
+    attention,
+    hidden_size,
+    conv_hidden_size=None,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `TransDecoder`
+
+```python
+TransDecoder(layers, norm_layer=None, projection=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `TransDecoderLayer`
+
+```python
+TransDecoderLayer(
+    self_attention,
+    cross_attention,
+    hidden_size,
+    conv_hidden_size=None,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `AttentionLayer`
+
+```python
+AttentionLayer(attention, hidden_size, n_heads, d_keys=None, d_values=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `FullAttention`
+
+```python
+FullAttention(
+    mask_flag=True,
+    factor=5,
+    scale=None,
+    attention_dropout=0.1,
+    output_attention=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `TriangularCausalMask`
+
+```python
+TriangularCausalMask(B, L, device='cpu')
+```
+
+TriangularCausalMask
+
+### `DataEmbedding_inverted`
+
+```python
+DataEmbedding_inverted(c_in, hidden_size, dropout=0.1)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+DataEmbedding_inverted
+
+### `DataEmbedding`
+
+```python
+DataEmbedding(
+    c_in, exog_input_size, hidden_size, pos_embedding=True, dropout=0.1
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `TemporalEmbedding`
+
+```python
+TemporalEmbedding(d_model, embed_type='fixed', freq='h')
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `FixedEmbedding`
+
+```python
+FixedEmbedding(c_in, d_model)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `TimeFeatureEmbedding`
+
+```python
+TimeFeatureEmbedding(input_size, hidden_size)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `PositionalEmbedding`
+
+```python
+PositionalEmbedding(hidden_size, max_len=5000)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `SeriesDecomp`
+
+```python
+SeriesDecomp(kernel_size)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Series decomposition block
+
+### `MovingAvg`
+
+```python
+MovingAvg(kernel_size, stride)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Moving average block to highlight the trend of time series
+
+### `RevIN`
+
+```python
+RevIN(
+    num_features, eps=1e-05, affine=False, subtract_last=False, non_norm=False
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+RevIN (Reversible-Instance-Normalization)
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`num_features` | <code>[int](#int)</code> | The number of features or channels | *required*
+`eps` | <code>[float](#float)</code> | A value added for numerical stability | <code>1e-05</code>
+`affine` | <code>[bool](#bool)</code> | If True, RevIN has learnable affine parameters | <code>False</code>
+`substract_last` | <code>[bool](#bool)</code> | If True, the substraction is based on the last value instead of the mean in normalization | *required*
+`non_norm` | <code>[bool](#bool)</code> | If True, no normalization performed. | <code>False</code>
+
+### `RevINMultivariate`
+
+```python
+RevINMultivariate(
+    num_features, eps=1e-05, affine=False, subtract_last=False, non_norm=False
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+ReversibleInstanceNorm1d for Multivariate models

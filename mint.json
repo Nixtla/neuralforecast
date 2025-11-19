@@ -133,16 +133,23 @@
             "models.timexer.html",
             "models.tsmixer.html",
             "models.tsmixerx.html",
-            "models.vanillatransformer.html",
-            "models.xlstm.html"
+            "models.vanillatransformer.html"
             ]
         },
-        "models",
+        "models.html",
         {
           "group": "Train/Evaluation",
           "pages": [
             "losses.pytorch.html", 
             "losses.numpy.html"
+          ]
+        },
+        {
+          "group": "Common Components",
+          "pages": [
+            "common.base_auto.html",
+            "common.scalers.html",
+            "common.modules.html"
           ]
         },
         {
