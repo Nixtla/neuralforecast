@@ -1,0 +1,4293 @@
+---
+description: >-
+  NeuralForecast contains user-friendly implementations of neural forecasting
+  models that allow for easy transition of computing capabilities (GPU/CPU),
+  computation parallelization, and hyperparameter tuning.
+output-file: models.html
+title: AutoModels
+---
+
+All the NeuralForecast models are "global" because we train them with
+all the series from the input pd.DataFrame data `Y_df`, yet the
+optimization objective is, momentarily, "univariate" as it does not
+consider the interaction between the output predictions across time
+series. Like the StatsForecast library, `core.NeuralForecast` allows you
+to explore collections of models efficiently and contains functions for
+convenient wrangling of input and output pd.DataFrames predictions.
+
+First we load the AirPassengers dataset such that you can run all the
+examples.
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengersDF as Y_df
+```
+
+```python
+# Split train/test and declare time series dataset
+Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
+Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
+dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
+```
+
+# Automatic Forecasting
+
+## RNN-Based
+
+### `AutoRNN`
+
+```python
+AutoRNN(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+Auto RNN
+
+**Parameters:**
+
+#### `AutoRNN.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoRNN.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoRNN.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoRNN.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoRNN.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoRNN.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoRNN._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoRNN._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoRNN._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoRNN._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoRNN._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoRNN.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoRNN.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoRNN.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoRNN.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoRNN.config`
+
+```python
+config = config_base
+```
+
+#### `AutoRNN.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoRNN.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoRNN.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoRNN.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoRNN.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoRNN.h`
+
+```python
+h = h
+```
+
+#### `AutoRNN.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoRNN.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoRNN.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoRNN.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoRNN.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoRNN.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoRNN.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoRNN.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoRNN.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoLSTM`
+
+```python
+AutoLSTM(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoLSTM.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoLSTM.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoLSTM.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoLSTM.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoLSTM.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoLSTM.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoLSTM._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoLSTM._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoLSTM._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoLSTM._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoLSTM._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoLSTM.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoLSTM.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoLSTM.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoLSTM.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoLSTM.config`
+
+```python
+config = config_base
+```
+
+#### `AutoLSTM.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoLSTM.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoLSTM.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoLSTM.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoLSTM.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoLSTM.h`
+
+```python
+h = h
+```
+
+#### `AutoLSTM.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoLSTM.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoLSTM.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoLSTM.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoLSTM.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoLSTM.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoLSTM.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoLSTM.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoLSTM.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoGRU`
+
+```python
+AutoGRU(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoGRU.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoGRU.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoGRU.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoGRU.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoGRU.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoGRU.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoGRU._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoGRU._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoGRU._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoGRU._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoGRU._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoGRU.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoGRU.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoGRU.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoGRU.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoGRU.config`
+
+```python
+config = config_base
+```
+
+#### `AutoGRU.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoGRU.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoGRU.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoGRU.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoGRU.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoGRU.h`
+
+```python
+h = h
+```
+
+#### `AutoGRU.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoGRU.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoGRU.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoGRU.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoGRU.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoGRU.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoGRU.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoGRU.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoGRU.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoDilatedRNN`
+
+```python
+AutoDilatedRNN(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoDilatedRNN.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoDilatedRNN.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoDilatedRNN.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoDilatedRNN.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoDilatedRNN.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoDilatedRNN.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoDilatedRNN._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoDilatedRNN._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoDilatedRNN._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoDilatedRNN._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoDilatedRNN._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoDilatedRNN.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoDilatedRNN.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoDilatedRNN.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoDilatedRNN.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoDilatedRNN.config`
+
+```python
+config = config_base
+```
+
+#### `AutoDilatedRNN.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoDilatedRNN.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoDilatedRNN.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoDilatedRNN.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoDilatedRNN.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoDilatedRNN.h`
+
+```python
+h = h
+```
+
+#### `AutoDilatedRNN.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoDilatedRNN.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoDilatedRNN.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoDilatedRNN.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoDilatedRNN.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoDilatedRNN.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoDilatedRNN.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoDilatedRNN.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoDilatedRNN.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoTCN`
+
+```python
+AutoTCN(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoTCN.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoTCN.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoTCN.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoTCN.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoTCN.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoTCN.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoTCN._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoTCN._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoTCN._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoTCN._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoTCN._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoTCN.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoTCN.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoTCN.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoTCN.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoTCN.config`
+
+```python
+config = config_base
+```
+
+#### `AutoTCN.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoTCN.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoTCN.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoTCN.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoTCN.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoTCN.h`
+
+```python
+h = h
+```
+
+#### `AutoTCN.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoTCN.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoTCN.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoTCN.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoTCN.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoTCN.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoTCN.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoTCN.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoTCN.verbose`
+
+```python
+verbose = verbose
+```
+
+## MLP-Based
+
+### `AutoMLP`
+
+```python
+AutoMLP(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoMLP.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoMLP.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoMLP.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoMLP.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoMLP.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoMLP.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoMLP._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoMLP._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoMLP._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoMLP._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoMLP._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoMLP.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoMLP.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoMLP.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoMLP.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoMLP.config`
+
+```python
+config = config_base
+```
+
+#### `AutoMLP.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoMLP.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoMLP.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoMLP.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoMLP.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoMLP.h`
+
+```python
+h = h
+```
+
+#### `AutoMLP.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoMLP.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoMLP.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoMLP.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoMLP.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoMLP.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoMLP.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoMLP.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoMLP.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoNHITS`
+
+```python
+AutoNHITS(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoNHITS.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoNHITS.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoNHITS.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoNHITS.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoNHITS.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoNHITS.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoNHITS._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoNHITS._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoNHITS._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoNHITS._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoNHITS._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoNHITS.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoNHITS.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoNHITS.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoNHITS.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoNHITS.config`
+
+```python
+config = config_base
+```
+
+#### `AutoNHITS.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoNHITS.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoNHITS.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoNHITS.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoNHITS.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoNHITS.h`
+
+```python
+h = h
+```
+
+#### `AutoNHITS.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoNHITS.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoNHITS.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoNHITS.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoNHITS.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoNHITS.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoNHITS.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoNHITS.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoNHITS.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoNBEATS`
+
+```python
+AutoNBEATS(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoNBEATS.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoNBEATS.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoNBEATS.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoNBEATS.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoNBEATS.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoNBEATS.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoNBEATS._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoNBEATS._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoNBEATS._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoNBEATS._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoNBEATS._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoNBEATS.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoNBEATS.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoNBEATS.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoNBEATS.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoNBEATS.config`
+
+```python
+config = config_base
+```
+
+#### `AutoNBEATS.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoNBEATS.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoNBEATS.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoNBEATS.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoNBEATS.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoNBEATS.h`
+
+```python
+h = h
+```
+
+#### `AutoNBEATS.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoNBEATS.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoNBEATS.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoNBEATS.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoNBEATS.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoNBEATS.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoNBEATS.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoNBEATS.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoNBEATS.verbose`
+
+```python
+verbose = verbose
+```
+
+## Transformer-Based
+
+### `AutoAutoformer`
+
+```python
+AutoAutoformer(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoAutoformer.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoAutoformer.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoAutoformer.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoAutoformer.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoAutoformer.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoAutoformer.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoAutoformer._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoAutoformer._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoAutoformer._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoAutoformer._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoAutoformer._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoAutoformer.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoAutoformer.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoAutoformer.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoAutoformer.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoAutoformer.config`
+
+```python
+config = config_base
+```
+
+#### `AutoAutoformer.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoAutoformer.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoAutoformer.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoAutoformer.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoAutoformer.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoAutoformer.h`
+
+```python
+h = h
+```
+
+#### `AutoAutoformer.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoAutoformer.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoAutoformer.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoAutoformer.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoAutoformer.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoAutoformer.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoAutoformer.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoAutoformer.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoAutoformer.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoInformer`
+
+```python
+AutoInformer(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoInformer.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoInformer.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoInformer.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoInformer.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoInformer.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoInformer.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoInformer._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoInformer._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoInformer._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoInformer._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoInformer._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoInformer.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoInformer.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoInformer.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoInformer.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoInformer.config`
+
+```python
+config = config_base
+```
+
+#### `AutoInformer.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoInformer.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoInformer.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoInformer.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoInformer.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoInformer.h`
+
+```python
+h = h
+```
+
+#### `AutoInformer.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoInformer.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoInformer.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoInformer.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoInformer.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoInformer.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoInformer.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoInformer.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoInformer.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoFEDformer`
+
+```python
+AutoFEDformer(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoFEDformer.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoFEDformer.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoFEDformer.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoFEDformer.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoFEDformer.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoFEDformer.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoFEDformer._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoFEDformer._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoFEDformer._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoFEDformer._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoFEDformer._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoFEDformer.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoFEDformer.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoFEDformer.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoFEDformer.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoFEDformer.config`
+
+```python
+config = config_base
+```
+
+#### `AutoFEDformer.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoFEDformer.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoFEDformer.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoFEDformer.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoFEDformer.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoFEDformer.h`
+
+```python
+h = h
+```
+
+#### `AutoFEDformer.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoFEDformer.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoFEDformer.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoFEDformer.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoFEDformer.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoFEDformer.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoFEDformer.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoFEDformer.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoFEDformer.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoPatchTST`
+
+```python
+AutoPatchTST(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoPatchTST.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoPatchTST.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoPatchTST.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoPatchTST.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoPatchTST.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoPatchTST.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoPatchTST._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoPatchTST._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoPatchTST._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoPatchTST._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoPatchTST._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoPatchTST.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoPatchTST.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoPatchTST.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoPatchTST.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoPatchTST.config`
+
+```python
+config = config_base
+```
+
+#### `AutoPatchTST.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoPatchTST.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoPatchTST.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoPatchTST.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoPatchTST.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoPatchTST.h`
+
+```python
+h = h
+```
+
+#### `AutoPatchTST.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoPatchTST.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoPatchTST.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoPatchTST.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoPatchTST.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoPatchTST.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoPatchTST.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoPatchTST.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoPatchTST.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoTFT`
+
+```python
+AutoTFT(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoTFT.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoTFT.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoTFT.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoTFT.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoTFT.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoTFT.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoTFT._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoTFT._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoTFT._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoTFT._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoTFT._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoTFT.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoTFT.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoTFT.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoTFT.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoTFT.config`
+
+```python
+config = config_base
+```
+
+#### `AutoTFT.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoTFT.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoTFT.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoTFT.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoTFT.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoTFT.h`
+
+```python
+h = h
+```
+
+#### `AutoTFT.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoTFT.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoTFT.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoTFT.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoTFT.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoTFT.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoTFT.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoTFT.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoTFT.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoVanillaTransformer`
+
+```python
+AutoVanillaTransformer(
+    h,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoVanillaTransformer.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoVanillaTransformer.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoVanillaTransformer.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoVanillaTransformer.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoVanillaTransformer.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoVanillaTransformer.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoVanillaTransformer._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoVanillaTransformer._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoVanillaTransformer._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoVanillaTransformer._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoVanillaTransformer._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoVanillaTransformer.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoVanillaTransformer.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoVanillaTransformer.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoVanillaTransformer.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoVanillaTransformer.config`
+
+```python
+config = config_base
+```
+
+#### `AutoVanillaTransformer.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoVanillaTransformer.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoVanillaTransformer.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoVanillaTransformer.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoVanillaTransformer.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoVanillaTransformer.h`
+
+```python
+h = h
+```
+
+#### `AutoVanillaTransformer.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoVanillaTransformer.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoVanillaTransformer.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoVanillaTransformer.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoVanillaTransformer.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoVanillaTransformer.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoVanillaTransformer.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoVanillaTransformer.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoVanillaTransformer.verbose`
+
+```python
+verbose = verbose
+```
+
+### `AutoiTransformer`
+
+```python
+AutoiTransformer(
+    h,
+    n_series,
+    loss=MAE(),
+    valid_loss=None,
+    config=None,
+    search_alg=BasicVariantGenerator(random_state=1),
+    num_samples=10,
+    refit_with_val=False,
+    cpus=cpu_count(),
+    gpus=torch.cuda.device_count(),
+    verbose=False,
+    alias=None,
+    backend="ray",
+    callbacks=None,
+)
+```
+
+Bases: <code>[BaseAuto](#neuralforecast.common._base_auto.BaseAuto)</code>
+
+#### `AutoiTransformer.EXOGENOUS_FUTR`
+
+```python
+EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
+```
+
+#### `AutoiTransformer.EXOGENOUS_HIST`
+
+```python
+EXOGENOUS_HIST = cls_model.EXOGENOUS_HIST
+```
+
+#### `AutoiTransformer.EXOGENOUS_STAT`
+
+```python
+EXOGENOUS_STAT = cls_model.EXOGENOUS_STAT
+```
+
+#### `AutoiTransformer.MULTIVARIATE`
+
+```python
+MULTIVARIATE = cls_model.MULTIVARIATE
+```
+
+#### `AutoiTransformer.RECURRENT`
+
+```python
+RECURRENT = cls_model.RECURRENT
+```
+
+#### `AutoiTransformer.__repr__`
+
+```python
+__repr__()
+```
+
+#### `AutoiTransformer._fit_model`
+
+```python
+_fit_model(
+    cls_model, config, dataset, val_size, test_size, distributed_config=None
+)
+```
+
+#### `AutoiTransformer._optuna_tune_model`
+
+```python
+_optuna_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+    distributed_config,
+)
+```
+
+#### `AutoiTransformer._ray_config_to_optuna`
+
+```python
+_ray_config_to_optuna(ray_config)
+```
+
+#### `AutoiTransformer._train_tune`
+
+```python
+_train_tune(config_step, cls_model, dataset, val_size, test_size)
+```
+
+BaseAuto.\_train_tune
+
+Internal function that instantiates a NF class model, then automatically
+explores the validation loss (ptl/val_loss) on which the hyperparameter
+exploration is based.
+
+Args:
+config_step (dict): Dict, initialization parameters of a NF model.
+cls_model (NeuralForecast model class): NeuralForecast model class, yet to be instantiated.
+dataset (NeuralForecast dataset): NeuralForecast dataset, to fit the model.
+val_size (int): Validation size for temporal cross-validation.
+test_size (int): Test size for temporal cross-validation.
+
+#### `AutoiTransformer._tune_model`
+
+```python
+_tune_model(
+    cls_model,
+    dataset,
+    val_size,
+    test_size,
+    cpus,
+    gpus,
+    verbose,
+    num_samples,
+    search_alg,
+    config,
+)
+```
+
+#### `AutoiTransformer.alias`
+
+```python
+alias = alias
+```
+
+#### `AutoiTransformer.backend`
+
+```python
+backend = backend
+```
+
+#### `AutoiTransformer.callbacks`
+
+```python
+callbacks = callbacks
+```
+
+#### `AutoiTransformer.cls_model`
+
+```python
+cls_model = cls_model
+```
+
+#### `AutoiTransformer.config`
+
+```python
+config = config_base
+```
+
+#### `AutoiTransformer.cpus`
+
+```python
+cpus = cpus
+```
+
+#### `AutoiTransformer.early_stop_patience_steps`
+
+```python
+early_stop_patience_steps = 1
+```
+
+#### `AutoiTransformer.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+BaseAuto.fit
+
+Perform the hyperparameter optimization as specified by the BaseAuto configuration
+dictionary `config`.
+
+The optimization is performed on the `TimeSeriesDataset` using temporal cross validation with
+the validation set that sequentially precedes the test set.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+val_size (int): Size of temporal validation set (needs to be bigger than 0).
+test_size (int): Size of temporal test set (default 0).
+random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
+
+Returns:
+self: Fitted instance of `BaseAuto` with best hyperparameters and results.
+
+#### `AutoiTransformer.get_test_size`
+
+```python
+get_test_size()
+```
+
+#### `AutoiTransformer.gpus`
+
+```python
+gpus = gpus
+```
+
+#### `AutoiTransformer.h`
+
+```python
+h = h
+```
+
+#### `AutoiTransformer.loss`
+
+```python
+loss = loss
+```
+
+#### `AutoiTransformer.num_samples`
+
+```python
+num_samples = num_samples
+```
+
+#### `AutoiTransformer.predict`
+
+```python
+predict(dataset, step_size=1, h=None, **data_kwargs)
+```
+
+BaseAuto.predict
+
+Predictions of the best performing model on validation.
+
+Args:
+dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+step_size (int): Steps between sequential predictions, (default 1).
+h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
+\*\*data_kwarg: Additional parameters for the dataset module.
+
+Returns:
+y_hat: Numpy predictions of the `NeuralForecast` model.
+
+#### `AutoiTransformer.refit_with_val`
+
+```python
+refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
+```
+
+#### `AutoiTransformer.save`
+
+```python
+save(path)
+```
+
+BaseAuto.save
+
+Save the fitted model to disk.
+
+Args:
+path (str): Path to save the model.
+
+#### `AutoiTransformer.search_alg`
+
+```python
+search_alg = search_alg
+```
+
+#### `AutoiTransformer.set_test_size`
+
+```python
+set_test_size(test_size)
+```
+
+#### `AutoiTransformer.valid_loss`
+
+```python
+valid_loss = valid_loss
+```
+
+#### `AutoiTransformer.verbose`
+
+```python
+verbose = verbose
+```
