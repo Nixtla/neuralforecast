@@ -145,6 +145,14 @@
           ]
         },
         {
+          "group": "Common Components",
+          "pages": [
+            "common.base_auto.html",
+            "common.scalers.html",
+            "common.modules.html"
+          ]
+        },
+        {
           "group": "Utils",
           "pages": [
             "tsdataset.html", 
