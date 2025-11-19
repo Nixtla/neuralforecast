@@ -59,7 +59,9 @@ Calculates Mean Absolute Error between `y` and `y_hat`. MAE measures the relativ
 accuracy of a forecasting method by calculating the deviation of the prediction and the true
 value at a given time and averages these devations over the length of the series.
 
-$$ \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}\_{\tau}| $$
+```math
+\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}|
+```
 
 **Parameters:**
 
@@ -108,7 +110,9 @@ Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the relative
 accuracy of a forecasting method by calculating the squared deviation of the prediction and the true
 value at a given time, and averages these devations over the length of the series.
 
-$$ \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}\_{\tau})^{2} $$
+```math
+\mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} 
+```
 
 **Parameters:**
 
@@ -159,7 +163,9 @@ a given time and averages these devations over the length of the series.
 Finally the RMSE will be in the same scale as the original time series so its comparison with other
 series is possible only if they share a common scale. RMSE has a direct connection to the L2 norm.
 
-$$ \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}\_{\tau})^{2}} $$
+```math
+\mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}}
+```
 
 **Parameters:**
 
@@ -213,7 +219,9 @@ averages these devations over the length of the series.
 The closer to zero an observed value is, the higher penalty MAPE loss
 assigns to the corresponding error.
 
-$$ \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|} $$
+```math
+\mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|}
+```
 
 **Parameters:**
 
@@ -272,7 +280,9 @@ of the series. This allows the SMAPE to have bounds between
 0% and 200% which is desireble compared to normal MAPE that
 may be undetermined when the target is zero.
 
-$$ \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y\_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}\_{\tau}|} $$
+```math
+\mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|}
+```
 
 **Parameters:**
 
@@ -330,7 +340,9 @@ absolute errors of the seasonal naive model.
 The MASE partially composed the Overall Weighted Average (OWA),
 used in the M4 Competition.
 
-$$ \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y\_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}\_{\tau})} $$
+```math
+\mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})}
+```
 
 **Parameters:**
 
@@ -383,10 +395,11 @@ Bases: <code>[BasePointLoss](#neuralforecast.losses.pytorch.BasePointLoss)</code
 Relative Mean Squared Error
 Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006)
 as an alternative to percentage errors, to avoid measure unstability.
-$$
+
+```math
 \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) =
-rac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})}
-$$
+\frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})}
+```
 
 **Parameters:**
 
@@ -456,9 +469,9 @@ By weighting the absolute deviation in a non symmetric way, the
 loss pays more attention to under or over estimation.
 A common value for q is 0.5 for the deviation from the median (Pinball loss).
 
-$$
-\mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q),( \hat{y}^{(q)}_{\tau} - y\_{\tau} )_{+} + q,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
-$$
+```math
+\mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+```
 
 **Parameters:**
 
@@ -516,9 +529,9 @@ MQL calculates the average multi-quantile Loss for
 a given set of quantiles, based on the absolute
 difference between predicted quantiles and observed values.
 
-$$
-\mathrm{MQL}(\mathbf{y}_{\tau},\[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}\]) = \frac{1}{n} \sum_{q\_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}\_{\tau})
-$$
+```math
+\mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+```
 
 The limit behavior of MQL allows to measure the accuracy
 of a full predictive distribution $\\mathbf{\\hat{F}}\_{\\tau}$ with
@@ -527,9 +540,9 @@ through a numerical integration technique, that discretizes the quantiles
 and treats the CRPS integral with a left Riemann approximation, averaging over
 uniformly distanced quantiles.
 
-$$
-\mathrm{CRPS}(y\_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y\_{\tau}, \hat{y}^{(q)}\_{\tau}) dq
-$$
+```math
+\mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq
+```
 
 **Parameters:**
 
@@ -613,9 +626,9 @@ IQL measures the deviation of a quantile forecast.
 By weighting the absolute deviation in a non symmetric way, the
 loss pays more attention to under or over estimation.
 
-$$
-\mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q),( \hat{y}^{(q)}_{\tau} - y\_{\tau} )_{+} + q,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
-$$
+```math
+\mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+```
 
 **Parameters:**
 
@@ -724,9 +737,9 @@ __call__(y, distr_args, mask=None)
 Computes the negative log-likelihood objective function.
 To estimate the following predictive distribution:
 
-$$
-\mathrm{P}(\mathbf{y}_{\tau},|,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau},|,\theta))
-$$
+```math
+\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+```
 
 where $\\theta$ represents the distributions parameters. It aditionally
 summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -769,14 +782,14 @@ Bases: <code>[Module](#torch.nn.Module)</code>
 Poisson Mixture Mesh
 
 This Poisson Mixture statistical model assumes independence across groups of
-data $\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
+data $\\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
 
-$$
+```math
 \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
-\prod_{ [g\_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{\[g_{i}\][\tau]} \right) =
-\prod\_{\beta\in[g\_{i}]}
-\left(\sum\_{k=1}^{K} w_k \prod\_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y\_{\beta,\tau}, \hat{\lambda}\_{\beta,\tau,k}) \right)
-$$
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) =
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)
+```
 
 **Parameters:**
 
@@ -805,9 +818,9 @@ __call__(y, distr_args, mask=None)
 Computes the negative log-likelihood objective function.
 To estimate the following predictive distribution:
 
-$$
-\mathrm{P}(\mathbf{y}_{\tau},|,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau},|,\theta))
-$$
+```math
+\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+```
 
 where $\\theta$ represents the distributions parameters. It aditionally
 summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -850,15 +863,15 @@ Bases: <code>[Module](#torch.nn.Module)</code>
 Gaussian Mixture Mesh
 
 This Gaussian Mixture statistical model assumes independence across groups of
-data $\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
+data $\\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
 
-$$
+```math
 \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
-\prod_{ [g\_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{\[g_{i}\][\tau]}\right)=
-\prod\_{\beta\in[g\_{i}]}
-\left(\sum\_{k=1}^{K} w_k \prod\_{(\beta,\tau) \in [g_i][t+1:t+H]}
-\mathrm{Gaussian}(y\_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)
-$$
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+\mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)
+```
 
 **Parameters:**
 
@@ -891,7 +904,9 @@ __call__(y, distr_args, mask=None)
 Computes the negative log-likelihood objective function.
 To estimate the following predictive distribution:
 
-$$\mathrm{P}(\mathbf{y}_{\tau},|,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau},|,\theta))$$
+```math
+\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+```
 
 where $\\theta$ represents the distributions parameters. It aditionally
 summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -932,15 +947,15 @@ Bases: <code>[Module](#torch.nn.Module)</code>
 Negative Binomial Mixture Mesh
 
 This N. Binomial Mixture statistical model assumes independence across groups of
-data $\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
+data $\\mathcal{G}={[g\_{i}]}$, and estimates relationships within the group.
 
-$$
+```math
 \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
-\prod_{ [g\_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{\[g_{i}\][\tau]}\right)=
-\prod\_{\beta\in[g\_{i}]}
-\left(\sum\_{k=1}^{K} w_k \prod\_{(\beta,\tau) \in [g_i][t+1:t+H]}
-\mathrm{NBinomial}(y\_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)
-$$
+\prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+\prod_{\beta\in[g_{i}]}
+\left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+\mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)
+```
 
 **Parameters:**
 
@@ -971,9 +986,9 @@ __call__(y, distr_args, mask=None)
 Computes the negative log-likelihood objective function.
 To estimate the following predictive distribution:
 
-$$
-\mathrm{P}(\mathbf{y}_{\tau},|,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau},|,\theta))
-$$
+```math
+\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+```
 
 where $\\theta$ represents the distributions parameters. It aditionally
 summarizes the objective signal using a weighted average using the `mask` tensor.
@@ -1012,12 +1027,13 @@ squared error loss. This function is also refered as SmoothL1.
 
 The Huber loss function is quadratic for small errors and linear for large
 errors, with equal values and slopes of the different sections at the two
-points where $(y\_{\tau}-\hat{y}_{\tau})^{2}$=$|y_{\tau}-\hat{y}\_{\tau}|$.
+points where $(y\_{\\tau}-\\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\\hat{y}\_{\\tau}|$.
 
-$$
-L\_{\delta}(y\_{\tau},; \hat{y}_{\tau})
-=\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2};{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \ \delta \ \cdot \left(|y_{\tau}-\hat{y}\_{\tau}|-{\frac {1}{2}}\delta \right),;{\text{otherwise.}}\end{cases}
-$$
+```math
+L_{\delta}(y_{\tau},\; \hat{y}_{\tau})
+=\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \\
+\delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}
+```
 
 where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
 and can be tuned to control the trade-off between robustness and accuracy in the predictions.
@@ -1080,11 +1096,12 @@ The parameter $c$ in Tukey's loss determines the ''saturation'' point
 of the function: Higher values of $c$ enhance sensitivity, while lower values
 increase resistance to outliers.
 
-$$
-L\_{c}(y\_{\tau},; \hat{y}_{\tau})
+```math
+L_{c}(y_{\tau},\; \hat{y}_{\tau})
 =\begin{cases}{
-\frac{c^{2}}{6}} \left\[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right\]^{3} ;\text{for } |y_{\tau}-\hat{y}\_{\tau}|\leq c \ \frac{c^{2}}{6} \qquad \text{otherwise.} \end{cases}
-$$
+\frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\
+\frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}
+```
 
 Please note that the Tukey loss function assumes the data to be stationary or
 normalized beforehand. If the error values are excessively large, the algorithm
@@ -1146,11 +1163,11 @@ The Huberized quantile loss between `y` and `y_hat` measure the Huber Loss in a 
 The loss pays more attention to under/over-estimation depending on the quantile parameter $q$;
 and controls the trade-off between robustness and accuracy in the predictions with the parameter $delta$.
 
-$$
+```math
 \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
-(1-q), L\_{\delta}(y\_{\tau},; \hat{y}^{(q)}_{\tau}) \mathbb{1}{ \hat{y}^{(q)}_{\tau} \geq y\_{\tau} } +
-q, L\_{\delta}(y\_{\tau},; \hat{y}^{(q)}_{\tau}) \mathbb{1}{ \hat{y}^{(q)}_{\tau} < y\_{\tau} }
-$$
+(1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} +
+q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \}
+```
 
 **Parameters:**
 
@@ -1205,13 +1222,13 @@ Huberized Multi-Quantile loss
 The Huberized Multi-Quantile loss (HuberMQL) is a modified version of the multi-quantile loss function
 that combines the advantages of the quantile loss and the Huber loss. HuberMQL is commonly used in regression
 tasks, especially when dealing with data that contains outliers or heavy tails. The loss function pays
-more attention to under/over-estimation depending on the quantile list $[q\_{1},q\_{2},\dots]$ parameter.
-It controls the trade-off between robustness and prediction accuracy with the parameter $\delta$.
+more attention to under/over-estimation depending on the quantile list $[q\_{1},q\_{2},\\dots]$ parameter.
+It controls the trade-off between robustness and prediction accuracy with the parameter $\\delta$.
 
-$$
-\mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},\[\mathbf{\hat{y}}^{(q\_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}\]) =
-\frac{1}{n} \sum_{q\_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q\_{i})}\_{\tau})
-$$
+```math
+\mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) =
+\frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+```
 
 **Parameters:**
 
@@ -1275,11 +1292,11 @@ HuberIQLoss measures the deviation of a huberized quantile forecast.
 By weighting the absolute deviation in a non symmetric way, the
 loss pays more attention to under or over estimation.
 
-$$
+```math
 \mathrm{HuberIQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
-(1-q), L\_{\delta}(y\_{\tau},; \hat{y}^{(q)}_{\tau}) \mathbb{1}{ \hat{y}^{(q)}_{\tau} \geq y\_{\tau} } +
-q, L\_{\delta}(y\_{\tau},; \hat{y}^{(q)}_{\tau}) \mathbb{1}{ \hat{y}^{(q)}_{\tau} < y\_{\tau} }
-$$
+(1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} +
+q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \}
+```
 
 **Parameters:**
 
@@ -1330,9 +1347,9 @@ Computes the accuracy between categorical `y` and `y_hat`.
 This evaluation metric is only meant for evalution, as it
 is not differentiable.
 
-$$
-\mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}{\mathbf{y}_{\tau}==\mathbf{\hat{y}}\_{\tau}}
-$$
+```math
+\mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\}
+```
 
 #### `Accuracy.__call__`
 
@@ -1372,11 +1389,11 @@ to measure the accuracy of predicted quantiles `y_hat` compared to the observati
 This metric averages percentual weighted absolute deviations as
 defined by the quantile losses.
 
-$$
-\mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum\_{i}
+```math
+\mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
 \int^{1}_{0}
-\frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y\_{i,\tau})_{q}}{\sum_{i} | y\_{i,\tau} |} dq
-$$
+\frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq
+```
 
 where $\\mathbf{\\hat{y}}^{(q}_{\\tau}$ is the estimated quantile, and $y_{i,\\tau}$
 are the target variable realizations.
