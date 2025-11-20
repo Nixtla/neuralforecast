@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 
 import griffe
 import yaml
+from griffe import Docstring
 from griffe2md import ConfigDict, render_object_docs
 
 # Suppress griffe warnings
@@ -14,6 +15,78 @@ logging.getLogger("griffe").setLevel(logging.ERROR)
 class MkDocstringsParser:
     def __init__(self):
         pass
+
+    def inherit_docstrings(self, obj):
+        """Inherit docstrings from immediate parent class for members without docstrings.
+
+        Args:
+            obj: A griffe object (typically a class) to process.
+        """
+        # Only process classes that have bases (parent classes)
+        if not hasattr(obj, 'bases') or not obj.bases:
+            return
+
+        first_base = obj.bases[0]
+
+        # Resolve the base class object
+        try:
+            # The base might be a string or an expression, try to resolve it
+            if not hasattr(first_base, 'canonical_path'):
+                return
+
+            parent_path = first_base.canonical_path
+
+            # Get the root package object by traversing up to the top
+            root = obj
+            while root.parent:
+                root = root.parent
+
+            # Now navigate down from the root using the canonical path
+            parent_obj = None
+            try:
+                # Remove the package name prefix if present and use the path
+                path_parts = parent_path.split('.')
+                parent_obj = root
+
+                # Navigate through the path parts (starting from index 1 to skip package name)
+                for part in path_parts[1:]:
+                    if hasattr(parent_obj, 'members') and part in parent_obj.members:
+                        parent_obj = parent_obj.members[part]
+                    elif hasattr(parent_obj, '__getitem__'):
+                        try:
+                            parent_obj = parent_obj[part]
+                        except (KeyError, AttributeError):
+                            parent_obj = None
+                            break
+                    else:
+                        parent_obj = None
+                        break
+            except Exception:
+                parent_obj = None
+
+            if not parent_obj:
+                return
+
+            # Iterate through members of the current class
+            if hasattr(obj, 'members'):
+                for member_name, member in obj.members.items():
+                    # Skip if member already has a docstring
+                    if member.docstring and member.docstring.value:
+                        continue
+
+                    # Check if parent has the same member with a docstring
+                    if hasattr(parent_obj, 'members') and member_name in parent_obj.members:
+                        parent_member = parent_obj.members[member_name]
+                        if parent_member.docstring and parent_member.docstring.value:
+                            # Copy the docstring from parent
+                            member.docstring = Docstring(
+                                parent_member.docstring.value,
+                                lineno=member.lineno or 1,
+                                endlineno=member.endlineno
+                            )
+        except Exception:
+            # Silently fail if we can't resolve inheritance
+            pass
 
     def parse_docstring_block(
         self, block_content: str
@@ -58,6 +131,9 @@ class MkDocstringsParser:
             else:
                 obj = package
 
+            # Apply docstring inheritance from immediate parent class
+            self.inherit_docstrings(obj)
+
             # Ensure the docstring is properly parsed with Google parser
             # For functions, we might need to get the actual runtime docstring
             if hasattr(obj, "kind") and obj.kind.value == "function":
@@ -82,37 +158,41 @@ class MkDocstringsParser:
                 except:
                     pass  # Fall back to griffe's detection
 
+            # Determine which parser to use based on docstring_style option
+            docstring_style = options.get("docstring_style", "google")
+
+            # Map docstring style to parser function
+            parser_map = {
+                "google": griffe.parse_google,
+                "numpy": griffe.parse_numpy,
+                "sphinx": griffe.parse_sphinx,
+                "auto": griffe.parse_auto,
+            }
+
+            parser_func = parser_map.get(docstring_style, griffe.parse_google)
+
             if obj.docstring:
-                # Force parsing with Google parser to get structured sections
-                obj.docstring.parsed = griffe.parse_google(obj.docstring)
+                # Parse with the appropriate parser to get structured sections
+                obj.docstring.parsed = parser_func(obj.docstring)
 
             # Handle different object types
-            if hasattr(obj, "members"):
-                # This is a class or module - parse docstrings for all methods/functions
-                for member_name, member in obj.members.items():
+            if hasattr(obj, "all_members"):
+                # This is a class or module - parse docstrings for all methods/functions (including inherited)
+                for member_name, member in obj.all_members.items():
                     if member.docstring:
-                        member.docstring.parsed = griffe.parse_google(member.docstring)
+                        member.docstring.parsed = parser_func(member.docstring)
 
-            # Create ConfigDict with the options
-            # Adjust default options based on object type
-            if hasattr(obj, "kind") and obj.kind.value == "function":
-                # Configuration for functions
-                default_options = {
-                    "docstring_section_style": "table",
-                    "heading_level": 3,
-                    "show_root_heading": True,
-                    "show_source": True,
-                    "show_signature": True,
-                }
-            else:
+            default_options = {
+                "docstring_section_style": "table",
+                "heading_level": 3,
+                "show_root_heading": True,
+                "show_source": True,
+            }
+
+
+            if hasattr(obj, "kind") and obj.kind.value != "function":
                 # Configuration for classes and modules
-                default_options = {
-                    "docstring_section_style": "table",
-                    "heading_level": 3,
-                    "show_root_heading": True,
-                    "show_source": True,
-                    "summary": {"functions": False},
-                }
+                default_options["summary"] = {"functions": False}
 
             default_options.update(options)
             config = ConfigDict(**default_options)
@@ -194,7 +274,8 @@ if __name__ == "__main__":
 """
 
     # Test with a function (using a real function)
-    test_function = """::: coreforecast.differences.diff
+    # test_function = """::: coreforecast.differences.diff
+    test_function = """::: coreforecast.rolling.rolling_mean
     handler: python
     options:
       docstring_style: google
@@ -203,18 +284,9 @@ if __name__ == "__main__":
       show_source: true
       show_signature: true
 """
-    math_test="""::: neuralforecast.common._scalers.invariant_statistics
-    options:
-      members: []
-      heading_level: 3
-"""
 
     print("Class documentation:")
     print(parser.process_markdown(test_class))
     print("\n" + "=" * 50 + "\n")
     print("Function documentation:")
-    fn = parser.process_markdown(test_function)
-    print(fn)
-    print("\n" + "=" * 50 + "\n")
-    print("Math documentation:")
-    print(parser.process_markdown(math_test))
+    print(parser.process_markdown(test_function))

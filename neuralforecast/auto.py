@@ -68,7 +68,6 @@ class AutoRNN(BaseAuto):
         "loss": None,
         "random_seed": tune.randint(1, 20),
     }
-
     def __init__(
         self,
         h,
@@ -85,11 +84,6 @@ class AutoRNN(BaseAuto):
         backend="ray",
         callbacks=None,
     ):
-        """Auto RNN
-
-        **Parameters:**
-
-        """
         # Define search space, input/output sizes
         if config is None:
             config = self.get_default_config(h=h, backend=backend)
