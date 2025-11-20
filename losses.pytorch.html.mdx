@@ -654,14 +654,20 @@ __call__(y, y_hat, y_insample=None, mask=None)
 
 Calculate quantile loss between actual and predicted values.
 
-Args:
-y (torch.Tensor): Actual values.
-y_hat (torch.Tensor): Predicted values.
-y_insample (Union[torch.Tensor, None], optional): Actual insample values. Defaults to None.
-mask (Union[torch.Tensor, None], optional): Specifies datapoints to consider in loss. Defaults to None.
+**Parameters:**
 
-Returns:
-torch.Tensor: Quantile loss (single value).
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[Tensor](#torch.Tensor)</code> | Actual values. | *required*
+`y_hat` | <code>[Tensor](#torch.Tensor)</code> | Predicted values. | *required*
+`y_insample` | <code>[Union](#typing.Union)\[[Tensor](#torch.Tensor), None\]</code> | Actual insample values. Defaults to None. | <code>None</code>
+`mask` | <code>[Union](#typing.Union)\[[Tensor](#torch.Tensor), None\]</code> | Specifies datapoints to consider in loss. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | torch.Tensor: Quantile loss (single value).
 
 ## DistributionLoss
 
@@ -1321,13 +1327,19 @@ Name | Type | Description | Default
 __call__(y, y_hat, y_insample=None, mask=None)
 ```
 
-Args:
-y (torch.Tensor): Actual values.
-y_hat (torch.Tensor): Predicted values.
-mask (Union[torch.Tensor, None], optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+**Parameters:**
 
-Returns:
-float: HuberQLoss.
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[Tensor](#torch.Tensor)</code> | Actual values. | *required*
+`y_hat` | <code>[Tensor](#torch.Tensor)</code> | Predicted values. | *required*
+`mask` | <code>[Union](#typing.Union)\[[Tensor](#torch.Tensor), None\]</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Tensor](#torch.Tensor)</code> | HuberQLoss.
 
 # 6. Others
 

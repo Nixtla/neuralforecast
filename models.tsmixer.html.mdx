@@ -134,14 +134,20 @@ and in particular to be compatible with the StatsForecast library.
 By default the `model` is not saving training checkpoints to protect
 disk memory, to get them change `enable_checkpointing=True` in `__init__`.
 
-Args:
-dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset).
-val_size (int): Validation size for temporal cross-validation.
-random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
-test_size (int): Test size for temporal cross-validation.
+**Parameters:**
 
-Returns:
-None
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`val_size` | <code>[int](#int)</code> | Validation size for temporal cross-validation. | <code>0</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>0</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
 
 #### `TSMixer.predict`
 
@@ -162,18 +168,24 @@ Predict.
 
 Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
-Args:
-dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset).
-test_size (int): Test size for temporal cross-validation.
-step_size (int): Step size between each window.
-random_seed (int): Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s.
-quantiles (list): Target quantiles to predict.
-h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
-explainer_config (dict): configuration for explanations.
-\*\*data_module_kwargs (dict): PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule).
+**Parameters:**
 
-Returns:
-None
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>None</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`quantiles` | <code>[list](#list)</code> | Target quantiles to predict. | <code>None</code>
+`h` | <code>[int](#int)</code> | Prediction horizon, if None, uses the model's fitted horizon. Defaults to None. | <code>None</code>
+`explainer_config` | <code>[dict](#dict)</code> | configuration for explanations. | <code>None</code>
+`**data_module_kwargs` | <code>[dict](#dict)</code> | PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule). | <code>{}</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
 
 ### Usage Examples
 
