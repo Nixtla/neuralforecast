@@ -17,18 +17,17 @@ This model may be a good choice if you seek a small model (small amount
 of trainable parameters) with few hyperparameters to tune (only 2).
 
 **References**
- -[Olivier Sprangers, Sebastian Schelter, Maarten de
+
+- [Olivier Sprangers, Sebastian Schelter, Maarten de
 Rijke (2023). Parameter-Efficient Deep Probabilistic Forecasting.
 International Journal of Forecasting 39, no. 1 (1 January 2023): 332–45.
 URL:
 https://doi.org/10.1016/j.ijforecast.2021.11.011.](https://doi.org/10.1016/j.ijforecast.2021.11.011)
-
--[Shaojie Bai, Zico Kolter, Vladlen Koltun. (2018). An Empirical
+- [Shaojie Bai, Zico Kolter, Vladlen Koltun. (2018). An Empirical
 Evaluation of Generic Convolutional and Recurrent Networks for Sequence
 Modeling. Computing Research Repository, abs/1803.01271. URL:
 https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)
-
--[van den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O.,
+- [van den Oord, A., Dieleman, S., Zen, H., Simonyan, K., Vinyals, O.,
 Graves, A., Kalchbrenner, N., Senior, A. W., & Kavukcuoglu, K. (2016).
 Wavenet: A generative model for raw audio. Computing Research
 Repository, abs/1609.03499. URL: http://arxiv.org/abs/1609.03499.
@@ -36,10 +35,9 @@ arXiv:1609.03499.](https://arxiv.org/abs/1609.03499)
 
 
 ![Figure 1. Visualization of a stack of dilated causal convolutional layers.](imgs_models/bitcn.png)
-*Figure 1. Visualization of a stack of
-dilated causal convolutional layers.*
+*Figure 1. Visualization of a stack of dilated causal convolutional layers.*
 
-## BiTCN
+## 1. BiTCN
 
 ::: neuralforecast.models.bitcn.BiTCN
     options:
@@ -48,7 +46,7 @@ dilated causal convolutional layers.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -98,3 +96,13 @@ plt.fill_between(x=plot_df['ds'][-12:],
 plt.legend()
 plt.grid()
 ```
+
+## 2. Auxilary functions
+
+::: neuralforecast.models.bitcn.TCNCell
+    options:
+      members: []
+
+::: neuralforecast.models.bitcn.CustomConv1d
+    options:
+      members: []

@@ -13,7 +13,8 @@ convolutional Inception block that captures temporal variations at
 different scales and between periods.
 
 **References**
- - [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou
+
+- [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou
 and Jianmin Wang and Mingsheng Long. TimesNet: Temporal 2D-Variation
 Modeling for General Time Series
 Analysis](https://openreview.net/pdf?id=ju_Uqw384Oq) - Based on the
@@ -24,7 +25,7 @@ https://github.com/thuml/Time-Series-Library/blob/main/LICENSE)
 *Figure 1. TimesNet
 Architecture.*
 
-## TimesNet
+## 1. TimesNet
 
 ::: neuralforecast.models.timesnet.TimesNet
     options:
@@ -33,8 +34,7 @@ Architecture.*
         - predict
       heading_level: 3
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd
@@ -87,3 +87,17 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxiliary Functions
+
+::: neuralforecast.models.timesnet.Inception_Block_V1
+    options:
+      members: []
+
+::: neuralforecast.models.timesnet.TimesBlock
+    options:
+      members: []
+
+::: neuralforecast.models.timesnet.FFT_for_Period
+    options:
+      members: []

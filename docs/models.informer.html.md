@@ -6,21 +6,28 @@ title: Informer
 The Informer model tackles the vanilla Transformer computational
 complexity challenges for long-horizon forecasting.
 
-The architecture has three distinctive features: - A ProbSparse
-self-attention mechanism with an O time and memory complexity Llog(L). -
+The architecture has three distinctive features:
+
+- A ProbSparse self-attention mechanism with an O time and memory complexity Llog(L). -
 A self-attention distilling process that prioritizes attention and
-efficiently handles long input sequences. - An MLP multi-step decoder
+efficiently handles long input sequences.
+- An MLP multi-step decoder
 that predicts long time-series sequences in a single forward operation
 rather than step-by-step.
 
 The Informer model utilizes a three-component approach to define its
-embedding: - It employs encoded autoregressive features obtained from a
-convolution network. - It uses window-relative positional embeddings
-derived from harmonic functions. - Absolute positional embeddings
+embedding:
+
+- It employs encoded autoregressive features obtained from a
+convolution network.
+- It uses window-relative positional embeddings
+derived from harmonic functions.
+- Absolute positional embeddings
 obtained from calendar features are utilized.
 
 **References**
- - [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
 Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
 Transformer for Long Sequence Time-Series
 Forecasting”](https://arxiv.org/abs/2012.07436)
@@ -30,7 +37,7 @@ Forecasting”](https://arxiv.org/abs/2012.07436)
 *Figure 1. Temporal Fusion Transformer
 Architecture.*
 
-## Informer
+## 1. Informer
 
 ::: neuralforecast.models.informer.Informer
     options:
@@ -39,7 +46,7 @@ Architecture.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -97,3 +104,17 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxiliary Functions
+
+::: neuralforecast.models.informer.ConvLayer
+    options:
+      members: []
+
+::: neuralforecast.models.informer.ProbAttention
+    options:
+      members: []
+
+::: neuralforecast.models.informer.ProbMask
+    options:
+      members: []

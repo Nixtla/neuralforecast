@@ -22,8 +22,7 @@ title: MLPMultivariate
 ---
 
 ![Figure 1. Three layer MLP with autorregresive inputs.](imgs_models/mlp.png)
-*Figure 1. Three layer MLP with
-autorregresive inputs.*
+*Figure 1. Three layer MLP with autorregresive inputs.*
 
 ## MLPMultivariate
 
@@ -34,7 +33,7 @@ autorregresive inputs.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python

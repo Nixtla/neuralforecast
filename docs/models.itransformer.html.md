@@ -10,7 +10,9 @@ embedded into tokens. That way, the attention mechanisms learn
 multivariate correlation and the feed-forward network learns non-linear
 relationships.
 
-**References** - [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu
+**References**
+
+- [Yong Liu, Tengge Hu, Haoran Zhang, Haixu Wu, Shiyu
 Wang, Lintao Ma, Mingsheng Long. “iTransformer: Inverted Transformers
 Are Effective for Time Series
 Forecasting”](https://arxiv.org/abs/2310.06625)
@@ -19,7 +21,7 @@ Forecasting”](https://arxiv.org/abs/2310.06625)
 *Figure 1. Architecture of
 iTransformer.*
 
-# 1. Model
+## 1. iTransformer
 
 ::: neuralforecast.models.itransformer.iTransformer
     options:
@@ -29,7 +31,7 @@ iTransformer.*
       heading_level: 3
 
 
-# 2. Usage example
+### Usage example
 
 
 ```python

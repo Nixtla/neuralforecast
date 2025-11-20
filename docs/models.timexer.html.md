@@ -4,10 +4,9 @@ title: TimeXer
 ---
 
 ![Figure 1. Architecture of TimeXer.](imgs_models/timexer.png)
-*Figure 1. Architecture of
-TimeXer.*
+*Figure 1. Architecture of TimeXer.*
 
-## TimeXer
+## 1. TimeXer
 
 ::: neuralforecast.models.timexer.TimeXer
     options:
@@ -16,18 +15,7 @@ TimeXer.*
         - predict
       heading_level: 3
 
-
-```python
-# Unit tests for models
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    check_model(TimeXer, ["airpassengers"])
-```
-
-# 3. Usage example
-
+### Usage example
 
 ```python
 import pandas as pd
@@ -79,3 +67,22 @@ ax.set_xlabel('Year', fontsize=20)
 ax.legend(prop={'size': 15})
 ax.grid()
 ```
+
+## 2. Auxiliary Functions
+
+
+::: neuralforecast.models.timexer.FlattenHead
+    options:
+      members: []
+
+::: neuralforecast.models.timexer.Encoder
+    options:
+      members: []
+
+::: neuralforecast.models.timexer.EncoderLayer
+    options:
+      members: []
+
+::: neuralforecast.models.timexer.EnEmbedding
+    options:
+      members: []

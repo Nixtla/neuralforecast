@@ -11,7 +11,8 @@ Autoformmer’s trend and seasonality decomposition. - Simple linear
 layers for trend and seasonality component.
 
 **References**
- - [Zeng, Ailing, et al. “Are transformers effective
+
+- [Zeng, Ailing, et al. “Are transformers effective
 for time series forecasting?.” Proceedings of the AAAI conference on
 artificial intelligence. Vol. 37. No. 9.
 2023.”](https://ojs.aaai.org/index.php/AAAI/article/view/26317)
@@ -21,7 +22,7 @@ artificial intelligence. Vol. 37. No. 9.
 *Figure 1. DLinear
 Architecture.*
 
-## DLinear
+## 1. DLinear
 
 ::: neuralforecast.models.dlinear.DLinear
     options:
@@ -30,7 +31,7 @@ Architecture.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -84,3 +85,13 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxilary Functions
+
+::: neuralforecast.models.dlinear.SeriesDecomp
+    options:
+      members: []
+
+::: neuralforecast.models.dlinear.MovingAvg
+    options:
+      members: []

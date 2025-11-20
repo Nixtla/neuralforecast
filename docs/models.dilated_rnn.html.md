@@ -4,11 +4,11 @@ title: Dilated RNN
 ---
 
 The Dilated Recurrent Neural Network
-([`DilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html#dilatedrnn))
+([`DilatedRNN`](./models.dilated_rnn.html#dilatedrnn))
 addresses common challenges of modeling long sequences like vanishing
 gradients, computational efficiency, and improved model flexibility to
 model complex relationships while maintaining its parsimony. The
-[`DilatedRNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.dilated_rnn.html#dilatedrnn)
+[`DilatedRNN`](./models.dilated_rnn.html#dilatedrnn)
 builds a deep stack of RNN layers using skip conditions on the temporal
 and the network’s depth dimensions. The temporal dilated recurrent skip
 connections offer the capability to focus on multi-resolution inputs.The
@@ -24,12 +24,13 @@ $\mathbf{x}^{(f)}_{[:t+H]}$ are future exogenous available at the time
 of the prediction.
 
 **References**
--[Shiyu Chang, et al. “Dilated Recurrent Neural
+
+- [Shiyu Chang, et al. “Dilated Recurrent Neural
 Networks”.](https://arxiv.org/abs/1710.02224)
--[Yao Qin, et al. “A
+- [Yao Qin, et al. “A
 Dual-Stage Attention-Based recurrent neural network for time series
 prediction”.](https://arxiv.org/abs/1704.02971)
--[Kashif Rasul, et
+- [Kashif Rasul, et
 al. “Zalando Research: PyTorch Dilated Recurrent Neural
 Networks”.](https://arxiv.org/abs/1710.02224)
 
@@ -40,15 +41,14 @@ dilation 1, 2, 4.*
 
 ## Dilated RNN
 
-::: neuralforecast.models.dilated_rnn.Dilated RNN
+::: neuralforecast.models.dilated_rnn.DilatedRNN
     options:
       members:
         - fit
         - predict
       heading_level: 3
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd

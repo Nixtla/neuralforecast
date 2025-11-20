@@ -20,7 +20,8 @@ convolution network. - Absolute positional embeddings obtained from
 calendar features are utilized.
 
 **References**
- - [Wu, Haixu, Jiehui Xu, Jianmin Wang, and Mingsheng
+
+- [Wu, Haixu, Jiehui Xu, Jianmin Wang, and Mingsheng
 Long. “Autoformer: Decomposition transformers with auto-correlation for
 long-term series
 forecasting”](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)
@@ -30,7 +31,7 @@ forecasting”](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8b
 *Figure 1. Autoformer
 Architecture.*
 
-## Autoformer
+## 1. Autoformer
 
 ::: neuralforecast.models.autoformer.Autoformer
     options:
@@ -39,7 +40,7 @@ Architecture.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -97,3 +98,33 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxiliary functions
+
+::: neuralforecast.models.autoformer.Decoder
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.DecoderLayer
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.Encoder
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.EncoderLayer
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.LayerNorm
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.AutoCorrelationLayer
+    options:
+      members: []
+
+::: neuralforecast.models.autoformer.AutoCorrelation
+    options:
+      members: []

@@ -6,7 +6,9 @@ title: KAN
 Kolmogorov-Arnold Networks (KANs) are an alternative to Multi-Layer
 Perceptrons (MLPs). This model uses KANs similarly as our MLP model.
 
-**References** - [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle,
+**References**
+
+- [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle,
 James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark. “KAN:
 Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
 
@@ -14,7 +16,7 @@ Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
 *Figure 1. KAN compared to
 MLP.*
 
-## KAN
+## 1. KAN
 
 ::: neuralforecast.models.kan.KAN
     options:
@@ -23,8 +25,7 @@ MLP.*
         - predict
       heading_level: 3
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd
@@ -70,3 +71,9 @@ plt.fill_between(x=plot_df['ds'][-12:],
 plt.legend()
 plt.grid()
 ```
+
+## 2. Auxiliary functions
+
+::: neuralforecast.models.kan.KANLinear
+    options:
+      members: []

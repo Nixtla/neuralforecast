@@ -27,12 +27,12 @@ $$
 $$
 
 **References**
- - [David Salinas, Valentin Flunkert, Jan Gasthaus,
+
+- [David Salinas, Valentin Flunkert, Jan Gasthaus,
 Tim Januschowski (2020). “DeepAR: Probabilistic forecasting with
 autoregressive recurrent networks”. International Journal of
 Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)
- -
-[Alexander Alexandrov et. al (2020). “GluonTS: Probabilistic and Neural
+- [Alexander Alexandrov et. al (2020). “GluonTS: Probabilistic and Neural
 Time Series Modeling in Python”. Journal of Machine Learning
 Research.](https://www.jmlr.org/papers/v21/19-820.html)
 
@@ -40,14 +40,14 @@ Research.](https://www.jmlr.org/papers/v21/19-820.html)
 > **Exogenous Variables, Losses, and Parameters Availability**
 >
 > Given the sampling procedure during inference, DeepAR only supports
-> [`DistributionLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#distributionloss)
+> [`DistributionLoss`](./losses.pytorch.html#distributionloss)
 > as training loss.
 >
 > Note that DeepAR generates a non-parametric forecast distribution
 > using Monte Carlo. We use this sampling procedure also during
 > validation to make it closer to the inference procedure. Therefore,
 > only the
-> [`MQLoss`](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html#mqloss)
+> [`MQLoss`](./losses.pytorch.html#mqloss)
 > is available for validation.
 >
 > Aditionally, Monte Carlo implies that historic exogenous variables are
@@ -59,7 +59,7 @@ the optimization signal comes from likelihood of observations, during
 inference a recurrent multi-step strategy is used to generate predictive
 distributions.*
 
-## DeepAR
+## 1. DeepAR
 
 ::: neuralforecast.models.deepar.DeepAR
     options:
@@ -68,7 +68,7 @@ distributions.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -120,3 +120,9 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
+
+## 2. Auxiliary functions
+
+::: neuralforecast.models.deepar.Decoder
+    options:
+      members: []

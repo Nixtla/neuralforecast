@@ -18,17 +18,18 @@ reconciliation that restores the aggregation constraints into its base
 samples.
 
 **References**
- - [Kin G. Olivares, David Luo, Cristian Challu,
+
+- [Kin G. Olivares, David Luo, Cristian Challu,
 Stefania La Vattiata, Max Mergenthaler, Artur Dubrawski (2023). “HINT:
 Hierarchical Mixture Networks For Coherent Probabilistic Forecasting”.
 Neural Information Processing Systems, submitted. Working Paper version
 available at arxiv.](https://arxiv.org/abs/2305.07089)
- - [Kin G.
+- [Kin G.
 Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee
 Dicker (2022).”Probabilistic Hierarchical Forecasting with Deep Poisson
 Mixtures”. International Journal Forecasting, accepted paper available
 at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
- - [Kin G. Olivares,
+- [Kin G. Olivares,
 Federico Garza, David Luo, Cristian Challu, Max Mergenthaler, Souhaib
 Ben Taieb, Shanika Wickramasuriya, and Artur Dubrawski (2022).
 “HierarchicalForecast: A reference framework for hierarchical
@@ -39,7 +40,7 @@ abs/2207.03517, 2022b.](https://arxiv.org/abs/2207.03517)
 *Figure 1. Hierarchical Mixture Networks
 (HINT).*
 
-## HINT
+## 1. HINT
 
 ::: neuralforecast.models.hint.HINT
     options:
@@ -48,7 +49,7 @@ abs/2207.03517, 2022b.](https://arxiv.org/abs/2207.03517)
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 In this example we will use HINT for the hierarchical forecast task, a
 multivariate regression problem with aggregation constraints. The
@@ -58,10 +59,14 @@ matrix $\mathbf{S}_{[i][b]}$, the Figure belows shows an example.
 In this example we will make coherent predictions for the TourismL
 dataset.
 
-Outline<br/> 1. Import packages<br/> 2. Load hierarchical dataset<br/> 3.
-Fit and Predict HINT<br/> 4. Forecast Plot
+Outline:
 
-![](/neuralforecast/imgs_models/hint_notation.png)
+1. Import packages
+2. Load hierarchical dataset
+3. Fit and Predict HINT
+4. Forecast Plot
+
+![](imgs_models/hint_notation.png)
 
 
 ```python
@@ -127,3 +132,21 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
+
+## 2. Reconciliation Methods
+
+::: neuralforecast.models.hint.get_identity_P
+    options:
+      members: []
+
+::: neuralforecast.models.hint.get_bottomup_P
+    options:
+      members: []
+
+::: neuralforecast.models.hint.get_mintrace_ols_P
+    options:
+      members: []
+
+::: neuralforecast.models.hint.get_mintrace_wls_P
+    options:
+      members: []

@@ -32,7 +32,7 @@ autorregresive inputs.*
         - predict
       heading_level: 3
 
-## Usage Example
+### Usage Example
 
 
 ```python

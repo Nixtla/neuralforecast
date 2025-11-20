@@ -16,30 +16,31 @@ to model the following conditional
 probability:$$\mathbb{P}(\mathbf{y}_{[t+1:t+H]}|\;\mathbf{y}_{[:t]},\; \mathbf{x}^{(h)}_{[:t]},\; \mathbf{x}^{(f)}_{[:t+H]},\; \mathbf{x}^{(s)})$$
 
 **References**
- - [Jan Golda, Krzysztof Kudrynski. “NVIDIA, Deep
+
+- [Jan Golda, Krzysztof Kudrynski. “NVIDIA, Deep
 Learning Forecasting
 Examples”](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Forecasting/TFT)
- -
-[Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister, “Temporal
+- [Bryan Lim, Sercan O. Arik, Nicolas Loeff, Tomas Pfister, “Temporal
 Fusion Transformers for interpretable multi-horizon time series
 forecasting”](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
 
 
 ![Figure 1. Temporal Fusion Transformer Architecture.](imgs_models/tft_architecture.png)
-*Figure 1. Temporal Fusion Transformer
-Architecture.*
+*Figure 1. Temporal Fusion Transformer Architecture.*
 
-## TFT
+## 1. Temporal Fusion Decoder
 
 ::: neuralforecast.models.tft.TFT
     options:
       members:
         - fit
         - predict
+        - feature_importances
+        - attention_weights
+        - feature_importance_correlations
       heading_level: 3
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import matplotlib.pyplot as plt
@@ -109,9 +110,43 @@ plt.grid()
 plt.plot()
 ```
 
-# Interpretability
+## 2. TFT Architecture
 
-## 1. Attention Weights
+The first TFT’s step is embed the original input
+$\{\mathbf{x}^{(s)}, \mathbf{x}^{(h)}, \mathbf{x}^{(f)}\}$ into a high
+dimensional space
+$\{\mathbf{E}^{(s)}, \mathbf{E}^{(h)}, \mathbf{E}^{(f)}\}$, after which
+each embedding is gated by a variable selection network (VSN). The
+static embedding $\mathbf{E}^{(s)}$ is used as context for variable
+selection and as initial condition to the LSTM. Finally the encoded
+variables are fed into the multi-head attention decoder.
+
+### 2.1 Static Covariate Encoder
+
+The static embedding $\mathbf{E}^{(s)}$ is transformed by the
+StaticCovariateEncoder into contexts $c_{s}, c_{e}, c_{h}, c_{c}$. Where
+$c_{s}$ are temporal variable selection contexts, $c_{e}$ are
+TemporalFusionDecoder enriching contexts, and $c_{h}, c_{c}$ are LSTM’s
+hidden/contexts for the TemporalCovariateEncoder.
+
+### 2.2 Temporal Covariate Encoder
+
+TemporalCovariateEncoder encodes the embeddings
+$\mathbf{E}^{(h)}, \mathbf{E}^{(f)}$ and contexts $(c_{h}, c_{c})$ with
+an LSTM.
+
+An analogous process is repeated for the future data, with the main
+difference that $\mathbf{E}^{(f)}$ contains the future available
+information.
+
+### 2.3 Temporal Fusion Decoder
+
+The TemporalFusionDecoder enriches the LSTM’s outputs with $c_{e}$ and
+then uses an attention layer, and multi-step adapter.
+
+## 3. Interpretability
+
+### 3.1 Attention Weights
 
 
 ```python
@@ -219,30 +254,30 @@ def plot_attention(
         raise ValueError(f"Invalid output: {output}. Expected 'plot' or 'figure'.")
 ```
 
-#### 1.1 Mean attention
+##### 3.1.1 Mean attention
 
 
 ```python
 plot_attention(nf.models[0], plot="time")
 ```
 
-#### 1.2 Attention of all future time steps
+##### 3.1.2 Attention of all future time steps
 
 
 ```python
 plot_attention(nf.models[0], plot="all")
 ```
 
-#### 1.3 Attention of a specific future time step
+##### 3.1.3 Attention of a specific future time step
 
 
 ```python
 plot_attention(nf.models[0], plot=8)
 ```
 
-## 2. Feature Importance
+### 3.2 Feature Importance
 
-### 2.1 Global feature importance
+#### 3.2.1 Global feature importance
 
 
 ```python
@@ -250,14 +285,14 @@ feature_importances = nf.models[0].feature_importances()
 feature_importances.keys()
 ```
 
-#### Static variable importances
+##### Static variable importances
 
 
 ```python
 feature_importances["Static covariates"].sort_values(by="importance").plot(kind="barh")
 ```
 
-#### Past variable importances
+##### Past variable importances
 
 
 ```python
@@ -266,7 +301,7 @@ feature_importances["Past variable importance over time"].mean().sort_values().p
 )
 ```
 
-#### Future variable importances
+##### Future variable importances
 
 
 ```python
@@ -275,9 +310,9 @@ feature_importances["Future variable importance over time"].mean().sort_values()
 )
 ```
 
-### 2.2 Variable importances over time
+#### 3.2.2 Variable importances over time
 
-#### Future variable importance over time
+##### Future variable importance over time
 
 Importance of each future covariate at each future time step
 
@@ -299,9 +334,7 @@ ax.legend()
 plt.show()
 ```
 
-2.3
-
-#### Past variable importance over time
+##### Past variable importance over time
 
 
 ```python
@@ -322,7 +355,7 @@ ax.grid(True)
 plt.show()
 ```
 
-#### Past variable importance over time ponderated by attention
+##### Past variable importance over time ponderated by attention
 
 Decomposition of the importance of each time step based on importance of
 each variable at that time step
@@ -361,7 +394,7 @@ plt.legend()
 plt.show()
 ```
 
-### 3. Variable importance correlations over time
+#### 3.2.3 Variable importance correlations over time
 
 Variables which gain and lose importance at same moments
 
@@ -369,3 +402,69 @@ Variables which gain and lose importance at same moments
 ```python
 nf.models[0].feature_importance_correlations()
 ```
+
+## 4. Auxiliary Functions
+
+### 4.1 Gating Mechanisms
+
+The Gated Residual Network (GRN) provides adaptive depth and network
+complexity capable of accommodating different size datasets. As residual
+connections allow for the network to skip the non-linear transformation
+of input $\mathbf{a}$ and context $\mathbf{c}$.
+
+The Gated Linear Unit (GLU) provides the flexibility of supressing
+unnecesary parts of the GRN. Consider GRN’s output $\gamma$ then GLU
+transformation is defined by:
+
+$$\mathrm{GLU}(\gamma) = \sigma(\mathbf{W}_{4}\gamma +b_{4}) \odot (\mathbf{W}_{5}\gamma +b_{5})$$
+
+
+![Figure 2. Gated Residual Network.](imgs_models/tft_grn.png)
+*Figure 2. Gated Residual Network.*
+
+### 4.2 Variable Selection Networks
+
+TFT includes automated variable selection capabilities, through its
+variable selection network (VSN) components. The VSN takes the original
+input
+$\{\mathbf{x}^{(s)}, \mathbf{x}^{(h)}_{[:t]}, \mathbf{x}^{(f)}_{[:t]}\}$
+and transforms it through embeddings or linear transformations into a
+high dimensional space
+$\{\mathbf{E}^{(s)}, \mathbf{E}^{(h)}_{[:t]}, \mathbf{E}^{(f)}_{[:t+H]}\}$.
+
+For the observed historic data, the embedding matrix
+$\mathbf{E}^{(h)}_{t}$ at time $t$ is a concatenation of $j$ variable
+$e^{(h)}_{t,j}$ embeddings:
+
+The variable selection weights are given by:
+$$s^{(h)}_{t}=\mathrm{SoftMax}(\mathrm{GRN}(\mathbf{E}^{(h)}_{t},\mathbf{E}^{(s)}))$$
+
+The VSN processed features are then:
+$$\tilde{\mathbf{E}}^{(h)}_{t}= \sum_{j} s^{(h)}_{j} \tilde{e}^{(h)}_{t,j}$$
+
+![Figure 3. Variable Selection Network](imgs_models/tft_vsn.png)
+*Figure 3. Variable Selection Network*
+
+### 4.3. Multi-Head Attention
+
+To avoid information bottlenecks from the classic Seq2Seq architecture,
+TFT incorporates a decoder-encoder attention mechanism inherited
+transformer architectures ([Li et. al
+2019](https://arxiv.org/abs/1907.00235), [Vaswani et. al
+2017](https://arxiv.org/abs/1706.03762)). It transform the the outputs
+of the LSTM encoded temporal features, and helps the decoder better
+capture long-term relationships.
+
+The original multihead attention for each component $H_{m}$ and its
+query, key, and value representations are denoted by
+$Q_{m}, K_{m}, V_{m}$, its transformation is given by:
+
+TFT modifies the original multihead attention to improve its
+interpretability. To do it it uses shared values $\tilde{V}$ across
+heads and employs additive aggregation,
+$\mathrm{InterpretableMultiHead}(Q,K,V) = \tilde{H} W_{M}$. The
+mechanism has a great resemblence to a single attention layer, but it
+allows for $M$ multiple attention weights, and can be therefore be
+interpreted as the average ensemble of $M$ single attention layers.
+
+
