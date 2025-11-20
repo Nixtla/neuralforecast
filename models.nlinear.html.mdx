@@ -7,13 +7,17 @@ NLinear is a simple and fast yet accurate time series forecasting model
 for long-horizon forecasting.
 
 The architecture aims to boost the performance when there is a
-distribution shift in the dataset: 1. NLinear first subtracts the input
-by the last value of the sequence; 2. Then, the input goes through a
+distribution shift in the dataset: 
+
+1. NLinear first subtracts the input
+by the last value of the sequence; 
+2. Then, the input goes through a
 linear layer, and the subtracted part is added back before making the
 final prediction.
 
 **References**
- - [Zeng, Ailing, et al. “Are transformers effective
+
+- [Zeng, Ailing, et al. “Are transformers effective
 for time series forecasting?.” Proceedings of the AAAI conference on
 artificial intelligence. Vol. 37. No. 9.
 2023.”](https://ojs.aaai.org/index.php/AAAI/article/view/26317)
@@ -172,7 +176,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python

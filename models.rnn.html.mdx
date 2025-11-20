@@ -4,7 +4,7 @@ title: RNN
 ---
 
 Elman proposed this classic recurrent neural network
-([`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn))
+([`RNN`](./models.rnn.html#rnn))
 in 1990, where each layer uses the following recurrent transformation:
 $$\mathbf{h}^{l}_{t} = \mathrm{Activation}([\mathbf{y}_{t},\mathbf{x}^{(h)}_{t},\mathbf{x}^{(s)}] W^{\intercal}_{ih} + b_{ih}  +  \mathbf{h}^{l}_{t-1} W^{\intercal}_{hh} + b_{hh})$$
 
@@ -19,10 +19,10 @@ hidden states into contexts $\mathbf{c}_{[t+1:t+H]}$, that are decoded
 and adapted into $\mathbf{\hat{y}}_{[t+1:t+H],[q]}$ through MLPs.
 
 **References**
- -[Jeffrey L. Elman (1990). “Finding Structure in
-Time”.](https://onlinelibrary.wiley.com/doiabs/10.1207/s15516709cog1402_1)
 
--[Cho, K., van Merrienboer, B., Gülcehre, C., Bougares, F., Schwenk, H.,
+- [Jeffrey L. Elman (1990). “Finding Structure in
+Time”.](https://onlinelibrary.wiley.com/doiabs/10.1207/s15516709cog1402_1)
+- [Cho, K., van Merrienboer, B., Gülcehre, C., Bougares, F., Schwenk, H.,
 & Bengio, Y. (2014). Learning phrase representations using RNN
 encoder-decoder for statistical machine
 translation.](http://arxiv.org/abs/1406.1078)

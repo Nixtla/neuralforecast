@@ -18,17 +18,18 @@ reconciliation that restores the aggregation constraints into its base
 samples.
 
 **References**
- - [Kin G. Olivares, David Luo, Cristian Challu,
+
+- [Kin G. Olivares, David Luo, Cristian Challu,
 Stefania La Vattiata, Max Mergenthaler, Artur Dubrawski (2023). “HINT:
 Hierarchical Mixture Networks For Coherent Probabilistic Forecasting”.
 Neural Information Processing Systems, submitted. Working Paper version
 available at arxiv.](https://arxiv.org/abs/2305.07089)
- - [Kin G.
+- [Kin G.
 Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee
 Dicker (2022).”Probabilistic Hierarchical Forecasting with Deep Poisson
 Mixtures”. International Journal Forecasting, accepted paper available
 at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
- - [Kin G. Olivares,
+- [Kin G. Olivares,
 Federico Garza, David Luo, Cristian Challu, Max Mergenthaler, Souhaib
 Ben Taieb, Shanika Wickramasuriya, and Artur Dubrawski (2022).
 “HierarchicalForecast: A reference framework for hierarchical
@@ -39,7 +40,7 @@ abs/2207.03517, 2022b.](https://arxiv.org/abs/2207.03517)
 *Figure 1. Hierarchical Mixture Networks
 (HINT).*
 
-## HINT
+## 1. HINT
 
 ### `HINT`
 
@@ -138,7 +139,7 @@ Name | Type | Description
 ---- | ---- | -----------
 `y_hat` | | numpy predictions of the `NeuralForecast` model.
 
-## Usage Example
+### Usage Example
 
 In this example we will use HINT for the hierarchical forecast task, a
 multivariate regression problem with aggregation constraints. The
@@ -148,10 +149,14 @@ matrix $\mathbf{S}_{[i][b]}$, the Figure belows shows an example.
 In this example we will make coherent predictions for the TourismL
 dataset.
 
-Outline<br/> 1. Import packages<br/> 2. Load hierarchical dataset<br/> 3.
-Fit and Predict HINT<br/> 4. Forecast Plot
+Outline:
 
-![](/neuralforecast/imgs_models/hint_notation.png)
+1. Import packages
+2. Load hierarchical dataset
+3. Fit and Predict HINT
+4. Forecast Plot
+
+![](imgs_models/hint_notation.png)
 
 
 ```python
@@ -217,3 +222,116 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
+
+## 2. Reconciliation Methods
+
+### `get_identity_P`
+
+```python
+get_identity_P(S)
+```
+
+### `get_bottomup_P`
+
+```python
+get_bottomup_P(S)
+```
+
+BottomUp Reconciliation Matrix.
+
+Creates BottomUp hierarchical "projection" matrix is defined as:
+
+```math
+\mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Orcutt, G.H., Watts, H.W., & Edwards, J.B.(1968). "Data aggregation and information loss". The American Economic Review, 58 , 773(787)](http://www.jstor.org/stable/1815532).
+
+</details>
+
+### `get_mintrace_ols_P`
+
+```python
+get_mintrace_ols_P(S)
+```
+
+MinTraceOLS Reconciliation Matrix.
+
+Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
+
+```math
+\mathbf{P}_{\text{MinTraceOLS}}=\left(\mathbf{S}^{\intercal}\mathbf{S}\right)^{-1}\mathbf{S}^{\intercal}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+
+</details>
+
+### `get_mintrace_wls_P`
+
+```python
+get_mintrace_wls_P(S)
+```
+
+MinTraceOLS Reconciliation Matrix.
+
+Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
+Depending on a weighted GLS estimator and an estimator of the covariance matrix of the coherency errors $\\mathbf{W}\_{h}$.
+
+```math
+\mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})
+```
+
+```math
+\mathbf{P}_{\text{MinTraceWLS}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
+\mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`S` | <code>[ndarray](#numpy.ndarray)</code> | Summing matrix of size (`base`, `bottom`). | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| np.ndarray: Reconciliation matrix of size (`bottom`, `base`).
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Wickramasuriya, S.L., Turlach, B.A. & Hyndman, R.J. (2020). "Optimal non-negative forecast reconciliation". Stat Comput 30, 1167-1182, https://doi.org/10.1007/s11222-020-09930-0](https://robjhyndman.com/publications/nnmint/).
+
+</details>

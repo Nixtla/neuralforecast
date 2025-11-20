@@ -20,7 +20,8 @@ convolution network. - Absolute positional embeddings obtained from
 calendar features are utilized.
 
 **References**
- - [Wu, Haixu, Jiehui Xu, Jianmin Wang, and Mingsheng
+
+- [Wu, Haixu, Jiehui Xu, Jianmin Wang, and Mingsheng
 Long. “Autoformer: Decomposition transformers with auto-correlation for
 long-term series
 forecasting”](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)
@@ -30,7 +31,7 @@ forecasting”](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8b
 *Figure 1. Autoformer
 Architecture.*
 
-## Autoformer
+## 1. Autoformer
 
 ### `Autoformer`
 
@@ -213,7 +214,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -271,3 +272,102 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxiliary functions
+
+### `Decoder`
+
+```python
+Decoder(layers, norm_layer=None, projection=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Autoformer decoder
+
+### `DecoderLayer`
+
+```python
+DecoderLayer(
+    self_attention,
+    cross_attention,
+    hidden_size,
+    c_out,
+    conv_hidden_size=None,
+    MovingAvg=25,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Autoformer decoder layer with the progressive decomposition architecture
+
+### `Encoder`
+
+```python
+Encoder(attn_layers, conv_layers=None, norm_layer=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Autoformer encoder
+
+### `EncoderLayer`
+
+```python
+EncoderLayer(
+    attention,
+    hidden_size,
+    conv_hidden_size=None,
+    MovingAvg=25,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Autoformer encoder layer with the progressive decomposition architecture
+
+### `LayerNorm`
+
+```python
+LayerNorm(channels)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Special designed layernorm for the seasonal part
+
+### `AutoCorrelationLayer`
+
+```python
+AutoCorrelationLayer(
+    correlation, hidden_size, n_head, d_keys=None, d_values=None
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Auto Correlation Layer
+
+### `AutoCorrelation`
+
+```python
+AutoCorrelation(
+    mask_flag=True,
+    factor=1,
+    scale=None,
+    attention_dropout=0.1,
+    output_attention=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+AutoCorrelation Mechanism with the following two phases:
+(1) period-based dependencies discovery
+(2) time delay aggregation
+This block can replace the self-attention family mechanism seamlessly.

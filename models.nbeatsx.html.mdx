@@ -4,37 +4,39 @@ title: NBEATSx
 ---
 
 The Neural Basis Expansion Analysis
-([`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats))
+([`NBEATS`](./models.nbeats.html#nbeats))
 is an
-[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)-based
+[`MLP`](./models.mlp.html#mlp)-based
 deep neural architecture with backward and forward residual links. The
 network has two variants: (1) in its interpretable configuration,
-[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](./neuralforecast/models.nbeats.html#nbeats)
 sequentially projects the signal into polynomials and harmonic basis to
 learn trend and seasonality components; (2) in its generic
 configuration, it substitutes the polynomial and harmonic basis for
 identity basis and larger network’s depth. The Neural Basis Expansion
 Analysis with Exogenous
-([`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)),
+([`NBEATSx`](./models.nbeatsx.html#nbeatsx)),
 incorporates projections to exogenous temporal variables available at
 the time of the prediction.
 
- This method proved state-of-the-art
+This method proved state-of-the-art
 performance on the M3, M4, and Tourism Competition datasets, improving
 accuracy by 3% over the `ESRNN` M4 competition winner. For Electricity
 Price Forecasting tasks
-[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)
+[`NBEATSx`](./models.nbeatsx.html#nbeatsx)
 model improved accuracy by 20% and 5% over `ESRNN` and
-[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats),
+[`NBEATS`](./models.nbeats.html#nbeats),
 and 5% on task-specialized
 architectures.
 
 **References**
--[Boris N. Oreshkin, Dmitri
+
+- [Boris N. Oreshkin, Dmitri
 Carpov, Nicolas Chapados, Yoshua Bengio (2019). “N-BEATS: Neural basis
 expansion analysis for interpretable time series
 forecasting”.](https://arxiv.org/abs/1905.10437)
--[Kin G. Olivares,
+
+- [Kin G. Olivares,
 Cristian Challu, Grzegorz Marcjasz, Rafał Weron, Artur Dubrawski (2021).
 “Neural basis expansion analysis with exogenous variables: Forecasting
 electricity prices with NBEATSx”.](https://arxiv.org/abs/2104.05522)
@@ -214,7 +216,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python

@@ -13,7 +13,8 @@ convolutional Inception block that captures temporal variations at
 different scales and between periods.
 
 **References**
- - [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou
+
+- [Haixu Wu and Tengge Hu and Yong Liu and Hang Zhou
 and Jianmin Wang and Mingsheng Long. TimesNet: Temporal 2D-Variation
 Modeling for General Time Series
 Analysis](https://openreview.net/pdf?id=ju_Uqw384Oq) - Based on the
@@ -24,7 +25,7 @@ https://github.com/thuml/Time-Series-Library/blob/main/LICENSE)
 *Figure 1. TimesNet
 Architecture.*
 
-## TimesNet
+## 1. TimesNet
 
 ### `TimesNet`
 
@@ -187,8 +188,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd
@@ -240,4 +240,32 @@ else:
     plt.plot(plot_df['ds'], plot_df['TimesNet'], c='blue', label='Forecast')
     plt.legend()
     plt.grid()
+```
+
+## 2. Auxiliary Functions
+
+### `Inception_Block_V1`
+
+```python
+Inception_Block_V1(in_channels, out_channels, num_kernels=6, init_weight=True)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Inception_Block_V1
+
+### `TimesBlock`
+
+```python
+TimesBlock(input_size, h, k, hidden_size, conv_hidden_size, num_kernels)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+TimesBlock
+
+### `FFT_for_Period`
+
+```python
+FFT_for_Period(x, k=2)
 ```

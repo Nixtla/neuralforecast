@@ -11,7 +11,8 @@ Autoformmer’s trend and seasonality decomposition. - Simple linear
 layers for trend and seasonality component.
 
 **References**
- - [Zeng, Ailing, et al. “Are transformers effective
+
+- [Zeng, Ailing, et al. “Are transformers effective
 for time series forecasting?.” Proceedings of the AAAI conference on
 artificial intelligence. Vol. 37. No. 9.
 2023.”](https://ojs.aaai.org/index.php/AAAI/article/view/26317)
@@ -21,7 +22,7 @@ artificial intelligence. Vol. 37. No. 9.
 *Figure 1. DLinear
 Architecture.*
 
-## DLinear
+## 1. DLinear
 
 ### `DLinear`
 
@@ -172,7 +173,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python
@@ -226,3 +227,25 @@ else:
     plt.legend()
     plt.grid()
 ```
+
+## 2. Auxilary Functions
+
+### `SeriesDecomp`
+
+```python
+SeriesDecomp(kernel_size)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Series decomposition block
+
+### `MovingAvg`
+
+```python
+MovingAvg(kernel_size, stride)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Moving average block to highlight the trend of time series

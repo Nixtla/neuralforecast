@@ -4,18 +4,18 @@ title: NBEATS
 ---
 
 The Neural Basis Expansion Analysis
-([`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats))
+([`NBEATS`](./models.nbeats.html#nbeats))
 is an
-[`MLP`](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html#mlp)-based
+[`MLP`](./models.mlp.html#mlp)-based
 deep neural architecture with backward and forward residual links. The
 network has two variants: (1) in its interpretable configuration,
-[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](./models.nbeats.html#nbeats)
 sequentially projects the signal into polynomials and harmonic basis to
 learn trend and seasonality components; (2) in its generic
 configuration, it substitutes the polynomial and harmonic basis for
 identity basis and larger network’s depth. The Neural Basis Expansion
 Analysis with Exogenous
-([`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)),
+([`NBEATSx`](./models.nbeatsx.html#nbeatsx)),
 incorporates projections to exogenous temporal variables available at
 the time of the prediction.
 
@@ -24,14 +24,14 @@ Tourism Competition datasets, improving accuracy by 3% over the `ESRNN`
 M4 competition winner.
 
 **References**
- -[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados,
+
+- [Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados,
 Yoshua Bengio (2019). “N-BEATS: Neural basis expansion analysis for
 interpretable time series
 forecasting”.](https://arxiv.org/abs/1905.10437)
 
 ![Figure 1. Neural Basis Expansion Analysis.](imgs_models/nbeats.png)
-*Figure 1. Neural Basis Expansion
-Analysis.*
+*Figure 1. Neural Basis Expansion Analysis.*
 
 ## NBEATS
 
@@ -195,7 +195,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python

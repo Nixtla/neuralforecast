@@ -7,15 +7,15 @@ Long-horizon forecasting is challenging because of the *volatility* of
 the predictions and the *computational complexity*. To solve this
 problem we created the Neural Hierarchical Interpolation for Time Series
 (NHITS).
-[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](./models.nhits.html#nhits)
 builds upon
-[`NBEATS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](./models.nbeats.html#nbeats)
 and specializes its partial outputs in the different frequencies of the
 time series through hierarchical interpolation and multi-rate input
 processing. On the long-horizon forecasting task
-[`NHITS`](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html#nhits)
+[`NHITS`](./models.nhits.html#nhits)
 improved accuracy by 25% on AAAI’s best paper award the
-[`Informer`](https://nixtlaverse.nixtla.io/neuralforecast/models.informer.html#informer),
+[`Informer`](./models.informer.html#informer),
 while being 50x faster.
 
 The model is composed of several MLPs with ReLU non-linearities. Blocks
@@ -29,17 +29,18 @@ computational time, thus improving the architecture parsimony and
 accuracy.
 
 **References**
- -[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados,
+
+- [Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados,
 Yoshua Bengio (2019). “N-BEATS: Neural basis expansion analysis for
 interpretable time series
 forecasting”.](https://arxiv.org/abs/1905.10437)
- -[Cristian Challu,
+- [Cristian Challu,
 Kin G. Olivares, Boris N. Oreshkin, Federico Garza, Max
 Mergenthaler-Canseco, Artur Dubrawski (2023). “NHITS: Neural
 Hierarchical Interpolation for Time Series Forecasting”. Accepted at the
 Thirty-Seventh AAAI Conference on Artificial
 Intelligence.](https://arxiv.org/abs/2201.12886)
- -[Zhou, H.; Zhang,
+- [Zhou, H.; Zhang,
 S.; Peng, J.; Zhang, S.; Li, J.; Xiong, H.; and Zhang, W. (2020).
 “Informer: Beyond Efficient Transformer for Long Sequence Time-Series
 Forecasting”. Association for the Advancement of Artificial Intelligence
@@ -218,8 +219,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd

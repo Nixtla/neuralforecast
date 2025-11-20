@@ -4,9 +4,9 @@ title: StemGNN
 ---
 
 The Spectral Temporal Graph Neural Network
-([`StemGNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html#stemgnn))
+([`StemGNN`](./models.stemgnn.html#stemgnn))
 is a Graph-based multivariate time-series forecasting model.
-[`StemGNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.stemgnn.html#stemgnn)
+[`StemGNN`](./models.stemgnn.html#stemgnn)
 jointly learns temporal dependencies and inter-series correlations in
 the spectral domain, by combining Graph Fourier Transform (GFT) and
 Discrete Fourier Transform (DFT).
@@ -15,7 +15,8 @@ This method proved state-of-the-art performance on geo-temporal datasets
 such as `Solar`, `METR-LA`, and `PEMS-BAY`, and
 
 **References**
- -[Defu Cao, Yujing Wang, Juanyong Duan, Ce Zhang, Xia
+
+- [Defu Cao, Yujing Wang, Juanyong Duan, Ce Zhang, Xia
 Zhu, Congrui Huang, Yunhai Tong, Bixiong Xu, Jing Bai, Jie Tong, Qi
 Zhang (2020). “Spectral Temporal Graph Neural Network for Multivariate
 Time-series
@@ -24,7 +25,7 @@ Forecasting”.](https://proceedings.neurips.cc/paper/2020/hash/cdf6581cb7aca4b7
 ![Figure 1. StemGNN.](imgs_models/stemgnn.png)
 *Figure 1. StemGNN.*
 
-## StemGNN
+## 1. StemGNN
 
 ### `StemGNN`
 
@@ -177,7 +178,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Examples
+### Usage Examples
 
 Train model and forecast future values with `predict` method.
 
@@ -247,3 +248,25 @@ ax.set_xlabel('Year', fontsize=20)
 ax.legend(prop={'size': 15})
 ax.grid()
 ```
+
+## 2. Auxiliary functions
+
+### `GLU`
+
+```python
+GLU(input_channel, output_channel)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+GLU
+
+### `StockBlockLayer`
+
+```python
+StockBlockLayer(time_step, unit, multi_layer, stack_cnt=0)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+StockBlockLayer

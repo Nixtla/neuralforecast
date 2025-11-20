@@ -6,7 +6,9 @@ title: KAN
 Kolmogorov-Arnold Networks (KANs) are an alternative to Multi-Layer
 Perceptrons (MLPs). This model uses KANs similarly as our MLP model.
 
-**References** - [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle,
+**References**
+
+- [Ziming Liu, Yixuan Wang, Sachin Vaidya, Fabian Ruehle,
 James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark. “KAN:
 Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
 
@@ -14,7 +16,7 @@ Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
 *Figure 1. KAN compared to
 MLP.*
 
-## KAN
+## 1. KAN
 
 ### `KAN`
 
@@ -185,8 +187,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
-
+### Usage Example
 
 ```python
 import pandas as pd
@@ -232,3 +233,27 @@ plt.fill_between(x=plot_df['ds'][-12:],
 plt.legend()
 plt.grid()
 ```
+
+## 2. Auxiliary functions
+
+### `KANLinear`
+
+```python
+KANLinear(
+    in_features,
+    out_features,
+    grid_size=5,
+    spline_order=3,
+    scale_noise=0.1,
+    scale_base=1.0,
+    scale_spline=1.0,
+    enable_standalone_scale_spline=True,
+    base_activation=torch.nn.SiLU,
+    grid_eps=0.02,
+    grid_range=[-1, 1],
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+KANLinear

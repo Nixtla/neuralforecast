@@ -4,11 +4,11 @@ title: GRU
 ---
 
 Cho et. al proposed the Gated Recurrent Unit
-([`GRU`](https://nixtlaverse.nixtla.io/neuralforecast/models.gru.html#gru))
+([`GRU`](./models.gru.html#gru))
 to improve on LSTM and Elman cells. The predictions at each time are
 given by a MLP decoder. This architecture follows closely the original
 Multi Layer Elman
-[`RNN`](https://nixtlaverse.nixtla.io/neuralforecast/models.rnn.html#rnn)
+[`RNN`](./models.rnn.html#rnn)
 with the main difference being its use of the GRU cells. The predictions
 are obtained by transforming the hidden states into contexts
 $\mathbf{c}_{[t+1:t+H]}$, that are decoded and adapted into
@@ -22,11 +22,11 @@ $\mathbf{x}^{(f)}_{[:t+H]}$ are future exogenous available at the time
 of the prediction.
 
 **References**
- -[Junyoung Chung, Caglar Gulcehre, KyungHyun Cho,
+
+- [Junyoung Chung, Caglar Gulcehre, KyungHyun Cho,
 Yoshua Bengio (2014). “Empirical Evaluation of Gated Recurrent Neural
 Networks on Sequence Modeling”.](https:arxivorg/abs/1412.3555)
-
--[Kyunghyun Cho, Bart van Merrienboer, Dzmitry Bahdanau, Yoshua Bengio
+- [Kyunghyun Cho, Bart van Merrienboer, Dzmitry Bahdanau, Yoshua Bengio
 (2014). “On the Properties of Neural Machine Translation:
 Encoder-Decoder Approaches”.](https://arxiv.org/abs/1409.1259)
 
@@ -212,7 +212,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-## Usage Example
+### Usage Example
 
 
 ```python

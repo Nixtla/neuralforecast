@@ -4,10 +4,9 @@ title: TimeXer
 ---
 
 ![Figure 1. Architecture of TimeXer.](imgs_models/timexer.png)
-*Figure 1. Architecture of
-TimeXer.*
+*Figure 1. Architecture of TimeXer.*
 
-## TimeXer
+## 1. TimeXer
 
 ### `TimeXer`
 
@@ -173,18 +172,7 @@ explainer_config (dict): configuration for explanations.
 Returns:
 None
 
-
-```python
-# Unit tests for models
-logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-logging.getLogger("lightning_fabric").setLevel(logging.ERROR)
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    check_model(TimeXer, ["airpassengers"])
-```
-
-# 3. Usage example
-
+### Usage example
 
 ```python
 import pandas as pd
@@ -236,3 +224,45 @@ ax.set_xlabel('Year', fontsize=20)
 ax.legend(prop={'size': 15})
 ax.grid()
 ```
+
+## 2. Auxiliary Functions
+
+
+### `FlattenHead`
+
+```python
+FlattenHead(n_vars, nf, target_window, head_dropout=0)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `Encoder`
+
+```python
+Encoder(layers, norm_layer=None, projection=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `EncoderLayer`
+
+```python
+EncoderLayer(
+    self_attention,
+    cross_attention,
+    d_model,
+    d_ff=None,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+### `EnEmbedding`
+
+```python
+EnEmbedding(n_vars, d_model, patch_len, dropout)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
