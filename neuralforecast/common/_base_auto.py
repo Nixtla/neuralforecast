@@ -34,6 +34,39 @@ class MockTrial:
 
 
 class BaseAuto(pl.LightningModule):
+    """
+    Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to
+    give access to a wide variety of hyperparameter optimization tools ranging
+    from classic grid search, to Bayesian optimization and HyperBand algorithm.
+
+    The validation loss to be optimized is defined by the `config['loss']` dictionary
+    value, the config also contains the rest of the hyperparameter search space.
+
+    It is important to note that the success of this hyperparameter optimization
+    heavily relies on a strong correlation between the validation and test periods.
+
+    Args:
+        cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](./models).
+        h (int): Forecast horizon
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
+        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
+        config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
+        search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
+        For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
+        num_samples (int): Number of hyperparameter optimization steps/samples.
+        Number of hyperparameter optimization steps/samples.
+        cpus (int): Number of cpus to use during optimization. Only used with ray tune.
+        gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
+        refit_with_val (bool): Refit of best model should preserve val_size.
+        verbose (bool): Track progress.
+        alias (str): Custom name of the model.
+        Custom name of the model.
+        backend (str): Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
+        callbacks (list of callable): List of functions to call during the optimization process.
+        List of functions to call during the optimization process.
+        ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
+        optuna reference: https://optuna.readthedocs.io/en/stable
+    """
 
     def __init__(
         self,
@@ -52,39 +85,6 @@ class BaseAuto(pl.LightningModule):
         backend="ray",
         callbacks=None,
     ):
-        """
-        Class for Automatic Hyperparameter Optimization, it builds on top of `ray` to
-        give access to a wide variety of hyperparameter optimization tools ranging
-        from classic grid search, to Bayesian optimization and HyperBand algorithm.
-
-        The validation loss to be optimized is defined by the `config['loss']` dictionary
-        value, the config also contains the rest of the hyperparameter search space.
-
-        It is important to note that the success of this hyperparameter optimization
-        heavily relies on a strong correlation between the validation and test periods.
-
-        Args:
-            cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](./models).
-            h (int): Forecast horizon
-            loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
-            valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
-            config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
-            search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-            For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
-            num_samples (int): Number of hyperparameter optimization steps/samples.
-            Number of hyperparameter optimization steps/samples.
-            cpus (int): Number of cpus to use during optimization. Only used with ray tune.
-            gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
-            refit_with_val (bool): Refit of best model should preserve val_size.
-            verbose (bool): Track progress.
-            alias (str): Custom name of the model.
-            Custom name of the model.
-            backend (str): Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
-            callbacks (list of callable): List of functions to call during the optimization process.
-            List of functions to call during the optimization process.
-            ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
-            optuna reference: https://optuna.readthedocs.io/en/stable
-        """
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
