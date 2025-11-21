@@ -1,23 +1,23 @@
 ---
-description: >-
-  One of the simplest neural architectures are Multi Layer Perceptrons (`MLP`)
-  composed of stacked Fully Connected Neural Networks trained with
-  backpropagation. Each node in the architecture is capable of modeling
-  non-linear relationships granted by their activation functions. Novel
-  activations like Rectified Linear Units (`ReLU`) have greatly improved the
-  ability to fit deeper networks overcoming gradient vanishing problems that
-  were associated with `Sigmoid` and `TanH` activations. For the forecasting
-  task the last layer is changed to follow a auto-regression
-  problem.<br/><br/>**References**<br/>-[Rosenblatt, F. (1958). "The perceptron: A
-  probabilistic model for information storage and organization in the
-  brain."](https://psycnet.apa.org/record/1959-09865-001)<br/>-[Fukushima, K.
-  (1975). "Cognitron: A self-organizing multilayered neural
-  network."](https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=PASCAL7750396723)<br/>-[Vinod
-  Nair, Geoffrey E. Hinton (2010). "Rectified Linear Units Improve Restricted
-  Boltzmann Machines"](https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf)<br/>
 output-file: models.mlp.html
 title: MLP
 ---
+
+One of the simplest neural architectures are Multi Layer Perceptrons (`MLP`)
+composed of stacked Fully Connected Neural Networks trained with
+backpropagation. Each node in the architecture is capable of modeling
+non-linear relationships granted by their activation functions. Novel
+activations like Rectified Linear Units (`ReLU`) have greatly improved the
+ability to fit deeper networks overcoming gradient vanishing problems that
+were associated with `Sigmoid` and `TanH` activations. For the forecasting
+task the last layer is changed to follow a auto-regression
+problem.
+
+**References**
+
+-[Rosenblatt, F. (1958). "The perceptron: A probabilistic model for information storage and organization in the brain."](https://psycnet.apa.org/record/1959-09865-001)
+-[Fukushima, K. (1975). "Cognitron: A self-organizing multilayered neural network."](https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=PASCAL7750396723)
+-[Vinod Nair, Geoffrey E. Hinton (2010). "Rectified Linear Units Improve Restricted Boltzmann Machines"](https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf)
 
 ![Figure 1. Three layer MLP with autorregresive inputs.](imgs_models/mlp.png)
 *Figure 1. Three layer MLP with

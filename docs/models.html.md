@@ -1,11 +1,11 @@
 ---
-description: >-
-  NeuralForecast contains user-friendly implementations of neural forecasting
-  models that allow for easy transition of computing capabilities (GPU/CPU),
-  computation parallelization, and hyperparameter tuning.
 output-file: models.html
 title: AutoModels
 ---
+
+>NeuralForecast contains user-friendly implementations of neural forecasting
+>models that allow for easy transition of computing capabilities (GPU/CPU),
+>computation parallelization, and hyperparameter tuning.
 
 All the NeuralForecast models are "global" because we train them with
 all the series from the input pd.DataFrame data `Y_df`, yet the

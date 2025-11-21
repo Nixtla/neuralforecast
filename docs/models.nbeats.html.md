@@ -4,8 +4,7 @@ title: NBEATS
 ---
 
 The Neural Basis Expansion Analysis
-([`NBEATS`](./models.nbeats.html#nbeats))
-is an
+([`NBEATS`](./models.nbeats.html#nbeats)) is an
 [`MLP`](./models.mlp.html#mlp)-based
 deep neural architecture with backward and forward residual links. The
 network has two variants: (1) in its interpretable configuration,
