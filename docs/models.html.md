@@ -1,541 +1,162 @@
 ---
 output-file: models.html
-title: AutoModels
+title: Automatic Forecasting
 ---
 
->NeuralForecast contains user-friendly implementations of neural forecasting
->models that allow for easy transition of computing capabilities (GPU/CPU),
->computation parallelization, and hyperparameter tuning.
+## 1. Introduction
 
-All the NeuralForecast models are "global" because we train them with
-all the series from the input pd.DataFrame data `Y_df`, yet the
-optimization objective is, momentarily, "univariate" as it does not
-consider the interaction between the output predictions across time
-series. Like the StatsForecast library, `core.NeuralForecast` allows you
-to explore collections of models efficiently and contains functions for
-convenient wrangling of input and output pd.DataFrames predictions.
+All `NeuralForecast` models work out of the box with sensible default parameters. However, to achieve optimal forecasting performance on your specific dataset, hyperparameter optimization is highly recommended.
 
-First we load the AirPassengers dataset such that you can run all the
-examples.
+**Hyperparameter optimization** is the process of automatically finding the best configuration for a model by systematically exploring different combinations of parameters such as learning rate, hidden layer sizes, number of layers, and other architectural choices. Unlike model parameters that are learned during training, hyperparameters must be set before training begins.
+
+NeuralForecast provides `AutoModel` classes that automate this optimization process. Each `AutoModel` wraps a corresponding forecasting model and uses techniques like grid search, random search, or Bayesian optimization to explore the hyperparameter space and identify the configuration that minimizes validation loss.
+
+## BaseAuto Class
+
+All `AutoModel` classes inherit from `BaseAuto`, which provides a unified interface for hyperparameter optimization. `BaseAuto` handles the complete optimization workflow:
+
+1. **Search Space Definition**: Defines which hyperparameters to explore and their ranges
+2. **Temporal Cross-Validation**: Splits data temporally to avoid look-ahead bias
+3. **Training & Evaluation**: Runs multiple trials with different hyperparameter configurations
+4. **Model Selection**: Selects the configuration with the best validation performance
+5. **Refitting**: Trains the final model with optimal hyperparameters
+
+The optimization process uses temporal cross-validation where the validation set sequentially precedes the test set. This ensures that hyperparameter selection is based on realistic forecasting scenarios. The validation loss guides the selection process, so it's important that the validation period is representative of future forecasting conditions.
+
+::: neuralforecast.common._base_auto.BaseAuto
+    options:
+      members: []
+
+## 2. Available AutoModels
+
+NeuralForecast provides 34 `AutoModel` variants, each wrapping a specific forecasting model with automatic hyperparameter optimization. Each `AutoModel` has a `default_config` attribute that defines sensible search spaces for its corresponding model.
+
+### RNN-Based Models
+Recurrent neural networks for sequential forecasting:
+
+- `AutoRNN`: [Basic recurrent neural network](./models.rnn.html)
+- `AutoLSTM`: [Long Short-Term Memory network](./models.lstm.html)
+- `AutoGRU`: [Gated Recurrent Unit network](./models.gru.html)
+- `AutoDilatedRNN`: [RNN with dilated recurrent connections for capturing long-range dependencies](./models.dilated_rnn.html)
+- `AutoxLSTM`: Extended LSTM with enhanced memory capabilities
+
+### Transformer-Based Models
+Attention-based architectures for capturing complex temporal patterns:
+
+- `AutoTFT`: [Temporal Fusion Transformer with multi-horizon forecasting](./models.tft.html)
+- `AutoVanillaTransformer`: [Standard transformer architecture](./models.vanillatransformer.hml)
+- `AutoInformer`: [Efficient transformer for long sequence forecasting](./models.informer.html)
+- `AutoAutoformer`: [Auto-correlation based transformer](./models.autoformer.html)
+- `AutoFEDformer`: [Frequency enhanced decomposition transformer](./models.fedformer.html)
+- `AutoPatchTST`: [Patched time series transformer](./models.patchtst.html)
+- `AutoiTransformer`: [Inverted transformer for multivariate forecasting](./models.itransformer.html)
+- `AutoTimeXer`: [Cross-series attention transformer](./models.timemixer.html)
+
+### CNN-Based Models
+Convolutional architectures for local pattern recognition:
+
+- `AutoTCN`: [Temporal Convolutional Network with causal convolutions](./models.tcn.html)
+- `AutoBiTCN`: [Bidirectional TCN](./models.bitcn.html)
+- `AutoTimesNet`: [Multi-periodic convolution network](./models.timesnet.html)
+
+### Linear and MLP Models
+Simple yet effective linear and feed-forward architectures:
+
+- `AutoMLP`: [Multi-layer Perceptron](./models.mlp.html)
+- `AutoDLinear`: [Decomposition linear model](./models.dlinear.html)
+- `AutoNLinear`: [Normalized linear model](./models.nlinear.html)
+- `AutoTSMixer`: [Time Series Mixer architecture](./models.tsmixer.html)
+- `AutoTSMixerx`: [TSMixer with exogenous variable support](./models.tsmixerx.html)
+- `AutoMLPMultivariate`: [MLP for multivariate time series](./models.mlpmultivariate.html)
+
+### Specialized Models
+Models designed for specific forecasting scenarios:
+
+- `AutoNBEATS`: [Neural Basis Expansion Analysis for interpretable forecasting](./models.nbeats.html)
+- `AutoNBEATSx`: [NBEATS with exogenous variables](./models.nbeatsx.html)
+- `AutoNHITS`: [Neural Hierarchical Interpolation for multi-horizon forecasting](./models.nhits.html)
+- `AutoDeepAR`: [Probabilistic forecasting with autoregressive RNN](./models.deepar.html)
+- `AutoDeepNPTS`: [Deep Non-Parametric Time Series model](./models.deepnpts.html)
+- `AutoTiDE`: [Time-series Dense Encoder](./models.tide.html)
+- `AutoKAN`: [Kolmogorov-Arnold Network for time series](./models.kan.html)
+- `AutoStemGNN`: [Graph neural network for multivariate forecasting](./models.stemgnn.html)
+- `AutoSOFTS`: [Spectral Optimal Fourier Transform model](./models.softs.html)
+- `AutoTimeMixer`: [Temporal mixing architecture](./models.timemixer.html)
+- `AutoRMoK`: [Random Mixture of Kernels](./models.rmok.html)
+- `AutoHINT`: [Hierarchical forecasting with automatic reconciliation](./models.hint.html)
+
+## 3. Usage Examples
+
+### Data Preparation
+
+First, prepare your time series data and create a `TimeSeriesDataset`:
 
 ```python
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import AirPassengersDF as Y_df
-```
 
-```python
-# Split train/test and declare time series dataset
-Y_train_df = Y_df[Y_df.ds<='1959-12-31'] # 132 train
-Y_test_df = Y_df[Y_df.ds>'1959-12-31']   # 12 test
+# Split data temporally: train and test
+Y_train_df = Y_df[Y_df.ds <= '1959-12-31']  # 132 train observations
+Y_test_df = Y_df[Y_df.ds > '1959-12-31']    # 12 test observations
+
+# Create TimeSeriesDataset
 dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 ```
 
-# 1. Automatic Forecasting
+### Basic Usage
 
-## A. RNN-Based
-
-::: neuralforecast.auto.AutoRNN
-    options:
-      members: [__init__]
-      heading_level: 3
+The simplest way to use an `AutoModel` is with its default search space:
 
 ```python
+from neuralforecast.auto import AutoRNN
+
 # Use your own config or AutoRNN.default_config
 config = dict(max_steps=1, val_check_steps=1, input_size=-1, encoder_hidden_size=8)
 model = AutoRNN(h=12, config=config, num_samples=1, cpus=1)
 
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoRNN(h=12, config=None, num_samples=1, cpus=1, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoLSTM
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoLSTM.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=-1, encoder_hidden_size=8)
-model = AutoLSTM(h=12, config=config, num_samples=1, cpus=1)
-
 # Fit and predict
-model.fit(dataset=dataset)
+model.fit(dataset=dataset, val_size=12)
 y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoLSTM(h=12, config=None, backend='optuna')
 ```
 
-::: neuralforecast.auto.AutoGRU
-    options:
-      members: [__init__]
-      heading_level: 3
+### Hierarchical Forecasting with AutoHINT
+
+`AutoHINT` combines hyperparameter optimization with hierarchical reconciliation. This is useful when forecasting hierarchical time series (e.g., product hierarchies, geographic hierarchies).
+
+#### Optimize Model, Then Apply Fixed Reconciliation
 
 ```python
-# Use your own config or AutoGRU.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=-1, encoder_hidden_size=8)
-model = AutoGRU(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoGRU(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoTCN
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTCN.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=-1, encoder_hidden_size=8)
-model = AutoTCN(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTCN(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoDeepAR
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoDeepAR.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, lstm_hidden_size=8)
-model = AutoDeepAR(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoDeepAR(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoDilatedRNN
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoDilatedRNN.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=-1, encoder_hidden_size=8)
-model = AutoDilatedRNN(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoDilatedRNN(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoBiTCN
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoBiTCN.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoBiTCN(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoBiTCN(h=12, config=None, backend='optuna')
-```
-
-## B. MLP-Based
-
-::: neuralforecast.auto.AutoMLP
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoMLP.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoMLP(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoMLP(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoNBEATS
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoNBEATS.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12,
-              mlp_units=3*[[8, 8]])
-model = AutoNBEATS(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoNBEATS(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoNBEATSx
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoNBEATSx.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12,
-              mlp_units=3*[[8, 8]])
-model = AutoNBEATSx(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoNBEATSx(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoNHITS
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoNHITS.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, 
-              mlp_units=3 * [[8, 8]])
-model = AutoNHITS(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoNHITS(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoDLinear
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoDLinear.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoDLinear(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoDLinear(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoNLinear
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoNLinear.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoNLinear(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoNLinear(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoTiDE
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTiDE.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoTiDE(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTiDE(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoDeepNPTS
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoDeepNPTS.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoDeepNPTS(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoDeepNPTS(h=12, config=None, backend='optuna')
-```
-
-## C. KAN-Based
-
-::: neuralforecast.auto.AutoKAN
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoKAN.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoKAN(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoKAN(h=12, config=None, backend='optuna')
-```
-
-## D. Transformer-Based
-
-::: neuralforecast.auto.AutoTFT
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTFT.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoTFT(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTFT(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoVanillaTransformer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoVanillaTransformer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoVanillaTransformer(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoVanillaTransformer(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoInformer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoInformer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoInformer(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoInformer(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoAutoformer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoAutoformer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=8)
-model = AutoAutoformer(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoAutoformer(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoFEDformer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoFEDFormer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=64)
-model = AutoFEDformer(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoFEDformer(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoPatchTST
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoPatchTST.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=16)
-model = AutoPatchTST(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoPatchTST(h=12, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoiTransformer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoiTransformer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=16)
-model = AutoiTransformer(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoiTransformer(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoTimeXer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTimeXer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, patch_len=12)
-model = AutoTimeXer(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTimeXer(h=12, n_series=1, config=None, backend='optuna')
-```
-
-## E. CNN Based
-
-::: neuralforecast.auto.AutoTimesNet
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTimesNet.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=32)
-model = AutoTimesNet(h=12, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTimesNet(h=12, config=None, backend='optuna')
-```
-
-## F. Multivariate
-
-::: neuralforecast.auto.AutoStemGNN
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoStemGNN.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoStemGNN(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoStemGNN(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoHINT
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Perform a simple hyperparameter optimization with 
-# NHITS and then reconcile with HINT
+from neuralforecast.auto import AutoNHITS
+from neuralforecast.models.hint import HINT
 from neuralforecast.losses.pytorch import GMM, sCRPS
 
-base_config = dict(max_steps=1, val_check_steps=1, input_size=8)
-base_model = AutoNHITS(h=4, loss=GMM(n_components=2, quantiles=quantiles), 
-                       config=base_config, num_samples=1, cpus=1)
-model = HINT(h=4, S=S_df.values,
-             model=base_model,  reconciliation='MinTraceOLS')
+base_model = AutoNHITS(
+    h=4,
+    loss=GMM(n_components=2, level=[80, 90]),  # Probabilistic loss
+    num_samples=10
+)
 
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=hint_dataset)
+# Apply hierarchical reconciliation with the optimized model
+# S: summing matrix defining the hierarchical structure
+model = HINT(
+    h=4,
+    S=S_df.values,
+    model=base_model,
+    reconciliation='MinTraceOLS'
+)
+
+model.fit(dataset=dataset, val_size=4)
+y_hat = model.predict(dataset=dataset)
+```
+
+#### Joint Optimization of Model and Reconciliation Method
+
+```python
+from neuralforecast.auto import AutoHINT
+from neuralforecast.models.nhits import NHITS
+from ray import tune
 
 # Perform a conjunct hyperparameter optimization with 
 # NHITS + HINT reconciliation configurations
@@ -554,121 +175,18 @@ nhits_config = {
        "interpolation_mode": tune.choice(['linear']),                            # Type of multi-step interpolation
        "random_seed": tune.randint(1, 10),
        "reconciliation": tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])
-    }
-model = AutoHINT(h=4, S=S_df.values,
-                 cls_model=NHITS,
-                 config=nhits_config,
-                 loss=GMM(n_components=2, level=[80, 90]),
-                 valid_loss=sCRPS(level=[80, 90]),
-                 num_samples=1, cpus=1)
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=hint_dataset)
-```
+}
 
-::: neuralforecast.auto.AutoTSMixer
-    options:
-      members: [__init__]
-      heading_level: 3
+model = AutoHINT(
+    h=4,
+    S=S_df.values,
+    cls_model=NHITS,
+    config=nhits_config,
+    loss=GMM(n_components=2, level=[80, 90]),
+    valid_loss=sCRPS(level=[80, 90]),
+    num_samples=20
+)
 
-```python
-# Use your own config or AutoTSMixer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoTSMixer(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
+model.fit(dataset=dataset, val_size=4)
 y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTSMixer(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoTSMixerx
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTSMixerx.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoTSMixerx(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTSMixerx(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoMLPMultivariate
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoMLPMultivariate.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12)
-model = AutoMLPMultivariate(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoMLPMultivariate(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoSOFTS
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoSOFTS.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, hidden_size=16)
-model = AutoSOFTS(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoSOFTS(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoTimeMixer
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoTimeMixer.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, d_model=16)
-model = AutoTimeMixer(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoTimeMixer(h=12, n_series=1, config=None, backend='optuna')
-```
-
-::: neuralforecast.auto.AutoRMoK
-    options:
-      members: [__init__]
-      heading_level: 3
-
-```python
-# Use your own config or AutoRMoK.default_config
-config = dict(max_steps=1, val_check_steps=1, input_size=12, learning_rate=1e-2)
-model = AutoRMoK(h=12, n_series=1, config=config, num_samples=1, cpus=1)
-
-# Fit and predict
-model.fit(dataset=dataset)
-y_hat = model.predict(dataset=dataset)
-
-# Optuna
-model = AutoRMoK(h=12, n_series=1, config=None, backend='optuna')
 ```
