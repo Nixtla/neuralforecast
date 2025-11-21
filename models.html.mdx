@@ -65,8 +65,7 @@ Name | Type | Description | Default
 `loss` | <code>PyTorch module</code> | Instantiated train loss class from [losses collection](./losses.pytorch). | *required*
 `valid_loss` | <code>PyTorch module</code> | Instantiated valid loss class from [losses collection](./losses.pytorch). | *required*
 `config` | <code>[dict](#dict) or [callable](#callable)</code> | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict. | *required*
-`search_alg` | <code>ray.tune.search variant or optuna.sampler</code> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html | <code>[BasicVariantGenerator](#ray.tune.search.basic_variant.BasicVariantGenerator)(random_state=1)</code>
-`For optuna see https` | | //optuna.readthedocs.io/en/stable/reference/samplers/index.html. | *required*
+`search_alg` | <code>ray.tune.search variant or optuna.sampler</code> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html. | <code>[BasicVariantGenerator](#ray.tune.search.basic_variant.BasicVariantGenerator)(random_state=1)</code>
 `num_samples` | <code>[int](#int)</code> | Number of hyperparameter optimization steps/samples. | <code>10</code>
 `cpus` | <code>[int](#int)</code> | Number of cpus to use during optimization. Only used with ray tune. | <code>[cpu_count](#os.cpu_count)()</code>
 `gpus` | <code>[int](#int)</code> | Number of gpus to use during optimization, default all available. Only used with ray tune. | <code>[device_count](#torch.cuda.device_count)()</code>
@@ -74,9 +73,7 @@ Name | Type | Description | Default
 `verbose` | <code>[bool](#bool)</code> | Track progress. | <code>False</code>
 `alias` | <code>[str](#str)</code> | Custom name of the model. | <code>None</code>
 `backend` | <code>[str](#str)</code> | Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'. | <code>'ray'</code>
-`callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. | <code>None</code>
-`ray reference` | | https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html | *required*
-`optuna reference` | | https://optuna.readthedocs.io/en/stable | *required*
+`callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html optuna reference: https://optuna.readthedocs.io/en/stable | <code>None</code>
 
 ## 2. Available AutoModels
 
