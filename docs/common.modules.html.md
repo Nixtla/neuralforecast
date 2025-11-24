@@ -69,7 +69,7 @@ Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)
 
 ::: neuralforecast.common._modules.TransEncoder
     options:
-      heading_level: 3
+      members: []
 
 ::: neuralforecast.common._modules.TransEncoderLayer
     options:
