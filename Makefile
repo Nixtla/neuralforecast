@@ -20,7 +20,7 @@ examples_docs:
 	cp -r docs-scripts/mintlify/ nbs/_extensions/mintlify
 	python docs-scripts/update-quarto.py
 	quarto render nbs/docs --output-dir ../docs/mintlify/
-	find docs/mintlify/ -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
+	find docs/mintlify/docs -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
 
 format_docs:
 	# replace _docs with docs
