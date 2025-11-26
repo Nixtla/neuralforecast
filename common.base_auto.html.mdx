@@ -20,6 +20,8 @@ output-file: common.base_auto.html
 title: Hyperparameter Optimization
 ---
 
+##
+
 ![](imgs_models/data_splits.png)
 *Figure 1. Example of dataset split (left), validation (yellow) and test (orange). The hyperparameter optimization guiding signal is obtained from the validation set.*
 
