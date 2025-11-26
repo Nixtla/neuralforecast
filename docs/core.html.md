@@ -10,6 +10,8 @@ output-file: core.html
 title: Core
 ---
 
+##
+
 ::: neuralforecast.core.NeuralForecast
     handler: python
     options:
