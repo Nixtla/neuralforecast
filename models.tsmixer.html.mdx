@@ -1,4 +1,6 @@
 ---
+description: >-
+  TSMixer: MLP-based multivariate forecasting with time and feature mixing. Stacked mixing layers learn temporal and cross-sectional representations jointly.
 output-file: models.tsmixer.html
 title: TSMixer
 ---

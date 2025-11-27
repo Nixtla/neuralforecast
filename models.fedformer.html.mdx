@@ -1,4 +1,6 @@
 ---
+description: >-
+  FEDformer: Frequency Enhanced Decomposition transformer for long-term forecasting using Fourier transform and sparse attention in frequency domain.
 output-file: models.fedformer.html
 title: FEDformer
 ---

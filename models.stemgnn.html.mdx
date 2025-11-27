@@ -1,4 +1,6 @@
 ---
+description: >-
+  StemGNN: Spectral Temporal Graph Neural Network for multivariate forecasting. Learns temporal dependencies and inter-series correlations in spectral domain.
 output-file: models.stemgnn.html
 title: StemGNN
 ---

@@ -1,4 +1,6 @@
 ---
+description: >-
+  Time-LLM: Reprograms large language models for time series forecasting. Transforms forecasting tasks into language tasks using off-the-shelf LLM backbones.
 output-file: models.timellm.html
 title: Time-LLM
 ---

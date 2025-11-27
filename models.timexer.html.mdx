@@ -1,4 +1,6 @@
 ---
+description: >-
+  TimeXer: Cross-series attention transformer for multivariate forecasting with patch-based processing and exogenous variable support for complex temporal patterns.
 output-file: models.timexer.html
 title: TimeXer
 ---

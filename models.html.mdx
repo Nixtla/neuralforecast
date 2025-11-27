@@ -1,4 +1,6 @@
 ---
+description: >-
+  AutoModel classes for NeuralForecast hyperparameter optimization. Automated grid search, Bayesian optimization with Ray Tune for 34 forecasting architectures.
 output-file: models.html
 title: Automatic Forecasting
 ---

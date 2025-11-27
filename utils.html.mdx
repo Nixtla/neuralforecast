@@ -1,15 +1,13 @@
 ---
 description: >-
-  The `core.NeuralForecast` class allows you to efficiently fit multiple
-  `NeuralForecast` models for large sets of time series. It operates with pandas
-  DataFrame `df` that identifies individual series and datestamps with the
-  `unique_id` and `ds` columns, and the `y` column denotes the target time
-  series variable. To assist development, we declare useful datasets that we use
-  throughout all `NeuralForecast`'s unit tests.<br/><br/>
+  NeuralForecast utility functions and datasets. Includes AirPassengers data, time feature generation, prediction intervals, and synthetic panel data generators.
 output-file: utils.html
 title: Example Data
 ---
 
+The `core.NeuralForecast` class allows you to efficiently fit multiple
+`NeuralForecast` models for large sets of time series. It operates with pandas DataFrame `df` that identifies individual series and datestamps with the `unique_id` and `ds` columns, and the `y` column denotes the target time
+series variable. To assist development, we declare useful datasets that we use throughout all `NeuralForecast`'s unit tests.
 
 ## 1. Synthetic Panel Data
 

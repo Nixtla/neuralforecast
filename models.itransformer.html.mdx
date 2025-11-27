@@ -1,4 +1,6 @@
 ---
+description: >-
+  iTransformer: Inverted Transformer architecture for multivariate time series forecasting with attention on time points and feed-forward on series dimensions.
 output-file: models.itransformer.html
 title: iTransformer
 ---

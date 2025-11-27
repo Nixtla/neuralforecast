@@ -1,4 +1,6 @@
 ---
+description: >-
+  NBEATSx: Neural Basis Expansion Analysis with exogenous variables. MLP-based architecture with interpretable trend-seasonality blocks for forecasting.
 output-file: models.nbeatsx.html
 title: NBEATSx
 ---

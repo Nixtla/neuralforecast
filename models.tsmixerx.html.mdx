@@ -1,4 +1,6 @@
 ---
+description: >-
+  TSMixerx: TSMixer with exogenous variables. MLP-based multivariate forecasting combines temporal-feature mixing with static and future covariate support.
 output-file: models.tsmixerx.html
 title: TSMixerx
 ---

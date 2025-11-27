@@ -1,4 +1,6 @@
 ---
+description: >-
+  Vanilla Transformer: Classic attention-based architecture for time series. Full O(L^2) attention mechanism with encoder-decoder for long-sequence forecasting.
 output-file: models.vanillatransformer.html
 title: Vanilla Transformer
 ---

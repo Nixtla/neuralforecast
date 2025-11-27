@@ -1,4 +1,6 @@
 ---
+description: >-
+  TCN: Temporal Convolutional Network with dilated causal convolutions for efficient sequential forecasting. Captures long-range dependencies with ReLU activations.
 output-file: models.tcn.html
 title: TCN
 ---

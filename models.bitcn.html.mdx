@@ -1,4 +1,6 @@
 ---
+description: >-
+  BiTCN: Bidirectional Temporal Convolutional Network for forecasting. Parameter-efficient architecture with forward-backward encoding for probabilistic predictions.
 output-file: models.bitcn.html
 title: BiTCN
 ---

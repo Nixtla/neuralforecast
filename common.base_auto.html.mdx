@@ -1,29 +1,33 @@
 ---
 description: >-
-  Machine Learning forecasting methods are defined by many hyperparameters that
-  control their behavior, with effects ranging from their speed and memory
-  requirements to their predictive performance. For a long time, manual
-  hyperparameter tuning prevailed. This approach is time-consuming, **automated
-  hyperparameter optimization** methods have been introduced, proving more
-  efficient than manual tuning, grid search, and random search.<br/><br/> The
-  `BaseAuto` class offers shared API connections to hyperparameter optimization
-  algorithms like
-  [Optuna](https://docs.ray.io/en/latest/tune/examples/bayesopt_example.html),
-  [HyperOpt](https://docs.ray.io/en/latest/tune/examples/hyperopt_example.html),
-  [Dragonfly](https://docs.ray.io/en/releases-2.7.0/tune/examples/dragonfly_example.html)
-  among others through `ray`, which gives you access to grid search, bayesian
-  optimization and other state-of-the-art tools like
-  hyperband.<br/><br/>Comprehending the impacts of hyperparameters is still a
-  precious skill, as it can help guide the design of informed hyperparameter
-  spaces that are faster to explore automatically.
+  BaseAuto class for hyperparameter optimization in NeuralForecast. Integrates Optuna, HyperOpt, Dragonfly through Ray for automated model tuning with cross-validation.
 output-file: common.base_auto.html
 title: Hyperparameter Optimization
 ---
 
-##
+Machine Learning forecasting methods are defined by many hyperparameters that
+control their behavior, with effects ranging from their speed and memory
+requirements to their predictive performance. For a long time, manual
+hyperparameter tuning prevailed. This approach is time-consuming, **automated
+hyperparameter optimization** methods have been introduced, proving more
+efficient than manual tuning, grid search, and random search.<br/><br/> The
+`BaseAuto` class offers shared API connections to hyperparameter optimization
+algorithms like
+[Optuna](https://docs.ray.io/en/latest/tune/examples/bayesopt_example.html),
+[HyperOpt](https://docs.ray.io/en/latest/tune/examples/hyperopt_example.html),
+[Dragonfly](https://docs.ray.io/en/releases-2.7.0/tune/examples/dragonfly_example.html)
+among others through `ray`, which gives you access to grid search, bayesian
+optimization and other state-of-the-art tools like
+hyperband.
+
+Comprehending the impacts of hyperparameters is still a
+precious skill, as it can help guide the design of informed hyperparameter
+spaces that are faster to explore automatically.
 
 ![](imgs_models/data_splits.png)
 *Figure 1. Example of dataset split (left), validation (yellow) and test (orange). The hyperparameter optimization guiding signal is obtained from the validation set.*
+
+## 
 
 ### `BaseAuto`
 

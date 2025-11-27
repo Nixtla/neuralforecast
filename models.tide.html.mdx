@@ -1,4 +1,6 @@
 ---
+description: >-
+  TiDE: Time-series Dense Encoder with MLP-based architecture. Encoder-decoder model for long-term univariate forecasting with exogenous input support.
 output-file: models.tide.html
 title: TiDE
 ---

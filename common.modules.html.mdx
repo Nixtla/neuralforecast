@@ -1,4 +1,6 @@
 ---
+description: >-
+  Neural network building blocks for NeuralForecast: MLP layers, temporal convolutions, Transformer encoders-decoders, attention mechanisms, and embeddings.
 output-file: common.modules.html
 title: NN Modules
 ---
