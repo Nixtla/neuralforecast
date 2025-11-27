@@ -56,7 +56,9 @@ dev = [
     "xlstm",
     "pytest",
     "pytest-cov",
-    "pip-licenses",
+    "pip-licenses"
+]
+docs = [
     "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git"
 ]
 
