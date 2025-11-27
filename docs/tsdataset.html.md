@@ -1,5 +1,6 @@
 ---
-description: Torch Dataset for Time Series
+description: >-
+  PyTorch Dataset and DataLoader classes for time series. TimeSeriesDataset and TimeSeriesDataModule for efficient batch processing with Lightning integration.
 output-file: tsdataset.html
 title: PyTorch Dataset/Loader
 ---

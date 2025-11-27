@@ -1,4 +1,6 @@
 ---
+description: >-
+  TFT: Temporal Fusion Transformer with interpretable multi-horizon forecasting. LSTM encoder, multi-head attention, variable selection for complex time series.
 output-file: models.tft.html
 title: TFT
 ---

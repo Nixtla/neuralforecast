@@ -1,4 +1,6 @@
 ---
+description: >-
+  MLPMultivariate: Multi-Layer Perceptron for joint multivariate forecasting. Predicts all time series simultaneously with shared feedforward neural network layers.
 output-file: models.mlpmultivariate.html
 title: MLPMultivariate
 ---

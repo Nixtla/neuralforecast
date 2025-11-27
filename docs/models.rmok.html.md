@@ -1,4 +1,6 @@
 ---
+description: >-
+  RMoK: Reversible Mixture of Kolmogorov-Arnold Networks. Combines Taylor, Jacobi, and wavelet functions for expressive time series forecasting with reversibility.
 output-file: models.rmok.html
 title: Reversible Mixture of KAN - RMoK
 ---

@@ -1,4 +1,6 @@
 ---
+description: >-
+  Informer: Efficient Transformer with ProbSparse attention for long-sequence time series forecasting. Reduces O(L^2) complexity for scalable predictions.
 output-file: models.informer.html
 title: Informer
 ---

@@ -1,4 +1,6 @@
 ---
+description: >-
+  NLinear: Normalized linear model for long-horizon forecasting. Handles distribution shifts with simple subtraction-addition normalization for robust predictions.
 output-file: models.nlinear.html
 title: NLinear
 ---

@@ -1,4 +1,6 @@
 ---
+description: >-
+  DeepAR: Probabilistic autoregressive RNN for forecasting. Uses Monte Carlo sampling with distribution outputs for uncertainty quantification in time series.
 output-file: models.deepar.html
 title: DeepAR
 ---

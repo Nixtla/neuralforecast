@@ -1,4 +1,6 @@
 ---
+description: >-
+  MLP: Multi-Layer Perceptron for time series forecasting. Simple feedforward neural network with ReLU activations and autoregressive structure for predictions.
 output-file: models.mlp.html
 title: MLP
 ---

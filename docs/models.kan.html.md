@@ -1,4 +1,6 @@
 ---
+description: >-
+  KAN: Kolmogorov-Arnold Networks for time series forecasting. MLP alternative using learnable activation functions for improved non-linear pattern modeling.
 output-file: models.kan.html
 title: KAN
 ---

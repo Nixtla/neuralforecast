@@ -1,4 +1,6 @@
 ---
+description: >-
+  DeepNPTS: Deep Non-Parametric Time Series forecaster that samples from empirical distributions. Strong baseline for probabilistic forecasting tasks.
 output-file: models.deepnpts.html
 title: DeepNPTS
 ---

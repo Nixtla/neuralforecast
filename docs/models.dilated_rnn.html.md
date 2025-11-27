@@ -1,4 +1,6 @@
 ---
+description: >-
+  Dilated RNN: Recurrent neural network with dilated skip connections for modeling long sequences. Addresses vanishing gradients and improves computational efficiency.
 output-file: models.dilated_rnn.html
 title: Dilated RNN
 ---

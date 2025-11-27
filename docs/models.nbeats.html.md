@@ -1,4 +1,6 @@
 ---
+description: >-
+  NBEATS: Neural Basis Expansion Analysis with interpretable or generic configurations. MLP-based architecture with residual links for M3/M4 competition performance.
 output-file: models.nbeats.html
 title: NBEATS
 ---

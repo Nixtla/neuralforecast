@@ -1,4 +1,6 @@
 ---
+description: >-
+  HINT: Hierarchical Mixture Networks for coherent probabilistic forecasting. Combines neural architectures with reconciliation for hierarchical time series.
 output-file: models.hint.html
 title: HINT
 ---

@@ -1,4 +1,6 @@
 ---
+description: >-
+  PatchTST: Efficient Transformer model for multivariate forecasting using patched time series and channel-independence for scalable long-term predictions.
 output-file: models.patchtst.html
 title: PatchTST
 ---

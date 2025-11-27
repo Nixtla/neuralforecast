@@ -1,7 +1,6 @@
 ---
 description: >-
-  NeuralForecast contains a collection PyTorch Loss classes aimed to be used
-  during the models' optimization.
+  PyTorch loss functions for neural forecast training: MAE, MSE, MAPE, quantile losses, distribution losses, and robust losses for model optimization.
 output-file: losses.pytorch.html
 title: PyTorch Losses
 ---

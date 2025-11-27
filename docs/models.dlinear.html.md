@@ -1,4 +1,6 @@
 ---
+description: >-
+  DLinear model: Simple, fast linear architecture with trend-seasonality decomposition for accurate long-horizon time series forecasting with minimal complexity.
 output-file: models.dlinear.html
 title: DLinear
 ---

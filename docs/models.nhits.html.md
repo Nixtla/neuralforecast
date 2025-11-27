@@ -1,4 +1,6 @@
 ---
+description: >-
+  NHITS: Neural Hierarchical Interpolation for Time Series. MLP architecture with multi-rate processing for long-horizon forecasting, 50x faster than Informer.
 output-file: models.nhits.html
 title: NHITS
 ---

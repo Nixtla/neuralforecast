@@ -1,4 +1,6 @@
 ---
+description: >-
+  TimesNet: 2D-variation modeling with Inception blocks for capturing intraperiod and interperiod temporal patterns in univariate time series forecasting.
 output-file: models.timesnet.html
 title: TimesNet
 ---

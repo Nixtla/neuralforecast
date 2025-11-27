@@ -1,4 +1,6 @@
 ---
+description: >-
+  GRU: Gated Recurrent Unit model for sequential forecasting. Improves upon LSTM with simplified gating mechanism and MLP decoder for time series predictions.
 output-file: models.gru.html
 title: GRU
 ---

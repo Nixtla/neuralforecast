@@ -1,4 +1,6 @@
 ---
+description: >-
+  LSTM: Long Short-Term Memory network for sequential forecasting. Multilayer encoder-decoder architecture that addresses vanishing gradients in time series.
 output-file: models.lstm.html
 title: LSTM
 ---

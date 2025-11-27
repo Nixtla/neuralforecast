@@ -1,4 +1,6 @@
 ---
+description: >-
+  Autoformer: Transformer with auto-correlation mechanism and progressive decomposition for reliable long-horizon time series forecasting with trend-seasonality.
 output-file: models.autoformer.html
 title: Autoformer
 ---

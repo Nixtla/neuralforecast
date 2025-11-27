@@ -1,16 +1,17 @@
 ---
 description: >-
-  Temporal normalization has proven to be essential in neural forecasting tasks,
-  as it enables network's non-linearities to express themselves. Forecasting
-  scaling methods take particular interest in the temporal dimension where most
-  of the variance dwells, contrary to other deep learning techniques like
-  `BatchNorm` that normalizes across batch and temporal dimensions, and
-  `LayerNorm` that normalizes across the feature dimension. Currently we support
-  the following techniques: `std`, `median`, `norm`, `norm1`, `invariant`,
-  `revin`.
+  TemporalNorm: Temporal normalization techniques for neural forecasting. Scalers include standard, robust, invariant, and RevIN for distribution shift handling.
 output-file: common.scalers.html
 title: TemporalNorm
 ---
+
+## Introduction
+
+Temporal normalization has proven to be essential in neural forecasting tasks, as it enables network's non-linearities to express themselves. Forecasting scaling methods take particular interest in the temporal dimension where most
+of the variance dwells, contrary to other deep learning techniques like
+`BatchNorm` that normalizes across batch and temporal dimensions, and
+`LayerNorm` that normalizes across the feature dimension. Currently we support the following techniques: `std`, `median`, `norm`, `norm1`, `invariant`,
+`revin`.
 
 ## References
 

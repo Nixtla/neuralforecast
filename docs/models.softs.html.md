@@ -1,4 +1,6 @@
 ---
+description: >-
+  SOFTS: Spectral Optimal Fourier Transform model for multivariate time series forecasting using frequency-domain analysis and temporal pattern recognition.
 output-file: models.softs.html
 title: SOFTS
 ---

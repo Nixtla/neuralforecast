@@ -1,4 +1,6 @@
 ---
+description: >-
+  TimeMixer: Temporal mixing architecture for multivariate time series forecasting with multi-scale decomposition and frequency-domain feature extraction.
 output-file: models.timemixer.html
 title: TimeMixer
 ---

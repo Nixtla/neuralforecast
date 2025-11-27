@@ -1,7 +1,6 @@
 ---
 description: >-
-  NeuralForecast contains a collection NumPy loss functions aimed to be used
-  during the models' evaluation.
+  Comprehensive NumPy evaluation metrics for NeuralForecast including MAE, MSE, MAPE, MASE, and probabilistic losses for time series forecast accuracy.
 output-file: losses.numpy.html
 title: NumPy Evaluation
 ---

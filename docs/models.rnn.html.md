@@ -1,4 +1,6 @@
 ---
+description: >-
+  RNN: Classic Elman Recurrent Neural Network for sequential forecasting. Multilayer architecture with tanh/ReLU activations and MLP decoder for time series.
 output-file: models.rnn.html
 title: RNN
 ---
