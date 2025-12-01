@@ -56,16 +56,16 @@ def masked_mean(x, mask, dim=-1, keepdim=True):
 
 
 def minmax_statistics(x, mask, eps=1e-6, dim=-1):
-    """MinMax Scaler
+    r"""MinMax Scaler
 
     Standardizes temporal features by ensuring its range dweels between
     [0,1] range. This transformation is often used as an alternative
     to the standard scaler. The scaled features are obtained as:
 
-    $$
+    ```math
     \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/
         (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})
-    $$
+    ```
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -106,14 +106,17 @@ def inv_minmax_scaler(z, x_min, x_range):
 
 
 def minmax1_statistics(x, mask, eps=1e-6, dim=-1):
-    """MinMax1 Scaler
+    r"""MinMax1 Scaler
 
     Standardizes temporal features by ensuring its range dweels between
     [-1,1] range. This transformation is often used as an alternative
     to the standard scaler or classic Min Max Scaler.
     The scaled features are obtained as:
 
-    $$\mathbf{z} = 2 (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/ (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})-1$$
+    ```math
+    \mathbf{z} = 2 (\mathbf{x}_{[B,T,C]}-\mathrm{min}({\mathbf{x}})_{[B,1,C]})/ (\mathrm{max}({\mathbf{x}})_{[B,1,C]}- \mathrm{min}({\mathbf{x}})_{[B,1,C]})-1
+    ```
+
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -158,14 +161,16 @@ def inv_minmax1_scaler(z, x_min, x_range):
 
 
 def std_statistics(x, mask, dim=-1, eps=1e-6):
-    """Standard Scaler
+    r"""Standard Scaler
 
     Standardizes features by removing the mean and scaling
     to unit variance along the `dim` dimension.
 
     For example, for `base_windows` models, the scaled features are obtained as (with dim=1):
 
-    $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\\bar{\mathbf{x}}_{[B,1,C]})/\hat{\sigma}_{[B,1,C]}$$
+    ```math
+    \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\bar{\mathbf{x}}_{[B,1,C]})/\hat{\sigma}_{[B,1,C]}
+    ```
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -196,7 +201,7 @@ def inv_std_scaler(z, x_mean, x_std):
 
 
 def robust_statistics(x, mask, dim=-1, eps=1e-6):
-    """Robust Median Scaler
+    r"""Robust Median Scaler
 
     Standardizes features by removing the median and scaling
     with the mean absolute deviation (mad) a robust estimator of variance.
@@ -206,9 +211,13 @@ def robust_statistics(x, mask, dim=-1, eps=1e-6):
 
     For example, for `base_windows` models, the scaled features are obtained as (with dim=1):
 
-    $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\\textrm{median}(\mathbf{x})_{[B,1,C]})/\\textrm{mad}(\mathbf{x})_{[B,1,C]}$$
+    ```math
+    \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\textrm{median}(\mathbf{x})_{[B,1,C]})/\textrm{mad}(\mathbf{x})_{[B,1,C]}
+    ```
 
-    $$\\textrm{mad}(\mathbf{x}) = \\frac{1}{N} \sum_{}|\mathbf{x} - \mathrm{median}(x)|$$
+    ```math
+    \textrm{mad}(\mathbf{x}) = \frac{1}{N} \sum_{}|\mathbf{x} - \mathrm{median}(x)|
+    ```
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -246,7 +255,7 @@ def inv_robust_scaler(z, x_median, x_mad):
 
 
 def invariant_statistics(x, mask, dim=-1, eps=1e-6):
-    """Invariant Median Scaler
+    r"""Invariant Median Scaler
 
     Standardizes features by removing the median and scaling
     with the mean absolute deviation (mad) a robust estimator of variance.
@@ -254,9 +263,15 @@ def invariant_statistics(x, mask, dim=-1, eps=1e-6):
 
     For example, for `base_windows` models, the scaled features are obtained as (with dim=1):
 
-    $$\mathbf{z} = (\mathbf{x}_{[B,T,C]}-\\textrm{median}(\mathbf{x})_{[B,1,C]})/\\textrm{mad}(\mathbf{x})_{[B,1,C]}$$
+    ```math
+    \mathbf{z} = (\mathbf{x}_{[B,T,C]}-\textrm{median}(\mathbf{x})_{[B,1,C]})/\textrm{mad}(\mathbf{x})_{[B,1,C]}
+    ```
 
-    $$\mathbf{z} = \\textrm{arcsinh}(\mathbf{z})$$
+    ```math
+    \mathbf{z} = \textrm{arcsinh}(\mathbf{z})
+    ```
+
+
 
     Args:
         x (torch.Tensor): Input tensor.
@@ -328,20 +343,26 @@ def inv_identity_scaler(z, x_shift, x_scale):
 
 
 class TemporalNorm(nn.Module):
-    """Temporal Normalization
+    r"""Temporal Normalization
 
     Standardization of the features is a common requirement for many
     machine learning estimators, and it is commonly achieved by removing
     the level and scaling its variance. The `TemporalNorm` module applies
     temporal normalization over the batch of inputs as defined by the type of scaler.
 
-    $$\mathbf{z}_{[B,T,C]} = \\textrm{Scaler}(\mathbf{x}_{[B,T,C]})$$
+    ```math
+    \mathbf{z}_{[B,T,C]} = \textrm{Scaler}(\mathbf{x}_{[B,T,C]})
+    ```
+
 
     If `scaler_type` is `revin` learnable normalization parameters are added on top of
     the usual normalization technique, the parameters are learned through scale decouple
     global skip connections. The technique is available for point and probabilistic outputs.
 
-    $$\mathbf{\hat{z}}_{[B,T,C]} = \\boldsymbol{\hat{\\gamma}}_{[1,1,C]} \mathbf{z}_{[B,T,C]} +\\boldsymbol{\hat{\\beta}}_{[1,1,C]}$$
+    ```math
+    \mathbf{\hat{z}}_{[B,T,C]} = \boldsymbol{\hat{\gamma}}_{[1,1,C]} \mathbf{z}_{[B,T,C]} +\boldsymbol{\hat{\beta}}_{[1,1,C]}
+    ```
+
 
     Args:
         scaler_type (str, optional): Defines the type of scaler used by TemporalNorm. Available [`identity`, `standard`, `robust`, `minmax`, `minmax1`, `invariant`, `revin`]. Defaults to "robust".

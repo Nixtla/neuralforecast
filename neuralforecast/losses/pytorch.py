@@ -105,13 +105,15 @@ class BasePointLoss(torch.nn.Module):
 
 
 class MAE(BasePointLoss):
-    """Mean Absolute Error.
+    r"""Mean Absolute Error.
 
     Calculates Mean Absolute Error between `y` and `y_hat`. MAE measures the relative prediction
     accuracy of a forecasting method by calculating the deviation of the prediction and the true
     value at a given time and averages these devations over the length of the series.
 
-    $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
+    ```math
+    \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}|
+    ```
 
     Args:
         horizon_weight (Optional[torch.Tensor]): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None.
@@ -146,13 +148,15 @@ class MAE(BasePointLoss):
 
 
 class MSE(BasePointLoss):
-    """Mean Squared Error.
+    r"""Mean Squared Error.
 
     Calculates Mean Squared Error between `y` and `y_hat`. MSE measures the relative prediction
     accuracy of a forecasting method by calculating the squared deviation of the prediction and the true
     value at a given time, and averages these devations over the length of the series.
 
-    $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
+    ```math
+    \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2} 
+    ```
 
     Args:
         horizon_weight (Optional[torch.Tensor]): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None.
@@ -187,7 +191,7 @@ class MSE(BasePointLoss):
 
 
 class RMSE(BasePointLoss):
-    """Root Mean Squared Error.
+    r"""Root Mean Squared Error.
 
     Calculates Root Mean Squared Error between `y` and `y_hat`. RMSE measures the relative prediction
     accuracy of a forecasting method by calculating the squared deviation of the prediction and the observed value at
@@ -195,7 +199,9 @@ class RMSE(BasePointLoss):
     Finally the RMSE will be in the same scale as the original time series so its comparison with other
     series is possible only if they share a common scale. RMSE has a direct connection to the L2 norm.
 
-    $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
+    ```math
+    \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}}
+    ```
 
     Args:
         horizon_weight (Optional[torch.Tensor]): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None.
@@ -229,7 +235,7 @@ class RMSE(BasePointLoss):
 
 
 class MAPE(BasePointLoss):
-    """Mean Absolute Percentage Error
+    r"""Mean Absolute Percentage Error
 
     Calculates Mean Absolute Percentage Error  between
     `y` and `y_hat`. MAPE measures the relative prediction
@@ -239,7 +245,10 @@ class MAPE(BasePointLoss):
     The closer to zero an observed value is, the higher penalty MAPE loss
     assigns to the corresponding error.
 
-    $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
+    ```math
+    \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|}
+    ```
+
 
     Args:
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
@@ -277,7 +286,7 @@ class MAPE(BasePointLoss):
 
 
 class SMAPE(BasePointLoss):
-    """Symmetric Mean Absolute Percentage Error
+    r"""Symmetric Mean Absolute Percentage Error
 
     Calculates Symmetric Mean Absolute Percentage Error between
     `y` and `y_hat`. SMAPE measures the relative prediction
@@ -289,7 +298,10 @@ class SMAPE(BasePointLoss):
     0% and 200% which is desireble compared to normal MAPE that
     may be undetermined when the target is zero.
 
-    $$ \mathrm{sMAPE}_{2}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
+    ```math
+    \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|}
+    ```
+
 
     Args:
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
@@ -327,7 +339,7 @@ class SMAPE(BasePointLoss):
 
 
 class MASE(BasePointLoss):
-    """Mean Absolute Scaled Error
+    r"""Mean Absolute Scaled Error
     Calculates the Mean Absolute Scaled Error between
     `y` and `y_hat`. MASE measures the relative prediction
     accuracy of a forecasting method by comparinng the mean absolute errors
@@ -336,14 +348,17 @@ class MASE(BasePointLoss):
     The MASE partially composed the Overall Weighted Average (OWA),
     used in the M4 Competition.
 
-    $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
+    ```math
+    \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})}
+    ```
+
 
     Args:
         seasonality: Int. Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+        [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
         [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
     """
 
@@ -383,20 +398,21 @@ class MASE(BasePointLoss):
 
 
 class relMSE(BasePointLoss):
-    """Relative Mean Squared Error
+    r"""Relative Mean Squared Error
     Computes Relative Mean Squared Error (relMSE), as proposed by Hyndman & Koehler (2006)
     as an alternative to percentage errors, to avoid measure unstability.
-    $$
+
+    ```math
     \mathrm{relMSE}(\mathbf{y}, \mathbf{\hat{y}}, \mathbf{\hat{y}}^{benchmark}) =
     \frac{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}})}{\mathrm{MSE}(\mathbf{y}, \mathbf{\hat{y}}^{benchmark})}
-    $$
+    ```
 
     Args:
         y_train: Numpy array, deprecated.
         horizon_weight: Tensor of size h, weight for each timestamp of the forecasting window.
 
     References:
-        - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)<br>
+        - [Hyndman, R. J and Koehler, A. B. (2006). "Another look at measures of forecast accuracy", International Journal of Forecasting, Volume 22, Issue 4.](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
         - [Kin G. Olivares, O. Nganba Meetei, Ruijun Ma, Rohan Reddy, Mengfei Cao, Lee Dicker. "Probabilistic Hierarchical Forecasting with Deep Poisson Mixtures. Submitted to the International Journal Forecasting, Working paper available at arxiv.](https://arxiv.org/pdf/2110.13179.pdf)
     """
 
@@ -433,7 +449,7 @@ class relMSE(BasePointLoss):
 
 
 class QuantileLoss(BasePointLoss):
-    """Quantile Loss.
+    r"""Quantile Loss.
 
     Computes the quantile loss between `y` and `y_hat`.
     QL measures the deviation of a quantile forecast.
@@ -441,9 +457,9 @@ class QuantileLoss(BasePointLoss):
     loss pays more attention to under or over estimation.
     A common value for q is 0.5 for the deviation from the median (Pinball loss).
 
-    $$
-    \mathrm{QL}(\mathbf{y}_{\\tau}, \mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big)
-    $$
+    ```math
+    \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+    ```
 
     Args:
         q (float): Between 0 and 1. The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level.
@@ -468,7 +484,7 @@ class QuantileLoss(BasePointLoss):
         y_insample: Union[torch.Tensor, None] = None,
         mask: Union[torch.Tensor, None] = None,
     ) -> torch.Tensor:
-        """Calculate quantile loss between actual and predicted values.
+        r"""Calculate quantile loss between actual and predicted values.
 
         Args:
             y (torch.Tensor): Actual values.
@@ -514,27 +530,27 @@ def quantiles_to_outputs(quantiles):
 
 
 class MQLoss(BasePointLoss):
-    """Multi-Quantile loss
+    r"""Multi-Quantile loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
     a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
 
-    $$
-    \mathrm{MQL}(\mathbf{y}_{\\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\\tau})
-    $$
+    ```math
+    \mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+    ```
 
     The limit behavior of MQL allows to measure the accuracy
-    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
+    of a full predictive distribution $\mathbf{\hat{F}}_{\tau}$ with
     the continuous ranked probability score (CRPS). This can be achieved
     through a numerical integration technique, that discretizes the quantiles
     and treats the CRPS integral with a left Riemann approximation, averaging over
     uniformly distanced quantiles.
 
-    $$
-    \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq
-    $$
+    ```math
+    \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq
+    ```
 
     Args:
         level (List[int], optional): Probability levels for prediction intervals. Defaults to [80, 90].
@@ -670,16 +686,16 @@ class QuantileLayer(nn.Module):
 
 
 class IQLoss(QuantileLoss):
-    """Implicit Quantile Loss.
+    r"""Implicit Quantile Loss.
 
     Computes the quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network.
     IQL measures the deviation of a quantile forecast.
     By weighting the absolute deviation in a non symmetric way, the
     loss pays more attention to under or over estimation.
 
-    $$
-    \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big)
-    $$
+    ```math
+    \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+    ```
 
     Args:
         cos_embedding_dim (int, optional): Cosine embedding dimension. Defaults to 64.
@@ -923,21 +939,21 @@ def est_beta(mu, rho):
 
 
 class Tweedie(Distribution):
-    """Tweedie Distribution.
+    r"""Tweedie Distribution.
 
     The Tweedie distribution is a compound probability, special case of exponential
     dispersion models EDMs defined by its mean-variance relationship.
     The distribution particularly useful to model sparse series as the probability has
     possitive mass at zero but otherwise is continuous.
 
-    $$
-    Y \sim \mathrm{ED}(\\mu,\\sigma^{2}) \qquad
-    \mathbb{P}(y|\\mu ,\\sigma^{2})=h(\\sigma^{2},y) \\exp \\left({\\frac {\\theta y-A(\\theta )}{\\sigma^{2}}}\\right)
-    $$
+    ```math
+    Y \sim \mathrm{ED}(\mu,\sigma^{2}) \qquad
+    \mathbb{P}(y|\mu ,\sigma^{2})=h(\sigma^{2},y) \exp \left({\frac {\theta y-A(\theta )}{\sigma^{2}}}\right)
+    ```
 
-    $$
-    \mu =A'(\\theta ) \qquad \mathrm{Var}(Y) = \\sigma^{2} \\mu^{\\rho}
-    $$
+    ```math
+    \mu =A'(\theta ) \qquad \mathrm{Var}(Y) = \sigma^{2} \mu^{\rho}
+    ```
 
     Cases of the variance relationship include Normal (`rho` = 0), Poisson (`rho` = 1),
     Gamma (`rho` = 2), inverse Gaussian (`rho` = 3).
@@ -2012,22 +2028,22 @@ class DistributionLoss(torch.nn.Module):
         distr_args: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ):
-        """
+        r"""
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$
-        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
-        $$
+        ```math
+        \mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+        ```
 
-        where $\\theta$ represents the distributions parameters. It aditionally
+        where $\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
 
         Args:
             y (torch.Tensor): Actual values.
             distr_args (torch.Tensor): Constructor arguments for the underlying Distribution type.
             loc (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape + event_shape. Defaults to None.
-               of the resulting distribution.<br>
+               of the resulting distribution.
             scale (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape+event_shape
                of the resulting distribution. Defaults to None.
             mask (Union[torch.Tensor, None], optional): Specifies date stamps per serie to consider in loss. Defaults to None.
@@ -2043,17 +2059,17 @@ class DistributionLoss(torch.nn.Module):
 
 
 class PMM(torch.nn.Module):
-    """Poisson Mixture Mesh
+    r"""Poisson Mixture Mesh
 
     This Poisson Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$
-    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
-    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \\left(\mathbf{y}_{[g_{i}][\\tau]} \\right) =
-    \prod_{\\beta\in[g_{i}]}
-    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\\beta,\\tau}, \hat{\\lambda}_{\\beta,\\tau,k}) \\right)
-    $$
+    ```math
+    \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P} \left(\mathbf{y}_{[g_{i}][\tau]} \right) =
+    \prod_{\beta\in[g_{i}]}
+    \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]} \mathrm{Poisson}(y_{\beta,\tau}, \hat{\lambda}_{\beta,\tau,k}) \right)
+    ```
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2235,15 +2251,15 @@ class PMM(torch.nn.Module):
         distr_args: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ):
-        """
+        r"""
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$
-        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
-        $$
+        ```math
+        \mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+        ```
 
-        where $\\theta$ represents the distributions parameters. It aditionally
+        where $\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
 
         Args:
@@ -2270,18 +2286,18 @@ class PMM(torch.nn.Module):
 
 
 class GMM(torch.nn.Module):
-    """Gaussian Mixture Mesh
+    r"""Gaussian Mixture Mesh
 
     This Gaussian Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$
-    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
-    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
-    \prod_{\\beta\in[g_{i}]}
-    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
-    \mathrm{Gaussian}(y_{\\beta,\\tau}, \hat{\mu}_{\\beta,\\tau,k}, \sigma_{\\beta,\\tau,k})\\right)
-    $$
+    ```math
+    \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+    \prod_{\beta\in[g_{i}]}
+    \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+    \mathrm{Gaussian}(y_{\beta,\tau}, \hat{\mu}_{\beta,\tau,k}, \sigma_{\beta,\tau,k})\right)
+    ```
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2470,13 +2486,16 @@ class GMM(torch.nn.Module):
         distr_args: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ):
-        """
+        r"""
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))$$
+        ```math
+        \mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+        ```
 
-        where $\\theta$ represents the distributions parameters. It aditionally
+
+        where $\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
 
         Args:
@@ -2502,18 +2521,18 @@ class GMM(torch.nn.Module):
 
 
 class NBMM(torch.nn.Module):
-    """Negative Binomial Mixture Mesh
+    r"""Negative Binomial Mixture Mesh
 
     This N. Binomial Mixture statistical model assumes independence across groups of
     data $\mathcal{G}=\{[g_{i}]\}$, and estimates relationships within the group.
 
-    $$
-    \mathrm{P}\\left(\mathbf{y}_{[b][t+1:t+H]}\\right) =
-    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\\tau]}\\right)=
-    \prod_{\\beta\in[g_{i}]}
-    \\left(\sum_{k=1}^{K} w_k \prod_{(\\beta,\\tau) \in [g_i][t+1:t+H]}
-    \mathrm{NBinomial}(y_{\\beta,\\tau}, \hat{r}_{\\beta,\\tau,k}, \hat{p}_{\\beta,\\tau,k})\\right)
-    $$
+    ```math
+    \mathrm{P}\left(\mathbf{y}_{[b][t+1:t+H]}\right) =
+    \prod_{ [g_{i}] \in \mathcal{G}} \mathrm{P}\left(\mathbf{y}_{[g_{i}][\tau]}\right)=
+    \prod_{\beta\in[g_{i}]}
+    \left(\sum_{k=1}^{K} w_k \prod_{(\beta,\tau) \in [g_i][t+1:t+H]}
+    \mathrm{NBinomial}(y_{\beta,\tau}, \hat{r}_{\beta,\tau,k}, \hat{p}_{\beta,\tau,k})\right)
+    ```
 
     Args:
         n_components (int, optional): The number of mixture components. Defaults to 10.
@@ -2706,15 +2725,15 @@ class NBMM(torch.nn.Module):
         distr_args: torch.Tensor,
         mask: Union[torch.Tensor, None] = None,
     ):
-        """
+        r"""
         Computes the negative log-likelihood objective function.
         To estimate the following predictive distribution:
 
-        $$
-        \mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta) \\quad \mathrm{and} \\quad -\log(\mathrm{P}(\mathbf{y}_{\\tau}\,|\,\\theta))
-        $$
+        ```math
+        \mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta) \quad \mathrm{and} \quad -\log(\mathrm{P}(\mathbf{y}_{\tau}\,|\,\theta))
+        ```
 
-        where $\\theta$ represents the distributions parameters. It aditionally
+        where $\theta$ represents the distributions parameters. It aditionally
         summarizes the objective signal using a weighted average using the `mask` tensor.
 
         Args:
@@ -2734,7 +2753,7 @@ class NBMM(torch.nn.Module):
 
 
 class HuberLoss(BasePointLoss):
-    """ Huber Loss
+    r""" Huber Loss
 
     The Huber loss, employed in robust regression, is a loss function that
     exhibits reduced sensitivity to outliers in data when compared to the
@@ -2742,15 +2761,15 @@ class HuberLoss(BasePointLoss):
 
     The Huber loss function is quadratic for small errors and linear for large
     errors, with equal values and slopes of the different sections at the two
-    points where $(y_{\\tau}-\hat{y}_{\\tau})^{2}$=$|y_{\\tau}-\hat{y}_{\\tau}|$.
+    points where $(y_{\tau}-\hat{y}_{\tau})^{2}$=$|y_{\tau}-\hat{y}_{\tau}|$.
 
-    $$
-    L_{\delta}(y_{\\tau},\; \hat{y}_{\\tau})
-    =\\begin{cases}{\\frac{1}{2}}(y_{\\tau}-\hat{y}_{\\tau})^{2}\;{\\text{for }}|y_{\\tau}-\hat{y}_{\\tau}|\leq \delta \\\
-    \\delta \ \cdot \left(|y_{\\tau}-\hat{y}_{\\tau}|-{\\frac {1}{2}}\delta \\right),\;{\\text{otherwise.}}\end{cases}
-    $$
+    ```math
+    L_{\delta}(y_{\tau},\; \hat{y}_{\tau})
+    =\begin{cases}{\frac{1}{2}}(y_{\tau}-\hat{y}_{\tau})^{2}\;{\text{for }}|y_{\tau}-\hat{y}_{\tau}|\leq \delta \\
+    \delta \ \cdot \left(|y_{\tau}-\hat{y}_{\tau}|-{\frac {1}{2}}\delta \right),\;{\text{otherwise.}}\end{cases}
+    ```
 
-    where $\\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
+    where $\delta$ is a threshold parameter that determines the point at which the loss transitions from quadratic to linear,
     and can be tuned to control the trade-off between robustness and accuracy in the predictions.
 
     Args:
@@ -2789,7 +2808,7 @@ class HuberLoss(BasePointLoss):
 
 
 class TukeyLoss(BasePointLoss):
-    """ Tukey Loss
+    r""" Tukey Loss
 
     The Tukey loss function, also known as Tukey's biweight function, is a
     robust statistical loss function used in robust statistics. Tukey's loss exhibits
@@ -2801,12 +2820,12 @@ class TukeyLoss(BasePointLoss):
     of the function: Higher values of $c$ enhance sensitivity, while lower values
     increase resistance to outliers.
 
-    $$
-    L_{c}(y_{\\tau},\; \hat{y}_{\\tau})
-    =\\begin{cases}{
-    \\frac{c^{2}}{6}} \\left[1-(\\frac{y_{\\tau}-\hat{y}_{\\tau}}{c})^{2} \\right]^{3}    \;\\text{for } |y_{\\tau}-\hat{y}_{\\tau}|\leq c \\\
-    \\frac{c^{2}}{6} \qquad \\text{otherwise.}  \end{cases}
-    $$
+    ```math
+    L_{c}(y_{\tau},\; \hat{y}_{\tau})
+    =\begin{cases}{
+    \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\
+    \frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}
+    ```
 
     Please note that the Tukey loss function assumes the data to be stationary or
     normalized beforehand. If the error values are excessively large, the algorithm
@@ -2888,7 +2907,7 @@ class TukeyLoss(BasePointLoss):
 
 
 class HuberQLoss(BasePointLoss):
-    """Huberized Quantile Loss
+    r"""Huberized Quantile Loss
 
     The Huberized quantile loss is a modified version of the quantile loss function that
     combines the advantages of the quantile loss and the Huber loss. It is commonly used
@@ -2898,11 +2917,11 @@ class HuberQLoss(BasePointLoss):
     The loss pays more attention to under/over-estimation depending on the quantile parameter $q$;
     and controls the trade-off between robustness and accuracy in the predictions with the parameter $delta$.
 
-    $$
-    \mathrm{HuberQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
-    (1-q)\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} \geq y_{\\tau} \} +
-    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \}
-    $$
+    ```math
+    \mathrm{HuberQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
+    (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} +
+    q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \}
+    ```
 
     Args:
         delta (float, optional): Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0.
@@ -2955,18 +2974,18 @@ class HuberQLoss(BasePointLoss):
 
 
 class HuberMQLoss(BasePointLoss):
-    """Huberized Multi-Quantile loss
+    r"""Huberized Multi-Quantile loss
 
     The Huberized Multi-Quantile loss (HuberMQL) is a modified version of the multi-quantile loss function
     that combines the advantages of the quantile loss and the Huber loss. HuberMQL is commonly used in regression
     tasks, especially when dealing with data that contains outliers or heavy tails. The loss function pays
     more attention to under/over-estimation depending on the quantile list $[q_{1},q_{2},\dots]$ parameter.
-    It controls the trade-off between robustness and prediction accuracy with the parameter $\\delta$.
+    It controls the trade-off between robustness and prediction accuracy with the parameter $\delta$.
 
-    $$
-    \mathrm{HuberMQL}_{\delta}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) =
-    \\frac{1}{n} \\sum_{q_{i}} \mathrm{HuberQL}_{\\delta}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau})
-    $$
+    ```math
+    \mathrm{HuberMQL}_{\delta}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) =
+    \frac{1}{n} \sum_{q_{i}} \mathrm{HuberQL}_{\delta}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+    ```
 
     Args:
         level (int list, optional): Probability levels for prediction intervals (Defaults median). Defaults to [80, 90].
@@ -3080,18 +3099,18 @@ class HuberMQLoss(BasePointLoss):
 
 
 class HuberIQLoss(HuberQLoss):
-    """Implicit Huber Quantile Loss
+    r"""Implicit Huber Quantile Loss
 
     Computes the huberized quantile loss between `y` and `y_hat`, with the quantile `q` provided as an input to the network.
     HuberIQLoss measures the deviation of a huberized quantile forecast.
     By weighting the absolute deviation in a non symmetric way, the
     loss pays more attention to under or over estimation.
 
-    $$
-    \mathrm{HuberIQL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) =
-    (1-q)\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} \geq y_{\\tau} \} +
-    q\, L_{\delta}(y_{\\tau},\; \hat{y}^{(q)}_{\\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\\tau} < y_{\\tau} \}
-    $$
+    ```math
+    \mathrm{HuberIQL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) =
+    (1-q)\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} \geq y_{\tau} \} +
+    q\, L_{\delta}(y_{\tau},\; \hat{y}^{(q)}_{\tau}) \mathbb{1}\{ \hat{y}^{(q)}_{\tau} < y_{\tau} \}
+    ```
 
     Args:
         quantile_sampling (str, optional): Sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. Defaults to 'uniform'.
@@ -3190,15 +3209,15 @@ class HuberIQLoss(HuberQLoss):
 
 
 class Accuracy(BasePointLoss):
-    """Accuracy
+    r"""Accuracy
 
     Computes the accuracy between categorical `y` and `y_hat`.
     This evaluation metric is only meant for evalution, as it
     is not differentiable.
 
-    $$
-    \mathrm{Accuracy}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \mathrm{1}\{\\mathbf{y}_{\\tau}==\\mathbf{\hat{y}}_{\\tau}\}
-    $$
+    ```math
+    \mathrm{Accuracy}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \mathrm{1}\{\mathbf{y}_{\tau}==\mathbf{\hat{y}}_{\tau}\}
+    ```
 
     """
 
@@ -3251,7 +3270,7 @@ class Accuracy(BasePointLoss):
 
 
 class sCRPS(BasePointLoss):
-    """Scaled Continues Ranked Probability Score
+    r"""Scaled Continues Ranked Probability Score
 
     Calculates a scaled variation of the CRPS, as proposed by Rangapuram (2021),
     to measure the accuracy of predicted quantiles `y_hat` compared to the observation `y`.
@@ -3259,13 +3278,13 @@ class sCRPS(BasePointLoss):
     This metric averages percentual weighted absolute deviations as
     defined by the quantile losses.
 
-    $$
-    \mathrm{sCRPS}(\\mathbf{\hat{y}}^{(q)}_{\\tau}, \mathbf{y}_{\\tau}) = \\frac{2}{N} \sum_{i}
+    ```math
+    \mathrm{sCRPS}(\mathbf{\hat{y}}^{(q)}_{\tau}, \mathbf{y}_{\tau}) = \frac{2}{N} \sum_{i}
     \int^{1}_{0}
-    \\frac{\mathrm{QL}(\\mathbf{\hat{y}}^{(q}_{\\tau} y_{i,\\tau})_{q}}{\sum_{i} | y_{i,\\tau} |} dq
-    $$
+    \frac{\mathrm{QL}(\mathbf{\hat{y}}^{(q}_{\tau} y_{i,\tau})_{q}}{\sum_{i} | y_{i,\tau} |} dq
+    ```
 
-    where $\\mathbf{\hat{y}}^{(q}_{\\tau}$ is the estimated quantile, and $y_{i,\\tau}$
+    where $\mathbf{\hat{y}}^{(q}_{\tau}$ is the estimated quantile, and $y_{i,\tau}$
     are the target variable realizations.
 
     Args:

@@ -250,7 +250,7 @@ class KAN(BaseModel):
 
     Args:
         h (int): forecast horizon.
-        input_size (int): considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].<br>
+        input_size (int): considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].
         grid_size (int): number of intervals used by the splines to approximate the function.
         spline_order (int): order of the B-splines.
         scale_noise (float): regularization coefficient for the splines.
