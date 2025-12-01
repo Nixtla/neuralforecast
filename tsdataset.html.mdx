@@ -58,48 +58,6 @@ Name | Type | Description | Default
 `static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
 `static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
 
-#### `BaseTimeSeriesDataset.max_size`
-
-```python
-max_size = max_size
-```
-
-#### `BaseTimeSeriesDataset.min_size`
-
-```python
-min_size = min_size
-```
-
-#### `BaseTimeSeriesDataset.static`
-
-```python
-static = self._as_torch_copy(static)
-```
-
-#### `BaseTimeSeriesDataset.static_cols`
-
-```python
-static_cols = static_cols
-```
-
-#### `BaseTimeSeriesDataset.temporal_cols`
-
-```python
-temporal_cols = pd.Index(list(temporal_cols))
-```
-
-#### `BaseTimeSeriesDataset.updated`
-
-```python
-updated = False
-```
-
-#### `BaseTimeSeriesDataset.y_idx`
-
-```python
-y_idx = y_idx
-```
-
 ### `LocalFilesTimeSeriesDataset`
 
 ```python
@@ -140,12 +98,6 @@ Name | Type | Description | Default
 `static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
 `static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
 
-#### `LocalFilesTimeSeriesDataset.files_ds`
-
-```python
-files_ds = files_ds
-```
-
 #### `LocalFilesTimeSeriesDataset.from_data_directories`
 
 ```python
@@ -183,84 +135,6 @@ Name | Type | Description
 ---- | ---- | -----------
 `LocalFilesTimeSeriesDataset` | | Dataset created from directories.
 
-#### `LocalFilesTimeSeriesDataset.id_col`
-
-```python
-id_col = id_col
-```
-
-#### `LocalFilesTimeSeriesDataset.indices`
-
-```python
-indices = indices
-```
-
-#### `LocalFilesTimeSeriesDataset.last_times`
-
-```python
-last_times = last_times
-```
-
-#### `LocalFilesTimeSeriesDataset.max_size`
-
-```python
-max_size = max_size
-```
-
-#### `LocalFilesTimeSeriesDataset.min_size`
-
-```python
-min_size = min_size
-```
-
-#### `LocalFilesTimeSeriesDataset.n_groups`
-
-```python
-n_groups = len(files_ds)
-```
-
-#### `LocalFilesTimeSeriesDataset.static`
-
-```python
-static = self._as_torch_copy(static)
-```
-
-#### `LocalFilesTimeSeriesDataset.static_cols`
-
-```python
-static_cols = static_cols
-```
-
-#### `LocalFilesTimeSeriesDataset.target_col`
-
-```python
-target_col = target_col
-```
-
-#### `LocalFilesTimeSeriesDataset.temporal_cols`
-
-```python
-temporal_cols = pd.Index(list(temporal_cols))
-```
-
-#### `LocalFilesTimeSeriesDataset.time_col`
-
-```python
-time_col = time_col
-```
-
-#### `LocalFilesTimeSeriesDataset.updated`
-
-```python
-updated = False
-```
-
-#### `LocalFilesTimeSeriesDataset.y_idx`
-
-```python
-y_idx = y_idx
-```
-
 ### `TimeSeriesDataset`
 
 ```python
@@ -283,12 +157,6 @@ Name | Type | Description | Default
 `y_idx` | <code>[int](#int)</code> | Index of target variable. | *required*
 `static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
 `static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
-
-#### `TimeSeriesDataset.align`
-
-```python
-align(df, id_col, time_col, target_col)
-```
 
 #### `TimeSeriesDataset.append`
 
@@ -315,60 +183,6 @@ Name | Type | Description
 Type | Description
 ---- | -----------
 <code>[ValueError](#ValueError)</code>| If datasets have different number of groups.
-
-#### `TimeSeriesDataset.from_df`
-
-```python
-from_df(df, static_df=None, id_col='unique_id', time_col='ds', target_col='y')
-```
-
-#### `TimeSeriesDataset.indptr`
-
-```python
-indptr = indptr
-```
-
-#### `TimeSeriesDataset.max_size`
-
-```python
-max_size = max_size
-```
-
-#### `TimeSeriesDataset.min_size`
-
-```python
-min_size = min_size
-```
-
-#### `TimeSeriesDataset.n_groups`
-
-```python
-n_groups = self.indptr.size - 1
-```
-
-#### `TimeSeriesDataset.static`
-
-```python
-static = self._as_torch_copy(static)
-```
-
-#### `TimeSeriesDataset.static_cols`
-
-```python
-static_cols = static_cols
-```
-
-#### `TimeSeriesDataset.temporal`
-
-```python
-temporal = self._as_torch_copy(temporal)
-```
-
-#### `TimeSeriesDataset.temporal_cols`
-
-```python
-temporal_cols = pd.Index(list(temporal_cols))
-```
 
 #### `TimeSeriesDataset.trim_dataset`
 
@@ -400,26 +214,6 @@ Type | Description
 ---- | -----------
 <code>[Exception](#Exception)</code>| If trim size exceeds minimum series length.
 
-#### `TimeSeriesDataset.update_dataset`
-
-```python
-update_dataset(
-    dataset, futr_df, id_col="unique_id", time_col="ds", target_col="y"
-)
-```
-
-#### `TimeSeriesDataset.updated`
-
-```python
-updated = False
-```
-
-#### `TimeSeriesDataset.y_idx`
-
-```python
-y_idx = y_idx
-```
-
 ### `TimeSeriesDataModule`
 
 ```python
@@ -447,60 +241,6 @@ Name | Type | Description | Default
 `drop_last` | <code>[bool](#bool)</code> | Whether to drop the last incomplete batch. Defaults to False. | <code>False</code>
 `shuffle_train` | <code>[bool](#bool)</code> | Whether to shuffle training data. Defaults to True. | <code>True</code>
 `**dataloaders_kwargs` | | Additional keyword arguments for data loaders. | <code>{}</code>
-
-#### `TimeSeriesDataModule.batch_size`
-
-```python
-batch_size = batch_size
-```
-
-#### `TimeSeriesDataModule.dataloaders_kwargs`
-
-```python
-dataloaders_kwargs = dataloaders_kwargs
-```
-
-#### `TimeSeriesDataModule.dataset`
-
-```python
-dataset = dataset
-```
-
-#### `TimeSeriesDataModule.drop_last`
-
-```python
-drop_last = drop_last
-```
-
-#### `TimeSeriesDataModule.predict_dataloader`
-
-```python
-predict_dataloader()
-```
-
-#### `TimeSeriesDataModule.shuffle_train`
-
-```python
-shuffle_train = shuffle_train
-```
-
-#### `TimeSeriesDataModule.train_dataloader`
-
-```python
-train_dataloader()
-```
-
-#### `TimeSeriesDataModule.val_dataloader`
-
-```python
-val_dataloader()
-```
-
-#### `TimeSeriesDataModule.valid_batch_size`
-
-```python
-valid_batch_size = valid_batch_size
-```
 
 ### Example
 
