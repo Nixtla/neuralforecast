@@ -222,6 +222,7 @@ class NeuralForecast:
         models: List[Any],
         freq: Union[str, int],
         local_scaler_type: Optional[str] = None,
+        local_static_scaler_type: Optional[str] = None,
     ):
         """The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
         for large sets of time series. It operates with pandas DataFrame `df` that identifies series
@@ -232,7 +233,9 @@ class NeuralForecast:
             models (List[typing.Any]): Instantiated `neuralforecast.models`
                 see [collection here](./models).
             freq (str or int): Frequency of the data. Must be a valid pandas or polars offset alias, or an integer.
-            local_scaler_type (str, optional): Scaler to apply per-serie to all features before fitting, which is inverted after predicting.
+            local_scaler_type (str, optional): Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting.
+                Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None.
+            local_static_scaler_type (str, optional): Scaler to apply to static exogenous features before fitting.
                 Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None.
 
         Returns:
@@ -247,8 +250,12 @@ class NeuralForecast:
         self.freq = freq
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
             raise ValueError(f"scaler_type must be one of {_type2scaler.keys()}")
+        if local_static_scaler_type is not None and local_static_scaler_type not in _type2scaler:
+            raise ValueError(f"static_scaler_type must be one of {_type2scaler.keys()}")
         self.local_scaler_type = local_scaler_type
+        self.local_static_scaler_type = local_static_scaler_type
         self.scalers_: Dict
+        self.static_scalers_: Dict
 
         # Flags and attributes
         self._fitted = False
@@ -256,25 +263,35 @@ class NeuralForecast:
         self._add_level = False
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
-        self.scalers_ = {}
-        if self.local_scaler_type is None:
-            return None
-        for i, col in enumerate(dataset.temporal_cols):
-            if col == "available_mask":
-                continue
-            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
-            self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
-            dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
+        self.scalers_, self.static_scalers_ = {}, {}
+        if self.local_scaler_type is not None:
+            for i, col in enumerate(dataset.temporal_cols):
+                if col == "available_mask":
+                    continue
+                ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+                self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
+                dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
+        if self.local_static_scaler_type is not None and dataset.static is not None:
+            for i, col in enumerate(dataset.static_cols):
+                ga = GroupedArray(dataset.static[:, i].numpy(), np.array([0, dataset.static.shape[0]]))
+                self.static_scalers_[col] = _type2scaler[self.local_static_scaler_type]().fit(ga)
+                dataset.static[:, i] = torch.from_numpy(self.static_scalers_[col].transform(ga))
 
     def _scalers_transform(self, dataset: TimeSeriesDataset) -> None:
-        if not self.scalers_:
-            return None
-        for i, col in enumerate(dataset.temporal_cols):
-            scaler = self.scalers_.get(col, None)
-            if scaler is None:
-                continue
-            ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
-            dataset.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
+        if self.scalers_:
+            for i, col in enumerate(dataset.temporal_cols):
+                scaler = self.scalers_.get(col, None)
+                if scaler is None:
+                    continue
+                ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
+                dataset.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
+        if self.static_scalers_ and dataset.static is not None:
+            for i, col in enumerate(dataset.static_cols):
+                scaler = self.static_scalers_.get(col, None)
+                if scaler is None:
+                    continue
+                ga = GroupedArray(dataset.static[:, i].numpy(), np.array([0, dataset.static.shape[0]]))
+                dataset.static[:, i] = torch.from_numpy(scaler.transform(ga))
 
     def _scalers_target_inverse_transform(
         self, data: np.ndarray, indptr: np.ndarray
@@ -348,6 +365,11 @@ class NeuralForecast:
                 "Historic scaling isn't supported in distributed. "
                 "Please open an issue if this would be valuable to you."
             )
+        if self.local_static_scaler_type is not None:
+            raise ValueError(
+                "Static scaling isn't supported in distributed. "
+                "Please open an issue if this would be valuable to you."
+            )
         temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
         if static_df is not None:
             static_cols = [c for c in static_df.columns if c != id_col]
@@ -357,7 +379,7 @@ class NeuralForecast:
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
-        self.scalers_ = {}
+        self.scalers_, self.static_scalers_ = {}, {}
         num_partitions = distributed_config.num_nodes * distributed_config.devices
         df = df.repartitionByRange(num_partitions, id_col)
         df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
@@ -393,11 +415,16 @@ class NeuralForecast:
                 "Historic scaling isn't supported when the dataset is split between files. "
                 "Please open an issue if this would be valuable to you."
             )
+        if self.local_static_scaler_type is not None:
+            raise ValueError(
+                "Static scaling isn't supported when the dataset is split between files. "
+                "Please open an issue if this would be valuable to you."
+            )
 
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
-        self.scalers_ = {}
+        self.scalers_, self.static_scalers_ = {}, {}
 
         exogs = self._get_needed_exog()
         return LocalFilesTimeSeriesDataset.from_data_directories(
@@ -1752,7 +1779,9 @@ class NeuralForecast:
             "freq": self.freq,
             "_fitted": self._fitted,
             "local_scaler_type": self.local_scaler_type,
+            "local_static_scaler_type": self.local_static_scaler_type,
             "scalers_": self.scalers_,
+            "static_scalers_": self.static_scalers_,
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
@@ -1855,6 +1884,7 @@ class NeuralForecast:
             models=models,
             freq=config_dict["freq"],
             local_scaler_type=config_dict.get("local_scaler_type", default_scalar_type),
+            local_static_scaler_type=config_dict.get("local_static_scaler_type", None)               
         )
 
         attr_to_default = {"id_col": "unique_id", "time_col": "ds", "target_col": "y"}
@@ -1879,6 +1909,7 @@ class NeuralForecast:
         neuralforecast._fitted = config_dict["_fitted"]
 
         neuralforecast.scalers_ = config_dict.get("scalers_", default_scalars_)
+        neuralforecast.static_scalers_ = config_dict.get("static_scalers_", {})
 
         return neuralforecast
 
