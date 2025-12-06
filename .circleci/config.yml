@@ -16,7 +16,7 @@ jobs:
           no_output_timeout: 20m
           command: |
             source .venv/bin/activate
-            uv pip install ".[dev]"            
+            uv pip install -e '.[dev,aws,spark]'           
             export GIT_PYTHON_REFRESH=quiet
             pytest -k "not test_autonlinear_longer_horizon"
   test-model-performance:
@@ -34,7 +34,7 @@ jobs:
           name: Run model performance tests
           command: |
             source .venv/bin/activate
-            uv pip install -e ".[dev]"
+            uv pip install -e '.[dev,aws,spark]'
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
             python -m src.models
@@ -58,7 +58,7 @@ jobs:
           name: Run model performance tests
           command: |
             source .venv/bin/activate
-            uv pip install -e ".[dev]"
+            uv pip install -e '.[dev,aws,spark]'
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
             python -m src.models2
@@ -82,7 +82,7 @@ jobs:
           name: Run model performance tests
           command: |
             source .venv/bin/activate
-            uv pip install -e ".[dev]"
+            uv pip install -e '.[dev,aws,spark]'
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
             python -m src.multivariate_models

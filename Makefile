@@ -13,14 +13,14 @@ load_docs_scripts:
 	fi
 
 api_docs:
-	lazydocs .neuralforecast --no-watermark
-	python docs/to_mdx.py
+	python docs/to_mdx.py docs
 
 examples_docs:
 	mkdir -p nbs/_extensions
 	cp -r docs-scripts/mintlify/ nbs/_extensions/mintlify
 	python docs-scripts/update-quarto.py
 	quarto render nbs/docs --output-dir ../docs/mintlify/
+	find docs/mintlify/docs -name "*.mdx" ! -name "*.html.mdx" -type f -exec sh -c 'mv "$$1" "$${1%.mdx}.html.mdx"' _ {} \;
 
 format_docs:
 	# replace _docs with docs
@@ -35,7 +35,6 @@ preview_docs:
 	cd docs/mintlify && mintlify dev
 
 clean:
-	rm -f docs/*.md
 	find docs/mintlify -name "*.mdx" -exec rm -f {} +
 
 check_links:

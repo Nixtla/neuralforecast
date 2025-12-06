@@ -52,20 +52,17 @@ class BaseAuto(pl.LightningModule):
         valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
         config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-        For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
+            For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
-        Number of hyperparameter optimization steps/samples.
         cpus (int): Number of cpus to use during optimization. Only used with ray tune.
         gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
         refit_with_val (bool): Refit of best model should preserve val_size.
         verbose (bool): Track progress.
         alias (str): Custom name of the model.
-        Custom name of the model.
         backend (str): Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'.
         callbacks (list of callable): List of functions to call during the optimization process.
-        List of functions to call during the optimization process.
-        ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
-        optuna reference: https://optuna.readthedocs.io/en/stable
+            ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
+            optuna reference: https://optuna.readthedocs.io/en/stable
     """
 
     def __init__(
