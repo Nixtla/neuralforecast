@@ -34,7 +34,7 @@ def mae(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Mean Absolute Error
+    r"""Mean Absolute Error
 
     Calculates Mean Absolute Error between
     `y` and `y_hat`. MAE measures the relative prediction
@@ -43,7 +43,10 @@ def mae(
     value at a given time and averages these devations
     over the length of the series.
 
-    $$ \mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} |y_{\\tau} - \hat{y}_{\\tau}| $$
+    ```math
+    \mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}|
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -72,7 +75,7 @@ def mse(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Mean Squared Error
+    r"""Mean Squared Error
 
     Calculates Mean Squared Error between
     `y` and `y_hat`. MSE measures the relative prediction
@@ -81,7 +84,9 @@ def mse(
     value at a given time, and averages these devations
     over the length of the series.
 
-    $$ \mathrm{MSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2} $$
+    ```math
+    \mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}
+    ```
 
     Args:
         y (np.ndarray): Actual values.
@@ -110,7 +115,7 @@ def rmse(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Root Mean Squared Error
+    r"""Root Mean Squared Error
 
     Calculates Root Mean Squared Error between
     `y` and `y_hat`. RMSE measures the relative prediction
@@ -122,7 +127,10 @@ def rmse(
     series is possible only if they share a common scale.
     RMSE has a direct connection to the L2 norm.
 
-    $$ \mathrm{RMSE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\sqrt{\\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} (y_{\\tau} - \hat{y}_{\\tau})^{2}} $$
+    ```math
+    \mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}}
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -141,7 +149,7 @@ def mape(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Mean Absolute Percentage Error
+    r"""Mean Absolute Percentage Error
 
     Calculates Mean Absolute Percentage Error  between
     `y` and `y_hat`. MAPE measures the relative prediction
@@ -151,7 +159,10 @@ def mape(
     The closer to zero an observed value is, the higher penalty MAPE loss
     assigns to the corresponding error.
 
-    $$ \mathrm{MAPE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|} $$
+    ```math
+    \mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|}
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -177,7 +188,7 @@ def smape(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Symmetric Mean Absolute Percentage Error
+    r"""Symmetric Mean Absolute Percentage Error
 
     Calculates Symmetric Mean Absolute Percentage Error between
     `y` and `y_hat`. SMAPE measures the relative prediction
@@ -189,7 +200,10 @@ def smape(
     0% and 200% which is desirable compared to normal MAPE that
     may be undetermined when the target is zero.
 
-    $$ \mathrm{sMAPE}_{2}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{|y_{\\tau}|+|\hat{y}_{\\tau}|} $$
+    ```math
+    \mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|}
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -225,7 +239,7 @@ def mase(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Mean Absolute Scaled Error
+    r"""Mean Absolute Scaled Error
     Calculates the Mean Absolute Scaled Error between
     `y` and `y_hat`. MASE measures the relative prediction
     accuracy of a forecasting method by comparinng the mean absolute errors
@@ -234,7 +248,10 @@ def mase(
     The MASE partially composed the Overall Weighted Average (OWA),
     used in the M4 Competition.
 
-    $$ \mathrm{MASE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{season}_{\\tau})} $$
+    ```math
+    \mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})}
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -268,14 +285,16 @@ def rmae(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """RMAE
+    r"""RMAE
 
     Calculates Relative Mean Absolute Error (RMAE) between
     two sets of forecasts (from two different forecasting methods).
     A number smaller than one implies that the forecast in the
     numerator is better than the forecast in the denominator.
 
-    $$ \mathrm{rMAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau}) = \\frac{1}{H} \sum^{t+H}_{\\tau=t+1} \\frac{|y_{\\tau}-\hat{y}_{\\tau}|}{\mathrm{MAE}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{base}_{\\tau})} $$
+    ```math
+    \mathrm{rMAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau})}
+    ```
 
     Args:
         y (np.ndarray): observed values.
@@ -306,7 +325,7 @@ def quantile_loss(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Quantile Loss
+    r"""Quantile Loss
 
     Computes the quantile loss between `y` and `y_hat`.
     QL measures the deviation of a quantile forecast.
@@ -314,7 +333,10 @@ def quantile_loss(
     loss pays more attention to under or over estimation.
     A common value for q is 0.5 for the deviation from the median (Pinball loss).
 
-    $$ \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q)}_{\\tau}) = \\frac{1}{H} \\sum^{t+H}_{\\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\\tau} - y_{\\tau} )_{+} + q\,( y_{\\tau} - \hat{y}^{(q)}_{\\tau} )_{+} \Big) $$
+    ```math
+    \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.
@@ -350,23 +372,29 @@ def mqloss(
     weights: Optional[np.ndarray] = None,
     axis: Optional[int] = None,
 ) -> Union[float, np.ndarray]:
-    """Multi-Quantile loss
+    r"""Multi-Quantile loss
 
     Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
     MQL calculates the average multi-quantile Loss for
     a given set of quantiles, based on the absolute
     difference between predicted quantiles and observed values.
 
-    $$ \mathrm{MQL}(\\mathbf{y}_{\\tau},[\\mathbf{\hat{y}}^{(q_{1})}_{\\tau}, ... ,\hat{y}^{(q_{n})}_{\\tau}]) = \\frac{1}{n} \\sum_{q_{i}} \mathrm{QL}(\\mathbf{y}_{\\tau}, \\mathbf{\hat{y}}^{(q_{i})}_{\\tau}) $$
+    ```math
+    \mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+    ```
+
 
     The limit behavior of MQL allows to measure the accuracy
-    of a full predictive distribution $\mathbf{\hat{F}}_{\\tau}$ with
+    of a full predictive distribution $\mathbf{\hat{F}}_{\tau}$ with
     the continuous ranked probability score (CRPS). This can be achieved
     through a numerical integration technique, that discretizes the quantiles
     and treats the CRPS integral with a left Riemann approximation, averaging over
     uniformly distanced quantiles.
 
-    $$ \mathrm{CRPS}(y_{\\tau}, \mathbf{\hat{F}}_{\\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\\tau}, \hat{y}^{(q)}_{\\tau}) dq $$
+    ```math
+    \mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq
+    ```
+
 
     Args:
         y (np.ndarray): Actual values.

@@ -186,9 +186,9 @@ class TimeLLM(BaseModel):
         n_heads (int): number of heads in attention layer. Default: 8
         enc_in (int): encoder input size. Default: 7
         dec_in (int): decoder input size. Default: 7
-        llm (str): Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-        llm_config (dict): Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"<br>
-        llm_tokenizer (str): Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"<br>
+        llm (str): Path to pretrained LLM model to use. If not specified, it will use GPT-2 from https://huggingface.co/openai-community/gpt2"
+        llm_config (dict): Deprecated, configuration of LLM. If not specified, it will use the configuration of GPT-2 from https://huggingface.co/openai-community/gpt2"
+        llm_tokenizer (str): Deprecated, tokenizer of LLM. If not specified, it will use the GPT-2 tokenizer from https://huggingface.co/openai-community/gpt2"
         llm_num_hidden_layers (int): hidden layers in LLM. Default: 32
         llm_output_attention (bool): whether to output attention in encoder. Default: True
         llm_output_hidden_states (bool): whether to output hidden states. Default: True
@@ -207,7 +207,7 @@ class TimeLLM(BaseModel):
         windows_batch_size (int): number of windows to sample in each training batch, default uses all. Default: 1024
         inference_windows_batch_size (int): number of windows to sample in each inference batch. Default: 1024
         start_padding_enabled (bool): if True, the model will pad the time series with zeros at the beginning, by input size. Default: False
-        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).<br>
+        training_data_availability_threshold (Union[float, List[float]]): minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
         step_size (int): step size between each window of temporal data. Default: 1
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. Default: -1
         early_stop_patience_steps (int): Number of validation iterations before early stopping. Default: -1

@@ -11,10 +11,13 @@ import torch
 
 
 def get_bottomup_P(S: np.ndarray):
-    """BottomUp Reconciliation Matrix.
+    r"""BottomUp Reconciliation Matrix.
 
     Creates BottomUp hierarchical \"projection\" matrix is defined as:
-    $$\mathbf{P}_{\\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]$$
+
+    ```math
+    \mathbf{P}_{\text{BU}} = [\mathbf{0}_{\mathrm{[b],[a]}}\;|\;\mathbf{I}_{\mathrm{[b][b]}}]
+    ```
 
     Args:
         S (np.ndarray): Summing matrix of size (`base`, `bottom`).
@@ -34,11 +37,14 @@ def get_bottomup_P(S: np.ndarray):
 
 
 def get_mintrace_ols_P(S: np.ndarray):
-    """MinTraceOLS Reconciliation Matrix.
+    r"""MinTraceOLS Reconciliation Matrix.
 
     Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
 
-    $$\mathbf{P}_{\\text{MinTraceOLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{S}\\right)^{-1}\mathbf{S}^{\intercal}$$
+    ```math
+    \mathbf{P}_{\text{MinTraceOLS}}=\left(\mathbf{S}^{\intercal}\mathbf{S}\right)^{-1}\mathbf{S}^{\intercal}
+    ```
+
 
     Args:
         S (np.ndarray): Summing matrix of size (`base`, `bottom`).
@@ -64,15 +70,19 @@ def get_mintrace_ols_P(S: np.ndarray):
 
 
 def get_mintrace_wls_P(S: np.ndarray):
-    """MinTraceOLS Reconciliation Matrix.
+    r"""MinTraceOLS Reconciliation Matrix.
 
     Creates MinTraceOLS reconciliation matrix as proposed by Wickramasuriya et al.
     Depending on a weighted GLS estimator and an estimator of the covariance matrix of the coherency errors $\mathbf{W}_{h}$.
 
-    $$ \mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})$$
+    ```math
+    \mathbf{W}_{h} = \mathrm{Diag}(\mathbf{S} \mathbb{1}_{[b]})
+    ```
 
-    $$\mathbf{P}_{\\text{MinTraceWLS}}=\\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\\right)^{-1}
-    \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}$$
+    ```math
+    \mathbf{P}_{\text{MinTraceWLS}}=\left(\mathbf{S}^{\intercal}\mathbf{W}_{h}\mathbf{S}\right)^{-1}
+    \mathbf{S}^{\intercal}\mathbf{W}^{-1}_{h}
+    ```
 
     Args:
         S (np.ndarray): Summing matrix of size (`base`, `bottom`).

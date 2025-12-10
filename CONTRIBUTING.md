@@ -27,11 +27,57 @@ Bug fixes and features are added through pull requests (PRs).
 
 ### Local setup for working on a PR
 
-#### Clone the repository
+#### Fork and clone the repository
 
-* HTTPS: `git clone https://github.com/Nixtla/neuralforecast.git`
-* SSH: `git clone git@github.com:Nixtla/neuralforecast.git`
-* GitHub CLI: `gh repo clone Nixtla/neuralforecast`
+1. **Fork the repository**: Navigate to the [neuralforecast repository](https://github.com/Nixtla/neuralforecast) and click the "Fork" button in the top-right corner. This creates a copy of the repository under your GitHub account.
+
+2. **Clone your fork**: Clone your forked repository to your local machine (replace `YOUR_USERNAME` with your GitHub username):
+
+   * HTTPS: `git clone https://github.com/YOUR_USERNAME/neuralforecast.git`
+   * SSH: `git clone git@github.com:YOUR_USERNAME/neuralforecast.git`
+   * GitHub CLI: `gh repo clone YOUR_USERNAME/neuralforecast`
+
+3. **Navigate to the project directory**:
+
+   ```bash
+   cd neuralforecast
+   ```
+
+4. **Add the upstream remote** (Optional - skip if you prefer using GitHub's web UI): Add the original Nixtla repository as an upstream remote to keep your fork in sync:
+
+   ```bash
+   git remote add upstream https://github.com/Nixtla/neuralforecast.git
+   ```
+
+   > **Note**: This step is not required if you use GitHub's "Sync fork" button in the web UI to keep your fork updated. However, configuring the upstream remote is recommended for a smoother local development workflow.
+
+5. **Verify your remotes**: Confirm that you have both `origin` (your fork) and `upstream` (original repo) configured:
+
+   ```bash
+   git remote -v
+   ```
+
+6. **Keep your fork up to date**: Before starting work on a new feature or fix, sync your fork with the upstream repository:
+
+   **Option A - Using Git locally** (requires step 4):
+   ```bash
+   git checkout main
+   git fetch upstream
+   git merge upstream/main
+   git push origin main
+   ```
+
+   **Option B - Using GitHub's web UI**: Navigate to your fork on GitHub and click the "Sync fork" button, then pull the changes locally:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
+7. **Create a feature branch**: Always create a new branch for your work:
+
+   ```bash
+   git checkout -b your-feature-branch-name
+   ```
 
 #### Set up an environment
 
@@ -88,6 +134,35 @@ To run the tests, run
 uv run pytest
 ```
 
+#### Submitting your changes
+
+After making your changes and testing them:
+
+1. **Commit your changes**: Make sure your commits are clear and descriptive:
+
+   ```bash
+   git add .
+   git commit -m "Description of your changes"
+   ```
+
+2. **Push to your fork**: Push your feature branch to your forked repository:
+
+   ```bash
+   git push origin your-feature-branch-name
+   ```
+
+3. **Create a Pull Request**: Go to the [original neuralforecast repository](https://github.com/Nixtla/neuralforecast) and you should see a prompt to create a pull request from your recently pushed branch. Click on "Compare & pull request" and fill in the PR details following the guidelines above.
+
+4. **Keep your PR updated**: If you need to make changes based on review feedback, commit and push to the same branch:
+
+   ```bash
+   git add .
+   git commit -m "Address review comments"
+   git push origin your-feature-branch-name
+   ```
+
+   The PR will automatically update with your new commits.
+
 #### Viewing documentation locally
 
 The new documentation pipeline relies on `quarto`, `mintlify` and `lazydocs`.
@@ -108,7 +183,7 @@ npm i -g mint
 For additional instructions, you can read about it &rarr; [this link](https://mintlify.com/docs/installation).
 
 ```sh
-uv pip install -e '.[dev]' lazydocs
+uv pip install -e '.[dev, docs]' lazydocs
 make all_docs
 ```
 
