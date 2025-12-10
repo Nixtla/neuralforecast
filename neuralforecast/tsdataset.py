@@ -443,6 +443,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         y_idx: int,
         static=None,
         static_cols=None,
+        rotation_frequency:int = 1,
     ):
         super().__init__(
             temporal_cols=temporal_cols,
@@ -456,37 +457,124 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
-        # array with the last time for each timeseries
-        self.last_times = last_times
+        self.last_times = last_times # array with the last time for each timeseries 
         self.indices = indices
         self.n_groups = len(files_ds)
+        self.rotation_frequency = rotation_frequency
+        self._access_counts = [0] * len(files_ds) # Tracks access count for rotation
+
+        # Track row groups per file for efficient chunked reading
+        import pyarrow.parquet as pq
+        self.row_groups_per_file = []
+        self.total_rows_per_file = []
+        
+        for file_path in files_ds:
+            path = Path(file_path)
+            total_groups = 0
+            total_rows = 0
+            
+            if path.is_dir():
+                # For directories, sum row groups from all parquet files
+                parquet_files = sorted(path.glob("*.parquet"))
+                for pf_path in parquet_files:
+                    pf = pq.ParquetFile(pf_path)
+                    total_groups += pf.metadata.num_row_groups
+                    total_rows += pf.metadata.num_rows
+            else:
+                # Single parquet file
+                pf = pq.ParquetFile(file_path)
+                total_groups = pf.metadata.num_row_groups
+                total_rows = pf.metadata.num_rows
+            
+            self.row_groups_per_file.append(total_groups)
+            self.total_rows_per_file.append(total_rows)
 
     def __getitem__(self, idx):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         import pyarrow.parquet as pq
-        import pyarrow.dataset as ds
+        import pyarrow as pa
+        from pathlib import Path
         
         temporal_cols = self.temporal_cols.copy()
         path = self.files_ds[idx]
         
-        if Path(path).is_dir():
-            dataset = ds.dataset(path, format='parquet')
-            table = dataset.to_table(columns=temporal_cols.tolist())
+        # Get and increment access count for rotation
+        access_count = self._access_counts[idx]
+        self._access_counts[idx] += 1
+        
+        # Get total row groups for this file
+        total_row_groups = self.row_groups_per_file[idx]
+        
+        if total_row_groups == 0:
+            raise ValueError(f"No row groups found in {path}")
+        
+        total_rows = self.total_rows_per_file[idx]
+        
+        rows_per_group = total_rows // total_row_groups if total_row_groups > 0 else total_rows
+        
+        # Calculate how many row groups we need to reach max_size
+        groups_needed = max(1, (self.max_size + rows_per_group - 1) // rows_per_group)
+        groups_needed = min(groups_needed, total_row_groups)
+        
+        # Determine which row groups to read based on rotation
+        rotation_cycle = access_count // self.rotation_frequency
+        start_group = (rotation_cycle * groups_needed) % total_row_groups
+        
+        # Handle wraparound if needed
+        if start_group + groups_needed <= total_row_groups:
+            groups_to_read = list(range(start_group, start_group + groups_needed))
         else:
-            table = pq.read_table(path, columns=temporal_cols.tolist())
+            # Wrap around to beginning
+            groups_to_read = list(range(start_group, total_row_groups)) + \
+                            list(range(0, groups_needed - (total_row_groups - start_group)))
         
-        total_rows = table.num_rows
+        # Read the row groups
+        if Path(path).is_dir():
+            # For directories: read from multiple parquet files
+            tables = []
+            parquet_files = sorted(Path(path).glob("*.parquet"))
+            groups_read_so_far = 0
+            
+            for pf_path in parquet_files:
+                pf = pq.ParquetFile(pf_path)
+                file_num_groups = pf.metadata.num_row_groups
+                
+                # Check which row groups from this file we need
+                for local_rg_idx in range(file_num_groups):
+                    global_rg_idx = groups_read_so_far + local_rg_idx
+                    
+                    if global_rg_idx in groups_to_read:
+                        table = pf.read_row_group(local_rg_idx, columns=temporal_cols.tolist())
+                        tables.append(table)
+                    
+                    if len(tables) >= len(groups_to_read):
+                        break
+                
+                groups_read_so_far += file_num_groups
+                
+                if len(tables) >= len(groups_to_read):
+                    break
+            
+            if len(tables) == 0:
+                raise ValueError(f"No row groups were read from {path}")
+            
+            full_table = pa.concat_tables(tables)
+        else:
+            # Single file: read row groups directly
+            parquet_file = pq.ParquetFile(path)
+            tables = [parquet_file.read_row_group(rg, columns=temporal_cols.tolist()) 
+                    for rg in groups_to_read]
+            full_table = pa.concat_tables(tables)
         
-        rows_to_read = min(self.max_size, total_rows)
-        start_row = max(0, total_rows - rows_to_read)
+        data = full_table.to_pandas().to_numpy()
         
-        if start_row > 0:
-            table = table.slice(start_row, rows_to_read)
+        # Trim to max_size if we read slightly more than needed
+        if len(data) > self.max_size:
+            data = data[-self.max_size:]
         
-        data = table.to_pandas().to_numpy()
-        
+        # Rest unchanged
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
@@ -515,7 +603,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         id_col="unique_id",
         time_col="ds",
         target_col="y",
-        max_size_limit=None,
+        rotation_frequency=1,
     ):
         """Create dataset from data directories.
 
@@ -596,8 +684,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
 
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
-            if max_size_limit is not None:
-                max_size = min(max_size, max_size_limit)
             ids.append(uid)
             last_times.append(last_time)
 
@@ -621,6 +707,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             y_idx=0,
             static=static,
             static_cols=static_cols,
+            rotation_frequency=rotation_frequency
         )
         return dataset
 
