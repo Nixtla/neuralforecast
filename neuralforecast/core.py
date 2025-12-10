@@ -1144,8 +1144,39 @@ class NeuralForecast:
         original_models = self.models
         self.models = models_to_explain
 
+        def nan_robust_similarity(original_inp, perturbed_inp, __, **kwargs):
+            # Flatten inputs
+            orig_flat = original_inp[0].flatten() if isinstance(original_inp, tuple) else original_inp.flatten()
+            pert_flat = perturbed_inp[0].flatten() if isinstance(perturbed_inp, tuple) else perturbed_inp.flatten()
+            
+            # Create mask for valid (non-NaN) values
+            valid_mask = ~(torch.isnan(orig_flat) | torch.isnan(pert_flat))
+            
+            if valid_mask.sum() == 0:
+                return 1.0  # If all NaN, return maximum similarity
+            
+            # Compute distance only on valid values
+            orig_valid = orig_flat[valid_mask]
+            pert_valid = pert_flat[valid_mask]
+            
+            distance = torch.norm(orig_valid - pert_valid)
+            kernel_width = kwargs.get("kernel_width", 1.0)
+            
+            return float(torch.exp(-1 * (distance**2) / (2 * (kernel_width**2))))
+
+        # explainer_config = {
+        #     "explainer": captum.attr.__dict__[explainer],
+        #     "horizons": horizons,
+        #     "output_index": outputs,
+        # }
+
+        from captum.attr import Lime
+
         explainer_config = {
-            "explainer": captum.attr.__dict__[explainer],
+            "explainer": lambda forward_func: Lime(
+                forward_func, 
+                similarity_func=nan_robust_similarity
+            ),
             "horizons": horizons,
             "output_index": outputs,
         }

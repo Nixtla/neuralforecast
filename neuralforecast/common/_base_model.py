@@ -875,13 +875,20 @@ class BaseModel(pl.LightningModule):
         # Broadcasts scale if necessary and inverts normalization
         add_channel_dim = y_hat.ndim > 3
         y_loc, y_scale = self._get_loc_scale(y_idx, add_channel_dim=add_channel_dim)
+        
         if hasattr(self, "explain") and self.explain and y_hat.shape[0] != y_loc.shape[0]:
-            # n_repeats is always a multiple of the batch size
-            n_repeats = y_hat.shape[0] // y_loc.shape[0]
-            y_loc = y_loc.repeat(n_repeats, *([1] * (y_loc.ndim - 1)))
-            y_scale = y_scale.repeat(n_repeats, *([1] * (y_scale.ndim - 1)))
+            if y_hat.shape[0] > y_loc.shape[0]:
+                # y_hat batch is larger - repeat loc/scale (original behavior)
+                n_repeats = y_hat.shape[0] // y_loc.shape[0]
+                y_loc = y_loc.repeat(n_repeats, *([1] * (y_loc.ndim - 1)))
+                y_scale = y_scale.repeat(n_repeats, *([1] * (y_scale.ndim - 1)))
+            else:
+                # y_hat batch is smaller - slice loc/scale to match
+                y_loc = y_loc[:y_hat.shape[0]]
+                y_scale = y_scale[:y_hat.shape[0]]
+        
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
-
+        
         return y_hat
 
     def _sample_windows(
@@ -1507,6 +1514,7 @@ class BaseModel(pl.LightningModule):
                 
                 # Make predictions for this step
                 y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+                print(f"DEBUG recursive step {i}: y_hat has NaNs: {torch.isnan(y_hat).any()}")
                 
                 # Restore explanation state
                 if explain_state:

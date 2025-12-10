@@ -11,6 +11,9 @@ class ExplainerEnum(str, Enum):
     IntegratedGradients = "IntegratedGradients"
     ShapleyValueSampling = "ShapleyValueSampling"
     InputXGradient = "InputXGradient"
+    FeaturePermutation = "FeaturePermutation"
+    FeatureAblation = "FeatureAblation"
+    Lime = "Lime"
 
     AdditiveExplainers = [IntegratedGradients, ShapleyValueSampling]
-    AllExplainers = [IntegratedGradients, ShapleyValueSampling, InputXGradient]
+    AllExplainers = [IntegratedGradients, ShapleyValueSampling, InputXGradient, FeaturePermutation, FeatureAblation, Lime]
