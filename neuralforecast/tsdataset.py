@@ -529,6 +529,10 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             # Wrap around to beginning
             groups_to_read = list(range(start_group, total_row_groups)) + \
                             list(range(0, groups_needed - (total_row_groups - start_group)))
+            
+        print(f"DEBUG getitem: idx={idx}, access_count={access_count}, "
+          f"total_groups={total_row_groups}, groups_needed={groups_needed}, "
+          f"groups_to_read={groups_to_read}, data_shape will be ~{groups_needed * rows_per_group}")
         
         # Read the row groups
         if Path(path).is_dir():
