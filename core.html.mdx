@@ -15,7 +15,9 @@ estimator classes like `models.NBEATS` and `models.RNN`. The second component is
 ### `NeuralForecast`
 
 ```python
-NeuralForecast(models, freq, local_scaler_type=None)
+NeuralForecast(
+    models, freq, local_scaler_type=None, local_static_scaler_type=None
+)
 ```
 
 The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
@@ -29,7 +31,8 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `models` | <code>[List](#typing.List)\[[Any](#typing.Any)\]</code> | Instantiated `neuralforecast.models` see [collection here](./models). | *required*
 `freq` | <code>[str](#str) or [int](#int)</code> | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. | *required*
-`local_scaler_type` | <code>[str](#str)</code> | Scaler to apply per-serie to all features before fitting, which is inverted after predicting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
+`local_scaler_type` | <code>[str](#str)</code> | Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
+`local_static_scaler_type` | <code>[str](#str)</code> | Scaler to apply to static exogenous features before fitting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
 
 **Returns:**
 
