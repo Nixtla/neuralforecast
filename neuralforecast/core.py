@@ -522,10 +522,6 @@ class NeuralForecast:
                 rotation_frequency=1,
                 max_size_limit=max_size_limit,
             )
-            print(f"DEBUG: Dataset max_size = {self.dataset.max_size}")
-            print(f"DEBUG: Dataset n_groups = {self.dataset.n_groups}")
-            print(f"DEBUG: Temporal cols = {len(self.dataset.temporal_cols)}")
-            print(f"DEBUG: Row groups per file = {self.dataset.row_groups_per_file}")
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
 
