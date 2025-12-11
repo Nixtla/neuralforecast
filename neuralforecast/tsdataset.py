@@ -608,6 +608,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         time_col="ds",
         target_col="y",
         rotation_frequency=1,
+        max_size_limit=None,
     ):
         """Create dataset from data directories.
 
@@ -691,6 +692,8 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             ids.append(uid)
             last_times.append(last_time)
 
+        if max_size_limit is not None:
+            max_size = min(max_size, max_size_limit)
         last_times = pd.Index(last_times, name=time_col)
         ids = pd.Series(ids, name=id_col)
 

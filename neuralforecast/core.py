@@ -388,6 +388,7 @@ class NeuralForecast:
         time_col: str,
         target_col: str,
         rotation_frequency: int = 1,
+        max_size_limit: Optional[int] = None,
     ):
         if self.local_scaler_type is not None:
             raise ValueError(
@@ -409,6 +410,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
             rotation_frequency=rotation_frequency,
+            max_size_limit=max_size_limit,
         )
 
     def fit(
@@ -508,6 +510,9 @@ class NeuralForecast:
                 raise ValueError(
                     "All entries in the list of files must be of type string"
                 )
+            max_input_size = max(m.input_size for m in self.models)
+            max_h = max(m.h for m in self.models)
+            max_size_limit = 2 * (max_input_size + max_h + val_size)
             self.dataset = self._prepare_fit_for_local_files(
                 files_list=df,
                 static_df=static_df,
@@ -515,6 +520,7 @@ class NeuralForecast:
                 time_col=time_col,
                 target_col=target_col,
                 rotation_frequency=1,
+                max_size_limit=max_size_limit,
             )
             print(f"DEBUG: Dataset max_size = {self.dataset.max_size}")
             print(f"DEBUG: Dataset n_groups = {self.dataset.n_groups}")
