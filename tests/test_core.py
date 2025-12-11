@@ -48,6 +48,7 @@ from neuralforecast.core import (
     PredictionIntervals,
     TimesNet,
     _insample_times,
+    _type2scaler,
 )
 from neuralforecast.losses.pytorch import (
     GMM,
@@ -57,6 +58,7 @@ from neuralforecast.losses.pytorch import (
     DistributionLoss,
     MQLoss,
 )
+from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import (
     AirPassengersPanel,
     AirPassengersStatic,
@@ -341,6 +343,118 @@ def test_neural_forecast_boxcox_scaling(setup_airplane_data):
         insample_res["y_expected"].values,
         rtol=0.7,
     )
+
+
+# Test static exogenous feature scaling
+
+@pytest.fixture
+def config() -> dict:
+    return {
+        'h': 12,
+        'input_size': 24,
+        'max_steps': 10,
+    }
+
+
+@pytest.mark.parametrize("scaler", _type2scaler.keys())
+def test_neural_forecast_static_scaling(config, scaler):
+    """Test static scaling functionality for NeuralForecast models."""
+    stat_exog = ['airline1', 'airline2']
+    nf = NeuralForecast(models=[NHITS(**config, stat_exog_list=stat_exog)], freq="D")
+    nf.fit(AirPassengersPanel, AirPassengersStatic)
+    without_scaler = nf.predict()
+
+    nf = NeuralForecast(models=[NHITS(**config, stat_exog_list=stat_exog)], freq="D", local_static_scaler_type=scaler)
+    nf.fit(AirPassengersPanel, AirPassengersStatic)
+    with_scaler = nf.predict()
+
+    np.testing.assert_allclose(
+        without_scaler["NHITS"].values,
+        with_scaler["NHITS"].values,
+        rtol=0.2,
+    )
+
+
+@pytest.fixture
+def data(size=300, n_series=3) -> pd.DataFrame:
+    return pd.DataFrame({
+        "unique_id": (['store_1'] * (size // n_series) + ['store_2'] * (size // n_series) + ['store_3'] * (size // n_series)),
+        "ds": np.tile(pd.date_range(start="2020-01-01", periods=size // n_series, freq="D").to_numpy(), n_series),
+        "y": np.random.rand(size),
+    })
+
+
+@pytest.fixture
+def static_data(n_series=3) -> pd.DataFrame:
+    return pd.DataFrame({
+        "unique_id": [f'store_{i+1}' for i in range(n_series)],
+        "size": np.random.randint(50, 500, size=n_series),
+        "num_days_open": np.random.randint(100, 1000, size=n_series),
+    })
+
+
+@pytest.mark.parametrize("scaler", _type2scaler.keys())
+def test_normalization_of_static_exog(data, static_data, config, scaler):
+    models = [TFT(**config, stat_exog_list=["size", "num_days_open"])]
+    nf = NeuralForecast(models=models, freq="D", local_static_scaler_type=scaler)
+    
+    dataset = TimeSeriesDataset.from_df(data, static_data)[0]
+    nf._scalers_fit_transform(dataset)
+    fit_dataset = dataset.static
+    
+    dataset = TimeSeriesDataset.from_df(data, static_data)[0]
+    nf._scalers_transform(dataset)
+    predict_dataset = dataset.static
+
+    assert (fit_dataset == predict_dataset).all()
+
+
+def test_standard_normalization_of_static_exog(data, static_data, config):
+    models = [TFT(**config, stat_exog_list=["size", "num_days_open"])]
+    nf = NeuralForecast(models=models, freq="D", local_static_scaler_type="standard")
+    
+    dataset = TimeSeriesDataset.from_df(data, static_data)[0]
+    nf._scalers_fit_transform(dataset)
+    normalized_static = dataset.static.numpy()
+
+    for i, col in enumerate(dataset.static_cols):
+        col_values = static_data[col].values.reshape(-1, 1).astype(np.float32)
+        mean = col_values.mean()
+        std = col_values.std()
+        expected_normalized = (col_values - mean) / std
+
+        np.testing.assert_allclose(nf.static_scalers_[col].stats_[:, 0], mean, rtol=1e-5)
+        np.testing.assert_allclose(nf.static_scalers_[col].stats_[:, 1], std, rtol=1e-5)
+        np.testing.assert_allclose(
+            normalized_static[:, i],
+            expected_normalized.flatten(),
+            rtol=1e-5,
+        )
+
+
+def test_minmax_normalization_of_static_exog(data, static_data, config):
+    models = [TFT(**config, stat_exog_list=["size", "num_days_open"])]
+    nf = NeuralForecast(models=models, freq="D", local_static_scaler_type="minmax")
+    
+    dataset = TimeSeriesDataset.from_df(data, static_data)[0]
+    nf._scalers_fit_transform(dataset)
+    normalized_static = dataset.static.numpy()
+
+    for i, col in enumerate(dataset.static_cols):
+        col_values = static_data[col].values.reshape(-1, 1).astype(np.float32)
+        min_val = col_values.min()
+        range_val = col_values.max() - min_val
+        expected_normalized = (col_values - min_val) / range_val
+
+        np.testing.assert_allclose(nf.static_scalers_[col].stats_[:, 0], min_val, rtol=1e-5)
+        np.testing.assert_allclose(nf.static_scalers_[col].stats_[:, 1], range_val, rtol=1e-5)
+        np.testing.assert_allclose(
+            normalized_static[:, i],
+            expected_normalized.flatten(),
+            rtol=1e-5,
+        )
+
+
 # test futr_df contents
 def test_future_df_contents(setup_airplane_data):
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
@@ -907,7 +1021,11 @@ def test_save_load(setup_airplane_data):
 def test_save_load_no_dataset(setup_airplane_data):
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
 
-    shutil.rmtree("examples/debug_run")
+    try:
+        shutil.rmtree("examples/debug_run")
+    except:
+        print("Directory does not exist")
+
     fcst = NeuralForecast(
         models=[DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1)],
         freq="M",
