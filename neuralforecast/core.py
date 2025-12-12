@@ -409,6 +409,8 @@ class NeuralForecast:
         id_col: str,
         time_col: str,
         target_col: str,
+        rotation_frequency: int = 1,
+        max_size_limit: Optional[int] = None,
     ):
         if self.local_scaler_type is not None:
             raise ValueError(
@@ -434,6 +436,8 @@ class NeuralForecast:
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
+            rotation_frequency=rotation_frequency,
+            max_size_limit=max_size_limit,
         )
 
     def fit(
@@ -533,12 +537,31 @@ class NeuralForecast:
                 raise ValueError(
                     "All entries in the list of files must be of type string"
                 )
+            max_input_size = 0
+            for m in self.models:
+                if hasattr(m, 'config'):
+                    if isinstance(m.config, dict):
+                        input_sizes = m.config['input_size']
+                        if hasattr(input_sizes, 'categories'):
+                            max_input_size = max(max_input_size, max(input_sizes.categories))
+                        elif isinstance(input_sizes, (list, tuple)):
+                            max_input_size = max(max_input_size, max(input_sizes))
+                        else:
+                            max_input_size = max(max_input_size, input_sizes)
+                elif hasattr(m, 'input_size'):
+                    max_input_size = max(max_input_size, m.input_size)
+            max_h = max(m.h for m in self.models)
+            if max_input_size == 0:
+                max_input_size = 2*max_h
+            max_size_limit = 2 * (max_input_size + max_h + val_size)
             self.dataset = self._prepare_fit_for_local_files(
                 files_list=df,
                 static_df=static_df,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
+                rotation_frequency=1,
+                max_size_limit=max_size_limit,
             )
             self.uids = self.dataset.indices
             self.last_dates = self.dataset.last_times
