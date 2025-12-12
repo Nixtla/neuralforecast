@@ -537,8 +537,21 @@ class NeuralForecast:
                 raise ValueError(
                     "All entries in the list of files must be of type string"
                 )
-            max_input_size = max(m.input_size for m in self.models)
+            max_input_size = 0
+            for m in self.models:
+                if hasattr(m, 'config') and isinstance(m.config, dict):
+                    input_sizes = m.config['input_size']
+                    if hasattr(input_sizes, 'categories'):
+                        max_input_size = max(max_input_size, max(input_sizes.categories))
+                    elif isinstance(input_sizes, (list, tuple)):
+                        max_input_size = max(max_input_size, max(input_sizes))
+                    else:
+                        max_input_size = max(max_input_size, input_sizes)
+                else:
+                    max_input_size = max(max_input_size, m.input_size)
             max_h = max(m.h for m in self.models)
+            if max_input_size == 0:
+                max_input_size = 2*max_h
             max_size_limit = 2 * (max_input_size + max_h + val_size)
             self.dataset = self._prepare_fit_for_local_files(
                 files_list=df,
