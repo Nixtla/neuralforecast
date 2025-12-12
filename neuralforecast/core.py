@@ -539,15 +539,16 @@ class NeuralForecast:
                 )
             max_input_size = 0
             for m in self.models:
-                if hasattr(m, 'config') and isinstance(m.config, dict):
-                    input_sizes = m.config['input_size']
-                    if hasattr(input_sizes, 'categories'):
-                        max_input_size = max(max_input_size, max(input_sizes.categories))
-                    elif isinstance(input_sizes, (list, tuple)):
-                        max_input_size = max(max_input_size, max(input_sizes))
-                    else:
-                        max_input_size = max(max_input_size, input_sizes)
-                else:
+                if hasattr(m, 'config'):
+                    if isinstance(m.config, dict):
+                        input_sizes = m.config['input_size']
+                        if hasattr(input_sizes, 'categories'):
+                            max_input_size = max(max_input_size, max(input_sizes.categories))
+                        elif isinstance(input_sizes, (list, tuple)):
+                            max_input_size = max(max_input_size, max(input_sizes))
+                        else:
+                            max_input_size = max(max_input_size, input_sizes)
+                elif hasattr(m, 'input_size'):
                     max_input_size = max(max_input_size, m.input_size)
             max_h = max(m.h for m in self.models)
             if max_input_size == 0:
