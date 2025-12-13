@@ -1,0 +1,912 @@
+---
+description: >-
+  Neural network building blocks for NeuralForecast: MLP layers, temporal convolutions, Transformer encoders-decoders, attention mechanisms, and embeddings.
+output-file: common.modules.html
+title: NN Modules
+---
+
+
+## 1. MLP
+
+Multi-Layer Perceptron
+
+### `MLP`
+
+```python
+MLP(in_features, out_features, activation, hidden_size, num_layers, dropout)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Multi-Layer Perceptron for time series forecasting.
+
+A feedforward neural network with configurable depth and width. The network\
+consists of an input layer, multiple hidden layers with activation functions\
+and dropout, and an output layer. All hidden layers have the same dimensionality.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_features` | <code>[int](#int)</code> | Dimension of input features. | *required*
+`out_features` | <code>[int](#int)</code> | Dimension of output features. | *required*
+`activation` | <code>[str](#str)</code> | Activation function name. Must be one of the supported activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU'). | *required*
+`hidden_size` | <code>[int](#int)</code> | Number of units in each hidden layer. All hidden layers share the same dimensionality. | *required*
+`num_layers` | <code>[int](#int)</code> | Total number of layers including input and output layers. Must be at least 2. For example, num_layers=3 creates: input layer, one hidden layer, and output layer. | *required*
+`dropout` | <code>[float](#float)</code> | Dropout probability applied after each hidden layer's activation. Should be in range [0.0, 1.0]. Not applied to output layer. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Transformed output tensor of shape [..., out_features].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The activation function is applied after each hidden layer's linear\
+  transformation, but not after the final output layer.
+- Dropout is applied after activation in hidden layers for regularization.
+- This MLP is used as a decoder component in various forecasting models\
+  including RNN, LSTM, GRU, DilatedRNN, TCN, and xLSTM.
+
+</details>
+
+## 2. Temporal Convolutions
+
+For long time in deep learning, sequence modelling was synonymous with
+recurrent networks, yet several papers have shown that simple
+convolutional architectures can outperform canonical recurrent networks
+like LSTMs by demonstrating longer effective memory.
+
+**References**
+
+-[van den Oord, A., Dieleman, S., Zen, H., Simonyan,
+K., Vinyals, O., Graves, A., Kalchbrenner, N., Senior, A. W., &
+Kavukcuoglu, K. (2016). Wavenet: A generative model for raw audio.
+Computing Research Repository, abs/1609.03499. URL:
+http://arxiv.org/abs/1609.03499.
+arXiv:1609.03499.](https://arxiv.org/abs/1609.03499)
+
+-[Shaojie Bai,
+Zico Kolter, Vladlen Koltun. (2018). An Empirical Evaluation of Generic
+Convolutional and Recurrent Networks for Sequence Modeling. Computing
+Research Repository, abs/1803.01271. URL:
+https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)
+
+### `Chomp1d`
+
+```python
+Chomp1d(horizon)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Temporal trimming layer for 1D sequences.
+
+Removes the rightmost `horizon` timesteps from a 3D tensor. This is commonly\
+used to trim padding added by convolution operations, ensuring the output\
+sequence has the desired length.
+
+The operation trims the temporal dimension: [N, C, T] -> [N, C, T-horizon]
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`horizon` | <code>[int](#int)</code> | Number of timesteps to remove from the end of the temporal dimension. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Trimmed tensor of shape [N, C, T-horizon].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Commonly used in `CausalConv1d` to remove padding after convolution.
+
+</details>
+
+### CausalConv1d
+
+### `CausalConv1d`
+
+```python
+CausalConv1d(
+    in_channels,
+    out_channels,
+    kernel_size,
+    padding,
+    dilation,
+    activation,
+    stride=1,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Causal Convolution 1d
+
+Receives `x` input of dim [N,C_in,T], and computes a causal convolution
+in the time dimension. Skipping the H steps of the forecast horizon, through
+its dilation.
+Consider a batch of one element, the dilated convolution operation on the
+$t$ time step is defined:
+
+```math
+\mathrm{Conv1D}(\mathbf{x},\mathbf{w})(t) = (\mathbf{x}_{[*d]} \mathbf{w})(t) = \sum^{K}_{k=1} w_{k} \mathbf{x}_{t-dk}
+```
+
+where $d$ is the dilation factor, $K$ is the kernel size, $t-dk$ is the index of
+the considered past observation. The dilation effectively applies a filter with skip
+connections. If $d=1$ one recovers a normal convolution.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_channels` | <code>[int](#int)</code> | Dimension of `x` input's initial channels. | *required*
+`out_channels` | <code>[int](#int)</code> | Dimension of `x` outputs's channels. | *required*
+`activation` | <code>[str](#str)</code> | Identifying activations from PyTorch activations. | *required*
+`padding` | <code>[int](#int)</code> | Number of zero padding used to the left. | *required*
+`kernel_size` | <code>[int](#int)</code> | Convolution's kernel size. | *required*
+`dilation` | <code>[int](#int)</code> | Dilation skip connections. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Torch tensor of dim [N,C_out,T] activation(conv1d(inputs, kernel) + bias).
+
+### TemporalConvolutionEncoder
+
+
+
+## 3. Transformers
+
+**References**
+
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)
+
+- [Haixu Wu, Jiehui
+Xu, Jianmin Wang, Mingsheng Long.](https://arxiv.org/abs/2106.13008)
+
+### `TransEncoder`
+
+```python
+TransEncoder(attn_layers, conv_layers=None, norm_layer=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Transformer Encoder.
+
+A stack of transformer encoder layers that processes input sequences through\
+multiple self-attention and feed-forward layers. Optionally includes convolutional\
+layers between attention layers for distillation and a final normalization layer.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`attn_layers` | <code>list of TransEncoderLayer</code> | List of transformer encoder layers to stack. | *required*
+`conv_layers` | <code>list of nn.Module</code> | List of convolutional layers applied between attention layers. Must have length len(attn_layers) - 1 if provided. Used for distillation in models like Informer. | <code>None</code>
+`norm_layer` | <code>[Module](#torch.nn.Module)</code> | Normalization layer applied to the final output. Typically nn.LayerNorm. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Encoded output tensor of shape [batch, seq_len, hidden_size] after passing through all encoder layers and optional normalization.
+<code>list[torch.Tensor]\]</code> | List of attention weights from each encoder layer, each of shape [batch, n_heads, seq_len, seq_len] (or None if not computed).
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+When conv_layers is provided, the encoder alternates between attention layers
+and convolutional layers, with the final attention layer applied without a
+subsequent convolution. This architecture is used in the Informer model.
+
+</details>
+
+### `TransEncoderLayer`
+
+```python
+TransEncoderLayer(
+    attention,
+    hidden_size,
+    conv_hidden_size=None,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Transformer Encoder Layer.
+
+A single layer of the transformer encoder that applies self-attention followed by\
+a position-wise feed-forward network with residual connections and layer normalization.\
+Dropout is applied after the self-attention output and twice in the feed-forward network\
+(after each convolution) before the residual connections for regularization.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`attention` | <code>[AttentionLayer](#neuralforecast.common._modules.AttentionLayer)</code> | Self-attention mechanism to apply. | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the model's hidden representations. | *required*
+`conv_hidden_size` | <code>[int](#int)</code> | Dimension of the feed-forward network's hidden layer. Defaults to 4 * hidden_size if not specified. | <code>None</code>
+`dropout` | <code>[float](#float)</code> | Dropout probability applied after attention and feed-forward layers. | <code>0.1</code>
+`activation` | <code>[str](#str)</code> | Activation function to use in the feed-forward network. Either "relu" or "gelu". | <code>'relu'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Output tensor of shape [batch, seq_len, hidden_size] after applying self-attention and feed-forward transformations.
+<code>[Tensor](#torch.Tensor) or None</code> | Attention weights of shape [batch, n_heads, seq_len, seq_len] if output_attention is True in the attention layer, otherwise None.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+The layer applies two main operations in sequence:
+
+1. Self-attention on the input with dropout, residual connection, and normalization
+1. Position-wise feed-forward network using 1D convolutions with dropout applied twice
+   (after the first convolution with activation, and after the second convolution),
+   residual connection, and normalization
+
+This layer is used as a building block in transformer-based models like Informer,
+VanillaTransformer, iTransformer, and SOFTS.
+
+</details>
+
+### `TransDecoder`
+
+```python
+TransDecoder(layers, norm_layer=None, projection=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Transformer decoder module for sequence-to-sequence forecasting.
+
+Stacks multiple TransDecoderLayer modules to process decoder inputs with\
+self-attention and cross-attention mechanisms. Optionally applies layer\
+normalization and a final projection layer to produce output predictions.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`layers` | <code>[list](#list)</code> | List of TransDecoderLayer instances to stack sequentially. | *required*
+`norm_layer` | <code>[Module](#torch.nn.Module)</code> | Layer normalization module applied after all decoder layers. | <code>None</code>
+`projection` | <code>[Module](#torch.nn.Module)</code> | Final projection layer (typically nn.Linear) to map hidden representations to output dimension. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Decoded output tensor. If projection is provided, returns tensor of shape [batch, target_seq_len, output_dim]. Otherwise, returns tensor of shape [batch, target_seq_len, hidden_size].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The forward method requires both decoder input (x) and encoder output (cross).
+- Masks are optional and used for attention masking in self-attention (x_mask)
+  and cross-attention (cross_mask).
+- Each layer performs self-attention on decoder input, cross-attention with
+  encoder output, and feedforward transformation.
+
+</details>
+
+### `TransDecoderLayer`
+
+```python
+TransDecoderLayer(
+    self_attention,
+    cross_attention,
+    hidden_size,
+    conv_hidden_size=None,
+    dropout=0.1,
+    activation="relu",
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Transformer Decoder Layer.
+
+A single layer of the transformer decoder that applies masked self-attention,\
+cross-attention with encoder outputs, and a position-wise feed-forward network\
+with residual connections and layer normalization. Dropout is applied after each\
+sub-layer (self-attention, cross-attention, and twice in the feed-forward network)\
+before the residual connection for regularization.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`self_attention` | <code>[AttentionLayer](#neuralforecast.common._modules.AttentionLayer)</code> | Masked self-attention mechanism for the decoder. | *required*
+`cross_attention` | <code>[AttentionLayer](#neuralforecast.common._modules.AttentionLayer)</code> | Cross-attention mechanism to attend to encoder outputs. | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the model's hidden representations. | *required*
+`conv_hidden_size` | <code>[int](#int)</code> | Dimension of the feed-forward network's hidden layer. Defaults to 4 * hidden_size if not specified. | <code>None</code>
+`dropout` | <code>[float](#float)</code> | Dropout probability applied after attention and feed-forward layers. | <code>0.1</code>
+`activation` | <code>[str](#str)</code> | Activation function to use in the feed-forward network. Either "relu" or "gelu". | <code>'relu'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Output tensor of shape [batch, target_seq_len, hidden_size] after applying masked self-attention, cross-attention, and feed-forward transformations.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+The layer applies three main operations in sequence:
+
+1. Masked self-attention on the decoder input with dropout, residual connection, and normalization
+1. Cross-attention between decoder and encoder outputs with dropout, residual connection, and normalization
+1. Position-wise feed-forward network using 1D convolutions with dropout applied twice (after each convolution),
+   residual connection, and normalization
+
+</details>
+
+### `AttentionLayer`
+
+```python
+AttentionLayer(attention, hidden_size, n_heads, d_keys=None, d_values=None)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Multi-head attention layer wrapper.
+
+This layer wraps an attention mechanism and handles the linear projections\
+for queries, keys, and values in multi-head attention. It projects inputs\
+to multiple heads, applies the inner attention mechanism, and projects back\
+to the original hidden dimension.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`attention` | <code>[Module](#torch.nn.Module)</code> | Inner attention mechanism (e.g., FullAttention, ProbAttention) that computes attention scores and outputs. | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the model's hidden states. | *required*
+`n_heads` | <code>[int](#int)</code> | Number of attention heads. | *required*
+`d_keys` | <code>[int](#int)</code> | Dimension of keys per head. If `None` defaults to hidden_size // n_heads. | <code>None</code>
+`d_values` | <code>[int](#int)</code> | Dimension of values per head. If `None` defaults to hidden_size // n_heads. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Output tensor of shape [batch, seq_len, hidden_size] after applying multi-head attention.
+| (torch.Tensor) or None: Attention weights of shape [batch, n_heads, seq_len, seq_len] if output_attention is True in the inner attention mechanism, otherwise None.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The forward method accepts queries, keys, values, and optional masks.
+- Additional parameters tau and delta are passed through to the inner
+  attention mechanism for specialized attention variants.
+
+</details>
+
+### `FullAttention`
+
+```python
+FullAttention(
+    mask_flag=True,
+    factor=5,
+    scale=None,
+    attention_dropout=0.1,
+    output_attention=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Full attention mechanism with scaled dot-product attention.
+
+Implements standard multi-head attention using scaled dot-product attention.\
+Supports both efficient computation via PyTorch's scaled_dot_product_attention\
+and explicit attention computation when attention weights are needed. Optional\
+causal masking prevents attention to future positions in autoregressive models.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`mask_flag` | <code>[bool](#bool)</code> | If True, applies causal masking to prevent attention to future positions. | <code>True</code>
+`factor` | <code>[int](#int)</code> | Attention factor parameter (unused in FullAttention, kept for API compatibility with ProbAttention). | <code>5</code>
+`scale` | <code>[float](#float)</code> | Custom scaling factor for attention scores. If None, uses 1/sqrt(d_k) where d_k is the key dimension. | <code>None</code>
+`attention_dropout` | <code>[float](#float)</code> | Dropout rate applied to attention weights. | <code>0.1</code>
+`output_attention` | <code>[bool](#bool)</code> | If True, returns attention weights along with output. If False, uses efficient flash attention. | <code>False</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Attention output of shape [batch, seq_len, n_heads, head_dim].
+<code>[Tensor](#torch.Tensor) or None</code> | Attention weights of shape [batch, n_heads, seq_len, seq_len] if output_attention is True, otherwise None.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- When output_attention=False, uses PyTorch's optimized scaled_dot_product_attention
+  for better performance (flash attention).
+- When output_attention=True, computes attention explicitly using einsum operations.
+- If mask_flag=True and no attn_mask is provided, automatically creates a
+  TriangularCausalMask for autoregressive attention.
+- The tau and delta parameters are accepted for API compatibility but unused.
+
+</details>
+
+### `TriangularCausalMask`
+
+```python
+TriangularCausalMask(B, L, device='cpu')
+```
+
+Triangular causal mask for autoregressive attention.
+
+Creates an upper triangular boolean mask that prevents attention mechanisms\
+from attending to future positions in the sequence. This ensures causality\
+in autoregressive models where predictions at time t should only depend on\
+positions before t.
+
+The mask is created using torch.triu with diagonal=1, resulting in a mask\
+where positions (i, j) are True when j > i, effectively masking out future\
+positions during attention computation.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`B` | <code>[int](#int)</code> | Batch size. | *required*
+`L` | <code>[int](#int)</code> | Sequence length. | *required*
+`device` | <code>[str](#str)</code> | Device to place the mask tensor on. | <code>'cpu'</code>
+
+**Attributes:**
+
+Name | Type | Description
+---- | ---- | -----------
+[`_mask`](#neuralforecast.common._modules.TriangularCausalMask._mask) | <code>[Tensor](#torch.Tensor)</code> | Boolean mask tensor of shape [B, 1, L, L] where True values indicate positions to mask (future positions). }}
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The mask shape [B, 1, L, L] is designed for multi-head attention where\
+  the second dimension broadcasts across attention heads.
+- True values in the mask indicate positions that should be masked out\
+  (set to -inf before softmax in attention).
+
+</details>
+
+### `DataEmbedding_inverted`
+
+```python
+DataEmbedding_inverted(c_in, hidden_size, dropout=0.1)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Inverted data embedding module for variate-as-token transformer architectures.
+
+Transforms time series data by treating each variate (channel) as a token rather\
+than each time step. The input is permuted from [Batch, Time, Variate] to\
+[Batch, Variate, Time], then a linear layer projects the time dimension to the\
+hidden dimension. Optionally concatenates temporal covariates along the variate\
+dimension.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`c_in` | <code>[int](#int)</code> | Number of input time steps (sequence length). | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the embedding vectors. | *required*
+`dropout` | <code>[float](#float)</code> | Dropout rate applied to the embeddings. | <code>0.1</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Inverted embeddings of shape [batch, n_variates, hidden_size] or [batch, n_variates + n_temporal_features, hidden_size] if x_mark is provided.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Input x has shape [Batch, Time, Variate] and is permuted to [Batch, Variate, Time].
+- If x_mark is provided, it's concatenated along the variate dimension after permutation.
+- The linear layer projects from c_in (time steps) to hidden_size dimensions.
+- This architecture is used in inverted transformers like iTransformer and TimeXer.
+
+</details>
+
+### `DataEmbedding`
+
+```python
+DataEmbedding(
+    c_in, exog_input_size, hidden_size, pos_embedding=True, dropout=0.1
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Data embedding module combining value, positional, and temporal embeddings.
+
+Transforms time series data into high-dimensional embeddings by combining:
+
+- Value embeddings: Convolutional encoding of the time series values
+- Positional embeddings: Sinusoidal encodings for relative position within window
+- Temporal embeddings: Linear projection of absolute calendar features (optional)
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`c_in` | <code>[int](#int)</code> | Number of input channels (variates) in the time series. | *required*
+`exog_input_size` | <code>[int](#int)</code> | Number of exogenous/temporal features. If 0, temporal embeddings are disabled. | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the embedding vectors. | *required*
+`pos_embedding` | <code>[bool](#bool)</code> | Whether to include positional embeddings. | <code>True</code>
+`dropout` | <code>[float](#float)</code> | Dropout rate applied to the final embeddings. | <code>0.1</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Combined embeddings of shape [batch, seq_len, hidden_size] after applying dropout to the sum of value, positional, and temporal embeddings.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Value embeddings use `TokenEmbedding` with 1D convolution (kernel_size=3).
+- Positional embeddings use sinusoidal functions (sine for even dims, cosine for odd).
+- Temporal embeddings use a linear layer to project calendar features.
+- All three embeddings are summed element-wise before dropout is applied.
+- If `x_mark` is None, only value and positional embeddings are used.
+
+</details>
+
+### `TemporalEmbedding`
+
+```python
+TemporalEmbedding(d_model, embed_type='fixed', freq='h')
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Temporal embedding module for encoding calendar-based time features.
+
+Creates learnable or fixed embeddings for temporal features including month,\
+day, weekday, hour, and optionally minute. These embeddings are summed to\
+produce a combined temporal representation.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`d_model` | <code>[int](#int)</code> | Dimension of the embedding vectors. | *required*
+`embed_type` | <code>[str](#str)</code> | Type of embedding to use. Options are "fixed" for FixedEmbedding (sinusoidal) or "learned" for nn.Embedding (learnable). | <code>'fixed'</code>
+`freq` | <code>[str](#str)</code> | Frequency of the time series data. If "t", includes minute embeddings. | <code>'h'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Combined temporal embeddings of shape [batch, seq_len, d_model], representing the sum of all temporal component embeddings.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Input tensor x should have shape [batch_size, seq_len, num_features] where
+  features are ordered as [month, day, weekday, hour, minute].
+- Month embeddings use size 13 (0-12), day uses 32 (0-31), weekday uses 7 (0-6),
+  hour uses 24 (0-23), and minute uses 4 (0-3).
+- The embeddings are summed element-wise to produce the final output.
+
+</details>
+
+### `FixedEmbedding`
+
+```python
+FixedEmbedding(c_in, d_model)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Fixed sinusoidal embedding for categorical temporal features.
+
+Creates non-trainable embeddings using sine and cosine functions at different\
+frequencies. Unlike PositionalEmbedding which encodes continuous positions,\
+FixedEmbedding is designed for discrete categorical inputs (e.g., hour of day,\
+day of month, month of year). The embeddings are precomputed and frozen,\
+making them non-learnable parameters.
+
+<details class="the-embedding-for-category-c-and-dimension-i-is-computed-as" open markdown="1">
+<summary>The embedding for category c and dimension i is computed as</summary>
+
+Emb(c, 2i) = sin(c / 10000^(2i/d_model))\
+Emb(c, 2i+1) = cos(c / 10000^(2i/d_model))
+
+</details>
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`c_in` | <code>[int](#int)</code> | Number of categories (e.g., 24 for hours, 32 for days). | *required*
+`d_model` | <code>[int](#int)</code> | Dimension of the embedding vectors. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Fixed embeddings of shape [batch, seq_len, d_model], detached from the computation graph.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Embeddings are frozen and cannot be trained.
+- The forward method returns detached tensors to prevent gradient flow.
+- Used as an alternative to nn.Embedding for temporal features.
+- Provides consistent representations across different time periods.
+
+</details>
+
+### `TimeFeatureEmbedding`
+
+```python
+TimeFeatureEmbedding(input_size, hidden_size)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Linear embedding for temporal/calendar features.
+
+Transforms time-based features (e.g., hour, day, month) into embeddings using\
+a single linear projection without bias. This embedding is typically used to\
+incorporate calendar information into transformer models, providing absolute\
+temporal context that complements positional encodings.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`input_size` | <code>[int](#int)</code> | Number of input temporal features (e.g., 5 for month, day, weekday, hour, minute). | *required*
+`hidden_size` | <code>[int](#int)</code> | Dimension of the output embeddings, matching the model's hidden dimension. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Time feature embeddings of shape [batch, seq_len, hidden_size].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Uses a bias-free linear layer for simple feature projection.
+- Typically combined with TokenEmbedding and PositionalEmbedding.
+- Input features are usually calendar-based (month, day, hour, etc.).
+- The embedding is learned during training, unlike fixed positional encodings.
+
+</details>
+
+### `PositionalEmbedding`
+
+```python
+PositionalEmbedding(hidden_size, max_len=5000)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Sinusoidal positional embedding for transformer models.
+
+Generates fixed sinusoidal positional encodings using sine and cosine functions\
+at different frequencies. These encodings provide position information to\
+transformer models, allowing them to understand the relative or absolute position\
+of tokens in a sequence. The encodings are precomputed and stored as a buffer,\
+making them non-trainable.
+
+<details class="the-positional-encoding-for-position-pos-and-dimension-i-is-computed-as" open markdown="1">
+<summary>The positional encoding for position pos and dimension i is computed as</summary>
+
+PE(pos, 2i) = sin(pos / 10000^(2i/hidden_size))\
+PE(pos, 2i+1) = cos(pos / 10000^(2i/hidden_size))
+
+</details>
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`hidden_size` | <code>[int](#int)</code> | Dimension of the model's hidden states. Must be even for proper sine/cosine pairing. | *required*
+`max_len` | <code>[int](#int)</code> | Maximum sequence length to precompute encodings for. | <code>5000</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Positional encodings of shape [1, seq_len, hidden_size] where seq_len is the length of the input sequence.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The positional encodings are fixed (not learned) and stored as a buffer.
+- The forward method returns encodings for the input sequence length only.
+- Different frequencies allow the model to attend to relative positions.
+- The encoding dimension must match the model's hidden_size.
+
+</details>
+
+### `SeriesDecomp`
+
+```python
+SeriesDecomp(kernel_size)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Series decomposition block for trend-residual decomposition.
+
+Decomposes time series into trend and residual components using moving average
+filtering. The trend is extracted via a moving average filter, and the residual
+is computed as the difference between the input and the trend.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`kernel_size` | <code>[int](#int)</code> | Size of the moving average window for trend extraction. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Residual component of shape [batch, seq_len, channels], computed as the input minus the trend.
+<code>[Tensor](#torch.Tensor)</code> | Trend component of shape [batch, seq_len, channels], extracted using the moving average filter.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The kernel_size is passed to MovingAvg with stride=1.
+- The residual component is computed as input minus trend.
+- The trend component is the smoothed series from the moving average.
+- Commonly used in decomposition-based forecasting models like DLinear and Autoformer.
+
+</details>
+
+### `MovingAvg`
+
+```python
+MovingAvg(kernel_size, stride)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Moving average block to highlight the trend of time series.
+
+Applies a moving average filter using 1D average pooling to smooth time series\
+data and extract trend components. The input is padded on both ends by repeating\
+the first and last values to maintain the original sequence length.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`kernel_size` | <code>[int](#int)</code> | Size of the moving average window. | *required*
+`stride` | <code>[int](#int)</code> | Stride for the average pooling operation. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Smoothed time series of shape [batch, seq_len, channels], representing the trend component after applying moving average.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Input x has shape [Batch, Time, Channels].
+- Padding is applied by repeating the first value (kernel_size-1)//2 times at
+  the beginning and the last value (kernel_size-1)//2 times at the end.
+- The output maintains the same shape as the input after padding and pooling.
+- Commonly used with stride=1 for trend extraction in decomposition models.
+
+</details>
+
+### `RevIN`
+
+```python
+RevIN(
+    num_features, eps=1e-05, affine=False, subtract_last=False, non_norm=False
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Reversible Instance Normalization for time series forecasting.
+
+Normalizes time series data by removing the mean (or last value) and scaling by\
+standard deviation. The normalization can be reversed after model predictions to\
+restore the original scale. Optionally includes learnable affine parameters for\
+additional transformation flexibility.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`num_features` | <code>[int](#int)</code> | The number of features or channels in the time series. | *required*
+`eps` | <code>[float](#float)</code> | A value added for numerical stability. | <code>1e-05</code>
+`affine` | <code>[bool](#bool)</code> | If True, RevIN has learnable affine parameters (weight and bias). | <code>False</code>
+`subtract_last` | <code>[bool](#bool)</code> | If True, subtracts the last value instead of the mean in normalization. | <code>False</code>
+`non_norm` | <code>[bool](#bool)</code> | If True, no normalization is performed (identity operation). | <code>False</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Normalized tensor (if mode="norm") or denormalized tensor (if mode="denorm") of the same shape as the input [batch, seq_len, num_features].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The forward method requires a mode parameter: "norm" for normalization or
+  "denorm" for denormalization.
+- Statistics (mean/last and stdev) are computed during normalization and stored
+  for use in denormalization.
+- If affine=True, learnable parameters are initialized as weight=1 and bias=0.
+- The subtract_last option is useful for non-stationary time series.
+- Used in models like PatchTST and TimeLLM for input preprocessing.
+
+</details>
+
+### `RevINMultivariate`
+
+```python
+RevINMultivariate(
+    num_features, eps=1e-05, affine=False, subtract_last=False, non_norm=False
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Reversible Instance Normalization for multivariate time series models.
+
+Normalizes multivariate time series data using batch statistics computed across\
+the time dimension. The normalization can be reversed after model predictions to\
+restore the original scale. Optionally includes learnable affine parameters for\
+additional transformation flexibility.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`num_features` | <code>[int](#int)</code> | The number of features or channels in the time series. | *required*
+`eps` | <code>[float](#float)</code> | A value added for numerical stability. | <code>1e-05</code>
+`affine` | <code>[bool](#bool)</code> | If True, RevINMultivariate has learnable affine parameters (weight and bias). | <code>False</code>
+`subtract_last` | <code>[bool](#bool)</code> | Not used in this implementation (kept for API compatibility). | <code>False</code>
+`non_norm` | <code>[bool](#bool)</code> | Not used in this implementation (kept for API compatibility). | <code>False</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Normalized tensor (if mode="norm") or denormalized tensor (if mode="denorm") of the same shape as the input [batch, seq_len, num_features].
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- The forward method requires a mode parameter: "norm" for normalization or
+  "denorm" for denormalization.
+- Batch statistics (mean and std) are computed across axis=1 (time dimension).
+- If affine=True, learnable parameters have shape [1, 1, num_features].
+- Used in multivariate models like TSMixer, TSMixerx, and RMoK.
+
+</details>

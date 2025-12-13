@@ -1,0 +1,257 @@
+---
+description: >-
+  NBEATS: Neural Basis Expansion Analysis with interpretable or generic configurations. MLP-based architecture with residual links for M3/M4 competition performance.
+output-file: models.nbeats.html
+title: NBEATS
+---
+
+The Neural Basis Expansion Analysis
+([`NBEATS`](./models.nbeats.html#nbeats)) is an
+[`MLP`](./models.mlp.html#mlp)-based
+deep neural architecture with backward and forward residual links. The
+network has two variants: (1) in its interpretable configuration,
+[`NBEATS`](./models.nbeats.html#nbeats)
+sequentially projects the signal into polynomials and harmonic basis to
+learn trend and seasonality components; (2) in its generic
+configuration, it substitutes the polynomial and harmonic basis for
+identity basis and larger network’s depth. The Neural Basis Expansion
+Analysis with Exogenous
+([`NBEATSx`](./models.nbeatsx.html#nbeatsx)),
+incorporates projections to exogenous temporal variables available at
+the time of the prediction.
+
+This method proved state-of-the-art performance on the M3, M4, and
+Tourism Competition datasets, improving accuracy by 3% over the `ESRNN`
+M4 competition winner.
+
+**References**
+
+- [Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados,
+Yoshua Bengio (2019). “N-BEATS: Neural basis expansion analysis for
+interpretable time series
+forecasting”.](https://arxiv.org/abs/1905.10437)
+
+![Figure 1. Neural Basis Expansion Analysis.](imgs_models/nbeats.png)
+*Figure 1. Neural Basis Expansion Analysis.*
+
+## NBEATS
+
+### `NBEATS`
+
+```python
+NBEATS(
+    h,
+    input_size,
+    n_harmonics=2,
+    n_polynomials=None,
+    n_basis=2,
+    basis="polynomial",
+    stack_types=["identity", "trend", "seasonality"],
+    n_blocks=[1, 1, 1],
+    mlp_units=3 * [[512, 512]],
+    dropout_prob_theta=0.0,
+    activation="ReLU",
+    shared_weights=False,
+    loss=MAE(),
+    valid_loss=None,
+    max_steps=1000,
+    learning_rate=0.001,
+    num_lr_decays=3,
+    early_stop_patience_steps=-1,
+    val_check_steps=100,
+    batch_size=32,
+    valid_batch_size=None,
+    windows_batch_size=1024,
+    inference_windows_batch_size=-1,
+    start_padding_enabled=False,
+    training_data_availability_threshold=0.0,
+    step_size=1,
+    scaler_type="identity",
+    random_seed=1,
+    drop_last_loader=False,
+    alias=None,
+    optimizer=None,
+    optimizer_kwargs=None,
+    lr_scheduler=None,
+    lr_scheduler_kwargs=None,
+    dataloader_kwargs=None,
+    **trainer_kwargs
+)
+```
+
+Bases: <code>[BaseModel](#neuralforecast.common._base_model.BaseModel)</code>
+
+NBEATS
+
+The Neural Basis Expansion Analysis for Time Series (NBEATS), is a simple and yet
+effective architecture, it is built with a deep stack of MLPs with the doubly
+residual connections. It has a generic and interpretable architecture depending
+on the blocks it uses. Its interpretable architecture is recommended for scarce
+data settings, as it regularizes its predictions through projections unto harmonic
+and trend basis well-suited for most forecasting tasks.
+
+**Parameters:**
+`h`: int, forecast horizon.
+`input_size`: int, considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].
+`n_harmonics`: int, Number of harmonic terms for seasonality stack type. Note that len(n_harmonics) = len(stack_types). Note that it will only be used if a seasonality stack is used.
+`n_polynomials`: int, DEPRECATED - polynomial degree for trend stack. Note that len(n_polynomials) = len(stack_types). Note that it will only be used if a trend stack is used.
+`basis`: str, Type of basis function to use in the trend stack. Choose one from ['legendre', 'polynomial', 'changepoint', 'piecewise_linear', 'linear_hat', 'spline', 'chebyshev']
+`n_basis`: int, the degree of the basis function for the trend stack. Note that it will only be used if a trend stack is used.
+`stack_types`: List[str], List of stack types. Subset from ['seasonality', 'trend', 'identity'].
+`n_blocks`: List[int], Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).
+`mlp_units`: List\[List[int]\], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).
+`dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.
+`activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].
+`shared_weights`: bool, If True, all blocks within each stack will share parameters.
+`loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch).
+`max_steps`: int=1000, maximum number of training steps.
+`learning_rate`: float=1e-3, Learning rate between (0, 1).
+`num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.
+`early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.
+`val_check_steps`: int=100, Number of training steps between every validation loss check.
+`batch_size`: int=32, number of different series in each batch.
+`valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.
+`windows_batch_size`: int=1024, number of windows to sample in each training batch, default uses all.
+`inference_windows_batch_size`: int=-1, number of windows to sample in each inference batch, -1 uses all.
+`start_padding_enabled`: bool=False, if True, the model will pad the time series with zeros at the beginning, by input size.
+`training_data_availability_threshold`: Union\[float, List[float]\]=0.0, minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior).
+`step_size`: int=1, step size between each window of temporal data.
+`scaler_type`: str='identity', type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
+`random_seed`: int, random_seed for pytorch initializer and numpy generators.
+`drop_last_loader`: bool=False, if True `TimeSeriesDataLoader` drops last non-full batch.
+`alias`: str, optional, Custom name of the model.
+`optimizer`: Subclass of 'torch.optim.Optimizer', optional, user specified optimizer instead of the default choice (Adam).
+`optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.
+`lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).
+`lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.
+`dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
+`**trainer_kwargs`: int, keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+**References:**
+-[Boris N. Oreshkin, Dmitri Carpov, Nicolas Chapados, Yoshua Bengio (2019).
+"N-BEATS: Neural basis expansion analysis for interpretable time series forecasting".](https://arxiv.org/abs/1905.10437)
+
+#### `NBEATS.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+Fit.
+
+The `fit` method, optimizes the neural network's weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, ...)
+and the `loss` function as defined during the initialization.
+Within `fit` we use a PyTorch Lightning `Trainer` that
+inherits the initialization's `self.trainer_kwargs`, to customize
+its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes
+and in particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in `__init__`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`val_size` | <code>[int](#int)</code> | Validation size for temporal cross-validation. | <code>0</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>0</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
+
+#### `NBEATS.predict`
+
+```python
+predict(
+    dataset,
+    test_size=None,
+    step_size=1,
+    random_seed=None,
+    quantiles=None,
+    h=None,
+    explainer_config=None,
+    **data_module_kwargs
+)
+```
+
+Predict.
+
+Neural network prediction with PL's `Trainer` execution of `predict_step`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>None</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`quantiles` | <code>[list](#list)</code> | Target quantiles to predict. | <code>None</code>
+`h` | <code>[int](#int)</code> | Prediction horizon, if None, uses the model's fitted horizon. Defaults to None. | <code>None</code>
+`explainer_config` | <code>[dict](#dict)</code> | configuration for explanations. | <code>None</code>
+`**data_module_kwargs` | <code>[dict](#dict)</code> | PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule). | <code>{}</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
+
+### Usage Example
+
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import NBEATS
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = NBEATS(h=12, input_size=24,
+               basis='changepoint',
+               n_basis=2,
+               loss=DistributionLoss(distribution='Poisson', level=[80, 90]),
+               stack_types = ['identity', 'trend', 'seasonality'],
+               max_steps=100,
+               val_check_steps=10,
+               early_stop_patience_steps=2)
+
+fcst = NeuralForecast(
+    models=[model],
+    freq='ME'
+)
+fcst.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = fcst.predict(futr_df=Y_test_df)
+
+# Plot quantile predictions
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+plt.plot(plot_df['ds'], plot_df['NBEATS-median'], c='blue', label='median')
+plt.fill_between(x=plot_df['ds'][-12:], 
+                 y1=plot_df['NBEATS-lo-90'][-12:].values, 
+                 y2=plot_df['NBEATS-hi-90'][-12:].values,
+                 alpha=0.4, label='level 90')
+plt.grid()
+plt.legend()
+plt.plot()
+```

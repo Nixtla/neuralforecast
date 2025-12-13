@@ -1,0 +1,476 @@
+---
+description: >-
+  PatchTST: Efficient Transformer model for multivariate forecasting using patched time series and channel-independence for scalable long-term predictions.
+output-file: models.patchtst.html
+title: PatchTST
+---
+
+The PatchTST model is an efficient Transformer-based model for
+multivariate time series forecasting.
+
+It is based on two key components: - segmentation of time series into
+windows (patches) which are served as input tokens to Transformer -
+channel-independence. where each channel contains a single univariate
+time series.
+
+**References**
+
+- [Nie, Y., Nguyen, N. H., Sinthong, P., &
+Kalagnanam, J. (2022). “A Time Series is Worth 64 Words: Long-term
+Forecasting with
+Transformers”](https://arxiv.org/pdf/2211.14730.pdf)
+
+
+![Figure 1. PatchTST.](imgs_models/patchtst.png)
+*Figure 1. PatchTST.*
+
+## 1. PatchTST
+
+### `PatchTST`
+
+```python
+PatchTST(
+    h,
+    input_size,
+    stat_exog_list=None,
+    hist_exog_list=None,
+    futr_exog_list=None,
+    exclude_insample_y=False,
+    encoder_layers=3,
+    n_heads=16,
+    hidden_size=128,
+    linear_hidden_size=256,
+    dropout=0.2,
+    fc_dropout=0.2,
+    head_dropout=0.0,
+    attn_dropout=0.0,
+    patch_len=16,
+    stride=8,
+    revin=True,
+    revin_affine=False,
+    revin_subtract_last=True,
+    activation="gelu",
+    res_attention=True,
+    batch_normalization=False,
+    learn_pos_embed=True,
+    loss=MAE(),
+    valid_loss=None,
+    max_steps=5000,
+    learning_rate=0.0001,
+    num_lr_decays=-1,
+    early_stop_patience_steps=-1,
+    val_check_steps=100,
+    batch_size=32,
+    valid_batch_size=None,
+    windows_batch_size=1024,
+    inference_windows_batch_size=1024,
+    start_padding_enabled=False,
+    training_data_availability_threshold=0.0,
+    step_size=1,
+    scaler_type="identity",
+    random_seed=1,
+    drop_last_loader=False,
+    alias=None,
+    optimizer=None,
+    optimizer_kwargs=None,
+    lr_scheduler=None,
+    lr_scheduler_kwargs=None,
+    dataloader_kwargs=None,
+    **trainer_kwargs
+)
+```
+
+Bases: <code>[BaseModel](#neuralforecast.common._base_model.BaseModel)</code>
+
+PatchTST
+
+The PatchTST model is an efficient Transformer-based model for multivariate time series forecasting.
+
+It is based on two key components:
+
+- segmentation of time series into windows (patches) which are served as input tokens to Transformer
+- channel-independence, where each channel contains a single univariate time series.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`h` | <code>[int](#int)</code> | forecast horizon. | *required*
+`input_size` | <code>[int](#int)</code> | autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y\_[t-2:t]=[1,2]. | *required*
+`stat_exog_list` | <code>str list</code> | static exogenous columns. | <code>None</code>
+`hist_exog_list` | <code>str list</code> | historic exogenous columns. | <code>None</code>
+`futr_exog_list` | <code>str list</code> | future exogenous columns. | <code>None</code>
+`exclude_insample_y` | <code>[bool](#bool)</code> | the model skips the autoregressive features y[t-input_size:t] if True. | <code>False</code>
+`encoder_layers` | <code>[int](#int)</code> | number of layers for encoder. | <code>3</code>
+`n_heads` | <code>[int](#int)</code> | number of multi-head's attention. | <code>16</code>
+`hidden_size` | <code>[int](#int)</code> | units of embeddings and encoders. | <code>128</code>
+`linear_hidden_size` | <code>[int](#int)</code> | units of linear layer. | <code>256</code>
+`dropout` | <code>[float](#float)</code> | dropout rate for residual connection. | <code>0.2</code>
+`fc_dropout` | <code>[float](#float)</code> | dropout rate for linear layer. | <code>0.2</code>
+`head_dropout` | <code>[float](#float)</code> | dropout rate for Flatten head layer. | <code>0.0</code>
+`attn_dropout` | <code>[float](#float)</code> | dropout rate for attention layer. | <code>0.0</code>
+`patch_len` | <code>[int](#int)</code> | length of patch. Note: patch_len = min(patch_len, input_size + stride). | <code>16</code>
+`stride` | <code>[int](#int)</code> | stride of patch. | <code>8</code>
+`revin` | <code>[bool](#bool)</code> | bool to use RevIn. | <code>True</code>
+`revin_affine` | <code>[bool](#bool)</code> | bool to use affine in RevIn. | <code>False</code>
+`revin_subtract_last` | <code>[bool](#bool)</code> | bool to use substract last in RevIn. | <code>True</code>
+`activation` | <code>[str](#str)</code> | activation from ['gelu','relu']. | <code>'gelu'</code>
+`res_attention` | <code>[bool](#bool)</code> | bool to use residual attention. | <code>True</code>
+`batch_normalization` | <code>[bool](#bool)</code> | bool to use batch normalization. | <code>False</code>
+`learn_pos_embed` | <code>[bool](#bool)</code> | bool to learn positional embedding. | <code>True</code>
+`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
+`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch). | <code>None</code>
+`max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>5000</code>
+`learning_rate` | <code>[float](#float)</code> | learning rate between (0, 1). | <code>0.0001</code>
+`num_lr_decays` | <code>[int](#int)</code> | number of learning rate decays, evenly distributed across max_steps. | <code>-1</code>
+`early_stop_patience_steps` | <code>[int](#int)</code> | number of validation iterations before early stopping. | <code>-1</code>
+`val_check_steps` | <code>[int](#int)</code> | number of training steps between every validation loss check. | <code>100</code>
+`batch_size` | <code>[int](#int)</code> | number of different series in each batch. | <code>32</code>
+`valid_batch_size` | <code>[int](#int)</code> | number of different series in each validation and test batch, if None uses batch_size. | <code>None</code>
+`windows_batch_size` | <code>[int](#int)</code> | number of windows to sample in each training batch, default uses all. | <code>1024</code>
+`inference_windows_batch_size` | <code>[int](#int)</code> | number of windows to sample in each inference batch. | <code>1024</code>
+`start_padding_enabled` | <code>[bool](#bool)</code> | if True, the model will pad the time series with zeros at the beginning, by input size. | <code>False</code>
+`training_data_availability_threshold` | <code>[Union](#Union)\[[float](#float), [List](#List)\[[float](#float)\]\]</code> | minimum fraction of valid data points required for training windows. Single float applies to both insample and outsample; list of two floats specifies [insample_fraction, outsample_fraction]. Default 0.0 allows windows with only 1 valid data point (current behavior). | <code>0.0</code>
+`step_size` | <code>[int](#int)</code> | step size between each window of temporal data. | <code>1</code>
+`scaler_type` | <code>[str](#str)</code> | type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). | <code>'identity'</code>
+`random_seed` | <code>[int](#int)</code> | random_seed for pytorch initializer and numpy generators. | <code>1</code>
+`drop_last_loader` | <code>[bool](#bool)</code> | if True `TimeSeriesDataLoader` drops last non-full batch. | <code>False</code>
+`alias` | <code>[str](#str)</code> | optional, Custom name of the model. | <code>None</code>
+`optimizer` | <code>Subclass of 'torch.optim.Optimizer'</code> | optional, user specified optimizer instead of the default choice (Adam). | <code>None</code>
+`optimizer_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters used by the user specified `optimizer`. | <code>None</code>
+`lr_scheduler` | <code>Subclass of 'torch.optim.lr_scheduler.LRScheduler'</code> | optional, user specified lr_scheduler instead of the default choice (StepLR). | <code>None</code>
+`lr_scheduler_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters used by the user specified `lr_scheduler`. | <code>None</code>
+`dataloader_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. | <code>None</code>
+`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Nie, Y., Nguyen, N. H., Sinthong, P., & Kalagnanam, J. (2022). "A Time Series is Worth 64 Words: Long-term Forecasting with Transformers"](https://arxiv.org/pdf/2211.14730.pdf)
+
+</details>
+
+#### `PatchTST.fit`
+
+```python
+fit(
+    dataset, val_size=0, test_size=0, random_seed=None, distributed_config=None
+)
+```
+
+Fit.
+
+The `fit` method, optimizes the neural network's weights using the
+initialization parameters (`learning_rate`, `windows_batch_size`, ...)
+and the `loss` function as defined during the initialization.
+Within `fit` we use a PyTorch Lightning `Trainer` that
+inherits the initialization's `self.trainer_kwargs`, to customize
+its inputs, see [PL's trainer arguments](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+
+The method is designed to be compatible with SKLearn-like classes
+and in particular to be compatible with the StatsForecast library.
+
+By default the `model` is not saving training checkpoints to protect
+disk memory, to get them change `enable_checkpointing=True` in `__init__`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`val_size` | <code>[int](#int)</code> | Validation size for temporal cross-validation. | <code>0</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>0</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
+
+#### `PatchTST.predict`
+
+```python
+predict(
+    dataset,
+    test_size=None,
+    step_size=1,
+    random_seed=None,
+    quantiles=None,
+    h=None,
+    explainer_config=None,
+    **data_module_kwargs
+)
+```
+
+Predict.
+
+Neural network prediction with PL's `Trainer` execution of `predict_step`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>None</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
+`random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
+`quantiles` | <code>[list](#list)</code> | Target quantiles to predict. | <code>None</code>
+`h` | <code>[int](#int)</code> | Prediction horizon, if None, uses the model's fitted horizon. Defaults to None. | <code>None</code>
+`explainer_config` | <code>[dict](#dict)</code> | configuration for explanations. | <code>None</code>
+`**data_module_kwargs` | <code>[dict](#dict)</code> | PL's TimeSeriesDataModule args, see [documentation](https://pytorch-lightning.readthedocs.io/en/1.6.1/extensions/datamodules.html#using-a-datamodule). | <code>{}</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| None
+
+
+### Usage example
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import PatchTST
+from neuralforecast.losses.pytorch import DistributionLoss
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic, augment_calendar_df
+
+AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = PatchTST(h=12,
+                 input_size=104,
+                 patch_len=24,
+                 stride=24,
+                 revin=False,
+                 hidden_size=16,
+                 n_heads=4,
+                 scaler_type='robust',
+                 loss=DistributionLoss(distribution='StudentT', level=[80, 90]),
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='ME'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['PatchTST-lo-90'][-12:].values, 
+                    y2=plot_df['PatchTST-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['PatchTST'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```
+
+## 2. Backbone
+
+### Auxiliary Functions
+
+### `get_activation_fn`
+
+```python
+get_activation_fn(activation)
+```
+
+### `Transpose`
+
+```python
+Transpose(*dims, contiguous=False)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Transpose
+
+### Positional Encoding
+
+### `positional_encoding`
+
+```python
+positional_encoding(pe, learn_pe, q_len, hidden_size)
+```
+
+### `Coord1dPosEncoding`
+
+```python
+Coord1dPosEncoding(q_len, exponential=False, normalize=True)
+```
+
+### `Coord2dPosEncoding`
+
+```python
+Coord2dPosEncoding(
+    q_len, hidden_size, exponential=False, normalize=True, eps=0.001
+)
+```
+
+### `PositionalEncoding`
+
+```python
+PositionalEncoding(q_len, hidden_size, normalize=True)
+```
+
+### Encoder
+
+### `TSTEncoderLayer`
+
+```python
+TSTEncoderLayer(
+    q_len,
+    hidden_size,
+    n_heads,
+    d_k=None,
+    d_v=None,
+    linear_hidden_size=256,
+    store_attn=False,
+    norm="BatchNorm",
+    attn_dropout=0,
+    dropout=0.0,
+    bias=True,
+    activation="gelu",
+    res_attention=False,
+    pre_norm=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+TSTEncoderLayer
+
+### `TSTEncoder`
+
+```python
+TSTEncoder(
+    q_len,
+    hidden_size,
+    n_heads,
+    d_k=None,
+    d_v=None,
+    linear_hidden_size=None,
+    norm="BatchNorm",
+    attn_dropout=0.0,
+    dropout=0.0,
+    activation="gelu",
+    res_attention=False,
+    n_layers=1,
+    pre_norm=False,
+    store_attn=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+TSTEncoder
+
+### `TSTiEncoder`
+
+```python
+TSTiEncoder(
+    c_in,
+    patch_num,
+    patch_len,
+    max_seq_len=1024,
+    n_layers=3,
+    hidden_size=128,
+    n_heads=16,
+    d_k=None,
+    d_v=None,
+    linear_hidden_size=256,
+    norm="BatchNorm",
+    attn_dropout=0.0,
+    dropout=0.0,
+    act="gelu",
+    store_attn=False,
+    key_padding_mask="auto",
+    padding_var=None,
+    attn_mask=None,
+    res_attention=True,
+    pre_norm=False,
+    pe="zeros",
+    learn_pe=True,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+TSTiEncoder
+
+### `Flatten_Head`
+
+```python
+Flatten_Head(individual, n_vars, nf, h, c_out, head_dropout=0)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Flatten_Head
+
+### `PatchTST_backbone`
+
+```python
+PatchTST_backbone(
+    c_in,
+    c_out,
+    input_size,
+    h,
+    patch_len,
+    stride,
+    max_seq_len=1024,
+    n_layers=3,
+    hidden_size=128,
+    n_heads=16,
+    d_k=None,
+    d_v=None,
+    linear_hidden_size=256,
+    norm="BatchNorm",
+    attn_dropout=0.0,
+    dropout=0.0,
+    act="gelu",
+    key_padding_mask="auto",
+    padding_var=None,
+    attn_mask=None,
+    res_attention=True,
+    pre_norm=False,
+    store_attn=False,
+    pe="zeros",
+    learn_pe=True,
+    fc_dropout=0.0,
+    head_dropout=0,
+    padding_patch=None,
+    pretrain_head=False,
+    head_type="flatten",
+    individual=False,
+    revin=True,
+    affine=True,
+    subtract_last=False,
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+PatchTST_backbone

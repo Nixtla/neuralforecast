@@ -1,0 +1,277 @@
+---
+title: Robust Forecasting
+---
+
+When outliers are present in a dataset, they can disrupt the calculated
+summary statistics, such as the mean and standard deviation, leading the
+model to favor the outlier values and deviate from most observations.
+Consequently, models need help in achieving a balance between accurately
+accommodating outliers and performing well on normal data, resulting in
+improved overall performance on both types of data. [Robust regression
+algorithms](https://en.wikipedia.org/wiki/Robust_regression) tackle this
+issue, explicitly accounting for outliers in the dataset.
+
+In this notebook we will show how to fit robust NeuralForecast methods.
+We will:<br/> - Installing NeuralForecast.<br/> - Loading Noisy
+AirPassengers.<br/> - Fit and predict robustified NeuralForecast.<br/> -
+Plot and evaluate predictions.<br/>
+
+You can run these experiments using GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Robust_Regression.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+## 1. Installing NeuralForecast
+
+```python
+%%capture
+!pip install neuralforecast
+```
+
+
+```python
+import logging
+import numpy as np
+import pandas as pd
+
+import matplotlib.pyplot as plt
+from random import random
+from random import randint
+from random import seed
+
+from neuralforecast import NeuralForecast
+from neuralforecast.utils import AirPassengersDF
+
+from neuralforecast.models import NHITS
+from neuralforecast.losses.pytorch import MQLoss, DistributionLoss, HuberMQLoss
+
+from utilsforecast.losses import mape, mqloss
+from utilsforecast.evaluation import evaluate
+```
+
+
+```python
+logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+```
+
+## 2. Loading Noisy AirPassengers
+
+For this example we will use the classic Box-Cox AirPassengers dataset
+that we will augment it by introducing outliers.
+
+In particular, we will focus on introducing outliers to the target
+variable altering it to deviate from its original observation by a
+specified factor, such as 2-to-4 times the standard deviation.
+
+```python
+# Original Box-Cox AirPassengers 
+# as defined in neuralforecast.utils
+Y_df = AirPassengersDF.copy() 
+plt.plot(Y_df.y)
+plt.ylabel('Monthly Passengers')
+plt.xlabel('Timestamp [t]')
+plt.grid()
+```
+
+![](robust_forecasting_files/figure-markdown_strict/cell-5-output-1.png)
+
+```python
+# Here we add some artificial outliers to AirPassengers
+seed(1)
+for i in range(len(Y_df)):
+    factor = randint(2, 4)
+    if random() > 0.97:
+        Y_df.loc[i, "y"] += factor * Y_df["y"].std()
+
+plt.plot(Y_df.y)
+plt.ylabel('Monthly Passengers + Noise')
+plt.xlabel('Timestamp [t]')
+plt.grid()
+```
+
+![](robust_forecasting_files/figure-markdown_strict/cell-6-output-1.png)
+
+```python
+# Split datasets into train/test 
+# Last 12 months for test
+Y_train_df = Y_df.groupby('unique_id').head(-12)
+Y_test_df = Y_df.groupby('unique_id').tail(12)
+Y_test_df
+```
+
+|     | unique_id | ds         | y     |
+|-----|-----------|------------|-------|
+| 132 | 1.0       | 1960-01-31 | 417.0 |
+| 133 | 1.0       | 1960-02-29 | 391.0 |
+| 134 | 1.0       | 1960-03-31 | 419.0 |
+| 135 | 1.0       | 1960-04-30 | 461.0 |
+| 136 | 1.0       | 1960-05-31 | 472.0 |
+| 137 | 1.0       | 1960-06-30 | 535.0 |
+| 138 | 1.0       | 1960-07-31 | 622.0 |
+| 139 | 1.0       | 1960-08-31 | 606.0 |
+| 140 | 1.0       | 1960-09-30 | 508.0 |
+| 141 | 1.0       | 1960-10-31 | 461.0 |
+| 142 | 1.0       | 1960-11-30 | 390.0 |
+| 143 | 1.0       | 1960-12-31 | 432.0 |
+
+## 3. Fit and predict robustified NeuralForecast
+
+### Huber MQ Loss
+
+The Huber loss, employed in robust regression, is a loss function that
+exhibits reduced sensitivity to outliers in data when compared to the
+squared error loss. The Huber loss function is quadratic for small
+errors and linear for large errors. Here we will use a slight
+modification for probabilistic predictions. Feel free to play with the
+$\delta$ parameter.
+
+![](https://github.com/Nixtla/neuralforecast/blob/main/nbs/imgs_losses/huber_loss.png?raw=1)
+
+### Dropout Regularization
+
+The dropout technique is a regularization method used in neural networks
+to prevent overfitting. During training, dropout randomly sets a
+fraction of the input units or neurons in a layer to zero at each
+update, effectively “dropping out” those units. This means that the
+network cannot rely on any individual unit because it may be dropped out
+at any time. By doing so, dropout forces the network to learn more
+robust and generalizable representations by preventing units from
+co-adapting too much.
+
+The dropout method, can help us to robustify the network to outliers in
+the auto-regressive features. You can explore it through the
+`dropout_prob_theta` parameter.
+
+### Fit NeuralForecast models
+
+Using the `NeuralForecast.fit` method you can train a set of models to
+your dataset. You can define the forecasting `horizon` (12 in this
+example), and modify the hyperparameters of the model. For example, for
+the `NHITS` we changed the default hidden size for both encoder and
+decoders.
+
+See the `NHITS` and `MLP` [model
+documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
+
+```python
+%%capture
+horizon = 12
+level = [50, 80]
+
+# Try different hyperparmeters to improve accuracy.
+models = [NHITS(h=horizon,                           # Forecast horizon
+                input_size=2 * horizon,              # Length of input sequence
+                loss=HuberMQLoss(level=level),    # Robust Huber Loss
+                valid_loss=MQLoss(level=level),   # Validation signal
+                max_steps=500,                       # Number of steps to train
+                dropout_prob_theta=0.6,              # Dropout to robustify vs outlier lag inputs
+                #early_stop_patience_steps=2,        # Early stopping regularization patience
+                val_check_steps=10,                  # Frequency of validation signal (affects early stopping)
+                alias='Huber',
+              ),
+          NHITS(h=horizon,
+                input_size=2 * horizon,
+                loss=DistributionLoss(distribution='Normal', 
+                                      level=level), # Classic Normal distribution
+                valid_loss=MQLoss(level=level),
+                max_steps=500,
+                #early_stop_patience_steps=2,
+                dropout_prob_theta=0.6,
+                val_check_steps=10,
+                alias='Normal',
+              )
+          ]
+nf = NeuralForecast(models=models, freq='M')
+nf.fit(df=Y_train_df)
+Y_hat_df = nf.predict()
+```
+
+
+```python
+# By default NeuralForecast produces forecast intervals
+# In this case the lo-x and high-x levels represent the 
+# low and high bounds of the prediction accumulating x% probability
+Y_hat_df
+```
+
+|     | unique_id | ds         | Huber-median | Huber-lo-80 | Huber-lo-50 | Huber-hi-50 | Huber-hi-80 | Normal     | Normal-median | Normal-lo-80 | Normal-lo-50 | Normal-hi-50 | Normal-hi-80 |
+|-----|-----------|------------|--------------|-------------|-------------|-------------|-------------|------------|---------------|--------------|--------------|--------------|--------------|
+| 0   | 1.0       | 1960-01-31 | 412.738525   | 401.058044  | 406.131958  | 420.779266  | 432.124268  | 406.459717 | 416.787842    | -124.278656  | 135.413223   | 680.997070   | 904.871765   |
+| 1   | 1.0       | 1960-02-29 | 403.913544   | 384.403534  | 391.904419  | 420.288208  | 469.040375  | 399.827148 | 418.305725    | -137.291870  | 103.988327   | 661.940430   | 946.699219   |
+| 2   | 1.0       | 1960-03-31 | 472.311523   | 446.644531  | 460.767334  | 486.710999  | 512.552979  | 380.263947 | 378.253998    | -105.411003  | 117.415565   | 647.887695   | 883.611633   |
+| 3   | 1.0       | 1960-04-30 | 460.996674   | 444.471039  | 452.971802  | 467.544189  | 480.843903  | 432.131378 | 442.395844    | -104.205200  | 135.457123   | 729.306885   | 974.661743   |
+| 4   | 1.0       | 1960-05-31 | 465.534790   | 452.048889  | 457.472626  | 476.141022  | 490.311005  | 417.186279 | 417.956543    | -117.399597  | 150.915833   | 692.936523   | 930.934814   |
+| 5   | 1.0       | 1960-06-30 | 538.116028   | 518.049866  | 527.238159  | 551.501709  | 563.818848  | 444.510834 | 440.168396    | -54.501572   | 189.301392   | 703.502014   | 946.068909   |
+| 6   | 1.0       | 1960-07-31 | 613.937866   | 581.048035  | 597.368408  | 629.111450  | 645.550659  | 423.707275 | 431.251526    | -97.069489   | 164.821259   | 687.764526   | 942.432251   |
+| 7   | 1.0       | 1960-08-31 | 616.188660   | 581.982300  | 599.544128  | 632.137512  | 643.219543  | 386.655823 | 383.755157    | -134.702011  | 139.954285   | 658.973022   | 897.393494   |
+| 8   | 1.0       | 1960-09-30 | 537.559143   | 513.477478  | 526.664856  | 551.563293  | 573.146667  | 388.874817 | 379.827057    | -139.859344  | 110.772484   | 673.086182   | 926.355774   |
+| 9   | 1.0       | 1960-10-31 | 471.107605   | 449.207916  | 459.288025  | 486.402985  | 515.082458  | 401.483643 | 412.114990    | -185.928085  | 95.805717    | 703.490784   | 970.837830   |
+| 10  | 1.0       | 1960-11-30 | 412.758423   | 389.203308  | 398.727295  | 431.723602  | 451.208588  | 425.829895 | 425.018799    | -172.022018  | 108.840889   | 723.424011   | 1035.656128  |
+| 11  | 1.0       | 1960-12-31 | 457.254761   | 438.565582  | 446.097168  | 468.809296  | 483.967865  | 406.916595 | 399.852051    | -199.963684  | 110.715050   | 729.735107   | 951.728577   |
+
+## 4. Plot and Evaluate Predictions
+
+Finally, we plot the forecasts of both models againts the real values.
+
+And evaluate the accuracy of the `NHITS-Huber` and `NHITS-Normal`
+forecasters.
+
+```python
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+plot_df = pd.concat([Y_train_df, Y_hat_df]).set_index('ds') # Concatenate the train and forecast dataframes
+plot_df[['y', 'Huber-median', 'Normal-median']].plot(ax=ax, linewidth=2)
+
+ax.set_title('Noisy AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+![](robust_forecasting_files/figure-markdown_strict/cell-10-output-1.png)
+
+To evaluate the median predictions we use the mean average percentage
+error (MAPE), defined as follows:
+
+$$\mathrm{MAPE}(\mathbf{y}_{\tau}, \hat{\mathbf{y}}_{\tau}) = \mathrm{mean}\left(\frac{|\mathbf{y}_{\tau}-\hat{\mathbf{y}}_{\tau}|}{|\mathbf{y}_{\tau}|}\right)$$
+
+To evaluate the coherent probabilistic predictions we use the Continuous
+Ranked Probability Score (CRPS), defined as follows:
+
+$$\mathrm{CRPS}(\hat{F}_{\tau},\mathbf{y}_{\tau}) = \int^{1}_{0} \mathrm{QL}(\hat{F}_{\tau}, y_{\tau})_{q} dq$$
+
+As you can see, robust regression improvements reflect in both the
+normal and probabilistic forecast setting.
+
+```python
+df_metrics = Y_hat_df.merge(Y_test_df, on=['ds', 'unique_id'])
+df_metrics.rename(columns={'Huber-median': 'Huber'}, inplace=True)
+
+metrics = evaluate(df_metrics,
+                   metrics=[mape, mqloss],
+                   models=['Huber', 'Normal'],
+                   level = [50, 80],
+                   agg_fn="mean")
+
+metrics
+```
+
+|     | metric | Huber    | Normal    |
+|-----|--------|----------|-----------|
+| 0   | mape   | 0.034726 | 0.140207  |
+| 1   | mqloss | 5.511535 | 61.891651 |
+
+## References
+
+-   [Huber Peter, J (1964). “Robust Estimation of a Location Parameter”.
+    Annals of
+    Statistics.](https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-35/issue-1/Robust-Estimation-of-a-Location-Parameter/10.1214/aoms/1177703732.full)<br/>
+-   [Nitish Srivastava, Geoffrey Hinton, Alex Krizhevsky, Ilya
+    Sutskever, Ruslan Salakhutdinov (2014).”Dropout: A Simple Way to
+    Prevent Neural Networks from Overfitting”. Journal of Machine
+    Learning
+    Research.](https://jmlr.org/papers/v15/srivastava14a.html)<br/>
+-   [Cristian Challu, Kin G. Olivares, Boris N. Oreshkin, Federico
+    Garza, Max Mergenthaler-Canseco, Artur Dubrawski (2023). NHITS:
+    Neural Hierarchical Interpolation for Time Series Forecasting.
+    Accepted at AAAI 2023.](https://arxiv.org/abs/2201.12886)
+

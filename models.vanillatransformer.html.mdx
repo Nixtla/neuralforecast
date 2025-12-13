@@ -1,0 +1,100 @@
+---
+description: >-
+  Vanilla Transformer: Classic attention-based architecture for time series. Full O(L^2) attention mechanism with encoder-decoder for long-sequence forecasting.
+output-file: models.vanillatransformer.html
+title: Vanilla Transformer
+---
+
+Vanilla Transformer, following implementation of the Informer paper,
+used as baseline.
+
+The architecture has three distinctive features:
+
+- Full-attention
+mechanism with O(L^2) time and memory complexity.
+- Classic
+encoder-decoder proposed by Vaswani et al. (2017) with a multi-head
+attention mechanism. 
+- An MLP multi-step decoder that predicts long
+time-series sequences in a single forward operation rather than
+step-by-step.
+
+The Vanilla Transformer model utilizes a three-component approach to
+define its embedding:
+- It employs encoded autoregressive features
+obtained from a convolution network.
+- It uses window-relative
+positional embeddings derived from harmonic functions.
+- Absolute
+positional embeddings obtained from calendar features are utilized.
+
+**References**
+
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)
+
+
+![Figure 1. Transformer Architecture.](imgs_models/vanilla_transformer.png)
+*Figure 1. Transformer
+Architecture.*
+
+## Vanilla Transformer
+
+
+### Usage Example
+
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import VanillaTransformer
+from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+model = VanillaTransformer(h=12,
+                 input_size=24,
+                 hidden_size=16,
+                 conv_hidden_size=32,
+                 n_head=2,
+                 loss=MAE(),
+                 scaler_type='robust',
+                 learning_rate=1e-3,
+                 max_steps=500,
+                 val_check_steps=50,
+                 early_stop_patience_steps=2)
+
+nf = NeuralForecast(
+    models=[model],
+    freq='ME'
+)
+nf.fit(df=Y_train_df, static_df=AirPassengersStatic, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+
+Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
+plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
+plot_df = pd.concat([Y_train_df, plot_df])
+
+if model.loss.is_distribution_output:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['VanillaTransformer-median'], c='blue', label='median')
+    plt.fill_between(x=plot_df['ds'][-12:], 
+                    y1=plot_df['VanillaTransformer-lo-90'][-12:].values, 
+                    y2=plot_df['VanillaTransformer-hi-90'][-12:].values,
+                    alpha=0.4, label='level 90')
+    plt.grid()
+    plt.legend()
+    plt.plot()
+else:
+    plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
+    plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
+    plt.plot(plot_df['ds'], plot_df['VanillaTransformer'], c='blue', label='Forecast')
+    plt.legend()
+    plt.grid()
+```

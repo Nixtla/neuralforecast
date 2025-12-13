@@ -1,0 +1,415 @@
+---
+title: Adding Models to NeuralForecast
+---
+
+> Tutorial on how to add new models to NeuralForecast
+
+> **Prerequisites**
+>
+> This Guide assumes advanced familiarity with NeuralForecast.
+>
+> We highly recommend reading first the Getting Started and the
+> NeuralForecast Map tutorials!
+>
+> Additionally, refer to the [CONTRIBUTING
+> guide](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md)
+> for the basics how to contribute to NeuralForecast.
+
+## Introduction
+
+This tutorial is aimed at contributors who want to add a new model to
+the NeuralForecast library. The library’s existing modules handle
+optimization, training, selection, and evaluation of deep learning
+models. The `core` class simplifies building entire pipelines, both for
+industry and academia, on any dataset, with user-friendly methods such
+as `fit` and `predict`.
+
+Adding a new model to NeuralForecast is simpler than building a new
+PyTorch model from scratch. You only need to write the forward method.
+
+**It has the following additional advantages:**
+
+-   Existing modules in NeuralForecast already implement the essential
+    training and evaluating aspects for deep learning models.
+-   Integrated with PyTorch-Lightning and Tune libraries for efficient
+    optimization and distributed computation.
+-   The `BaseModel` classes provide common optimization components, such
+    as early stopping and learning rate schedulers.
+-   Automatic performance tests are scheduled on Github to ensure
+    quality standards.
+-   Users can easily compare the performance and computation of the new
+    model with existing models.
+-   Opportunity for exposure to a large community of users and
+    contributors.
+
+### Example: simplified MLP model
+
+We will present the tutorial following an example on how to add a
+simplified version of the current `MLP` model, which does not include
+exogenous covariates.
+
+At a given timestamp $t$, the `MLP` model will forecast the next $h$
+values of the univariate target time, $Y_{t+1:t+h}$, using as inputs the
+last $L$ historical values, given by $Y_{t-L:t}$. The following figure
+presents a diagram of the model.
+
+<figure>
+<img src="../../imgs_models/mlp.png"
+alt="Figure 1. Three layer MLP with autoregresive inputs." />
+<figcaption aria-hidden="true">Figure 1. Three layer MLP with
+autoregresive inputs.</figcaption>
+</figure>
+
+## 0. Preliminaries
+
+Follow our tutorial on contributing
+[here](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md)
+to set up your development environment.
+
+Here is a short list of the most important steps:
+
+1.  Create a fork of the `neuralforecast` library.
+2.  Clone the fork to your computer.
+3.  Set an environment with the `neuralforecast` library, core
+    dependencies, and `nbdev` package to code your model in an
+    interactive notebook.
+
+## 1. Inherit the Base Class (`BaseModel`)
+
+The library contains a base model class: `BaseModel`. Using class
+attributes we can make this model recurrent or not, or multivariate or
+univariate, or allow the use of exogenous inputs.
+
+### a. Sampling process
+
+During training, the base class receives a sample of time series of the
+dataset from the `TimeSeriesLoader` module. The `BaseModel` models will
+sample individual windows of size `input_size+h`, starting from random
+timestamps.
+
+### b. `BaseModel`’ hyperparameters
+
+Get familiar with the hyperparameters specified in the base class,
+including `h` (horizon), `input_size`, and optimization hyperparameters
+such as `learning_rate`, `max_steps`, among others. The following list
+presents the hyperparameters related to the sampling of windows:
+
+-   `h` (h): number of future values to predict.
+-   `input_size` (L): number of historic values to use as input for the
+    model.
+-   `batch_size` (bs): number of time series sampled by the loader
+    during training.
+-   `valid_batch_size` (v_bs): number of time series sampled by the
+    loader during inference (validation and test).
+-   `windows_batch_size` (w_bs): number of individual windows sampled
+    during training (from the previous time series) to form the batch.
+-   `inference_windows_batch_size` (i_bs): number of individual windows
+    sampled during inference to form each batch. Used to control the GPU
+    memory.
+
+### c. Input and Output batch shapes
+
+The `forward` method receives a batch of data in a dictionary with the
+following keys:
+
+-   `insample_y`: historic values of the time series.
+-   `insample_mask`: mask indicating the available values of the time
+    series (1 if available, 0 if missing).
+-   `futr_exog`: future exogenous covariates (if any).
+-   `hist_exog`: historic exogenous covariates (if any).
+-   `stat_exog`: static exogenous covariates (if any).
+
+The following table presents the shape for each tensor if the attribute
+`MULTIVARIATE = False` is set:
+
+| `tensor`        | `BaseModel`              |
+|-----------------|--------------------------|
+| `insample_y`    | (`w_bs`, `L`, `1`)       |
+| `insample_mask` | (`w_bs`, `L`)            |
+| `futr_exog`     | (`w_bs`, `L`+`h`, `n_f`) |
+| `hist_exog`     | (`w_bs`, `L`, `n_h`)     |
+| `stat_exog`     | (`w_bs`,`n_s`)           |
+
+The `forward` function should return a single tensor with the forecasts
+of the next `h` timestamps for each window. Use the attributes of the
+`loss` class to automatically parse the output to the correct shape (see
+the example below).
+
+> **Tip**
+>
+> Since we are using `nbdev`, you can easily add prints to the code and
+> see the shapes of the tensors during training.
+
+### d. `BaseModel`’ methods
+
+The `BaseModel` class contains several common methods for all
+windows-based models, simplifying the development of new models by
+preventing code duplication. The most important methods of the class
+are:
+
+-   `_create_windows`: parses the time series from the
+    `TimeSeriesLoader` into individual windows of size `input_size+h`.
+-   `_normalization`: normalizes each window based on the `scaler` type.
+-   `_inv_normalization`: inverse normalization of the forecasts.
+-   `training_step`: training step of the model, called by
+    PyTorch-Lightning’s `Trainer` class during training (`fit` method).
+-   `validation_step`: validation step of the model, called by
+    PyTorch-Lightning’s `Trainer` class during validation.
+-   `predict_step`: prediction step of the model, called by
+    PyTorch-Lightning’s `Trainer` class during inference (`predict`
+    method).
+
+## 2. Create the model file and class
+
+Once familiar with the basics of the `BaseModel` class, the next step is
+creating your particular model.
+
+The main steps are:
+
+1.  Create the file in the `nbs` folder
+    (https://github.com/Nixtla/neuralforecast/tree/main/nbs). It should
+    be named `models.YOUR_MODEL_NAME.ipynb`.
+2.  Add the header of the `nbdev` file.
+3.  Import libraries in the file.
+4.  Define the `__init__` method with the model’s inherited and
+    particular hyperparameters and instantiate the architecture.
+5.  Set the following model attributes:
+    -   `EXOGENOUS_FUTR`: if the model can handle future exogenous
+        variables (True) or not (False)
+    -   `EXOGENOUS_HIST`: if the model can handle historical exogenous
+        variables (True) or not (False)
+    -   `EXOGENOUS_STAT`: if the model can handle static exogenous
+        variables (True) or not (False)
+    -   `MULTIVARIATE`: If the model produces multivariate forecasts
+        (True) or univariate (False)
+    -   `RECURRENT`: If the model produces forecasts recursively (True)
+        or direct (False)
+6.  Define the `forward` method, which recieves the input batch
+    dictionary and returns the forecast.
+
+### a. Model class
+
+First, add the following **two cells** on top of the `nbdev` file.
+
+```python
+#| default_exp models.mlp
+```
+
+> **Important**
+>
+> Change `mlp` to your model’s name, using lowercase and underscores.
+> When you later run `nbdev_export`, it will create a `YOUR_MODEL.py`
+> script in the `neuralforecast/models/` directory.
+
+```python
+#| echo: false
+%load_ext autoreload
+%autoreload 2
+```
+
+Next, add the dependencies of the model.
+
+```python
+#| export
+from typing import Optional
+
+import torch
+import torch.nn as nn
+
+from neuralforecast.losses.pytorch import MAE
+from neuralforecast.common._base_model import BaseModel
+```
+
+> **Tip**
+>
+> Don’t forget to add the `#| export` tag on this cell.
+
+Next, create the class with the `init` and `forward` methods. The
+following example shows the example for the simplified `MLP` model. We
+explain important details after the code.
+
+```python
+#| export
+class MLP(BaseModel): # <<---- Inherits from BaseModel
+    # Set class attributes to determine this model's characteristics
+    EXOGENOUS_FUTR = False   # If the model can handle future exogenous variables
+    EXOGENOUS_HIST = False   # If the model can handle historical exogenous variables
+    EXOGENOUS_STAT = False   # If the model can handle static exogenous variables
+    MULTIVARIATE = False    # If the model produces multivariate forecasts (True) or univariate (False)
+    RECURRENT = False       # If the model produces forecasts recursively (True) or direct (False)
+
+    def __init__(self,
+                 # Inhereted hyperparameters with no defaults
+                 h,
+                 input_size,
+                 # Model specific hyperparameters
+                 num_layers = 2,
+                 hidden_size = 1024,
+                 # Inhereted hyperparameters with defaults
+                 futr_exog_list = None,
+                 hist_exog_list = None,
+                 stat_exog_list = None,                 
+                 exclude_insample_y = False,
+                 loss = MAE(),
+                 valid_loss = None,
+                 max_steps: int = 1000,
+                 learning_rate: float = 1e-3,
+                 num_lr_decays: int = -1,
+                 early_stop_patience_steps: int =-1,
+                 val_check_steps: int = 100,
+                 batch_size: int = 32,
+                 valid_batch_size: Optional[int] = None,
+                 windows_batch_size = 1024,
+                 inference_windows_batch_size = -1,
+                 start_padding_enabled = False,
+                 step_size: int = 1,
+                 scaler_type: str = 'identity',
+                 random_seed: int = 1,
+                 drop_last_loader: bool = False,
+                 optimizer = None,
+                 optimizer_kwargs = None,
+                 lr_scheduler = None,
+                 lr_scheduler_kwargs = None,
+                 dataloader_kwargs = None,
+                 **trainer_kwargs):
+    # Inherit BaseWindows class
+    super(MLP, self).__init__(h=h,
+                              input_size=input_size,
+                              ..., # <<--- Add all inhereted hyperparameters
+                              random_seed=random_seed,
+                              **trainer_kwargs)
+
+    # Architecture
+    self.num_layers = num_layers
+    self.hidden_size = hidden_size
+
+    # MultiLayer Perceptron
+    layers = [nn.Linear(in_features=input_size, out_features=hidden_size)]
+    layers += [nn.ReLU()]
+    for i in range(num_layers - 1):
+        layers += [nn.Linear(in_features=hidden_size, out_features=hidden_size)]
+        layers += [nn.ReLU()]
+    self.mlp = nn.ModuleList(layers)
+
+    # Adapter with Loss dependent dimensions
+    self.out = nn.Linear(in_features=hidden_size, 
+                         out_features=h * self.loss.outputsize_multiplier) ## <<--- Use outputsize_multiplier to adjust output size
+
+    def forward(self, windows_batch): # <<--- Receives windows_batch dictionary
+        # Parse windows_batch
+        insample_y = windows_batch['insample_y'].squeeze(-1)                            # [batch_size, input_size]
+        # MLP
+        hidden = self.mlp(insample_y)                                                   # [batch_size, hidden_size]
+        y_pred = self.out(hidden)                                                       # [batch_size, h * n_outputs]
+        
+        # Reshape
+        y_pred = y_pred.reshape(batch_size, self.h, self.loss.outputsize_multiplier)    # [batch_size, h, n_outputs]
+
+        return y_pred
+
+```
+
+> **Tip**
+>
+> -   Don’t forget to add the `#| export` tag on each cell.
+> -   Larger architectures, such as Transformers, might require
+>     splitting the `forward` by using intermediate functions.
+
+#### Important notes
+
+The base class has many hyperparameters, and models must have default
+values for all of them (except `h` and `input_size`). If you are unsure
+of what default value to use, we recommend copying the default values
+from existing models for most optimization and sampling hyperparameters.
+You can change the default values later at any time.
+
+The `reshape` method at the end of the `forward` step is used to adjust
+the output shape. The `loss` class contains an `outputsize_multiplier`
+attribute to automatically adjust the output size of the forecast
+depending on the `loss`. For example, for the Multi-quantile loss
+(`MQLoss`), the model needs to output each quantile for each horizon.
+
+### b. Tests and documentation
+
+`nbdev` allows for testing and documenting the model during the
+development process. It allows users to iterate the development within
+the notebook, testing the code in the same environment. Refer to
+existing models, such as the complete MLP model
+[here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/models.mlp.ipynb).
+These files already contain the tests, documentation, and usage examples
+that were used during the development process.
+
+### c. Export the new model to the library with `nbdev`
+
+Following the CONTRIBUTING guide, the next step is to export the new
+model from the development notebook to the `neuralforecast` folder with
+the actual scripts.
+
+To export the model, run `nbdev_export` in your terminal. You should see
+a new file with your model in the `neuralforecast/models/` folder.
+
+## 3. Core class and additional files
+
+Finally, add the model to the `core` class and additional files:
+
+1.  Manually add the model in the following [init
+    file](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/__init__.py).
+
+2.  Add the model to the `core` class, using the `nbdev` file
+    [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/core.ipynb):
+
+    1.  Add the model to the initial model list:
+
+    ```python
+    from neuralforecast.models import (
+    GRU, LSTM, RNN, TCN, DilatedRNN,
+    MLP, NHITS, NBEATS, NBEATSx,
+    TFT, VanillaTransformer,
+    Informer, Autoformer, FEDformer,
+    StemGNN, PatchTST
+    )
+    ```
+
+    1.  Add the model to the `MODEL_FILENAME_DICT` dictionary (used for
+        the `save` and `load` functions).
+
+## 4. Add the model to the documentation
+
+It’s important to add the model to the necessary documentation pages so
+that everyone can find the documentation:
+
+1.  Add the model to the [model overview
+    table](https://github.com/Nixtla/neuralforecast/blob/main/nbs/docs/capabilities/01_overview.ipynb).
+2.  Add the model to the
+    [sidebar](https://github.com/Nixtla/neuralforecast/blob/main/nbs/sidebar.yml)
+    for the API reference.
+3.  Add the model to
+    [mint.json](https://github.com/Nixtla/neuralforecast/blob/main/nbs/mint.json).
+
+## 5. Upload to GitHub
+
+Congratulations! The model is ready to be used in the library following
+the steps above.
+
+Follow our contributing guide’s final steps to upload the model to
+GitHub:
+[here](https://github.com/Nixtla/neuralforecast/blob/main/CONTRIBUTING.md).
+
+One of the maintainers will review the PR, request changes if necessary,
+and merge it into the library.
+
+## Quick Checklist
+
+-   Get familiar with the `BaseModel` class hyperparameters and
+    input/output shapes of the `forward` method.
+-   Create the notebook with your model class in the `nbs` folder:
+    `models.YOUR_MODEL_NAME.ipynb`
+-   Add the header and import libraries.
+-   Implement `init` and `forward` methods and set the class attributes.
+-   Export model with `nbdev_export`.
+-   Add model to this [init
+    file](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/__init__.py).
+-   Add the model to the `core` class
+    [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/core.ipynb).
+-   Follow the CONTRIBUTING guide to create the PR to upload the model.
+

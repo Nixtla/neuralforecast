@@ -1,0 +1,485 @@
+---
+description: >-
+  NeuralForecast utility functions and datasets. Includes AirPassengers data, time feature generation, prediction intervals, and synthetic panel data generators.
+output-file: utils.html
+title: Example Data
+---
+
+The `core.NeuralForecast` class allows you to efficiently fit multiple
+`NeuralForecast` models for large sets of time series. It operates with pandas DataFrame `df` that identifies individual series and datestamps with the `unique_id` and `ds` columns, and the `y` column denotes the target time
+series variable. To assist development, we declare useful datasets that we use throughout all `NeuralForecast`'s unit tests.
+
+## 1. Synthetic Panel Data
+
+### `generate_series`
+
+```python
+generate_series(
+    n_series,
+    freq="D",
+    min_length=50,
+    max_length=500,
+    n_temporal_features=0,
+    n_static_features=0,
+    equal_ends=False,
+    seed=0,
+)
+```
+
+Generate Synthetic Panel Series.
+
+Generates `n_series` of frequency `freq` of different lengths in the interval \[`min_length`, `max_length`\].
+If `n_temporal_features > 0`, then each serie gets temporal features with random values.
+If `n_static_features > 0`, then a static dataframe is returned along the temporal dataframe.
+If `equal_ends == True` then all series end at the same date.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`n_series` | <code>[int](#int)</code> | Number of series for synthetic panel. | *required*
+`freq` | <code>[str](#str)</code> | Frequency of the data, panda's available frequencies. Defaults to "D". | <code>'D'</code>
+`min_length` | <code>[int](#int)</code> | Minimal length of synthetic panel's series. Defaults to 50. | <code>50</code>
+`max_length` | <code>[int](#int)</code> | Maximal length of synthetic panel's series. Defaults to 500. | <code>500</code>
+`n_temporal_features` | <code>[int](#int)</code> | Number of temporal exogenous variables for synthetic panel's series. Defaults to 0. | <code>0</code>
+`n_static_features` | <code>[int](#int)</code> | Number of static exogenous variables for synthetic panel's series. Defaults to 0. | <code>0</code>
+`equal_ends` | <code>[bool](#bool)</code> | If True, series finish in the same date stamp `ds`. Defaults to False. | <code>False</code>
+`seed` | <code>[int](#int)</code> | Random seed for reproducibility. Defaults to 0. | <code>0</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[DataFrame](#pandas.DataFrame)</code> | pd.DataFrame: Synthetic panel with columns \[`unique_id`, `ds`, `y`\] and exogenous.
+
+```python
+synthetic_panel = generate_series(n_series=2)
+synthetic_panel.groupby('unique_id').head(4)
+```
+
+```python
+temporal_df, static_df = generate_series(n_series=1000, n_static_features=2,
+                                         n_temporal_features=4, equal_ends=False)
+static_df.head(2)
+```
+
+## 2. AirPassengers Data
+
+The classic Box & Jenkins airline data. Monthly totals of international
+airline passengers, 1949 to 1960.
+
+It has been used as a reference on several forecasting libraries, since
+it is a series that shows clear trends and seasonalities it offers a
+nice opportunity to quickly showcase a model’s predictions performance.
+
+```python
+AirPassengersDF.head(12)
+```
+
+```python
+#We are going to plot the ARIMA predictions, and the prediction intervals.
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+plot_df = AirPassengersDF.set_index('ds')
+
+plot_df[['y']].plot(ax=ax, linewidth=2)
+ax.set_title('AirPassengers Forecast', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+```python
+import numpy as np
+import pandas as pd
+```
+
+```python
+n_static_features = 3
+n_series = 5
+
+static_features = np.random.uniform(low=0.0, high=1.0,
+                        size=(n_series, n_static_features))
+static_df = pd.DataFrame.from_records(static_features,
+                   columns = [f'static_{i}'for i in  range(n_static_features)])
+static_df['unique_id'] = np.arange(n_series)
+```
+
+```python
+static_df
+```
+
+## 3. Panel AirPassengers Data
+
+Extension to classic Box & Jenkins airline data. Monthly totals of
+international airline passengers, 1949 to 1960.
+
+It includes two series with static, temporal and future exogenous
+variables, that can help to explore the performance of models like
+[`NBEATSx`](https://nixtlaverse.nixtla.io/neuralforecast/models.nbeatsx.html#nbeatsx)
+and
+[`TFT`](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html#tft).
+
+```python
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+plot_df = AirPassengersPanel.set_index('ds')
+
+plot_df.groupby('unique_id')['y'].plot(legend=True)
+ax.set_title('AirPassengers Panel Data', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(title='unique_id', prop={'size': 15})
+ax.grid()
+```
+
+```python
+fig, ax = plt.subplots(1, 1, figsize = (20, 7))
+plot_df = AirPassengersPanel[AirPassengersPanel.unique_id=='Airline1'].set_index('ds')
+
+plot_df[['y', 'trend', 'y_[lag12]']].plot(ax=ax, linewidth=2)
+ax.set_title('Box-Cox AirPassengers Data', fontsize=22)
+ax.set_ylabel('Monthly Passengers', fontsize=20)
+ax.set_xlabel('Timestamp [t]', fontsize=20)
+ax.legend(prop={'size': 15})
+ax.grid()
+```
+
+## 4. Time Features
+
+We have developed a utility that generates normalized calendar features
+for use as absolute positional embeddings in Transformer-based models.
+These embeddings capture seasonal patterns in time series data and can
+be easily incorporated into the model architecture. Additionally, the
+features can be used as exogenous variables in other models to inform
+them of calendar patterns in the data.
+
+### References
+
+- [Haoyi Zhou, Shanghang Zhang, Jieqi Peng, Shuai
+Zhang, Jianxin Li, Hui Xiong, Wancai Zhang. “Informer: Beyond Efficient
+Transformer for Long Sequence Time-Series
+Forecasting”](https://arxiv.org/abs/2012.07436)
+
+------------------------------------------------------------------------
+
+### `augment_calendar_df`
+
+```python
+augment_calendar_df(df, freq='H')
+```
+
+Augment a dataframe with calendar features based on frequency.
+
+Frequency mappings:
+
+- Q - [month]
+- M - [month]
+- W - [Day of month, week of year]
+- D - [Day of week, day of month, day of year]
+- B - [Day of week, day of month, day of year]
+- H - [Hour of day, day of week, day of month, day of year]
+- T - [Minute of hour\*, hour of day, day of week, day of month, day of year]
+- S - [Second of minute, minute of hour, hour of day, day of week, day of month, day of year]
+
+\*minute returns a number from 0-3 corresponding to the 15 minute period it falls into.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`df` | <code>[DataFrame](#pandas.DataFrame)</code> | DataFrame to augment with calendar features. | *required*
+`freq` | <code>[str](#str)</code> | Frequency string for determining which features to add. Defaults to "H". | <code>'H'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+| Tuple\[pd.DataFrame, List[str]\]: Tuple of (augmented DataFrame, list of feature column names).
+
+### `time_features_from_frequency_str`
+
+```python
+time_features_from_frequency_str(freq_str)
+```
+
+Returns a list of time features that will be appropriate for the given frequency string.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`freq_str` | <code>[str](#str)</code> | Frequency string of the form [multiple][granularity] such as "12H", "5min", "1D" etc. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[List](#typing.List)\[[TimeFeature](#neuralforecast.utils.TimeFeature)\]</code> | List\[TimeFeature\]: List of time features appropriate for the frequency.
+
+### `WeekOfYear`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Week of year encoded as value between [-0.5, 0.5].
+
+### `MonthOfYear`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Month of year encoded as value between [-0.5, 0.5].
+
+### `DayOfYear`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Day of year encoded as value between [-0.5, 0.5].
+
+### `DayOfMonth`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Day of month encoded as value between [-0.5, 0.5].
+
+### `DayOfWeek`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Day of week encoded as value between [-0.5, 0.5].
+
+### `HourOfDay`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Hour of day encoded as value between [-0.5, 0.5].
+
+### `MinuteOfHour`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Minute of hour encoded as value between [-0.5, 0.5].
+
+### `SecondOfMinute`
+
+Bases: <code>[TimeFeature](#neuralforecast.utils.TimeFeature)</code>
+
+Second of minute encoded as value between [-0.5, 0.5].
+
+### `TimeFeature`
+
+```python
+TimeFeature()
+```
+
+```python
+AirPassengerPanelCalendar, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
+AirPassengerPanelCalendar.head()
+```
+
+```python
+plot_df = AirPassengerPanelCalendar[AirPassengerPanelCalendar.unique_id=='Airline1'].set_index('ds')
+plt.plot(plot_df['month'])
+plt.grid()
+plt.xlabel('Datestamp')
+plt.ylabel('Normalized Month')
+plt.show()
+```
+
+### `get_indexer_raise_missing`
+
+```python
+get_indexer_raise_missing(idx, vals)
+```
+
+Get index positions for values, raising error if any are missing.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`idx` | <code>[Index](#pandas.Index)</code> | Index to search in. | *required*
+`vals` | <code>[List](#typing.List)\[[str](#str)\]</code> | Values to find indices for. | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[List](#typing.List)\[[int](#int)\]</code> | List\[int\]: List of index positions.
+
+**Raises:**
+
+Type | Description
+---- | -----------
+<code>[ValueError](#ValueError)</code>| If any values are missing from the index.
+
+## 5. Prediction Intervals
+
+### `PredictionIntervals`
+
+```python
+PredictionIntervals(n_windows=2, method='conformal_distribution')
+```
+
+Class for storing prediction intervals metadata information.
+
+Initialize PredictionIntervals.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`n_windows` | <code>[int](#int)</code> | Number of windows to evaluate. Defaults to 2. | <code>2</code>
+`method` | <code>[str](#str)</code> | One of the supported methods for the computation of prediction intervals: conformal_error or conformal_distribution. Defaults to "conformal_distribution". | <code>'conformal_distribution'</code>
+
+#### `PredictionIntervals.method`
+
+```python
+method = method
+```
+
+#### `PredictionIntervals.n_windows`
+
+```python
+n_windows = n_windows
+```
+
+### `add_conformal_distribution_intervals`
+
+```python
+add_conformal_distribution_intervals(
+    model_fcsts,
+    cs_df,
+    model,
+    cs_n_windows,
+    n_series,
+    horizon,
+    level=None,
+    quantiles=None,
+)
+```
+
+Add conformal intervals based on conformal scores using distribution strategy.
+
+This strategy creates forecast paths based on errors and calculates quantiles using those paths.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`model_fcsts` | <code>[array](#numpy.array)</code> | Model forecasts array. | *required*
+`cs_df` | <code>[DFType](#utilsforecast.compat.DFType)</code> | DataFrame containing conformal scores. | *required*
+`model` | <code>[str](#str)</code> | Model name. | *required*
+`cs_n_windows` | <code>[int](#int)</code> | Number of conformal score windows. | *required*
+`n_series` | <code>[int](#int)</code> | Number of series. | *required*
+`horizon` | <code>[int](#int)</code> | Forecast horizon. | *required*
+`level` | <code>[Optional](#typing.Optional)\[[List](#typing.List)\[[Union](#typing.Union)\[[int](#int), [float](#float)\]\]\]</code> | Confidence levels for prediction intervals. Defaults to None. | <code>None</code>
+`quantiles` | <code>[Optional](#typing.Optional)\[[List](#typing.List)\[[float](#float)\]\]</code> | Quantiles for prediction intervals. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tuple](#typing.Tuple)\[[array](#numpy.array), [List](#typing.List)\[[str](#str)\]\]</code> | Tuple\[np.array, List[str]\]: Tuple of (forecasts with intervals, column names).
+
+### `add_conformal_error_intervals`
+
+```python
+add_conformal_error_intervals(
+    model_fcsts,
+    cs_df,
+    model,
+    cs_n_windows,
+    n_series,
+    horizon,
+    level=None,
+    quantiles=None,
+)
+```
+
+Add conformal intervals based on conformal scores using error strategy.
+
+This strategy creates prediction intervals based on absolute errors.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`model_fcsts` | <code>[array](#numpy.array)</code> | Model forecasts array. | *required*
+`cs_df` | <code>[DFType](#utilsforecast.compat.DFType)</code> | DataFrame containing conformal scores. | *required*
+`model` | <code>[str](#str)</code> | Model name. | *required*
+`cs_n_windows` | <code>[int](#int)</code> | Number of conformal score windows. | *required*
+`n_series` | <code>[int](#int)</code> | Number of series. | *required*
+`horizon` | <code>[int](#int)</code> | Forecast horizon. | *required*
+`level` | <code>[Optional](#typing.Optional)\[[List](#typing.List)\[[Union](#typing.Union)\[[int](#int), [float](#float)\]\]\]</code> | Confidence levels for prediction intervals. Defaults to None. | <code>None</code>
+`quantiles` | <code>[Optional](#typing.Optional)\[[List](#typing.List)\[[float](#float)\]\]</code> | Quantiles for prediction intervals. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tuple](#typing.Tuple)\[[array](#numpy.array), [List](#typing.List)\[[str](#str)\]\]</code> | Tuple\[np.array, List[str]\]: Tuple of (forecasts with intervals, column names).
+
+### `get_prediction_interval_method`
+
+```python
+get_prediction_interval_method(method)
+```
+
+Get the prediction interval method function by name.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`method` | <code>[str](#str)</code> | Name of the prediction interval method. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`Callable` | | The corresponding method function.
+
+**Raises:**
+
+Type | Description
+---- | -----------
+<code>[ValueError](#ValueError)</code>| If the method is not supported.
+
+### `quantiles_to_level`
+
+```python
+quantiles_to_level(quantiles)
+```
+
+Convert a list of quantiles to confidence levels.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`quantiles` | <code>[List](#typing.List)\[[float](#float)\]</code> | List of quantiles (e.g., [0.1, 0.5, 0.9]). | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[List](#typing.List)\[[Union](#typing.Union)\[[int](#int), [float](#float)\]\]</code> | List\[Union[int, float]\]: List of corresponding confidence levels.
+
+### `level_to_quantiles`
+
+```python
+level_to_quantiles(level)
+```
+
+Convert a list of confidence levels to quantiles.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`level` | <code>[List](#typing.List)\[[Union](#typing.Union)\[[int](#int), [float](#float)\]\]</code> | List of confidence levels (e.g., [80, 90]). | *required*
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[List](#typing.List)\[[float](#float)\]</code> | List\[float\]: List of corresponding quantiles.

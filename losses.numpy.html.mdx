@@ -1,0 +1,445 @@
+---
+description: >-
+  Comprehensive NumPy evaluation metrics for NeuralForecast including MAE, MSE, MAPE, MASE, and probabilistic losses for time series forecast accuracy.
+output-file: losses.numpy.html
+title: NumPy Evaluation
+---
+
+
+The most important train signal is the forecast error, which is the
+difference between the observed value $y_{\tau}$ and the prediction
+$\hat{y}_{\tau}$, at time $y_{\tau}$:
+
+$$e_{\tau} = y_{\tau}-\hat{y}_{\tau} \qquad \qquad \tau \in \{t+1,\dots,t+H \}$$
+
+The train loss summarizes the forecast errors in different evaluation
+metrics.
+
+# 1. Scale-dependent Errors
+
+These metrics are on the same scale as the data.
+
+## Mean Absolute Error
+
+### `mae`
+
+```python
+mae(y, y_hat, weights=None, axis=None)
+```
+
+Mean Absolute Error
+
+Calculates Mean Absolute Error between
+`y` and `y_hat`. MAE measures the relative prediction
+accuracy of a forecasting method by calculating the
+deviation of the prediction and the true
+value at a given time and averages these devations
+over the length of the series.
+
+```math
+\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} |y_{\tau} - \hat{y}_{\tau}|
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | MAE.
+
+![](imgs_losses/mae_loss.png)
+
+## Mean Squared Error
+
+### `mse`
+
+```python
+mse(y, y_hat, weights=None, axis=None)
+```
+
+Mean Squared Error
+
+Calculates Mean Squared Error between
+`y` and `y_hat`. MSE measures the relative prediction
+accuracy of a forecasting method by calculating the
+squared deviation of the prediction and the true
+value at a given time, and averages these devations
+over the length of the series.
+
+```math
+\mathrm{MSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | MSE.
+
+![](imgs_losses/mse_loss.png)
+
+## Root Mean Squared Error
+
+### `rmse`
+
+```python
+rmse(y, y_hat, weights=None, axis=None)
+```
+
+Root Mean Squared Error
+
+Calculates Root Mean Squared Error between
+`y` and `y_hat`. RMSE measures the relative prediction
+accuracy of a forecasting method by calculating the squared deviation
+of the prediction and the observed value at a given time and
+averages these devations over the length of the series.
+Finally the RMSE will be in the same scale
+as the original time series so its comparison with other
+series is possible only if they share a common scale.
+RMSE has a direct connection to the L2 norm.
+
+```math
+\mathrm{RMSE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \sqrt{\frac{1}{H} \sum^{t+H}_{\tau=t+1} (y_{\tau} - \hat{y}_{\tau})^{2}}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | RMSE.
+
+![](imgs_losses/rmse_loss.png)
+
+# 2. Percentage errors
+
+These metrics are unit-free, suitable for comparisons across series.
+
+## Mean Absolute Percentage Error
+
+### `mape`
+
+```python
+mape(y, y_hat, weights=None, axis=None)
+```
+
+Mean Absolute Percentage Error
+
+Calculates Mean Absolute Percentage Error between
+`y` and `y_hat`. MAPE measures the relative prediction
+accuracy of a forecasting method by calculating the percentual deviation
+of the prediction and the observed value at a given time and
+averages these devations over the length of the series.
+The closer to zero an observed value is, the higher penalty MAPE loss
+assigns to the corresponding error.
+
+```math
+\mathrm{MAPE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | MAPE.
+
+![](imgs_losses/mape_loss.png)
+
+## SMAPE
+
+### `smape`
+
+```python
+smape(y, y_hat, weights=None, axis=None)
+```
+
+Symmetric Mean Absolute Percentage Error
+
+Calculates Symmetric Mean Absolute Percentage Error between
+`y` and `y_hat`. SMAPE measures the relative prediction
+accuracy of a forecasting method by calculating the relative deviation
+of the prediction and the observed value scaled by the sum of the
+absolute values for the prediction and observed value at a
+given time, then averages these devations over the length
+of the series. This allows the SMAPE to have bounds between
+0% and 200% which is desirable compared to normal MAPE that
+may be undetermined when the target is zero.
+
+```math
+\mathrm{sMAPE}_{2}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{|y_{\tau}|+|\hat{y}_{\tau}|}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | SMAPE.
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Makridakis S., "Accuracy measures: theoretical and practical concerns".](https://www.sciencedirect.com/science/article/pii/0169207093900793)
+
+</details>
+
+# 3. Scale-independent Errors
+
+These metrics measure the relative improvements versus baselines.
+
+## Mean Absolute Scaled Error
+
+### `mase`
+
+```python
+mase(y, y_hat, y_train, seasonality, weights=None, axis=None)
+```
+
+Mean Absolute Scaled Error
+Calculates the Mean Absolute Scaled Error between
+`y` and `y_hat`. MASE measures the relative prediction
+accuracy of a forecasting method by comparinng the mean absolute errors
+of the prediction and the observed value against the mean
+absolute errors of the seasonal naive model.
+The MASE partially composed the Overall Weighted Average (OWA),
+used in the M4 Competition.
+
+```math
+\mathrm{MASE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{season}_{\tau})}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`y_insample` | <code>[ndarray](#numpy.ndarray)</code> | Actual insample Seasonal Naive predictions. | *required*
+`seasonality` | <code>[int](#int)</code> | Main frequency of the time series; Hourly 24, Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | MASE.
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
+- [Spyros Makridakis, Evangelos Spiliotis, Vassilios Assimakopoulos, "The M4 Competition: 100,000 time series and 61 forecasting methods".](https://www.sciencedirect.com/science/article/pii/S0169207019301128)
+
+</details>
+
+![](imgs_losses/mase_loss.png)
+
+## Relative Mean Absolute Error
+
+### `rmae`
+
+```python
+rmae(y, y_hat1, y_hat2, weights=None, axis=None)
+```
+
+RMAE
+
+Calculates Relative Mean Absolute Error (RMAE) between
+two sets of forecasts (from two different forecasting methods).
+A number smaller than one implies that the forecast in the
+numerator is better than the forecast in the denominator.
+
+```math
+\mathrm{rMAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \frac{|y_{\tau}-\hat{y}_{\tau}|}{\mathrm{MAE}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{base}_{\tau})}
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | observed values. | *required*
+`y_hat1` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values of first model. | *required*
+`y_hat2` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values of baseline model. | *required*
+`weights` | <code>[ndarray](#numpy.ndarray)</code> | Weights for weighted average. Defaults to None. | <code>None</code>
+`axis` | <code>[Optional](#typing.Optional)\[[int](#int)\]</code> | Axis or axes along which to average a. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | RMAE.
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Rob J. Hyndman, & Koehler, A. B. "Another look at measures of forecast accuracy".](https://www.sciencedirect.com/science/article/pii/S0169207006000239)
+
+</details>
+
+![](imgs_losses/rmae_loss.png)
+
+# 4. Probabilistic Errors
+
+These measure absolute deviation non-symmetrically, that produce
+under/over estimation.
+
+## Quantile Loss
+
+### `quantile_loss`
+
+```python
+quantile_loss(y, y_hat, q=0.5, weights=None, axis=None)
+```
+
+Quantile Loss
+
+Computes the quantile loss between `y` and `y_hat`.
+QL measures the deviation of a quantile forecast.
+By weighting the absolute deviation in a non symmetric way, the
+loss pays more attention to under or over estimation.
+A common value for q is 0.5 for the deviation from the median (Pinball loss).
+
+```math
+\mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q)}_{\tau}) = \frac{1}{H} \sum^{t+H}_{\tau=t+1} \Big( (1-q)\,( \hat{y}^{(q)}_{\tau} - y_{\tau} )_{+} + q\,( y_{\tau} - \hat{y}^{(q)}_{\tau} )_{+} \Big)
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`q` | <code>[float](#float)</code> | The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level. Defaults to 0.5. | <code>0.5</code>
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | Quantile loss.
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+
+</details>
+
+![](imgs_losses/q_loss.png)
+
+## Multi-Quantile Loss
+
+### `mqloss`
+
+```python
+mqloss(y, y_hat, quantiles, weights=None, axis=None)
+```
+
+Multi-Quantile loss
+
+Calculates the Multi-Quantile loss (MQL) between `y` and `y_hat`.
+MQL calculates the average multi-quantile Loss for
+a given set of quantiles, based on the absolute
+difference between predicted quantiles and observed values.
+
+```math
+\mathrm{MQL}(\mathbf{y}_{\tau},[\mathbf{\hat{y}}^{(q_{1})}_{\tau}, ... ,\hat{y}^{(q_{n})}_{\tau}]) = \frac{1}{n} \sum_{q_{i}} \mathrm{QL}(\mathbf{y}_{\tau}, \mathbf{\hat{y}}^{(q_{i})}_{\tau})
+```
+
+The limit behavior of MQL allows to measure the accuracy
+of a full predictive distribution $\\mathbf{\\hat{F}}\_{\\tau}$ with
+the continuous ranked probability score (CRPS). This can be achieved
+through a numerical integration technique, that discretizes the quantiles
+and treats the CRPS integral with a left Riemann approximation, averaging over
+uniformly distanced quantiles.
+
+```math
+\mathrm{CRPS}(y_{\tau}, \mathbf{\hat{F}}_{\tau}) = \int^{1}_{0} \mathrm{QL}(y_{\tau}, \hat{y}^{(q)}_{\tau}) dq
+```
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`y` | <code>[ndarray](#numpy.ndarray)</code> | Actual values. | *required*
+`y_hat` | <code>[ndarray](#numpy.ndarray)</code> | Predicted values. | *required*
+`quantiles` | <code>[ndarray](#numpy.ndarray)</code> | Quantiles to estimate from the distribution of y. | *required*
+`mask` | <code>[ndarray](#numpy.ndarray)</code> | Specifies date stamps per serie to consider in loss. Defaults to None. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`float` | <code>[Union](#typing.Union)\[[float](#float), [ndarray](#numpy.ndarray)\]</code> | MQLoss.
+
+<details class="references" open markdown="1">
+<summary>References</summary>
+
+- [Roger Koenker and Gilbert Bassett, Jr., "Regression Quantiles".](https://www.jstor.org/stable/1913643)
+
+</details>
+
+[James E. Matheson and Robert L. Winkler, "Scoring Rules for Continuous Probability Distributions".](https://www.jstor.org/stable/2629907)
+
+![](imgs_losses/mq_loss.png)
+
+# Examples and Validation
+
+
+```python
+import unittest
+import torch as t 
+import numpy as np
+
+from neuralforecast.losses.pytorch import (
+    MAE, MSE, RMSE,      # unscaled errors
+    MAPE, SMAPE,         # percentage errors
+    MASE,                # scaled error
+    QuantileLoss, MQLoss # probabilistic errors
+)
+
+from neuralforecast.losses.numpy import (
+    mae, mse, rmse,              # unscaled errors
+    mape, smape,                 # percentage errors
+    mase,                        # scaled error
+    quantile_loss, mqloss        # probabilistic errors
+)
+```
+

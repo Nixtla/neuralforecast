@@ -1,0 +1,112 @@
+---
+description: >-
+  Time-LLM: Reprograms large language models for time series forecasting. Transforms forecasting tasks into language tasks using off-the-shelf LLM backbones.
+output-file: models.timellm.html
+title: Time-LLM
+---
+
+Time-LLM is a reprogramming framework to repurpose LLMs for general time
+series forecasting with the backbone language models kept intact. In
+other words, it transforms a forecasting task into a “language task”
+that can be tackled by an off-the-shelf LLM.
+
+**References**
+
+- [Ming Jin, Shiyu Wang, Lintao Ma, Zhixuan Chu,
+James Y. Zhang, Xiaoming Shi, Pin-Yu Chen, Yuxuan Liang, Yuan-Fang Li,
+Shirui Pan, Qingsong Wen. “Time-LLM: Time Series Forecasting by
+Reprogramming Large Language
+Models”](https://arxiv.org/abs/2310.01728)
+
+
+![Figure 1. Time-LLM Architecture.](imgs_models/timellm.png)
+*Figure 1. Time-LLM Architecture.*
+
+## 1. Time-LLM
+
+
+### Usage example
+
+```python 
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import TimeLLM
+from neuralforecast.utils import AirPassengersPanel
+
+Y_train_df = AirPassengersPanel[AirPassengersPanel.ds<AirPassengersPanel['ds'].values[-12]] # 132 train
+Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].values[-12]].reset_index(drop=True) # 12 test
+
+prompt_prefix = "The dataset contains data on monthly air passengers. There is a yearly seasonality"
+
+timellm = TimeLLM(h=12,
+                 input_size=36,
+                 llm='openai-community/gpt2',
+                 prompt_prefix=prompt_prefix,
+                 batch_size=16,
+                 valid_batch_size=16,
+                 windows_batch_size=16)
+
+nf = NeuralForecast(
+    models=[timellm],
+    freq='ME'
+)
+
+nf.fit(df=Y_train_df, val_size=12)
+forecasts = nf.predict(futr_df=Y_test_df)
+```
+
+## 2. Auxiliary Functions
+
+### `ReprogrammingLayer`
+
+```python
+ReprogrammingLayer(
+    d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+ReprogrammingLayer
+
+### `FlattenHead`
+
+```python
+FlattenHead(n_vars, nf, target_window, head_dropout=0)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+FlattenHead
+
+### `PatchEmbedding`
+
+```python
+PatchEmbedding(d_model, patch_len, stride, dropout)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+PatchEmbedding
+
+### `TokenEmbedding`
+
+```python
+TokenEmbedding(c_in, d_model)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+TokenEmbedding
+
+### `ReplicationPad1d`
+
+```python
+ReplicationPad1d(padding)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+ReplicationPad1d

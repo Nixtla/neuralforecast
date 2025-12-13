@@ -1,0 +1,251 @@
+---
+description: >-
+  NeuralForecast core class for high-level time series forecasting. Fits multiple PyTorch models on pandas DataFrames with parallelization and distributed computation.
+output-file: core.html
+title: Core
+---
+
+NeuralForecast contains two main components, PyTorch implementations deep
+learning predictive models, as well as parallelization and distributed
+computation utilities. The first component comprises low-level PyTorch model
+estimator classes like `models.NBEATS` and `models.RNN`. The second component is a high-level `core.NeuralForecast` wrapper class that operates with sets of time series data stored in pandas DataFrames.
+
+##
+
+### `NeuralForecast`
+
+```python
+NeuralForecast(
+    models, freq, local_scaler_type=None, local_static_scaler_type=None
+)
+```
+
+The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
+for large sets of time series. It operates with pandas DataFrame `df` that identifies series
+and datestamps with the `unique_id` and `ds` columns. The `y` column denotes the target
+time series variable.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`models` | <code>[List](#typing.List)\[[Any](#typing.Any)\]</code> | Instantiated `neuralforecast.models` see [collection here](./models). | *required*
+`freq` | <code>[str](#str) or [int](#int)</code> | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. | *required*
+`local_scaler_type` | <code>[str](#str)</code> | Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
+`local_static_scaler_type` | <code>[str](#str)</code> | Scaler to apply to static exogenous features before fitting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`NeuralForecast` | | Returns instantiated `NeuralForecast` class.
+
+#### `NeuralForecast.fit`
+
+```python
+fit(
+    df=None,
+    static_df=None,
+    val_size=0,
+    use_init_models=False,
+    verbose=False,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+    distributed_config=None,
+    prediction_intervals=None,
+)
+```
+
+Fit the core.NeuralForecast.
+
+Fit `models` to a large set of time series from DataFrame `df`.
+and store fitted models for later inspection.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`df` | <code>pandas, polars or spark DataFrame, or a list of parquet files containing the series</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. Defaults to None. | <code>None</code>
+`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
+`val_size` | <code>[int](#int)</code> | Size of validation set. Defaults to 0. | <code>0</code>
+`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when NeuralForecast object was instantiated. Defaults to False. | <code>False</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
+`id_col` | <code>[str](#str)</code> | Column that identifies each serie. Defaults to 'unique_id'. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Defaults to 'ds'. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | Column that contains the target. Defaults to 'y'. | <code>'y'</code>
+`distributed_config` | <code>[DistributedConfig](#neuralforecast.DistributedConfig)</code> | Configuration to use for DDP training. Currently only spark is supported. | <code>None</code>
+`prediction_intervals` | <code>[PredictionIntervals](#neuralforecast.utils.PredictionIntervals)</code> | Configuration to calibrate prediction intervals (Conformal Prediction). Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`NeuralForecast` | <code>None</code> | Returns `NeuralForecast` class with fitted `models`.
+
+#### `NeuralForecast.predict`
+
+```python
+predict(
+    df=None,
+    static_df=None,
+    futr_df=None,
+    verbose=False,
+    engine=None,
+    level=None,
+    quantiles=None,
+    h=None,
+    **data_kwargs
+)
+```
+
+Predict with core.NeuralForecast.
+
+Use stored fitted `models` to predict large set of time series from DataFrame `df`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If a DataFrame is passed, it is used to generate forecasts. Defaults to None. | <code>None</code>
+`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
+`futr_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with \[`unique_id`, `ds`\] columns and `df`'s future exogenous. Defaults to None. | <code>None</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
+`engine` | <code>spark session</code> | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. | <code>None</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
+`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None. | <code>None</code>
+`data_kwargs` | <code>[kwargs](#kwargs)</code> | Extra arguments to be passed to the dataset within each model. | <code>{}</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fcsts_df` | <code>pandas or polars DataFrame</code> | DataFrame with insample `models` columns for point predictions and probabilistic predictions for all fitted `models`.
+
+#### `NeuralForecast.cross_validation`
+
+```python
+cross_validation(
+    df=None,
+    static_df=None,
+    n_windows=1,
+    step_size=1,
+    val_size=0,
+    test_size=None,
+    use_init_models=False,
+    verbose=False,
+    refit=False,
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+    prediction_intervals=None,
+    level=None,
+    quantiles=None,
+    h=None,
+    **data_kwargs
+)
+```
+
+Temporal Cross-Validation with core.NeuralForecast.
+
+`core.NeuralForecast`'s cross-validation efficiently fits a list of NeuralForecast
+models through multiple windows, in either chained or rolled manner.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. Defaults to None. | <code>None</code>
+`static_df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
+`n_windows` | <code>[int](#int)</code> | Number of windows used for cross validation. Defaults to 1. | <code>1</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. Defaults to 1. | <code>1</code>
+`val_size` | <code>[int](#int)</code> | Length of validation size. If passed, set `n_windows=None`. Defaults to 0. | <code>0</code>
+`test_size` | <code>[int](#int)</code> | Length of test size. If passed, set `n_windows=None`. Defaults to None. | <code>None</code>
+`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when object was instantiated. Defaults to False. | <code>False</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
+`refit` | <code>[bool](#bool) or [int](#int)</code> | Retrain model for each cross validation window. If False, the models are trained at the beginning and then used to predict each window. If positive int, the models are retrained every `refit` windows. Defaults to False. | <code>False</code>
+`id_col` | <code>[str](#str)</code> | Column that identifies each serie. Defaults to 'unique_id'. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Defaults to 'ds'. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | Column that contains the target. Defaults to 'y'. | <code>'y'</code>
+`prediction_intervals` | <code>[PredictionIntervals](#neuralforecast.utils.PredictionIntervals)</code> | Configuration to calibrate prediction intervals (Conformal Prediction). Defaults to None. | <code>None</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
+`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None. | <code>None</code>
+`data_kwargs` | <code>[kwargs](#kwargs)</code> | Extra arguments to be passed to the dataset within each model. | <code>{}</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fcsts_df` | <code>pandas or polars DataFrame</code> | DataFrame with insample `models` columns for point predictions and probabilistic predictions for all fitted `models`.
+
+#### `NeuralForecast.predict_insample`
+
+```python
+predict_insample(step_size=1, level=None, quantiles=None)
+```
+
+Predict insample with core.NeuralForecast.
+
+`core.NeuralForecast`'s `predict_insample` uses stored fitted `models`
+to predict historic values of a time series from the stored dataframe.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`step_size` | <code>[int](#int)</code> | Step size between each window. Defaults to 1. | <code>1</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`fcsts_df` | <code>[DataFrame](#pandas.DataFrame)</code> | DataFrame with insample predictions for all fitted `models`.
+
+#### `NeuralForecast.save`
+
+```python
+save(path, model_index=None, save_dataset=True, overwrite=False)
+```
+
+Save NeuralForecast core class.
+
+`core.NeuralForecast`'s method to save current status of models, dataset, and configuration.
+Note that by default the `models` are not saving training checkpoints to save disk memory,
+to get them change the individual model `**trainer_kwargs` to include `enable_checkpointing=True`.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`path` | <code>[str](#str)</code> | Directory to save current status. | *required*
+`model_index` | <code>[list](#list)</code> | List to specify which models from list of self.models to save. Defaults to None. | <code>None</code>
+`save_dataset` | <code>[bool](#bool)</code> | Whether to save dataset or not. Defaults to True. | <code>True</code>
+`overwrite` | <code>[bool](#bool)</code> | Whether to overwrite files or not. Defaults to False. | <code>False</code>
+
+#### `NeuralForecast.load`
+
+```python
+load(path, verbose=False, **kwargs)
+```
+
+Load NeuralForecast
+
+`core.NeuralForecast`'s method to load checkpoint from path.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`path` | <code>[str](#str)</code> | Directory with stored artifacts. | *required*
+`verbose` | <code>[bool](#bool)</code> | Defaults to False. | <code>False</code>
+`**kwargs` | | Additional keyword arguments to be passed to the function `load_from_checkpoint`. | <code>{}</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`result` | <code>[NeuralForecast](#neuralforecast.core.NeuralForecast)</code> | Instantiated `NeuralForecast` class.

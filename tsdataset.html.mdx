@@ -1,0 +1,291 @@
+---
+description: >-
+  PyTorch Dataset and DataLoader classes for time series. TimeSeriesDataset and TimeSeriesDataModule for efficient batch processing with Lightning integration.
+output-file: tsdataset.html
+title: PyTorch Dataset/Loader
+---
+
+## Torch Time Series Dataset
+
+### `TimeSeriesLoader`
+
+```python
+TimeSeriesLoader(dataset, **kwargs)
+```
+
+Bases: <code>[DataLoader](#torch.utils.data.DataLoader)</code>
+
+TimeSeriesLoader DataLoader.
+
+Small change to PyTorch's Data loader.
+Combines a dataset and a sampler, and provides an iterable over the given dataset.
+
+The class `~torch.utils.data.DataLoader` supports both map-style and
+iterable-style datasets with single- or multi-process loading, customizing
+loading order and optional automatic batching (collation) and memory pinning.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | | Dataset to load data from. | *required*
+`batch_size` | <code>[int](#int)</code> | How many samples per batch to load. Defaults to 1. | *required*
+`shuffle` | <code>[bool](#bool)</code> | Set to True to have the data reshuffled at every epoch. Defaults to False. | *required*
+`sampler` | <code>[Sampler](#Sampler) or [Iterable](#Iterable)</code> | Defines the strategy to draw samples from the dataset. | *required*
+`drop_last` | <code>[bool](#bool)</code> | Set to True to drop the last incomplete batch. Defaults to False. | *required*
+`**kwargs` | | Additional keyword arguments for DataLoader. | <code>{}</code>
+
+### `BaseTimeSeriesDataset`
+
+```python
+BaseTimeSeriesDataset(
+    temporal_cols, max_size, min_size, y_idx, static=None, static_cols=None
+)
+```
+
+Bases: <code>[Dataset](#torch.utils.data.Dataset)</code>
+
+Base class for time series datasets.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`temporal_cols` | | Column names for temporal features. | *required*
+`max_size` | <code>[int](#int)</code> | Maximum size of time series. | *required*
+`min_size` | <code>[int](#int)</code> | Minimum size of time series. | *required*
+`y_idx` | <code>[int](#int)</code> | Index of target variable. | *required*
+`static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
+`static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
+
+### `LocalFilesTimeSeriesDataset`
+
+```python
+LocalFilesTimeSeriesDataset(
+    files_ds,
+    temporal_cols,
+    id_col,
+    time_col,
+    target_col,
+    last_times,
+    indices,
+    max_size,
+    min_size,
+    y_idx,
+    static=None,
+    static_cols=None,
+)
+```
+
+Bases: <code>[BaseTimeSeriesDataset](#neuralforecast.tsdataset.BaseTimeSeriesDataset)</code>
+
+Time series dataset that loads data from local files.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`files_ds` | <code>[List](#typing.List)\[[str](#str)\]</code> | List of file paths. | *required*
+`temporal_cols` | | Column names for temporal features. | *required*
+`id_col` | <code>[str](#str)</code> | Name of ID column. | *required*
+`time_col` | <code>[str](#str)</code> | Name of time column. | *required*
+`target_col` | <code>[str](#str)</code> | Name of target column. | *required*
+`last_times` | | Last time for each time series. | *required*
+`indices` | | Series indices. | *required*
+`max_size` | <code>[int](#int)</code> | Maximum size of time series. | *required*
+`min_size` | <code>[int](#int)</code> | Minimum size of time series. | *required*
+`y_idx` | <code>[int](#int)</code> | Index of target variable. | *required*
+`static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
+`static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
+
+#### `LocalFilesTimeSeriesDataset.from_data_directories`
+
+```python
+from_data_directories(
+    directories,
+    static_df=None,
+    exogs=[],
+    id_col="unique_id",
+    time_col="ds",
+    target_col="y",
+)
+```
+
+Create dataset from data directories.
+
+Expects directories to be a list of directories of the form [unique_id=id_0, unique_id=id_1, ...].
+Each directory should contain the timeseries corresponding to that unique_id, represented as a
+pandas or polars DataFrame. The timeseries can be entirely contained in one parquet file or
+split between multiple, but within each parquet files the timeseries should be sorted by time.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`directories` | | List of directory paths. | *required*
+`static_df` | <code>[Optional](#typing.Optional)</code> | Static features DataFrame. | <code>None</code>
+`exogs` | <code>[List](#typing.List)</code> | List of exogenous variable names. Defaults to []. | <code>[]</code>
+`id_col` | <code>[str](#str)</code> | Name of ID column. Defaults to "unique_id". | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | Name of time column. Defaults to "ds". | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | Name of target column. Defaults to "y". | <code>'y'</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`LocalFilesTimeSeriesDataset` | | Dataset created from directories.
+
+### `TimeSeriesDataset`
+
+```python
+TimeSeriesDataset(
+    temporal, temporal_cols, indptr, y_idx, static=None, static_cols=None
+)
+```
+
+Bases: <code>[BaseTimeSeriesDataset](#neuralforecast.tsdataset.BaseTimeSeriesDataset)</code>
+
+Time series dataset implementation.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`temporal` | | Temporal data array. | *required*
+`temporal_cols` | | Column names for temporal features. | *required*
+`indptr` | | Index pointers for time series grouping. | *required*
+`y_idx` | <code>[int](#int)</code> | Index of target variable. | *required*
+`static` | <code>[Optional](#typing.Optional)</code> | Static features array. | <code>None</code>
+`static_cols` | <code>[Optional](#typing.Optional)</code> | Column names for static features. | <code>None</code>
+
+#### `TimeSeriesDataset.append`
+
+```python
+append(futr_dataset)
+```
+
+Add future observations to the dataset.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`futr_dataset` | <code>[TimeSeriesDataset](#neuralforecast.tsdataset.TimeSeriesDataset)</code> | Future dataset to append. | *required*
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`TimeSeriesDataset` | <code>[TimeSeriesDataset](#neuralforecast.tsdataset.TimeSeriesDataset)</code> | Copy of dataset with future observations appended.
+
+**Raises:**
+
+Type | Description
+---- | -----------
+<code>[ValueError](#ValueError)</code>| If datasets have different number of groups.
+
+#### `TimeSeriesDataset.trim_dataset`
+
+```python
+trim_dataset(dataset, left_trim=0, right_trim=0)
+```
+
+Trim temporal information from a dataset.
+
+Returns temporal indexes [t+left:t-right] for all series.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | | Dataset to trim. | *required*
+`left_trim` | <code>[int](#int)</code> | Number of observations to trim from the left. Defaults to 0. | <code>0</code>
+`right_trim` | <code>[int](#int)</code> | Number of observations to trim from the right. Defaults to 0. | <code>0</code>
+
+**Returns:**
+
+Name | Type | Description
+---- | ---- | -----------
+`TimeSeriesDataset` | | Trimmed dataset.
+
+**Raises:**
+
+Type | Description
+---- | -----------
+<code>[Exception](#Exception)</code>| If trim size exceeds minimum series length.
+
+### `TimeSeriesDataModule`
+
+```python
+TimeSeriesDataModule(
+    dataset,
+    batch_size=32,
+    valid_batch_size=1024,
+    drop_last=False,
+    shuffle_train=True,
+    **dataloaders_kwargs
+)
+```
+
+Bases: <code>[LightningDataModule](#pytorch_lightning.LightningDataModule)</code>
+
+PyTorch Lightning data module for time series datasets.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`dataset` | <code>[BaseTimeSeriesDataset](#neuralforecast.tsdataset.BaseTimeSeriesDataset)</code> | Time series dataset. | *required*
+`batch_size` | <code>[int](#int)</code> | Batch size for training. Defaults to 32. | <code>32</code>
+`valid_batch_size` | <code>[int](#int)</code> | Batch size for validation. Defaults to 1024. | <code>1024</code>
+`drop_last` | <code>[bool](#bool)</code> | Whether to drop the last incomplete batch. Defaults to False. | <code>False</code>
+`shuffle_train` | <code>[bool](#bool)</code> | Whether to shuffle training data. Defaults to True. | <code>True</code>
+`**dataloaders_kwargs` | | Additional keyword arguments for data loaders. | <code>{}</code>
+
+### Example
+
+```python
+import lightning.pytorch as L
+import torch.utils.data as data
+from pytorch_lightning.demos.boring_classes import RandomDataset
+
+class MyDataModule(L.LightningDataModule):
+    def prepare_data(self):
+        # download, IO, etc. Useful with shared filesystems
+        # only called on 1 GPU/TPU in distributed
+        ...
+
+    def setup(self, stage):
+        # make assignments here (val/train/test split)
+        # called on every process in DDP
+        dataset = RandomDataset(1, 100)
+        self.train, self.val, self.test = data.random_split(
+            dataset, [80, 10, 10], generator=torch.Generator().manual_seed(42)
+        )
+
+    def train_dataloader(self):
+        return data.DataLoader(self.train)
+
+    def val_dataloader(self):
+        return data.DataLoader(self.val)
+
+    def test_dataloader(self):
+        return data.DataLoader(self.test)
+
+    def on_exception(self, exception):
+        # clean up state after the trainer faced an exception
+        ...
+
+    def teardown(self):
+        # clean up state after the trainer stops, delete files...
+        # called on every process in DDP
+        ...*
+```
+
+
+```python
+# To test correct future_df wrangling of the `update_df` method
+# We are checking that we are able to recover the AirPassengers dataset
+# using the dataframe or splitting it into parts and initializing.
+```
+
