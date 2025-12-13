@@ -71,7 +71,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: 'nixtla',
               repo: 'docs',
-              workflow_id: 'mintlify-action-preview.yml',
+              workflow_id: 'preview.yml',
               ref: 'main',
             });
 
@@ -84,6 +84,6 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: 'nixtla',
               repo: 'docs',
-              workflow_id: 'mintlify-action.yml',
+              workflow_id: 'production.yml',
               ref: 'main',
             });
