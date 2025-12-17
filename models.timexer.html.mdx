@@ -194,7 +194,7 @@ import matplotlib.pyplot as plt
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import TimeXer
-from neuralforecast.losses.pytorch import MSE
+from neuralforecast.losses.pytorch import MAE, MSE
 from neuralforecast.utils import AirPassengersPanel, AirPassengersStatic, augment_calendar_df
 
 AirPassengersPanel, calendar_cols = augment_calendar_df(df=AirPassengersPanel, freq='M')
