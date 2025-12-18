@@ -74,6 +74,7 @@ LocalFilesTimeSeriesDataset(
     y_idx,
     static=None,
     static_cols=None,
+    rotation_frequency=1,
 )
 ```
 
@@ -108,6 +109,8 @@ from_data_directories(
     id_col="unique_id",
     time_col="ds",
     target_col="y",
+    rotation_frequency=1,
+    max_size_limit=None,
 )
 ```
 
