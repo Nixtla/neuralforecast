@@ -500,10 +500,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         temporal_cols = self.temporal_cols.copy()
         path = self.files_ds[idx]
         
-        # Get and increment access count for rotation
-        access_count = self._access_counts[idx]
-        self._access_counts[idx] += 1
-        
         # Get total row groups for this file
         total_row_groups = self.row_groups_per_file[idx]
         
@@ -518,17 +514,27 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         groups_needed = max(1, (self.max_size + rows_per_group - 1) // rows_per_group)
         groups_needed = min(groups_needed, total_row_groups)
         
-        # Determine which row groups to read based on rotation
-        rotation_cycle = access_count // self.rotation_frequency
-        start_group = (rotation_cycle * groups_needed) % total_row_groups
-        
-        # Handle wraparound if needed
-        if start_group + groups_needed <= total_row_groups:
-            groups_to_read = list(range(start_group, start_group + groups_needed))
+        # For small datasets, load all groups in order to ensure deterministic training
+        # For large datasets, use rotation to cycle through different portions
+        if self.max_size <= 10_000:
+            # Load all row groups sequentially
+            groups_to_read = list(range(groups_needed))
         else:
-            # Wrap around to beginning
-            groups_to_read = list(range(start_group, total_row_groups)) + \
-                            list(range(0, groups_needed - (total_row_groups - start_group)))
+            # Get and increment access count for rotation
+            access_count = self._access_counts[idx]
+            self._access_counts[idx] += 1
+            
+            # Determine which row groups to read based on rotation
+            rotation_cycle = access_count // self.rotation_frequency
+            start_group = (rotation_cycle * groups_needed) % total_row_groups
+            
+            # Handle wraparound if needed
+            if start_group + groups_needed <= total_row_groups:
+                groups_to_read = list(range(start_group, start_group + groups_needed))
+            else:
+                # Wrap around to beginning
+                groups_to_read = list(range(start_group, total_row_groups)) + \
+                                list(range(0, groups_needed - (total_row_groups - start_group)))
             
         # Read the row groups
         if Path(path).is_dir():
@@ -574,7 +580,6 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         if len(data) > self.max_size:
             data = data[-self.max_size:]
         
-        # Rest unchanged
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
@@ -688,7 +693,10 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             ids.append(uid)
             last_times.append(last_time)
 
-        if max_size_limit is not None and max_size > 10_000: # hardcoded threshold, not ideal
+        # We truncate and rotate for datasets with more than 10_000 rows only
+        # Allows for reproducibility for small datasets 
+        # Larger datasets are truncated to prevent OOM errors
+        if max_size_limit is not None and max_size > 10_000:
             max_size = min(max_size, max_size_limit)
         last_times = pd.Index(last_times, name=time_col)
         ids = pd.Series(ids, name=id_col)

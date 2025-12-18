@@ -770,13 +770,13 @@ def test_training_with_an_iterative_dataset(setup_airplane_data):
     pred_iterative = nf.predict(df=pred_df, futr_df=futr_df)
     pred_airline2 = pred_dataframe[pred_dataframe["id"] == "Airline2"]
     np.testing.assert_allclose(
-        pred_iterative["NHITS"], pred_airline2["NHITS"], rtol=1e-2, atol=1
+        pred_iterative["NHITS"], pred_airline2["NHITS"], rtol=0, atol=1
     )
     np.testing.assert_allclose(
-        pred_iterative["AutoMLP"], pred_airline2["AutoMLP"], rtol=1e-2, atol=1
+        pred_iterative["AutoMLP"], pred_airline2["AutoMLP"], rtol=0, atol=1
     )
     np.testing.assert_allclose(
-        pred_iterative["AutoNBEATSx"], pred_airline2["AutoNBEATSx"], rtol=1e-2, atol=1
+        pred_iterative["AutoNBEATSx"], pred_airline2["AutoNBEATSx"], rtol=0, atol=1
     )
 
 
