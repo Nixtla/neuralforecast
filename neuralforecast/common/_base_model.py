@@ -759,20 +759,33 @@ class BaseModel(pl.LightningModule):
 
             windows = windows[final_condition]
 
+            # Protection of empty windows
+            if final_condition.sum() == 0:
+                raise Exception("No windows available for training")
+
+            # Apply windows_batch_size sampling
+            if self.windows_batch_size is not None and windows.shape[0] > self.windows_batch_size:
+                sampled_indices = torch.randperm(windows.shape[0])[:self.windows_batch_size]
+                windows = windows[sampled_indices]
+
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
 
             # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
             if static is not None and not self.MULTIVARIATE:
-                static = torch.repeat_interleave(
+                # We need to align static with the sampled windows
+                # Since we sampled windows, we need to also sample the corresponding static features
+                static_repeated = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
-                static = static[final_condition]
-
-            # Protection of empty windows
-            if final_condition.sum() == 0:
-                raise Exception("No windows available for training")
+                static_repeated = static_repeated[final_condition]
+                
+                # If we sampled windows, sample the corresponding static features
+                if self.windows_batch_size is not None and static_repeated.shape[0] > self.windows_batch_size:
+                    static = static_repeated[sampled_indices]
+                else:
+                    static = static_repeated
 
             return windows, static, static_cols
 
