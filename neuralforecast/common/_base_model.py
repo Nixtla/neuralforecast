@@ -718,9 +718,19 @@ class BaseModel(pl.LightningModule):
                     "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
                 )
 
+            # Create windows using unfold (creates a view, very efficient)
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
+
+            # Sample windows immediately after unfold, before permutation
+            # This prevents materializing all windows in memory
+            if self.windows_batch_size is not None and windows.shape[2] > self.windows_batch_size * 2:
+                n_windows = windows.shape[2]
+                # Create 3x buffer to account for filtering
+                n_to_sample = min(self.windows_batch_size * 3, n_windows)
+                sampled_window_indices = torch.randperm(n_windows)[:n_to_sample]
+                windows = windows[:, :, sampled_window_indices, :]
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
@@ -742,20 +752,39 @@ class BaseModel(pl.LightningModule):
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            insample_condition = windows[:, : self.input_size, available_idx]
-            insample_condition = torch.sum(
-                insample_condition, axis=(1, -1)
-            )  # Sum over time & series dimension
-            final_condition = insample_condition >= min_insample_points
-
-            if self.h > 0:
-                outsample_condition = windows[:, self.input_size :, available_idx]
-                outsample_condition = torch.sum(
-                    outsample_condition, axis=(1, -1)
-                )  # Sum over time & series dimension
-                final_condition = (outsample_condition >= min_outsample_points) & (
-                    insample_condition >= min_insample_points
+            
+            if self.MULTIVARIATE:
+                # For multivariate: windows shape is [Ws, L + h, C, n_series]
+                insample_condition = windows[:, : self.input_size, available_idx, :]
+                insample_condition = torch.sum(
+                    insample_condition, axis=(1, 2)
                 )
+                final_condition = insample_condition >= min_insample_points
+
+                if self.h > 0:
+                    outsample_condition = windows[:, self.input_size :, available_idx, :]
+                    outsample_condition = torch.sum(
+                        outsample_condition, axis=(1, 2)
+                    )
+                    final_condition = (outsample_condition >= min_outsample_points) & (
+                        insample_condition >= min_insample_points
+                    )
+            else:
+                # For univariate: windows shape is [Ws * n_series, L + h, C, 1]
+                insample_condition = windows[:, : self.input_size, available_idx]
+                insample_condition = torch.sum(
+                    insample_condition, axis=(1, -1)
+                )
+                final_condition = insample_condition >= min_insample_points
+
+                if self.h > 0:
+                    outsample_condition = windows[:, self.input_size :, available_idx]
+                    outsample_condition = torch.sum(
+                        outsample_condition, axis=(1, -1)
+                    )
+                    final_condition = (outsample_condition >= min_outsample_points) & (
+                        insample_condition >= min_insample_points
+                    )
 
             windows = windows[final_condition]
 
@@ -763,7 +792,7 @@ class BaseModel(pl.LightningModule):
             if final_condition.sum() == 0:
                 raise Exception("No windows available for training")
 
-            # Apply windows_batch_size sampling
+            # Apply windows_batch_size
             if self.windows_batch_size is not None and windows.shape[0] > self.windows_batch_size:
                 sampled_indices = torch.randperm(windows.shape[0])[:self.windows_batch_size]
                 windows = windows[sampled_indices]
@@ -775,7 +804,6 @@ class BaseModel(pl.LightningModule):
             # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
             if static is not None and not self.MULTIVARIATE:
                 # We need to align static with the sampled windows
-                # Since we sampled windows, we need to also sample the corresponding static features
                 static_repeated = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
