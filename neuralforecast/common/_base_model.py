@@ -718,7 +718,6 @@ class BaseModel(pl.LightningModule):
                     "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
                 )
 
-            # Create windows using unfold (creates a view, very efficient)
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
