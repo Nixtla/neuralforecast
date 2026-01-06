@@ -804,7 +804,16 @@ class BaseModel(pl.LightningModule):
 
             print(f"Number of windows passing condition: {final_condition.sum()}/{len(final_condition)}")
             
-            windows = windows[final_condition]
+            # Get indices of valid windows
+            valid_indices = torch.where(final_condition)[0]
+
+            # Sample if we have too many
+            if self.windows_batch_size is not None and len(valid_indices) > self.windows_batch_size:
+                sampled_positions = torch.randperm(len(valid_indices))[:self.windows_batch_size]
+                valid_indices = valid_indices[sampled_positions]
+
+            # Only materialize the sampled windows
+            windows = windows[valid_indices]
             print_memory("13. After filtering windows (CRITICAL - likely OOM point)")
             print(f"    Windows shape after filtering: {windows.shape}")
 
