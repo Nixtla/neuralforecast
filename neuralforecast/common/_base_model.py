@@ -701,17 +701,29 @@ class BaseModel(pl.LightningModule):
         return model
 
     def _create_windows(self, batch, step):
+        def print_memory(label):
+            if torch.cuda.is_available():
+                allocated = torch.cuda.memory_allocated() / 1024**3  # GB
+                reserved = torch.cuda.memory_reserved() / 1024**3
+                print(f"{label}: Allocated={allocated:.2f}GB, Reserved={reserved:.2f}GB")
+        
         # Parse common data
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
         temporal = batch["temporal"]
 
         if step == "train":
+            print_memory("1. Start of _create_windows")
+            
             if self.val_size + self.test_size > 0:
                 cutoff = -self.val_size - self.test_size
                 temporal = temporal[:, :, :cutoff]
+            
+            print_memory("2. After cutoff")
 
             temporal = self.padder_train(temporal)
+            print_memory("3. After padding")
+            print(f"   Temporal shape: {temporal.shape}")
 
             if temporal.shape[-1] < window_size:
                 raise Exception(
@@ -721,22 +733,33 @@ class BaseModel(pl.LightningModule):
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
-
-            # Sample windows before permute
-            # windows shape: [n_series, C, Ws, window_size]
-            if self.windows_batch_size is not None and windows.shape[2] > self.windows_batch_size:
-                sampled_window_indices = torch.randperm(windows.shape[2])[:self.windows_batch_size]
-                windows = windows[:, :, sampled_window_indices, :]
+            print_memory("4. After unfold (should be small - it's a view)")
+            print(f"   Windows shape: {windows.shape}")
+            print(f"   Is view: {windows._base is not None}")
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
+                print_memory("5. After permute (multivariate)")
+                print(f"   Windows shape: {windows.shape}")
+                print(f"   Is view: {windows._base is not None}")
             else:
                 # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
                 windows_per_serie = windows.shape[2]
+                
                 windows = windows.permute(0, 2, 3, 1)
+                print_memory("5a. After first permute (univariate)")
+                print(f"    Windows shape: {windows.shape}")
+                print(f"    Is view: {windows._base is not None}")
+                
                 windows = windows.flatten(0, 1)
+                print_memory("5b. After flatten")
+                print(f"    Windows shape: {windows.shape}")
+                print(f"    Is view: {windows._base is not None}")
+                
                 windows = windows.unsqueeze(-1)
+                print_memory("5c. After unsqueeze")
+                print(f"    Windows shape: {windows.shape}")
 
             # Calculate minimum required available points based on fractions
             min_insample_points = max(
@@ -749,36 +772,41 @@ class BaseModel(pl.LightningModule):
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
             
-            if self.MULTIVARIATE:
-                # For multivariate: windows shape is [Ws, L + h, C, n_series]
-                insample_condition = windows[:, : self.input_size, available_idx, :]
-                insample_condition = torch.sum(insample_condition, axis=(1, 2))
-                final_condition = insample_condition >= min_insample_points
+            print_memory("6. Before availability filtering")
+            
+            insample_condition = windows[:, : self.input_size, available_idx]
+            print_memory("7. After slicing for insample_condition")
+            print(f"   insample_condition shape: {insample_condition.shape}")
+            
+            insample_condition = torch.sum(
+                insample_condition, axis=(1, -1)
+            )  # Sum over time & series dimension
+            print_memory("8. After sum on insample_condition")
+            print(f"   insample_condition shape after sum: {insample_condition.shape}")
+            
+            final_condition = insample_condition >= min_insample_points
+            print_memory("9. After creating final_condition")
 
-                if self.h > 0:
-                    outsample_condition = windows[:, self.input_size :, available_idx, :]
-                    outsample_condition = torch.sum(outsample_condition, axis=(1, 2))
-                    final_condition = (outsample_condition >= min_outsample_points) & (
-                        insample_condition >= min_insample_points
-                    )
-            else:
-                # For univariate: windows shape is [Ws * n_series, L + h, C, 1]
-                insample_condition = windows[:, : self.input_size, available_idx]
-                insample_condition = torch.sum(insample_condition, axis=(1, -1))
-                final_condition = insample_condition >= min_insample_points
+            if self.h > 0:
+                outsample_condition = windows[:, self.input_size :, available_idx]
+                print_memory("10. After slicing for outsample_condition")
+                print(f"    outsample_condition shape: {outsample_condition.shape}")
+                
+                outsample_condition = torch.sum(
+                    outsample_condition, axis=(1, -1)
+                )  # Sum over time & series dimension
+                print_memory("11. After sum on outsample_condition")
+                
+                final_condition = (outsample_condition >= min_outsample_points) & (
+                    insample_condition >= min_insample_points
+                )
+                print_memory("12. After combining conditions")
 
-                if self.h > 0:
-                    outsample_condition = windows[:, self.input_size :, available_idx]
-                    outsample_condition = torch.sum(outsample_condition, axis=(1, -1))
-                    final_condition = (outsample_condition >= min_outsample_points) & (
-                        insample_condition >= min_insample_points
-                    )
-
+            print(f"Number of windows passing condition: {final_condition.sum()}/{len(final_condition)}")
+            
             windows = windows[final_condition]
-
-            # Protection of empty windows
-            if windows.shape[0] == 0:
-                raise Exception("No windows available for training")
+            print_memory("13. After filtering windows (CRITICAL - likely OOM point)")
+            print(f"    Windows shape after filtering: {windows.shape}")
 
             # Parse Static data to match windows
             static = batch.get("static", None)
@@ -786,11 +814,20 @@ class BaseModel(pl.LightningModule):
 
             # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
             if static is not None and not self.MULTIVARIATE:
-                static_repeated = torch.repeat_interleave(
+                static = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
-                static = static_repeated[final_condition]
+                print_memory("14. After repeating static")
+                
+                static = static[final_condition]
+                print_memory("15. After filtering static")
 
+            # Protection of empty windows
+            if final_condition.sum() == 0:
+                raise Exception("No windows available for training")
+
+            print_memory("16. End of _create_windows")
+            
             return windows, static, static_cols
 
         elif step in ["predict", "val"]:
