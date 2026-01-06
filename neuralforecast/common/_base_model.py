@@ -722,15 +722,11 @@ class BaseModel(pl.LightningModule):
                 dimension=-1, size=window_size, step=self.step_size
             )
 
-            # Sample windows after unfold if windows_batch_size is set
-            # This prevents materializing too many windows in memory
-            if self.windows_batch_size is not None and self.windows_batch_size > 0:
-                n_windows = windows.shape[2]
-                if n_windows > self.windows_batch_size:
-                    # Sample with a buffer for filtering (5x)
-                    n_to_sample = min(self.windows_batch_size * 5, n_windows)
-                    sampled_indices = torch.randperm(n_windows)[:n_to_sample]
-                    windows = windows[:, :, sampled_indices, :]
+            # Sample windows before permute
+            # windows shape: [n_series, C, Ws, window_size]
+            if self.windows_batch_size is not None and windows.shape[2] > self.windows_batch_size:
+                sampled_window_indices = torch.randperm(windows.shape[2])[:self.windows_batch_size]
+                windows = windows[:, :, sampled_window_indices, :]
 
             if self.MULTIVARIATE:
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
@@ -784,13 +780,6 @@ class BaseModel(pl.LightningModule):
             if windows.shape[0] == 0:
                 raise Exception("No windows available for training")
 
-            # Apply windows_batch_size
-            if self.windows_batch_size is not None and windows.shape[0] > self.windows_batch_size:
-                final_indices = torch.randperm(windows.shape[0])[:self.windows_batch_size]
-                windows = windows[final_indices]
-            else:
-                final_indices = None
-
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
@@ -800,13 +789,7 @@ class BaseModel(pl.LightningModule):
                 static_repeated = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
-                static_repeated = static_repeated[final_condition]
-                
-                # Apply final sampling if it was applied to windows
-                if final_indices is not None:
-                    static = static_repeated[final_indices]
-                else:
-                    static = static_repeated
+                static = static_repeated[final_condition]
 
             return windows, static, static_cols
 
