@@ -1309,8 +1309,8 @@ class BaseModel(pl.LightningModule):
 
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows, device=windows_temporal.device)
             )
             windows = self._sample_windows(
                 windows_temporal=windows_temporal,
@@ -1416,8 +1416,8 @@ class BaseModel(pl.LightningModule):
         step_baseline_predictions = []
 
         for j in range(n_batches):
-            w_idxs = np.arange(
-                j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows), device=windows_temporal.device
             )
             windows = self._sample_windows(
                 windows_temporal=windows_temporal,
@@ -1600,8 +1600,8 @@ class BaseModel(pl.LightningModule):
 
             for i in range(n_batches):
                 # Create and normalize windows [Ws, L+H, C]
-                w_idxs = np.arange(
-                    i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+                w_idxs = torch.arange(
+                    i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows), device=windows_temporal.device
                 )
                 windows = self._sample_windows(
                     windows_temporal=windows_temporal,
@@ -1716,7 +1716,7 @@ class BaseModel(pl.LightningModule):
                     : self.windows_batch_size
                 ]        
         else:
-            w_idxs = np.arange(n_windows, device=windows_temporal.device)
+            w_idxs = torch.arange(n_windows, device=windows_temporal.device)
         windows = self._sample_windows(
             windows_temporal=windows_temporal, static=static, static_cols=static_cols, temporal_cols=temporal_cols, w_idxs=w_idxs, final_condition=final_condition
         )
