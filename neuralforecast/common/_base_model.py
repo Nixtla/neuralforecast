@@ -1799,8 +1799,8 @@ class BaseModel(pl.LightningModule):
         batch_sizes = []
         for i in range(n_batches):
             # Create and normalize windows [Ws, L + h, C, n_series]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows), device=windows_temporal.device
             )
             windows = self._sample_windows(
                 windows_temporal,
