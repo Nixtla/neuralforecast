@@ -771,7 +771,7 @@ class BaseModel(pl.LightningModule):
             if final_condition.sum() == 0:
                 raise Exception("No windows available for training")
 
-            final_condition = torch.nonzero_static(final_condition, size=final_condition.sum()).squeeze(-1)
+            final_condition = torch.nonzero(final_condition).squeeze(-1)
 
             return windows, static, static_cols, final_condition
 
