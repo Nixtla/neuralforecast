@@ -1703,17 +1703,20 @@ class BaseModel(pl.LightningModule):
             batch, step="train"
         )
         n_windows = len(final_condition)
-        if n_windows < self.windows_batch_size:
-            w_idxs = torch.randint(
-                0,
-                n_windows,
-                size=(self.windows_batch_size,),
-                device=windows_temporal.device,
-            )
+        if self.windows_batch_size is not None:
+            if n_windows < self.windows_batch_size:
+                w_idxs = torch.randint(
+                    0,
+                    n_windows,
+                    size=(self.windows_batch_size,),
+                    device=windows_temporal.device,
+                )
+            else:
+                w_idxs = torch.randperm(n_windows, device=windows_temporal.device)[
+                    : self.windows_batch_size
+                ]        
         else:
-            w_idxs = torch.randperm(n_windows, device=windows_temporal.device)[
-                : self.windows_batch_size
-            ]        
+            w_idxs = np.arange(n_windows, device=windows_temporal.device)
         windows = self._sample_windows(
             windows_temporal=windows_temporal, static=static, static_cols=static_cols, temporal_cols=temporal_cols, w_idxs=w_idxs, final_condition=final_condition
         )
