@@ -57,6 +57,7 @@
           {
             "group": "Special Topics",
             "pages": [
+              "docs/tutorials/explainability.html",
               "docs/tutorials/hierarchical_forecasting.html",
               "docs/tutorials/distributed_neuralforecast.html",
               "docs/tutorials/intermittent_data.html",

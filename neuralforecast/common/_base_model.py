@@ -757,8 +757,6 @@ class BaseModel(pl.LightningModule):
                     insample_condition >= min_insample_points
                 )
 
-            windows = windows[final_condition]
-
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
@@ -768,13 +766,14 @@ class BaseModel(pl.LightningModule):
                 static = torch.repeat_interleave(
                     static, repeats=windows_per_serie, dim=0
                 )
-                static = static[final_condition]
 
             # Protection of empty windows
             if final_condition.sum() == 0:
                 raise Exception("No windows available for training")
 
-            return windows, static, static_cols
+            final_condition = torch.nonzero(final_condition).squeeze(-1)
+
+            return windows, static, static_cols, final_condition
 
         elif step in ["predict", "val"]:
 
@@ -837,7 +836,9 @@ class BaseModel(pl.LightningModule):
                         static, repeats=windows_per_serie, dim=0
                     )
 
-            return windows, static, static_cols
+            final_condition = torch.arange(windows.shape[0], device=windows.device)
+
+            return windows, static, static_cols, final_condition
         else:
             raise ValueError(f"Unknown step {step}")
 
@@ -885,21 +886,13 @@ class BaseModel(pl.LightningModule):
         return y_hat
 
     def _sample_windows(
-        self, windows_temporal, static, static_cols, temporal_cols, step, w_idxs=None
+        self, windows_temporal, static, static_cols, temporal_cols, w_idxs, final_condition,  
     ):
-        if step == "train" and self.windows_batch_size is not None:
-            n_windows = windows_temporal.shape[0]
-            w_idxs = np.random.choice(
-                n_windows,
-                size=self.windows_batch_size,
-                replace=(n_windows < self.windows_batch_size),
-            )
-        windows_sample = windows_temporal
-        if w_idxs is not None:
-            windows_sample = windows_temporal[w_idxs]
+        w_idxs_final = final_condition[w_idxs]
+        windows_sample = windows_temporal[w_idxs_final]
 
-            if static is not None and not self.MULTIVARIATE:
-                static = static[w_idxs]
+        if static is not None and not self.MULTIVARIATE:
+            static = static[w_idxs_final]
 
         windows_batch = dict(
             temporal=windows_sample,
@@ -1293,10 +1286,10 @@ class BaseModel(pl.LightningModule):
     def _predict_step_recurrent(self, batch, batch_idx):
         self.input_size = self.inference_input_size
         temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols = self._create_windows(
+        windows_temporal, static, static_cols, final_condition = self._create_windows(
             batch, step="predict"
         )
-        n_windows = len(windows_temporal)
+        n_windows = len(final_condition)
         y_idx = batch["y_idx"]
 
         # Number of windows in batch
@@ -1316,16 +1309,16 @@ class BaseModel(pl.LightningModule):
 
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows), device=windows_temporal.device
             )
             windows = self._sample_windows(
-                windows_temporal,
-                static,
-                static_cols,
-                temporal_cols,
-                step="predict",
+                windows_temporal=windows_temporal,
+                static=static,
+                static_cols=static_cols,
+                temporal_cols=temporal_cols,
                 w_idxs=w_idxs,
+                final_condition=final_condition,
             )
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
@@ -1405,10 +1398,10 @@ class BaseModel(pl.LightningModule):
     ):
         """Compute explanations for a single prediction step."""
         # Create windows and normalize for explanations
-        windows_temporal, static, static_cols = self._create_windows(
+        windows_temporal, static, static_cols, final_condition = self._create_windows(
             batch, step="predict"
         )
-        n_windows = len(windows_temporal)
+        n_windows = len(final_condition)
 
         # Process windows in batches
         windows_batch_size = self.inference_windows_batch_size
@@ -1423,16 +1416,16 @@ class BaseModel(pl.LightningModule):
         step_baseline_predictions = []
 
         for j in range(n_batches):
-            w_idxs = np.arange(
-                j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                j * windows_batch_size, min((j + 1) * windows_batch_size, n_windows), device=windows_temporal.device
             )
             windows = self._sample_windows(
-                windows_temporal,
-                static,
-                static_cols,
-                temporal_cols,
-                step="predict",
+                windows_temporal=windows_temporal,
+                static=static,
+                static_cols=static_cols,
+                temporal_cols=temporal_cols,
                 w_idxs=w_idxs,
+                final_condition=final_condition,
             )
             windows = self._normalization(windows=windows, y_idx=y_idx)
 
@@ -1584,11 +1577,11 @@ class BaseModel(pl.LightningModule):
         
         else:
             # Non-recursive case remains unchanged
-            windows_temporal, static, static_cols = self._create_windows(
+            windows_temporal, static, static_cols, final_condition = self._create_windows(
                 batch,
                 step="predict",
             )
-            n_windows = len(windows_temporal)
+            n_windows = len(final_condition)
             y_idx = batch["y_idx"]
 
             # Number of windows in batch
@@ -1607,16 +1600,16 @@ class BaseModel(pl.LightningModule):
 
             for i in range(n_batches):
                 # Create and normalize windows [Ws, L+H, C]
-                w_idxs = np.arange(
-                    i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+                w_idxs = torch.arange(
+                    i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows), device=windows_temporal.device
                 )
                 windows = self._sample_windows(
-                    windows_temporal,
-                    static,
-                    static_cols,
-                    temporal_cols,
-                    step="predict",
+                    windows_temporal=windows_temporal,
+                    static=static,
+                    static_cols=static_cols,
+                    temporal_cols=temporal_cols,
                     w_idxs=w_idxs,
+                    final_condition=final_condition,
                 )
                 windows = self._normalization(windows=windows, y_idx=y_idx)
 
@@ -1706,11 +1699,26 @@ class BaseModel(pl.LightningModule):
         y_idx = batch["y_idx"]
 
         temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols = self._create_windows(
+        windows_temporal, static, static_cols, final_condition = self._create_windows(
             batch, step="train"
         )
+        n_windows = len(final_condition)
+        if self.windows_batch_size is not None:
+            if n_windows < self.windows_batch_size:
+                w_idxs = torch.randint(
+                    0,
+                    n_windows,
+                    size=(self.windows_batch_size,),
+                    device=windows_temporal.device,
+                )
+            else:
+                w_idxs = torch.randperm(n_windows, device=windows_temporal.device)[
+                    : self.windows_batch_size
+                ]        
+        else:
+            w_idxs = torch.arange(n_windows, device=windows_temporal.device)
         windows = self._sample_windows(
-            windows_temporal, static, static_cols, temporal_cols, step="train"
+            windows_temporal=windows_temporal, static=static, static_cols=static_cols, temporal_cols=temporal_cols, w_idxs=w_idxs, final_condition=final_condition
         )
         original_outsample_y = torch.clone(
             windows["temporal"][:, self.input_size :, y_idx]
@@ -1777,8 +1785,8 @@ class BaseModel(pl.LightningModule):
             return np.nan
 
         temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols = self._create_windows(batch, step="val")
-        n_windows = len(windows_temporal)
+        windows_temporal, static, static_cols, final_condition = self._create_windows(batch, step="val")
+        n_windows = len(final_condition)
         y_idx = batch["y_idx"]
 
         # Number of windows in batch
@@ -1791,16 +1799,16 @@ class BaseModel(pl.LightningModule):
         batch_sizes = []
         for i in range(n_batches):
             # Create and normalize windows [Ws, L + h, C, n_series]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
+            w_idxs = torch.arange(
+                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows), device=windows_temporal.device
             )
             windows = self._sample_windows(
                 windows_temporal,
                 static,
                 static_cols,
                 temporal_cols,
-                step="val",
                 w_idxs=w_idxs,
+                final_condition=final_condition,
             )
             original_outsample_y = torch.clone(
                 windows["temporal"][:, self.input_size :, y_idx]
