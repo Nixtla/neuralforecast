@@ -57,8 +57,8 @@ logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 ## 2. Read the data
 
 For this tutorial, we use part of the hourly M4 dataset. It is stored in
-a parquet file for efficiency. You can use ordinary pandas operations to
-read your data in other formats likes `.csv`.
+a parquet file for efficiency. However, you can use ordinary pandas
+operations to read your data in other formats likes `.csv`.
 
 The input to `NeuralForecast` is always a data frame in [long
 format](https://www.theanalysisfactor.com/wide-and-long-data/) with
@@ -89,10 +89,10 @@ Y_df.head()
 | 3   | H1        | 4   | 559.0 |
 | 4   | H1        | 5   | 511.0 |
 
-For simplicity, we use only a single series to explore in detail the
-cross-validation functionality. Also, let’s use the first 700 time
-steps, such that we work with round numbers, making it easier to
-visualize and understand cross-validation.
+For simplicity, we focus on a single time series to explore the
+cross-validation functionality in detail. We also use only the first 700
+time steps, which allows us to work with round numbers and makes the
+cross-validation process easier to visualize and understand.
 
 ```python
 Y_df = Y_df.query("unique_id == 'H1'")[:700]
@@ -167,10 +167,10 @@ plt.tight_layout()
 
 ![](cross_validation_files/figure-markdown_strict/cell-9-output-1.png)
 
-In the figure above, we see that we have 4 cutoff points, which
-correspond to our four cross-validation windows. Of course, notice that
-the windows are set from the end of the dataset. That way, the model
-trains on past data to predict future data.
+In the figure above, we observe four cutoff points, each corresponding
+to a cross-validation window. Note that these windows are defined from
+the end of the dataset, ensuring that the model is trained on past data
+to predict future data.
 
 > **Important note**
 >
@@ -315,10 +315,12 @@ plt.tight_layout()
 ![](cross_validation_files/figure-markdown_strict/cell-15-output-1.png)
 
 In the figure above, we see that our two folds overlap between time
-steps 601 and 650, since the step size is 50. This happens because: -
-fold 1: model is trained using time steps 0 to 550 and predicts 551 to
-650 (h=100) - fold 2: model is trained using time steps 0 to 600
-(`step_size=50`) and predicts 601 to 700
+steps 601 and 650, since the step size is 50. This happens because:
+
+-   fold 1: model is trained using time steps 0 to 550 and predicts 551
+    to 650 (h=100)
+-   fold 2: model is trained using time steps 0 to 600 (`step_size=50`)
+    and predicts 601 to 700
 
 Be aware that when evaluating a model trained with overlapping
 cross-validation windows, some time steps have more than one prediction.
