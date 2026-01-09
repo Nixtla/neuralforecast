@@ -113,7 +113,7 @@ uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
 uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
 ```
 
-You can install other optional dependencies using
+You can install other optional dependencies:
 
 ```sh
 uv pip install -e ".[dev,aws,spark]"
@@ -128,7 +128,7 @@ pre-commit run --files neuralforecast/*
 
 #### Running tests
 
-To run the tests, run
+To run the tests:
 
 ```sh
 uv run pytest
@@ -165,31 +165,38 @@ After making your changes and testing them:
 
 #### Viewing documentation locally
 
-The new documentation pipeline relies on `quarto`, `mintlify` and `lazydocs`.
+The documentation pipeline relies on `quarto`, `mintlify` and `griffe2md`.
 
-#### install quarto
+**Install Quarto:**
 
-Install `quarto` from &rarr; [this link](https://quarto.org/docs/get-started/)
+Install `quarto` from [the official website](https://quarto.org/docs/get-started/)
 
-#### install mintlify
+**Install Mintlify:**
 
 > [!NOTE]
 > Please install Node.js before proceeding.
 
-```sh
+```bash
 npm i -g mint
 ```
 
-For additional instructions, you can read about it &rarr; [this link](https://mintlify.com/docs/installation).
+For additional instructions, see the [Mintlify installation guide](https://mintlify.com/docs/installation).
+
+**Install documentation dependencies:**
 
 ```sh
-uv pip install -e '.[dev, docs]' lazydocs
+uv pip install -e ".[dev,aws,spark,docs]"
+```
+
+**Generate documentation:**
+
+```bash
 make all_docs
 ```
 
-Finally to view the documentation
+**Preview documentation locally:**
 
-```sh
+```bash
 make preview_docs
 ```
 
@@ -198,7 +205,7 @@ make preview_docs
 * The docs are automatically generated from the docstrings in the `neuralforecast` folder.
 * To contribute, ensure your docstrings follow the Google style format.
 * Once your docstring is correctly written, the documentation framework will scrape it and regenerate the corresponding `.mdx` files and your changes will then appear in the updated docs.
-* To contribute, examples/how-to-guides, make sure you submit clean notebooks, with cleared formatted LaTeX, links and images.
+* For examples and how-to-guides, make sure you submit clean notebooks with cleared outputs, formatted LaTeX, links and images.
 * Make an appropriate entry in the `docs/mintlify/mint.json` file.
 * Run `make all_docs` to regenerate the documentation.
 * Run `make preview_docs` to view and test the documentation locally.
