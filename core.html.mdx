@@ -158,7 +158,7 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. | <code>None</code>
 `static_df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
-`n_windows` | <code>[int](#int)</code> | Number of windows used for cross validation. | <code>1</code>
+`n_windows` | <code>([int](#int), None)</code> | Number of windows used for cross validation. If None, define `test_size`. | <code>1</code>
 `step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
 `val_size` | <code>[int](#int)</code> | Length of validation size. If passed, set `n_windows=None`. Defaults to 0. | <code>0</code>
 `test_size` | <code>[int](#int)</code> | Length of test size. If passed, set `n_windows=None`. | <code>None</code>
