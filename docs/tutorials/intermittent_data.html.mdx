@@ -15,10 +15,11 @@ ubiquity of this type of series, special methods have been developed to
 forecast them. The first was from [Croston (1972)](#ref), followed by
 several variants and by different aggregation frameworks.
 
-The models of [NeuralForecast](https://nixtla.github.io/statsforecast/)
-can be trained to model sparse or intermittent time series using a
-`Poisson` distribution loss. By the end of this tutorial, you’ll have a
-good understanding of these models and how to use them.
+The models of
+[NeuralForecast](https://nixtlaverse.nixtla.io/statsforecast/) can be
+trained to model sparse or intermittent time series using a `Poisson`
+distribution loss. By the end of this tutorial, you’ll have a good
+understanding of these models and how to use them.
 
 **Outline:**
 
@@ -30,7 +31,7 @@ good understanding of these models and how to use them.
 > **Tip**
 >
 > You can use Colab to run this Notebook interactively
-> <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/IntermittentData.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+> <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/intermittent_data.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 > **Warning**
 >
@@ -42,7 +43,7 @@ good understanding of these models and how to use them.
 
 We assume that you have NeuralForecast already installed. If not, check
 this guide for instructions on [how to install
-NeuralForecast](https://nixtla.github.io/neuralforecast/examples/installation.html)
+NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/examples/installation.html)
 
 Install the necessary packages using `pip install neuralforecast`
 
@@ -86,7 +87,7 @@ Y_df = Y_df.reset_index(drop=True)
 Plot some series using the plot method from the `StatsForecast` class.
 This method prints 8 random series from the dataset and is useful for
 basic
-[EDA](https://nixtla.github.io/statsforecast/core.html#statsforecast.plot).
+[EDA](https://nixtlaverse.nixtla.io/statsforecast/core.html#statsforecast.plot).
 
 ```python
 plot_series(Y_df)
@@ -234,7 +235,7 @@ across the historical data and predicting the period following it.
 
 ![](https://raw.githubusercontent.com/Nixtla/statsforecast/main/nbs/imgs/ChainedWindows.gif)
 
-[NeuralForecast](https://nixtla.github.io/neuralforecast/) has an
+[NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/) has an
 implementation of time series cross-validation that is fast and easy to
 use.
 

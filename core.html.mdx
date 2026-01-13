@@ -21,7 +21,7 @@ NeuralForecast(
 ```
 
 The `core.StatsForecast` class allows you to efficiently fit multiple `NeuralForecast` models
-for large sets of time series. It operates with pandas DataFrame `df` that identifies series
+for large sets of time series. It operates with a pandas DataFrame `df` that identifies series
 and datestamps with the `unique_id` and `ds` columns. The `y` column denotes the target
 time series variable.
 
@@ -31,8 +31,8 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `models` | <code>[List](#typing.List)\[[Any](#typing.Any)\]</code> | Instantiated `neuralforecast.models` see [collection here](./models). | *required*
 `freq` | <code>[str](#str) or [int](#int)</code> | Frequency of the data. Must be a valid pandas or polars offset alias, or an integer. | *required*
-`local_scaler_type` | <code>[str](#str)</code> | Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
-`local_static_scaler_type` | <code>[str](#str)</code> | Scaler to apply to static exogenous features before fitting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. Defaults to None. | <code>None</code>
+`local_scaler_type` | <code>[str](#str)</code> | Scaler to apply per-serie to temporal features before fitting, which is inverted after predicting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. | <code>None</code>
+`local_static_scaler_type` | <code>[str](#str)</code> | Scaler to apply to static exogenous features before fitting. Can be 'standard', 'robust', 'robust-iqr', 'minmax' or 'boxcox'. | <code>None</code>
 
 **Returns:**
 
@@ -57,25 +57,25 @@ fit(
 )
 ```
 
-Fit the core.NeuralForecast.
+Fit the core.NeuralForecast
 
-Fit `models` to a large set of time series from DataFrame `df`.
+Fit `models` to a large set of time series from DataFrame `df`
 and store fitted models for later inspection.
 
 **Parameters:**
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`df` | <code>pandas, polars or spark DataFrame, or a list of parquet files containing the series</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. Defaults to None. | <code>None</code>
-`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
-`val_size` | <code>[int](#int)</code> | Size of validation set. Defaults to 0. | <code>0</code>
-`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when NeuralForecast object was instantiated. Defaults to False. | <code>False</code>
-`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
-`id_col` | <code>[str](#str)</code> | Column that identifies each serie. Defaults to 'unique_id'. | <code>'unique_id'</code>
-`time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Defaults to 'ds'. | <code>'ds'</code>
-`target_col` | <code>[str](#str)</code> | Column that contains the target. Defaults to 'y'. | <code>'y'</code>
+`df` | <code>pandas, polars or spark DataFrame, or a list of parquet files containing the series</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. | <code>None</code>
+`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. | <code>None</code>
+`val_size` | <code>[int](#int)</code> | Size of validation set. | <code>0</code>
+`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when NeuralForecast object was instantiated. | <code>False</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. | <code>False</code>
+`id_col` | <code>[str](#str)</code> | Column that identifies each serie. | <code>'unique_id'</code>
+`time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. | <code>'ds'</code>
+`target_col` | <code>[str](#str)</code> | Column that contains the target. | <code>'y'</code>
 `distributed_config` | <code>[DistributedConfig](#neuralforecast.DistributedConfig)</code> | Configuration to use for DDP training. Currently only spark is supported. | <code>None</code>
-`prediction_intervals` | <code>[PredictionIntervals](#neuralforecast.utils.PredictionIntervals)</code> | Configuration to calibrate prediction intervals (Conformal Prediction). Defaults to None. | <code>None</code>
+`prediction_intervals` | <code>[PredictionIntervals](#neuralforecast.utils.PredictionIntervals)</code> | Configuration to calibrate prediction intervals (Conformal Prediction). | <code>None</code>
 
 **Returns:**
 
@@ -107,14 +107,14 @@ Use stored fitted `models` to predict large set of time series from DataFrame `d
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If a DataFrame is passed, it is used to generate forecasts. Defaults to None. | <code>None</code>
-`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
-`futr_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with \[`unique_id`, `ds`\] columns and `df`'s future exogenous. Defaults to None. | <code>None</code>
-`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
+`df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If a DataFrame is passed, it is used to generate forecasts. | <code>None</code>
+`static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. | <code>None</code>
+`futr_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with \[`unique_id`, `ds`\] columns and `df`'s future exogenous. | <code>None</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. | <code>False</code>
 `engine` | <code>spark session</code> | Distributed engine for inference. Only used if df is a spark dataframe or if fit was called on a spark dataframe. | <code>None</code>
-`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
-`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
-`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None. | <code>None</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. | <code>None</code>
+`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. | <code>None</code>
 `data_kwargs` | <code>[kwargs](#kwargs)</code> | Extra arguments to be passed to the dataset within each model. | <code>{}</code>
 
 **Returns:**
@@ -156,22 +156,22 @@ models through multiple windows, in either chained or rolled manner.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. Defaults to None. | <code>None</code>
+`df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. | <code>None</code>
 `static_df` | <code>pandas or polars DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. Defaults to None. | <code>None</code>
-`n_windows` | <code>[int](#int)</code> | Number of windows used for cross validation. Defaults to 1. | <code>1</code>
-`step_size` | <code>[int](#int)</code> | Step size between each window. Defaults to 1. | <code>1</code>
+`n_windows` | <code>([int](#int), None)</code> | Number of windows used for cross validation. If None, define `test_size`. | <code>1</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
 `val_size` | <code>[int](#int)</code> | Length of validation size. If passed, set `n_windows=None`. Defaults to 0. | <code>0</code>
-`test_size` | <code>[int](#int)</code> | Length of test size. If passed, set `n_windows=None`. Defaults to None. | <code>None</code>
-`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when object was instantiated. Defaults to False. | <code>False</code>
-`verbose` | <code>[bool](#bool)</code> | Print processing steps. Defaults to False. | <code>False</code>
-`refit` | <code>[bool](#bool) or [int](#int)</code> | Retrain model for each cross validation window. If False, the models are trained at the beginning and then used to predict each window. If positive int, the models are retrained every `refit` windows. Defaults to False. | <code>False</code>
-`id_col` | <code>[str](#str)</code> | Column that identifies each serie. Defaults to 'unique_id'. | <code>'unique_id'</code>
+`test_size` | <code>[int](#int)</code> | Length of test size. If passed, set `n_windows=None`. | <code>None</code>
+`use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when object was instantiated. | <code>False</code>
+`verbose` | <code>[bool](#bool)</code> | Print processing steps. | <code>False</code>
+`refit` | <code>[bool](#bool) or [int](#int)</code> | Retrain model for each cross validation window. If False, the models are trained at the beginning and then used to predict each window. If positive int, the models are retrained every `refit` windows. | <code>False</code>
+`id_col` | <code>[str](#str)</code> | Column that identifies each serie. | <code>'unique_id'</code>
 `time_col` | <code>[str](#str)</code> | Column that identifies each timestep, its values can be timestamps or integers. Defaults to 'ds'. | <code>'ds'</code>
-`target_col` | <code>[str](#str)</code> | Column that contains the target. Defaults to 'y'. | <code>'y'</code>
+`target_col` | <code>[str](#str)</code> | Column that contains the target. | <code>'y'</code>
 `prediction_intervals` | <code>[PredictionIntervals](#neuralforecast.utils.PredictionIntervals)</code> | Configuration to calibrate prediction intervals (Conformal Prediction). Defaults to None. | <code>None</code>
-`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
-`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
-`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. Defaults to None. | <code>None</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. | <code>None</code>
+`h` | <code>[int](#int)</code> | Forecasting horizon. If None, uses the horizon of the fitted models. | <code>None</code>
 `data_kwargs` | <code>[kwargs](#kwargs)</code> | Extra arguments to be passed to the dataset within each model. | <code>{}</code>
 
 **Returns:**
@@ -195,9 +195,9 @@ to predict historic values of a time series from the stored dataframe.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`step_size` | <code>[int](#int)</code> | Step size between each window. Defaults to 1. | <code>1</code>
-`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. Defaults to None. | <code>None</code>
-`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. Defaults to None. | <code>None</code>
+`step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
+`level` | <code>list of ints or floats</code> | Confidence levels between 0 and 100. | <code>None</code>
+`quantiles` | <code>list of floats</code> | Alternative to level, target quantiles to predict. | <code>None</code>
 
 **Returns:**
 
@@ -222,9 +222,9 @@ to get them change the individual model `**trainer_kwargs` to include `enable_ch
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `path` | <code>[str](#str)</code> | Directory to save current status. | *required*
-`model_index` | <code>[list](#list)</code> | List to specify which models from list of self.models to save. Defaults to None. | <code>None</code>
-`save_dataset` | <code>[bool](#bool)</code> | Whether to save dataset or not. Defaults to True. | <code>True</code>
-`overwrite` | <code>[bool](#bool)</code> | Whether to overwrite files or not. Defaults to False. | <code>False</code>
+`model_index` | <code>[list](#list)</code> | List to specify which models from list of self.models to save. | <code>None</code>
+`save_dataset` | <code>[bool](#bool)</code> | Whether to save dataset or not. | <code>True</code>
+`overwrite` | <code>[bool](#bool)</code> | Whether to overwrite files or not. | <code>False</code>
 
 #### `NeuralForecast.load`
 

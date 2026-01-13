@@ -2,7 +2,7 @@
 title: Data Requirements
 ---
 
-> Dataset input requirments
+> Dataset input requirements
 
 In this example we will go through the dataset input requirements of the
 `core.NeuralForecast` class.
@@ -15,7 +15,7 @@ international forecasting competition (Smyl 2019, Semenoglou 2021).
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Data_Format.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/getting-started/datarequirements.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## Long format
 
@@ -94,7 +94,7 @@ Y_df
 
 In this example `Y_df` only contains two columns: `timestamp`, and
 `value`. To use `NeuralForecast` we have to include the `unique_id`
-column and rename the previuos ones.
+column and rename the previous ones.
 
 ```python
 Y_df['unique_id'] = 1. # We can add an integer as identifier

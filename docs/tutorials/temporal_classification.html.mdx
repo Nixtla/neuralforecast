@@ -12,7 +12,7 @@ predictive power of logistic regression.
 
 <br/>NHITS’s inputs are static exogenous $\mathbf{x}^{(s)}$, historic
 exogenous $\mathbf{x}^{(h)}_{[:t]}$, exogenous available at the time of
-the prediction $\mathbf{x}^{(f)}_{[:t+H]}$ and autorregresive features
+the prediction $\mathbf{x}^{(f)}_{[:t+H]}$ and autoregressive features
 $\mathbf{y}_{[:t]}$, each of these inputs is further decomposed into
 categorical and continuous. The network uses a multi-quantile regression
 to model the following conditional
@@ -25,7 +25,7 @@ evaluate predictions.
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Temporal_Classifiers.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/temporal_classification.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## 1. Installing NeuralForecast
 
@@ -119,7 +119,7 @@ the `NHITS` we changed the default hidden size for both encoder and
 decoders.
 
 See the `NHITS` and `MLP` [model
-documentation](https://nixtla.github.io/neuralforecast/models.mlp.html).
+documentation](https://nixtlaverse.nixtla.io/neuralforecast/models.mlp.html).
 
 > **Warning**
 >
@@ -204,7 +204,7 @@ Y_hat_df
 
 ## 4. Plot and Evaluate Predictions
 
-Finally, we plot the forecasts of both models againts the real values.
+Finally, we plot the forecasts of both models against the real values.
 And evaluate the accuracy of the `MLP` and `NHITS` temporal classifiers.
 
 ```python

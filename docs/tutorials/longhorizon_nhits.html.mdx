@@ -6,7 +6,7 @@ Long-horizon forecasting is challenging because of the *volatility* of
 the predictions and the *computational complexity*. To solve this
 problem we created the [NHITS](https://arxiv.org/abs/2201.12886) model
 and made the code available [NeuralForecast
-library](https://nixtla.github.io/neuralforecast/models.nhits.html).
+library](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html).
 `NHITS` specializes its partial outputs in the different frequencies of
 the time series through hierarchical interpolation and multi-rate input
 processing.
@@ -23,7 +23,7 @@ computational cost (50x faster).
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/LongHorizon_with_NHITS.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/longhorizon_nhits.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## 1. Installing NeuralForecast
 
@@ -43,7 +43,7 @@ contains static features for each time-series (none for ETTm2). For this
 example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
-long format and have a simmilar structure than our data set.
+long format and have a similar structure to our data set.
 
 ```python
 import pandas as pd

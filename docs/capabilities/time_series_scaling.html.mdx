@@ -39,7 +39,7 @@ with both methods on an Eletricity Price Forecasting (EPF) task.
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Time_Series_Scaling.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/capabilities/time_series_scaling.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## 1. Install `Neuralforecast`
 
@@ -217,7 +217,7 @@ the window level. It is performed at each training iteration for each
 window of the batch, for both target variable and temporal exogenous
 covariates. For more details, see [Olivares et
 al. (2023)](https://arxiv.org/abs/2305.07089) and
-https://nixtla.github.io/neuralforecast/common.scalers.html.
+https://nixtlaverse.nixtla.io/neuralforecast/common.scalers.html.
 
 ### 4.a. Instantiate model and `Neuralforecast` class
 
@@ -228,8 +228,8 @@ use the `TimesNet` model and `robust` scaler, recently proposed by Wu,
 Haixu, et al. (2022). First instantiate the model with the desired
 parameters.
 
-Visit https://nixtla.github.io/neuralforecast/common.scalers.html for a
-complete list of supported scalers.
+Visit https://nixtlaverse.nixtla.io/neuralforecast/common.scalers.html
+for a complete list of supported scalers.
 
 ```python
 horizon = 24 # day-ahead daily forecast

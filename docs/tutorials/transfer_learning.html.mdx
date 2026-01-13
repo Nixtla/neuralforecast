@@ -2,6 +2,8 @@
 title: Transfer Learning
 ---
 
+> Explore transfer learning for time series forecasting
+
 Transfer learning refers to the process of pre-training a flexible model
 on a large dataset and using it later on other data with little to no
 training. It is one of the most outstanding 🚀 achievements in Machine
@@ -9,7 +11,7 @@ Learning 🧠 and has many practical applications.
 
 For time series forecasting, the technique allows you to get
 lightning-fast predictions ⚡ bypassing the tradeoff between accuracy
-and speed (more than 30 times faster than our alreadsy fast
+and speed (more than 30 times faster than our already fast
 [autoARIMA](https://github.com/Nixtla/statsforecast) for a similar
 accuracy).
 
@@ -24,7 +26,7 @@ Evaluate Results<br/>
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Transfer_Learning.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/transfer_learning.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## 1. Installing Libraries
 
@@ -55,7 +57,7 @@ logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 
 This example will automatically run on GPUs if available. **Make sure**
 cuda is available. (If you need help to put this into production send us
-an email or join or community, we also offer a fully hosted solution)
+an email or join our community, we also offer a fully hosted solution)
 
 ```python
 torch.cuda.is_available()
@@ -76,7 +78,7 @@ contains static features for each time-series (none for M4). For this
 example we will only use `Y_df`.
 
 If you want to use your own data just replace `Y_df`. Be sure to use a
-long format and have a simmilar structure than our data set.
+long format and have a similar structure to our data set.
 
 ```python
 Y_df, _, _ = M4.load(directory='./', group='Monthly', cache=True)

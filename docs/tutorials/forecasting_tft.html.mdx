@@ -7,7 +7,7 @@ the most popular transformer-based model for time-series forecasting. In
 summary, TFT combines gating layers, an LSTM recurrent encoder, with
 multi-head attention layers for a multi-step forecasting strategy
 decoder. For more details on the Nixtla’s TFT implementation visit [this
-link](https://nixtla.github.io/neuralforecast/models.tft.html).
+link](https://nixtlaverse.nixtla.io/neuralforecast/models.tft.html).
 
 In this notebook we show how to train the TFT model on the Texas
 electricity market load data (ERCOT). Accurately forecasting electricity
@@ -21,7 +21,7 @@ validation.
 
 You can run these experiments using GPU with Google Colab.
 
-<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/examples/Forecasting_TFT.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/forecasting_tft.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 ## 1. Libraries
 
@@ -121,7 +121,7 @@ models = [AutoTFT(h=horizon,
 > forecasting. For producing probabilistic outputs, simply modify the
 > loss to one of our `DistributionLoss`. The complete list of losses is
 > available in [this
-> link](https://nixtla.github.io/neuralforecast/losses.pytorch.html)
+> link](https://nixtlaverse.nixtla.io/neuralforecast/losses.pytorch.html)
 
 > **Important**
 >
@@ -220,7 +220,7 @@ ax.grid()
 The `cross_validation` method allows you to simulate multiple historic
 forecasts, greatly simplifying pipelines by replacing for loops with
 `fit` and `predict` methods. See [this
-tutorial](https://nixtla.github.io/statsforecast/examples/getting_started_complete.html)
+tutorial](https://nixtlaverse.nixtla.io/statsforecast/examples/getting_started_complete.html)
 for an animation of how the windows are defined.
 
 With time series data, cross validation is done by defining a sliding

@@ -23,7 +23,7 @@ and adapted into $\mathbf{\hat{y}}_{[t+1:t+H],[q]}$ through MLPs.
 **References**
 
 - [Jeffrey L. Elman (1990). “Finding Structure in
-Time”.](https://onlinelibrary.wiley.com/doiabs/10.1207/s15516709cog1402_1)
+Time”.](https://onlinelibrary.wiley.com/doi/abs/10.1207/s15516709cog1402_1)
 - [Cho, K., van Merrienboer, B., Gülcehre, C., Bougares, F., Schwenk, H.,
 & Bengio, Y. (2014). Learning phrase representations using RNN
 encoder-decoder for statistical machine
