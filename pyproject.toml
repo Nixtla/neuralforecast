@@ -11,17 +11,17 @@ authors = [
 ]
 license = {text = "Apache-2.0"}
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["time-series", "forecasting", "deep-learning"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "License :: OSI Approved :: Apache Software License",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "coreforecast>=0.0.6",
@@ -73,7 +73,7 @@ version = {attr = "neuralforecast.__version__"}
 packages = ["neuralforecast"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 lint.select = ["F"]
 
