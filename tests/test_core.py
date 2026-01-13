@@ -1969,3 +1969,40 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
         rtol=1e-3,
         err_msg="Attribution predictions do not match model predictions"
     )
+
+def test_compute_valid_loss_distribution_to_quantile_scale():
+    """
+    Test that when training with DistributionLoss and validating with 
+    quantile-based losses, the validation loss is computed on the original scale.
+    """
+    loss = DistributionLoss(distribution='StudentT', level=[80, 90])
+    
+    # Simulate normalized model output (mean ~0, scale ~1)
+    batch_size, horizon, n_series = 2, 12, 1
+    raw_output = (
+        torch.ones(batch_size, horizon, n_series) * 5,    
+        torch.zeros(batch_size, horizon, n_series),       # mean (normalized)
+        torch.zeros(batch_size, horizon, n_series),       # scale (normalized)
+    )
+    
+    # Simulate real data statistics
+    loc = torch.ones(batch_size, horizon, n_series) * 400
+    scale = torch.ones(batch_size, horizon, n_series) * 100
+    
+    # Apply scale_decouple (transforms distribution params to original scale)
+    distr_args = loss.scale_decouple(raw_output, loc=loc, scale=scale)
+    
+    # Sample quantiles
+    _, _, quants = loss.sample(distr_args)
+    
+    # Target would be in original scale (around loc)
+    target_mean = loc.mean().item()
+    quants_mean = quants.mean().item()
+    
+    ratio = quants_mean / target_mean
+    
+    # Ratio should be close to 1 - quantiles and target on same scale
+    assert 0.8 < ratio < 1.2, (
+        f"Quantiles mean ({quants_mean:.2f}) and target mean ({target_mean:.2f}) "
+        f"are not on the same scale. Ratio: {ratio:.2f}"
+    )

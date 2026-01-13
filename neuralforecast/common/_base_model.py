@@ -991,6 +991,8 @@ class BaseModel(pl.LightningModule):
     def _compute_valid_loss(
         self, insample_y, outsample_y, output, outsample_mask, y_idx
     ):
+        output_from_scaled_distribution = False
+        
         if self.loss.is_distribution_output:
             y_loc, y_scale = self._get_loc_scale(y_idx)
             distr_args = self.loss.scale_decouple(
@@ -1001,17 +1003,20 @@ class BaseModel(pl.LightningModule):
             ):
                 _, _, quants = self.loss.sample(distr_args=distr_args)
                 output = quants
+                output_from_scaled_distribution = True
             elif isinstance(self.valid_loss, losses.BasePointLoss):
                 distr = self.loss.get_distribution(distr_args=distr_args)
                 output = distr.mean
+                output_from_scaled_distribution = True
 
-        # Validation Loss evaluation
+        # Validation loss evaluation
         if self.valid_loss.is_distribution_output:
             valid_loss = self.valid_loss(
                 y=outsample_y, distr_args=distr_args, mask=outsample_mask
             )
         else:
-            output = self._inv_normalization(y_hat=output, y_idx=y_idx)
+            if not output_from_scaled_distribution:
+                output = self._inv_normalization(y_hat=output, y_idx=y_idx)
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
             )
