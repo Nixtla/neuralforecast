@@ -185,8 +185,7 @@ For additional instructions, see the [Mintlify installation guide](https://mintl
 **Install documentation dependencies:**
 
 ```sh
-uv pip install -e ".[dev,aws,spark]"
-uv pip install git+git+https://github.com/Nixtla/mkdocstrings-parser
+uv pip install -e ".[dev,aws,spark,docs]"
 ```
 
 **Generate documentation:**
