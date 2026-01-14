@@ -1163,6 +1163,33 @@ wheels = [
 ]
 
 [[package]]
+name = "griffe"
+version = "1.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0d/0c/3a471b6e31951dce2360477420d0a8d1e00dea6cf33b70f3e8c3ab6e28e1/griffe-1.15.0.tar.gz", hash = "sha256:7726e3afd6f298fbc3696e67958803e7ac843c1cfe59734b6251a40cdbfb5eea", size = 424112, upload-time = "2025-11-10T15:03:15.52Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/83/3b1d03d36f224edded98e9affd0467630fc09d766c0e56fb1498cbb04a9b/griffe-1.15.0-py3-none-any.whl", hash = "sha256:6f6762661949411031f5fcda9593f586e6ce8340f0ba88921a0f2ef7a81eb9a3", size = 150705, upload-time = "2025-11-10T15:03:13.549Z" },
+]
+
+[[package]]
+name = "griffe2md"
+version = "1.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "griffe" },
+    { name = "jinja2" },
+    { name = "mdformat" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3f/e0/01540673c434406960fe8d4adabaf8ec085dcab1f333a0d56f590da4f7e9/griffe2md-1.2.6.tar.gz", hash = "sha256:2f6699a39985fc564a14fffcf03dedaa056165d2e29b8ce7ce6637d1f467c9d3", size = 42158, upload-time = "2025-11-10T14:47:57.407Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/d1/a2d64733b333e71125535fbabdb8170e55272b7b54b1ee5c2a2f713cd0e6/griffe2md-1.2.6-py3-none-any.whl", hash = "sha256:f35fe37237caaee25f158b39a329de58337eceda9d2ab720c252718355655040", size = 30025, upload-time = "2025-11-10T14:47:56.233Z" },
+]
+
+[[package]]
 name = "hf-xet"
 version = "1.1.9"
 source = { registry = "https://pypi.org/simple" }
@@ -1535,7 +1562,7 @@ name = "markdown-it-py"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "mdurl", marker = "python_full_version >= '3.11'" },
+    { name = "mdurl" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5b/f5/4ec618ed16cc4f8fb3b701563655a69816155e79e24a17b651541804721d/markdown_it_py-4.0.0.tar.gz", hash = "sha256:cb0a2b4aa34f932c007117b194e945bd74e0ec24133ceb5bac59009cda1cb9f3", size = 73070, upload-time = "2025-08-11T12:57:52.854Z" }
 wheels = [
@@ -1688,12 +1715,36 @@ wheels = [
 ]
 
 [[package]]
+name = "mdformat"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3f/05/32b5e14b192b0a8a309f32232c580aefedd9d06017cb8fe8fce34bec654c/mdformat-1.0.0.tar.gz", hash = "sha256:4954045fcae797c29f86d4ad879e43bb151fa55dbaf74ac6eaeacf1d45bb3928", size = 56953, upload-time = "2025-10-16T12:05:03.695Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/9a/8fe71b95985ca7a4001effbcc58e5a07a1f2a2884203f74dcf48a3b08315/mdformat-1.0.0-py3-none-any.whl", hash = "sha256:bca015d65a1d063a02e885a91daee303057bc7829c2cd37b2075a50dbb65944b", size = 53288, upload-time = "2025-10-16T12:05:02.607Z" },
+]
+
+[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "mkdocstrings-parser"
+version = "0.0.1"
+source = { git = "https://github.com/Nixtla/mkdocstrings-parser#b28e6925beba7e05d7f40047d99244c9c8d6baed" }
+dependencies = [
+    { name = "griffe2md" },
+    { name = "pip-licenses" },
+    { name = "pyyaml" },
+    { name = "rich" },
 ]
 
 [[package]]
@@ -1979,7 +2030,7 @@ dependencies = [
     { name = "utilsforecast" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 aws = [
     { name = "fsspec", extra = ["s3"] },
 ]
@@ -1990,6 +2041,7 @@ dev = [
     { name = "hyperopt" },
     { name = "ipython" },
     { name = "matplotlib" },
+    { name = "mkdocstrings-parser" },
     { name = "mypy" },
     { name = "ninja" },
     { name = "pip-licenses" },
@@ -2011,38 +2063,44 @@ spark = [
 
 [package.metadata]
 requires-dist = [
-    { name = "black", marker = "extra == 'dev'" },
-    { name = "captum", marker = "extra == 'dev'" },
     { name = "coreforecast", specifier = ">=0.0.6" },
     { name = "fsspec" },
-    { name = "fsspec", extras = ["s3"], marker = "extra == 'aws'" },
-    { name = "fugue", marker = "extra == 'spark'" },
-    { name = "gitpython", marker = "extra == 'dev'" },
-    { name = "hyperopt", marker = "extra == 'dev'" },
-    { name = "ipython", marker = "extra == 'dev'", specifier = "<=8.32.0" },
-    { name = "matplotlib", marker = "extra == 'dev'" },
-    { name = "mypy", marker = "extra == 'dev'" },
-    { name = "ninja", marker = "extra == 'dev'" },
     { name = "numpy", specifier = ">=1.21.6" },
     { name = "optuna" },
     { name = "pandas", specifier = ">=1.3.5" },
-    { name = "pip-licenses", marker = "extra == 'dev'" },
-    { name = "polars", marker = "extra == 'dev'" },
-    { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "pyarrow", marker = "extra == 'dev'" },
-    { name = "pyspark", marker = "extra == 'spark'", specifier = ">=3.5" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "pytorch-lightning", specifier = ">=2.0.0" },
     { name = "ray", extras = ["train", "tune"], specifier = ">=2.2.0" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "s3fs", marker = "extra == 'dev'" },
     { name = "torch", specifier = ">=2.4.0" },
-    { name = "transformers", marker = "extra == 'dev'" },
     { name = "utilsforecast", specifier = ">=0.2.3" },
-    { name = "xlstm", marker = "extra == 'dev'" },
 ]
-provides-extras = ["spark", "aws", "dev", "docs"]
+
+[package.metadata.requires-dev]
+aws = [{ name = "fsspec", extras = ["s3"] }]
+dev = [
+    { name = "black" },
+    { name = "captum" },
+    { name = "gitpython" },
+    { name = "hyperopt" },
+    { name = "ipython", specifier = "<=8.32.0" },
+    { name = "matplotlib" },
+    { name = "mkdocstrings-parser", git = "https://github.com/Nixtla/mkdocstrings-parser" },
+    { name = "mypy" },
+    { name = "ninja" },
+    { name = "pip-licenses" },
+    { name = "polars" },
+    { name = "pre-commit" },
+    { name = "pyarrow" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "s3fs" },
+    { name = "transformers" },
+    { name = "xlstm" },
+]
+spark = [
+    { name = "fugue" },
+    { name = "pyspark", specifier = ">=3.5" },
+]
 
 [[package]]
 name = "ninja"
@@ -3421,8 +3479,8 @@ name = "rich"
 version = "14.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markdown-it-py", marker = "python_full_version >= '3.11'" },
-    { name = "pygments", marker = "python_full_version >= '3.11'" },
+    { name = "markdown-it-py" },
+    { name = "pygments" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fe/75/af448d8e52bf1d8fa6a9d089ca6c07ff4453d86c65c145d0a300bb073b9b/rich-14.1.0.tar.gz", hash = "sha256:e497a48b844b0320d45007cdebfeaeed8db2a4f4bcf49f15e455cfc4af11eaa8", size = 224441, upload-time = "2025-07-25T07:32:58.125Z" }
 wheels = [
