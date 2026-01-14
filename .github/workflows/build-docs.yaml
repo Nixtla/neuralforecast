@@ -32,7 +32,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install uv pytest && uv pip install --system  '.[dev,aws,spark,docs]'
+        run: pip install uv pytest && uv pip install --system  '.[dev,aws,spark]' git+https://github.com/Nixtla/mkdocstrings-parser
 
       # setup quarto for rendering example/tutorial nbs
       - uses: quarto-dev/quarto-actions/setup@v2

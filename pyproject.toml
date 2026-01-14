@@ -58,9 +58,6 @@ dev = [
     "pytest-cov",
     "pip-licenses"
 ]
-docs = [
-    "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git"
-]
 
 [project.urls]
 Homepage = "https://github.com/Nixtla/neuralforecast/"
