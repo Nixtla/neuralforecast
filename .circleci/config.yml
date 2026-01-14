@@ -40,8 +40,9 @@ jobs:
           command: |
             uv sync --group dev --group aws --group spark
             uv pip install -r ./action_files/test_models/requirements.txt
-            uv run python -m action_files.test_models.src.models
-            uv run python -m action_files.test_models.src.evaluation
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.models
+            uv run python -m src.evaluation
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
@@ -64,8 +65,9 @@ jobs:
           command: |
             uv sync --group dev --group aws --group spark
             uv pip install -r ./action_files/test_models/requirements.txt
-            uv run python -m action_files.test_models.src.models2
-            uv run python -m action_files.test_models.src.evaluation2
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.models2
+            uv run python -m src.evaluation2
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
@@ -88,8 +90,9 @@ jobs:
           command: |
             uv sync --group dev --group aws --group spark
             uv pip install -r ./action_files/test_models/requirements.txt
-            uv run python -m action_files.test_models.src.multivariate_models
-            uv run python -m action_files.test_models.src.multivariate_evaluation
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.multivariate_models
+            uv run python -m src.multivariate_evaluation
       - store_artifacts:
           path: ./action_files/test_models/data/multi_evaluation.csv
           destination: multi_evaluation.csv
