@@ -10,15 +10,13 @@ jobs:
           name: Install dependencies
           command: |
             pip install uv
-            uv venv --python 3.10
       - run:
           name: Run pytest
           no_output_timeout: 20m
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'           
+            uv sync --group dev --group aws --group spark
             export GIT_PYTHON_REFRESH=quiet
-            pytest -k "not test_autonlinear_longer_horizon"
+            uv run pytest -k "not test_autonlinear_longer_horizon"
   test-model-performance:
     resource_class: xlarge
     docker:
@@ -29,16 +27,14 @@ jobs:
           name: Install dependencies
           command: |
             pip install uv
-            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
+            uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models
-            python -m src.evaluation
+            uv run python -m src.models
+            uv run python -m src.evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -53,16 +49,14 @@ jobs:
           name: Install dependencies
           command: |
             pip install uv
-            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
+            uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.models2
-            python -m src.evaluation2
+            uv run python -m src.models2
+            uv run python -m src.evaluation2
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -77,16 +71,14 @@ jobs:
           name: Install dependencies
           command: |
             pip install uv
-            uv venv --python 3.10
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
+            uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            python -m src.multivariate_models
-            python -m src.multivariate_evaluation
+            uv run python -m src.multivariate_models
+            uv run python -m src.multivariate_evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/multi_evaluation.csv
