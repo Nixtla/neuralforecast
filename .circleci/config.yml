@@ -7,6 +7,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
           name: Install dependencies
           command: |
             pip install uv
@@ -23,6 +27,10 @@ jobs:
       - image: python:3.10-slim
     steps:
       - checkout
+      - run:
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
       - run:
           name: Install dependencies
           command: |
@@ -46,6 +54,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
           name: Install dependencies
           command: |
             pip install uv
@@ -67,6 +79,10 @@ jobs:
       - image: python:3.10-slim
     steps:
       - checkout
+      - run:
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
       - run:
           name: Install dependencies
           command: |
