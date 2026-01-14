@@ -41,8 +41,8 @@ jobs:
             uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            uv run python -m src.models
-            uv run python -m src.evaluation
+            uv run --directory ../../ python -m src.models
+            uv run --directory ../../ python -m src.evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -67,8 +67,8 @@ jobs:
             uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            uv run python -m src.models2
-            uv run python -m src.evaluation2
+            uv run --directory ../../ python -m src.models2
+            uv run --directory ../../ python -m src.evaluation2
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
@@ -93,8 +93,8 @@ jobs:
             uv sync --group dev --group aws --group spark
             cd ./action_files/test_models/
             uv pip install -r requirements.txt
-            uv run python -m src.multivariate_models
-            uv run python -m src.multivariate_evaluation
+            uv run --directory ../../ python -m src.multivariate_models
+            uv run --directory ../../ python -m src.multivariate_evaluation
             cd ../../
       - store_artifacts:
           path: ./action_files/test_models/data/multi_evaluation.csv
