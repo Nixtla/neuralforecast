@@ -90,3 +90,18 @@ addopts = [
     "--cov-report=html",
     "--cov-fail-under=80",
 ]
+
+[tool.coverage.run]
+source = ["neuralforecast"]
+omit = [
+    "*/tmp/ray/*",
+    "*/_ray_pkg_*/*",
+    "*/runtime_resources/*",
+]
+
+[tool.coverage.report]
+omit = [
+    "*/tmp/ray/*",
+    "*/_ray_pkg_*/*",
+    "*/runtime_resources/*",
+]
