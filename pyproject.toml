@@ -35,7 +35,7 @@ dependencies = [
     "utilsforecast>=0.2.3",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 spark = ["fugue", "pyspark>=3.5"]
 aws = ["fsspec[s3]"]
 dev = [
@@ -56,7 +56,8 @@ dev = [
     "xlstm",
     "pytest",
     "pytest-cov",
-    "pip-licenses"
+    "pip-licenses",
+    "mkdocstrings-parser @ git+https://github.com/Nixtla/mkdocstrings-parser"
 ]
 
 [project.urls]
