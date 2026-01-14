@@ -20,7 +20,7 @@ jobs:
           command: |
             uv sync --group dev --group aws --group spark
             export GIT_PYTHON_REFRESH=quiet
-            uv run pytest -k "not test_autonlinear_longer_horizon"
+            uv run pytest -k "not test_autonlinear_longer_horizon" --no-cov
   test-model-performance:
     resource_class: xlarge
     docker:
