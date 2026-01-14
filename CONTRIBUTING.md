@@ -105,18 +105,18 @@ source .venv/bin/activate
 .\.venv\Scripts\activate
 ```
 
-Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-pip-install--torch-backend):
+Now, install the library. Make sure to specify the desired [PyTorch backend](https://docs.astral.sh/uv/reference/cli/#uv-sync--torch-backend):
 
 ```bash
-uv pip install -e ".[dev]" --torch-backend auto # uv will decide the optimal backend automatically
-uv pip install -e ".[dev]" --torch-backend cpu # for cpu backend
-uv pip install -e ".[dev]" --torch-backend cu118 # for CUDA 11.8 PyTorch backend
+uv sync --group dev --torch-backend auto # uv will decide the optimal backend automatically
+uv sync --group dev --torch-backend cpu # for cpu backend
+uv sync --group dev --torch-backend cu118 # for CUDA 11.8 PyTorch backend
 ```
 
 You can install other optional dependencies:
 
 ```sh
-uv pip install -e ".[dev,aws,spark]"
+uv sync --group dev --group aws --group spark
 ```
 
 #### Install pre-commit hooks
@@ -185,7 +185,7 @@ For additional instructions, see the [Mintlify installation guide](https://mintl
 **Install documentation dependencies:**
 
 ```sh
-uv pip install -e ".[dev,aws,spark,docs]"
+uv sync --group dev --group aws --group spark --group docs
 ```
 
 **Generate documentation:**
