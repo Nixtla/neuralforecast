@@ -32,7 +32,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install uv pytest && uv pip install --system ".[dev]" --torch-backend cpu
+        run: pip install uv && uv sync --group dev --group aws --group spark
 
       - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
         if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
