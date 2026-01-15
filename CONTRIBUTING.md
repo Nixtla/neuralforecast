@@ -185,7 +185,7 @@ For additional instructions, see the [Mintlify installation guide](https://mintl
 **Install documentation dependencies:**
 
 ```sh
-uv sync --group dev --group aws --group spark --group docs
+uv sync --group dev --group aws --group spark
 ```
 
 **Generate documentation:**
