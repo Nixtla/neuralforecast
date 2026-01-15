@@ -31,8 +31,14 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - name: Install dependencies
-        run: pip install uv pytest && uv pip install --system  '.[dev,aws,spark,docs]'
+        run: uv sync --group dev --group aws --group spark
 
       # setup quarto for rendering example/tutorial nbs
       - uses: quarto-dev/quarto-actions/setup@v2
@@ -40,7 +46,7 @@ jobs:
           version: 1.4.515
 
       - name: Build Docs
-        run: make all_docs
+        run: uv run make all_docs
 
       - name: Deploy (Push to main or Pull Request from same repo)
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')

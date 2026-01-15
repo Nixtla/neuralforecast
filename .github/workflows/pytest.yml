@@ -31,8 +31,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - name: Install dependencies
-        run: pip install uv pytest && uv pip install --system ".[dev]" --torch-backend cpu
+        run: uv sync --group dev --group aws --group spark
 
       - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
         if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
@@ -43,8 +49,8 @@ jobs:
         env:
           PYTORCH_ENABLE_MPS_FALLBACK: 1
           PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0
-        run: pytest --ignore tests/test_common --ignore tests/test_models --ignore tests/test_core.py --no-cov
+        run: uv run pytest --ignore tests/test_common --ignore tests/test_models --ignore tests/test_core.py --no-cov
 
       - name: Run pytest (ubuntu and windows)
         if: (matrix.os == 'ubuntu-latest' || matrix.os == 'windows-latest')
-        run: pytest
+        run: uv run pytest

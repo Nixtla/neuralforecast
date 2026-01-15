@@ -35,7 +35,7 @@ dependencies = [
     "utilsforecast>=0.2.3",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 spark = ["fugue", "pyspark>=3.5"]
 aws = ["fsspec[s3]"]
 dev = [
@@ -56,10 +56,8 @@ dev = [
     "xlstm",
     "pytest",
     "pytest-cov",
-    "pip-licenses"
-]
-docs = [
-    "mkdocstrings-parser@git+https://github.com/Nixtla/mkdocstrings-parser.git"
+    "pip-licenses",
+    "mkdocstrings-parser @ git+https://github.com/Nixtla/mkdocstrings-parser"
 ]
 
 [project.urls]
@@ -91,4 +89,19 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-fail-under=80",
+]
+
+[tool.coverage.run]
+source = ["neuralforecast"]
+omit = [
+    "*/tmp/ray/*",
+    "*/_ray_pkg_*/*",
+    "*/runtime_resources/*",
+]
+
+[tool.coverage.report]
+omit = [
+    "*/tmp/ray/*",
+    "*/_ray_pkg_*/*",
+    "*/runtime_resources/*",
 ]

@@ -7,18 +7,29 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
+          name: Install uv
           command: |
             pip install uv
-            uv venv --python 3.10
+      - restore_cache:
+          keys:
+            - uv-cache-pytest-{{ checksum "uv.lock" }}
+            - uv-cache-pytest-
       - run:
           name: Run pytest
           no_output_timeout: 20m
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'           
+            uv sync --group dev --group aws --group spark
             export GIT_PYTHON_REFRESH=quiet
-            pytest -k "not test_autonlinear_longer_horizon"
+            uv run pytest -k "not test_autonlinear_longer_horizon" --no-cov
+      - save_cache:
+          key: uv-cache-pytest-{{ checksum "uv.lock" }}
+          paths:
+            - ~/.cache/uv
+            - .venv
   test-model-performance:
     resource_class: xlarge
     docker:
@@ -26,20 +37,30 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
+          name: Install uv
           command: |
             pip install uv
-            uv venv --python 3.10
+      - restore_cache:
+          keys:
+            - uv-cache-perf-{{ checksum "uv.lock" }}
+            - uv-cache-perf-
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
-            cd ./action_files/test_models/
-            uv pip install -r requirements.txt
-            python -m src.models
-            python -m src.evaluation
-            cd ../../
+            uv sync --group dev --group aws --group spark
+            uv pip install -r ./action_files/test_models/requirements.txt
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.models
+            uv run python -m src.evaluation
+      - save_cache:
+          key: uv-cache-perf-{{ checksum "uv.lock" }}
+          paths:
+            - ~/.cache/uv
+            - .venv
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
@@ -50,20 +71,30 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
+          name: Install uv
           command: |
             pip install uv
-            uv venv --python 3.10
+      - restore_cache:
+          keys:
+            - uv-cache-perf-{{ checksum "uv.lock" }}
+            - uv-cache-perf-
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
-            cd ./action_files/test_models/
-            uv pip install -r requirements.txt
-            python -m src.models2
-            python -m src.evaluation2
-            cd ../../
+            uv sync --group dev --group aws --group spark
+            uv pip install -r ./action_files/test_models/requirements.txt
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.models2
+            uv run python -m src.evaluation2
+      - save_cache:
+          key: uv-cache-perf-{{ checksum "uv.lock" }}
+          paths:
+            - ~/.cache/uv
+            - .venv
       - store_artifacts:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
@@ -74,20 +105,30 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install Git
+          command: |
+            apt-get update && apt-get install -y git
+      - run:
+          name: Install uv
           command: |
             pip install uv
-            uv venv --python 3.10
+      - restore_cache:
+          keys:
+            - uv-cache-perf-{{ checksum "uv.lock" }}
+            - uv-cache-perf-
       - run:
           name: Run model performance tests
           command: |
-            source .venv/bin/activate
-            uv pip install -e '.[dev,aws,spark]'
-            cd ./action_files/test_models/
-            uv pip install -r requirements.txt
-            python -m src.multivariate_models
-            python -m src.multivariate_evaluation
-            cd ../../
+            uv sync --group dev --group aws --group spark
+            uv pip install -r ./action_files/test_models/requirements.txt
+            export PYTHONPATH="${PYTHONPATH}:./action_files/test_models"
+            uv run python -m src.multivariate_models
+            uv run python -m src.multivariate_evaluation
+      - save_cache:
+          key: uv-cache-perf-{{ checksum "uv.lock" }}
+          paths:
+            - ~/.cache/uv
+            - .venv
       - store_artifacts:
           path: ./action_files/test_models/data/multi_evaluation.csv
           destination: multi_evaluation.csv

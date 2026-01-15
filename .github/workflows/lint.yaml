@@ -18,8 +18,14 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - name: Install dependencies
-        run: pip install black "fastcore<1.8.0" nbdev==2.3.25 pre-commit
+        run: uv sync --group dev
 
       - name: Run pre-commit
-        run: pre-commit run --files neuralforecast/*
+        run: uv run pre-commit run --files neuralforecast/*
