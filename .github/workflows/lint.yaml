@@ -19,7 +19,7 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install uv && uv pip install --system pre-commit
+        run: pip install uv && uv sync --group dev
 
       - name: Run pre-commit
         run: uv run pre-commit run --files neuralforecast/*
