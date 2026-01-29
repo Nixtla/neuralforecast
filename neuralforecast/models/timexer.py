@@ -183,7 +183,7 @@ class TimeXer(BaseModel):
     """
 
     # Class attributes
-    EXOGENOUS_FUTR = True
+    EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
     MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
@@ -370,41 +370,32 @@ class TimeXer(BaseModel):
     def forward(self, windows_batch):
         insample_y = windows_batch["insample_y"]  # [B, L, N]
         hist_exog = windows_batch["hist_exog"]    # [B, X, L, N]
-        futr_exog = windows_batch["futr_exog"]    # [B, F, L+h, N]
         stat_exog = windows_batch["stat_exog"]    # [N, S]
-        
-        B, L, N = insample_y.shape
-        
+
+        B, L, _ = insample_y.shape
+
         # Build exogenous features for the input sequence
         exog_list = []
-        
+
         # Add historical exogenous
         if self.hist_exog_size > 0:
             # hist_exog: [B, X, L, N] -> [B, L, X, N] -> [B, L, X*N]
             hist_exog_input = hist_exog.permute(0, 2, 1, 3)  # [B, L, X, N]
             hist_exog_input = hist_exog_input.reshape(B, L, -1)  # [B, L, X*N]
             exog_list.append(hist_exog_input)
-        
-        # Add future exogenous
-        if self.futr_exog_size > 0:
-            # Take only the input sequence part of future exogenous
-            futr_exog_input = futr_exog[:, :, :L, :]  # [B, F, L, N]
-            futr_exog_input = futr_exog_input.permute(0, 2, 1, 3)  # [B, L, F, N]
-            futr_exog_input = futr_exog_input.reshape(B, L, -1)  # [B, L, F*N]
-            exog_list.append(futr_exog_input)
-        
+
         # Combine all exogenous features
         if len(exog_list) > 0:
-            x_mark_enc = torch.cat(exog_list, dim=-1)  # [B, L, (X+F)*N]
+            x_mark_enc = torch.cat(exog_list, dim=-1)  # [B, L, X*N]
         else:
             x_mark_enc = None
-        
+
         # Add static exogenous to the cross-attention context
         if self.stat_exog_size > 0 and x_mark_enc is not None:
             # stat_exog: [N, S] -> [B, L, N*S]
             stat_exog_expanded = stat_exog.reshape(-1).unsqueeze(0).unsqueeze(0)  # [1, 1, N*S]
             stat_exog_expanded = stat_exog_expanded.repeat(B, L, 1)  # [B, L, N*S]
-            x_mark_enc = torch.cat([x_mark_enc, stat_exog_expanded], dim=-1)  # [B, L, (X+F)*N + N*S]
+            x_mark_enc = torch.cat([x_mark_enc, stat_exog_expanded], dim=-1)  # [B, L, X*N + N*S]
         elif self.stat_exog_size > 0:
             # Only static exogenous available
             stat_exog_expanded = stat_exog.reshape(-1).unsqueeze(0).unsqueeze(0)

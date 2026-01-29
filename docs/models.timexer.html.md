@@ -36,7 +36,7 @@ Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].v
 model = TimeXer(h=12,
                 input_size=24,
                 n_series=2,
-                futr_exog_list=["trend", "month"],
+                stat_exog_list=['airline1'],
                 patch_len=12,
                 hidden_size=128,
                 n_heads=16,
