@@ -221,6 +221,15 @@ class XLinear(BaseModel):
         stat_exog = windows_batch["stat_exog"]    # [N, S]
 
         batch_size = insample_y.shape[0]
+        n_series = insample_y.shape[2]
+
+        # Validate n_series matches model initialization
+        if n_series != self.n_series:
+            raise ValueError(
+                f"Input has {n_series} series but model was initialized with "
+                f"n_series={self.n_series}. Ensure the data has the correct "
+                f"number of unique series."
+            )
 
         # RevIN normalization
         if self.use_norm:
@@ -256,7 +265,7 @@ class XLinear(BaseModel):
         ex_atten = self.channel_gating(ex_emb.permute(0, 2, 1))
 
         # Extract global component: [B, hidden_size, N] (second half of channels)
-        glob = ex_atten[:, :, self.n_series:]
+        glob = ex_atten[:, :, n_series:]
 
         # Final endogenous representation: [B, N, 2*hidden_size]
         en = torch.cat([origin_atten, glob.permute(0, 2, 1)], dim=-1)
@@ -267,14 +276,14 @@ class XLinear(BaseModel):
         if self.hist_exog_size > 0:
             # hist_exog: [B, X, L, N] -> [B, N, X*L]
             hist_exog_flat = hist_exog.permute(0, 3, 1, 2)  # [B, N, X, L]
-            hist_exog_flat = hist_exog_flat.reshape(batch_size, self.n_series, -1)
+            hist_exog_flat = hist_exog_flat.reshape(batch_size, n_series, -1)
             hist_exog_emb = self.hist_exog_projection(hist_exog_flat)  # [B, N, hidden_size]
             exog_features.append(hist_exog_emb)
 
         if self.futr_exog_size > 0:
             # futr_exog: [B, F, L+h, N] -> [B, N, F*(L+h)]
             futr_exog_flat = futr_exog.permute(0, 3, 1, 2)  # [B, N, F, L+h]
-            futr_exog_flat = futr_exog_flat.reshape(batch_size, self.n_series, -1)
+            futr_exog_flat = futr_exog_flat.reshape(batch_size, n_series, -1)
             futr_exog_emb = self.futr_exog_projection(futr_exog_flat)  # [B, N, hidden_size]
             exog_features.append(futr_exog_emb)
 
