@@ -1,5 +1,6 @@
 __all__ = ['GatingBlock', 'XLinear']
 
+import warnings
 from typing import Optional
 
 import torch
@@ -100,7 +101,7 @@ class XLinear(BaseModel):
         exclude_insample_y=False,
         hidden_size: int = 128,
         temporal_ff: int = 256,
-        channel_ff: int = 256,
+        channel_ff: int = 8,
         temporal_dropout: float = 0.0,
         channel_dropout: float = 0.0,
         embed_dropout: float = 0.0,
@@ -168,6 +169,15 @@ class XLinear(BaseModel):
         # Architecture parameters
         self.hidden_size = hidden_size
         self.use_norm = use_norm
+
+        # Warn if channel_ff is not a multiple of n_series
+        if channel_ff % n_series != 0:
+            warnings.warn(
+                f"channel_ff={channel_ff} is not a multiple of n_series={n_series}. "
+                f"For better cross-channel modeling, consider setting channel_ff "
+                f"to a multiple of n_series (e.g., {2 * n_series} or {3 * n_series}).",
+                UserWarning,
+            )
 
         # Projection from input_size to hidden_size
         self.projection = nn.Sequential(
