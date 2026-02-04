@@ -247,7 +247,7 @@ class XLinear(BaseModel):
             insample_y = insample_y - means
             stdev = torch.sqrt(
                 torch.var(insample_y, dim=1, keepdim=True, unbiased=False) + 1e-5
-            )
+            ).detach()
             insample_y = insample_y / stdev
 
         # Transpose: [B, L, N] -> [B, N, L]
@@ -316,12 +316,8 @@ class XLinear(BaseModel):
 
         # Reverse normalization
         if self.use_norm:
-            dec_out = dec_out * stdev[:, 0, :].unsqueeze(1).repeat(
-                1, self.h * self.loss.outputsize_multiplier, 1
-            )
-            dec_out = dec_out + means[:, 0, :].unsqueeze(1).repeat(
-                1, self.h * self.loss.outputsize_multiplier, 1
-            )
+            dec_out = dec_out * stdev[:, 0:1, :]
+            dec_out = dec_out + means[:, 0:1, :]
 
         # Reshape to expected output: [B, h, N * output_multiplier]
         dec_out = dec_out.reshape(batch_size, self.h, -1)
