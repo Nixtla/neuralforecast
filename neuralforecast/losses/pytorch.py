@@ -3,6 +3,7 @@ __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relM
            'HuberIQLoss', 'Accuracy', 'sCRPS']
 
 
+import warnings
 from functools import partial
 from typing import List, Optional, Tuple, Union
 
@@ -502,6 +503,13 @@ class QuantileLoss(BasePointLoss):
 
 
 def level_to_outputs(level):
+    unique_level = list(dict.fromkeys(level))
+    if len(unique_level) < len(level):
+        warnings.warn(
+            f"Duplicate levels detected. Using unique levels: {unique_level}"
+        )
+        level = unique_level
+
     qs = sum([[50 - l / 2, 50 + l / 2] for l in level], [])
     output_names = sum([[f"-lo-{l}", f"-hi-{l}"] for l in level], [])
 
@@ -518,6 +526,13 @@ def level_to_outputs(level):
 
 
 def quantiles_to_outputs(quantiles):
+    unique_quantiles = list(dict.fromkeys(quantiles))
+    if len(unique_quantiles) < len(quantiles):
+        warnings.warn(
+            f"Duplicate quantiles detected. Using unique quantiles: {unique_quantiles}"
+        )
+        quantiles = unique_quantiles
+
     output_names = []
     for q in quantiles:
         if q < 0.50:
@@ -568,7 +583,7 @@ class MQLoss(BasePointLoss):
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
-            _, output_names = quantiles_to_outputs(quantiles)
+            quantiles, output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
 
         super(MQLoss, self).__init__(
@@ -1844,7 +1859,7 @@ class DistributionLoss(torch.nn.Module):
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
             quantiles = sorted(quantiles)
-            _, self.output_names = quantiles_to_outputs(quantiles)
+            quantiles, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         num_qk = len(self.quantiles)
@@ -2101,7 +2116,7 @@ class PMM(torch.nn.Module):
 
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
-            _, self.output_names = quantiles_to_outputs(quantiles)
+            quantiles, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
@@ -2333,7 +2348,7 @@ class GMM(torch.nn.Module):
 
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
-            _, self.output_names = quantiles_to_outputs(quantiles)
+            quantiles, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
@@ -2564,7 +2579,7 @@ class NBMM(torch.nn.Module):
 
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
-            _, self.output_names = quantiles_to_outputs(quantiles)
+            quantiles, self.output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
         self.quantiles = torch.nn.Parameter(qs, requires_grad=False)
         self.num_samples = num_samples
@@ -3006,7 +3021,7 @@ class HuberMQLoss(BasePointLoss):
         qs = torch.Tensor(qs)
         # Transform quantiles to homogeneous output names
         if quantiles is not None:
-            _, output_names = quantiles_to_outputs(quantiles)
+            quantiles, output_names = quantiles_to_outputs(quantiles)
             qs = torch.Tensor(quantiles)
 
         super(HuberMQLoss, self).__init__(
