@@ -1017,6 +1017,8 @@ class BaseModel(pl.LightningModule):
         else:
             if not output_from_scaled_distribution:
                 output = self._inv_normalization(y_hat=output, y_idx=y_idx)
+            # Inverse normalize insample_y to match the scale of outsample_y and output
+            insample_y = self._inv_normalization(y_hat=insample_y, y_idx=y_idx)
             valid_loss = self.valid_loss(
                 y=outsample_y, y_hat=output, y_insample=insample_y, mask=outsample_mask
             )
