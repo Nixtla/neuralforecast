@@ -53,6 +53,7 @@ from neuralforecast.core import (
 from neuralforecast.losses.pytorch import (
     GMM,
     MAE,
+    MASE,
     NBMM,
     PMM,
     DistributionLoss,
@@ -2005,4 +2006,43 @@ def test_compute_valid_loss_distribution_to_quantile_scale():
     assert 0.8 < ratio < 1.2, (
         f"Quantiles mean ({quants_mean:.2f}) and target mean ({target_mean:.2f}) "
         f"are not on the same scale. Ratio: {ratio:.2f}"
+    )
+
+
+def test_mase_validation_loss_scale(setup_airplane_data):
+    """Test that MASE validation loss is correctly computed with proper scaling.
+
+    This test verifies the fix for the scale mismatch bug where insample_y
+    was in normalized scale while outsample_y and y_hat were in original scale.
+    With the fix, all values passed to MASE should be in the same (original) scale.
+    """
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    # Use MLP with standard scaler and MASE validation loss
+    model = MLP(
+        h=12,
+        input_size=24,
+        loss=MAE(),
+        valid_loss=MASE(seasonality=12),
+        scaler_type="standard",
+        max_steps=5,
+        val_check_steps=1,
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+
+    # Fit with validation set
+    nf.fit(AirPassengersPanel_train, val_size=12)
+
+    # Get validation loss from trajectories (access fitted model from nf.models)
+    fitted_model = nf.models[0]
+    valid_trajectories = fitted_model.valid_trajectories
+    assert len(valid_trajectories) > 0, "No validation trajectories recorded"
+
+    _, valid_loss = valid_trajectories[-1]
+
+    # With the fix, MASE should be reasonable (< 50 for a minimally trained model)
+    # Before the fix, MASE was ~200+ due to scale mismatch
+    assert valid_loss < 50, (
+        f"MASE validation loss is {valid_loss}, which indicates the scale mismatch "
+        f"bug may have regressed. Expected < 50 for a properly scaled MASE."
     )
