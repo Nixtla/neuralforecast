@@ -1693,7 +1693,7 @@ class BaseModel(pl.LightningModule):
                 idx_quantile = (self.loss.quantiles == quantile).nonzero().item()
                 offset = 1 if isinstance(self.loss, DISTRIBUTION_LOSSES) else 0
                 return idx_quantile + offset
-            except:
+            except (RuntimeError, ValueError):
                 raise ValueError("Model was not trained with a median quantile.")
         return None
 
