@@ -1,9 +1,9 @@
+import warnings
+
 import torch
 
 from neuralforecast.losses.pytorch import (
-    GMM,
     MAE,
-    NBMM,
     PMM,
     DistributionLoss,
     HuberIQLoss,
@@ -134,3 +134,29 @@ def test_MAE_incomplete_mask():
     mae = MAE(horizon_weight=horizon_weight)
     loss = mae(y=y, y_hat=y_hat, mask=mask)
     assert loss == (1 / 3), "Should be 1/3"
+
+
+def test_duplicate_level_and_quantiles_dedup():
+    # Duplicate levels should be deduplicated with a warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        check = MQLoss(level=[80, 80])
+        assert len(w) == 1
+        assert "Duplicate levels" in str(w[0].message)
+    # [80] produces lo-80 and hi-80, plus median -> 3 quantiles
+    assert len(check.quantiles) == 3
+
+    # Duplicate quantiles should be deduplicated with a warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        check = MQLoss(quantiles=[0.1, 0.1, 0.5, 0.9])
+        assert len(w) == 1
+        assert "Duplicate quantiles" in str(w[0].message)
+    assert len(check.quantiles) == 3
+
+    # No duplicates should produce no warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        check = MQLoss(level=[80, 90])
+        assert len(w) == 0
+    assert len(check.quantiles) == 5
