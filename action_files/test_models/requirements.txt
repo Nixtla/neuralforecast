@@ -1,2 +1,2 @@
-datasetsforecast
+datasetsforecast @ git+https://github.com/Nixtla/datasetsforecast.git
 fire
