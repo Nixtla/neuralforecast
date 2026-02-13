@@ -1725,7 +1725,7 @@ class NeuralForecast:
 
         fs, _, _ = fsspec.get_fs_token_paths(path)
         if not fs.exists(path):
-            fs.makedirs(path)
+            fs.makedirs(path, exist_ok=True)
         else:
             # Check if directory is empty to protect overwriting files
             files = fs.ls(path)
