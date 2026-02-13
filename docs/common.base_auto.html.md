@@ -2,7 +2,7 @@
 description: >-
   BaseAuto class for hyperparameter optimization in NeuralForecast. Integrates Optuna, HyperOpt, Dragonfly through Ray for automated model tuning with cross-validation.
 output-file: common.base_auto.html
-title: Hyperparameter Optimization
+title: Hyperparameter Optimization | NeuralForecast
 ---
 
 Machine Learning forecasting methods are defined by many hyperparameters that
