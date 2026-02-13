@@ -2,7 +2,7 @@
 description: >-
   NeuralForecast core class for high-level time series forecasting. Fits multiple PyTorch models on pandas DataFrames with parallelization and distributed computation.
 output-file: core.html
-title: Core
+title: Core | NeuralForecast
 ---
 
 NeuralForecast contains two main components, PyTorch implementations deep
