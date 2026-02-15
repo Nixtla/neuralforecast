@@ -477,6 +477,7 @@ class PredictionIntervals:
         self,
         n_windows: int = 2,
         method: str = "conformal_distribution",
+        step_size: int = 1,
     ):
         """Initialize PredictionIntervals.
 
@@ -484,6 +485,7 @@ class PredictionIntervals:
             n_windows (int, optional): Number of windows to evaluate. Defaults to 2.
             method (str, optional): One of the supported methods for the computation of prediction intervals:
                 conformal_error or conformal_distribution. Defaults to "conformal_distribution".
+            step_size (int, optional): Step size between each cross-validation window. Defaults to 1.
         """
         if n_windows < 2:
             raise ValueError(
@@ -492,12 +494,15 @@ class PredictionIntervals:
         allowed_methods = ["conformal_error", "conformal_distribution"]
         if method not in allowed_methods:
             raise ValueError(f"method must be one of {allowed_methods}")
+        if step_size < 1:
+            raise ValueError("step_size must be at least 1")
         self.n_windows = n_windows
         self.method = method
+        self.step_size = step_size
 
     def __repr__(self):
         return (
-            f"PredictionIntervals(n_windows={self.n_windows}, method='{self.method}')"
+            f"PredictionIntervals(n_windows={self.n_windows}, method='{self.method}', step_size={self.step_size})"
         )
 
 
