@@ -1948,7 +1948,7 @@ class NeuralForecast:
 
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
         step_size = self.prediction_intervals.step_size
-        min_samples = self.h + step_size * self.prediction_intervals.n_windows
+        min_samples = self.h + step_size * (self.prediction_intervals.n_windows - 1) + 1
         if min_size < min_samples:
             raise ValueError(
                 "Minimum required samples in each serie for the prediction intervals "
