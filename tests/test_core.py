@@ -1040,6 +1040,22 @@ def test_save_load_no_dataset(setup_airplane_data):
     forecasts2 = fcst2.predict(df=AirPassengersPanel_train, futr_df=AirPassengersPanel_test)
     np.testing.assert_allclose(forecasts1["DilatedRNN"], forecasts2["DilatedRNN"])
 
+
+def test_save_skips_nonzero_ddp_rank(monkeypatch, tmp_path):
+    """Only rank 0 should write artifacts when DDP is initialized."""
+    dist = pytest.importorskip("torch.distributed")
+    monkeypatch.setattr(dist, "is_initialized", lambda: True)
+    monkeypatch.setattr(dist, "get_rank", lambda: 1)
+
+    fcst = NeuralForecast(
+        models=[DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1)],
+        freq="M",
+    )
+    save_path = tmp_path / "ddp_rank_1_save"
+    fcst.save(path=str(save_path), model_index=None, overwrite=True, save_dataset=False)
+
+    assert not save_path.exists()
+
 # test `enable_checkpointing=True` should generate chkpt
 def test_enable_checkpointing(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
