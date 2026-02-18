@@ -140,6 +140,22 @@ class TestDummyUnivariate:
         assert "DummyUnivariate-lo-80" in forecasts.columns
         assert "DummyUnivariate-hi-80" in forecasts.columns
 
+    def test_conformal_prediction_min_samples_uses_step_size(self, longer_horizon_test):
+        short_train_df = (
+            longer_horizon_test.train_df.groupby(TimeSeriesDatasetEnum.UniqueId)
+            .tail(10)
+            .reset_index(drop=True)
+        )
+        model = DummyUnivariate(h=longer_horizon_test.h, input_size=4)
+        nf = NeuralForecast(models=[model], freq="ME")
+        with pytest.raises(
+            ValueError, match=r"settings are: 11, shortest serie has: 10\."
+        ):
+            nf.fit(
+                df=short_train_df,
+                prediction_intervals=PredictionIntervals(n_windows=3, step_size=3),
+            )
+
     @pytest.mark.parametrize(
         ("loss", "quantile", "raised"),
         [
