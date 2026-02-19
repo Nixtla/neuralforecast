@@ -1056,6 +1056,30 @@ def test_save_skips_nonzero_ddp_rank(monkeypatch, tmp_path):
 
     assert not save_path.exists()
 
+
+def test_save_runs_on_rank0_ddp(monkeypatch, tmp_path, setup_airplane_data):
+    """Rank-0 DDP process must save all artifacts normally."""
+    dist = pytest.importorskip("torch.distributed")
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+    fcst = NeuralForecast(
+        models=[DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1)],
+        freq="M",
+    )
+    fcst.fit(AirPassengersPanel_train)
+
+    save_path = tmp_path / "ddp_rank_0_save"
+    with monkeypatch.context() as m:
+        m.setattr(dist, "is_initialized", lambda: True)
+        m.setattr(dist, "get_rank", lambda: 0)
+        fcst.save(
+            path=str(save_path), model_index=None, overwrite=False, save_dataset=False
+        )
+
+    assert save_path.exists()
+    assert (save_path / "alias_to_model.pkl").exists()
+    assert (save_path / "configuration.pkl").exists()
+
 # test `enable_checkpointing=True` should generate chkpt
 def test_enable_checkpointing(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
