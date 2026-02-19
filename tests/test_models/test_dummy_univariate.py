@@ -141,6 +141,11 @@ class TestDummyUnivariate:
         assert "DummyUnivariate-hi-80" in forecasts.columns
 
     def test_conformal_prediction_min_samples_uses_step_size(self, longer_horizon_test):
+        enough_train_df = (
+            longer_horizon_test.train_df.groupby(TimeSeriesDatasetEnum.UniqueId)
+            .tail(14)
+            .reset_index(drop=True)
+        )
         short_train_df = (
             longer_horizon_test.train_df.groupby(TimeSeriesDatasetEnum.UniqueId)
             .tail(10)
@@ -148,6 +153,14 @@ class TestDummyUnivariate:
         )
         model = DummyUnivariate(h=longer_horizon_test.h, input_size=4)
         nf = NeuralForecast(models=[model], freq="ME")
+
+        # Positive case: with enough samples and step_size=1, fit should not raise.
+        nf.fit(
+            df=enough_train_df,
+            prediction_intervals=PredictionIntervals(n_windows=3, step_size=1),
+        )
+
+        # Negative case: step_size=3 requires 11, so 10 samples are not enough.
         with pytest.raises(
             ValueError, match=r"settings are: 11, shortest serie has: 10\."
         ):
