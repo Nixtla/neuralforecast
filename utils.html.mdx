@@ -316,7 +316,7 @@ Type | Description
 ### `PredictionIntervals`
 
 ```python
-PredictionIntervals(n_windows=2, method='conformal_distribution', step_size=1)
+PredictionIntervals(n_windows=2, method='conformal_distribution')
 ```
 
 Class for storing prediction intervals metadata information.
@@ -329,7 +329,6 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `n_windows` | <code>[int](#int)</code> | Number of windows to evaluate. Defaults to 2. | <code>2</code>
 `method` | <code>[str](#str)</code> | One of the supported methods for the computation of prediction intervals: conformal_error or conformal_distribution. Defaults to "conformal_distribution". | <code>'conformal_distribution'</code>
-`step_size` | <code>[int](#int)</code> | Step size between each cross-validation window. Defaults to 1. | <code>1</code>
 
 #### `PredictionIntervals.method`
 
@@ -341,12 +340,6 @@ method = method
 
 ```python
 n_windows = n_windows
-```
-
-#### `PredictionIntervals.step_size`
-
-```python
-step_size = step_size
 ```
 
 ### `add_conformal_distribution_intervals`
