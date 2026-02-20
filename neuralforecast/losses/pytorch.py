@@ -1,6 +1,6 @@
 __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relMSE', 'QuantileLoss', 'MQLoss', 'QuantileLayer',
            'IQLoss', 'DistributionLoss', 'PMM', 'GMM', 'NBMM', 'HuberLoss', 'TukeyLoss', 'HuberQLoss', 'HuberMQLoss',
-           'HuberIQLoss', 'Accuracy', 'sCRPS']
+           'HuberIQLoss', 'Accuracy', 'sCRPS', 'FFTMSELoss', 'FFTMAELoss', 'FFTRMSELoss', 'MixedFFTLoss']
 
 
 import warnings
@@ -3338,3 +3338,279 @@ class sCRPS(BasePointLoss):
         unmean = torch.sum(mask)
         scrps = 2 * mql * unmean / (norm + 1e-5)
         return scrps
+
+class FFTMAELoss(BasePointLoss):
+    r"""Mean Absolute Error in Fourier Space.
+
+    Calculates MAE between the Fourier transforms of `y` and `y_hat`, i.e.
+    between F(`y`) and F(`y_hat`). Operating in the frequency domain makes the
+    model robust to small phase shifts while still penalizing errors in trend
+    and seasonality structure.
+
+    Only the *magnitude spectrum* is used so the loss is always real-valued:
+
+    ```math
+    \mathrm{FFTMAE}(\mathbf{y}, \mathbf{\hat{y}}) = \frac{1}{H} \sum_{\tau} \bigl| |F(y)_{\tau}| - |F(\hat{y})_{\tau}| \bigr|
+    ```
+
+    NOTE: ``horizon_weight`` is intentionally not supported for FFT losses
+    because time-domain positional weights have no meaningful correspondence in
+    the frequency domain.  Masking is applied by zeroing masked time-steps
+    before the FFT so that they do not contribute to the spectrum.
+
+    Args:
+        norm (bool): Normalise the magnitude spectrum by the sequence length before computing the loss. Defaults to True.
+    """
+
+    def __init__(self, norm: bool = True):
+        super(FFTMAELoss, self).__init__(
+            horizon_weight=None, outputsize_multiplier=1, output_names=[""]
+        )
+        self.norm = norm
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
+        """
+        Args:
+            y (torch.Tensor): Actual values.
+            y_hat (torch.Tensor): Predicted values.
+            y_insample (Union[torch.Tensor, None], optional): Actual insample values. Defaults to None.
+            mask (Union[torch.Tensor, None], optional): Specifies datapoints to consider in loss. Defaults to None.
+
+        Returns:
+            torch.Tensor: Scalar FFTMAE loss.
+        """
+        # Zero-mask in time domain before FFT so masked positions do not contribute to the spectrum.
+        if mask is not None:
+            y = y * mask
+            y_hat = y_hat * mask
+
+        mag_y = torch.abs(torch.fft.rfft(y, dim=1))
+        mag_yhat = torch.abs(torch.fft.rfft(y_hat, dim=1))
+
+        if self.norm:
+            H = y.shape[1]
+            mag_y = mag_y / H
+            mag_yhat = mag_yhat / H
+
+        # Per-element losses in frequency domain — shape [B, H//2+1, N]
+        losses = torch.abs(mag_y - mag_yhat)
+
+        # Uniform weights over frequency bins (mask=None → all ones).
+        weights = self._compute_weights(y=losses, mask=None)
+        return _weighted_mean(losses=losses, weights=weights)
+
+
+class FFTMSELoss(BasePointLoss):
+    r"""Mean Squared Error in Fourier Space.
+
+    Calculates MSE between the Fourier transforms of `y` and `y_hat`, i.e.
+    between F(`y`) and F(`y_hat`). Operating in the frequency domain makes the
+    model robust to small phase shifts while still penalizing errors in trend
+    and seasonality structure.
+
+    Only the *magnitude spectrum* is used so the loss is always real-valued:
+
+    ```math
+    \mathrm{FFTMSE}(\mathbf{y}, \mathbf{\hat{y}}) = \frac{1}{H} \sum_{\tau} \bigl( |F(y)_{\tau}| - |F(\hat{y})_{\tau}| \bigr)^2
+    ```
+
+    NOTE: ``horizon_weight`` is intentionally not supported for FFT losses
+    because time-domain positional weights have no meaningful correspondence in
+    the frequency domain.  Masking is applied by zeroing masked time-steps
+    before the FFT so that they do not contribute to the spectrum.
+
+    Args:
+        norm (bool): Normalise the magnitude spectrum by the sequence length before computing the loss. Defaults to True.
+    """
+
+    def __init__(self, norm: bool = True):
+        super(FFTMSELoss, self).__init__(
+            horizon_weight=None, outputsize_multiplier=1, output_names=[""]
+        )
+        self.norm = norm
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
+        """
+        Args:
+            y (torch.Tensor): Actual values.
+            y_hat (torch.Tensor): Predicted values.
+            y_insample (Union[torch.Tensor, None], optional): Actual insample values. Defaults to None.
+            mask (Union[torch.Tensor, None], optional): Specifies datapoints to consider in loss. Defaults to None.
+
+        Returns:
+            torch.Tensor: Scalar FFTMSE loss.
+        """
+        if mask is not None:
+            y = y * mask
+            y_hat = y_hat * mask
+
+        mag_y = torch.abs(torch.fft.rfft(y, dim=1))
+        mag_yhat = torch.abs(torch.fft.rfft(y_hat, dim=1))
+
+        if self.norm:
+            H = y.shape[1]
+            mag_y = mag_y / H
+            mag_yhat = mag_yhat / H
+
+        losses = (mag_y - mag_yhat) ** 2
+
+        weights = self._compute_weights(y=losses, mask=None)
+        return _weighted_mean(losses=losses, weights=weights)
+
+class FFTRMSELoss(BasePointLoss):
+    r"""Root Mean Squared Error in Fourier Space.
+
+    Calculates RMSE between the Fourier transforms of `y` and `y_hat`, i.e.
+    between F(`y`) and F(`y_hat`). Operating in the frequency domain makes the
+    model robust to small phase shifts while still penalizing errors in trend
+    and seasonality structure.
+
+    Only the *magnitude spectrum* is used so the loss is always real-valued:
+
+    ```math
+    \mathrm{FFTRMSE}(\mathbf{y}, \mathbf{\hat{y}}) = \sqrt{\frac{1}{H} \sum_{\tau} \bigl( |F(y)_{\tau}| - |F(\hat{y})_{\tau}| \bigr)^2}
+    ```
+
+    NOTE: ``horizon_weight`` is intentionally not supported for FFT losses
+    because time-domain positional weights have no meaningful correspondence in
+    the frequency domain.  Masking is applied by zeroing masked time-steps
+    before the FFT so that they do not contribute to the spectrum.
+
+    Args:
+        norm (bool): Normalise the magnitude spectrum by the sequence length before computing the loss. Defaults to True.
+    """
+
+    def __init__(self, norm: bool = True):
+        super(FFTRMSELoss, self).__init__(
+            horizon_weight=None, outputsize_multiplier=1, output_names=[""]
+        )
+        self.norm = norm
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
+        """
+        Args:
+            y (torch.Tensor): Actual values.
+            y_hat (torch.Tensor): Predicted values.
+            y_insample (Union[torch.Tensor, None], optional): Actual insample values. Defaults to None.
+            mask (Union[torch.Tensor, None], optional): Specifies datapoints to consider in loss. Defaults to None.
+
+        Returns:
+            torch.Tensor: Scalar FFTRMSE loss.
+        """
+        if mask is not None:
+            y = y * mask
+            y_hat = y_hat * mask
+
+        mag_y = torch.abs(torch.fft.rfft(y, dim=1))
+        mag_yhat = torch.abs(torch.fft.rfft(y_hat, dim=1))
+
+        if self.norm:
+            H = y.shape[1]
+            mag_y = mag_y / H
+            mag_yhat = mag_yhat / H
+
+        losses = (mag_y - mag_yhat) ** 2
+
+        weights = self._compute_weights(y=losses, mask=None)
+        return torch.sqrt(_weighted_mean(losses=losses, weights=weights))
+
+class MixedFFTLoss(torch.nn.Module):
+    r"""Auxiliary mixed loss combining a time-domain loss with a Fourier-domain loss.
+
+    Computes:
+
+    ```math
+    \mathcal{L}_{\text{mixed}} = \mathcal{L}_{\text{time}}(y, \hat{y}) + \lambda \cdot \mathcal{L}_{\text{freq}}(y, \hat{y})
+    ```
+
+    This is the most practical way to use FFT-based losses: the time-domain
+    term keeps point-level accuracy while the frequency-domain term encourages
+    the model to capture trend and seasonal patterns correctly.
+
+    Example::
+        loss_fn = MixedFFTLoss(time_loss=MAE(), freq_loss=FFTMAELoss(), lam=0.5)
+
+    Args:
+        time_loss (BasePointLoss): Time-domain loss class, either ``MAE()``, ``MSE()``, or ``RMSE()``.
+        freq_loss (BasePointLoss): Freq-domain loss class, either ``FFTMAELoss()``, ``FFTMSELoss()``, or ``FFTRMSELoss()``.
+        lam (float): Weight for the frequency-domain term. Defaults to 0.5.
+    """
+
+    def __init__(
+        self,
+        time_loss: BasePointLoss,
+        freq_loss: BasePointLoss,
+        lam: float = 0.5,
+    ):
+        super(MixedFFTLoss, self).__init__()
+
+        # allowed categories
+        valid_time_losses = (MAE, MSE, RMSE)
+        valid_freq_losses = (FFTMAELoss, FFTMSELoss, FFTRMSELoss)
+        
+        # Check Time Loss
+        if not isinstance(time_loss, valid_time_losses):
+            raise TypeError(
+                f"time_loss must be an instance of {valid_time_losses}, "
+                f"but got {type(time_loss).__name__}."
+            )
+
+        # Check Freq Loss
+        if not isinstance(freq_loss, valid_freq_losses):
+             raise TypeError(
+                f"freq_loss must be an instance of {valid_freq_losses}, "
+                f"but got {type(freq_loss).__name__}."
+            )
+        assert 0.0 <= lam, "lam must be non-negative"
+
+        self.time_loss = time_loss
+        self.freq_loss = freq_loss
+        self.lam = lam
+
+        # Attributes expected by neuralforecast trainers
+        self.is_distribution_output = False
+        self.outputsize_multiplier = 1
+        self.output_names = [""]
+
+    def domain_map(self, y_hat: torch.Tensor) -> torch.Tensor:
+        return self.time_loss.domain_map(y_hat)
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
+        """
+        Args:
+            y (torch.Tensor): Actual values.
+            y_hat (torch.Tensor): Predicted values.
+            mask (Union[torch.Tensor, None], optional): Specifies datapoints to consider in loss. Defaults to None.
+            y_insample (Union[torch.Tensor, None], optional): Actual insample values. Defaults to None.
+
+        Returns:
+            torch.Tensor: Scalar mixed loss.
+        """
+        l_time = self.time_loss(y=y, y_hat=y_hat, mask=mask, y_insample=y_insample)
+        l_freq = self.freq_loss(y=y, y_hat=y_hat, mask=mask, y_insample=y_insample)
+        return l_time + self.lam * l_freq
+
