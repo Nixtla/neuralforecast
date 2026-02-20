@@ -1080,14 +1080,7 @@ class NeuralForecast:
         
         for model in self.models:
             model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
-            
-            # Check for multivariate models
-            if model.MULTIVARIATE:
-                skipped_models.append(model_name)
-                if verbose:
-                    warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
-                continue
-                
+
             # Check for DistributionLoss
             if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
                 loss_name = model.loss.__class__.__name__
@@ -1100,7 +1093,7 @@ class NeuralForecast:
                         f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html"
                     )
                 continue
-                
+
             # Check for recurrent models with incompatible configurations
             if model.RECURRENT:
                 # Check for IntegratedGradients incompatibility
@@ -1112,17 +1105,17 @@ class NeuralForecast:
                             f"Either set recurrent=False when initializing the model, or use a different explainer."
                         )
                     continue
-                
+
                 # Check for InputXGradient + GPU incompatibility (cudnn error)
                 if explainer == "InputXGradient":
                     using_gpu = False
                     if hasattr(model, 'trainer_kwargs'):
                         accelerator = model.trainer_kwargs.get('accelerator', 'auto')
-                        using_gpu = (accelerator == 'gpu' or 
+                        using_gpu = (accelerator == 'gpu' or
                                     (accelerator == 'auto' and torch.cuda.is_available()))
                     elif torch.cuda.is_available():
                         using_gpu = True
-                    
+
                     if using_gpu:
                         skipped_models.append(model_name)
                         if verbose:
@@ -1133,9 +1126,25 @@ class NeuralForecast:
                                 f"3) Set accelerator='cpu' and devices=1 when initializing the model."
                             )
                         continue
-                
+
+            if model.MULTIVARIATE and getattr(model, "stat_exog_list", None) and verbose:
+                warnings.warn(
+                    f"{model_name}: static exogenous attributions are not supported for multivariate models. "
+                    f"explanations['stat_exog'] will be None for this model."
+                )
+
+            if (
+                explainer == ExplainerEnum.IntegratedGradients
+                and getattr(model.hparams, "revin", None)
+                and verbose
+            ):
+                warnings.warn(
+                    f"{model_name}: RevIN is enabled, which can produce unreliable attributions with IntegratedGradients. "
+                    f"For accurate explanations, initialize the model with revin=False."
+                )
+
             models_to_explain.append(model)
-        
+
         if not models_to_explain:
             # Build a more specific error message based on what was skipped
             error_msg = "No models support explanations with the current configuration. "
