@@ -1127,8 +1127,15 @@ class NeuralForecast:
                             )
                         continue
                 
+            if model.MULTIVARIATE and getattr(model, "stat_exog_list", None) and verbose:
+                warnings.warn(
+                    f"{model_name}: static exogenous (stat_exog) attributions are not supported "
+                    f"for multivariate models. Captum treats the first tensor dimension as the "
+                    f"batch dimension, but stat_exog has shape [n_series, n_features] with no "
+                    f"batch dimension. explanations['stat_exog'] will be None for this model."
+                )
             models_to_explain.append(model)
-        
+
         if not models_to_explain:
             # Build a more specific error message based on what was skipped
             error_msg = "No models support explanations with the current configuration. "

@@ -2418,22 +2418,31 @@ class BaseModel(pl.LightningModule):
         additive_explainers = ExplainerEnum.AdditiveExplainers
 
         if explainer_name in additive_explainers:
+            # For multivariate models, stat_exog is excluded from captum's tracked inputs
+            # (captum would incorrectly batch it), so captum keeps stat_exog at its
+            # original value during IG interpolation. To preserve additivity
+            # (baseline + sum(attrs) == f(x)), the baseline must use the same stat_exog
+            # value that captum uses — i.e. the original, not zeroed-out.
+            baseline_stat_exog = (
+                stat_exog if self.MULTIVARIATE else
+                (stat_exog * 0 if stat_exog is not None else None)
+            )
             if self.RECURRENT:
                 baseline_predictions = self._predict_step_recurrent_batch(
                     insample_y=insample_y * 0,
                     insample_mask=insample_mask * 0,
                     futr_exog=futr_exog * 0 if futr_exog is not None else None,
                     hist_exog=hist_exog * 0 if hist_exog is not None else None,
-                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    stat_exog=baseline_stat_exog,
                     y_idx=y_idx,
-                )                
+                )
             else:
                 baseline_predictions = self._predict_step_direct_batch(
                     insample_y=insample_y * 0,
                     insample_mask=insample_mask * 0,
                     futr_exog=futr_exog * 0 if futr_exog is not None else None,
                     hist_exog=hist_exog * 0 if hist_exog is not None else None,
-                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    stat_exog=baseline_stat_exog,
                     y_idx=y_idx,
                 )
             if add_dim:

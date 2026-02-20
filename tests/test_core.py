@@ -1940,29 +1940,46 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
             assert expl["stat_exog"] is not None
             assert expl["stat_exog"].shape == expected_stat_shape
 
-def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons):
-    """Test if sum of attributions and baseline predictions equal forecasts"""
+def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons, rtol=1e-3):
+    """Test if sum of attributions and baseline predictions equal forecasts.
+
+    Works for both univariate (n_series=1) and multivariate (n_series>1) models.
+    For multivariate, attributions retain the n_series_out dimension so additivity
+    holds per series (baseline + sum(attrs) == prediction for each series).
+    """
     pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
     if use_polars:
         preds = preds_df[pred_col].to_numpy()
     else:
         preds = preds_df[pred_col].values
 
-    # Sum over n_outputs (-1) and n_series (-2), shape (batch_size, h, n_series, n_outputs) -> (batch_size, h)
-    baseline = expl["baseline_predictions"].sum(dim=(-1, -2))  
-    
-    # Sum over channels (-1), input_sequence (-2), n_outputs (-3), n_series (-4)
-    sum_dims = (-1, -2, -3, -4) 
+    # Detect multivariate via the n_series_out dimension of baseline_predictions
+    is_multivariate = expl["baseline_predictions"].shape[2] > 1
+
+    if is_multivariate:
+        # Keep n_series_out: (1, h, n_series, 1) -> sum over n_outputs -> (1, h, n_series)
+        baseline = expl["baseline_predictions"].sum(dim=-1)
+    else:
+        # (1, h, 1, 1) -> sum over n_outputs and n_series -> (1, h)
+        baseline = expl["baseline_predictions"].sum(dim=(-1, -2))
+
+    # Sum over all feature dims, keeping (batch, h[, n_series]) shape
+    sum_dims = (-1, -2, -3, -4)
     insample_attr = expl["insample"].sum(dim=sum_dims)
     futr_attr = expl["futr_exog"].sum(dim=sum_dims) if expl["futr_exog"] is not None else 0
     hist_attr = expl["hist_exog"].sum(dim=sum_dims) if expl["hist_exog"] is not None else 0
 
-    # Static doesn't have the input_sequence dimension, as it is static across that dimension
-    sum_dims = (-1, -2, -3)  # Sum over channels (-1), n_outputs (-2), n_series (-3)
-    stat_attr = expl["stat_exog"].sum(dim=sum_dims) if expl["stat_exog"] is not None else 0
-    
+    # Static doesn't have the input_sequence dimension
+    sum_dims_stat = (-1, -2, -3)
+    stat_attr = expl["stat_exog"].sum(dim=sum_dims_stat) if expl["stat_exog"] is not None else 0
+
     total_attr = insample_attr + futr_attr + hist_attr + stat_attr
-    pred_from_attr = baseline + total_attr  # Shape: (n_series, h)
+
+    if is_multivariate:
+        # (1, h, n_series) -> (n_series, h)
+        pred_from_attr = (baseline + total_attr).squeeze(0).T
+    else:
+        pred_from_attr = baseline + total_attr  # (1, h)
 
     preds = preds.reshape(n_series, h)
     preds = preds[:, horizons]
@@ -1970,7 +1987,7 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
     np.testing.assert_allclose(
         pred_from_attr.cpu().numpy(),
         preds,
-        rtol=1e-3,
+        rtol=rtol,
         err_msg="Attribution predictions do not match model predictions"
     )
 
@@ -1998,6 +2015,7 @@ def test_explainability_multivariate():
         futr_exog_list=["trend"],
         hist_exog_list=["y_[lag12]"],
         stat_exog_list=["airline1"],
+        revin=False,  # RevIN breaks IG completeness: normalization cancels the alpha interpolation
         max_steps=2,
         accelerator="cpu",
     )
@@ -2006,7 +2024,7 @@ def test_explainability_multivariate():
 
     horizons = list(range(h))
     outputs = [0]
-    _, explanations = nf.explain(
+    preds_df, explanations = nf.explain(
         outputs=outputs,
         horizons=horizons,
         futr_df=futr_df,
@@ -2060,6 +2078,11 @@ def test_explainability_multivariate():
 
     assert expl["baseline_predictions"] is not None
     assert expl["baseline_predictions"].shape == (1, h, n_series, 1)
+
+    # Test additivity: baseline + sum(attributions) == model predictions, per series.
+    # IG uses a discrete integral approximation (n_steps=50 by default), which introduces
+    # ~3-5% numerical error for nonlinear multivariate models, so we use rtol=0.05.
+    _test_model_additivity(preds_df, expl, "TSMixerx", False, n_series, h, horizons, rtol=0.05)
 
 
 def test_compute_valid_loss_distribution_to_quantile_scale():
