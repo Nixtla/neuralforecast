@@ -32,6 +32,7 @@ from neuralforecast.auto import (
     DeepAR,
     DilatedRNN,
     Informer,
+    MLPMultivariate,
     NBEATSx,
     StemGNN,
     TSMixer,
@@ -1992,7 +1993,7 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
     )
 
 def test_explainability_multivariate():
-    """Test that explanations work for multivariate models with all exogenous types (TSMixerx)."""
+    """Test that explanations work for multivariate models with all exogenous types (MLPMultivariate)."""
     Y_train_df = AirPassengersPanel[
         AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]
     ].reset_index(drop=True)
@@ -2008,14 +2009,14 @@ def test_explainability_multivariate():
     n_futr = 1   # "trend"
     n_hist = 1   # "y_[lag12]"
 
-    model = TSMixerx(
+    # MLPMultivariate: piecewise-linear (ReLU), no RevIN, so IG integration is nearly exact
+    model = MLPMultivariate(
         h=h,
         input_size=input_size,
         n_series=n_series,
         futr_exog_list=["trend"],
         hist_exog_list=["y_[lag12]"],
         stat_exog_list=["airline1"],
-        revin=False,  # RevIN breaks IG completeness: normalization cancels the alpha interpolation
         max_steps=2,
         accelerator="cpu",
     )
@@ -2032,8 +2033,8 @@ def test_explainability_multivariate():
         explainer=ExplainerEnum.IntegratedGradients,
     )
 
-    assert "TSMixerx" in explanations
-    expl = explanations["TSMixerx"]
+    assert "MLPMultivariate" in explanations
+    expl = explanations["MLPMultivariate"]
 
     # For multivariate: batch_size=1 (all series processed in one window).
     # insample gets an extra n_series_in dim for cross-series attributions.
@@ -2079,10 +2080,9 @@ def test_explainability_multivariate():
     assert expl["baseline_predictions"] is not None
     assert expl["baseline_predictions"].shape == (1, h, n_series, 1)
 
-    # Test additivity: baseline + sum(attributions) == model predictions, per series.
-    # IG uses a discrete integral approximation (n_steps=50 by default), which introduces
-    # ~3-5% numerical error for nonlinear multivariate models, so we use rtol=0.05.
-    _test_model_additivity(preds_df, expl, "TSMixerx", False, n_series, h, horizons, rtol=0.05)
+    # MLPMultivariate is piecewise linear (ReLU), so IG integration is nearly exact
+    # and the default tight tolerance holds.
+    _test_model_additivity(preds_df, expl, "MLPMultivariate", False, n_series, h, horizons)
 
 
 def test_compute_valid_loss_distribution_to_quantile_scale():
