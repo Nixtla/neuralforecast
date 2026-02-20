@@ -1715,6 +1715,15 @@ class NeuralForecast:
             save_dataset (bool): Whether to save dataset or not.
             overwrite (bool): Whether to overwrite files or not. 
         """
+        # In distributed training (DDP), only rank 0 should save
+        try:
+            import torch.distributed as dist
+
+            if dist.is_initialized() and dist.get_rank() != 0:
+                return
+        except (ImportError, RuntimeError):
+            pass
+
         # Standarize path without '/'
         if path[-1] == "/":
             path = path[:-1]
