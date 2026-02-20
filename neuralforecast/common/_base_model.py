@@ -1666,12 +1666,18 @@ class BaseModel(pl.LightningModule):
             
             if explain_state:
                 insample_explanations = torch.cat(insample_explanations, dim=0)
-                if futr_exog_explanations:
-                    futr_exog_explanations = torch.cat(futr_exog_explanations, dim=0)
-                if hist_exog_explanations:
-                    hist_exog_explanations = torch.cat(hist_exog_explanations, dim=0)
-                if stat_exog_explanations:
-                    stat_exog_explanations = torch.cat(stat_exog_explanations, dim=0)
+                futr_exog_explanations = (
+                    torch.cat(futr_exog_explanations, dim=0)
+                    if futr_exog_explanations else None
+                )
+                hist_exog_explanations = (
+                    torch.cat(hist_exog_explanations, dim=0)
+                    if hist_exog_explanations else None
+                )
+                stat_exog_explanations = (
+                    torch.cat(stat_exog_explanations, dim=0)
+                    if stat_exog_explanations else None
+                )
                 if baseline_predictions and baseline_predictions[0] is not None:
                     baseline_predictions = torch.cat(baseline_predictions, dim=0)
                 else:
@@ -2040,12 +2046,18 @@ class BaseModel(pl.LightningModule):
 
             fcsts = torch.vstack(fcsts)
             insample_explanations = torch.vstack(insample_explanations)
-            if futr_exog_explanations:
+            if futr_exog_explanations and futr_exog_explanations[0] is not None:
                 futr_exog_explanations = torch.vstack(futr_exog_explanations)
-            if hist_exog_explanations:
+            else:
+                futr_exog_explanations = None
+            if hist_exog_explanations and hist_exog_explanations[0] is not None:
                 hist_exog_explanations = torch.vstack(hist_exog_explanations)
-            if stat_exog_explanations:
+            else:
+                hist_exog_explanations = None
+            if stat_exog_explanations and stat_exog_explanations[0] is not None:
                 stat_exog_explanations = torch.vstack(stat_exog_explanations)
+            else:
+                stat_exog_explanations = None
             if baseline_predictions and baseline_predictions[0] is not None:
                 baseline_predictions = torch.vstack(baseline_predictions)
             else:
@@ -2197,11 +2209,18 @@ class BaseModel(pl.LightningModule):
             empty_shape[3] = len(self.explainer_config.get("output_index", list(range(y_hat_shape[-1]))))
             
             # Insample explanations
-            insample_explanations = torch.empty(
-                size=(*empty_shape, insample_y.shape[1], 2),
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
+            if self.MULTIVARIATE:
+                insample_explanations = torch.empty(
+                    size=(*empty_shape, insample_y.shape[1], insample_y.shape[2], 2),
+                    device=insample_y.device,
+                    dtype=insample_y.dtype,
+                )
+            else:
+                insample_explanations = torch.empty(
+                    size=(*empty_shape, insample_y.shape[1], 2),
+                    device=insample_y.device,
+                    dtype=insample_y.dtype,
+                )
             
             # Future exogenous explanations
             futr_exog_explanations = None
@@ -2212,13 +2231,13 @@ class BaseModel(pl.LightningModule):
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
-                else:
+                else:  # multivariate: [Ws, F, L+h, n_series]
                     futr_exog_explanations = torch.empty(
-                        size=(*empty_shape, futr_exog.shape[2], futr_exog.shape[1]),
+                        size=(*empty_shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
-            
+
             # Historical exogenous explanations
             hist_exog_explanations = None
             if hist_exog is not None:
@@ -2228,16 +2247,17 @@ class BaseModel(pl.LightningModule):
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
-                else:
+                else:  # multivariate: [Ws, X, L, n_series]
                     hist_exog_explanations = torch.empty(
-                        size=(*empty_shape, hist_exog.shape[2], hist_exog.shape[1]),
+                        size=(*empty_shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
-            
-            # Static exogenous explanations
+
+            # Static exogenous explanations (not supported for multivariate: captum
+            # treats the first dim as batch, but stat_exog [n_series, S] is shared)
             stat_exog_explanations = None
-            if stat_exog is not None:
+            if stat_exog is not None and not self.MULTIVARIATE:
                 stat_exog_explanations = torch.empty(
                     size=(*empty_shape, stat_exog.shape[1]),
                     device=stat_exog.device,
@@ -2269,12 +2289,19 @@ class BaseModel(pl.LightningModule):
         
         shape = list(y_hat_shape)
         shape[1] = len(local_horizons)
-        shape[3] = len(output_index)            
-        insample_explanations = torch.empty(
-            size=(*shape, insample_y.shape[1], 2),
-            device=insample_y.device,
-            dtype=insample_y.dtype,
-        )
+        shape[3] = len(output_index)
+        if self.MULTIVARIATE:
+            insample_explanations = torch.empty(
+                size=(*shape, insample_y.shape[1], insample_y.shape[2], 2),
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
+        else:
+            insample_explanations = torch.empty(
+                size=(*shape, insample_y.shape[1], 2),
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
 
         # Keep track of which parameter is at which position in input_batch
         pos = 2  # Starting position after insample_y and insample_mask
@@ -2292,9 +2319,9 @@ class BaseModel(pl.LightningModule):
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
-            else:
+            else:  # multivariate: [Ws, F, L+h, n_series]
                 futr_exog_explanations = torch.empty(
-                    size=(*shape, futr_exog.shape[2], futr_exog.shape[1]),
+                    size=(*shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
@@ -2311,15 +2338,18 @@ class BaseModel(pl.LightningModule):
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
-            else:
+            else:  # multivariate: [Ws, X, L, n_series]
                 hist_exog_explanations = torch.empty(
-                    size=(*shape, hist_exog.shape[2], hist_exog.shape[1]),
+                    size=(*shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
 
+        # stat_exog is excluded from captum's input_batch for multivariate models:
+        # captum treats the first dim as batch, but stat_exog [n_series, S] is shared
+        # across windows (no Ws dim). Instead, stat_exog is passed via lambda closure.
         stat_exog_explanations = None
-        if stat_exog is not None:
+        if stat_exog is not None and not self.MULTIVARIATE:
             stat_exog.requires_grad_()
             input_batch = input_batch + (stat_exog,)
             param_positions["stat_exog"] = pos
@@ -2350,7 +2380,7 @@ class BaseModel(pl.LightningModule):
                         stat_exog=(
                             args[param_positions["stat_exog"]]
                             if "stat_exog" in param_positions
-                            else None
+                            else stat_exog
                         ),
                         y_idx=y_idx,
                         output_horizon=local_horizon,
@@ -2360,11 +2390,12 @@ class BaseModel(pl.LightningModule):
                     attributor = self.explainer_config["explainer"](forward_fn)
                     attributions = attributor.attribute(input_batch)
 
-                    insample_attr = attributions[0].squeeze(-1)
-                    insample_explanations[:, i, j, k, :, 0] = insample_attr
-
-                    insample_mask_attr = attributions[1].squeeze(-1)
-                    insample_explanations[:, i, j, k, :, 1] = insample_mask_attr
+                    if self.MULTIVARIATE:
+                        insample_explanations[:, i, j, k, :, :, 0] = attributions[0]
+                        insample_explanations[:, i, j, k, :, :, 1] = attributions[1]
+                    else:
+                        insample_explanations[:, i, j, k, :, 0] = attributions[0].squeeze(-1)
+                        insample_explanations[:, i, j, k, :, 1] = attributions[1].squeeze(-1)
 
                     if "futr_exog" in param_positions:
                         futr_exog_attr = attributions[param_positions["futr_exog"]]
@@ -2376,7 +2407,11 @@ class BaseModel(pl.LightningModule):
 
                     if "stat_exog" in param_positions:
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
-                        stat_exog_explanations[:, i, j, k] = stat_exog_attr
+                        if self.MULTIVARIATE:
+                            # stat_exog has no Ws dim for multivariate: [n_series, S]
+                            stat_exog_explanations[:, i, j, k] = stat_exog_attr.unsqueeze(0)
+                        else:
+                            stat_exog_explanations[:, i, j, k] = stat_exog_attr
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)

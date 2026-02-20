@@ -1080,14 +1080,7 @@ class NeuralForecast:
         
         for model in self.models:
             model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
-            
-            # Check for multivariate models
-            if model.MULTIVARIATE:
-                skipped_models.append(model_name)
-                if verbose:
-                    warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
-                continue
-                
+
             # Check for DistributionLoss
             if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
                 loss_name = model.loss.__class__.__name__

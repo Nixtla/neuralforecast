@@ -1840,11 +1840,9 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
     
     for model in models:
         model_name = model.alias or model.__class__.__name__
-        
+
         # Check skip conditions
-        if model.MULTIVARIATE:
-            skipped_models.add(model_name)
-        elif hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
+        if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
             skipped_models.add(model_name)
         elif model.RECURRENT and explainer == ExplainerEnum.IntegratedGradients:
             skipped_models.add(model_name)
@@ -1864,13 +1862,19 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
     # Test explained model
     for model_name in expected_explanations:
         expl = explanations[model_name]
+        model_obj = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
+
+        # Multivariate shape assertions are covered by test_explainability_multivariate
+        if model_obj.MULTIVARIATE:
+            assert expl["insample"] is not None
+            continue
 
         # Basic structure tests
         assert expl["insample"] is not None
         expected_input_size = input_size
         if model_name == "LSTM-recurrent":
             expected_input_size = input_size + h_train
-        
+
         batch_size = n_series
         n_series_ = 1
         expected_insample_shape = (
@@ -1899,34 +1903,33 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
             
         
         # Check exogenous if model has them
-        model = next(m for m in models if (m.alias or m.__class__.__name__) == model_name)
-        if model.futr_exog_list:
+        if model_obj.futr_exog_list:
             if recursive_horizon:
-                futr_temporal_size = model.input_size + model.h
+                futr_temporal_size = model_obj.input_size + model_obj.h
             else:
-                futr_temporal_size = model.input_size + h
+                futr_temporal_size = model_obj.input_size + h
             expected_futr_shape = (
-                batch_size,                 # batch size
-                len(horizons),              # horizons
-                n_series_,                  # n_series (1 for univariate)
-                len(outputs),               # n_outputs
-                futr_temporal_size,         # n_input_steps (past + future)
-                len(model.futr_exog_list),  # number of features
+                batch_size,                     # batch size
+                len(horizons),                  # horizons
+                n_series_,                      # n_series (1 for univariate)
+                len(outputs),                   # n_outputs
+                futr_temporal_size,             # n_input_steps (past + future)
+                len(model_obj.futr_exog_list),  # number of features
             )
             assert expl["futr_exog"] is not None
             assert expl["futr_exog"].shape == expected_futr_shape
-        if model.hist_exog_list:
+        if model_obj.hist_exog_list:
             expected_hist_shape = (
-                batch_size,                # batch size
-                len(horizons),             # horizons
-                n_series_,                 # n_series (1 for univariate)
-                len(outputs),              # n_outputs
-                model.input_size,          # n_input_steps (past)
-                len(model.hist_exog_list), # number of features
+                batch_size,                     # batch size
+                len(horizons),                  # horizons
+                n_series_,                      # n_series (1 for univariate)
+                len(outputs),                   # n_outputs
+                model_obj.input_size,           # n_input_steps (past)
+                len(model_obj.hist_exog_list),  # number of features
             )
             assert expl["hist_exog"] is not None
             assert expl["hist_exog"].shape == expected_hist_shape
-        if model.stat_exog_list:
+        if model_obj.stat_exog_list:
             expected_stat_shape = (
                 batch_size,    # batch size
                 len(horizons), # horizons
@@ -1951,12 +1954,12 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
     # Sum over channels (-1), input_sequence (-2), n_outputs (-3), n_series (-4)
     sum_dims = (-1, -2, -3, -4) 
     insample_attr = expl["insample"].sum(dim=sum_dims)
-    futr_attr = expl["futr_exog"].sum(dim=sum_dims) if not isinstance(expl["futr_exog"], list) else 0
-    hist_attr = expl["hist_exog"].sum(dim=sum_dims) if not isinstance(expl["hist_exog"], list) else 0
-    
+    futr_attr = expl["futr_exog"].sum(dim=sum_dims) if expl["futr_exog"] is not None else 0
+    hist_attr = expl["hist_exog"].sum(dim=sum_dims) if expl["hist_exog"] is not None else 0
+
     # Static doesn't have the input_sequence dimension, as it is static across that dimension
     sum_dims = (-1, -2, -3)  # Sum over channels (-1), n_outputs (-2), n_series (-3)
-    stat_attr = expl["stat_exog"].sum(dim=sum_dims) if not isinstance(expl["stat_exog"], list) else 0
+    stat_attr = expl["stat_exog"].sum(dim=sum_dims) if expl["stat_exog"] is not None else 0
     
     total_attr = insample_attr + futr_attr + hist_attr + stat_attr
     pred_from_attr = baseline + total_attr  # Shape: (n_series, h)
@@ -1970,6 +1973,94 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
         rtol=1e-3,
         err_msg="Attribution predictions do not match model predictions"
     )
+
+def test_explainability_multivariate():
+    """Test that explanations work for multivariate models with all exogenous types (TSMixerx)."""
+    Y_train_df = AirPassengersPanel[
+        AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]
+    ].reset_index(drop=True)
+    Y_test_df = AirPassengersPanel[
+        AirPassengersPanel["ds"] >= AirPassengersPanel["ds"].values[-12]
+    ].reset_index(drop=True)
+    futr_df = Y_test_df.drop(columns=["y", "y_[lag12]"])
+    static_df = AirPassengersStatic.drop(columns=["airline2"])
+
+    h = 12
+    input_size = 24
+    n_series = Y_train_df["unique_id"].nunique()  # 2
+    n_futr = 1   # "trend"
+    n_hist = 1   # "y_[lag12]"
+
+    model = TSMixerx(
+        h=h,
+        input_size=input_size,
+        n_series=n_series,
+        futr_exog_list=["trend"],
+        hist_exog_list=["y_[lag12]"],
+        stat_exog_list=["airline1"],
+        max_steps=2,
+        accelerator="cpu",
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df=Y_train_df, static_df=static_df)
+
+    horizons = list(range(h))
+    outputs = [0]
+    _, explanations = nf.explain(
+        outputs=outputs,
+        horizons=horizons,
+        futr_df=futr_df,
+        static_df=static_df,
+        explainer=ExplainerEnum.IntegratedGradients,
+    )
+
+    assert "TSMixerx" in explanations
+    expl = explanations["TSMixerx"]
+
+    # For multivariate: batch_size=1 (all series processed in one window).
+    # insample gets an extra n_series_in dim for cross-series attributions.
+    assert expl["insample"] is not None
+    assert expl["insample"].shape == (
+        1,           # batch_size
+        h,           # n_horizons
+        n_series,    # n_series_out
+        1,           # n_outputs
+        input_size,  # time steps
+        n_series,    # n_series_in (cross-series attributions)
+        2,           # (y attribution, mask attribution)
+    )
+
+    # futr_exog: [Ws, F, L+h, n_series_in]
+    assert expl["futr_exog"] is not None
+    assert expl["futr_exog"].shape == (
+        1,                    # batch_size
+        h,                    # n_horizons
+        n_series,             # n_series_out
+        1,                    # n_outputs
+        n_futr,               # n_futr_features
+        input_size + h,       # time steps (past + future)
+        n_series,             # n_series_in
+    )
+
+    # hist_exog: [Ws, X, L, n_series_in]
+    assert expl["hist_exog"] is not None
+    assert expl["hist_exog"].shape == (
+        1,           # batch_size
+        h,           # n_horizons
+        n_series,    # n_series_out
+        1,           # n_outputs
+        n_hist,      # n_hist_features
+        input_size,  # time steps (past only)
+        n_series,    # n_series_in
+    )
+
+    # stat_exog: not supported for multivariate (captum batches by first dim,
+    # but stat_exog [n_series, S] is shared across windows)
+    assert expl["stat_exog"] is None
+
+    assert expl["baseline_predictions"] is not None
+    assert expl["baseline_predictions"].shape == (1, h, n_series, 1)
+
 
 def test_compute_valid_loss_distribution_to_quantile_scale():
     """
