@@ -1724,6 +1724,15 @@ class NeuralForecast:
             save_dataset (bool): Whether to save dataset or not.
             overwrite (bool): Whether to overwrite files or not. 
         """
+        # In distributed training (DDP), only rank 0 should save
+        try:
+            import torch.distributed as dist
+
+            if dist.is_initialized() and dist.get_rank() != 0:
+                return
+        except (ImportError, RuntimeError):
+            pass
+
         # Standarize path without '/'
         if path[-1] == "/":
             path = path[:-1]
@@ -1956,7 +1965,8 @@ class NeuralForecast:
             )
 
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
-        min_samples = self.h * self.prediction_intervals.n_windows + 1
+        step_size = self.prediction_intervals.step_size
+        min_samples = self.h + step_size * (self.prediction_intervals.n_windows - 1) + 1
         if min_size < min_samples:
             raise ValueError(
                 "Minimum required samples in each serie for the prediction intervals "
@@ -1969,6 +1979,7 @@ class NeuralForecast:
             df=df,
             static_df=static_df,
             n_windows=self.prediction_intervals.n_windows,
+            step_size=step_size,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
