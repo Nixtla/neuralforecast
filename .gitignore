@@ -33,14 +33,14 @@ nbs/_extensions/mintlify
 .coverage*
 
 # ignore files created in the docs folder
-docs/**/*.mdx
+# docs/**/*.mdx
 
-docs-scripts
-docs/mintlify/examples
+# docs-scripts
+# docs/mintlify/examples
 
 nbs/_extensions
 .quarto
 
-*.png
+# *.png
 
 CLAUDE.md
