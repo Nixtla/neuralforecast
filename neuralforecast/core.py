@@ -1127,12 +1127,6 @@ class NeuralForecast:
                             )
                         continue
 
-            if model.MULTIVARIATE and getattr(model, "stat_exog_list", None) and verbose:
-                warnings.warn(
-                    f"{model_name}: static exogenous attributions are not supported for multivariate models. "
-                    f"explanations['stat_exog'] will be None for this model."
-                )
-
             if (
                 explainer == ExplainerEnum.IntegratedGradients
                 and getattr(model.hparams, "revin", None)

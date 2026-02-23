@@ -2254,15 +2254,20 @@ class BaseModel(pl.LightningModule):
                         dtype=hist_exog.dtype,
                     )
 
-            # Static exogenous explanations (not supported for multivariate: captum
-            # treats the first dim as batch, but stat_exog [n_series, S] is shared)
             stat_exog_explanations = None
-            if stat_exog is not None and not self.MULTIVARIATE:
-                stat_exog_explanations = torch.empty(
-                    size=(*empty_shape, stat_exog.shape[1]),
-                    device=stat_exog.device,
-                    dtype=stat_exog.dtype,
-                )
+            if stat_exog is not None:
+                if self.MULTIVARIATE:
+                    stat_exog_explanations = torch.empty(
+                        size=(*empty_shape, stat_exog.shape[0], stat_exog.shape[1]),
+                        device=stat_exog.device,
+                        dtype=stat_exog.dtype,
+                    )
+                else:
+                    stat_exog_explanations = torch.empty(
+                        size=(*empty_shape, stat_exog.shape[1]),
+                        device=stat_exog.device,
+                        dtype=stat_exog.dtype,
+                    )
             
             # Baseline predictions
             baseline_predictions = None
@@ -2345,48 +2350,98 @@ class BaseModel(pl.LightningModule):
                     dtype=hist_exog.dtype,
                 )
 
-        # stat_exog is excluded from captum's input_batch for multivariate models:
-        # captum treats the first dim as batch, but stat_exog [n_series, S] is shared
-        # across windows (no Ws dim). Instead, stat_exog is passed via lambda closure.
         stat_exog_explanations = None
-        if stat_exog is not None and not self.MULTIVARIATE:
-            stat_exog.requires_grad_()
-            input_batch = input_batch + (stat_exog,)
+        if stat_exog is not None:
+            if self.MULTIVARIATE:
+                # Flatten [n_series, S] -> [1, n_series * S] so captum treats it as a
+                # single sample. The forward wrapper unflattens before calling the model.
+                stat_exog_flat = stat_exog.reshape(1, -1).requires_grad_()
+                input_batch = input_batch + (stat_exog_flat,)
+                stat_exog_explanations = torch.empty(
+                    size=(*shape, stat_exog.shape[0], stat_exog.shape[1]),
+                    device=stat_exog.device,
+                    dtype=stat_exog.dtype,
+                )
+            else:
+                stat_exog.requires_grad_()
+                input_batch = input_batch + (stat_exog,)
+                stat_exog_explanations = torch.empty(
+                    size=(*shape, stat_exog.shape[1]),
+                    device=stat_exog.device,
+                    dtype=stat_exog.dtype,
+                )
             param_positions["stat_exog"] = pos
             pos += 1
-            stat_exog_explanations = torch.empty(
-                size=(*shape, stat_exog.shape[1]),
-                device=stat_exog.device,
-                dtype=stat_exog.dtype,
-            )
 
         # Loop over horizons, series and output_indices
+        _mv_stat = self.MULTIVARIATE and "stat_exog" in param_positions
         for i, local_horizon in enumerate(local_horizons):
             for j, series_idx in enumerate(series):
                 for k, output_idx in enumerate(output_index):
-                    forward_fn = lambda *args: self._predict_step_wrapper(
-                        insample_y=args[param_positions["insample_y"]],
-                        insample_mask=args[param_positions["insample_mask"]],
-                        futr_exog=(
-                            args[param_positions["futr_exog"]]
-                            if "futr_exog" in param_positions
-                            else None
-                        ),
-                        hist_exog=(
-                            args[param_positions["hist_exog"]]
-                            if "hist_exog" in param_positions
-                            else None
-                        ),
-                        stat_exog=(
-                            args[param_positions["stat_exog"]]
-                            if "stat_exog" in param_positions
-                            else stat_exog
-                        ),
-                        y_idx=y_idx,
-                        output_horizon=local_horizon,
-                        output_series=series_idx,
-                        output_index=output_idx,
-                    )
+                    if _mv_stat:
+                        # Captum batches n_steps interpolation points together, passing
+                        # stat_exog_flat as [n_steps, n_series*S]. The model expects
+                        # [n_series, S], so we loop when the batch is > 1.
+                        def forward_fn(
+                            *args,
+                            _lh=local_horizon,
+                            _si=series_idx,
+                            _oi=output_idx,
+                        ):
+                            stat_arg = args[param_positions["stat_exog"]]
+                            n_batch = stat_arg.shape[0]
+                            if n_batch == 1:
+                                return self._predict_step_wrapper(
+                                    insample_y=args[param_positions["insample_y"]],
+                                    insample_mask=args[param_positions["insample_mask"]],
+                                    futr_exog=args[param_positions["futr_exog"]] if "futr_exog" in param_positions else None,
+                                    hist_exog=args[param_positions["hist_exog"]] if "hist_exog" in param_positions else None,
+                                    stat_exog=stat_arg.reshape(stat_exog.shape),
+                                    y_idx=y_idx,
+                                    output_horizon=_lh,
+                                    output_series=_si,
+                                    output_index=_oi,
+                                )
+                            else:
+                                results = [
+                                    self._predict_step_wrapper(
+                                        insample_y=args[param_positions["insample_y"]][b:b+1],
+                                        insample_mask=args[param_positions["insample_mask"]][b:b+1],
+                                        futr_exog=args[param_positions["futr_exog"]][b:b+1] if "futr_exog" in param_positions else None,
+                                        hist_exog=args[param_positions["hist_exog"]][b:b+1] if "hist_exog" in param_positions else None,
+                                        stat_exog=stat_arg[b].reshape(stat_exog.shape),
+                                        y_idx=y_idx,
+                                        output_horizon=_lh,
+                                        output_series=_si,
+                                        output_index=_oi,
+                                    )
+                                    for b in range(n_batch)
+                                ]
+                                return torch.cat(results, dim=0)
+                    else:
+                        forward_fn = lambda *args: self._predict_step_wrapper(
+                            insample_y=args[param_positions["insample_y"]],
+                            insample_mask=args[param_positions["insample_mask"]],
+                            futr_exog=(
+                                args[param_positions["futr_exog"]]
+                                if "futr_exog" in param_positions
+                                else None
+                            ),
+                            hist_exog=(
+                                args[param_positions["hist_exog"]]
+                                if "hist_exog" in param_positions
+                                else None
+                            ),
+                            stat_exog=(
+                                args[param_positions["stat_exog"]]
+                                if "stat_exog" in param_positions
+                                else None
+                            ),
+                            y_idx=y_idx,
+                            output_horizon=local_horizon,
+                            output_series=series_idx,
+                            output_index=output_idx,
+                        )
                     attributor = self.explainer_config["explainer"](forward_fn)
                     attributions = attributor.attribute(input_batch)
 
@@ -2408,8 +2463,8 @@ class BaseModel(pl.LightningModule):
                     if "stat_exog" in param_positions:
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
                         if self.MULTIVARIATE:
-                            # stat_exog has no Ws dim for multivariate: [n_series, S]
-                            stat_exog_explanations[:, i, j, k] = stat_exog_attr.unsqueeze(0)
+                            # captum returns [1, n_series * S]; reshape to [1, n_series, S]
+                            stat_exog_explanations[:, i, j, k] = stat_exog_attr.reshape(-1, *stat_exog.shape)
                         else:
                             stat_exog_explanations[:, i, j, k] = stat_exog_attr
 
@@ -2418,15 +2473,7 @@ class BaseModel(pl.LightningModule):
         additive_explainers = ExplainerEnum.AdditiveExplainers
 
         if explainer_name in additive_explainers:
-            # For multivariate models, stat_exog is excluded from captum's tracked inputs
-            # (captum would incorrectly batch it), so captum keeps stat_exog at its
-            # original value during IG interpolation. To preserve additivity
-            # (baseline + sum(attrs) == f(x)), the baseline must use the same stat_exog
-            # value that captum uses — i.e. the original, not zeroed-out.
-            baseline_stat_exog = (
-                stat_exog if self.MULTIVARIATE else
-                (stat_exog * 0 if stat_exog is not None else None)
-            )
+            baseline_stat_exog = stat_exog * 0 if stat_exog is not None else None
             if self.RECURRENT:
                 baseline_predictions = self._predict_step_recurrent_batch(
                     insample_y=insample_y * 0,

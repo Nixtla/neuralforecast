@@ -2113,9 +2113,18 @@ def test_explainability_multivariate():
         n_series,    # n_series_in
     )
 
-    # stat_exog: not supported for multivariate (captum batches by first dim,
-    # but stat_exog [n_series, S] is shared across windows)
-    assert expl["stat_exog"] is None
+    n_stat = 1   # "airline1"
+    # stat_exog: [Ws, h, n_series_out, n_outputs, n_series_in, S]
+    # stat_exog is flattened to [1, n_series * S] for captum, then reshaped back.
+    assert expl["stat_exog"] is not None
+    assert expl["stat_exog"].shape == (
+        1,        # batch_size
+        h,        # n_horizons
+        n_series, # n_series_out
+        1,        # n_outputs
+        n_series, # n_series_in (cross-series static attributions)
+        n_stat,   # n_static_features
+    )
 
     assert expl["baseline_predictions"] is not None
     assert expl["baseline_predictions"].shape == (1, h, n_series, 1)
