@@ -54,7 +54,45 @@ These metrics are on the same scale as the data.
 
 ![](imgs_losses/rmse_loss.png)
 
-# 2. Percentage errors
+# 2. Scale-dependent Errors In Frequency Domain
+
+These metrics are on the same scale as the data (in the frequency domain).
+
+## Fast Fourier Transform Mean Absolute Error Loss (FFTMAELoss)
+
+::: neuralforecast.losses.pytorch.FFTMAELoss
+    options:
+      members: [__init__, __call__]
+      heading_level: 3
+
+![](imgs_losses/fft_mae_loss.png)
+
+## Fast Fourier Transform Mean Squared Error Loss (FFTMSELoss)
+
+::: neuralforecast.losses.pytorch.FFTMSELoss
+    options:
+      members: [__init__, __call__]
+      heading_level: 3
+
+![](imgs_losses/fft_mse_loss.png)
+
+## Fast Fourier Transform Root Mean Squared Error Loss (FFTRMSELoss)
+
+::: neuralforecast.losses.pytorch.FFTRMSELoss
+    options:
+      members: [__init__, __call__]
+      heading_level: 3
+
+![](imgs_losses/fft_rmse_loss.png) 
+
+## Mixed Fast Fourier Transform Loss (MixedFFTLoss)
+
+::: neuralforecast.losses.pytorch.MixedFFTLoss
+    options:
+      members: [__init__, __call__]
+      heading_level: 3
+
+# 3. Percentage errors
 
 These metrics are unit-free, suitable for comparisons across series.
 
@@ -74,7 +112,7 @@ These metrics are unit-free, suitable for comparisons across series.
       members: [__init__, __call__]
       heading_level: 3
 
-# 3. Scale-independent Errors
+# 4. Scale-independent Errors
 
 These metrics measure the relative improvements versus baselines.
 
@@ -94,7 +132,7 @@ These metrics measure the relative improvements versus baselines.
       members: [__init__, __call__]
       heading_level: 3
 
-# 4. Probabilistic Errors
+# 5. Probabilistic Errors
 
 These methods use statistical approaches for estimating unknown
 probability distributions using observed data.
@@ -215,7 +253,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-# 6. Others
+# 7. Others
 
 ## Accuracy
 
