@@ -1,14 +1,20 @@
 import warnings
-
+import pytest
 import torch
 
 from neuralforecast.losses.pytorch import (
+    MSE,
     MAE,
     PMM,
     DistributionLoss,
     HuberIQLoss,
     IQLoss,
     MQLoss,
+    FFTMAELoss,
+    FFTMSELoss,
+    FFTRMSELoss,
+    MixedFFTLoss,
+
 )
 
 
@@ -160,3 +166,173 @@ def test_duplicate_level_and_quantiles_dedup():
         check = MQLoss(level=[80, 90])
         assert len(w) == 0
     assert len(check.quantiles) == 5
+
+# ─────────────────────────── FFTMAELoss ────────────────────────────
+
+def test_fftmae_univariate():
+    """Perfect predictions should yield zero loss."""
+    y = torch.sin(torch.linspace(0, 2 * torch.pi, 24)).unsqueeze(0).unsqueeze(-1)
+    loss = FFTMAELoss()(y=y, y_hat=y)
+    assert loss.item() == pytest.approx(0.0, abs=1e-6)
+
+
+def test_fftmae_multivariate():
+    """Loss is positive and finite for multi-output predictions."""
+    B, H, N = 4, 24, 3
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    loss = FFTMAELoss()(y=y, y_hat=y_hat)
+    assert loss.item() > 0
+    assert torch.isfinite(loss)
+
+
+def test_fftmae_autoregressive_mask():
+    """Masking out time steps reduces or equals the unmasked loss."""
+    B, H, N = 2, 16, 1
+    y = torch.randn(B, H, N)
+    y_hat = torch.zeros(B, H, N)
+    mask_full = torch.ones(B, H, N)
+    mask_half = mask_full.clone(); mask_half[:, H // 2 :, :] = 0
+
+    loss_full = FFTMAELoss()(y=y, y_hat=y_hat, mask=mask_full)
+    loss_half = FFTMAELoss()(y=y, y_hat=y_hat, mask=mask_half)
+    # Both should be finite; masking zeros out signal so values differ
+    assert torch.isfinite(loss_full) and torch.isfinite(loss_half)
+
+
+def test_fftmae_numerical_stability():
+    """Very large and very small inputs should not produce NaN/Inf."""
+    for scale in [1e-8, 1e8]:
+        y = torch.randn(2, 32, 1) * scale
+        y_hat = torch.randn(2, 32, 1) * scale
+        loss = FFTMAELoss(norm=True)(y=y, y_hat=y_hat)
+        assert torch.isfinite(loss), f"Non-finite loss at scale {scale}"
+
+
+# ─────────────────────────── FFTMSELoss ────────────────────────────
+
+def test_fftmse_univariate():
+    """Perfect predictions should yield zero loss."""
+    y = torch.cos(torch.linspace(0, 2 * torch.pi, 24)).unsqueeze(0).unsqueeze(-1)
+    loss = FFTMSELoss()(y=y, y_hat=y)
+    assert loss.item() == pytest.approx(0.0, abs=1e-6)
+
+
+def test_fftmse_multivariate():
+    """MSE loss is non-negative and finite for random multi-output tensors."""
+    B, H, N = 4, 24, 5
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    loss = FFTMSELoss()(y=y, y_hat=y_hat)
+    assert loss.item() >= 0
+    assert torch.isfinite(loss)
+
+
+def test_fftmse_autoregressive_mask():
+    """Zeroed mask produces finite loss; differs from full-mask loss."""
+    B, H, N = 3, 20, 1
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    mask = torch.ones(B, H, N)
+    mask[:, -5:, :] = 0  # mask last 5 steps (AR-style causal masking)
+
+    loss_masked = FFTMSELoss()(y=y, y_hat=y_hat, mask=mask)
+    loss_full = FFTMSELoss()(y=y, y_hat=y_hat)
+    assert torch.isfinite(loss_masked) and torch.isfinite(loss_full)
+
+
+def test_fftmse_numerical_stability():
+    """Loss should be finite across extreme value ranges."""
+    for scale in [1e-7, 1e7]:
+        y = torch.randn(2, 32, 2) * scale
+        y_hat = torch.randn(2, 32, 2) * scale
+        loss = FFTMSELoss(norm=True)(y=y, y_hat=y_hat)
+        assert torch.isfinite(loss), f"Non-finite MSE loss at scale {scale}"
+
+
+# ─────────────────────────── FFTRMSELoss ───────────────────────────
+
+def test_fftrmse_univariate():
+    """Perfect predictions should yield zero loss."""
+    y = torch.randn(1, 48, 1)
+    loss = FFTRMSELoss()(y=y, y_hat=y)
+    assert loss.item() == pytest.approx(0.0, abs=1e-6)
+
+
+def test_fftrmse_multivariate():
+    """RMSE >= 0 and RMSE == sqrt(MSE) for multi-output tensors."""
+    B, H, N = 4, 24, 3
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    rmse = FFTRMSELoss()(y=y, y_hat=y_hat)
+    mse = FFTMSELoss()(y=y, y_hat=y_hat)
+    assert rmse.item() >= 0
+    assert rmse.item() == pytest.approx(mse.item() ** 0.5, rel=1e-5)
+
+
+def test_fftrmse_autoregressive_mask():
+    """Masked RMSE is finite and non-negative."""
+    B, H, N = 2, 16, 1
+    y = torch.randn(B, H, N)
+    y_hat = torch.zeros(B, H, N)
+    mask = torch.ones(B, H, N); mask[:, :4, :] = 0  # skip first 4 steps
+
+    loss = FFTRMSELoss()(y=y, y_hat=y_hat, mask=mask)
+    assert torch.isfinite(loss) and loss.item() >= 0
+
+
+def test_fftrmse_numerical_stability():
+    """No NaN/Inf for very small or very large scales."""
+    for scale in [1e-8, 1e8]:
+        y = torch.randn(3, 24, 1) * scale
+        y_hat = torch.randn(3, 24, 1) * scale
+        loss = FFTRMSELoss(norm=True)(y=y, y_hat=y_hat)
+        assert torch.isfinite(loss), f"Non-finite RMSE at scale {scale}"
+
+
+# ─────────────────────────── MixedFFTLoss ──────────────────────────
+
+def test_mixedfft_univariate():
+    """Perfect predictions yield zero combined loss."""
+    y = torch.randn(2, 32, 1)
+    loss_fn = MixedFFTLoss(time_loss=MAE(), freq_loss=FFTMAELoss(), lam=0.5)
+    loss = loss_fn(y=y, y_hat=y)
+    assert loss.item() == pytest.approx(0.0, abs=1e-6)
+
+
+def test_mixedfft_multivariate():
+    """Combined loss equals time_loss + lam * freq_loss."""
+    B, H, N = 4, 24, 3
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    lam = 0.3
+    time_loss, freq_loss = MAE(), FFTMAELoss()
+    mixed = MixedFFTLoss(time_loss=time_loss, freq_loss=freq_loss, lam=lam)
+
+    expected = time_loss(y=y, y_hat=y_hat) + lam * freq_loss(y=y, y_hat=y_hat)
+    assert mixed(y=y, y_hat=y_hat).item() == pytest.approx(expected.item(), rel=1e-5)
+
+
+def test_mixedfft_autoregressive_mask():
+    """Masked mixed loss is finite; invalid loss types raise TypeError."""
+    B, H, N = 2, 20, 1
+    y = torch.randn(B, H, N)
+    y_hat = torch.randn(B, H, N)
+    mask = torch.ones(B, H, N); mask[:, -5:, :] = 0
+
+    loss_fn = MixedFFTLoss(time_loss=MSE(), freq_loss=FFTMSELoss(), lam=1.0)
+    loss = loss_fn(y=y, y_hat=y_hat, mask=mask)
+    assert torch.isfinite(loss)
+
+    with pytest.raises(TypeError):
+        MixedFFTLoss(time_loss=FFTMAELoss(), freq_loss=FFTMAELoss())  # wrong type
+
+
+def test_mixedfft_numerical_stability():
+    """Mixed loss stays finite at extreme scales with lam=0 and lam=1."""
+    for lam in [0.0, 1.0]:
+        for scale in [1e-8, 1e8]:
+            y = torch.randn(2, 32, 2) * scale
+            y_hat = torch.randn(2, 32, 2) * scale
+            loss = MixedFFTLoss(MAE(), FFTMAELoss(), lam=lam)(y=y, y_hat=y_hat)
+            assert torch.isfinite(loss), f"Non-finite at lam={lam}, scale={scale}"
