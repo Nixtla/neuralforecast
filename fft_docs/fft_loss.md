@@ -21,9 +21,6 @@ $$\mathcal{L}_{total} = \mathcal{L}_{time} + \lambda \cdot \mathcal{L}_{freq}$$
 - **Normalization:** Supports magnitude normalization via the `norm` parameter to ensure loss stability across varying sequence lengths ($H$).
 - **Architectural Compatibility:** The implementation respects the `BasePointLoss` interface to seamlessly integrate with existing loss functions in the repository. 
 
-### Testing
-Tests were performed locally via PyTest. The baseline formulas were computed in pure numpy and compared against the pytorch functions implemented. The loss functions are numerically stable and work within the NeuralForecast repository.
-
 ## Testing
 
 Tests are located in `tests/test_losses/test_fft_losses.py` and run via PyTest. Each of the four loss classes (`FFTMAELoss`, `FFTMSELoss`, `FFTRMSELoss`, `MixedFFTLoss`) has four dedicated test cases:
