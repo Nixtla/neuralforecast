@@ -1224,11 +1224,24 @@ class NeuralForecast:
         for model in models_to_explain:
             if hasattr(model, "explanations") and model.explanations is not None:
                 model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
+
+                # Univariate models store exog tensors as (..., temporal, features).
+                # Multivariate models store them as (..., features, temporal, n_series_in).
+                # Normalize univariate to (..., features, temporal) so callers don't need
+                # to branch on model.MULTIVARIATE to interpret the trailing dimensions.
+                futr_exog = model.explanations["futr_exog_explanations"]
+                hist_exog = model.explanations["hist_exog_explanations"]
+                if not model.MULTIVARIATE:
+                    if futr_exog is not None:
+                        futr_exog = futr_exog.transpose(-2, -1)
+                    if hist_exog is not None:
+                        hist_exog = hist_exog.transpose(-2, -1)
+
                 explanations[model_name] = {
-                    "insample": model.explanations["insample_explanations"],           # [batch_size, horizon, n_series, n_output, input_size, 2 (y attribution, mask attribution)]
-                    "futr_exog": model.explanations["futr_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size+horizon, n_futr_features]
-                    "hist_exog": model.explanations["hist_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size, n_hist_features]
-                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features]
+                    "insample": model.explanations["insample_explanations"],  # [batch_size, horizon, n_series, n_output, temporal, 2] univariate / [..., n_series_in, temporal, 2] multivariate
+                    "futr_exog": futr_exog,                                   # [batch_size, horizon, n_series, n_output, n_features, temporal] univariate / [..., n_features, temporal, n_series_in] multivariate
+                    "hist_exog": hist_exog,                                   # [batch_size, horizon, n_series, n_output, n_features, temporal] univariate / [..., n_features, temporal, n_series_in] multivariate
+                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features] univariate / [..., n_series_in, n_static_features] multivariate
                     "baseline_predictions": model.explanations["baseline_predictions"] # [batch_size, horizon, n_series, n_output]
                 }
                 # Delete explanations attribute once extracted

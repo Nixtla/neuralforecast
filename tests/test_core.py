@@ -1954,8 +1954,8 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
                 len(horizons),                  # horizons
                 n_series_,                      # n_series (1 for univariate)
                 len(outputs),                   # n_outputs
-                futr_temporal_size,             # n_input_steps (past + future)
                 len(model_obj.futr_exog_list),  # number of features
+                futr_temporal_size,             # n_input_steps (past + future)
             )
             assert expl["futr_exog"] is not None
             assert expl["futr_exog"].shape == expected_futr_shape
@@ -1965,8 +1965,8 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
                 len(horizons),                  # horizons
                 n_series_,                      # n_series (1 for univariate)
                 len(outputs),                   # n_outputs
-                model_obj.input_size,           # n_input_steps (past)
                 len(model_obj.hist_exog_list),  # number of features
+                model_obj.input_size,           # n_input_steps (past)
             )
             assert expl["hist_exog"] is not None
             assert expl["hist_exog"].shape == expected_hist_shape
