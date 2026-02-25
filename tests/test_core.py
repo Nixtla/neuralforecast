@@ -1981,12 +1981,15 @@ def test_explainability(explainer, use_polars, horizons, recursive_horizon):
             assert expl["stat_exog"] is not None
             assert expl["stat_exog"].shape == expected_stat_shape
 
-def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons, rtol=1e-3):
+def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, horizons, rtol=1e-3, is_multivariate=None):
     """Test if sum of attributions and baseline predictions equal forecasts.
 
     Works for both univariate (n_series=1) and multivariate (n_series>1) models.
     For multivariate, attributions retain the n_series_out dimension so additivity
     holds per series (baseline + sum(attrs) == prediction for each series).
+
+    is_multivariate can be passed explicitly for the partial-series case where
+    n_series_out=1 but the model is still multivariate (series=[0] selection).
     """
     pred_col = [col for col in preds_df.columns if col.startswith(model_name)][0]
     if use_polars:
@@ -1994,8 +1997,10 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
     else:
         preds = preds_df[pred_col].values
 
-    # Detect multivariate via the n_series_out dimension of baseline_predictions
-    is_multivariate = expl["baseline_predictions"].shape[2] > 1
+    # Detect multivariate via the n_series_out dimension of baseline_predictions,
+    # unless the caller overrides (needed when series=[0] gives n_series_out=1).
+    if is_multivariate is None:
+        is_multivariate = expl["baseline_predictions"].shape[2] > 1
 
     if is_multivariate:
         # Keep n_series_out: (1, h, n_series, 1) -> sum over n_outputs -> (1, h, n_series)
@@ -2017,12 +2022,16 @@ def _test_model_additivity(preds_df, expl, model_name, use_polars, n_series, h, 
     total_attr = insample_attr + futr_attr + hist_attr + stat_attr
 
     if is_multivariate:
-        # (1, h, n_series) -> (n_series, h)
+        # (1, h, n_series_out) -> (n_series_out, h)
         pred_from_attr = (baseline + total_attr).squeeze(0).T
+        # preds_df always has all n_series rows; take only the first n_series_out
+        # to match a partial-series explanation (e.g. series=[0]).
+        n_series_out = pred_from_attr.shape[0]
+        preds = preds.reshape(-1, h)[:n_series_out, :]
     else:
         pred_from_attr = baseline + total_attr  # (1, h)
+        preds = preds.reshape(n_series, h)
 
-    preds = preds.reshape(n_series, h)
     preds = preds[:, horizons]
 
     np.testing.assert_allclose(
@@ -2132,6 +2141,38 @@ def test_explainability_multivariate():
     # MLPMultivariate is piecewise linear (ReLU), so IG integration is nearly exact
     # and the default tight tolerance holds.
     _test_model_additivity(preds_df, expl, "MLPMultivariate", False, n_series, h, horizons)
+
+    # --- Partial series selection: series=[0] ---
+    preds_df_s0, explanations_s0 = nf.explain(
+        outputs=outputs,
+        horizons=horizons,
+        series=[0],
+        futr_df=futr_df,
+        static_df=static_df,
+        explainer=ExplainerEnum.IntegratedGradients,
+    )
+    expl_s0 = explanations_s0["MLPMultivariate"]
+
+    # n_series_out is 1; n_series_in is still n_series (cross-series captured)
+    assert expl_s0["insample"].shape == (1, h, 1, 1, input_size, n_series, 2)
+    assert expl_s0["futr_exog"].shape == (1, h, 1, 1, n_futr, input_size + h, n_series)
+    assert expl_s0["hist_exog"].shape == (1, h, 1, 1, n_hist, input_size, n_series)
+    assert expl_s0["stat_exog"].shape == (1, h, 1, 1, n_series, n_stat)
+    assert expl_s0["baseline_predictions"].shape == (1, h, 1, 1)
+
+    # Additivity holds for the single selected series; pass is_multivariate=True
+    # because n_series_out=1 would otherwise be misdetected as univariate.
+    _test_model_additivity(preds_df_s0, expl_s0, "MLPMultivariate", False, 1, h, horizons, is_multivariate=True)
+
+    # --- Invalid series index raises ValueError ---
+    with pytest.raises(ValueError, match="Invalid series indices"):
+        nf.explain(
+            outputs=outputs,
+            horizons=horizons,
+            series=[5],
+            futr_df=futr_df,
+            static_df=static_df,
+        )
 
 
 def test_compute_valid_loss_distribution_to_quantile_scale():
