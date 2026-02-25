@@ -194,8 +194,8 @@ for key in list(explanations["NHITS"].keys()):
 
 ``` text
 Shape of insample: torch.Size([2, 12, 1, 1, 24, 2])
-Shape of futr_exog: torch.Size([2, 12, 1, 1, 36, 1])
-Shape of hist_exog: torch.Size([2, 12, 1, 1, 24, 1])
+Shape of futr_exog: torch.Size([2, 12, 1, 1, 1, 36])
+Shape of hist_exog: torch.Size([2, 12, 1, 1, 1, 24])
 Shape of stat_exog: torch.Size([2, 12, 1, 1, 1])
 Shape of baseline_predictions: torch.Size([2, 12, 1, 1])
 ```
@@ -205,9 +205,9 @@ For each element above, the shape is defined as:
 -   `insample`: \[batch_size, horizon, n_series, n_output, input_size, 2
     (y attribution, mask attribution)\]
 -   `futr_exog`: \[batch_size, horizon, n_series, n_output,
-    input_size+horizon, n_futr_features\]
--   `hist_exog`: \[batch_size, horizon, n_series, n_output, input_size,
-    n_hist_features\]
+    n_futr_features, input_size+horizon\]
+-   `hist_exog`: \[batch_size, horizon, n_series, n_output,
+    n_hist_features, input_size\]
 -   `stat_exog`: \[batch_size, horizon, n_series, n_output,
     n_static_features\]
 -   `baseline_predictions`: \[batch_size, horizon, n_series, n_output\]
@@ -261,22 +261,22 @@ for i, attr in enumerate(combined_insample):
     attributions.append(attr)
     feature_names.append(f"y_lag{i+1}")
 
-# hist_exog attributions
+# hist_exog attributions                                             
 hist_attr = explanations["NHITS"]["hist_exog"][batch_idx, horizon_idx, 0, output_idx]
-hist_attr = hist_attr.cpu().numpy()
-for t in range(hist_attr.shape[0]):
-    attributions.append(hist_attr[t, 0])
+hist_attr = hist_attr.cpu().numpy()  # shape: (n_features, temporal)
+for t in range(hist_attr.shape[1]):       # ← was shape[0]
+    attributions.append(hist_attr[0, t])  # ← was hist_attr[t, 0]
     feature_names.append(f"y_lag12_t{t+1}")
 
 # futr_exog attributions
 futr_attr = explanations["NHITS"]["futr_exog"][batch_idx, horizon_idx, 0, output_idx]
-futr_attr = futr_attr.cpu().numpy()
-for t in range(futr_attr.shape[0]):
-    attributions.append(futr_attr[t, 0])
+futr_attr = futr_attr.cpu().numpy()  # shape: (n_features, temporal)
+for t in range(futr_attr.shape[1]):       # ← was shape[0]
+    attributions.append(futr_attr[0, t])  # ← was futr_attr[t, 0]
     if t < 24:
-        feature_names.append(f"trend_hist_t{t+1}") # Known values in the past
+        feature_names.append(f"trend_hist_t{t+1}")
     else:
-        feature_names.append(f"trend_futr_h{t-23}") # Knwon values in the future
+        feature_names.append(f"trend_futr_h{t-23}")
 
 # stat_exog attributions
 stat_attr = explanations["NHITS"]["stat_exog"][batch_idx, horizon_idx, 0, output_idx]
@@ -301,8 +301,8 @@ shap.plots.waterfall(shap_explanation)
 ![](explainability_files/figure-markdown_strict/cell-10-output-1.png)
 
 As you can see, we now have a nice waterfall plot showing the baseline
-prediction, E\[f(X)\] = 396.163, and how each features contributes to
-the final forecast f(x) = 418.631.
+prediction, E\[f(X)\] = 396.092, and how each features contributes to
+the final forecast f(x) = 412.804.
 
 Of course, we can do a wide variery of different plots from `shap`. For
 example, we can do a simple bar plot as shown below.
@@ -598,8 +598,8 @@ for key in list(explanations["NHITS"].keys()):
 
 ``` text
 Shape of insample: torch.Size([2, 12, 1, 3, 24, 2])
-Shape of futr_exog: torch.Size([2, 12, 1, 3, 36, 1])
-Shape of hist_exog: torch.Size([2, 12, 1, 3, 24, 1])
+Shape of futr_exog: torch.Size([2, 12, 1, 3, 1, 36])
+Shape of hist_exog: torch.Size([2, 12, 1, 3, 1, 24])
 Shape of stat_exog: torch.Size([2, 12, 1, 3, 1])
 Shape of baseline_predictions: torch.Size([2, 12, 1, 3])
 ```
@@ -688,16 +688,22 @@ Shape of stat_exog: torch.Size([1, 12, 2, 1, 2, 1])
 Shape of baseline_predictions: torch.Size([1, 12, 2, 1])
 ```
 
-Notice how the shape of the attribution tensors is different from the
-univariate case. Take the insample attribution for example. In the
-univariate case, the shape `[2, 12, 1, 1, 24, 2]` shows that we have two
-batches with 1 series in each, because we are forecasting each series
-independently. However, for the multivariate case, the shape is
-`[1, 12, 2, 1, 24, 2, 2]`. Now, we have a single batch, but 2 series,
-since we jointly predict both series.
+For each element above, the shape is defined as:
 
-As such, the logic to visualize attribution scores changes slightly for
-multivariate models.
+-   `insample`: \[batch_size, horizon, n_series, n_output, input_size,
+    n_series_in, 2 (y attribution, mask attribution)\]
+-   `futr_exog`: \[batch_size, horizon, n_series, n_output,
+    n_futr_features, input_size+horizon, n_series_in\]
+-   `hist_exog`: \[batch_size, horizon, n_series, n_output,
+    n_hist_features, input_size, n_series_in\]
+-   `stat_exog`: \[batch_size, horizon, n_series, n_output, n_series_in,
+    n_static_features\]
+-   `baseline_predictions`: \[batch_size, horizon, n_series, n_output\]
+
+Note that in the multivariate case, we add a `n_series_in` dimension on
+every tensor, except `baseline_predictions` to indicate that we capture
+cross-series attribution. That way, we can see how each input series
+contribute to each output series.
 
 ```python
 batch_idx = 0                                                                                                                       
@@ -748,7 +754,6 @@ for series_out_idx in range(expl["baseline_predictions"].shape[2]):
             shap_values.append(val)
 
     shap_explanation = shap.Explanation(
-        values=np.array(shap_values),
         base_values=baseline,
         feature_names=feature_names,
     )
