@@ -1011,6 +1011,7 @@ class NeuralForecast:
         self,
         horizons: Optional[list[int]] = None,
         outputs: list[int] = [0],
+        series: Optional[list[int]] = None,
         explainer: str = ExplainerEnum.IntegratedGradients,
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
@@ -1029,6 +1030,7 @@ class NeuralForecast:
         Args:
             horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
             outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
+            series (list of int, optional): List of series indices to explain. If None, all series are explained. Defaults to None.
             explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'InputXGradient'. Defaults to 'IntegratedGradients'.
             df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
@@ -1169,7 +1171,19 @@ class NeuralForecast:
                 f"You must set valid output indices for all models, which is the minimum number of ouputs amongst all models. "
                 f"You can always set outputs=None to default to [0] (first output)."
             )
-        
+
+        # Determine minimum series across all models to explain
+        min_series = min(getattr(model, 'n_series', 1) for model in models_to_explain)
+
+        # Validate series
+        if series is None:
+            series = list(range(min_series))
+        elif not series or any(s < 0 or s >= min_series for s in series):
+            raise ValueError(
+                f"Invalid series indices. Based on the models being explained, valid series are in {list(range(min_series))}. "
+                f"Set series=None to explain all series."
+            )
+
         # Temporarily replace self.models with only explainable models
         original_models = self.models
         self.models = models_to_explain
@@ -1178,6 +1192,7 @@ class NeuralForecast:
             "explainer": captum.attr.__dict__[explainer],
             "horizons": horizons,
             "output_index": outputs,
+            "series": series,
         }
 
         try:

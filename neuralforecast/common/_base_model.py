@@ -2203,9 +2203,12 @@ class BaseModel(pl.LightningModule):
         # Convert to local horizon indices
         local_horizons = [h - step_start for h in horizons_to_explain]
         
+        series = self.explainer_config.get("series", list(range(self.n_series)))
+
         if not local_horizons:
             empty_shape = list(y_hat_shape)
             empty_shape[1] = 0  # No horizons
+            empty_shape[2] = len(series)
             empty_shape[3] = len(self.explainer_config.get("output_index", list(range(y_hat_shape[-1]))))
             
             # Insample explanations
@@ -2281,7 +2284,6 @@ class BaseModel(pl.LightningModule):
             )
         
         # Attribute the input
-        series = list(range(self.n_series))
         output_index = self.explainer_config.get(
             "output_index", list(range(y_hat_shape[-1]))
         )
@@ -2291,9 +2293,10 @@ class BaseModel(pl.LightningModule):
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
         param_positions = {"insample_y": 0, "insample_mask": 1}
-        
+
         shape = list(y_hat_shape)
         shape[1] = len(local_horizons)
+        shape[2] = len(series)
         shape[3] = len(output_index)
         if self.MULTIVARIATE:
             insample_explanations = torch.empty(
