@@ -1179,9 +1179,15 @@ class NeuralForecast:
         if series is None:
             series = list(range(min_series))
         elif not series or any(s < 0 or s >= min_series for s in series):
+            per_model = ", ".join(
+                f"{m.hparams.alias if hasattr(m.hparams, 'alias') and m.hparams.alias else m.__class__.__name__}="
+                f"{getattr(m, 'n_series', 1)}"
+                for m in models_to_explain
+            )
             raise ValueError(
-                f"Invalid series indices. Based on the models being explained, valid series are in {list(range(min_series))}. "
-                f"Set series=None to explain all series."
+                f"Invalid series indices. Valid indices are {list(range(min_series))} "
+                f"(capped at the model with the fewest series: {per_model}). "
+                f"Set series=None to explain all available series."
             )
 
         # Temporarily replace self.models with only explainable models
