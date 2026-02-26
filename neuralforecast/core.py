@@ -1172,22 +1172,17 @@ class NeuralForecast:
                 f"You can always set outputs=None to default to [0] (first output)."
             )
 
-        # Determine minimum series across all models to explain
-        min_series = min(getattr(model, 'n_series', 1) for model in models_to_explain)
+        # Validate series. All multivariate models share the same n_series;
+        # univariate models always use [0] and ignore this parameter.
+        mv_models = [m for m in models_to_explain if m.MULTIVARIATE]
+        n_series = mv_models[0].n_series if mv_models else 1
 
-        # Validate series
         if series is None:
-            series = list(range(min_series))
-        elif not series or any(s < 0 or s >= min_series for s in series):
-            per_model = ", ".join(
-                f"{m.hparams.alias if hasattr(m.hparams, 'alias') and m.hparams.alias else m.__class__.__name__}="
-                f"{getattr(m, 'n_series', 1)}"
-                for m in models_to_explain
-            )
+            series = list(range(n_series))
+        elif not series or any(s < 0 or s >= n_series for s in series):
             raise ValueError(
-                f"Invalid series indices. Valid indices are {list(range(min_series))} "
-                f"(capped at the model with the fewest series: {per_model}). "
-                f"Set series=None to explain all available series."
+                f"Invalid series indices. Valid indices are {list(range(n_series))}. "
+                f"Set series=None to explain all series."
             )
 
         # Temporarily replace self.models with only explainable models

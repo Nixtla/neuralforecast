@@ -2203,7 +2203,10 @@ class BaseModel(pl.LightningModule):
         # Convert to local horizon indices
         local_horizons = [h - step_start for h in horizons_to_explain]
         
-        series = self.explainer_config.get("series", list(range(self.n_series)))
+        if self.MULTIVARIATE:
+            series = self.explainer_config.get("series", list(range(self.n_series)))
+        else:
+            series = [0]
 
         if not local_horizons:
             empty_shape = list(y_hat_shape)
