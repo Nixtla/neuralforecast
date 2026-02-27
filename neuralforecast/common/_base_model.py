@@ -1666,12 +1666,18 @@ class BaseModel(pl.LightningModule):
             
             if explain_state:
                 insample_explanations = torch.cat(insample_explanations, dim=0)
-                if futr_exog_explanations:
-                    futr_exog_explanations = torch.cat(futr_exog_explanations, dim=0)
-                if hist_exog_explanations:
-                    hist_exog_explanations = torch.cat(hist_exog_explanations, dim=0)
-                if stat_exog_explanations:
-                    stat_exog_explanations = torch.cat(stat_exog_explanations, dim=0)
+                futr_exog_explanations = (
+                    torch.cat(futr_exog_explanations, dim=0)
+                    if futr_exog_explanations else None
+                )
+                hist_exog_explanations = (
+                    torch.cat(hist_exog_explanations, dim=0)
+                    if hist_exog_explanations else None
+                )
+                stat_exog_explanations = (
+                    torch.cat(stat_exog_explanations, dim=0)
+                    if stat_exog_explanations else None
+                )
                 if baseline_predictions and baseline_predictions[0] is not None:
                     baseline_predictions = torch.cat(baseline_predictions, dim=0)
                 else:
@@ -2040,12 +2046,18 @@ class BaseModel(pl.LightningModule):
 
             fcsts = torch.vstack(fcsts)
             insample_explanations = torch.vstack(insample_explanations)
-            if futr_exog_explanations:
+            if futr_exog_explanations and futr_exog_explanations[0] is not None:
                 futr_exog_explanations = torch.vstack(futr_exog_explanations)
-            if hist_exog_explanations:
+            else:
+                futr_exog_explanations = None
+            if hist_exog_explanations and hist_exog_explanations[0] is not None:
                 hist_exog_explanations = torch.vstack(hist_exog_explanations)
-            if stat_exog_explanations:
+            else:
+                hist_exog_explanations = None
+            if stat_exog_explanations and stat_exog_explanations[0] is not None:
                 stat_exog_explanations = torch.vstack(stat_exog_explanations)
+            else:
+                stat_exog_explanations = None
             if baseline_predictions and baseline_predictions[0] is not None:
                 baseline_predictions = torch.vstack(baseline_predictions)
             else:
@@ -2191,17 +2203,30 @@ class BaseModel(pl.LightningModule):
         # Convert to local horizon indices
         local_horizons = [h - step_start for h in horizons_to_explain]
         
+        if self.MULTIVARIATE:
+            series = self.explainer_config.get("series", list(range(self.n_series)))
+        else:
+            series = [0]
+
         if not local_horizons:
             empty_shape = list(y_hat_shape)
             empty_shape[1] = 0  # No horizons
+            empty_shape[2] = len(series)
             empty_shape[3] = len(self.explainer_config.get("output_index", list(range(y_hat_shape[-1]))))
             
             # Insample explanations
-            insample_explanations = torch.empty(
-                size=(*empty_shape, insample_y.shape[1], 2),
-                device=insample_y.device,
-                dtype=insample_y.dtype,
-            )
+            if self.MULTIVARIATE:
+                insample_explanations = torch.empty(
+                    size=(*empty_shape, insample_y.shape[1], insample_y.shape[2], 2),
+                    device=insample_y.device,
+                    dtype=insample_y.dtype,
+                )
+            else:
+                insample_explanations = torch.empty(
+                    size=(*empty_shape, insample_y.shape[1], 2),
+                    device=insample_y.device,
+                    dtype=insample_y.dtype,
+                )
             
             # Future exogenous explanations
             futr_exog_explanations = None
@@ -2212,13 +2237,13 @@ class BaseModel(pl.LightningModule):
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
-                else:
+                else:  # multivariate: [Ws, F, L+h, n_series]
                     futr_exog_explanations = torch.empty(
-                        size=(*empty_shape, futr_exog.shape[2], futr_exog.shape[1]),
+                        size=(*empty_shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
-            
+
             # Historical exogenous explanations
             hist_exog_explanations = None
             if hist_exog is not None:
@@ -2228,21 +2253,27 @@ class BaseModel(pl.LightningModule):
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
-                else:
+                else:  # multivariate: [Ws, X, L, n_series]
                     hist_exog_explanations = torch.empty(
-                        size=(*empty_shape, hist_exog.shape[2], hist_exog.shape[1]),
+                        size=(*empty_shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
-            
-            # Static exogenous explanations
+
             stat_exog_explanations = None
             if stat_exog is not None:
-                stat_exog_explanations = torch.empty(
-                    size=(*empty_shape, stat_exog.shape[1]),
-                    device=stat_exog.device,
-                    dtype=stat_exog.dtype,
-                )
+                if self.MULTIVARIATE:
+                    stat_exog_explanations = torch.empty(
+                        size=(*empty_shape, stat_exog.shape[0], stat_exog.shape[1]),
+                        device=stat_exog.device,
+                        dtype=stat_exog.dtype,
+                    )
+                else:
+                    stat_exog_explanations = torch.empty(
+                        size=(*empty_shape, stat_exog.shape[1]),
+                        device=stat_exog.device,
+                        dtype=stat_exog.dtype,
+                    )
             
             # Baseline predictions
             baseline_predictions = None
@@ -2256,7 +2287,6 @@ class BaseModel(pl.LightningModule):
             )
         
         # Attribute the input
-        series = list(range(self.n_series))
         output_index = self.explainer_config.get(
             "output_index", list(range(y_hat_shape[-1]))
         )
@@ -2266,15 +2296,23 @@ class BaseModel(pl.LightningModule):
         insample_mask.requires_grad_()
         input_batch = (insample_y, insample_mask)
         param_positions = {"insample_y": 0, "insample_mask": 1}
-        
+
         shape = list(y_hat_shape)
         shape[1] = len(local_horizons)
-        shape[3] = len(output_index)            
-        insample_explanations = torch.empty(
-            size=(*shape, insample_y.shape[1], 2),
-            device=insample_y.device,
-            dtype=insample_y.dtype,
-        )
+        shape[2] = len(series)
+        shape[3] = len(output_index)
+        if self.MULTIVARIATE:
+            insample_explanations = torch.empty(
+                size=(*shape, insample_y.shape[1], insample_y.shape[2], 2),
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
+        else:
+            insample_explanations = torch.empty(
+                size=(*shape, insample_y.shape[1], 2),
+                device=insample_y.device,
+                dtype=insample_y.dtype,
+            )
 
         # Keep track of which parameter is at which position in input_batch
         pos = 2  # Starting position after insample_y and insample_mask
@@ -2292,9 +2330,9 @@ class BaseModel(pl.LightningModule):
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
-            else:
+            else:  # multivariate: [Ws, F, L+h, n_series]
                 futr_exog_explanations = torch.empty(
-                    size=(*shape, futr_exog.shape[2], futr_exog.shape[1]),
+                    size=(*shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
@@ -2311,60 +2349,114 @@ class BaseModel(pl.LightningModule):
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
-            else:
+            else:  # multivariate: [Ws, X, L, n_series]
                 hist_exog_explanations = torch.empty(
-                    size=(*shape, hist_exog.shape[2], hist_exog.shape[1]),
+                    size=(*shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
 
         stat_exog_explanations = None
         if stat_exog is not None:
-            stat_exog.requires_grad_()
-            input_batch = input_batch + (stat_exog,)
+            if self.MULTIVARIATE:
+                # Flatten [n_series, S] -> [1, n_series * S] so captum treats it as a
+                # single sample. The forward wrapper unflattens before calling the model.
+                stat_exog_flat = stat_exog.reshape(1, -1).requires_grad_()
+                input_batch = input_batch + (stat_exog_flat,)
+                stat_exog_explanations = torch.empty(
+                    size=(*shape, stat_exog.shape[0], stat_exog.shape[1]),
+                    device=stat_exog.device,
+                    dtype=stat_exog.dtype,
+                )
+            else:
+                stat_exog.requires_grad_()
+                input_batch = input_batch + (stat_exog,)
+                stat_exog_explanations = torch.empty(
+                    size=(*shape, stat_exog.shape[1]),
+                    device=stat_exog.device,
+                    dtype=stat_exog.dtype,
+                )
             param_positions["stat_exog"] = pos
             pos += 1
-            stat_exog_explanations = torch.empty(
-                size=(*shape, stat_exog.shape[1]),
-                device=stat_exog.device,
-                dtype=stat_exog.dtype,
-            )
 
         # Loop over horizons, series and output_indices
+        _mv_stat = self.MULTIVARIATE and "stat_exog" in param_positions
         for i, local_horizon in enumerate(local_horizons):
             for j, series_idx in enumerate(series):
                 for k, output_idx in enumerate(output_index):
-                    forward_fn = lambda *args: self._predict_step_wrapper(
-                        insample_y=args[param_positions["insample_y"]],
-                        insample_mask=args[param_positions["insample_mask"]],
-                        futr_exog=(
-                            args[param_positions["futr_exog"]]
-                            if "futr_exog" in param_positions
-                            else None
-                        ),
-                        hist_exog=(
-                            args[param_positions["hist_exog"]]
-                            if "hist_exog" in param_positions
-                            else None
-                        ),
-                        stat_exog=(
-                            args[param_positions["stat_exog"]]
-                            if "stat_exog" in param_positions
-                            else None
-                        ),
-                        y_idx=y_idx,
-                        output_horizon=local_horizon,
-                        output_series=series_idx,
-                        output_index=output_idx,
-                    )
+                    if _mv_stat:
+                        # Captum batches n_steps interpolation points together, passing
+                        # stat_exog_flat as [n_steps, n_series*S]. The model expects
+                        # [n_series, S], so we loop when the batch is > 1.
+                        def forward_fn(
+                            *args,
+                            _lh=local_horizon,
+                            _si=series_idx,
+                            _oi=output_idx,
+                        ):
+                            stat_arg = args[param_positions["stat_exog"]]
+                            n_batch = stat_arg.shape[0]
+                            if n_batch == 1:
+                                return self._predict_step_wrapper(
+                                    insample_y=args[param_positions["insample_y"]],
+                                    insample_mask=args[param_positions["insample_mask"]],
+                                    futr_exog=args[param_positions["futr_exog"]] if "futr_exog" in param_positions else None,
+                                    hist_exog=args[param_positions["hist_exog"]] if "hist_exog" in param_positions else None,
+                                    stat_exog=stat_arg.reshape(stat_exog.shape),
+                                    y_idx=y_idx,
+                                    output_horizon=_lh,
+                                    output_series=_si,
+                                    output_index=_oi,
+                                )
+                            else:
+                                results = [
+                                    self._predict_step_wrapper(
+                                        insample_y=args[param_positions["insample_y"]][b:b+1],
+                                        insample_mask=args[param_positions["insample_mask"]][b:b+1],
+                                        futr_exog=args[param_positions["futr_exog"]][b:b+1] if "futr_exog" in param_positions else None,
+                                        hist_exog=args[param_positions["hist_exog"]][b:b+1] if "hist_exog" in param_positions else None,
+                                        stat_exog=stat_arg[b].reshape(stat_exog.shape),
+                                        y_idx=y_idx,
+                                        output_horizon=_lh,
+                                        output_series=_si,
+                                        output_index=_oi,
+                                    )
+                                    for b in range(n_batch)
+                                ]
+                                return torch.cat(results, dim=0)
+                    else:
+                        forward_fn = lambda *args: self._predict_step_wrapper(
+                            insample_y=args[param_positions["insample_y"]],
+                            insample_mask=args[param_positions["insample_mask"]],
+                            futr_exog=(
+                                args[param_positions["futr_exog"]]
+                                if "futr_exog" in param_positions
+                                else None
+                            ),
+                            hist_exog=(
+                                args[param_positions["hist_exog"]]
+                                if "hist_exog" in param_positions
+                                else None
+                            ),
+                            stat_exog=(
+                                args[param_positions["stat_exog"]]
+                                if "stat_exog" in param_positions
+                                else None
+                            ),
+                            y_idx=y_idx,
+                            output_horizon=local_horizon,
+                            output_series=series_idx,
+                            output_index=output_idx,
+                        )
                     attributor = self.explainer_config["explainer"](forward_fn)
                     attributions = attributor.attribute(input_batch)
 
-                    insample_attr = attributions[0].squeeze(-1)
-                    insample_explanations[:, i, j, k, :, 0] = insample_attr
-
-                    insample_mask_attr = attributions[1].squeeze(-1)
-                    insample_explanations[:, i, j, k, :, 1] = insample_mask_attr
+                    if self.MULTIVARIATE:
+                        insample_explanations[:, i, j, k, :, :, 0] = attributions[0]
+                        insample_explanations[:, i, j, k, :, :, 1] = attributions[1]
+                    else:
+                        insample_explanations[:, i, j, k, :, 0] = attributions[0].squeeze(-1)
+                        insample_explanations[:, i, j, k, :, 1] = attributions[1].squeeze(-1)
 
                     if "futr_exog" in param_positions:
                         futr_exog_attr = attributions[param_positions["futr_exog"]]
@@ -2376,29 +2468,34 @@ class BaseModel(pl.LightningModule):
 
                     if "stat_exog" in param_positions:
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
-                        stat_exog_explanations[:, i, j, k] = stat_exog_attr
+                        if self.MULTIVARIATE:
+                            # captum returns [1, n_series * S]; reshape to [1, n_series, S]
+                            stat_exog_explanations[:, i, j, k] = stat_exog_attr.reshape(-1, *stat_exog.shape)
+                        else:
+                            stat_exog_explanations[:, i, j, k] = stat_exog_attr
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
         additive_explainers = ExplainerEnum.AdditiveExplainers
 
         if explainer_name in additive_explainers:
+            baseline_stat_exog = stat_exog * 0 if stat_exog is not None else None
             if self.RECURRENT:
                 baseline_predictions = self._predict_step_recurrent_batch(
                     insample_y=insample_y * 0,
                     insample_mask=insample_mask * 0,
                     futr_exog=futr_exog * 0 if futr_exog is not None else None,
                     hist_exog=hist_exog * 0 if hist_exog is not None else None,
-                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    stat_exog=baseline_stat_exog,
                     y_idx=y_idx,
-                )                
+                )
             else:
                 baseline_predictions = self._predict_step_direct_batch(
                     insample_y=insample_y * 0,
                     insample_mask=insample_mask * 0,
                     futr_exog=futr_exog * 0 if futr_exog is not None else None,
                     hist_exog=hist_exog * 0 if hist_exog is not None else None,
-                    stat_exog=stat_exog * 0 if stat_exog is not None else None,
+                    stat_exog=baseline_stat_exog,
                     y_idx=y_idx,
                 )
             if add_dim:

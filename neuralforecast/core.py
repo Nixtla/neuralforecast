@@ -1011,6 +1011,7 @@ class NeuralForecast:
         self,
         horizons: Optional[list[int]] = None,
         outputs: list[int] = [0],
+        series: Optional[list[int]] = None,
         explainer: str = ExplainerEnum.IntegratedGradients,
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
@@ -1029,6 +1030,7 @@ class NeuralForecast:
         Args:
             horizons (list of int, optional): List of horizons to explain. If None, all horizons are explained. Defaults to None.
             outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
+            series (list of int, optional): List of series indices to explain. If None, all series are explained. Defaults to None.
             explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'InputXGradient'. Defaults to 'IntegratedGradients'.
             df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
@@ -1080,14 +1082,7 @@ class NeuralForecast:
         
         for model in self.models:
             model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
-            
-            # Check for multivariate models
-            if model.MULTIVARIATE:
-                skipped_models.append(model_name)
-                if verbose:
-                    warnings.warn(f"Skipping {model_name}: Explanations are not currently supported for multivariate models.")
-                continue
-                
+
             # Check for DistributionLoss
             if hasattr(model.loss, 'is_distribution_output') and model.loss.is_distribution_output:
                 loss_name = model.loss.__class__.__name__
@@ -1100,7 +1095,7 @@ class NeuralForecast:
                         f"https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/objectives.html"
                     )
                 continue
-                
+
             # Check for recurrent models with incompatible configurations
             if model.RECURRENT:
                 # Check for IntegratedGradients incompatibility
@@ -1112,17 +1107,17 @@ class NeuralForecast:
                             f"Either set recurrent=False when initializing the model, or use a different explainer."
                         )
                     continue
-                
+
                 # Check for InputXGradient + GPU incompatibility (cudnn error)
                 if explainer == "InputXGradient":
                     using_gpu = False
                     if hasattr(model, 'trainer_kwargs'):
                         accelerator = model.trainer_kwargs.get('accelerator', 'auto')
-                        using_gpu = (accelerator == 'gpu' or 
+                        using_gpu = (accelerator == 'gpu' or
                                     (accelerator == 'auto' and torch.cuda.is_available()))
                     elif torch.cuda.is_available():
                         using_gpu = True
-                    
+
                     if using_gpu:
                         skipped_models.append(model_name)
                         if verbose:
@@ -1133,9 +1128,19 @@ class NeuralForecast:
                                 f"3) Set accelerator='cpu' and devices=1 when initializing the model."
                             )
                         continue
-                
+
+            if (
+                explainer == ExplainerEnum.IntegratedGradients
+                and getattr(model.hparams, "revin", None)
+                and verbose
+            ):
+                warnings.warn(
+                    f"{model_name}: RevIN is enabled, which can produce unreliable attributions with IntegratedGradients. "
+                    f"For accurate explanations, initialize the model with revin=False."
+                )
+
             models_to_explain.append(model)
-        
+
         if not models_to_explain:
             # Build a more specific error message based on what was skipped
             error_msg = "No models support explanations with the current configuration. "
@@ -1166,7 +1171,20 @@ class NeuralForecast:
                 f"You must set valid output indices for all models, which is the minimum number of ouputs amongst all models. "
                 f"You can always set outputs=None to default to [0] (first output)."
             )
-        
+
+        # Validate series. All multivariate models share the same n_series;
+        # univariate models always use [0] and ignore this parameter.
+        mv_models = [m for m in models_to_explain if m.MULTIVARIATE]
+        n_series = mv_models[0].n_series if mv_models else 1
+
+        if series is None:
+            series = list(range(n_series))
+        elif not series or any(s < 0 or s >= n_series for s in series):
+            raise ValueError(
+                f"Invalid series indices. Valid indices are {list(range(n_series))}. "
+                f"Set series=None to explain all series."
+            )
+
         # Temporarily replace self.models with only explainable models
         original_models = self.models
         self.models = models_to_explain
@@ -1175,6 +1193,7 @@ class NeuralForecast:
             "explainer": captum.attr.__dict__[explainer],
             "horizons": horizons,
             "output_index": outputs,
+            "series": series,
         }
 
         try:
@@ -1206,11 +1225,24 @@ class NeuralForecast:
         for model in models_to_explain:
             if hasattr(model, "explanations") and model.explanations is not None:
                 model_name = model.hparams.alias if hasattr(model.hparams, 'alias') and model.hparams.alias else model.__class__.__name__
+
+                # Univariate models store exog tensors as (..., temporal, features).
+                # Multivariate models store them as (..., features, temporal, n_series_in).
+                # Normalize univariate to (..., features, temporal) so callers don't need
+                # to branch on model.MULTIVARIATE to interpret the trailing dimensions.
+                futr_exog = model.explanations["futr_exog_explanations"]
+                hist_exog = model.explanations["hist_exog_explanations"]
+                if not model.MULTIVARIATE:
+                    if futr_exog is not None:
+                        futr_exog = futr_exog.transpose(-2, -1)
+                    if hist_exog is not None:
+                        hist_exog = hist_exog.transpose(-2, -1)
+
                 explanations[model_name] = {
-                    "insample": model.explanations["insample_explanations"],           # [batch_size, horizon, n_series, n_output, input_size, 2 (y attribution, mask attribution)]
-                    "futr_exog": model.explanations["futr_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size+horizon, n_futr_features]
-                    "hist_exog": model.explanations["hist_exog_explanations"],         # [batch_size, horizon, n_series, n_output, input_size, n_hist_features]
-                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features]
+                    "insample": model.explanations["insample_explanations"],  # [batch_size, horizon, n_series, n_output, temporal, 2] univariate / [..., n_series_in, temporal, 2] multivariate
+                    "futr_exog": futr_exog,                                   # [batch_size, horizon, n_series, n_output, n_features, temporal] univariate / [..., n_features, temporal, n_series_in] multivariate
+                    "hist_exog": hist_exog,                                   # [batch_size, horizon, n_series, n_output, n_features, temporal] univariate / [..., n_features, temporal, n_series_in] multivariate
+                    "stat_exog": model.explanations["stat_exog_explanations"],         # [batch_size, horizon, n_series, n_output, n_static_features] univariate / [..., n_series_in, n_static_features] multivariate
                     "baseline_predictions": model.explanations["baseline_predictions"] # [batch_size, horizon, n_series, n_output]
                 }
                 # Delete explanations attribute once extracted
