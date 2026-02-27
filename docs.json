@@ -120,7 +120,8 @@
               "models.timexer.html",
               "models.tsmixer.html",
               "models.tsmixerx.html",
-              "models.vanillatransformer.html"
+              "models.vanillatransformer.html",
+              "models.xlinear.html"
             ]
           },
           "models.html",
