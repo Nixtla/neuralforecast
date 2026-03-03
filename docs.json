@@ -128,8 +128,7 @@
           {
             "group": "Train/Evaluation",
             "pages": [
-              "losses.pytorch.html",
-              "losses.numpy.html"
+              "losses.pytorch.html"
             ]
           },
           {

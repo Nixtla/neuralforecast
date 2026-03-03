@@ -49,7 +49,7 @@ You can run these experiments using GPU with Google Colab.
 
 ```python
 %%capture
-!pip install neuralforecast datasetsforecast
+!pip install neuralforecast datasetsforecast utilsforecast
 ```
 
 ## 2. Load ETTm2 Data
@@ -231,18 +231,21 @@ Finally, we compute the test errors using the Mean Absolute Error (MAE):
 $\qquad MAE = \frac{1}{Windows * Horizon} \sum_{\tau} |y_{\tau} - \hat{y}_{\tau}| \qquad$
 
 ```python
-from neuralforecast.losses.numpy import mae
+from utilsforecast.evaluation import evaluate
+from utilsforecast.losses import mae
 ```
 
 
 ```python
-mae_informer = mae(Y_hat_df['y'], Y_hat_df['Informer'])
-mae_autoformer = mae(Y_hat_df['y'], Y_hat_df['Autoformer'])
-mae_patchtst = mae(Y_hat_df['y'], Y_hat_df['PatchTST'])
+eval_df = evaluate(
+    df=Y_hat_df.drop(columns=["cutoff"]),
+    metrics=[mae],
+    agg_fn="mean"
+)
 
-print(f'Informer: {mae_informer:.3f}')
-print(f'Autoformer: {mae_autoformer:.3f}')
-print(f'PatchTST: {mae_patchtst:.3f}')
+print('Informer: ', eval_df.iloc[0]["Informer"])
+print('Autoformer: ', eval_df.iloc[0]["Autoformer"])
+print('PatchTST: ', eval_df.iloc[0]["PatchTST"])
 ```
 
 ``` text
