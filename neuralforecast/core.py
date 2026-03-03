@@ -75,7 +75,7 @@ from neuralforecast.utils import (
 from .common._base_auto import BaseAuto, MockTrial
 from .common._base_model import DistributedConfig
 from .compat import SparkDataFrame
-from .losses.pytorch import HuberIQLoss, IQLoss
+from .losses.pytorch import HuberIQLoss, HuberMQLoss, IQLoss, MQLoss, sCRPS
 
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
@@ -247,6 +247,26 @@ class NeuralForecast:
         assert all(
             model.h == models[0].h for model in models
         ), "All models should have the same horizon"
+
+        for model in models:
+            if isinstance(model.valid_loss, sCRPS):
+                valid_qs = model.valid_loss.mql.quantiles
+            elif isinstance(model.valid_loss, (MQLoss, HuberMQLoss)):
+                valid_qs = model.valid_loss.quantiles
+            else:
+                continue
+            loss_qs = getattr(model.loss, "quantiles", None)
+            if loss_qs is None:
+                continue
+            if not torch.equal(
+                torch.sort(loss_qs).values, torch.sort(valid_qs).values
+            ):
+                raise ValueError(
+                    f"{model.__class__.__name__}: `loss` ({model.loss.__class__.__name__}) "
+                    f"quantiles {loss_qs.tolist()} do not match `valid_loss` "
+                    f"({model.valid_loss.__class__.__name__}) quantiles {valid_qs.tolist()}. "
+                    f"Ensure both use the same `level` or `quantiles` argument."
+                )
 
         self.h = models[0].h
         self.models_init = models
