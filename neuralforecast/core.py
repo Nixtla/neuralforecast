@@ -249,20 +249,22 @@ class NeuralForecast:
         ), "All models should have the same horizon"
 
         for model in models:
-            if isinstance(model.valid_loss, sCRPS):
-                valid_qs = model.valid_loss.mql.quantiles
-            elif isinstance(model.valid_loss, MULTIQUANTILE_LOSSES):
-                valid_qs = model.valid_loss.quantiles
+            valid_loss = getattr(model, "valid_loss", None)
+            if isinstance(valid_loss, sCRPS):
+                valid_qs = valid_loss.mql.quantiles
+            elif isinstance(valid_loss, MULTIQUANTILE_LOSSES):
+                valid_qs = valid_loss.quantiles
             else:
                 continue
-            loss_qs = getattr(model.loss, "quantiles", None)
+            loss = getattr(model, "loss", None)
+            loss_qs = getattr(loss, "quantiles", None)
             if loss_qs is None:
                 continue
             if sorted(loss_qs.tolist()) != sorted(valid_qs.tolist()):
                 raise ValueError(
-                    f"{model.__class__.__name__}: `loss` ({model.loss.__class__.__name__}) "
+                    f"{model.__class__.__name__}: `loss` ({loss.__class__.__name__}) "
                     f"quantiles {loss_qs.tolist()} do not match `valid_loss` "
-                    f"({model.valid_loss.__class__.__name__}) quantiles {valid_qs.tolist()}. "
+                    f"({valid_loss.__class__.__name__}) quantiles {valid_qs.tolist()}. "
                     f"Ensure both use the same `level` or `quantiles` argument."
                 )
 
