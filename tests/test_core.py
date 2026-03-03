@@ -2271,7 +2271,7 @@ def test_loss_valid_loss_quantiles_allowed(loss, valid_loss):
 @pytest.mark.parametrize("loss,valid_loss", [
     # MQLoss quantiles embedded in loss computation — mismatch must be rejected
     (MQLoss(level=[80, 90]), MQLoss(level=[50])),
-    # GMM + sCRPS reproduces the reported issue
+    # GMM + sCRPS reproduces the issue
     (GMM(n_components=5, level=[80, 90]), sCRPS(level=[50])),
 ])
 def test_loss_valid_loss_quantiles_mismatch_raises(loss, valid_loss):
