@@ -73,9 +73,9 @@ from neuralforecast.utils import (
 )
 
 from .common._base_auto import BaseAuto, MockTrial
-from .common._base_model import DistributedConfig
+from .common._base_model import DistributedConfig, MULTIQUANTILE_LOSSES
 from .compat import SparkDataFrame
-from .losses.pytorch import HuberIQLoss, HuberMQLoss, IQLoss, MQLoss, sCRPS
+from .losses.pytorch import HuberIQLoss, IQLoss, sCRPS
 
 # this disables warnings about the number of workers in the dataloaders
 # which the user can't control
@@ -251,16 +251,14 @@ class NeuralForecast:
         for model in models:
             if isinstance(model.valid_loss, sCRPS):
                 valid_qs = model.valid_loss.mql.quantiles
-            elif isinstance(model.valid_loss, (MQLoss, HuberMQLoss)):
+            elif isinstance(model.valid_loss, MULTIQUANTILE_LOSSES):
                 valid_qs = model.valid_loss.quantiles
             else:
                 continue
             loss_qs = getattr(model.loss, "quantiles", None)
             if loss_qs is None:
                 continue
-            if not torch.equal(
-                torch.sort(loss_qs).values, torch.sort(valid_qs).values
-            ):
+            if sorted(loss_qs.tolist()) != sorted(valid_qs.tolist()):
                 raise ValueError(
                     f"{model.__class__.__name__}: `loss` ({model.loss.__class__.__name__}) "
                     f"quantiles {loss_qs.tolist()} do not match `valid_loss` "
