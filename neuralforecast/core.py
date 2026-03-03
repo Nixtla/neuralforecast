@@ -56,6 +56,7 @@ from neuralforecast.models import (
     TSMixer,
     TSMixerx,
     VanillaTransformer,
+    XLinear,
     iTransformer,
     xLSTM,
 )
@@ -202,6 +203,8 @@ MODEL_FILENAME_DICT = {
     "autotimexer": TimeXer,
     "xlstm": xLSTM,
     "autoxlstm": xLSTM,
+    "xlinear": XLinear,
+    "autoxlinear": XLinear,
 }
 
 
