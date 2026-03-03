@@ -59,6 +59,7 @@ from neuralforecast.losses.pytorch import (
     PMM,
     DistributionLoss,
     MQLoss,
+    sCRPS,
 )
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import (
@@ -2251,3 +2252,30 @@ def test_mase_validation_loss_scale(setup_airplane_data):
         f"MASE validation loss is {valid_loss}, which indicates the scale mismatch "
         f"bug may have regressed. Expected < 50 for a properly scaled MASE."
     )
+
+
+@pytest.mark.parametrize("loss,valid_loss", [
+    # DistributionLoss uses NLL — mismatched levels are allowed
+    (DistributionLoss(distribution="Normal", level=[80, 90]), DistributionLoss(distribution="Normal", level=[50])),
+    # GMM + sCRPS with matching quantiles
+    (GMM(n_components=5, level=[80, 90]), sCRPS(level=[80, 90])),
+    # MQLoss with matching quantiles
+    (MQLoss(level=[80, 90]), MQLoss(level=[80, 90])),
+])
+def test_loss_valid_loss_quantiles_allowed(loss, valid_loss):
+    """Loss/valid_loss combinations that should not raise a quantile mismatch error."""
+    model = NHITS(h=12, input_size=24, loss=loss, valid_loss=valid_loss, max_steps=1)
+    NeuralForecast(models=[model], freq="M")
+
+
+@pytest.mark.parametrize("loss,valid_loss", [
+    # MQLoss quantiles embedded in loss computation — mismatch must be rejected
+    (MQLoss(level=[80, 90]), MQLoss(level=[50])),
+    # GMM + sCRPS reproduces the issue
+    (GMM(n_components=5, level=[80, 90]), sCRPS(level=[50])),
+])
+def test_loss_valid_loss_quantiles_mismatch_raises(loss, valid_loss):
+    """Loss/valid_loss combinations with mismatched quantiles must raise ValueError."""
+    model = NHITS(h=12, input_size=24, loss=loss, valid_loss=valid_loss, max_steps=1)
+    with pytest.raises(ValueError, match="quantiles.*do not match"):
+        NeuralForecast(models=[model], freq="M")
