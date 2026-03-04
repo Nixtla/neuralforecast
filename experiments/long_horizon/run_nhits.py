@@ -2,7 +2,7 @@ import os
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 import argparse
-import pandas as pd
+import numpy as np
 
 from ray import tune
 
@@ -10,7 +10,6 @@ from neuralforecast.auto import AutoNHITS
 from neuralforecast.core import NeuralForecast
 
 from neuralforecast.losses.pytorch import MAE, HuberLoss
-from neuralforecast.losses.numpy import mae, mse
 #from datasetsforecast.long_horizon import LongHorizon, LongHorizonInfo
 from datasetsforecast.long_horizon2 import LongHorizon2, LongHorizon2Info
 
@@ -99,8 +98,8 @@ if __name__ == '__main__':
     print('y_true.shape (n_series, n_windows, n_time_out):\t', y_true.shape)
     print('y_hat.shape  (n_series, n_windows, n_time_out):\t', y_hat.shape)
 
-    print('MSE: ', mse(y_hat, y_true))
-    print('MAE: ', mae(y_hat, y_true))
+    print('MSE: ', np.mean((y_hat - y_true) ** 2))
+    print('MAE: ', np.mean(np.abs(y_hat - y_true)))
 
     # Save Outputs
     if not os.path.exists(f'./data/{dataset}'):

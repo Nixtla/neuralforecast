@@ -1,14 +1,13 @@
 import logging
 import warnings
 
+import numpy as np
 import optuna
 import pandas as pd
 import pytest
-import pytorch_lightning as pl
 from ray import tune
 
 from neuralforecast.common._base_auto import BaseAuto
-from neuralforecast.losses.numpy import mae
 from neuralforecast.losses.pytorch import MAE, MSE
 from neuralforecast.models.mlp import MLP
 from neuralforecast.tsdataset import TimeSeriesDataset
@@ -58,7 +57,7 @@ def test_ray_tune(setup_module):
     )
     auto.fit(dataset=dataset)
     y_hat = auto.predict(dataset=dataset)
-    assert mae(Y_test_df["y"].values, y_hat[:, 0]) < 200
+    assert np.mean(np.abs(Y_test_df["y"].values - y_hat[:, 0])) < 200
 
 
 def config_f(trial):
@@ -97,7 +96,7 @@ def test_optuna_tune(setup_module):
     auto2.fit(dataset=dataset)
     assert isinstance(auto2.results, optuna.Study)
     y_hat2 = auto2.predict(dataset=dataset)
-    assert mae(Y_test_df["y"].values, y_hat2[:, 0]) < 200
+    assert np.mean(np.abs(Y_test_df["y"].values - y_hat2[:, 0])) < 200
     Y_test_df["AutoMLP"] = y_hat2
 
     pd.concat([Y_train_df, Y_test_df]).drop("unique_id", axis=1).set_index("ds").plot()
