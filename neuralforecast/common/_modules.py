@@ -41,63 +41,72 @@ ACTIVATIONS = [
 
 
 class MLP(nn.Module):  
-    """Multi-Layer Perceptron for time series forecasting.  
+    """Multi-Layer Perceptron for time series forecasting.
 
-    A feedforward neural network with configurable depth and width. The network  
-    consists of an input layer, multiple hidden layers with activation functions  
-    and dropout, and an output layer. All hidden layers have the same dimensionality.  
+    A feedforward neural network with configurable depth and width. The network
+    consists of an input layer, multiple hidden layers with activation functions
+    and dropout, and an output layer. All hidden layers have the same dimensionality.
 
-    Args:  
-        in_features (int): Dimension of input features.  
-        out_features (int): Dimension of output features.  
-        activation (str): Activation function name. Must be one of the supported  
-            activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU').  
-        hidden_size (int): Number of units in each hidden layer. All hidden layers  
-            share the same dimensionality.  
-        num_layers (int): Total number of layers including input and output layers.  
-            Must be at least 2. For example, num_layers=3 creates: input layer,  
-            one hidden layer, and output layer.  
-        dropout (float): Dropout probability applied after each hidden layer's  
+    Args:
+        in_features (int): Dimension of input features.
+        out_features (int): Dimension of output features.
+        activation (str): Activation function name. Must be one of the supported
+            activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU').
+            Ignored when num_layers=1.
+        hidden_size (int): Number of units in each hidden layer. All hidden layers
+            share the same dimensionality. Ignored when num_layers=1.
+        num_layers (int): Total number of layers including input and output layers.
+            Use num_layers=1 for a direct linear projection with no hidden layers or
+            activation. For num_layers>=2, creates: input layer, (num_layers-2) hidden
+            layers, and output layer.
+        dropout (float): Dropout probability applied after each hidden layer's
             activation. Should be in range [0.0, 1.0]. Not applied to output layer.
+            Ignored when num_layers=1.
 
     Returns:
         (torch.Tensor): Transformed output tensor of shape [..., out_features].
 
-    Notes:  
-        - The activation function is applied after each hidden layer's linear  
-          transformation, but not after the final output layer.  
-        - Dropout is applied after activation in hidden layers for regularization.  
-        - This MLP is used as a decoder component in various forecasting models  
-          including RNN, LSTM, GRU, DilatedRNN, TCN, and xLSTM.  
+    Notes:
+        - The activation function is applied after each hidden layer's linear
+          transformation, but not after the final output layer.
+        - Dropout is applied after activation in hidden layers for regularization.
+        - This MLP is used as a decoder component in various forecasting models
+          including RNN, LSTM, GRU, DilatedRNN, TCN, xLSTM, and DeepAR.
     """
 
     def __init__(
         self, in_features, out_features, activation, hidden_size, num_layers, dropout
     ):
         super().__init__()
-        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
 
-        self.activation = getattr(nn, activation)()
+        if num_layers == 1:
+            # Direct linear projection with no hidden layers or activation
+            self.layers = nn.Sequential(
+                nn.Linear(in_features=in_features, out_features=out_features)
+            )
+        else:
+            assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
+            self.activation = getattr(nn, activation)()
 
-        # MultiLayer Perceptron
-        # Input layer
-        layers = [
-            nn.Linear(in_features=in_features, out_features=hidden_size),
-            self.activation,
-            nn.Dropout(dropout),
-        ]
-        # Hidden layers
-        for i in range(num_layers - 2):
-            layers += [
-                nn.Linear(in_features=hidden_size, out_features=hidden_size),
+            # MultiLayer Perceptron
+            # Input layer
+            layers = [
+                nn.Linear(in_features=in_features, out_features=hidden_size),
                 self.activation,
                 nn.Dropout(dropout),
             ]
-        # Output layer
-        layers += [nn.Linear(in_features=hidden_size, out_features=out_features)]
+            # Hidden layers
+            for i in range(num_layers - 2):
+                layers += [
+                    nn.Linear(in_features=hidden_size, out_features=hidden_size),
+                    self.activation,
+                    nn.Dropout(dropout),
+                ]
+            # Output layer
+            layers += [nn.Linear(in_features=hidden_size, out_features=out_features)]
 
-        # Store in layers as ModuleList
-        self.layers = nn.Sequential(*layers)
+            # Store in layers as ModuleList
+            self.layers = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.layers(x)

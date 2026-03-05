@@ -96,7 +96,7 @@ class xLSTM(BaseModel):
         encoder_bias: bool = True,
         encoder_dropout: float = 0.1,
         decoder_hidden_size: int = 128,
-        decoder_layers: int = 1,
+        decoder_layers: int = 2,
         decoder_dropout: float = 0.0,
         decoder_activation: str = "GELU",
         backbone: str = "mLSTM",
