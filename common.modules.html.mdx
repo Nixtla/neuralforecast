@@ -20,8 +20,8 @@ Bases: <code>[Module](#torch.nn.Module)</code>
 
 Multi-Layer Perceptron for time series forecasting.
 
-A feedforward neural network with configurable depth and width. The network\
-consists of an input layer, multiple hidden layers with activation functions\
+A feedforward neural network with configurable depth and width. The network
+consists of an input layer, multiple hidden layers with activation functions
 and dropout, and an output layer. All hidden layers have the same dimensionality.
 
 **Parameters:**
@@ -30,10 +30,10 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `in_features` | <code>[int](#int)</code> | Dimension of input features. | *required*
 `out_features` | <code>[int](#int)</code> | Dimension of output features. | *required*
-`activation` | <code>[str](#str)</code> | Activation function name. Must be one of the supported activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU'). | *required*
-`hidden_size` | <code>[int](#int)</code> | Number of units in each hidden layer. All hidden layers share the same dimensionality. | *required*
-`num_layers` | <code>[int](#int)</code> | Total number of layers including input and output layers. Must be at least 2. For example, num_layers=3 creates: input layer, one hidden layer, and output layer. | *required*
-`dropout` | <code>[float](#float)</code> | Dropout probability applied after each hidden layer's activation. Should be in range [0.0, 1.0]. Not applied to output layer. | *required*
+`activation` | <code>[str](#str)</code> | Activation function name. Must be one of the supported activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU'). Ignored when num_layers=1. | *required*
+`hidden_size` | <code>[int](#int)</code> | Number of units in each hidden layer. All hidden layers share the same dimensionality. Ignored when num_layers=1. | *required*
+`num_layers` | <code>[int](#int)</code> | Total number of layers including input and output layers. Use num_layers=1 for a direct linear projection with no hidden layers or activation. For num_layers>=2, creates: input layer, (num_layers-2) hidden layers, and output layer. | *required*
+`dropout` | <code>[float](#float)</code> | Dropout probability applied after each hidden layer's activation. Should be in range [0.0, 1.0]. Not applied to output layer. Ignored when num_layers=1. | *required*
 
 **Returns:**
 
@@ -44,11 +44,11 @@ Type | Description
 <details class="notes" open markdown="1">
 <summary>Notes</summary>
 
-- The activation function is applied after each hidden layer's linear\
+- The activation function is applied after each hidden layer's linear
   transformation, but not after the final output layer.
 - Dropout is applied after activation in hidden layers for regularization.
-- This MLP is used as a decoder component in various forecasting models\
-  including RNN, LSTM, GRU, DilatedRNN, TCN, and xLSTM.
+- This MLP is used as a decoder component in various forecasting models
+  including RNN, LSTM, GRU, DilatedRNN, TCN, xLSTM, and DeepAR.
 
 </details>
 
