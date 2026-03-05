@@ -1,7 +1,7 @@
 
 
 
-__all__ = ['Decoder', 'DeepAR']
+__all__ = ['DeepAR']
 
 
 from typing import Optional
@@ -10,45 +10,8 @@ import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
+from ..common._modules import MLP
 from ..losses.pytorch import MAE, DistributionLoss
-
-
-class Decoder(nn.Module):
-    """Multi-Layer Perceptron Decoder
-
-    Args:
-        in_features (int): dimension of input.
-        out_features (int): dimension of output.
-        hidden_size (int): dimension of hidden layers.
-        hidden_layers (int): number of hidden layers.
-    """
-
-    def __init__(self, in_features, out_features, hidden_size, hidden_layers):
-        super().__init__()
-
-        if hidden_layers == 0:
-            # Input layer
-            layers = [nn.Linear(in_features=in_features, out_features=out_features)]
-        else:
-            # Input layer
-            layers = [
-                nn.Linear(in_features=in_features, out_features=hidden_size),
-                nn.ReLU(),
-            ]
-            # Hidden layers
-            for i in range(hidden_layers - 2):
-                layers += [
-                    nn.Linear(in_features=hidden_size, out_features=hidden_size),
-                    nn.ReLU(),
-                ]
-            # Output layer
-            layers += [nn.Linear(in_features=hidden_size, out_features=out_features)]
-
-        # Store in layers as ModuleList
-        self.layers = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.layers(x)
 
 
 class DeepAR(BaseModel):
@@ -209,11 +172,13 @@ class DeepAR(BaseModel):
         )
 
         # Decoder MLP
-        self.decoder = Decoder(
+        self.decoder = MLP(
             in_features=lstm_hidden_size,
             out_features=self.loss.outputsize_multiplier,
             hidden_size=decoder_hidden_size,
-            hidden_layers=decoder_hidden_layers,
+            num_layers=decoder_hidden_layers + 1,
+            activation="ReLU",
+            dropout=0.0,
         )
 
     def forward(self, windows_batch):
