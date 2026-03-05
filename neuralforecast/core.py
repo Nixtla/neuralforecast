@@ -135,6 +135,33 @@ def _insample_times(
     return out
 
 
+def _count_periods(
+    cutoff,
+    reference,
+    freq: Union[int, str, pd.offsets.BaseOffset],
+) -> int:
+    """Count timesteps strictly after `cutoff` up to and including `reference`."""
+    if isinstance(freq, int):
+        return int(reference - cutoff)
+    try:
+        dates = pd.date_range(start=cutoff, end=reference, freq=freq)
+    except ValueError:
+        # freq is a Polars-style string (e.g. "1mo") that pandas cannot parse.
+        import polars as _polars
+
+        dates = _polars.datetime_range(start=cutoff, end=reference, interval=freq, eager=True)
+    if len(dates) > 0 and dates[0].replace(tzinfo=None) != pd.Timestamp(cutoff).to_pydatetime():
+        warnings.warn(
+            f"Cutoff '{cutoff}' does not fall on a period boundary for "
+            f"frequency '{freq}'. It has been snapped to '{dates[0]}', "
+            "which may result in an unexpected `test_size` or `val_size`. "
+            "Ensure the cutoff aligns with the data frequency.",
+            UserWarning,
+            stacklevel=3,
+        )
+    return len(dates) - 1
+
+
 MODEL_FILENAME_DICT = {
     "autoformer": Autoformer,
     "autoautoformer": Autoformer,
@@ -1396,6 +1423,8 @@ class NeuralForecast:
         step_size: int = 1,
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
+        validation_cutoff: Optional[Any] = None,
+        test_cutoff: Optional[Any] = None,
         use_init_models: bool = False,
         verbose: bool = False,
         refit: Union[bool, int] = False,
@@ -1420,7 +1449,11 @@ class NeuralForecast:
             n_windows (int, None): Number of windows used for cross validation. If None, define `test_size`.
             step_size (int): Step size between each window.
             val_size (int, optional): Length of validation size. If passed, set `n_windows=None`. Defaults to 0.
-            test_size (int, optional): Length of test size. If passed, set `n_windows=None`. 
+            test_size (int, optional): Length of test size. If passed, set `n_windows=None`.
+            validation_cutoff: Last date of the training set (start of validation).
+                Converted to `val_size` using the data frequency. Cannot be combined with `val_size`.
+            test_cutoff: Last date of the validation set (start of test).
+                Converted to `test_size` using the data frequency. Cannot be combined with `test_size`.
             use_init_models (bool, optional): Use initial model passed when object was instantiated. 
             verbose (bool): Print processing steps. 
             refit (bool or int): Retrain model for each cross validation window.
@@ -1439,6 +1472,52 @@ class NeuralForecast:
             fcsts_df (pandas or polars DataFrame): DataFrame with insample `models` columns for point predictions and probabilistic
                 predictions for all fitted `models`.
         """
+        # Convert date-based cutoffs to integer sizes
+        if validation_cutoff is not None or test_cutoff is not None:
+            if df is None:
+                raise ValueError(
+                    "Must provide `df` when using `validation_cutoff` or `test_cutoff`."
+                )
+            if validation_cutoff is not None and val_size not in (0, None):
+                raise ValueError("Cannot use both `validation_cutoff` and `val_size`.")
+            if test_cutoff is not None and test_size is not None:
+                raise ValueError("Cannot use both `test_cutoff` and `test_size`.")
+            if test_cutoff is not None and n_windows not in (1, None):
+                raise ValueError("Cannot use both `test_cutoff` and `n_windows`.")
+
+            ends_by_id = ufp.group_by_agg(df, by=id_col, aggs={time_col: "max"})
+            unique_end_dates = ends_by_id[time_col]
+            max_date = unique_end_dates.max()
+
+            if unique_end_dates.min() != unique_end_dates.max():
+                warnings.warn(
+                    "Series have different end dates. The cutoff is resolved "
+                    "against the global max date and may not align to the "
+                    "intended cutoff for shorter series. Consider using "
+                    "`test_size` / `val_size` directly.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+            if test_cutoff is not None:
+                test_size = _count_periods(test_cutoff, max_date, self.freq)
+                if test_size <= 0:
+                    raise ValueError(
+                        "`test_cutoff` must be strictly before the last date in `df`."
+                    )
+                # test_size now drives window count; clear n_windows so the
+                # existing logic (elif n_windows is None) computes it.
+                n_windows = None
+
+            if validation_cutoff is not None:
+                ref = test_cutoff if test_cutoff is not None else max_date
+                val_size = _count_periods(validation_cutoff, ref, self.freq)
+                if val_size <= 0:
+                    raise ValueError(
+                        "`validation_cutoff` must be strictly before `test_cutoff` "
+                        "(or the last date in `df` when `test_cutoff` is not set)."
+                    )
+
         if h is not None:
             if h > self.h:
                 # if only cross_validation called without fit() called first, prediction_intervals
@@ -1486,6 +1565,19 @@ class NeuralForecast:
     
         assert n_windows is not None
         assert test_size is not None
+
+        if test_size < self.h:
+            raise ValueError(
+                f"`test_size` ({test_size}) is smaller than the model horizon "
+                f"h={self.h}. Increase `test_size` or move `test_cutoff` further "
+                "back, or reduce the model's horizon."
+            )
+        if val_size is not None and val_size > 0 and val_size < self.h:
+            raise ValueError(
+                f"`val_size` ({val_size}) is smaller than the model horizon "
+                f"h={self.h}. Increase `val_size` or move `validation_cutoff` "
+                "further back, or reduce the model's horizon."
+            )
 
         # Recover initial model if use_init_models.
         if use_init_models:
