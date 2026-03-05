@@ -48,6 +48,7 @@ from neuralforecast.core import (
     PatchTST,
     PredictionIntervals,
     TimesNet,
+    _count_periods,
     _insample_times,
     _type2scaler,
 )
@@ -115,6 +116,34 @@ def test_cutoff_deltas(setup, step_size, freq, days):
     )
     assert cutoff_deltas.nunique() == 1
     assert cutoff_deltas.unique()[0] == pd.Timedelta(f"{days}D")
+
+
+@pytest.mark.parametrize(
+    "cutoff, reference, freq, expected",
+    [
+        # monthly end-of-month: 12 steps between 1959-12-31 and 1960-12-31
+        (pd.Timestamp("1959-12-31"), pd.Timestamp("1960-12-31"), "ME", 12),
+        # daily: 30 steps
+        (pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-31"), "D", 30),
+        # weekly (Mon): 4 steps
+        (pd.Timestamp("2000-01-03"), pd.Timestamp("2000-01-31"), "W-MON", 4),
+        # quarterly start: 4 steps
+        (pd.Timestamp("2023-01-01"), pd.Timestamp("2024-01-01"), "QS", 4),
+        # integer freq: simple subtraction
+        (10, 22, 2, 12),
+    ],
+)
+def test_count_periods(cutoff, reference, freq, expected):
+    assert _count_periods(cutoff, reference, freq) == expected
+
+
+def test_count_periods_misaligned_warns():
+    # weekly: cutoff one day off the Monday boundary → snaps forward, count drops by 1
+    aligned = _count_periods(pd.Timestamp("2000-01-03"), pd.Timestamp("2000-01-31"), "W-MON")
+    with pytest.warns(UserWarning, match="does not fall on a period boundary"):
+        misaligned = _count_periods(pd.Timestamp("2000-01-04"), pd.Timestamp("2000-01-31"), "W-MON")
+    assert misaligned == aligned - 1
+
 
 @pytest.fixture
 def setup_airplane_data_polars(setup_airplane_data):
@@ -225,6 +254,15 @@ def test_cross_validation_date_cutoffs():
             use_init_models=True,
         )
 
+    # conflict: test_cutoff + explicit n_windows raises
+    with pytest.raises(ValueError, match="Cannot use both"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1959-12-31"),
+            n_windows=2,
+            use_init_models=True,
+        )
+
     # conflict: validation_cutoff + val_size raises
     with pytest.raises(ValueError, match="Cannot use both"):
         nf.cross_validation(
@@ -292,6 +330,18 @@ def test_cross_validation_date_cutoffs():
             test_cutoff=pd.Timestamp("1958-12-31"),
             use_init_models=True,
         )
+
+    # Polars DataFrame: test_cutoff should work identically to the pandas path
+    nf_pl = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=5)], freq="1mo"
+    )
+    AirPassengersPanel_pl = polars.from_pandas(AirPassengersPanel)
+    cv_cutoff_pl = nf_pl.cross_validation(
+        AirPassengersPanel_pl,
+        test_cutoff=pd.Timestamp("1959-12-31"),
+        use_init_models=True,
+    )
+    assert cv_cutoff_pl.shape == cv_cutoff.shape
 
 
 # test cross_validation with refit

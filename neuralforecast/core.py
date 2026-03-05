@@ -143,7 +143,22 @@ def _count_periods(
     """Count timesteps strictly after `cutoff` up to and including `reference`."""
     if isinstance(freq, int):
         return int(reference - cutoff)
-    dates = pd.date_range(start=cutoff, end=reference, freq=freq)
+    try:
+        dates = pd.date_range(start=cutoff, end=reference, freq=freq)
+    except ValueError:
+        # freq is a Polars-style string (e.g. "1mo") that pandas cannot parse.
+        import polars as _polars
+
+        dates = _polars.datetime_range(start=cutoff, end=reference, interval=freq, eager=True)
+    if len(dates) > 0 and dates[0].replace(tzinfo=None) != pd.Timestamp(cutoff).to_pydatetime():
+        warnings.warn(
+            f"Cutoff '{cutoff}' does not fall on a period boundary for "
+            f"frequency '{freq}'. It has been snapped to '{dates[0]}', "
+            "which may result in an unexpected `test_size` or `val_size`. "
+            "Ensure the cutoff aligns with the data frequency.",
+            UserWarning,
+            stacklevel=3,
+        )
     return len(dates) - 1
 
 
@@ -1463,15 +1478,18 @@ class NeuralForecast:
                 raise ValueError(
                     "Must provide `df` when using `validation_cutoff` or `test_cutoff`."
                 )
-            if validation_cutoff is not None and val_size != 0:
+            if validation_cutoff is not None and val_size not in (0, None):
                 raise ValueError("Cannot use both `validation_cutoff` and `val_size`.")
             if test_cutoff is not None and test_size is not None:
                 raise ValueError("Cannot use both `test_cutoff` and `test_size`.")
+            if test_cutoff is not None and n_windows not in (1, None):
+                raise ValueError("Cannot use both `test_cutoff` and `n_windows`.")
 
-            max_date = df[time_col].max()
+            ends_by_id = ufp.group_by_agg(df, by=id_col, aggs={time_col: "max"})
+            unique_end_dates = ends_by_id[time_col]
+            max_date = unique_end_dates.max()
 
-            unique_ends = df.groupby(id_col)[time_col].max()
-            if unique_ends.nunique() > 1:
+            if unique_end_dates.min() != unique_end_dates.max():
                 warnings.warn(
                     "Series have different end dates. The cutoff is resolved "
                     "against the global max date and may not align to the "
