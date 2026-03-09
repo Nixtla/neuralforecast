@@ -435,11 +435,18 @@ class BaseModel(pl.LightningModule):
         self.validation_step_outputs: List = []
         self.alias = alias
 
-        # torch.compile opt-in
-        if compile:
-            if not hasattr(torch, "compile"):
-                raise RuntimeError("torch.compile requires PyTorch 2.0+")
-            self.forward = torch.compile(self.forward, mode=compile_mode)  # type: ignore[has-type]
+        # torch.compile opt-in — compiled lazily in on_predict_start so that
+        # Dynamo traces after PL has moved the model to the target device.
+        if compile and not hasattr(torch, "compile"):
+            raise RuntimeError("torch.compile requires PyTorch 2.0+")
+        self._do_compile = compile
+        self._compile_mode = compile_mode
+        self._compiled = False
+
+    def on_predict_start(self) -> None:
+        if self._do_compile and not self._compiled:
+            self.forward = torch.compile(self.forward, mode=self._compile_mode)  # type: ignore[method-assign, has-type]
+            self._compiled = True
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
