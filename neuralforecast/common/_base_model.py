@@ -131,6 +131,8 @@ class BaseModel(pl.LightningModule):
         lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
         lr_scheduler_kwargs: Union[Dict, None] = None,
         dataloader_kwargs=None,
+        compile: bool = False,
+        compile_mode: str = "reduce-overhead",
         **trainer_kwargs,
     ):
         super().__init__()
@@ -432,6 +434,12 @@ class BaseModel(pl.LightningModule):
         # used by on_validation_epoch_end hook
         self.validation_step_outputs: List = []
         self.alias = alias
+
+        # torch.compile opt-in
+        if compile:
+            if not hasattr(torch, "compile"):
+                raise RuntimeError("torch.compile requires PyTorch 2.0+")
+            self.forward = torch.compile(self.forward, mode=compile_mode)  # type: ignore[has-type]
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
@@ -2070,7 +2078,13 @@ class BaseModel(pl.LightningModule):
                 'baseline_predictions': baseline_predictions
             }
         else:
-            trainer = pl.Trainer(**pred_trainer_kwargs)
+            if (
+                not hasattr(self, "_pred_trainer")
+                or self._pred_trainer_kwargs != pred_trainer_kwargs
+            ):
+                self._pred_trainer = pl.Trainer(**pred_trainer_kwargs)
+                self._pred_trainer_kwargs = pred_trainer_kwargs
+            trainer = self._pred_trainer
             fcsts = trainer.predict(self, datamodule=datamodule)
             fcsts = torch.vstack(fcsts)
             self.explanations = None
