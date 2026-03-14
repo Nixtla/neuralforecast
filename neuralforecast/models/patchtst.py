@@ -837,8 +837,8 @@ class PatchTST(BaseModel):
         res_attention (bool): bool to use residual attention.
         batch_normalization (bool): bool to use batch normalization.
         learn_pos_embed (bool): bool to learn positional embedding.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): learning rate between (0, 1).
         num_lr_decays (int): number of learning rate decays, evenly distributed across max_steps.

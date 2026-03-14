@@ -54,8 +54,8 @@ class XLinear(BaseModel):
         embed_dropout (float): Dropout rate for embedding projection.
         head_dropout (float): Dropout rate for output head.
         use_norm (bool): Whether to use RevIN normalization.
-        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): Maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.

@@ -68,8 +68,8 @@ class TiDE(BaseModel):
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
         exclude_insample_y (bool): whether to exclude the target variable from the historic exogenous data.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
