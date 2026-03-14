@@ -62,10 +62,10 @@ heavily relies on a strong correlation between the validation and test periods.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`cls_model` | <code>PyTorch/PyTorchLightning model</code> | See `neuralforecast.models` [collection here](./models). | *required*
+`cls_model` | <code>PyTorch/PyTorchLightning model</code> | See `neuralforecast.models` [collection here](./models.html). | *required*
 `h` | <code>[int](#int)</code> | Forecast horizon | *required*
-`loss` | <code>PyTorch module</code> | Instantiated train loss class from [losses collection](./losses.pytorch). | *required*
-`valid_loss` | <code>PyTorch module</code> | Instantiated valid loss class from [losses collection](./losses.pytorch). | *required*
+`loss` | <code>PyTorch module</code> | Instantiated train loss class from [losses collection](./losses.pytorch.html). | *required*
+`valid_loss` | <code>PyTorch module</code> | Instantiated valid loss class from [losses collection](./losses.pytorch.html). | *required*
 `config` | <code>[dict](#dict) or [callable](#callable)</code> | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict. | *required*
 `search_alg` | <code>ray.tune.search variant or optuna.sampler</code> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html. | <code>[BasicVariantGenerator](#ray.tune.search.basic_variant.BasicVariantGenerator)(random_state=1)</code>
 `num_samples` | <code>[int](#int)</code> | Number of hyperparameter optimization steps/samples. | <code>10</code>

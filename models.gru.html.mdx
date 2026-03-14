@@ -117,8 +117,8 @@ Name | Type | Description | Default
 `stat_exog_list` | <code>str list</code> | static exogenous columns. | <code>None</code>
 `exclude_insample_y` | <code>[bool](#bool)</code> | whether to exclude the target variable from the input. | <code>False</code>
 `recurrent` | <code>[bool](#bool)</code> | whether to produce forecasts recursively (True) or direct (False). | <code>False</code>
-`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
-`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch). | <code>None</code>
+`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
+`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>None</code>
 `max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>1000</code>
 `learning_rate` | <code>[float](#float)</code> | Learning rate between (0, 1). | <code>0.001</code>
 `num_lr_decays` | <code>[int](#int)</code> | Number of learning rate decays, evenly distributed across max_steps. | <code>-1</code>

@@ -105,8 +105,8 @@ Name | Type | Description | Default
 `rnn_type` | <code>[str](#str)</code> | recurrent neural network (RNN) layer type from ["lstm","gru"]. | <code>'lstm'</code>
 `one_rnn_initial_state` | <code>[str](#str)</code> | Initialize all rnn layers with the same initial states computed from static covariates. | <code>False</code>
 `dropout` | <code>[float](#float)</code> | dropout of inputs VSNs. | <code>0.1</code>
-`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
-`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch). | <code>None</code>
+`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
+`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>None</code>
 `max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>1000</code>
 `learning_rate` | <code>[float](#float)</code> | Learning rate between (0, 1). | <code>0.001</code>
 `num_lr_decays` | <code>[int](#int)</code> | Number of learning rate decays, evenly distributed across max_steps. | <code>-1</code>

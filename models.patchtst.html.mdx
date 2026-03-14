@@ -118,8 +118,8 @@ Name | Type | Description | Default
 `res_attention` | <code>[bool](#bool)</code> | bool to use residual attention. | <code>True</code>
 `batch_normalization` | <code>[bool](#bool)</code> | bool to use batch normalization. | <code>False</code>
 `learn_pos_embed` | <code>[bool](#bool)</code> | bool to learn positional embedding. | <code>True</code>
-`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
-`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch). | <code>None</code>
+`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
+`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>None</code>
 `max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>5000</code>
 `learning_rate` | <code>[float](#float)</code> | learning rate between (0, 1). | <code>0.0001</code>
 `num_lr_decays` | <code>[int](#int)</code> | number of learning rate decays, evenly distributed across max_steps. | <code>-1</code>
