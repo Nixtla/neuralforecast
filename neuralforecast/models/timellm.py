@@ -197,8 +197,8 @@ class TimeLLM(BaseModel):
         stat_exog_list (list): static exogenous columns.
         hist_exog_list (list): historic exogenous columns.
         futr_exog_list (list): future exogenous columns.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         learning_rate (float): Learning rate between (0, 1). Default: 1e-3
         max_steps (int): maximum number of training steps. Default: 1000
         val_check_steps (int): Number of training steps between every validation loss check. Default: 100

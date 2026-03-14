@@ -46,8 +46,8 @@ class xLSTM(BaseModel):
         stat_exog_list (list): static exogenous columns.
         exclude_insample_y (bool): whether to exclude the target variable from the input.
         recurrent (bool): whether to produce forecasts recursively (True) or direct (False).
-        loss (nn.Module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (nn.Module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (nn.Module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (nn.Module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.

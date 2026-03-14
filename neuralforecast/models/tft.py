@@ -534,8 +534,8 @@ class TFT(BaseModel):
         rnn_type (str): recurrent neural network (RNN) layer type from ["lstm","gru"].
         one_rnn_initial_state (str): Initialize all rnn layers with the same initial states computed from static covariates.
         dropout (float): dropout of inputs VSNs.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
