@@ -2279,3 +2279,29 @@ def test_loss_valid_loss_quantiles_mismatch_raises(loss, valid_loss):
     model = NHITS(h=12, input_size=24, loss=loss, valid_loss=valid_loss, max_steps=1)
     with pytest.raises(ValueError, match="quantiles.*do not match"):
         NeuralForecast(models=[model], freq="M")
+
+
+def test_trainer_caching(setup_airplane_data):
+    """Trainer is reused across predict calls and invalidated when kwargs change."""
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    nf = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=1)], freq="M"
+    )
+    nf.fit(AirPassengersPanel_train)
+    model = nf.models[0]
+
+    # First call creates the cache
+    nf.predict()
+    assert hasattr(model, "_pred_trainer"), "Trainer should be cached after first predict"
+    trainer_1 = model._pred_trainer
+
+    # Second call reuses the same Trainer instance
+    nf.predict()
+    assert model._pred_trainer is trainer_1, "Trainer should be reused on repeated predict calls"
+
+    # Changing pred_trainer_kwargs invalidates the cache
+    cached_kwargs = model._pred_trainer_kwargs.copy()
+    model._pred_trainer_kwargs = {**cached_kwargs, "__dummy__": True}
+    nf.predict()
+    assert model._pred_trainer is not trainer_1, "Trainer should be replaced when kwargs change"
