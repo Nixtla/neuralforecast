@@ -131,8 +131,6 @@ class BaseModel(pl.LightningModule):
         lr_scheduler: Union[torch.optim.lr_scheduler.LRScheduler, None] = None,
         lr_scheduler_kwargs: Union[Dict, None] = None,
         dataloader_kwargs=None,
-        compile: bool = False,
-        compile_mode: str = "reduce-overhead",
         **trainer_kwargs,
     ):
         super().__init__()
@@ -434,19 +432,6 @@ class BaseModel(pl.LightningModule):
         # used by on_validation_epoch_end hook
         self.validation_step_outputs: List = []
         self.alias = alias
-
-        # torch.compile opt-in — compiled lazily in on_predict_start so that
-        # Dynamo traces after PL has moved the model to the target device.
-        if compile and not hasattr(torch, "compile"):
-            raise RuntimeError("torch.compile requires PyTorch 2.0+")
-        self._do_compile = compile
-        self._compile_mode = compile_mode
-        self._compiled = False
-
-    def on_predict_start(self) -> None:
-        if self._do_compile and not self._compiled:
-            self.forward = torch.compile(self.forward, mode=self._compile_mode)  # type: ignore[method-assign, has-type]
-            self._compiled = True
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
