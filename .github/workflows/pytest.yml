@@ -40,7 +40,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: uv sync --group dev --group aws --group spark
+        run: uv sync --group dev --group aws --extra spark
 
       - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
         if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
