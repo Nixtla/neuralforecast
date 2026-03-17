@@ -116,7 +116,7 @@ uv sync --group dev --torch-backend cu118 # for CUDA 11.8 PyTorch backend
 You can install other optional dependencies:
 
 ```sh
-uv sync --group dev --group aws --group spark
+uv sync --group dev --group aws --extra spark
 ```
 
 #### Install pre-commit hooks
@@ -185,7 +185,7 @@ For additional instructions, see the [Mintlify installation guide](https://mintl
 **Install documentation dependencies:**
 
 ```sh
-uv sync --group dev --group aws --group spark
+uv sync --group dev --group aws --extra spark
 ```
 
 **Generate documentation:**

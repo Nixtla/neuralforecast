@@ -35,9 +35,10 @@ dependencies = [
     "optuna",
     "utilsforecast>=0.2.3",
 ]
+[project.optional-dependencies]
+spark = ["fugue", "pyspark>=3.5"]
 
 [dependency-groups]
-spark = ["fugue", "pyspark>=3.5"]
 aws = ["fsspec[s3]"]
 dev = [
     "black>=26.3.1",
@@ -58,7 +59,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "pip-licenses",
-    "mkdocstrings-parser @ git+https://github.com/Nixtla/mkdocstrings-parser"
+    "mkdocstrings-parser @ git+https://github.com/Nixtla/mkdocstrings-parser@main"
 ]
 
 [project.urls]
