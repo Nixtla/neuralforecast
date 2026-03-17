@@ -2300,8 +2300,14 @@ def test_trainer_caching(setup_airplane_data):
     nf.predict()
     assert model._pred_trainer is trainer_1, "Trainer should be reused on repeated predict calls"
 
-    # Changing pred_trainer_kwargs invalidates the cache
+    # Adding a new key invalidates the cache
     cached_kwargs = model._pred_trainer_kwargs.copy()
     model._pred_trainer_kwargs = {**cached_kwargs, "__dummy__": True}
     nf.predict()
-    assert model._pred_trainer is not trainer_1, "Trainer should be replaced when kwargs change"
+    trainer_2 = model._pred_trainer
+    assert trainer_2 is not trainer_1, "Trainer should be replaced when a kwarg is added"
+
+    # Changing an existing value also invalidates the cache
+    model._pred_trainer_kwargs = {**model._pred_trainer_kwargs, "enable_checkpointing": True}
+    nf.predict()
+    assert model._pred_trainer is not trainer_2, "Trainer should be replaced when a kwarg value changes"
