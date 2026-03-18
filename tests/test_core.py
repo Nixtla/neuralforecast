@@ -2313,41 +2313,47 @@ def test_trainer_caching(setup_airplane_data):
     assert model._pred_trainer is not trainer_2, "Trainer should be replaced when a kwarg value changes"
 
 
-def test_return_samples_deepar(setup_airplane_data):
-    """DeepAR with return_samples=True should include sample columns in predict output."""
+@pytest.mark.parametrize("model,model_name", [
+    (
+        DeepAR(
+            h=12,
+            input_size=24,
+            loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True, num_samples=10),
+            trajectory_samples=10,
+            max_steps=2,
+        ),
+        "DeepAR",
+    ),
+    (
+        LSTM(
+            h=12,
+            input_size=24,
+            recurrent=True,
+            loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True, num_samples=10),
+            max_steps=2,
+            accelerator="cpu",
+        ),
+        "LSTM",
+    ),
+])
+def test_return_samples_recurrent_models(setup_airplane_data, model, model_name):
+    """Recurrent models with return_samples=True should include sample columns in predict output."""
     AirPassengersPanel_train, _ = setup_airplane_data
-    n_samples = 10
-    nf = NeuralForecast(
-        models=[
-            DeepAR(
-                h=12,
-                input_size=24,
-                loss=DistributionLoss(
-                    distribution="StudentT",
-                    level=[80, 90],
-                    return_samples=True,
-                    num_samples=n_samples,
-                ),
-                trajectory_samples=n_samples,
-                max_steps=2,
-            )
-        ],
-        freq="M",
-    )
+    nf = NeuralForecast(models=[model], freq="M")
     nf.fit(AirPassengersPanel_train, val_size=12)
     preds = nf.predict()
 
+    n_samples = nf.models[0].n_samples
     sample_cols = [c for c in preds.columns if "-sample-" in c]
     assert len(sample_cols) == n_samples, (
         f"Expected {n_samples} sample columns, got {len(sample_cols)}"
     )
-    expected_cols = [f"DeepAR-sample-{i}" for i in range(n_samples)]
-    assert sample_cols == expected_cols
+    assert sample_cols == [f"{model_name}-sample-{i}" for i in range(n_samples)]
 
 
 @pytest.mark.parametrize("model", [
     NHITS(h=12, input_size=24, loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True), max_steps=2),
-    LSTM(h=12, input_size=24, loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True), max_steps=2),
+    LSTM(h=12, input_size=24, recurrent=False, loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True), max_steps=2),
 ])
 def test_return_samples_non_recurrent_raises(setup_airplane_data, model):
     """Non-recurrent models should raise ValueError at fit time when return_samples=True."""
