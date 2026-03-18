@@ -2311,3 +2311,47 @@ def test_trainer_caching(setup_airplane_data):
     model._pred_trainer_kwargs = {**model._pred_trainer_kwargs, "enable_checkpointing": True}
     nf.predict()
     assert model._pred_trainer is not trainer_2, "Trainer should be replaced when a kwarg value changes"
+
+
+def test_return_samples_deepar(setup_airplane_data):
+    """DeepAR with return_samples=True should include sample columns in predict output."""
+    AirPassengersPanel_train, _ = setup_airplane_data
+    n_samples = 10
+    nf = NeuralForecast(
+        models=[
+            DeepAR(
+                h=12,
+                input_size=24,
+                loss=DistributionLoss(
+                    distribution="StudentT",
+                    level=[80, 90],
+                    return_samples=True,
+                    num_samples=n_samples,
+                ),
+                trajectory_samples=n_samples,
+                max_steps=2,
+            )
+        ],
+        freq="M",
+    )
+    nf.fit(AirPassengersPanel_train, val_size=12)
+    preds = nf.predict()
+
+    sample_cols = [c for c in preds.columns if "-sample-" in c]
+    assert len(sample_cols) == n_samples, (
+        f"Expected {n_samples} sample columns, got {len(sample_cols)}"
+    )
+    expected_cols = [f"DeepAR-sample-{i}" for i in range(n_samples)]
+    assert sample_cols == expected_cols
+
+
+@pytest.mark.parametrize("model", [
+    NHITS(h=12, input_size=24, loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True), max_steps=2),
+    LSTM(h=12, input_size=24, loss=DistributionLoss(distribution="StudentT", level=[80, 90], return_samples=True), max_steps=2),
+])
+def test_return_samples_non_recurrent_raises(setup_airplane_data, model):
+    """Non-recurrent models should raise ValueError at fit time when return_samples=True."""
+    AirPassengersPanel_train, _ = setup_airplane_data
+    nf = NeuralForecast(models=[model], freq="M")
+    with pytest.raises(ValueError, match="return_samples=True is not supported"):
+        nf.fit(AirPassengersPanel_train, val_size=12)
