@@ -679,6 +679,7 @@ DistributionLoss(
     quantiles=None,
     num_samples=1000,
     return_params=False,
+    return_samples=False,
     horizon_weight=None,
     **distribution_kwargs
 )
@@ -716,6 +717,7 @@ Name | Type | Description | Default
 `quantiles` | <code>float list</code> | Alternative to level list, target quantiles. | <code>None</code>
 `num_samples` | <code>[int](#int)</code> | Number of samples for the empirical quantiles. | <code>1000</code>
 `return_params` | <code>[bool](#bool)</code> | Whether or not return the Distribution parameters. | <code>False</code>
+`return_samples` | <code>[bool](#bool)</code> | Whether or not return raw sample trajectories. When True, the output DataFrame includes columns `"-sample-0"` through `"-sample-{num_samples-1}"`, each representing one full autoregressive trajectory across the forecast horizon. | <code>False</code>
 `horizon_weight` | <code>[Tensor](#Tensor)</code> | Tensor of size h, weight for each timestamp of the forecasting window. | <code>None</code>
 
 **Returns:**
