@@ -1907,11 +1907,6 @@ class BaseModel(pl.LightningModule):
         if self.RECURRENT:
             return self._predict_step_recurrent(batch, batch_idx)
         else:
-            if hasattr(self.loss, "return_samples") and self.loss.return_samples:
-                raise ValueError(
-                    f"return_samples=True is not supported for {self.__class__.__name__}. "
-                    "Currently only DeepAR supports returning raw sample trajectories."
-                )
             return self._predict_step_direct(batch, batch_idx, recursive=self.n_predicts > 1)
 
     def fit(
@@ -1946,6 +1941,11 @@ class BaseModel(pl.LightningModule):
         Returns:
             None
         """
+        if hasattr(self.loss, "return_samples") and self.loss.return_samples and not self.RECURRENT:
+            raise ValueError(
+                f"return_samples=True is not supported for {self.__class__.__name__}. "
+                "Currently recurrent models supports returning raw sample trajectories."
+            )
         return self._fit(
             dataset=dataset,
             batch_size=self.batch_size,
