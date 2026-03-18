@@ -169,6 +169,11 @@ class BaseModel(pl.LightningModule):
         self.horizon_backup = h
         self.input_size_backup = input_size
         self.n_samples = n_samples
+        if hasattr(loss, "return_samples") and loss.return_samples and not self.RECURRENT:
+            raise ValueError(
+                f"return_samples=True is not supported for {self.__class__.__name__}. "
+                "Currently only DeepAR supports returning raw sample trajectories."
+            )
         if self.RECURRENT:
             if (
                 hasattr(loss, "horizon_weight")
@@ -1221,7 +1226,7 @@ class BaseModel(pl.LightningModule):
                 output=output_batch, loc=y_loc, scale=y_scale
             )
             # When predicting, we need to sample to get the quantiles. The mean is an attribute.
-            _, _, quants = self.loss.sample(
+            samples, _, quants = self.loss.sample(
                 distr_args=distr_args, num_samples=self.n_samples
             )
             mean = self.loss.distr_mean
@@ -1237,6 +1242,11 @@ class BaseModel(pl.LightningModule):
                 if distr_args.ndim > 4:
                     distr_args = distr_args.flatten(-2, -1)
                 y_hat = torch.concat((y_hat, distr_args), axis=-1)
+
+            if self.loss.return_samples:
+                # samples already [B, H=1, N, n_samples] after loss.sample()'s internal permute
+                # keep H dim so shapes match y_hat [B, 1, N, n_outputs]; squeeze happens below
+                y_hat = torch.concat((y_hat, samples), axis=-1)
         else:
             # Todo: for now, we assume that in case of a BasePointLoss with ndim==4, the last dimension
             # contains a set of predictions for the target (e.g. MQLoss multiple quantiles), for which we use the

@@ -2087,16 +2087,15 @@ class NeuralForecast:
                         col_names.extend([f"{model_name}", col_name])
                     else:
                         col_names.extend([col_name])
+                extra_cols = []
                 if hasattr(model.loss, "return_params") and model.loss.return_params:
-                    cols.extend(
-                        col_names
-                        + [
-                            model_name + param_name
-                            for param_name in model.loss.param_names
-                        ]
-                    )
-                else:
-                    cols.extend(col_names)
+                    extra_cols += [
+                        model_name + param_name
+                        for param_name in model.loss.param_names
+                    ]
+                if hasattr(model.loss, "return_samples") and model.loss.return_samples:
+                    extra_cols += [model_name + s for s in model.loss.sample_names]
+                cols.extend(col_names + extra_cols)
             # case 2: IQLoss
             elif quantiles_ is not None and isinstance(
                 model.loss, (IQLoss, HuberIQLoss)

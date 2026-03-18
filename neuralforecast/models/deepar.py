@@ -32,6 +32,8 @@ class DeepAR(BaseModel):
         futr_exog_list (str list): future exogenous columns.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
+            To return raw sample trajectories alongside quantiles, use `DistributionLoss` with `return_samples=True`, e.g.
+            `loss=DistributionLoss(distribution='StudentT', level=[80, 90], return_samples=True)`.
         valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
@@ -151,6 +153,12 @@ class DeepAR(BaseModel):
         )
 
         self.n_samples = trajectory_samples
+
+        # Sync loss sample names to the actual trajectory_samples count
+        if hasattr(self.loss, "return_samples") and self.loss.return_samples:
+            self.loss.sample_names = [f"-sample-{i}" for i in range(self.n_samples)]
+            base_names = [n for n in self.loss.output_names if not n.startswith("-sample-")]
+            self.loss.output_names = base_names + self.loss.sample_names
 
         # LSTM
         self.encoder_n_layers = lstm_n_layers

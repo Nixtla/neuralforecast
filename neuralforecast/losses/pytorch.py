@@ -1829,6 +1829,9 @@ class DistributionLoss(torch.nn.Module):
         quantiles (float list): Alternative to level list, target quantiles.
         num_samples (int): Number of samples for the empirical quantiles.
         return_params (bool): Whether or not return the Distribution parameters.
+        return_samples (bool): Whether or not return raw sample trajectories. When True, the output DataFrame
+            includes columns `"-sample-0"` through `"-sample-{num_samples-1}"`, each representing one full
+            autoregressive trajectory across the forecast horizon.
         horizon_weight (Tensor): Tensor of size h, weight for each timestamp of the forecasting window.
 
     Returns:
@@ -1848,6 +1851,7 @@ class DistributionLoss(torch.nn.Module):
         quantiles=None,
         num_samples=1000,
         return_params=False,
+        return_samples=False,
         horizon_weight=None,
         **distribution_kwargs,
     ):
@@ -1934,6 +1938,12 @@ class DistributionLoss(torch.nn.Module):
         if self.return_params:
             self.output_names = self.output_names + self.param_names
 
+        # If True, predict_step will return raw sample trajectories
+        self.return_samples = return_samples
+        self.sample_names = [f"-sample-{i}" for i in range(self.num_samples)]
+        if self.return_samples:
+            self.output_names = self.output_names + self.sample_names
+
         # Add first output entry for the sample_mean
         self.output_names.insert(0, "")
 
@@ -2008,13 +2018,18 @@ class DistributionLoss(torch.nn.Module):
                 [""]
                 + [f"_ql{q_i}" for q_i in q]
                 + self.return_params * self.param_names
+                + self.return_samples * self.sample_names
             )
             self.has_predicted = True
         elif q is None and self.has_predicted:
             self.quantiles = nn.Parameter(
                 torch.tensor([0.5], dtype=torch.float32), requires_grad=False
             )
-            self.output_names = ["", "-median"] + self.return_params * self.param_names
+            self.output_names = (
+                ["", "-median"]
+                + self.return_params * self.param_names
+                + self.return_samples * self.sample_names
+            )
 
     def _compute_weights(self, y, mask):
         """
