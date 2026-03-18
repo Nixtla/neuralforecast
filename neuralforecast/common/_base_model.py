@@ -169,11 +169,6 @@ class BaseModel(pl.LightningModule):
         self.horizon_backup = h
         self.input_size_backup = input_size
         self.n_samples = n_samples
-        if hasattr(loss, "return_samples") and loss.return_samples and not self.RECURRENT:
-            raise ValueError(
-                f"return_samples=True is not supported for {self.__class__.__name__}. "
-                "Currently only DeepAR supports returning raw sample trajectories."
-            )
         if self.RECURRENT:
             if (
                 hasattr(loss, "horizon_weight")
@@ -1143,6 +1138,13 @@ class BaseModel(pl.LightningModule):
         self.maintain_state = True
         self.h = 1
 
+        # Sync sample_names to the actual n_samples used at inference
+        if hasattr(self.loss, "return_samples") and self.loss.return_samples:
+            if len(self.loss.sample_names) != self.n_samples:
+                self.loss.sample_names = [f"-sample-{i}" for i in range(self.n_samples)]
+                base_names = [n for n in self.loss.output_names if not n.startswith("-sample-")]
+                self.loss.output_names = base_names + self.loss.sample_names
+
         # Initialize results array
         n_outputs = len(self.loss.output_names)
         y_hat = torch.zeros(
@@ -1905,6 +1907,11 @@ class BaseModel(pl.LightningModule):
         if self.RECURRENT:
             return self._predict_step_recurrent(batch, batch_idx)
         else:
+            if hasattr(self.loss, "return_samples") and self.loss.return_samples:
+                raise ValueError(
+                    f"return_samples=True is not supported for {self.__class__.__name__}. "
+                    "Currently only DeepAR supports returning raw sample trajectories."
+                )
             return self._predict_step_direct(batch, batch_idx, recursive=self.n_predicts > 1)
 
     def fit(
