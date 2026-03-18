@@ -1944,7 +1944,7 @@ class BaseModel(pl.LightningModule):
         if hasattr(self.loss, "return_samples") and self.loss.return_samples and not self.RECURRENT:
             raise ValueError(
                 f"return_samples=True is not supported for {self.__class__.__name__}. "
-                "Currently recurrent models supports returning raw sample trajectories."
+                "Currently only recurrent models support returning raw sample trajectories."
             )
         return self._fit(
             dataset=dataset,
