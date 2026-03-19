@@ -1245,7 +1245,7 @@ class BaseModel(pl.LightningModule):
                     distr_args = distr_args.flatten(-2, -1)
                 y_hat = torch.concat((y_hat, distr_args), axis=-1)
 
-            if self.loss.return_samples:
+            if getattr(self.loss, "return_samples", False):
                 # samples already [B, H=1, N, n_samples] after loss.sample()'s internal permute
                 # keep H dim so shapes match y_hat [B, 1, N, n_outputs]; squeeze happens below
                 y_hat = torch.concat((y_hat, samples), axis=-1)

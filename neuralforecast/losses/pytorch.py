@@ -2014,21 +2014,25 @@ class DistributionLoss(torch.nn.Module):
             self.quantiles = nn.Parameter(
                 torch.tensor(q, dtype=torch.float32), requires_grad=False
             )
+            return_samples = getattr(self, "return_samples", False)
+            sample_names = getattr(self, "sample_names", [])
             self.output_names = (
                 [""]
                 + [f"_ql{q_i}" for q_i in q]
                 + self.return_params * self.param_names
-                + self.return_samples * self.sample_names
+                + return_samples * sample_names
             )
             self.has_predicted = True
         elif q is None and self.has_predicted:
             self.quantiles = nn.Parameter(
                 torch.tensor([0.5], dtype=torch.float32), requires_grad=False
             )
+            return_samples = getattr(self, "return_samples", False)
+            sample_names = getattr(self, "sample_names", [])
             self.output_names = (
                 ["", "-median"]
                 + self.return_params * self.param_names
-                + self.return_samples * self.sample_names
+                + return_samples * sample_names
             )
 
     def _compute_weights(self, y, mask):
