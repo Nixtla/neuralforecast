@@ -100,8 +100,8 @@ Y_train_df.tail()
 ```
 
 ``` text
-2026-03-20 11:59:09,069 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
-2026-03-20 11:59:09,158 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+2026-03-20 13:09:32,071 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+2026-03-20 13:09:32,151 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
 ```
 
 ``` text
@@ -338,7 +338,7 @@ Expected total passengers = 5,783
 
 ![](simulation_files/figure-markdown_strict/cell-11-output-2.png)
 
-## 8. Comparing Simulation Methods: Gaussian Copula vs. Schaake Shuffle
+## 7. Comparing Simulation Methods: Gaussian Copula vs. Schaake Shuffle
 
 Both methods use the same marginal quantile forecasts but differ in how
 they introduce temporal correlation across horizon steps. Let’s compare
@@ -388,7 +388,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-## 9. Evaluating Marginal vs. Joint Distributions
+![](simulation_files/figure-markdown_strict/cell-13-output-1.png)
+
+## 8. Evaluating Marginal vs. Joint Distributions
 
 We can evaluate both the **marginal** distribution (from
 `predict(quantiles=...)`) and the **joint** distribution (from
@@ -414,25 +416,22 @@ MODEL = "NHITS_Normal"
 
 # ── 1. Marginal quantiles from predict() ──
 marginal_df = nf.predict(quantiles=eval_quantiles)
-# Add actuals
-marginal_df = marginal_df.merge(Y_test_df[["unique_id", "ds", "y"]], on=["unique_id", "ds"])
+# Add actuals — align by position (predict uses freq="MS" dates, test data has month-end dates)
+marginal_df = marginal_df.sort_values(["unique_id", "ds"]).reset_index(drop=True)
+marginal_df["y"] = Y_test_df.sort_values(["unique_id", "ds"])["y"].values
 
 # ── 2. Joint quantiles derived from simulation paths (gaussian_copula) ──
 sims_gc = extract_sims(sim_copula, MODEL)  # (n_paths, H)
-future_dates = pd.date_range(
-    start=Y_train_df.sort_values("ds")["ds"].iloc[-1],
-    periods=H + 1, freq="MS",
-)[1:]
 
-joint_gc_df = Y_test_df[["unique_id", "ds", "y"]].copy()
+joint_gc_df = marginal_df[["unique_id", "ds", "y"]].copy()
 for q in eval_quantiles:
     joint_gc_df[f"{MODEL}_ql{q}"] = np.quantile(sims_gc, q, axis=0)
-# Add median as the point forecast column
 joint_gc_df[MODEL] = np.median(sims_gc, axis=0)
 
 # ── 3. Joint quantiles derived from simulation paths (schaake_shuffle) ──
 sims_ss = extract_sims(sim_schaake, MODEL)  # (n_paths, H)
-joint_ss_df = Y_test_df[["unique_id", "ds", "y"]].copy()
+
+joint_ss_df = marginal_df[["unique_id", "ds", "y"]].copy()
 for q in eval_quantiles:
     joint_ss_df[f"{MODEL}_ql{q}"] = np.quantile(sims_ss, q, axis=0)
 joint_ss_df[MODEL] = np.median(sims_ss, axis=0)
@@ -440,26 +439,18 @@ joint_ss_df[MODEL] = np.median(sims_ss, axis=0)
 
 
 ```python
-# ── Evaluate point metrics ──
-quantile_cols = {MODEL: [f"{MODEL}_ql{q}" for q in eval_quantiles]}
-
+# ── Evaluate point metrics (via evaluate) ──
 point_marginal = evaluate(marginal_df, metrics=[mae, mse], models=[MODEL], agg_fn="mean")
 point_gc = evaluate(joint_gc_df, metrics=[mae, mse], models=[MODEL], agg_fn="mean")
 point_ss = evaluate(joint_ss_df, metrics=[mae, mse], models=[MODEL], agg_fn="mean")
 
-# ── Evaluate scaled CRPS ──
-crps_marginal = evaluate(
-    marginal_df, metrics=[scaled_crps], models=quantile_cols, level=eval_quantiles,
-    agg_fn="mean",
-)
-crps_gc = evaluate(
-    joint_gc_df, metrics=[scaled_crps], models=quantile_cols, level=eval_quantiles,
-    agg_fn="mean",
-)
-crps_ss = evaluate(
-    joint_ss_df, metrics=[scaled_crps], models=quantile_cols, level=eval_quantiles,
-    agg_fn="mean",
-)
+# ── Evaluate scaled CRPS (called directly — evaluate expects level-style columns) ──
+quantile_cols = {MODEL: [f"{MODEL}_ql{q}" for q in eval_quantiles]}
+quantiles_arr = np.array(eval_quantiles)
+
+crps_marginal = scaled_crps(marginal_df, models=quantile_cols, quantiles=quantiles_arr)
+crps_gc = scaled_crps(joint_gc_df, models=quantile_cols, quantiles=quantiles_arr)
+crps_ss = scaled_crps(joint_ss_df, models=quantile_cols, quantiles=quantiles_arr)
 
 # ── Combine results ──
 results = pd.DataFrame({
@@ -467,17 +458,17 @@ results = pd.DataFrame({
     "Marginal (predict)": [
         point_marginal[MODEL].values[0],
         point_marginal[MODEL].values[1],
-        crps_marginal[MODEL].values[0],
+        crps_marginal[MODEL].mean(),
     ],
     "Joint — Gaussian Copula": [
         point_gc[MODEL].values[0],
         point_gc[MODEL].values[1],
-        crps_gc[MODEL].values[0],
+        crps_gc[MODEL].mean(),
     ],
     "Joint — Schaake Shuffle": [
         point_ss[MODEL].values[0],
         point_ss[MODEL].values[1],
-        crps_ss[MODEL].values[0],
+        crps_ss[MODEL].mean(),
     ],
 }).set_index("Metric")
 
@@ -486,8 +477,15 @@ results
 ```
 
 ``` text
-ValueError: The following columns are required for level=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] and are missing: {'NHITS_Normal-lo-0.9', 'NHITS_Normal-lo-0.6', 'NHITS_Normal-hi-0.5', 'NHITS_Normal-lo-0.7', 'NHITS_Normal-lo-0.2', 'NHITS_Normal-hi-0.4', 'NHITS_Normal-hi-0.2', 'NHITS_Normal-hi-0.6', 'NHITS_Normal-lo-0.1', 'NHITS_Normal-lo-0.3', 'NHITS_Normal-lo-0.8', 'NHITS_Normal-hi-0.8', 'NHITS_Normal-lo-0.4', 'NHITS_Normal-hi-0.1', 'NHITS_Normal-hi-0.9', 'NHITS_Normal-hi-0.7', 'NHITS_Normal-hi-0.3', 'NHITS_Normal-lo-0.5'}
+Model: NHITS_Normal
 ```
+
+|             | Marginal (predict) | Joint — Gaussian Copula | Joint — Schaake Shuffle |
+|-------------|--------------------|-------------------------|-------------------------|
+| Metric      |                    |                         |                         |
+| MAE         | 12.669571          | 12.942172               | 12.516764               |
+| MSE         | 276.954919         | 288.357154              | 275.652889              |
+| Scaled CRPS | 0.021440           | 0.022133                | 0.021545                |
 
 **Interpreting the results:**
 
@@ -503,7 +501,7 @@ ValueError: The following columns are required for level=[0.1, 0.2, 0.3, 0.4, 0.
     samples). With enough paths, the simulation CRPS should converge to
     the marginal CRPS.
 
-## 10. Summary
+## 9. Summary
 
 | Question                                        | Use                                         |
 |------------------------------------------------|-------------------------|
