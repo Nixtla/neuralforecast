@@ -1030,6 +1030,439 @@ class NeuralForecast:
 
         return fcsts_df
 
+    def _simulate_distributed(
+        self,
+        df: Optional[SparkDataFrame],
+        static_df: Optional[SparkDataFrame],
+        futr_df: Optional[SparkDataFrame],
+        engine,
+        n_paths: int = 500,
+        quantiles: Optional[List[float]] = None,
+        seed: Optional[int] = None,
+        method: str = "gaussian_copula",
+    ):
+        import fugue.api as fa
+
+        def _simulate(
+            df: pd.DataFrame,
+            static_cols,
+            futr_exog_cols,
+            models,
+            freq,
+            id_col,
+            time_col,
+            target_col,
+            n_paths,
+            quantiles,
+            seed,
+            method,
+        ) -> pd.DataFrame:
+            from neuralforecast import NeuralForecast
+
+            nf = NeuralForecast(models=models, freq=freq)
+            nf.id_col = id_col
+            nf.time_col = time_col
+            nf.target_col = target_col
+            nf.scalers_ = {}
+            nf._fitted = True
+            if futr_exog_cols:
+                futr_rows = df[target_col].isnull()
+                futr_df = df.loc[
+                    futr_rows, [id_col, time_col] + futr_exog_cols
+                ].copy()
+                df = df[~futr_rows].copy()
+            else:
+                futr_df = None
+            if static_cols:
+                static_df = (
+                    df[[id_col] + static_cols]
+                    .groupby(id_col, observed=True)
+                    .head(1)
+                )
+                df = df.drop(columns=static_cols)
+            else:
+                static_df = None
+            return nf.simulate(
+                df=df,
+                static_df=static_df,
+                futr_df=futr_df,
+                n_paths=n_paths,
+                quantiles=quantiles,
+                seed=seed,
+                method=method,
+            )
+
+        # df
+        if isinstance(df, SparkDataFrame):
+            repartition = True
+        else:
+            if engine is None:
+                raise ValueError("engine is required for distributed simulation")
+            df = engine.read.parquet(*self.dataset.files)
+            repartition = False
+
+        # static
+        static_cols = set(
+            chain.from_iterable(getattr(m, "stat_exog_list", []) for m in self.models)
+        )
+        if static_df is not None:
+            if not isinstance(static_df, SparkDataFrame):
+                raise ValueError(
+                    "`static_df` must be a spark dataframe when `df` is a spark dataframe "
+                    "or the models were trained in a distributed setting.\n"
+                    "You can also provide local dataframes (pandas or polars) as `df` and `static_df`."
+                )
+            missing_static = static_cols - set(static_df.columns)
+            if missing_static:
+                raise ValueError(
+                    f"The following static columns are missing from the static_df: {missing_static}"
+                )
+            df = df.join(static_df, on=[self.id_col], how="left")
+
+        # exog
+        if futr_df is not None:
+            if not isinstance(futr_df, SparkDataFrame):
+                raise ValueError(
+                    "`futr_df` must be a spark dataframe when `df` is a spark dataframe "
+                    "or the models were trained in a distributed setting.\n"
+                    "You can also provide local dataframes (pandas or polars) as `df` and `futr_df`."
+                )
+            if self.target_col in futr_df.columns:
+                raise ValueError("`futr_df` must not contain the target column.")
+            df = df.unionByName(futr_df, allowMissingColumns=True)
+            repartition = True
+
+        if repartition:
+            df = df.repartitionByRange(df.rdd.getNumPartitions(), self.id_col)
+
+        # simulate
+        base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
+        models_schema = {"sample_id": "int"}
+        models_schema.update({model: "float" for model in self._get_model_names()})
+        return fa.transform(
+            df=df,
+            using=_simulate,
+            schema=base_schema.append(models_schema),
+            params=dict(
+                static_cols=list(static_cols),
+                futr_exog_cols=list(self._get_needed_futr_exog()),
+                models=self.models,
+                freq=self.freq,
+                id_col=self.id_col,
+                time_col=self.time_col,
+                target_col=self.target_col,
+                n_paths=n_paths,
+                quantiles=quantiles,
+                seed=seed,
+                method=method,
+            ),
+        )
+
+    def _simulate_conformal(
+        self,
+        model,
+        dataset,
+        n_series,
+        h,
+        n_paths,
+        seed,
+        method,
+        quantiles=None,
+        **data_kwargs,
+    ):
+        """Build quantile grid from conformal scores and sample via copula.
+
+        Used for point-loss models (MAE, MSE, etc.) that have conformal
+        prediction intervals calibrated during ``fit()``.
+
+        Returns:
+            samples (np.ndarray): Array of shape ``[n_series, n_paths, H]``.
+        """
+
+        if quantiles is None:
+            quantiles = [round(q / 100, 2) for q in range(1, 100)]
+
+        # Get point forecasts
+        point_fcsts = model.predict(
+            dataset=dataset,
+            random_seed=seed,
+            **data_kwargs,
+        )  # (n_series * H, 1)
+
+        # Build quantile grid from conformal scores
+        model_name = repr(model)
+        prediction_interval_method = get_prediction_interval_method(
+            self.prediction_intervals.method
+        )
+        fcsts_with_intervals, _ = prediction_interval_method(
+            point_fcsts,
+            self._cs_df,
+            model=model_name,
+            cs_n_windows=self.prediction_intervals.n_windows,
+            n_series=n_series,
+            horizon=h,
+            quantiles=quantiles,
+        )
+        # fcsts_with_intervals: (n_series * H, 1 + n_quantiles)
+        # col 0 = point forecast, cols 1..Q = quantile forecasts
+        n_quantiles = len(quantiles)
+        quantile_fcsts = fcsts_with_intervals[:, 1 : 1 + n_quantiles]
+        quantile_values = quantile_fcsts.reshape(n_series, h, n_quantiles)
+
+        # Extract historical y for AR(1) rho estimation
+        y_idx = dataset.y_idx
+        temporal = dataset.temporal[:, y_idx]
+        y_hist = []
+        for i in range(dataset.n_groups):
+            start = dataset.indptr[i]
+            end = dataset.indptr[i + 1]
+            y_hist.append(temporal[start:end])
+
+        # Sample via copula
+        quantile_positions_t = torch.as_tensor(
+            np.array(quantiles), dtype=torch.float64
+        )
+        quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
+
+        if method == "gaussian_copula":
+            from neuralforecast.utils import gaussian_copula_sample
+            samples = gaussian_copula_sample(
+                quantile_positions=quantile_positions_t,
+                quantile_values=quantile_values_t,
+                y_hist=y_hist,
+                n_paths=n_paths,
+                seed=seed,
+            )
+        elif method == "schaake_shuffle":
+            from neuralforecast.utils import schaake_shuffle_sample
+
+            samples = schaake_shuffle_sample(
+                quantile_positions=quantile_positions_t,
+                quantile_values=quantile_values_t,
+                y_hist=y_hist,
+                n_paths=n_paths,
+                seed=seed,
+            )
+        else:
+            raise ValueError(
+                f"Unknown simulation method '{method}'. "
+                f"Valid methods: ['gaussian_copula', 'schaake_shuffle']"
+            )
+
+        return samples.numpy()  # (n_series, n_paths, H)
+
+    def simulate(
+        self,
+        df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
+        n_paths: int = 500,
+        quantiles: Optional[List[float]] = None,
+        seed: Optional[int] = None,
+        method: str = "gaussian_copula",
+        verbose: bool = False,
+        engine=None,
+        **data_kwargs,
+    ) -> DataFrame:
+        """Generate sample paths with temporal correlation.
+
+        Produces ``n_paths`` simulated future trajectories per series per model.
+        Works with any model that supports quantile output
+        (``DistributionLoss``, ``MQLoss``, mixture losses).
+
+        Args:
+            df (pandas, polars or spark DataFrame, optional): DataFrame with
+                columns [``unique_id``, ``ds``, ``y``] and exogenous variables.
+                If None, uses the stored dataset from ``fit()``.
+            static_df (pandas, polars or spark DataFrame, optional): DataFrame
+                with columns [``unique_id``] and static exogenous variables.
+            futr_df (pandas, polars or spark DataFrame, optional): DataFrame
+                with [``unique_id``, ``ds``] and future exogenous variables.
+            n_paths (int): Number of sample paths to generate. Default: 500.
+            quantiles (list of float, optional): Quantile grid for marginals.
+                Defaults to ``[0.01, 0.02, ..., 0.99]``.
+            seed (int, optional): Random seed for reproducibility.
+            method (str): Simulation method. Default: ``"gaussian_copula"``.
+            verbose (bool): Print progress information.
+            engine (spark session): Distributed engine for simulation. Only used
+                if df is a spark dataframe or if fit was called on a spark
+                dataframe.
+            data_kwargs: Extra arguments passed to the dataset within each model.
+
+        Returns:
+            pandas or polars DataFrame: Long-format DataFrame with columns
+                [``unique_id``, ``ds``, ``sample_id``, model_1, model_2, ...].
+                Contains ``n_series * n_paths * H`` rows.
+        """
+        if not self._fitted:
+            raise Exception("You must fit the model before simulating.")
+
+        # Distributed simulation for Spark DataFrames
+        is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
+        if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
+            return self._simulate_distributed(
+                df=df,
+                static_df=static_df,
+                futr_df=futr_df,
+                engine=engine,
+                n_paths=n_paths,
+                quantiles=quantiles,
+                seed=seed,
+                method=method,
+            )
+
+        h = self.h
+
+        # Prepare dataset
+        if df is not None:
+            validate_freq(df[self.time_col], self.freq)
+            dataset, uids, last_dates, _ = self._prepare_fit(
+                df=df,
+                static_df=static_df,
+                predict_only=True,
+                id_col=self.id_col,
+                time_col=self.time_col,
+                target_col=self.target_col,
+            )
+        else:
+            dataset = self.dataset
+            uids = self.uids
+            last_dates = self.last_dates
+            if verbose:
+                print("Using stored dataset.")
+                
+        # Build future exogenous dataset
+        needed_futr_exog = self._get_needed_futr_exog()
+        if needed_futr_exog:
+            if futr_df is None:
+                raise ValueError(
+                    f"Models require future exogenous features: {needed_futr_exog}. "
+                    "Please provide them through the `futr_df` argument."
+                )
+            fcsts_df = ufp.make_future_dataframe(
+                uids=uids,
+                last_times=last_dates,
+                freq=self.freq,
+                h=h,
+                id_col=self.id_col,
+                time_col=self.time_col,
+            )
+            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
+        else:
+            fcsts_df = ufp.make_future_dataframe(
+                uids=uids,
+                last_times=last_dates,
+                freq=self.freq,
+                h=h,
+                id_col=self.id_col,
+                time_col=self.time_col,
+            )
+            futr_df = fcsts_df
+
+        futr_dataset = dataset.align(
+            futr_df,
+            id_col=self.id_col,
+            time_col=self.time_col,
+            target_col=self.target_col,
+        )
+        self._scalers_transform(futr_dataset)
+        full_dataset = dataset.append(futr_dataset)
+
+        n_series = len(uids)
+
+        # Collect model samples: each is (n_series, n_paths, H)
+        model_names = []
+        model_samples = []
+        count_names = {"model": 0}
+        for model in self.models:
+            model_name = repr(model)
+            count_names[model_name] = count_names.get(model_name, -1) + 1
+            if count_names[model_name] > 0:
+                model_name += str(count_names[model_name])
+
+            old_test_size = model.get_test_size()
+            model.set_test_size(h)
+
+            if verbose:
+                print(f"Simulate: sampling {n_paths} paths for {model_name}...")
+
+            is_point_loss = (
+                not model.loss.is_distribution_output
+                and not isinstance(model.loss, (IQLoss, HuberIQLoss))
+                and model.loss.outputsize_multiplier == 1
+            )
+
+            try:
+                if is_point_loss:
+                    # Point-loss model: use conformal prediction intervals
+                    # to build quantile grid, then sample via copula
+                    if self.prediction_intervals is None:
+                        raise ValueError(
+                            f"Model '{model_name}' uses point loss "
+                            f"{type(model.loss).__name__}. "
+                            "Set `prediction_intervals` during fit() to "
+                            "enable simulation for point-loss models."
+                        )
+                    samples = self._simulate_conformal(
+                        model=model,
+                        dataset=full_dataset,
+                        n_series=n_series,
+                        h=h,
+                        n_paths=n_paths,
+                        seed=seed,
+                        method=method,
+                        quantiles=quantiles,
+                        **data_kwargs,
+                    )
+                else:
+                    samples = model.simulate(
+                        dataset=full_dataset,
+                        n_paths=n_paths,
+                        random_seed=seed,
+                        quantiles=quantiles,
+                        method=method,
+                        **data_kwargs,
+                    )
+            finally:
+                model.set_test_size(old_test_size)
+
+            # samples is numpy (n_series, n_paths, H)
+            # Apply NF-level scaler inverse transform
+            if self.scalers_:
+                indptr = np.append(0, np.full(n_series, h).cumsum())
+                for p in range(n_paths):
+                    path_flat = samples[:, p, :].reshape(-1)
+                    path_flat = self._scalers_target_inverse_transform(
+                        path_flat.reshape(-1, 1), indptr
+                    ).reshape(-1)
+                    samples[:, p, :] = path_flat.reshape(n_series, h)
+
+            model_names.append(model_name)
+            model_samples.append(samples)
+
+        # Build long-format DataFrame: tile fcsts_df (unique_id, ds) n_paths times
+        use_polars = isinstance(fcsts_df, pl_DataFrame)
+        if use_polars:
+            base_df = fcsts_df.to_pandas()
+        else:
+            base_df = fcsts_df
+
+        tiled = pd.concat(
+            [base_df.assign(sample_id=p) for p in range(n_paths)],
+            ignore_index=True,
+        )
+
+        # Flatten each model's samples to match tiled row order:
+        # tiled: sample_id=0 (all series × H), sample_id=1 (all series × H), ...
+        for name, samples in zip(model_names, model_samples):
+            # samples: (n_series, n_paths, H) → (n_paths, n_series, H) → flat
+            tiled[name] = samples.transpose(1, 0, 2).reshape(-1)
+
+        if use_polars:
+            import polars as pl_mod
+            return pl_mod.from_pandas(tiled)
+        return tiled
+
     def explain(
         self,
         horizons: Optional[list[int]] = None,
@@ -2057,16 +2490,15 @@ class NeuralForecast:
         cols = []
         count_names = {"model": 0}
         for model in self.models:
-            old_test_size = model.get_test_size()
-            model.set_test_size(
-                h if h is not None else self.h
-            )  # To predict h steps ahead
-
-            # Increment model name if the same model is used more than once
             model_name = repr(model)
             count_names[model_name] = count_names.get(model_name, -1) + 1
             if count_names[model_name] > 0:
                 model_name += str(count_names[model_name])
+
+            old_test_size = model.get_test_size()
+            model.set_test_size(
+                h if h is not None else self.h
+            )  # To predict h steps ahead
 
             # Predict for every quantile or level if requested and the loss function supports it
             # case 1: DistributionLoss and MixtureLosses

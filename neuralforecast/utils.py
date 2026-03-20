@@ -3,15 +3,19 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
            'HourOfDay', 'DayOfWeek', 'DayOfMonth', 'DayOfYear', 'MonthOfYear', 'WeekOfYear',
            'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing',
            'PredictionIntervals', 'add_conformal_distribution_intervals', 'add_conformal_error_intervals',
-           'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level']
+           'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level',
+           'estimate_ar1_rho', 'interp_2d', 'gaussian_copula_sample',
+           'schaake_shuffle_sample']
 
 
+import math
 import random
 from itertools import chain
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import torch
 from utilsforecast.compat import DFType
 
 
@@ -699,3 +703,183 @@ def quantiles_to_level(quantiles: List[float]) -> List[Union[int, float]]:
             ]
         )
     )
+
+
+def estimate_ar1_rho(y):
+    """Estimate AR(1) correlation coefficient from differenced series.
+
+    Args:
+        y: 1-D tensor of historical values (may contain NaN).
+
+    Returns:
+        rho: scalar tensor, clipped to (-0.99, 0.99).
+    """
+    y = y[~torch.isnan(y)]
+    if len(y) < 3:
+        return torch.tensor(0.0, dtype=torch.float64)
+    y_diff = y[1:] - y[:-1]
+    x, z = y_diff[:-1], y_diff[1:]
+    x = x - x.mean()
+    z = z - z.mean()
+    denom = torch.sqrt((x * x).sum() * (z * z).sum())
+    if denom < 1e-15:
+        return torch.tensor(0.0, dtype=torch.float64)
+    rho = (x * z).sum() / denom
+    return rho.clamp(-0.99, 0.99)
+
+
+def interp_2d(x, xp, fp):
+    """Vectorised 1-D linear interpolation across rows.
+
+    Each row of ``x`` is interpolated against ``xp`` using the
+    corresponding row of ``fp`` as knot values.
+
+    Args:
+        x: (H, n_paths) query points in (0, 1).
+        xp: (Q,) shared sorted knot positions.
+        fp: (H, Q) per-row knot values.
+
+    Returns:
+        result: (H, n_paths) interpolated values.
+    """
+    Q = xp.shape[0]
+    idx = torch.searchsorted(xp.expand(x.shape[0], -1), x).clamp(1, Q - 1)
+    x0 = xp[idx - 1]
+    x1 = xp[idx]
+    f0 = fp.gather(1, idx - 1)
+    f1 = fp.gather(1, idx)
+    t = (x - x0) / (x1 - x0)
+    return f0 + t * (f1 - f0)
+
+
+def gaussian_copula_sample(
+    quantile_positions,
+    quantile_values,
+    y_hist,
+    n_paths,
+    seed=None,
+):
+    """Gaussian copula with AR(1) Toeplitz correlation and IQF marginals.
+
+    All computation in torch tensors.
+
+    Args:
+        quantile_positions: (Q,) sorted quantile levels in (0, 1), tensor.
+        quantile_values: (n_series, H, Q) quantile forecast values, tensor.
+        y_hist: list of 1-D tensors, historical values per series.
+        n_paths: number of sample paths.
+        seed: random seed.
+
+    Returns:
+        simulations: (n_series, n_paths, H) tensor (float64).
+    """
+    if seed is not None:
+        torch.manual_seed(seed)
+
+    n_series, H, _ = quantile_values.shape
+    simulations = torch.empty(
+        (n_series, n_paths, H), dtype=quantile_values.dtype
+    )
+
+    lags = torch.arange(H, dtype=quantile_values.dtype)
+    abs_diff = (lags.unsqueeze(1) - lags.unsqueeze(0)).abs()
+
+    q_lo = quantile_positions[0]
+    q_hi = quantile_positions[-1]
+    sqrt2 = math.sqrt(2.0)
+
+    for i in range(n_series):
+        rho = estimate_ar1_rho(y_hist[i]).to(quantile_values.dtype)
+
+        R = rho.abs() ** abs_diff
+        R = R + torch.eye(H, dtype=R.dtype) * 1e-8
+        L = torch.linalg.cholesky(R)
+
+        Z = torch.randn(H, n_paths, dtype=quantile_values.dtype)
+        U = 0.5 * (1.0 + torch.erf(L @ Z / sqrt2))
+        U = U.clamp(q_lo, q_hi)
+
+        simulations[i] = interp_2d(
+            U, quantile_positions, quantile_values[i]
+        ).T
+
+    return simulations
+
+
+def schaake_shuffle_sample(
+    quantile_positions,
+    quantile_values,
+    y_hist,
+    n_paths,
+    seed=None,
+):
+    """Independent marginal samples reordered by historical rank templates.
+
+    Draws independent uniform samples per horizon step, maps them through
+    each step's marginal CDF (via quantile interpolation), then reorders
+    them to match the rank structure of historical trajectory templates.
+
+    Args:
+        quantile_positions: (Q,) sorted quantile levels in (0, 1), tensor.
+        quantile_values: (n_series, H, Q) quantile forecast values, tensor.
+        y_hist: list of 1-D tensors, historical values per series.
+        n_paths: number of sample paths.
+        seed: random seed.
+
+    Returns:
+        simulations: (n_series, n_paths, H) tensor (float64).
+    """
+    if seed is not None:
+        torch.manual_seed(seed)
+
+    n_series, H, _ = quantile_values.shape
+    simulations = torch.empty(
+        (n_series, n_paths, H), dtype=quantile_values.dtype
+    )
+
+    q_lo = quantile_positions[0]
+    q_hi = quantile_positions[-1]
+
+    for i in range(n_series):
+        # Draw independent uniform samples per step, map through marginal CDF
+        U = torch.empty(H, n_paths, dtype=quantile_values.dtype).uniform_(
+            q_lo.item(), q_hi.item()
+        )
+        raw_samples = interp_2d(
+            U, quantile_positions, quantile_values[i]
+        )  # (H, n_paths)
+
+        # Extract historical trajectory templates
+        yi = y_hist[i]
+        yi_clean = yi[~torch.isnan(yi)]
+        T = len(yi_clean)
+        if T < H:
+            raise ValueError(
+                f"Series {i}: history length {T} is shorter than horizon {H}. "
+                "Cannot extract trajectory templates for Schaake shuffle."
+            )
+
+        # Select n_paths starting indices for templates
+        max_start = T - H + 1
+        if max_start < n_paths:
+            start_indices = torch.randint(0, max_start, (n_paths,))
+        else:
+            perm = torch.randperm(max_start)
+            start_indices = perm[:n_paths]
+
+        # Build template matrix (H, n_paths)
+        templates = torch.stack(
+            [yi_clean[s : s + H] for s in start_indices], dim=1
+        )  # (H, n_paths)
+
+        # Schaake shuffle: reorder raw samples to match template rank structure
+        for h in range(H):
+            template_ranks = torch.argsort(torch.argsort(templates[h]))
+            sample_order = torch.argsort(raw_samples[h])
+            reordered = raw_samples[h].clone()
+            reordered[sample_order] = raw_samples[h][torch.argsort(template_ranks)]
+            raw_samples[h] = reordered
+
+        simulations[i] = raw_samples.T  # (n_paths, H)
+
+    return simulations
