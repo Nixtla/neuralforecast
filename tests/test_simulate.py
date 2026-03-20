@@ -27,6 +27,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=DistributionLoss(distribution="Normal"),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
@@ -45,6 +46,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=MQLoss(level=[90]),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
@@ -63,6 +65,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=GMM(n_components=2),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
@@ -82,6 +85,7 @@ class TestSimulation:
             max_steps=5,
             loss=DistributionLoss(distribution="Normal"),
             recurrent=True,
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
@@ -100,6 +104,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=IQLoss(),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
@@ -118,6 +123,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=MAE(),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(
@@ -142,6 +148,7 @@ class TestSimulation:
             n_series=2,
             max_steps=5,
             loss=DistributionLoss(distribution="Normal"),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersPanel)
@@ -162,6 +169,7 @@ class TestSimulation:
                 max_steps=5,
                 loss=DistributionLoss(distribution="Normal"),
                 alias="NHITS_Normal",
+                accelerator="cpu",
             ),
             NHITS(
                 h=12,
@@ -169,6 +177,7 @@ class TestSimulation:
                 max_steps=5,
                 loss=MQLoss(level=[90]),
                 alias="NHITS_MQ",
+                accelerator="cpu",
             ),
         ]
         nf = NeuralForecast(models=models, freq="MS")
@@ -188,6 +197,7 @@ class TestSimulation:
             input_size=24,
             max_steps=5,
             loss=DistributionLoss(distribution="Normal"),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersPanel)
@@ -204,6 +214,7 @@ class TestSimulation:
         model = NHITS(
             h=12, input_size=24, max_steps=1,
             loss=DistributionLoss(distribution="Normal"),
+            accelerator="cpu",
         )
         nf = NeuralForecast(models=[model], freq="MS")
         with pytest.raises(Exception, match="must fit"):
@@ -449,7 +460,7 @@ class TestSimulation:
         from neuralforecast.models import NHITS
         from neuralforecast.utils import AirPassengersDF
 
-        model = NHITS(h=12, input_size=24, max_steps=5, loss=MAE())
+        model = NHITS(h=12, input_size=24, max_steps=5, loss=MAE(), accelerator="cpu")
         nf = NeuralForecast(models=[model], freq="MS")
         nf.fit(df=AirPassengersDF)
         with pytest.raises(ValueError, match="prediction_intervals"):
