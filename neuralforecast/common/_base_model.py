@@ -2130,14 +2130,18 @@ class BaseModel(pl.LightningModule):
         Returns:
             samples (np.ndarray): Array of shape ``[n_series, n_paths, H]``.
         """
-        VALID_METHODS = {"gaussian_copula", "schaake_shuffle"}
-        if method not in VALID_METHODS:
+        from neuralforecast.utils import (
+            DEFAULT_QUANTILE_GRID,
+            VALID_SIMULATION_METHODS,
+        )
+
+        if method not in VALID_SIMULATION_METHODS:
             raise ValueError(
                 f"Unknown simulation method '{method}'. "
-                f"Valid methods: {sorted(VALID_METHODS)}"
+                f"Valid methods: {sorted(VALID_SIMULATION_METHODS)}"
             )
         if quantiles is None:
-            quantiles = [round(q / 100, 2) for q in range(1, 100)]
+            quantiles = DEFAULT_QUANTILE_GRID
 
         # Determine quantile grid based on loss type
         if self.loss.is_distribution_output:
@@ -2198,39 +2202,17 @@ class BaseModel(pl.LightningModule):
         n_series = quantile_fcsts.shape[0] // h
         quantile_values = quantile_fcsts.reshape(n_series, h, n_quantiles)
 
-        # Extract historical y from dataset for AR(1) rho estimation
-        y_idx = dataset.y_idx
-        temporal = dataset.temporal[:, y_idx]
-        y_hist = []
-        for i in range(dataset.n_groups):
-            start = dataset.indptr[i]
-            end = dataset.indptr[i + 1]
-            y_hist.append(temporal[start:end])
+        # Generate sample paths using shared helper
+        from neuralforecast.utils import sample_from_quantiles
 
-        # Generate sample paths
-        quantile_positions_t = torch.as_tensor(quantile_positions, dtype=torch.float64)
-        quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
-        if method == "gaussian_copula":
-            from neuralforecast.utils import gaussian_copula_sample
-
-            samples = gaussian_copula_sample(
-                quantile_positions=quantile_positions_t,
-                quantile_values=quantile_values_t,
-                y_hist=y_hist,
-                n_paths=n_paths,
-                seed=random_seed,
-            )
-        elif method == "schaake_shuffle":
-            from neuralforecast.utils import schaake_shuffle_sample
-
-            samples = schaake_shuffle_sample(
-                quantile_positions=quantile_positions_t,
-                quantile_values=quantile_values_t,
-                y_hist=y_hist,
-                n_paths=n_paths,
-                seed=random_seed,
-            )
-        return tensor_to_numpy(samples)  # (n_series, n_paths, H)
+        return sample_from_quantiles(
+            quantile_positions=quantile_positions,
+            quantile_values=quantile_values,
+            dataset=dataset,
+            n_paths=n_paths,
+            seed=random_seed,
+            method=method,
+        )  # (n_series, n_paths, H)
 
     def decompose(
         self,

@@ -5,7 +5,9 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
            'PredictionIntervals', 'add_conformal_distribution_intervals', 'add_conformal_error_intervals',
            'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level',
            'estimate_ar1_rho', 'interp_2d', 'gaussian_copula_sample',
-           'schaake_shuffle_sample']
+           'schaake_shuffle_sample', 'sample_from_quantiles',
+           'DEFAULT_QUANTILE_GRID', 'VALID_SIMULATION_METHODS',
+           'extract_y_hist']
 
 
 import math
@@ -705,6 +707,11 @@ def quantiles_to_level(quantiles: List[float]) -> List[Union[int, float]]:
     )
 
 
+# ─── Simulation constants ─────────────────────────────────────────────────────
+DEFAULT_QUANTILE_GRID = [round(q / 100, 2) for q in range(1, 100)]
+VALID_SIMULATION_METHODS = {"gaussian_copula", "schaake_shuffle"}
+
+
 def estimate_ar1_rho(y):
     """Estimate AR(1) correlation coefficient from differenced series.
 
@@ -748,7 +755,9 @@ def interp_2d(x, xp, fp):
     x1 = xp[idx]
     f0 = fp.gather(1, idx - 1)
     f1 = fp.gather(1, idx)
-    t = (x - x0) / (x1 - x0)
+    denom = x1 - x0
+    denom = torch.where(denom.abs() < 1e-15, torch.ones_like(denom), denom)
+    t = (x - x0) / denom
     return f0 + t * (f1 - f0)
 
 
@@ -773,8 +782,9 @@ def gaussian_copula_sample(
     Returns:
         simulations: (n_series, n_paths, H) tensor (float64).
     """
+    gen = torch.Generator()
     if seed is not None:
-        torch.manual_seed(seed)
+        gen.manual_seed(seed)
 
     n_series, H, _ = quantile_values.shape
     simulations = torch.empty(
@@ -792,10 +802,20 @@ def gaussian_copula_sample(
         rho = estimate_ar1_rho(y_hist[i]).to(quantile_values.dtype)
 
         R = rho.abs() ** abs_diff
-        R = R + torch.eye(H, dtype=R.dtype) * 1e-8
-        L = torch.linalg.cholesky(R)
+        # Progressive jitter for Cholesky stability (esp. float32, high rho)
+        L = None
+        for jitter in [1e-8, 1e-6, 1e-4, 1e-2]:
+            try:
+                R_j = R + torch.eye(H, dtype=R.dtype) * jitter
+                L = torch.linalg.cholesky(R_j)
+                break
+            except RuntimeError:
+                continue
+        if L is None:
+            # Fallback: independent samples
+            L = torch.eye(H, dtype=R.dtype)
 
-        Z = torch.randn(H, n_paths, dtype=quantile_values.dtype)
+        Z = torch.randn(H, n_paths, dtype=quantile_values.dtype, generator=gen)
         U = 0.5 * (1.0 + torch.erf(L @ Z / sqrt2))
         U = U.clamp(q_lo, q_hi)
 
@@ -829,8 +849,9 @@ def schaake_shuffle_sample(
     Returns:
         simulations: (n_series, n_paths, H) tensor (float64).
     """
+    gen = torch.Generator()
     if seed is not None:
-        torch.manual_seed(seed)
+        gen.manual_seed(seed)
 
     n_series, H, _ = quantile_values.shape
     simulations = torch.empty(
@@ -842,9 +863,8 @@ def schaake_shuffle_sample(
 
     for i in range(n_series):
         # Draw independent uniform samples per step, map through marginal CDF
-        U = torch.empty(H, n_paths, dtype=quantile_values.dtype).uniform_(
-            q_lo.item(), q_hi.item()
-        )
+        U = torch.empty(H, n_paths, dtype=quantile_values.dtype)
+        U.uniform_(q_lo.item(), q_hi.item(), generator=gen)
         raw_samples = interp_2d(
             U, quantile_positions, quantile_values[i]
         )  # (H, n_paths)
@@ -862,24 +882,109 @@ def schaake_shuffle_sample(
         # Select n_paths starting indices for templates
         max_start = T - H + 1
         if max_start < n_paths:
-            start_indices = torch.randint(0, max_start, (n_paths,))
+            start_indices = torch.randint(
+                0, max_start, (n_paths,), generator=gen
+            )
         else:
-            perm = torch.randperm(max_start)
+            perm = torch.randperm(max_start, generator=gen)
             start_indices = perm[:n_paths]
 
-        # Build template matrix (H, n_paths)
-        templates = torch.stack(
-            [yi_clean[s : s + H] for s in start_indices], dim=1
-        )  # (H, n_paths)
+        # Build template matrix using unfold (H, n_paths)
+        all_windows = yi_clean.unfold(0, H, 1)  # (max_start, H)
+        templates = all_windows[start_indices].T  # (H, n_paths)
 
         # Schaake shuffle: reorder raw samples to match template rank structure
-        for h in range(H):
-            template_ranks = torch.argsort(torch.argsort(templates[h]))
-            sample_order = torch.argsort(raw_samples[h])
-            reordered = raw_samples[h].clone()
-            reordered[sample_order] = raw_samples[h][torch.argsort(template_ranks)]
-            raw_samples[h] = reordered
+        # Vectorized: compute ranks for all horizon steps at once
+        template_ranks = torch.argsort(
+            torch.argsort(templates, dim=1), dim=1
+        )  # (H, n_paths)
+        sorted_samples = torch.sort(raw_samples, dim=1).values  # (H, n_paths)
+        # Place the j-th smallest sample at the position with rank j
+        reordered = torch.empty_like(raw_samples)
+        reordered.scatter_(1, template_ranks, sorted_samples)
+        raw_samples = reordered
 
         simulations[i] = raw_samples.T  # (n_paths, H)
 
     return simulations
+
+
+def extract_y_hist(dataset):
+    """Extract per-series historical y tensors from a dataset.
+
+    Args:
+        dataset: NeuralForecast TimeSeriesDataset with ``y_idx``,
+            ``temporal``, ``n_groups``, and ``indptr`` attributes.
+
+    Returns:
+        list of 1-D tensors, one per series.
+    """
+    y_idx = dataset.y_idx
+    temporal = dataset.temporal[:, y_idx]
+    y_hist = []
+    for i in range(dataset.n_groups):
+        start = dataset.indptr[i]
+        end = dataset.indptr[i + 1]
+        y_hist.append(temporal[start:end])
+    return y_hist
+
+
+def sample_from_quantiles(
+    quantile_positions,
+    quantile_values,
+    dataset,
+    n_paths,
+    seed=None,
+    method="gaussian_copula",
+):
+    """Dispatch to a simulation sampler given quantile forecasts.
+
+    Extracts historical data from *dataset*, converts inputs to tensors,
+    and calls the appropriate sampling function.
+
+    Args:
+        quantile_positions: array-like (Q,) sorted quantile levels in (0, 1).
+        quantile_values: array-like (n_series, H, Q) quantile forecast values.
+        dataset: NeuralForecast TimeSeriesDataset.
+        n_paths: number of sample paths.
+        seed: random seed.
+        method: ``"gaussian_copula"`` or ``"schaake_shuffle"``.
+
+    Returns:
+        samples (np.ndarray): Array of shape ``[n_series, n_paths, H]``.
+    """
+    if method not in VALID_SIMULATION_METHODS:
+        raise ValueError(
+            f"Unknown simulation method '{method}'. "
+            f"Valid methods: {sorted(VALID_SIMULATION_METHODS)}"
+        )
+
+    y_hist = extract_y_hist(dataset)
+
+    quantile_positions_t = torch.as_tensor(
+        np.array(quantile_positions), dtype=torch.float64
+    )
+    quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
+
+    if method == "gaussian_copula":
+        samples = gaussian_copula_sample(
+            quantile_positions=quantile_positions_t,
+            quantile_values=quantile_values_t,
+            y_hist=y_hist,
+            n_paths=n_paths,
+            seed=seed,
+        )
+    elif method == "schaake_shuffle":
+        samples = schaake_shuffle_sample(
+            quantile_positions=quantile_positions_t,
+            quantile_values=quantile_values_t,
+            y_hist=y_hist,
+            n_paths=n_paths,
+            seed=seed,
+        )
+
+    if isinstance(samples, torch.Tensor):
+        if samples.dtype == torch.bfloat16:
+            return samples.float().numpy()
+        return samples.numpy()
+    return samples

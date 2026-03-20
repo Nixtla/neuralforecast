@@ -66,10 +66,13 @@ from neuralforecast.tsdataset import (
     _FilesDataset,
 )
 from neuralforecast.utils import (
+    DEFAULT_QUANTILE_GRID,
     PredictionIntervals,
+    VALID_SIMULATION_METHODS,
     get_prediction_interval_method,
     level_to_quantiles,
     quantiles_to_level,
+    sample_from_quantiles,
 )
 
 from .common._base_auto import BaseAuto, MockTrial
@@ -1040,6 +1043,7 @@ class NeuralForecast:
         quantiles: Optional[List[float]] = None,
         seed: Optional[int] = None,
         method: str = "gaussian_copula",
+        **data_kwargs,
     ):
         import fugue.api as fa
 
@@ -1180,7 +1184,7 @@ class NeuralForecast:
         """
 
         if quantiles is None:
-            quantiles = [round(q / 100, 2) for q in range(1, 100)]
+            quantiles = DEFAULT_QUANTILE_GRID
 
         # Get point forecasts
         point_fcsts = model.predict(
@@ -1209,47 +1213,15 @@ class NeuralForecast:
         quantile_fcsts = fcsts_with_intervals[:, 1 : 1 + n_quantiles]
         quantile_values = quantile_fcsts.reshape(n_series, h, n_quantiles)
 
-        # Extract historical y for AR(1) rho estimation
-        y_idx = dataset.y_idx
-        temporal = dataset.temporal[:, y_idx]
-        y_hist = []
-        for i in range(dataset.n_groups):
-            start = dataset.indptr[i]
-            end = dataset.indptr[i + 1]
-            y_hist.append(temporal[start:end])
-
-        # Sample via copula
-        quantile_positions_t = torch.as_tensor(
-            np.array(quantiles), dtype=torch.float64
-        )
-        quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
-
-        if method == "gaussian_copula":
-            from neuralforecast.utils import gaussian_copula_sample
-            samples = gaussian_copula_sample(
-                quantile_positions=quantile_positions_t,
-                quantile_values=quantile_values_t,
-                y_hist=y_hist,
-                n_paths=n_paths,
-                seed=seed,
-            )
-        elif method == "schaake_shuffle":
-            from neuralforecast.utils import schaake_shuffle_sample
-
-            samples = schaake_shuffle_sample(
-                quantile_positions=quantile_positions_t,
-                quantile_values=quantile_values_t,
-                y_hist=y_hist,
-                n_paths=n_paths,
-                seed=seed,
-            )
-        else:
-            raise ValueError(
-                f"Unknown simulation method '{method}'. "
-                f"Valid methods: ['gaussian_copula', 'schaake_shuffle']"
-            )
-
-        return samples.numpy()  # (n_series, n_paths, H)
+        # Sample via shared helper
+        return sample_from_quantiles(
+            quantile_positions=quantiles,
+            quantile_values=quantile_values,
+            dataset=dataset,
+            n_paths=n_paths,
+            seed=seed,
+            method=method,
+        )  # (n_series, n_paths, H)
 
     def simulate(
         self,
@@ -1296,6 +1268,15 @@ class NeuralForecast:
         """
         if not self._fitted:
             raise Exception("You must fit the model before simulating.")
+        if not isinstance(n_paths, int) or n_paths < 1:
+            raise ValueError(
+                f"`n_paths` must be a positive integer, got {n_paths!r}."
+            )
+        if method not in VALID_SIMULATION_METHODS:
+            raise ValueError(
+                f"Unknown simulation method '{method}'. "
+                f"Valid methods: {sorted(VALID_SIMULATION_METHODS)}"
+            )
 
         # Distributed simulation for Spark DataFrames
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
@@ -1309,6 +1290,7 @@ class NeuralForecast:
                 quantiles=quantiles,
                 seed=seed,
                 method=method,
+                **data_kwargs,
             )
 
         h = self.h
@@ -1430,12 +1412,11 @@ class NeuralForecast:
             # Apply NF-level scaler inverse transform
             if self.scalers_:
                 indptr = np.append(0, np.full(n_series, h).cumsum())
-                for p in range(n_paths):
-                    path_flat = samples[:, p, :].reshape(-1)
-                    path_flat = self._scalers_target_inverse_transform(
-                        path_flat.reshape(-1, 1), indptr
-                    ).reshape(-1)
-                    samples[:, p, :] = path_flat.reshape(n_series, h)
+                # Reshape (n_series, n_paths, H) → (n_series*H, n_paths) for
+                # a single call instead of looping over n_paths
+                flat = samples.transpose(0, 2, 1).reshape(-1, n_paths)
+                flat = self._scalers_target_inverse_transform(flat, indptr)
+                samples = flat.reshape(n_series, h, n_paths).transpose(0, 2, 1)
 
             model_names.append(model_name)
             model_samples.append(samples)
@@ -1447,10 +1428,11 @@ class NeuralForecast:
         else:
             base_df = fcsts_df
 
-        tiled = pd.concat(
-            [base_df.assign(sample_id=p) for p in range(n_paths)],
-            ignore_index=True,
+        n_rows = len(base_df)
+        tiled = base_df.iloc[np.tile(np.arange(n_rows), n_paths)].reset_index(
+            drop=True
         )
+        tiled["sample_id"] = np.repeat(np.arange(n_paths), n_rows)
 
         # Flatten each model's samples to match tiled row order:
         # tiled: sample_id=0 (all series × H), sample_id=1 (all series × H), ...
