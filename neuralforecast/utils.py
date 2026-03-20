@@ -797,8 +797,7 @@ def gaussian_copula_sample(
     q_hi = quantile_positions[-1]
     sqrt2 = math.sqrt(2.0)
 
-    # Compute one rho per series (variable-length NaN filtering: kept as loop,
-    # but O(T) — negligible compared to the O(H^3) Cholesky below).
+    # Compute one rho per series (variable-length NaN filtering: kept as loop).
     rhos = torch.stack(
         [estimate_ar1_rho(y).to(dtype) for y in y_hist]
     )  # (n_series,)
