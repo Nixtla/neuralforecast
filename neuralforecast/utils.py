@@ -742,12 +742,12 @@ def interp_2d(x, xp, fp):
     corresponding row of ``fp`` as knot values.
 
     Args:
-        x: (H, n_paths) query points in (0, 1).
+        x: (N, n_paths) query points in (0, 1).
         xp: (Q,) shared sorted knot positions.
-        fp: (H, Q) per-row knot values.
+        fp: (N, Q) per-row knot values.
 
     Returns:
-        result: (H, n_paths) interpolated values.
+        result: (N, n_paths) interpolated values.
     """
     Q = xp.shape[0]
     idx = torch.searchsorted(xp.expand(x.shape[0], -1), x).clamp(1, Q - 1)
@@ -770,7 +770,8 @@ def gaussian_copula_sample(
 ):
     """Gaussian copula with AR(1) Toeplitz correlation and IQF marginals.
 
-    All computation in torch tensors.
+    All computation in torch tensors. Cholesky decompositions and sampling
+    are batched across series for efficiency.
 
     Args:
         quantile_positions: (Q,) sorted quantile levels in (0, 1), tensor.
@@ -786,44 +787,56 @@ def gaussian_copula_sample(
     if seed is not None:
         gen.manual_seed(seed)
 
-    n_series, H, _ = quantile_values.shape
-    simulations = torch.empty(
-        (n_series, n_paths, H), dtype=quantile_values.dtype
-    )
+    n_series, H, Q = quantile_values.shape
+    dtype = quantile_values.dtype
 
-    lags = torch.arange(H, dtype=quantile_values.dtype)
-    abs_diff = (lags.unsqueeze(1) - lags.unsqueeze(0)).abs()
+    lags = torch.arange(H, dtype=dtype)
+    abs_diff = (lags.unsqueeze(1) - lags.unsqueeze(0)).abs()  # (H, H)
 
     q_lo = quantile_positions[0]
     q_hi = quantile_positions[-1]
     sqrt2 = math.sqrt(2.0)
 
-    for i in range(n_series):
-        rho = estimate_ar1_rho(y_hist[i]).to(quantile_values.dtype)
+    # Compute one rho per series (variable-length NaN filtering: kept as loop).
+    rhos = torch.stack(
+        [estimate_ar1_rho(y).to(dtype) for y in y_hist]
+    )  # (n_series,)
 
-        R = rho.abs() ** abs_diff
-        # Progressive jitter for Cholesky stability (esp. float32, high rho)
-        L = None
-        for jitter in [1e-8, 1e-6, 1e-4, 1e-2]:
-            try:
-                R_j = R + torch.eye(H, dtype=R.dtype) * jitter
-                L = torch.linalg.cholesky(R_j)
-                break
-            except RuntimeError:
-                continue
-        if L is None:
-            # Fallback: independent samples
-            L = torch.eye(H, dtype=R.dtype)
+    # Build batched Toeplitz correlation matrices: (n_series, H, H)
+    R = rhos.abs().view(n_series, 1, 1) ** abs_diff.unsqueeze(0)
 
-        Z = torch.randn(H, n_paths, dtype=quantile_values.dtype, generator=gen)
-        U = 0.5 * (1.0 + torch.erf(L @ Z / sqrt2))
-        U = U.clamp(q_lo, q_hi)
+    # Batched Cholesky with progressive jitter for numerical stability.
+    # torch.linalg.cholesky_ex returns (L, info) without raising; info[i] > 0
+    # signals failure for series i. Series that fail all jitters fall back to
+    # the identity (independent samples).
+    eye = torch.eye(H, dtype=dtype)
+    Ls = eye.unsqueeze(0).expand(n_series, -1, -1).clone()  # (n_series, H, H)
+    remaining = torch.ones(n_series, dtype=torch.bool)
 
-        simulations[i] = interp_2d(
-            U, quantile_positions, quantile_values[i]
-        ).T
+    for jitter in [1e-8, 1e-6, 1e-4, 1e-2]:
+        if not remaining.any():
+            break
+        rem_idx = remaining.nonzero(as_tuple=True)[0]
+        R_j = R[rem_idx] + eye * jitter          # (k, H, H)
+        L_cand, info = torch.linalg.cholesky_ex(R_j)
+        ok_mask = info == 0
+        ok_idx = rem_idx[ok_mask]
+        Ls[ok_idx] = L_cand[ok_mask]
+        remaining[ok_idx] = False
+    # Series still in `remaining` keep the identity Ls (independent samples).
 
-    return simulations
+    # Single batched randn draw + correlated transform: (n_series, H, n_paths)
+    Z = torch.randn(n_series, H, n_paths, dtype=dtype, generator=gen)
+    Y = torch.bmm(Ls, Z)                                  # (n_series, H, n_paths)
+    U = 0.5 * (1.0 + torch.erf(Y / sqrt2))
+    U = U.clamp(q_lo, q_hi)
+
+    # Single batched interpolation: reshape to (n_series*H, n_paths), interpolate,
+    # then reshape back to (n_series, n_paths, H).
+    U_flat = U.reshape(n_series * H, n_paths)
+    qv_flat = quantile_values.reshape(n_series * H, Q)
+    samples_flat = interp_2d(U_flat, quantile_positions, qv_flat)  # (n_series*H, n_paths)
+    return samples_flat.view(n_series, H, n_paths).permute(0, 2, 1).contiguous()
 
 
 def schaake_shuffle_sample(
@@ -839,6 +852,10 @@ def schaake_shuffle_sample(
     each step's marginal CDF (via quantile interpolation), then reorders
     them to match the rank structure of historical trajectory templates.
 
+    The uniform draw and CDF inversion are batched across all series. The
+    template extraction loop remains per-series because each series may have
+    a different NaN-filtered history length.
+
     Args:
         quantile_positions: (Q,) sorted quantile levels in (0, 1), tensor.
         quantile_values: (n_series, H, Q) quantile forecast values, tensor.
@@ -853,21 +870,28 @@ def schaake_shuffle_sample(
     if seed is not None:
         gen.manual_seed(seed)
 
-    n_series, H, _ = quantile_values.shape
-    simulations = torch.empty(
-        (n_series, n_paths, H), dtype=quantile_values.dtype
-    )
+    n_series, H, Q = quantile_values.shape
+    dtype = quantile_values.dtype
 
     q_lo = quantile_positions[0]
     q_hi = quantile_positions[-1]
 
+    # Draw all uniform samples at once for all series: (n_series, H, n_paths)
+    U_all = torch.empty(n_series, H, n_paths, dtype=dtype)
+    U_all.uniform_(q_lo.item(), q_hi.item(), generator=gen)
+
+    # Batched CDF inversion: reshape to (n_series*H, n_paths), interpolate,
+    # then restore to (n_series, H, n_paths).
+    U_flat = U_all.view(n_series * H, n_paths)
+    qv_flat = quantile_values.reshape(n_series * H, Q)
+    raw_all = interp_2d(U_flat, quantile_positions, qv_flat).view(
+        n_series, H, n_paths
+    )  # (n_series, H, n_paths)
+
+    simulations = torch.empty((n_series, n_paths, H), dtype=dtype)
+
     for i in range(n_series):
-        # Draw independent uniform samples per step, map through marginal CDF
-        U = torch.empty(H, n_paths, dtype=quantile_values.dtype)
-        U.uniform_(q_lo.item(), q_hi.item(), generator=gen)
-        raw_samples = interp_2d(
-            U, quantile_positions, quantile_values[i]
-        )  # (H, n_paths)
+        raw_samples = raw_all[i]  # (H, n_paths)
 
         # Extract historical trajectory templates
         yi = y_hist[i]
@@ -889,22 +913,19 @@ def schaake_shuffle_sample(
             perm = torch.randperm(max_start, generator=gen)
             start_indices = perm[:n_paths]
 
-        # Build template matrix using unfold (H, n_paths)
+        # Build template matrix using unfold: (max_start, H) → (H, n_paths)
         all_windows = yi_clean.unfold(0, H, 1)  # (max_start, H)
         templates = all_windows[start_indices].T  # (H, n_paths)
 
-        # Schaake shuffle: reorder raw samples to match template rank structure
-        # Vectorized: compute ranks for all horizon steps at once
+        # Reorder raw samples to match the rank structure of each template
         template_ranks = torch.argsort(
             torch.argsort(templates, dim=1), dim=1
         )  # (H, n_paths)
         sorted_samples = torch.sort(raw_samples, dim=1).values  # (H, n_paths)
-        # Place the j-th smallest sample at the position with rank j
         reordered = torch.empty_like(raw_samples)
         reordered.scatter_(1, template_ranks, sorted_samples)
-        raw_samples = reordered
 
-        simulations[i] = raw_samples.T  # (n_paths, H)
+        simulations[i] = reordered.T  # (n_paths, H)
 
     return simulations
 
