@@ -966,22 +966,18 @@ def sample_from_quantiles(
     )
     quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
 
-    if method == "gaussian_copula":
-        samples = gaussian_copula_sample(
-            quantile_positions=quantile_positions_t,
-            quantile_values=quantile_values_t,
-            y_hist=y_hist,
-            n_paths=n_paths,
-            seed=seed,
-        )
-    elif method == "schaake_shuffle":
-        samples = schaake_shuffle_sample(
-            quantile_positions=quantile_positions_t,
-            quantile_values=quantile_values_t,
-            y_hist=y_hist,
-            n_paths=n_paths,
-            seed=seed,
-        )
+    sampler = {
+        "gaussian_copula": gaussian_copula_sample,
+        "schaake_shuffle": schaake_shuffle_sample,
+    }[method]
+
+    samples = sampler(
+        quantile_positions=quantile_positions_t,
+        quantile_values=quantile_values_t,
+        y_hist=y_hist,
+        n_paths=n_paths,
+        seed=seed,
+    )
 
     if isinstance(samples, torch.Tensor):
         if samples.dtype == torch.bfloat16:

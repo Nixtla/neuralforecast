@@ -563,6 +563,91 @@ class TestSimulation:
         with pytest.raises(ValueError, match="positive integer"):
             fitted_nf_distribution.simulate(n_paths=-1, seed=0)
 
+    # ------------------------------------------------------------------
+    # Future exogenous variables
+    # ------------------------------------------------------------------
+    @pytest.fixture
+    def fitted_nf_futr_exog(self):
+        """NHITS with DistributionLoss and a future exogenous variable."""
+        from neuralforecast import NeuralForecast
+        from neuralforecast.losses.pytorch import DistributionLoss
+        from neuralforecast.models import NHITS
+        from neuralforecast.utils import AirPassengersDF
+
+        df = AirPassengersDF.copy()
+        df["trend"] = range(len(df))
+        model = NHITS(
+            h=12,
+            input_size=24,
+            max_steps=5,
+            loss=DistributionLoss(distribution="Normal"),
+            futr_exog_list=["trend"],
+            accelerator="cpu",
+            devices=1,
+        )
+        nf = NeuralForecast(models=[model], freq="MS")
+        nf.fit(df=df)
+        # Build futr_df covering the forecast horizon
+        last_ds = df["ds"].max()
+        future_dates = pd.date_range(
+            start=last_ds + pd.offsets.MonthBegin(1), periods=12, freq="MS"
+        )
+        futr_df = pd.DataFrame({
+            "unique_id": df["unique_id"].iloc[0],
+            "ds": future_dates,
+            "trend": range(len(df), len(df) + 12),
+        })
+        return nf, futr_df
+
+    def test_futr_exog_smoke(self, fitted_nf_futr_exog):
+        """Simulate works when future exogenous variables are provided."""
+        nf, futr_df = fitted_nf_futr_exog
+        result = nf.simulate(n_paths=5, seed=0, futr_df=futr_df)
+        assert isinstance(result, pd.DataFrame)
+        assert result["sample_id"].nunique() == 5
+        model_cols = _get_model_cols(result)
+        assert len(model_cols) >= 1
+
+    def test_futr_exog_shape(self, fitted_nf_futr_exog):
+        """Output shape is correct with future exogenous variables."""
+        nf, futr_df = fitted_nf_futr_exog
+        n_paths = 10
+        h = 12
+        result = nf.simulate(n_paths=n_paths, seed=0, futr_df=futr_df)
+        n_series = result["unique_id"].nunique()
+        assert len(result) == n_series * n_paths * h
+
+    def test_futr_exog_no_nan(self, fitted_nf_futr_exog):
+        """Simulations with future exogenous contain no NaN or Inf."""
+        nf, futr_df = fitted_nf_futr_exog
+        result = nf.simulate(n_paths=10, seed=0, futr_df=futr_df)
+        model_cols = _get_model_cols(result)
+        for col in model_cols:
+            assert not np.any(np.isnan(result[col].values))
+            assert not np.any(np.isinf(result[col].values))
+
+    def test_futr_exog_missing_raises(self, fitted_nf_futr_exog):
+        """Omitting futr_df when model requires it should raise ValueError."""
+        nf, _ = fitted_nf_futr_exog
+        with pytest.raises(ValueError, match="future exogenous"):
+            nf.simulate(n_paths=5, seed=0)
+
+    def test_futr_exog_ds_matches_predict(self, fitted_nf_futr_exog):
+        """ds values from simulate match those from predict with futr_df."""
+        nf, futr_df = fitted_nf_futr_exog
+        sim_df = nf.simulate(n_paths=3, seed=0, futr_df=futr_df)
+        pred_df = nf.predict(futr_df=futr_df)
+        sim_sample0 = sim_df[sim_df["sample_id"] == 0].sort_values(
+            ["unique_id", "ds"]
+        )
+        pred_sorted = pred_df.sort_values(["unique_id", "ds"])
+        np.testing.assert_array_equal(
+            sim_sample0["ds"].values, pred_sorted["ds"].values
+        )
+
+    # ------------------------------------------------------------------
+    # Other
+    # ------------------------------------------------------------------
     def test_simulate_with_df_argument(self, fitted_nf_distribution):
         """Passing df= explicitly should work."""
         from neuralforecast.utils import AirPassengersDF

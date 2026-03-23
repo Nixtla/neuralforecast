@@ -1039,7 +1039,7 @@ class NeuralForecast:
         static_df: Optional[SparkDataFrame],
         futr_df: Optional[SparkDataFrame],
         engine,
-        n_paths: int = 500,
+        n_paths: int = 100,
         quantiles: Optional[List[float]] = None,
         seed: Optional[int] = None,
         method: str = "gaussian_copula",
@@ -1060,6 +1060,7 @@ class NeuralForecast:
             quantiles,
             seed,
             method,
+            data_kwargs,
         ) -> pd.DataFrame:
             from neuralforecast import NeuralForecast
 
@@ -1094,6 +1095,7 @@ class NeuralForecast:
                 quantiles=quantiles,
                 seed=seed,
                 method=method,
+                **data_kwargs,
             )
 
         # df
@@ -1159,6 +1161,7 @@ class NeuralForecast:
                 quantiles=quantiles,
                 seed=seed,
                 method=method,
+                data_kwargs=data_kwargs,
             ),
         )
 
@@ -1228,7 +1231,7 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         futr_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
-        n_paths: int = 500,
+        n_paths: int = 100,
         quantiles: Optional[List[float]] = None,
         seed: Optional[int] = None,
         method: str = "gaussian_copula",
@@ -1250,7 +1253,7 @@ class NeuralForecast:
                 with columns [``unique_id``] and static exogenous variables.
             futr_df (pandas, polars or spark DataFrame, optional): DataFrame
                 with [``unique_id``, ``ds``] and future exogenous variables.
-            n_paths (int): Number of sample paths to generate. Default: 500.
+            n_paths (int): Number of sample paths to generate. Default: 100.
             quantiles (list of float, optional): Quantile grid for marginals.
                 Defaults to ``[0.01, 0.02, ..., 0.99]``.
             seed (int, optional): Random seed for reproducibility.
