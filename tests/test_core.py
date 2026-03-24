@@ -48,6 +48,7 @@ from neuralforecast.core import (
     PatchTST,
     PredictionIntervals,
     TimesNet,
+    _count_periods,
     _insample_times,
     _type2scaler,
 )
@@ -116,6 +117,34 @@ def test_cutoff_deltas(setup, step_size, freq, days):
     assert cutoff_deltas.nunique() == 1
     assert cutoff_deltas.unique()[0] == pd.Timedelta(f"{days}D")
 
+
+@pytest.mark.parametrize(
+    "cutoff, reference, freq, expected",
+    [
+        # monthly end-of-month: 12 steps between 1959-12-31 and 1960-12-31
+        (pd.Timestamp("1959-12-31"), pd.Timestamp("1960-12-31"), "ME", 12),
+        # daily: 30 steps
+        (pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-31"), "D", 30),
+        # weekly (Mon): 4 steps
+        (pd.Timestamp("2000-01-03"), pd.Timestamp("2000-01-31"), "W-MON", 4),
+        # quarterly start: 4 steps
+        (pd.Timestamp("2023-01-01"), pd.Timestamp("2024-01-01"), "QS", 4),
+        # integer freq: simple subtraction
+        (10, 22, 2, 12),
+    ],
+)
+def test_count_periods(cutoff, reference, freq, expected):
+    assert _count_periods(cutoff, reference, freq) == expected
+
+
+def test_count_periods_misaligned_warns():
+    # weekly: cutoff one day off the Monday boundary → snaps forward, count drops by 1
+    aligned = _count_periods(pd.Timestamp("2000-01-03"), pd.Timestamp("2000-01-31"), "W-MON")
+    with pytest.warns(UserWarning, match="does not fall on a period boundary"):
+        misaligned = _count_periods(pd.Timestamp("2000-01-04"), pd.Timestamp("2000-01-31"), "W-MON")
+    assert misaligned == aligned - 1
+
+
 @pytest.fixture
 def setup_airplane_data_polars(setup_airplane_data):
     """Create polars version of airplane data with renamed columns."""
@@ -156,6 +185,164 @@ def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     after_fcst = nf.predict()
     pd.testing.assert_frame_equal(init_cv, after_cv)
     pd.testing.assert_frame_equal(after_fcst, init_fcst)
+
+# test cross_validation with date-based cutoffs
+def test_cross_validation_date_cutoffs():
+    # AirPassengersPanel uses end-of-month timestamps; freq="M" matches.
+    # max_date = 1960-12-31, so test_cutoff="1959-12-31" → test_size=12.
+    nf = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=5)], freq="ME"
+    )
+
+    # test_cutoff only: equivalent to test_size=12, n_windows=None (computed as 1)
+    cv_cutoff = nf.cross_validation(
+        AirPassengersPanel,
+        test_cutoff=pd.Timestamp("1959-12-31"),
+        use_init_models=True,
+    )
+    cv_size = nf.cross_validation(
+        AirPassengersPanel,
+        test_size=12,
+        n_windows=None,
+        use_init_models=True,
+    )
+    assert set(cv_cutoff["cutoff"].unique()) == set(cv_size["cutoff"].unique())
+    assert cv_cutoff.shape == cv_size.shape
+
+    # validation_cutoff only: val period is the 12 months before max_date
+    cv_val_cutoff = nf.cross_validation(
+        AirPassengersPanel,
+        validation_cutoff=pd.Timestamp("1959-12-31"),
+        test_size=12,
+        n_windows=None,
+        use_init_models=True,
+    )
+    cv_val_size = nf.cross_validation(
+        AirPassengersPanel,
+        val_size=12,
+        test_size=12,
+        n_windows=None,
+        use_init_models=True,
+    )
+    assert set(cv_val_cutoff["cutoff"].unique()) == set(cv_val_size["cutoff"].unique())
+    assert cv_val_cutoff.shape == cv_val_size.shape
+
+    # both cutoffs together
+    cv_both = nf.cross_validation(
+        AirPassengersPanel,
+        test_cutoff=pd.Timestamp("1959-12-31"),
+        validation_cutoff=pd.Timestamp("1958-12-31"),
+        use_init_models=True,
+    )
+    cv_both_size = nf.cross_validation(
+        AirPassengersPanel,
+        test_size=12,
+        val_size=12,
+        n_windows=None,
+        use_init_models=True,
+    )
+    assert set(cv_both["cutoff"].unique()) == set(cv_both_size["cutoff"].unique())
+    assert cv_both.shape == cv_both_size.shape
+
+    # conflict: test_cutoff + test_size raises
+    with pytest.raises(ValueError, match="Cannot use both"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1959-12-31"),
+            test_size=12,
+            n_windows=None,
+            use_init_models=True,
+        )
+
+    # conflict: test_cutoff + explicit n_windows raises
+    with pytest.raises(ValueError, match="Cannot use both"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1959-12-31"),
+            n_windows=2,
+            use_init_models=True,
+        )
+
+    # conflict: validation_cutoff + val_size raises
+    with pytest.raises(ValueError, match="Cannot use both"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            validation_cutoff=pd.Timestamp("1959-12-31"),
+            val_size=12,
+            test_size=12,
+            n_windows=None,
+            use_init_models=True,
+        )
+
+    # test_cutoff at or after max_date raises
+    max_date = AirPassengersPanel["ds"].max()
+    with pytest.raises(ValueError, match="strictly before"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=max_date,
+            use_init_models=True,
+        )
+
+    # validation_cutoff at or after test_cutoff raises
+    with pytest.raises(ValueError, match="strictly before"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1959-12-31"),
+            validation_cutoff=pd.Timestamp("1959-12-31"),  # equal → not strictly before
+            use_init_models=True,
+        )
+
+    # validation_cutoff at or after max_date (no test_cutoff) raises
+    with pytest.raises(ValueError, match="strictly before"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            validation_cutoff=max_date,
+            test_size=12,
+            n_windows=None,
+            use_init_models=True,
+        )
+
+    # test_size smaller than horizon raises (via test_cutoff)
+    with pytest.raises(ValueError, match="smaller than the model horizon"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1960-11-30"),  # only 1 month before max_date
+            use_init_models=True,
+        )
+
+    # val_size smaller than horizon raises (via validation_cutoff)
+    with pytest.raises(ValueError, match="smaller than the model horizon"):
+        nf.cross_validation(
+            AirPassengersPanel,
+            test_cutoff=pd.Timestamp("1959-12-31"),
+            validation_cutoff=pd.Timestamp("1959-11-30"),  # only 1 month before test_cutoff
+            use_init_models=True,
+        )
+
+    # heterogeneous end dates: warn that cutoff may not align for shorter series
+    df_uneven = AirPassengersPanel.copy()
+    # Truncate one series so its end date differs from the other
+    airline2_mask = df_uneven["unique_id"] == "Airline2"
+    df_uneven = df_uneven[~(airline2_mask & (df_uneven["ds"] > pd.Timestamp("1959-12-31")))]
+    with pytest.warns(UserWarning, match="different end dates"):
+        nf.cross_validation(
+            df_uneven,
+            test_cutoff=pd.Timestamp("1958-12-31"),
+            use_init_models=True,
+        )
+
+    # Polars DataFrame: test_cutoff should work identically to the pandas path
+    nf_pl = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=5)], freq="1mo"
+    )
+    AirPassengersPanel_pl = polars.from_pandas(AirPassengersPanel)
+    cv_cutoff_pl = nf_pl.cross_validation(
+        AirPassengersPanel_pl,
+        test_cutoff=pd.Timestamp("1959-12-31"),
+        use_init_models=True,
+    )
+    assert cv_cutoff_pl.shape == cv_cutoff.shape
+
 
 # test cross_validation with refit
 def test_neural_forecast_refit(setup_airplane_data):
