@@ -1043,6 +1043,27 @@ def test_save_load_no_dataset(setup_airplane_data):
     np.testing.assert_allclose(forecasts1["DilatedRNN"], forecasts2["DilatedRNN"])
 
 
+def test_save_load_with_callbacks(setup_airplane_data, tmp_path):
+    """Saving a model with trainer callbacks should not break predict after reload."""
+    from pytorch_lightning.callbacks import TQDMProgressBar
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=10,
+        callbacks=[TQDMProgressBar()],
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+    nf.fit(AirPassengersPanel_train)
+    nf.save(str(tmp_path))
+
+    nf2 = NeuralForecast.load(str(tmp_path))
+    # Should not raise a ValueError from YAML serialization
+    preds = nf2.predict(df=AirPassengersPanel_train)
+    assert preds is not None
+
+
 def test_save_skips_nonzero_ddp_rank(monkeypatch, tmp_path):
     """Only rank 0 should write artifacts when DDP is initialized."""
     dist = pytest.importorskip("torch.distributed")
