@@ -329,7 +329,7 @@ class NeuralForecast:
             data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
         return data
 
-    def _prepare_fit(self, df, static_df, predict_only, id_col, time_col, target_col):
+    def _prepare_fit(self, df, static_df, id_col, time_col, target_col):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.id_col = id_col
         self.time_col = time_col
@@ -343,10 +343,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
         )
-        if predict_only:
-            self._scalers_transform(dataset)
-        else:
-            self._scalers_fit_transform(dataset)
+        self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
 
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
@@ -520,7 +517,6 @@ class NeuralForecast:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
@@ -943,12 +939,15 @@ class NeuralForecast:
             )
 
         # Process new dataset but does not store it.
+        # Save original scalers; when df is provided we refit on the new data
+        # but must restore afterwards so that predict() without df still works.
+        _saved_scalers = self.scalers_
+        _saved_static_scalers = self.static_scalers_
         if df is not None:
             validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                predict_only=True,
                 id_col=self.id_col,
                 time_col=self.time_col,
                 target_col=self.target_col,
@@ -1023,6 +1022,10 @@ class NeuralForecast:
         if self.scalers_:
             indptr = np.append(0, np.full(len(uids), h).cumsum())
             fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+
+        # Restore original scalers so subsequent predict() without df uses training stats.
+        self.scalers_ = _saved_scalers
+        self.static_scalers_ = _saved_static_scalers
 
         # Declare predictions pd.DataFrame
         if isinstance(fcsts_df, pl_DataFrame):
@@ -1299,12 +1302,15 @@ class NeuralForecast:
         h = self.h
 
         # Prepare dataset
+        # Save original scalers; when df is provided we refit on the new data
+        # but must restore afterwards so that predict() without df still works.
+        _saved_scalers = self.scalers_
+        _saved_static_scalers = self.static_scalers_
         if df is not None:
             validate_freq(df[self.time_col], self.freq)
             dataset, uids, last_dates, _ = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                predict_only=True,
                 id_col=self.id_col,
                 time_col=self.time_col,
                 target_col=self.target_col,
@@ -1442,6 +1448,10 @@ class NeuralForecast:
         for name, samples in zip(model_names, model_samples):
             # samples: (n_series, n_paths, H) → (n_paths, n_series, H) → flat
             tiled[name] = samples.transpose(1, 0, 2).reshape(-1)
+
+        # Restore original scalers so subsequent calls without df use training stats.
+        self.scalers_ = _saved_scalers
+        self.static_scalers_ = _saved_static_scalers
 
         if use_polars:
             import polars as pl_mod
@@ -1720,7 +1730,6 @@ class NeuralForecast:
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
                 static_df=static_df,
-                predict_only=False,
                 id_col=id_col,
                 time_col=time_col,
                 target_col=target_col,
