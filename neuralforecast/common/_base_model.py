@@ -680,10 +680,7 @@ class BaseModel(pl.LightningModule):
     def save(self, path):
         import copy
 
-        # Strip callbacks from hparams before saving: callback objects are not
-        # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
-        # during predict() on a loaded model. Callbacks can be re-attached after
-        # loading via `model.trainer_kwargs["callbacks"] = [...]`.
+        # Strip callbacks from hparams before saving
         hparams = copy.deepcopy(dict(self.hparams))
         if "callbacks" in hparams.get("trainer_kwargs", {}):
             del hparams["trainer_kwargs"]["callbacks"]
