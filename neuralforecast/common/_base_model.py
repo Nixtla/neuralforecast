@@ -118,6 +118,7 @@ class BaseModel(pl.LightningModule):
         step_size: int = 1,
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         scaler_type: str = "identity",
         futr_exog_list: Union[List, None] = None,
         hist_exog_list: Union[List, None] = None,
@@ -299,7 +300,7 @@ class BaseModel(pl.LightningModule):
                 trainer_kwargs["callbacks"] = []
             trainer_kwargs["callbacks"].append(
                 EarlyStopping(
-                    monitor="ptl/val_loss", patience=early_stop_patience_steps
+                    monitor=val_monitor, patience=early_stop_patience_steps
                 )
             )
 
@@ -398,6 +399,7 @@ class BaseModel(pl.LightningModule):
             max(max_steps // self.num_lr_decays, 1) if self.num_lr_decays > 0 else 10e7
         )
         self.early_stop_patience_steps = early_stop_patience_steps
+        self.val_monitor = val_monitor
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size

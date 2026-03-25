@@ -143,6 +143,23 @@ def test_neural_forecast_early_stopping(setup_airplane_data):
         nf.fit(AirPassengersPanel_train)
 
 
+# Unittest for configurable val_monitor with early stopping
+def test_neural_forecast_val_monitor(setup_airplane_data):
+    AirPassengersPanel_train, _ = setup_airplane_data
+    models = [
+        NHITS(
+            h=12,
+            input_size=12,
+            max_steps=5,
+            early_stop_patience_steps=3,
+            val_monitor="valid_loss",
+        )
+    ]
+    nf = NeuralForecast(models=models, freq="M")
+    nf.fit(AirPassengersPanel_train, val_size=12)
+    assert nf.models[0].val_monitor == "valid_loss"
+
+
 # test fit+cross_validation behaviour
 def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
