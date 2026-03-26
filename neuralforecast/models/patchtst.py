@@ -843,7 +843,7 @@ class PatchTST(BaseModel):
         learning_rate (float): learning rate between (0, 1).
         num_lr_decays (int): number of learning rate decays, evenly distributed across max_steps.
         early_stop_patience_steps (int): number of validation iterations before early stopping.
-        val_monitor (str): metric to monitor for early stopping. valid values are "ptl/val_loss", "valid_loss" and "train_loss". Metrics logged with sync_dist require the "ptl/" prefix. Default: "ptl/val_loss".
+        val_monitor (str): metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss". Default: "ptl/val_loss".
         val_check_steps (int): number of training steps between every validation loss check.
         batch_size (int): number of different series in each batch.
         valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size.
