@@ -160,6 +160,7 @@ class HINT:
         self.h = h
         self.model = model
         self.early_stop_patience_steps = model.early_stop_patience_steps
+        self.val_monitor = model.val_monitor
         self.S = S
         self.reconciliation = reconciliation
         self.loss = model.loss

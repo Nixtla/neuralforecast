@@ -118,6 +118,7 @@ class BaseModel(pl.LightningModule):
         step_size: int = 1,
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         scaler_type: str = "identity",
         futr_exog_list: Union[List, None] = None,
         hist_exog_list: Union[List, None] = None,
@@ -295,11 +296,17 @@ class BaseModel(pl.LightningModule):
 
         # Callbacks
         if early_stop_patience_steps > 0:
+            valid_monitors = ["ptl/val_loss", "valid_loss", "train_loss"]
+            if val_monitor not in valid_monitors:
+                raise ValueError(
+                    f"val_monitor='{val_monitor}' is not supported. "
+                    f"Valid options are: {valid_monitors}."
+                )
             if "callbacks" not in trainer_kwargs:
                 trainer_kwargs["callbacks"] = []
             trainer_kwargs["callbacks"].append(
                 EarlyStopping(
-                    monitor="ptl/val_loss", patience=early_stop_patience_steps
+                    monitor=val_monitor, patience=early_stop_patience_steps
                 )
             )
 
@@ -398,6 +405,7 @@ class BaseModel(pl.LightningModule):
             max(max_steps // self.num_lr_decays, 1) if self.num_lr_decays > 0 else 10e7
         )
         self.early_stop_patience_steps = early_stop_patience_steps
+        self.val_monitor = val_monitor
         self.val_check_steps = val_check_steps
         self.windows_batch_size = windows_batch_size
         self.step_size = step_size
@@ -678,9 +686,20 @@ class BaseModel(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def save(self, path):
+        import copy
+
+        # Strip callbacks from hparams before saving: callback objects are not
+        # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
+        # during predict() on a loaded model. Callbacks can be re-attached after
+        # loading via `model.trainer_kwargs["callbacks"] = [...]`.
+        # Note: save_hyperparameters() stores **trainer_kwargs contents flat, so
+        # `callbacks` is a top-level key in hparams, not nested under trainer_kwargs.
+        hparams = copy.deepcopy(dict(self.hparams))
+        if "callbacks" in hparams:
+            del hparams["callbacks"]
         with fsspec.open(path, "wb") as f:
             torch.save(
-                {"hyper_parameters": self.hparams, "state_dict": self.state_dict()},
+                {"hyper_parameters": hparams, "state_dict": self.state_dict()},
                 f,
             )
 
@@ -2070,7 +2089,13 @@ class BaseModel(pl.LightningModule):
                 'baseline_predictions': baseline_predictions
             }
         else:
-            trainer = pl.Trainer(**pred_trainer_kwargs)
+            if (
+                not hasattr(self, "_pred_trainer")
+                or self._pred_trainer_kwargs != pred_trainer_kwargs
+            ):
+                self._pred_trainer = pl.Trainer(**pred_trainer_kwargs)
+                self._pred_trainer_kwargs = pred_trainer_kwargs
+            trainer = self._pred_trainer
             fcsts = trainer.predict(self, datamodule=datamodule)
             fcsts = torch.vstack(fcsts)
             self.explanations = None
@@ -2091,6 +2116,122 @@ class BaseModel(pl.LightningModule):
         self.predict_horizon = self.horizon_backup
 
         return fcsts
+
+    def simulate(
+        self,
+        dataset,
+        n_paths=500,
+        random_seed=None,
+        quantiles=None,
+        method="gaussian_copula",
+        **data_module_kwargs,
+    ):
+        """Simulate sample paths with temporal correlation.
+
+        Calls ``predict()`` to obtain quantile forecasts, then draws correlated
+        sample paths using the specified simulation method.
+
+        Works with any loss that supports quantile output (``DistributionLoss``,
+        ``MQLoss``, etc.).
+
+        Args:
+            dataset (TimeSeriesDataset): NeuralForecast's ``TimeSeriesDataset``.
+            n_paths (int): Number of sample paths to generate.
+            random_seed (int, optional): Random seed for reproducibility.
+            quantiles (list of float, optional): Quantile grid for marginals.
+                Only used for ``DistributionLoss`` and mixture losses.
+                Defaults to ``[0.01, 0.02, ..., 0.99]``.
+                For ``MQLoss``/``HuberMQLoss``, the model's trained quantiles
+                are used automatically.
+            method (str): Simulation method. Default: ``"gaussian_copula"``.
+            **data_module_kwargs: Extra arguments for ``TimeSeriesDataModule``.
+
+        Returns:
+            samples (np.ndarray): Array of shape ``[n_series, n_paths, H]``.
+        """
+        from neuralforecast.utils import (
+            DEFAULT_QUANTILE_GRID,
+            VALID_SIMULATION_METHODS,
+        )
+
+        if method not in VALID_SIMULATION_METHODS:
+            raise ValueError(
+                f"Unknown simulation method '{method}'. "
+                f"Valid methods: {sorted(VALID_SIMULATION_METHODS)}"
+            )
+        if quantiles is None:
+            quantiles = DEFAULT_QUANTILE_GRID
+
+        # Determine quantile grid based on loss type
+        if self.loss.is_distribution_output:
+            # DistributionLoss/mixture: can produce arbitrary quantiles
+            predict_quantiles = quantiles
+            quantile_positions = np.array(quantiles)
+        elif isinstance(self.loss, MULTIQUANTILE_LOSSES):
+            # MQLoss/HuberMQLoss: uses its trained quantiles
+            predict_quantiles = None  # use model's built-in quantiles
+            quantile_positions = self.loss.quantiles.cpu().numpy()
+        elif isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
+            # IQLoss: one forward pass per quantile, then take quantile over results
+            predict_quantiles = None  # handled below
+            quantile_positions = np.array(quantiles)
+        else:
+            raise ValueError(
+                f"Simulation requires a loss with quantile output "
+                f"(DistributionLoss, MQLoss, IQLoss, etc.). "
+                f"Model uses {type(self.loss).__name__}."
+            )
+
+        # Get quantile forecasts via existing predict infrastructure
+        if isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
+            # IQLoss: multiple forward passes, one per quantile in a grid
+            iq_grid = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.99]
+            iq_fcsts = []
+            for q in iq_grid:
+                f = self.predict(
+                    dataset=dataset,
+                    random_seed=random_seed,
+                    quantiles=[q],
+                    **data_module_kwargs,
+                )
+                iq_fcsts.append(f)
+            # Each f is (n_series * H, 1); stack along last axis
+            iq_all = np.concatenate(iq_fcsts, axis=-1)  # (n_series * H, len(iq_grid))
+            # Interpolate to the requested quantile positions
+            fcsts = np.quantile(iq_all, quantiles, axis=-1).T  # (n_series * H, n_quantiles)
+            n_quantiles = len(quantile_positions)
+            quantile_fcsts = fcsts[:, :n_quantiles]
+        else:
+            fcsts = self.predict(
+                dataset=dataset,
+                random_seed=random_seed,
+                quantiles=predict_quantiles,
+                **data_module_kwargs,
+            )
+            # fcsts: flattened array, shape (n_series * H, n_outputs)
+            n_quantiles = len(quantile_positions)
+            if self.loss.is_distribution_output:
+                # col 0 = mean, cols 1..Q = quantiles
+                quantile_fcsts = fcsts[:, 1 : 1 + n_quantiles]
+            else:
+                # MQLoss: all columns are quantiles
+                quantile_fcsts = fcsts[:, :n_quantiles]
+
+        h = self.horizon_backup
+        n_series = quantile_fcsts.shape[0] // h
+        quantile_values = quantile_fcsts.reshape(n_series, h, n_quantiles)
+
+        # Generate sample paths using shared helper
+        from neuralforecast.utils import sample_from_quantiles
+
+        return sample_from_quantiles(
+            quantile_positions=quantile_positions,
+            quantile_values=quantile_values,
+            dataset=dataset,
+            n_paths=n_paths,
+            seed=random_seed,
+            method=method,
+        )  # (n_series, n_paths, H)
 
     def decompose(
         self,

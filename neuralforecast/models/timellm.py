@@ -211,6 +211,7 @@ class TimeLLM(BaseModel):
         step_size (int): step size between each window of temporal data. Default: 1
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. Default: -1
         early_stop_patience_steps (int): Number of validation iterations before early stopping. Default: -1
+        val_monitor (str): metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss". Default: "ptl/val_loss"
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). Default: 'identity'
         random_seed (int): random_seed for pytorch initializer and numpy generators. Default: 1
         drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch. Default: False
@@ -273,6 +274,7 @@ class TimeLLM(BaseModel):
         step_size: int = 1,
         num_lr_decays: int = 0,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
@@ -296,6 +298,7 @@ class TimeLLM(BaseModel):
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_monitor=val_monitor,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,

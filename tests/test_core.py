@@ -143,6 +143,33 @@ def test_neural_forecast_early_stopping(setup_airplane_data):
         nf.fit(AirPassengersPanel_train)
 
 
+# Unittest for configurable val_monitor with early stopping
+def test_neural_forecast_val_monitor():
+    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+    model = NHITS(
+        h=12,
+        input_size=12,
+        max_steps=5,
+        early_stop_patience_steps=3,
+        val_monitor="valid_loss",
+    )
+    callbacks = model.trainer_kwargs["callbacks"]
+    early_stopping_cb = next(cb for cb in callbacks if isinstance(cb, EarlyStopping))
+    assert early_stopping_cb.monitor == "valid_loss"
+
+
+def test_neural_forecast_val_monitor_invalid():
+    with pytest.raises(ValueError, match="val_monitor="):
+        NHITS(
+            h=12,
+            input_size=12,
+            max_steps=5,
+            early_stop_patience_steps=3,
+            val_monitor="nonexistent_metric",
+        )
+
+
 # test fit+cross_validation behaviour
 def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -311,6 +338,56 @@ def test_neural_forecast_scaling(setup_airplane_data):
         insample_res["NHITS"].values,
         insample_res_exog["NHITS"].values,
         rtol=0.2,
+    )
+
+
+def test_local_scaler_refits_on_transfer_learning():
+    """Local scalers must be refit on new data when predict(df=...) is called.
+
+    Regression test: previously, predict(df=new_df) reused scalers fitted on
+    training data, producing wrong statistics for shifted series.
+    """
+    series = generate_series(10, min_length=100, max_length=200, equal_ends=True)
+    h = 7
+    valid = series.groupby("unique_id", observed=True).tail(h)
+    train = series.drop(valid.index)
+
+    # Shift all values by a large constant to simulate a different distribution
+    train2 = train.copy()
+    train2["y"] += 1000
+    valid2 = valid.copy()
+    valid2["y"] += 1000
+
+    nf = NeuralForecast(
+        models=[LSTM(input_size=2 * h, h=h, scaler_type=None, max_steps=10, val_check_steps=10, enable_progress_bar=False)],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(train)
+
+    preds = nf.predict()
+    preds2 = nf.predict(df=train2)
+
+    def rmse(fcsts, actual):
+        merged = fcsts.merge(actual[["unique_id", "ds", "y"]], on=["unique_id", "ds"])
+        return np.sqrt(((merged["LSTM"] - merged["y"]) ** 2).mean())
+
+    error1 = rmse(preds, valid)
+    error2 = rmse(preds2, valid2)
+
+    # Both errors should be in the same ballpark — if scalers weren't refit,
+    # error2 would be ~1000x larger than error1.
+    assert error2 < error1 * 10, (
+        f"predict(df=shifted_data) error ({error2:.2f}) is much larger than "
+        f"predict() error ({error1:.2f}), suggesting scalers were not refit."
+    )
+
+    # Calling predict() afterwards should still use the original training scalers
+    preds_again = nf.predict()
+    np.testing.assert_array_equal(
+        preds["LSTM"].values,
+        preds_again["LSTM"].values,
+        err_msg="predict() after predict(df=...) should return the same results as before.",
     )
 
 
@@ -1041,6 +1118,35 @@ def test_save_load_no_dataset(setup_airplane_data):
     fcst2 = NeuralForecast.load(path="./examples/debug_run/")
     forecasts2 = fcst2.predict(df=AirPassengersPanel_train, futr_df=AirPassengersPanel_test)
     np.testing.assert_allclose(forecasts1["DilatedRNN"], forecasts2["DilatedRNN"])
+
+
+def test_save_load_with_callbacks(setup_airplane_data, tmp_path):
+    """Saving a model with trainer callbacks should not break predict after reload.
+
+    Custom callbacks are not YAML-serializable; without the fix this causes a
+    ValueError when PyTorch Lightning's logger tries to log hparams during predict.
+    """
+    from pytorch_lightning.callbacks import Callback
+
+    class _NonYamlCallback(Callback):
+        # lambda attributes are not YAML-safe
+        fn = lambda self: None  # noqa: E731
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=10,
+        callbacks=[_NonYamlCallback()],
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+    nf.fit(AirPassengersPanel_train)
+    nf.save(str(tmp_path))
+
+    nf2 = NeuralForecast.load(str(tmp_path))
+    # Should not raise a ValueError from YAML serialization
+    preds = nf2.predict(df=AirPassengersPanel_train)
+    assert preds is not None
 
 
 def test_save_skips_nonzero_ddp_rank(monkeypatch, tmp_path):
@@ -2279,3 +2385,35 @@ def test_loss_valid_loss_quantiles_mismatch_raises(loss, valid_loss):
     model = NHITS(h=12, input_size=24, loss=loss, valid_loss=valid_loss, max_steps=1)
     with pytest.raises(ValueError, match="quantiles.*do not match"):
         NeuralForecast(models=[model], freq="M")
+
+
+def test_trainer_caching(setup_airplane_data):
+    """Trainer is reused across predict calls and invalidated when kwargs change."""
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    nf = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=1)], freq="M"
+    )
+    nf.fit(AirPassengersPanel_train)
+    model = nf.models[0]
+
+    # First call creates the cache
+    nf.predict()
+    assert hasattr(model, "_pred_trainer"), "Trainer should be cached after first predict"
+    trainer_1 = model._pred_trainer
+
+    # Second call reuses the same Trainer instance
+    nf.predict()
+    assert model._pred_trainer is trainer_1, "Trainer should be reused on repeated predict calls"
+
+    # Adding a new key invalidates the cache
+    cached_kwargs = model._pred_trainer_kwargs.copy()
+    model._pred_trainer_kwargs = {**cached_kwargs, "__dummy__": True}
+    nf.predict()
+    trainer_2 = model._pred_trainer
+    assert trainer_2 is not trainer_1, "Trainer should be replaced when a kwarg is added"
+
+    # Changing an existing value also invalidates the cache
+    model._pred_trainer_kwargs = {**model._pred_trainer_kwargs, "enable_checkpointing": True}
+    nf.predict()
+    assert model._pred_trainer is not trainer_2, "Trainer should be replaced when a kwarg value changes"

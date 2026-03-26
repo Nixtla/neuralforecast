@@ -51,7 +51,8 @@
             "pages": [
               "docs/tutorials/uncertainty_quantification.html",
               "docs/tutorials/longhorizon_probabilistic.html",
-              "docs/tutorials/conformal_prediction.html"
+              "docs/tutorials/conformal_prediction.html",
+              "docs/tutorials/simulation.html"
             ]
           },
           {

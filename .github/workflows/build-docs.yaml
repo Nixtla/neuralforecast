@@ -39,7 +39,7 @@ jobs:
           cache-dependency-glob: "uv.lock"
 
       - name: Install dependencies
-        run: uv sync --group dev --group aws --group spark
+        run: uv sync --group dev --group aws --extra spark --upgrade-package mkdocstrings-parser
 
       # setup quarto for rendering example/tutorial nbs
       - uses: quarto-dev/quarto-actions/setup@v2

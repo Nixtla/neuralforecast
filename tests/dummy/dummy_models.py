@@ -40,6 +40,7 @@ class DummyUnivariate(BaseModel):
         learning_rate: float = 0.0,  # No learning, just to test seasonal naive
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         val_check_steps: int = 2,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
@@ -73,6 +74,7 @@ class DummyUnivariate(BaseModel):
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_monitor=val_monitor,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
@@ -158,6 +160,7 @@ class DummyMultivariate(BaseModel):
         learning_rate: float = 0.0,  # No learning, just to test seasonal naive
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         val_check_steps: int = 2,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
@@ -192,6 +195,7 @@ class DummyMultivariate(BaseModel):
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_monitor=val_monitor,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
@@ -269,6 +273,7 @@ class DummyRecurrent(BaseModel):
         learning_rate: float = 0.0,  # No learning, just to naive prediction
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         val_check_steps: int = 2,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
@@ -302,6 +307,7 @@ class DummyRecurrent(BaseModel):
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_monitor=val_monitor,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
