@@ -296,6 +296,12 @@ class BaseModel(pl.LightningModule):
 
         # Callbacks
         if early_stop_patience_steps > 0:
+            valid_monitors = ["ptl/val_loss", "valid_loss", "train_loss"]
+            if val_monitor not in valid_monitors:
+                raise ValueError(
+                    f"val_monitor='{val_monitor}' is not supported. "
+                    f"Valid options are: {valid_monitors}."
+                )
             if "callbacks" not in trainer_kwargs:
                 trainer_kwargs["callbacks"] = []
             trainer_kwargs["callbacks"].append(

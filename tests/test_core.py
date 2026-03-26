@@ -159,6 +159,17 @@ def test_neural_forecast_val_monitor():
     assert early_stopping_cb.monitor == "valid_loss"
 
 
+def test_neural_forecast_val_monitor_invalid():
+    with pytest.raises(ValueError, match="val_monitor="):
+        NHITS(
+            h=12,
+            input_size=12,
+            max_steps=5,
+            early_stop_patience_steps=3,
+            val_monitor="nonexistent_metric",
+        )
+
+
 # test fit+cross_validation behaviour
 def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
