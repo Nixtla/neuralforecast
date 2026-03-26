@@ -142,6 +142,7 @@ class TimesNet(BaseModel):
         learning_rate (float): Learning rate.
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. If -1, no learning rate decay is performed.
         early_stop_patience_steps (int): Number of validation iterations before early stopping. If -1, no early stopping is performed.
+        val_monitor (str): metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss". Default: "ptl/val_loss".
         val_check_steps (int): Number of training steps between every validation loss check.
         batch_size (int): Number of different series in each batch.
         valid_batch_size (int): Number of different series in each validation and test batch, if None uses batch_size.
@@ -194,6 +195,7 @@ class TimesNet(BaseModel):
         learning_rate: float = 1e-4,
         num_lr_decays: int = -1,
         early_stop_patience_steps: int = -1,
+        val_monitor: str = "ptl/val_loss",
         val_check_steps: int = 100,
         batch_size: int = 32,
         valid_batch_size: Optional[int] = None,
@@ -226,6 +228,7 @@ class TimesNet(BaseModel):
             learning_rate=learning_rate,
             num_lr_decays=num_lr_decays,
             early_stop_patience_steps=early_stop_patience_steps,
+            val_monitor=val_monitor,
             val_check_steps=val_check_steps,
             batch_size=batch_size,
             windows_batch_size=windows_batch_size,

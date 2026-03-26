@@ -143,6 +143,33 @@ def test_neural_forecast_early_stopping(setup_airplane_data):
         nf.fit(AirPassengersPanel_train)
 
 
+# Unittest for configurable val_monitor with early stopping
+def test_neural_forecast_val_monitor():
+    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+    model = NHITS(
+        h=12,
+        input_size=12,
+        max_steps=5,
+        early_stop_patience_steps=3,
+        val_monitor="valid_loss",
+    )
+    callbacks = model.trainer_kwargs["callbacks"]
+    early_stopping_cb = next(cb for cb in callbacks if isinstance(cb, EarlyStopping))
+    assert early_stopping_cb.monitor == "valid_loss"
+
+
+def test_neural_forecast_val_monitor_invalid():
+    with pytest.raises(ValueError, match="val_monitor="):
+        NHITS(
+            h=12,
+            input_size=12,
+            max_steps=5,
+            early_stop_patience_steps=3,
+            val_monitor="nonexistent_metric",
+        )
+
+
 # test fit+cross_validation behaviour
 def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
@@ -1091,6 +1118,35 @@ def test_save_load_no_dataset(setup_airplane_data):
     fcst2 = NeuralForecast.load(path="./examples/debug_run/")
     forecasts2 = fcst2.predict(df=AirPassengersPanel_train, futr_df=AirPassengersPanel_test)
     np.testing.assert_allclose(forecasts1["DilatedRNN"], forecasts2["DilatedRNN"])
+
+
+def test_save_load_with_callbacks(setup_airplane_data, tmp_path):
+    """Saving a model with trainer callbacks should not break predict after reload.
+
+    Custom callbacks are not YAML-serializable; without the fix this causes a
+    ValueError when PyTorch Lightning's logger tries to log hparams during predict.
+    """
+    from pytorch_lightning.callbacks import Callback
+
+    class _NonYamlCallback(Callback):
+        # lambda attributes are not YAML-safe
+        fn = lambda self: None  # noqa: E731
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=10,
+        callbacks=[_NonYamlCallback()],
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+    nf.fit(AirPassengersPanel_train)
+    nf.save(str(tmp_path))
+
+    nf2 = NeuralForecast.load(str(tmp_path))
+    # Should not raise a ValueError from YAML serialization
+    preds = nf2.predict(df=AirPassengersPanel_train)
+    assert preds is not None
 
 
 def test_save_skips_nonzero_ddp_rank(monkeypatch, tmp_path):
