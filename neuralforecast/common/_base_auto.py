@@ -46,10 +46,10 @@ class BaseAuto(pl.LightningModule):
     heavily relies on a strong correlation between the validation and test periods.
 
     Args:
-        cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](./models).
+        cls_model (PyTorch/PyTorchLightning model): See `neuralforecast.models` [collection here](./models.html).
         h (int): Forecast horizon
-        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch.html).
         config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.

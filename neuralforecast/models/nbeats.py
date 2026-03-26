@@ -346,9 +346,9 @@ class NBEATS(BaseModel):
     `mlp_units`: List[List[int]], Structure of hidden layers for each stack type. Each internal list should contain the number of units of each hidden layer. Note that len(n_hidden) = len(stack_types).
     `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.
     `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].
-    `shared_weights`: bool, If True, all blocks within each stack will share parameters. 
-    `loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).
-    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch).
+    `shared_weights`: bool, If True, all blocks within each stack will share parameters.
+    `loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch.html).
+    `valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch.html).
     `max_steps`: int=1000, maximum number of training steps.
     `learning_rate`: float=1e-3, Learning rate between (0, 1).
     `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.
@@ -370,7 +370,7 @@ class NBEATS(BaseModel):
     `optimizer_kwargs`: dict, optional, list of parameters used by the user specified `optimizer`.
     `lr_scheduler`: Subclass of 'torch.optim.lr_scheduler.LRScheduler', optional, user specified lr_scheduler instead of the default choice (StepLR).
     `lr_scheduler_kwargs`: dict, optional, list of parameters used by the user specified `lr_scheduler`.
-    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. 
+    `dataloader_kwargs`: dict, optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
     `**trainer_kwargs`: int,  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     **References:**

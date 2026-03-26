@@ -136,8 +136,8 @@ class TimesNet(BaseModel):
         top_k (int): Number of periods.
         num_kernels (int): Number of kernels for the Inception block.
         encoder_layers (int): Number of encoder layers.
-        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): Instantiated validation loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): Instantiated validation loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): Maximum number of training steps.
         learning_rate (float): Learning rate.
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps. If -1, no learning rate decay is performed.

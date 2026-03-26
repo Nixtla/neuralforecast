@@ -157,8 +157,8 @@ class StemGNN(BaseModel):
         multi_layer (int): multiplier for FC hidden size on StemGNN blocks.
         dropout_rate (float): dropout rate.
         leaky_rate (float): alpha for LeakyReLU layer on Latent Correlation layer.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.

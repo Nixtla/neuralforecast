@@ -425,8 +425,8 @@ class Autoformer(BaseModel):
         encoder_layers (int): number of layers for the TCN encoder.
         decoder_layers (int): number of layers for the MLP decoder.
         MovingAvg_window (int): window size for the moving average filter.
-        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch).
-        valid_loss (PyTorch module): instantiated validation loss class from [losses collection](./losses.pytorch).
+        loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): instantiated validation loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
         learning_rate (float): Learning rate between (0, 1).
         num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
