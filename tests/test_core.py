@@ -314,6 +314,56 @@ def test_neural_forecast_scaling(setup_airplane_data):
     )
 
 
+def test_local_scaler_refits_on_transfer_learning():
+    """Local scalers must be refit on new data when predict(df=...) is called.
+
+    Regression test: previously, predict(df=new_df) reused scalers fitted on
+    training data, producing wrong statistics for shifted series.
+    """
+    series = generate_series(10, min_length=100, max_length=200, equal_ends=True)
+    h = 7
+    valid = series.groupby("unique_id", observed=True).tail(h)
+    train = series.drop(valid.index)
+
+    # Shift all values by a large constant to simulate a different distribution
+    train2 = train.copy()
+    train2["y"] += 1000
+    valid2 = valid.copy()
+    valid2["y"] += 1000
+
+    nf = NeuralForecast(
+        models=[LSTM(input_size=2 * h, h=h, scaler_type=None, max_steps=10, val_check_steps=10, enable_progress_bar=False)],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(train)
+
+    preds = nf.predict()
+    preds2 = nf.predict(df=train2)
+
+    def rmse(fcsts, actual):
+        merged = fcsts.merge(actual[["unique_id", "ds", "y"]], on=["unique_id", "ds"])
+        return np.sqrt(((merged["LSTM"] - merged["y"]) ** 2).mean())
+
+    error1 = rmse(preds, valid)
+    error2 = rmse(preds2, valid2)
+
+    # Both errors should be in the same ballpark — if scalers weren't refit,
+    # error2 would be ~1000x larger than error1.
+    assert error2 < error1 * 10, (
+        f"predict(df=shifted_data) error ({error2:.2f}) is much larger than "
+        f"predict() error ({error1:.2f}), suggesting scalers were not refit."
+    )
+
+    # Calling predict() afterwards should still use the original training scalers
+    preds_again = nf.predict()
+    np.testing.assert_array_equal(
+        preds["LSTM"].values,
+        preds_again["LSTM"].values,
+        err_msg="predict() after predict(df=...) should return the same results as before.",
+    )
+
+
 def test_neural_forecast_boxcox_scaling(setup_airplane_data):
     """Test BoxCox scaling functionality for NeuralForecast models."""
     AirPassengersPanel_train, _ = setup_airplane_data
