@@ -686,9 +686,20 @@ class BaseModel(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def save(self, path):
+        import copy
+
+        # Strip callbacks from hparams before saving: callback objects are not
+        # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
+        # during predict() on a loaded model. Callbacks can be re-attached after
+        # loading via `model.trainer_kwargs["callbacks"] = [...]`.
+        # Note: save_hyperparameters() stores **trainer_kwargs contents flat, so
+        # `callbacks` is a top-level key in hparams, not nested under trainer_kwargs.
+        hparams = copy.deepcopy(dict(self.hparams))
+        if "callbacks" in hparams:
+            del hparams["callbacks"]
         with fsspec.open(path, "wb") as f:
             torch.save(
-                {"hyper_parameters": self.hparams, "state_dict": self.state_dict()},
+                {"hyper_parameters": hparams, "state_dict": self.state_dict()},
                 f,
             )
 
