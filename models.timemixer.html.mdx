@@ -39,6 +39,7 @@ TimeMixer(
     learning_rate=0.001,
     num_lr_decays=-1,
     early_stop_patience_steps=-1,
+    val_monitor="ptl/val_loss",
     val_check_steps=100,
     batch_size=32,
     valid_batch_size=None,
@@ -89,6 +90,7 @@ max_steps (int): maximum number of training steps.
 learning_rate (float): Learning rate between (0, 1).
 num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
 early_stop_patience_steps (int): Number of validation iterations before early stopping.
+val_monitor (str): metric to monitor for early stopping. Default: "ptl/val_loss".
 val_check_steps (int): Number of training steps between every validation loss check.
 batch_size (int): number of different series in each batch.
 valid_batch_size (int): number of different series in each validation and test batch, if None uses batch_size.
