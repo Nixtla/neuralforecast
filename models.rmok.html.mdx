@@ -31,6 +31,7 @@ RMoK(
     learning_rate=0.001,
     num_lr_decays=-1,
     early_stop_patience_steps=-1,
+    val_monitor="ptl/val_loss",
     val_check_steps=100,
     batch_size=32,
     valid_batch_size=None,
@@ -71,12 +72,13 @@ Name | Type | Description | Default
 `wavelet_function` | <code>[str](#str)</code> | wavelet function to use in the WaveKAN. Choose from ["mexican_hat", "morlet", "dog", "meyer", "shannon"] | <code>'mexican_hat'</code>
 `dropout` | <code>[float](#float)</code> | dropout rate. | <code>0.1</code>
 `revin_affine` | <code>[bool](#bool)</code> | bool to use affine in RevIn. | <code>True</code>
-`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
-`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch). | <code>None</code>
+`loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
+`valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>None</code>
 `max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>1000</code>
 `learning_rate` | <code>[float](#float)</code> | learning rate between (0, 1). | <code>0.001</code>
 `num_lr_decays` | <code>[int](#int)</code> | number of learning rate decays, evenly distributed across max_steps. | <code>-1</code>
 `early_stop_patience_steps` | <code>[int](#int)</code> | number of validation iterations before early stopping. | <code>-1</code>
+`val_monitor` | <code>[str](#str)</code> | metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss". Default: "ptl/val_loss". | <code>'ptl/val_loss'</code>
 `val_check_steps` | <code>[int](#int)</code> | number of training steps between every validation loss check. | <code>100</code>
 `batch_size` | <code>[int](#int)</code> | number of different series in each batch. | <code>32</code>
 `valid_batch_size` | <code>[int](#int)</code> | number of different series in each validation and test batch, if None uses batch_size. | <code>None</code>

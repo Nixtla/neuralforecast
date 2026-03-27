@@ -29,7 +29,7 @@ You can run these experiments using GPU with Google Colab.
 
 ```python
 %%capture
-!pip install neuralforecast datasetsforecast
+!pip install neuralforecast datasetsforecast utilsforecast
 ```
 
 ## 2. Load ETTm2 Data
@@ -234,46 +234,28 @@ nf.models[0].results.get_best_result().config
 ```
 
 ```python
-y_true = Y_hat_df.y.values
-y_hat = Y_hat_df['AutoNHITS'].values
-
-n_series = len(Y_df.unique_id.unique())
-
-y_true = y_true.reshape(n_series, -1, horizon)
-y_hat = y_hat.reshape(n_series, -1, horizon)
-
-print('Parsed results')
-print('2. y_true.shape (n_series, n_windows, n_time_out):\t', y_true.shape)
-print('2. y_hat.shape  (n_series, n_windows, n_time_out):\t', y_hat.shape)
-```
-
-``` text
-Parsed results
-2. y_true.shape (n_series, n_windows, n_time_out):   (7, 11425, 96)
-2. y_hat.shape  (n_series, n_windows, n_time_out):   (7, 11425, 96)
-```
-
-```python
-fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(10, 11))
-fig.tight_layout()
-
+from utilsforecast.plotting import plot_series                                                                                      
+                                                                                                                                  
 series = ['HUFL','HULL','LUFL','LULL','MUFL','MULL','OT']
-series_idx = 3
+series_id = series[3]  # 'LULL'
 
-for idx, w_idx in enumerate([200, 300, 400]):
-  axs[idx].plot(y_true[series_idx, w_idx,:],label='True')
-  axs[idx].plot(y_hat[series_idx, w_idx,:],label='Forecast')
-  axs[idx].grid()
-  axs[idx].set_ylabel(series[series_idx]+f' window {w_idx}', 
-                      fontsize=17)
-  if idx==2:
-    axs[idx].set_xlabel('Forecast Horizon', fontsize=17)
-plt.legend()
-plt.show()
-plt.close()
+series_cutoffs = Y_hat_df.loc[Y_hat_df['unique_id'] == "LULL", 'cutoff'].unique()                                                
+                                                        
+for w_idx in [200, 300, 400]:
+    cutoff = series_cutoffs[w_idx]
+    plot_df = Y_hat_df.loc[Y_hat_df['cutoff'] == cutoff, ['unique_id', 'ds', 'y', 'AutoNHITS']]
+
+    fig = plot_series(
+        df=plot_df[['unique_id', 'ds', 'y']],
+        forecasts_df=plot_df[['unique_id', 'ds', 'AutoNHITS']],
+        ids=[series_id],
+        models=['AutoNHITS'],
+        max_insample_length=96
+    )
+    display(fig)
 ```
 
-![](longhorizon_nhits_files/figure-markdown_strict/cell-11-output-1.png)
+![](longhorizon_nhits_files/figure-markdown_strict/cell-10-output-1.png)
 
 Finally, we compute the test errors for the two metrics of interest:
 
@@ -282,10 +264,17 @@ and
 $\qquad MSE = \frac{1}{Windows * Horizon} \sum_{\tau} (y_{\tau} - \hat{y}_{\tau})^{2} \qquad$
 
 ```python
-from neuralforecast.losses.numpy import mae, mse
+from utilsforecast.evaluation import evaluate
+from utilsforecast.losses import mae, mse
 
-print('MAE: ', mae(y_hat, y_true))
-print('MSE: ', mse(y_hat, y_true))
+eval_df = evaluate(
+    df=Y_hat_df.drop(columns=["cutoff"]),
+    metrics=[mae, mse],
+    agg_fn="mean"
+)
+
+print('MAE: ', eval_df.iloc[0]["AutoNHITS"])
+print('MSE: ', eval_df.iloc[1]["AutoNHITS"])
 ```
 
 ``` text

@@ -58,6 +58,7 @@ NBEATS(
     learning_rate=0.001,
     num_lr_decays=3,
     early_stop_patience_steps=-1,
+    val_monitor="ptl/val_loss",
     val_check_steps=100,
     batch_size=32,
     valid_batch_size=None,
@@ -103,12 +104,13 @@ and trend basis well-suited for most forecasting tasks.
 `dropout_prob_theta`: float, Float between (0, 1). Dropout for N-BEATS basis.
 `activation`: str, activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid'].
 `shared_weights`: bool, If True, all blocks within each stack will share parameters.
-`loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch).
-`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch).
+`loss`: PyTorch module, instantiated train loss class from [losses collection](./losses.pytorch.html).
+`valid_loss`: PyTorch module=`loss`, instantiated valid loss class from [losses collection](./losses.pytorch.html).
 `max_steps`: int=1000, maximum number of training steps.
 `learning_rate`: float=1e-3, Learning rate between (0, 1).
 `num_lr_decays`: int=3, Number of learning rate decays, evenly distributed across max_steps.
 `early_stop_patience_steps`: int=-1, Number of validation iterations before early stopping.
+`val_monitor`: str="ptl/val_loss", metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss".
 `val_check_steps`: int=100, Number of training steps between every validation loss check.
 `batch_size`: int=32, number of different series in each batch.
 `valid_batch_size`: int=None, number of different series in each validation and test batch, if None uses batch_size.
