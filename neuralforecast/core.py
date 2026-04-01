@@ -584,6 +584,17 @@ class NeuralForecast:
                     "Validation set size is larger than the shorter time-series."
                 )
 
+        for model in self.models:
+            train_size = self.dataset.min_size - (val_size or 0)
+            min_required = 1 if model.start_padding_enabled else model.input_size
+            if train_size < min_required:
+                raise ValueError(
+                    f"{model.__class__.__name__} requires at least {min_required} training "
+                    f"timestamp(s) (input_size={model.input_size}, start_padding_enabled="
+                    f"{model.start_padding_enabled}), but the shortest series has only "
+                    f"{train_size} timestamp(s) available for training after removing val_size."
+                )
+
         # Recover initial model if use_init_models
         if use_init_models:
             self._reset_models()
@@ -1742,6 +1753,18 @@ class NeuralForecast:
             if self.dataset.min_size < (val_size + test_size):
                 warnings.warn(
                     "Validation and test sets are larger than the shorter time-series."
+                )
+
+        for model in self.models:
+            train_size = self.dataset.min_size - (val_size or 0) - test_size
+            min_required = 1 if model.start_padding_enabled else model.input_size
+            if train_size < min_required:
+                raise ValueError(
+                    f"{model.__class__.__name__} requires at least {min_required} training "
+                    f"timestamp(s) (input_size={model.input_size}, start_padding_enabled="
+                    f"{model.start_padding_enabled}), but the shortest series has only "
+                    f"{train_size} timestamp(s) available for training after removing val_size "
+                    f"and test_size."
                 )
 
         fcsts_df = ufp.cv_times(
