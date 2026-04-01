@@ -54,7 +54,7 @@ class BaseAuto(pl.LightningModule):
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
-        time_budget (int, optional): Time budget in seconds for the hyperparameter search. When set, `num_samples` must be 1.
+        time_budget (int, optional): Time budget in seconds for the hyperparameter search.
         cpus (int): Number of cpus to use during optimization. Only used with ray tune.
         gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
         refit_with_val (bool): Refit of best model should preserve val_size.
