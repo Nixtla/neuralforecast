@@ -585,13 +585,16 @@ class NeuralForecast:
                 )
 
         for model in self.models:
+            input_size = getattr(model, "input_size", None)
+            if input_size is None:
+                continue  # Auto models have a tunable input_size; skip validation
             train_size = self.dataset.min_size - (val_size or 0)
             start_padding_enabled = getattr(model, "start_padding_enabled", False)
-            min_required = 1 if start_padding_enabled else model.input_size
+            min_required = 1 if start_padding_enabled else input_size
             if train_size < min_required:
                 raise ValueError(
                     f"{model.__class__.__name__} requires at least {min_required} training "
-                    f"timestamp(s) (input_size={model.input_size}, start_padding_enabled="
+                    f"timestamp(s) (input_size={input_size}, start_padding_enabled="
                     f"{start_padding_enabled}), but the shortest series has only "
                     f"{train_size} timestamp(s) available for training after removing val_size."
                 )
