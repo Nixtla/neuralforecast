@@ -54,6 +54,7 @@ class BaseAuto(pl.LightningModule):
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
+        time_budget (int, optional): Time budget in seconds for the hyperparameter search.
         cpus (int): Number of cpus to use during optimization. Only used with ray tune.
         gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
         refit_with_val (bool): Refit of best model should preserve val_size.
@@ -74,6 +75,7 @@ class BaseAuto(pl.LightningModule):
         config,
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
+        time_budget=None,
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         refit_with_val=False,
@@ -149,6 +151,7 @@ class BaseAuto(pl.LightningModule):
         self.valid_loss = valid_loss
 
         self.num_samples = num_samples
+        self.time_budget = time_budget
         self.search_alg = search_alg
         self.cpus = cpus
         self.gpus = gpus
@@ -216,6 +219,7 @@ class BaseAuto(pl.LightningModule):
         num_samples,
         search_alg,
         config,
+        time_budget,
     ):
         train_fn_with_parameters = tune.with_parameters(
             self._train_tune,
@@ -249,6 +253,7 @@ class BaseAuto(pl.LightningModule):
                 num_samples=num_samples,
                 search_alg=search_alg,
                 trial_dirname_creator=trial_dirname_creator,
+                time_budget_s=time_budget,
             ),
             param_space=config,
         )
@@ -301,6 +306,7 @@ class BaseAuto(pl.LightningModule):
         search_alg,
         config,
         distributed_config,
+        time_budget,
     ):
         import optuna
 
@@ -337,6 +343,7 @@ class BaseAuto(pl.LightningModule):
             n_trials=num_samples,
             show_progress_bar=verbose,
             callbacks=self.callbacks,
+            timeout=time_budget,
         )
         return study
 
@@ -397,6 +404,7 @@ class BaseAuto(pl.LightningModule):
                 num_samples=self.num_samples,
                 search_alg=search_alg,
                 config=self.config,
+                time_budget=self.time_budget,
             )
             best_config = results.get_best_result().config
         else:
@@ -410,6 +418,7 @@ class BaseAuto(pl.LightningModule):
                 search_alg=search_alg,
                 config=self.config,
                 distributed_config=distributed_config,
+                time_budget=self.time_budget,
             )
             best_config = results.best_trial.user_attrs["ALL_PARAMS"]
         self.model = self._fit_model(

@@ -142,3 +142,49 @@ def test_validation_default(setup_config):
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
+
+
+def test_ray_time_budget(setup_module):
+    dataset, _, _ = setup_module
+    config = {
+        "hidden_size": tune.choice([512]),
+        "num_layers": tune.choice([3, 4]),
+        "input_size": 12,
+        "max_steps": 10,
+        "val_check_steps": 5,
+    }
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config,
+        num_samples=1,
+        time_budget=60,
+        cpus=1,
+        gpus=0,
+    )
+    auto.fit(dataset=dataset)
+    y_hat = auto.predict(dataset=dataset)
+    assert y_hat.shape[0] > 0
+
+
+def test_optuna_time_budget(setup_module):
+    dataset, _, _ = setup_module
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_f,
+        search_alg=optuna.samplers.RandomSampler(),
+        num_samples=1,
+        time_budget=60,
+        backend="optuna",
+    )
+    auto.fit(dataset=dataset)
+    assert isinstance(auto.results, optuna.Study)
+    y_hat = auto.predict(dataset=dataset)
+    assert y_hat.shape[0] > 0
+
+
