@@ -43,6 +43,12 @@ from neuralforecast.losses.pytorch import HuberLoss
 from datasetsforecast.phm2008 import PHM2008
 ```
 
+``` text
+/Users/marcopeix/dev/neuralforecast/.venv/lib/python3.12/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+2026-04-02 15:43:47,243 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+2026-04-02 15:43:47,362 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+```
 
 ```python
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
@@ -166,7 +172,7 @@ Y_df = pd.concat([Y_train_df, Y_test_df], ignore_index=True)
 futr_exog_list =['s_2', 's_3', 's_4', 's_7', 's_8', 's_9', 's_11',
                  's_12', 's_13', 's_14', 's_15', 's_17', 's_20', 's_21']
 
-model = NBEATSx(h=1, input_size=12,
+model = NBEATSx(h=1, input_size=24,
                 loss=HuberLoss(),
                 scaler_type='robust',
                 stack_types=['identity', 'identity', 'identity'],
@@ -198,6 +204,24 @@ from utilsforecast.losses import rmse
 
 
 ```python
+Y_hat_last = Y_hat_cv_df.loc[Y_hat_cv_df.groupby('unique_id')['ds'].idxmax()]
+
+metrics = evaluate(
+    Y_hat_last.drop(columns=["cutoff"]),
+    metrics=[rmse],
+    agg_fn='mean'
+)
+metrics
+```
+
+|     | metric | NBEATSx  |
+|-----|--------|----------|
+| 0   | rmse   | 0.363993 |
+
+Alternatively, we can also evaluate over multiple windows to have a more
+representative metric of the performance.
+
+```python
 metrics = evaluate(
     Y_hat_cv_df.drop(columns=["cutoff"]),
     metrics=[rmse],
@@ -208,28 +232,31 @@ metrics
 
 |     | metric | NBEATSx  |
 |-----|--------|----------|
-| 0   | rmse   | 1.840817 |
+| 0   | rmse   | 1.323458 |
+
+Finally, we can plot the true value and predicted value of the model
+across many cross-validation windows.
 
 ```python
 model_name = "NBEATSx"
-plot_df1 = Y_hat_df2[Y_hat_df2['unique_id']==1]
-plot_df2 = Y_hat_df2[Y_hat_df2['unique_id']==2]
-plot_df3 = Y_hat_df2[Y_hat_df2['unique_id']==3]
+plot_df1 = Y_hat_cv_df[Y_hat_cv_df['unique_id']==2]
+plot_df2 = Y_hat_cv_df[Y_hat_cv_df['unique_id']==3]
+plot_df3 = Y_hat_cv_df[Y_hat_cv_df['unique_id']==4]
 
-plt.plot(plot_df1.ds, plot_df1['y'], c='#2D6B8F', label='E1 true RUL')
-plt.plot(plot_df1.ds, plot_df1[model_name]+1, c='#2D6B8F', linestyle='--', label='E1 predicted RUL')
+plt.plot(plot_df1.ds, plot_df1['y'], c='#2D6B8F', label='E2 true RUL')
+plt.plot(plot_df1.ds, plot_df1[model_name]+1, c='#2D6B8F', linestyle='--', label='E2 predicted RUL')
 
-plt.plot(plot_df1.ds, plot_df2['y'], c='#CA6F6A', label='E2 true RUL')
-plt.plot(plot_df1.ds, plot_df2[model_name]+1, c='#CA6F6A', linestyle='--', label='E2 predicted RUL')
+plt.plot(plot_df1.ds, plot_df2['y'], c='#CA6F6A', label='E3 true RUL')
+plt.plot(plot_df1.ds, plot_df2[model_name]+1, c='#CA6F6A', linestyle='--', label='E3 predicted RUL')
 
-plt.plot(plot_df1.ds, plot_df3['y'], c='#D5BC67', label='E3 true RUL')
-plt.plot(plot_df1.ds, plot_df3[model_name]+1, c='#D5BC67', linestyle='--', label='E3 predicted RUL')
+plt.plot(plot_df1.ds, plot_df3['y'], c='#D5BC67', label='E4 true RUL')
+plt.plot(plot_df1.ds, plot_df3[model_name]+1, c='#D5BC67', linestyle='--', label='E4 predicted RUL')
 
 plt.legend()
 plt.grid()
 ```
 
-![](predictive_maintenance_files/figure-markdown_strict/cell-13-output-1.png)
+![](predictive_maintenance_files/figure-markdown_strict/cell-14-output-1.png)
 
 ## References
 
