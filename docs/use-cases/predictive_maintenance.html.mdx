@@ -158,6 +158,11 @@ Y_test_df = Y_test_df.drop(columns=["ds_train_max_date"])
 
 
 ```python
+Y_df = pd.concat([Y_train_df, Y_test_df], ignore_index=True)
+```
+
+
+```python
 %%capture
 futr_exog_list =['s_2', 's_3', 's_4', 's_7', 's_8', 's_9', 's_11',
                  's_12', 's_13', 's_14', 's_15', 's_17', 's_20', 's_21']
@@ -172,8 +177,7 @@ model = NBEATSx(h=1, input_size=12,
                 max_steps=1000)
 nf = NeuralForecast(models=[model], freq=1)
 
-filter_test_df = Y_test_df.groupby('unique_id').tail(31).reset_index()
-Y_hat_df2 = nf.cross_validation(df=filter_test_df, n_windows=18)
+Y_hat_cv_df = nf.cross_validation(df=Y_df, n_windows=31)
 ```
 
 ``` text
@@ -196,7 +200,7 @@ from utilsforecast.losses import rmse
 
 ```python
 metrics = evaluate(
-    Y_hat_df2.drop(columns=["cutoff"]),
+    Y_hat_cv_df.drop(columns=["cutoff"]),
     metrics=[rmse],
     agg_fn='mean'
 )
@@ -205,7 +209,7 @@ metrics
 
 |     | metric | NBEATSx  |
 |-----|--------|----------|
-| 0   | rmse   | 1.401564 |
+| 0   | rmse   | 1.840817 |
 
 ```python
 model_name = "NBEATSx"
@@ -226,7 +230,7 @@ plt.legend()
 plt.grid()
 ```
 
-![](predictive_maintenance_files/figure-markdown_strict/cell-12-output-1.png)
+![](predictive_maintenance_files/figure-markdown_strict/cell-13-output-1.png)
 
 ## References
 
