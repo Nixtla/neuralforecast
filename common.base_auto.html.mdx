@@ -40,6 +40,7 @@ BaseAuto(
     config,
     search_alg=BasicVariantGenerator(random_state=1),
     num_samples=10,
+    time_budget=None,
     cpus=cpu_count(),
     gpus=torch.cuda.device_count(),
     refit_with_val=False,
@@ -73,6 +74,7 @@ Name | Type | Description | Default
 `config` | <code>[dict](#dict) or [callable](#callable)</code> | Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict. | *required*
 `search_alg` | <code>ray.tune.search variant or optuna.sampler</code> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html. | <code>[BasicVariantGenerator](#ray.tune.search.basic_variant.BasicVariantGenerator)(random_state=1)</code>
 `num_samples` | <code>[int](#int)</code> | Number of hyperparameter optimization steps/samples. | <code>10</code>
+`time_budget` | <code>[int](#int)</code> | Time budget in seconds for the hyperparameter search. | <code>None</code>
 `cpus` | <code>[int](#int)</code> | Number of cpus to use during optimization. Only used with ray tune. | <code>[cpu_count](#os.cpu_count)()</code>
 `gpus` | <code>[int](#int)</code> | Number of gpus to use during optimization, default all available. Only used with ray tune. | <code>[device_count](#torch.cuda.device_count)()</code>
 `refit_with_val` | <code>[bool](#bool)</code> | Refit of best model should preserve val_size. | <code>False</code>
