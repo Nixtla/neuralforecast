@@ -376,7 +376,7 @@ class BaseAuto(pl.LightningModule):
         the validation set that sequentially precedes the test set.
 
         Args:
-            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset.html)
             val_size (int): Size of temporal validation set (needs to be bigger than 0).
             test_size (int): Size of temporal test set (default 0).
             random_seed (int): Random seed for hyperparameter exploration algorithms, not yet implemented.
@@ -443,7 +443,7 @@ class BaseAuto(pl.LightningModule):
         Predictions of the best performing model on validation.
 
         Args:
-            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset)
+            dataset (NeuralForecast's `TimeSeriesDataset`): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset.html)
             step_size (int): Steps between sequential predictions, (default 1).
             h (int): Prediction horizon, if None, uses the model's fitted horizon. Defaults to None.
             **data_kwarg: Additional parameters for the dataset module.
