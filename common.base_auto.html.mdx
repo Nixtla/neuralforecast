@@ -103,7 +103,7 @@ the validation set that sequentially precedes the test set.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`dataset` | <code>NeuralForecast's `TimeSeriesDataset`</code> | NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) | *required*
+`dataset` | <code>NeuralForecast's `TimeSeriesDataset`</code> | NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset.html) | *required*
 `val_size` | <code>[int](#int)</code> | Size of temporal validation set (needs to be bigger than 0). | <code>0</code>
 `test_size` | <code>[int](#int)</code> | Size of temporal test set (default 0). | <code>0</code>
 `random_seed` | <code>[int](#int)</code> | Random seed for hyperparameter exploration algorithms, not yet implemented. | <code>None</code>
@@ -128,7 +128,7 @@ Predictions of the best performing model on validation.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`dataset` | <code>NeuralForecast's `TimeSeriesDataset`</code> | NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset) | *required*
+`dataset` | <code>NeuralForecast's `TimeSeriesDataset`</code> | NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset.html) | *required*
 `step_size` | <code>[int](#int)</code> | Steps between sequential predictions, (default 1). | <code>1</code>
 `h` | <code>[int](#int)</code> | Prediction horizon, if None, uses the model's fitted horizon. Defaults to None. | <code>None</code>
 `**data_kwarg` | | Additional parameters for the dataset module. | *required*
