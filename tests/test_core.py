@@ -1328,7 +1328,7 @@ def test_order_of_variables_no_effect_on_val_loss(setup_airplane_data, scaler_ty
         ["unique_id", "ds", "zeros", "y", "available_mask", "large_number"]
     ]
 
-    models = [NHITS(h=12, input_size=24, max_steps=2, scaler_type=scaler_type)]
+    models = [NHITS(h=12, input_size=24, max_steps=50, scaler_type=scaler_type)]
     nf = NeuralForecast(models=models, freq="M")
     nf.fit(AirPassengersPanel_train, val_size=12)
     valid_losses = nf.models[0].valid_trajectories
