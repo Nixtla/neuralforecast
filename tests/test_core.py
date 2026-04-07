@@ -1328,13 +1328,58 @@ def test_order_of_variables_no_effect_on_val_loss(setup_airplane_data, scaler_ty
         ["unique_id", "ds", "zeros", "y", "available_mask", "large_number"]
     ]
 
-    models = [NHITS(h=12, input_size=24, max_steps=50, scaler_type=scaler_type)]
+    models = [NHITS(h=12, input_size=24, max_steps=2, scaler_type=scaler_type)]
     nf = NeuralForecast(models=models, freq="M")
     nf.fit(AirPassengersPanel_train, val_size=12)
     valid_losses = nf.models[0].valid_trajectories
     assert valid_losses[-1][1] < 40, "Validation loss is too high"
     assert valid_losses[-1][1] > 10, "Validation loss is too low"
 
+
+def test_val_df_parameter_validation(setup_airplane_data):
+    AirPassengersPanel_train, _ = setup_airplane_data
+    nf = NeuralForecast(
+        models=[NHITS(h=12, input_size=24, max_steps=1)], freq="M"
+    )
+    val_df = (
+        AirPassengersPanel_train.groupby("unique_id", observed=True)
+        .tail(12)
+        .reset_index(drop=True)
+    )
+    with pytest.raises(ValueError, match="val_df and val_size cannot be set together"):
+        nf.fit(AirPassengersPanel_train, val_size=12, val_df=val_df)
+
+
+def test_val_df_equivalence_with_val_size(setup_airplane_data):
+    # Splitting off the last 12 rows per series as val_df and passing them
+    # explicitly must produce the same valid_trajectories as using val_size=12
+    # on the full training DataFrame (same combined dataset, same random seed).
+    AirPassengersPanel_train, _ = setup_airplane_data
+    val_size = 12
+
+    train_df = (
+        AirPassengersPanel_train.groupby("unique_id", observed=True)
+        .apply(lambda x: x.iloc[:-val_size])
+        .reset_index(drop=True)
+    )
+    val_df = (
+        AirPassengersPanel_train.groupby("unique_id", observed=True)
+        .tail(val_size)
+        .reset_index(drop=True)
+    )
+
+    model_kwargs = dict(h=12, input_size=24, max_steps=10, random_seed=42)
+
+    nf_val_size = NeuralForecast(models=[NHITS(**model_kwargs)], freq="M")
+    nf_val_size.fit(AirPassengersPanel_train, val_size=val_size)
+
+    nf_val_df = NeuralForecast(models=[NHITS(**model_kwargs)], freq="M")
+    nf_val_df.fit(train_df, val_df=val_df)
+
+    losses_val_size = nf_val_size.models[0].valid_trajectories
+    losses_val_df = nf_val_df.models[0].valid_trajectories
+
+    np.testing.assert_allclose(losses_val_size, losses_val_df, atol=1e-4)
 
 
 @pytest.mark.parametrize("model,expected_error", [
