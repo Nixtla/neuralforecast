@@ -139,7 +139,7 @@ def test_neural_forecast_early_stopping(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
     models = [NHITS(h=12, input_size=12, max_steps=1, early_stop_patience_steps=5)]
     nf = NeuralForecast(models=models, freq="M")
-    with pytest.raises(Exception, match="Set val_size>0 if early stopping is enabled."):
+    with pytest.raises(Exception, match="Set val_size>0 or provide a val_df if early stopping is enabled."):
         nf.fit(AirPassengersPanel_train)
 
 
