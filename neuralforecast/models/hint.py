@@ -135,7 +135,7 @@ class HINT:
     Args:
         h (int): Forecast horizon.
         model (NeuralForecast model): Instantiated model class from [architecture collection](./models).
-        S (np.ndarray): Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](../hierarchicalforecast/utils#function-aggregate).
+        S (np.ndarray): Dumming matrix of size (`base`, `bottom`) see HierarchicalForecast's [aggregate method](../hierarchicalforecast/utils.html#aggregate).
         reconciliation (str): HINT's reconciliation method from ['BottomUp', 'MinTraceOLS', 'MinTraceWLS'].
         alias (str, optional): Custom name of the model.
     """
@@ -200,9 +200,9 @@ class HINT:
     ):
         """HINT.fit
 
-        HINT trains on the entire hierarchical dataset, by minimizing a composite log 
-        likelihood objective. HINT framework integrates `TemporalNorm` into the neural 
-        forecast architecture for a scale-decoupled optimization that robustifies 
+        HINT trains on the entire hierarchical dataset, by minimizing a composite log
+        likelihood objective. HINT framework integrates `TemporalNorm` into the neural
+        forecast architecture for a scale-decoupled optimization that robustifies
         cross-learning the hierachy's series scales.
 
         Args:
