@@ -123,8 +123,8 @@ Y_df = pd.read_parquet('https://m5-benchmarks.s3.amazonaws.com/data/train/target
 # The 'demand' becomes 'y' representing the target variable we want to forecast
 Y_df = Y_df.rename(
     columns={
-        'item_id': 'unique_id', 
-        'timestamp': 'ds', 
+        'item_id': 'unique_id',
+        'timestamp': 'ds',
         'demand': 'y'
     }
 )
@@ -275,7 +275,7 @@ from time import time
 # Get the current time before forecasting starts, this will be used to measure the execution time
 init = time()
 
-# Call the forecast method of the StatsForecast instance to predict the next 28 days (h=28) 
+# Call the forecast method of the StatsForecast instance to predict the next 28 days (h=28)
 fcst_df = sf.forecast(df=Y_df, h=28)
 
 # Get the current time after the forecasting ends
@@ -531,7 +531,7 @@ Use the plot function to explore models and ID’s
 plot_series(
     Y_df,
     fcst_df,
-    max_insample_length=28 * 3, 
+    max_insample_length=28 * 3,
     models=['CrostonOptimized', 'AutoNHITS', 'SeasonalNaive', 'LGBMRegressor'],
 )
 ```
@@ -618,7 +618,7 @@ following arguments.
 ```python
 init = time()
 cv_mlf_df = mlf.cross_validation(
-    df=Y_df, 
+    df=Y_df,
     h=horizon,
     n_windows=3,
 )
@@ -695,9 +695,9 @@ cutoffs = cv_df['cutoff'].unique()
 for cutoff in cutoffs:
     display(
         plot_series(
-            Y_df, 
-            cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']), 
-            max_insample_length=28 * 5, 
+            Y_df,
+            cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']),
+            max_insample_length=28 * 5,
             ids=['FOODS_3_001_CA_1'],
         )
     )
@@ -727,7 +727,7 @@ agg_Y_df.insert(0, 'unique_id', 'agg_demand')
 for cutoff in cutoffs:
     display(
         plot_series(
-            agg_Y_df, 
+            agg_Y_df,
             agg_cv_df.query('cutoff == @cutoff').drop(columns=['y', 'cutoff']),
             max_insample_length=28 * 5,
         )
@@ -858,8 +858,8 @@ plt.show()
 ```python
 plot_series(
     Y_df,
-    cv_df.drop(columns=['cutoff', 'y']), 
-    max_insample_length=28 * 6, 
+    cv_df.drop(columns=['cutoff', 'y']),
+    max_insample_length=28 * 6,
     models=['AutoNHITS'],
 )
 ```
@@ -889,14 +889,14 @@ plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 
 # Further materials
 
--   [Available Models StatsForecast](../../../statsforecast/models)
--   [Available Models NeuralForecast](../capabilities/01_overview)
--   [Loss Functions in NeuralForecast](../capabilities/02_objectives)
--   [Getting Started NeuralForecast](../getting-started/02_quickstart)
+-   [Available Models StatsForecast](../../../statsforecast/models.html)
+-   [Available Models NeuralForecast](../capabilities/overview.html)
+-   [Loss Functions in NeuralForecast](../capabilities/objectives.html)
+-   [Getting Started NeuralForecast](../getting-started/quickstart.html)
 -   [Hierarchical
-    Reconciliation](../../../hierarchicalforecast/examples/TourismSmall)
+    Reconciliation](../../../hierarchicalforecast/examples/tourismsmall.html)
 -   [Distributed ML Forecast
-    (trees)](../../../mlforecast/docs/getting-started/quick_start_distributed)
+    (trees)](../../../mlforecast/docs/getting-started/quick_start_distributed.html)
 -   [Using StatsForecast to train millions of time
     series](https://www.anyscale.com/blog/how-nixtla-uses-ray-to-accurately-predict-more-than-a-million-time-series)
 -   [Intermittent Demand Forecasting With Nixtla on

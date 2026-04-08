@@ -142,7 +142,7 @@ disk memory, to get them change `enable_checkpointing=True` in `__init__`.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset.html). | *required*
 `val_size` | <code>[int](#int)</code> | Validation size for temporal cross-validation. | <code>0</code>
 `random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
 `test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>0</code>
@@ -176,7 +176,7 @@ Neural network prediction with PL's `Trainer` execution of `predict_step`.
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset). | *required*
+`dataset` | <code>[TimeSeriesDataset](#TimeSeriesDataset)</code> | NeuralForecast's `TimeSeriesDataset`, see [documentation](./tsdataset.html). | *required*
 `test_size` | <code>[int](#int)</code> | Test size for temporal cross-validation. | <code>None</code>
 `step_size` | <code>[int](#int)</code> | Step size between each window. | <code>1</code>
 `random_seed` | <code>[int](#int)</code> | Random seed for pytorch initializer and numpy generators, overwrites model.__init__'s. | <code>None</code>
