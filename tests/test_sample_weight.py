@@ -67,7 +67,7 @@ def test_sample_weight_not_in_model_input():
             captured["temporal_cols"] = windows["temporal_cols"]
             return super()._parse_windows(batch, windows)
 
-    nf = NeuralForecast(models=[PatchedNHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS)], freq="M")
+    nf = NeuralForecast(models=[PatchedNHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS, accelerator="cpu")], freq="M")
     nf.fit(df)
     assert "sample_weight" not in captured.get("temporal_cols", []), (
         "sample_weight must be removed from windows before _parse_windows"
