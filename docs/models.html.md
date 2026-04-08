@@ -46,7 +46,7 @@ Recurrent neural networks for sequential forecasting:
 Attention-based architectures for capturing complex temporal patterns:
 
 - `AutoTFT`: [Temporal Fusion Transformer with multi-horizon forecasting](./models.tft.html)
-- `AutoVanillaTransformer`: [Standard transformer architecture](./models.vanillatransformer.hml)
+- `AutoVanillaTransformer`: [Standard transformer architecture](./models.vanillatransformer.html)
 - `AutoInformer`: [Efficient transformer for long sequence forecasting](./models.informer.html)
 - `AutoAutoformer`: [Auto-correlation based transformer](./models.autoformer.html)
 - `AutoFEDformer`: [Frequency enhanced decomposition transformer](./models.fedformer.html)
@@ -160,7 +160,7 @@ from neuralforecast.auto import AutoHINT
 from neuralforecast.models.nhits import NHITS
 from ray import tune
 
-# Perform a conjunct hyperparameter optimization with 
+# Perform a conjunct hyperparameter optimization with
 # NHITS + HINT reconciliation configurations
 nhits_config = {
        "learning_rate": tune.choice([1e-3]),                                     # Initial Learning rate
