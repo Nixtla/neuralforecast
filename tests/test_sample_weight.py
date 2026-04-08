@@ -20,15 +20,8 @@ def _make_df(with_sample_weight=True, weight_value=1.0):
     return df
 
 
-@pytest.fixture(autouse=True)
-def clear_mps_cache():
-    yield
-    if torch.backends.mps.is_available():
-        torch.mps.empty_cache()
-
-
 def _make_model():
-    return NHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS)
+    return NHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS, accelerator="cpu")
 
 
 # ---------------------------------------------------------------------------
