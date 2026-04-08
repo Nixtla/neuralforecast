@@ -464,6 +464,7 @@ class NeuralForecast:
         df: Optional[Union[DataFrame, SparkDataFrame, Sequence[str]]] = None,
         static_df: Optional[Union[DataFrame, SparkDataFrame]] = None,
         val_size: Optional[int] = 0,
+        val_df: Optional[DataFrame] = None,
         use_init_models: bool = False,
         verbose: bool = False,
         id_col: str = "unique_id",
@@ -481,7 +482,11 @@ class NeuralForecast:
             df (pandas, polars or spark DataFrame, or a list of parquet files containing the series, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
                 If None, a previously stored dataset is required.
             static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous.
-            val_size (int, optional): Size of validation set.
+            val_size (int, optional): Size of validation set. Cannot be used together with `val_df`.
+            val_df (pandas or polars DataFrame, optional): Explicit validation DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
+                `val_df` can be temporally independent (no requirement that it starts immediately after `df`).
+                Cannot be used together with `val_size`. Only supported when `df` is a pandas or polars DataFrame.
+                All series in `val_df` must have the same length.
             use_init_models (bool, optional): Use initial model passed when NeuralForecast object was instantiated.
             verbose (bool): Print processing steps.
             id_col (str): Column that identifies each serie.
@@ -496,12 +501,22 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
+        if val_df is not None and val_size != 0:
+            raise ValueError(
+                "val_df and val_size cannot be set together. "
+                "Set val_size=0 (default) when providing val_df."
+            )
+
+        if val_df is not None and not isinstance(val_df, (pd.DataFrame, pl_DataFrame)):
+            raise ValueError("val_df must be a pandas or polars DataFrame.")
+
         # Model and datasets interactions protections
         if (
             any(model.early_stop_patience_steps > 0 for model in self.models)
             and val_size == 0
+            and val_df is None
         ):
-            raise Exception("Set val_size>0 if early stopping is enabled.")
+            raise Exception("Set val_size>0 or provide a val_df if early stopping is enabled.")
 
         if (val_size is not None) and (0 < val_size < self.h):
             raise ValueError(
@@ -576,6 +591,28 @@ class NeuralForecast:
         else:
             raise ValueError(
                 f"`df` must be a pandas, polars or spark DataFrame, or a list of parquet files containing the series, or `None`, got: {type(df)}"
+            )
+
+        if val_df is not None:
+            if isinstance(df, (SparkDataFrame,)) or (
+                isinstance(df, Sequence) and not isinstance(df, str)
+            ):
+                raise ValueError(
+                    "val_df is only supported when df is a pandas or polars DataFrame."
+                )
+            val_dataset = self.dataset.align(
+                val_df, id_col=id_col, time_col=time_col, target_col=target_col
+            )
+            if val_dataset.min_size != val_dataset.max_size:
+                raise ValueError(
+                    "All series in val_df must be of equal length. "
+                    "Found series lengths ranging from "
+                    f"{val_dataset.min_size} to {val_dataset.max_size}"
+                )
+            val_size = val_dataset.min_size
+            self.dataset = self.dataset.append(val_dataset)
+            _, _, self.last_dates, _ = TimeSeriesDataset.from_df(
+                df=val_df, id_col=id_col, time_col=time_col, target_col=target_col
             )
 
         if val_size is not None:
