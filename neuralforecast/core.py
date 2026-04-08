@@ -292,7 +292,7 @@ class NeuralForecast:
         self.scalers_, self.static_scalers_ = {}, {}
         if self.local_scaler_type is not None:
             for i, col in enumerate(dataset.temporal_cols):
-                if col == "available_mask":
+                if col in ("available_mask", "sample_weight"):
                     continue
                 ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
                 self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
@@ -358,7 +358,17 @@ class NeuralForecast:
             available_mask = np.full(df.shape[0], True)
 
         df_to_check = ufp.filter_with_mask(df, available_mask)
+
+        if "sample_weight" in temporal_cols:
+            sw_vals = df_to_check["sample_weight"]
+            if ufp.is_nan_or_none(sw_vals).any():
+                raise ValueError("sample_weight column contains NaN values.")
+            if (sw_vals.to_numpy() < 0).any():
+                raise ValueError("sample_weight column must be non-negative.")
+
         for col in temporal_cols:
+            if col == "sample_weight":
+                continue
             if ufp.is_nan_or_none(df_to_check[col]).any():
                 cols_with_nans.append(col)
 

@@ -751,6 +751,20 @@ class BaseModel(pl.LightningModule):
                 windows = windows.flatten(0, 1)
                 windows = windows.unsqueeze(-1)
 
+            # Extract sample_weight before availability filtering so it is never
+            # seen by the model as a feature
+            if "sample_weight" in temporal_cols:
+                sw_idx = temporal_cols.get_loc("sample_weight")
+                # Aggregate mean over outsample horizon steps → [Ws*n_series, 1, 1]
+                sample_weight_windows = windows[
+                    :, self.input_size :, sw_idx : sw_idx + 1, :
+                ].mean(dim=1, keepdim=False)
+                keep = [i for i in range(windows.shape[2]) if i != sw_idx]
+                windows = windows[:, :, keep, :]
+                temporal_cols = temporal_cols.delete(sw_idx)
+            else:
+                sample_weight_windows = None
+
             # Calculate minimum required available points based on fractions
             min_insample_points = max(
                 1, int(self.input_size * self.min_insample_fraction * self.n_series)
@@ -792,7 +806,7 @@ class BaseModel(pl.LightningModule):
 
             final_condition = torch.nonzero(final_condition).squeeze(-1)
 
-            return windows, static, static_cols, final_condition
+            return windows, static, static_cols, final_condition, sample_weight_windows, temporal_cols
 
         elif step in ["predict", "val"]:
 
@@ -857,7 +871,7 @@ class BaseModel(pl.LightningModule):
 
             final_condition = torch.arange(windows.shape[0], device=windows.device)
 
-            return windows, static, static_cols, final_condition
+            return windows, static, static_cols, final_condition, None, temporal_cols
         else:
             raise ValueError(f"Unknown step {step}")
 
@@ -905,7 +919,14 @@ class BaseModel(pl.LightningModule):
         return y_hat
 
     def _sample_windows(
-        self, windows_temporal, static, static_cols, temporal_cols, w_idxs, final_condition,  
+        self,
+        windows_temporal,
+        static,
+        static_cols,
+        temporal_cols,
+        w_idxs,
+        final_condition,
+        sample_weight=None,
     ):
         w_idxs_final = final_condition[w_idxs]
         windows_sample = windows_temporal[w_idxs_final]
@@ -913,11 +934,15 @@ class BaseModel(pl.LightningModule):
         if static is not None and not self.MULTIVARIATE:
             static = static[w_idxs_final]
 
+        if sample_weight is not None:
+            sample_weight = sample_weight[w_idxs_final]
+
         windows_batch = dict(
             temporal=windows_sample,
             temporal_cols=temporal_cols,
             static=static,
             static_cols=static_cols,
+            sample_weight=sample_weight,
         )
         return windows_batch
 
@@ -926,7 +951,9 @@ class BaseModel(pl.LightningModule):
 
         # Filter insample lags from outsample horizon
         y_idx = batch["y_idx"]
-        mask_idx = batch["temporal_cols"].get_loc("available_mask")
+        # Use windows["temporal_cols"] because _create_windows may have removed
+        # sample_weight, shifting column indices relative to batch["temporal_cols"]
+        mask_idx = windows["temporal_cols"].get_loc("available_mask")
 
         insample_y = windows["temporal"][:, : self.input_size, y_idx]
         insample_mask = windows["temporal"][:, : self.input_size, mask_idx]
@@ -1311,8 +1338,7 @@ class BaseModel(pl.LightningModule):
 
     def _predict_step_recurrent(self, batch, batch_idx):
         self.input_size = self.inference_input_size
-        temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols, final_condition = self._create_windows(
+        windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
             batch, step="predict"
         )
         n_windows = len(final_condition)
@@ -1424,7 +1450,7 @@ class BaseModel(pl.LightningModule):
     ):
         """Compute explanations for a single prediction step."""
         # Create windows and normalize for explanations
-        windows_temporal, static, static_cols, final_condition = self._create_windows(
+        windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
             batch, step="predict"
         )
         n_windows = len(final_condition)
@@ -1603,7 +1629,7 @@ class BaseModel(pl.LightningModule):
         
         else:
             # Non-recursive case remains unchanged
-            windows_temporal, static, static_cols, final_condition = self._create_windows(
+            windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
                 batch,
                 step="predict",
             )
@@ -1730,9 +1756,8 @@ class BaseModel(pl.LightningModule):
         # windows: [Ws, L + h, C, n_series] or [Ws, L + h, C]
         y_idx = batch["y_idx"]
 
-        temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols, final_condition = self._create_windows(
-            batch, step="train"
+        windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
+            self._create_windows(batch, step="train")
         )
         n_windows = len(final_condition)
         if self.windows_batch_size is not None:
@@ -1746,11 +1771,17 @@ class BaseModel(pl.LightningModule):
             else:
                 w_idxs = torch.randperm(n_windows, device=windows_temporal.device)[
                     : self.windows_batch_size
-                ]        
+                ]
         else:
             w_idxs = torch.arange(n_windows, device=windows_temporal.device)
         windows = self._sample_windows(
-            windows_temporal=windows_temporal, static=static, static_cols=static_cols, temporal_cols=temporal_cols, w_idxs=w_idxs, final_condition=final_condition
+            windows_temporal=windows_temporal,
+            static=static,
+            static_cols=static_cols,
+            temporal_cols=temporal_cols,
+            w_idxs=w_idxs,
+            final_condition=final_condition,
+            sample_weight=sample_weight_windows,
         )
         original_outsample_y = torch.clone(
             windows["temporal"][:, self.input_size :, y_idx]
@@ -1767,6 +1798,13 @@ class BaseModel(pl.LightningModule):
             futr_exog,
             stat_exog,
         ) = self._parse_windows(batch, windows)
+
+        # Scale outsample_mask by per-window sample_weight so that high-weight
+        # windows contribute more to the loss via _weighted_mean
+        sample_weight = windows.get("sample_weight", None)
+        if sample_weight is not None:
+            # outsample_mask: [Ws, h, 1], sample_weight: [Ws, 1, 1] → broadcasts
+            outsample_mask = outsample_mask * sample_weight
 
         windows_batch = dict(
             insample_y=insample_y,  # [Ws, L, n_series]
@@ -1816,8 +1854,9 @@ class BaseModel(pl.LightningModule):
         if self.val_size == 0:
             return np.nan
 
-        temporal_cols = batch["temporal_cols"]
-        windows_temporal, static, static_cols, final_condition = self._create_windows(batch, step="val")
+        windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
+            self._create_windows(batch, step="val")
+        )
         n_windows = len(final_condition)
         y_idx = batch["y_idx"]
 
@@ -1841,6 +1880,7 @@ class BaseModel(pl.LightningModule):
                 temporal_cols,
                 w_idxs=w_idxs,
                 final_condition=final_condition,
+                sample_weight=sample_weight_windows,
             )
             original_outsample_y = torch.clone(
                 windows["temporal"][:, self.input_size :, y_idx]
@@ -1858,6 +1898,10 @@ class BaseModel(pl.LightningModule):
                 futr_exog,
                 stat_exog,
             ) = self._parse_windows(batch, windows)
+
+            sample_weight = windows.get("sample_weight", None)
+            if sample_weight is not None:
+                outsample_mask = outsample_mask * sample_weight
 
             if self.RECURRENT:
                 output_batch = self._validate_step_recurrent_batch(
