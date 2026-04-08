@@ -47,6 +47,7 @@ fit(
     df=None,
     static_df=None,
     val_size=0,
+    val_df=None,
     use_init_models=False,
     verbose=False,
     id_col="unique_id",
@@ -68,7 +69,8 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `df` | <code>pandas, polars or spark DataFrame, or a list of parquet files containing the series</code> | DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. If None, a previously stored dataset is required. | <code>None</code>
 `static_df` | <code>pandas, polars or spark DataFrame</code> | DataFrame with columns \[`unique_id`\] and static exogenous. | <code>None</code>
-`val_size` | <code>[int](#int)</code> | Size of validation set. | <code>0</code>
+`val_size` | <code>[int](#int)</code> | Size of validation set. Cannot be used together with `val_df`. | <code>0</code>
+`val_df` | <code>pandas or polars DataFrame</code> | Explicit validation DataFrame with columns \[`unique_id`, `ds`, `y`\] and exogenous variables. `val_df` can be temporally independent (no requirement that it starts immediately after `df`). Cannot be used together with `val_size`. Only supported when `df` is a pandas or polars DataFrame. All series in `val_df` must have the same length. | <code>None</code>
 `use_init_models` | <code>[bool](#bool)</code> | Use initial model passed when NeuralForecast object was instantiated. | <code>False</code>
 `verbose` | <code>[bool](#bool)</code> | Print processing steps. | <code>False</code>
 `id_col` | <code>[str](#str)</code> | Column that identifies each serie. | <code>'unique_id'</code>
