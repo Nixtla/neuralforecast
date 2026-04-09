@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralforecast"
-version = "3.1.6"
+version = "3.1.7"
 description = "Time series forecasting suite using deep learning models"
 authors = [
     {name = "Nixtla", email = "business@nixtla.io"}
