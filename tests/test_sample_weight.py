@@ -2,13 +2,14 @@ import pytest
 import torch
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import NHITS
+from neuralforecast.models import NHITS, MLPMultivariate
 from neuralforecast.utils import AirPassengersPanel
 
 
 HORIZON = 12
 INPUT_SIZE = 24
 MAX_STEPS = 5
+N_SERIES = 2
 
 
 def _make_df(with_sample_weight=True, weight_value=1.0):
@@ -24,19 +25,30 @@ def _make_model():
     return NHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS, accelerator="cpu")
 
 
+def _make_multivariate_model():
+    return MLPMultivariate(
+        h=HORIZON,
+        input_size=INPUT_SIZE,
+        n_series=N_SERIES,
+        max_steps=MAX_STEPS,
+        accelerator="cpu",
+    )
+
+
 # ---------------------------------------------------------------------------
-# Happy path
+# Happy path for both univariate and multivariate
 # ---------------------------------------------------------------------------
 
 def test_fit_with_sample_weight():
-    """fit completes and predict returns forecasts without sample_weight column."""
+    """fit completes for both model types; predict returns forecasts without sample_weight."""
     df = _make_df(with_sample_weight=True, weight_value=2.0)
-    nf = NeuralForecast(models=[_make_model()], freq="M")
+    nf = NeuralForecast(models=[_make_model(), _make_multivariate_model()], freq="M")
     nf.fit(df)
     preds = nf.predict()
     assert len(preds) > 0
     assert "sample_weight" not in preds.columns
     assert "NHITS" in preds.columns
+    assert "MLPMultivariate" in preds.columns
 
 
 # ---------------------------------------------------------------------------
@@ -58,20 +70,30 @@ def test_sample_weight_not_scaled():
 # ---------------------------------------------------------------------------
 
 def test_sample_weight_not_in_model_input():
-    """Verify sample_weight is stripped from windows before the model forward pass."""
+    """sample_weight must be stripped from windows before any model's forward pass."""
     df = _make_df()
     captured = {}
 
-    class PatchedNHITS(_make_model().__class__):
+    class PatchedNHITS(NHITS):
         def _parse_windows(self, batch, windows):
-            captured["temporal_cols"] = windows["temporal_cols"]
+            captured["nhits"] = windows["temporal_cols"]
             return super()._parse_windows(batch, windows)
 
-    nf = NeuralForecast(models=[PatchedNHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS, accelerator="cpu")], freq="M")
-    nf.fit(df)
-    assert "sample_weight" not in captured.get("temporal_cols", []), (
-        "sample_weight must be removed from windows before _parse_windows"
+    class PatchedMLPMultivariate(MLPMultivariate):
+        def _parse_windows(self, batch, windows):
+            captured["mlp"] = windows["temporal_cols"]
+            return super()._parse_windows(batch, windows)
+
+    nf = NeuralForecast(
+        models=[
+            PatchedNHITS(h=HORIZON, input_size=INPUT_SIZE, max_steps=MAX_STEPS, accelerator="cpu"),
+            PatchedMLPMultivariate(h=HORIZON, input_size=INPUT_SIZE, n_series=N_SERIES, max_steps=MAX_STEPS, accelerator="cpu"),
+        ],
+        freq="M",
     )
+    nf.fit(df)
+    assert "sample_weight" not in captured["nhits"]
+    assert "sample_weight" not in captured["mlp"]
 
 
 # ---------------------------------------------------------------------------
