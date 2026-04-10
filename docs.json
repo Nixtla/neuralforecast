@@ -43,7 +43,8 @@
               "docs/tutorials/longhorizon_nhits.html",
               "docs/tutorials/longhorizon_transformers.html",
               "docs/tutorials/forecasting_tft.html",
-              "docs/tutorials/multivariate_tsmixer.html"
+              "docs/tutorials/multivariate_tsmixer.html",
+              "docs/tutorials/weighting_timesteps.html"
             ]
           },
           {
