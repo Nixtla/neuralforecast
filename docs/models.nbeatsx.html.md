@@ -11,7 +11,7 @@ is an
 [`MLP`](./models.mlp.html#mlp)-based
 deep neural architecture with backward and forward residual links. The
 network has two variants: (1) in its interpretable configuration,
-[`NBEATS`](./neuralforecast/models.nbeats.html#nbeats)
+[`NBEATS`](./neuralforecast/models.nbeats.html#nbeats-2)
 sequentially projects the signal into polynomials and harmonic basis to
 learn trend and seasonality components; (2) in its generic
 configuration, it substitutes the polynomial and harmonic basis for
