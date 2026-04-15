@@ -252,6 +252,7 @@ class PastDecomposableMixing(nn.Module):
 
 class TimeMixer(BaseModel):
     """TimeMixer
+
     Args:
         h (int): Forecast horizon.
         input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
