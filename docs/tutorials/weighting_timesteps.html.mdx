@@ -132,7 +132,7 @@ Y_train_df.tail()
 plot_series(Y_train_df)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-4-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-4-output-1.png)
 
 ### Prolonged anomaly
 
@@ -163,7 +163,7 @@ s1.head()
 plot_series(s1)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-6-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-6-output-1.png)
 
 #### Training and evaluating
 
@@ -212,7 +212,7 @@ Seed set to 1
 plot_series(s1, eval_df, max_insample_length=5*12)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-8-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-8-output-1.png)
 
 From the figure above and from the calculated MAE, we can see that using
 `sample_weight` improved the performance of the model as we assigned
@@ -250,7 +250,7 @@ s2.head()
 plot_series(s2)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-11-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-11-output-1.png)
 
 #### Training and evaluating
 
@@ -279,7 +279,7 @@ evaluation
 plot_series(s2, eval_df, max_insample_length=5*12)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-13-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-13-output-1.png)
 
 In this case, using the `sample_weight` is not sufficient. In fact, the
 model performs slightly worse than not using `sample_weight`. Here, it
@@ -316,7 +316,7 @@ s3.tail()
 plot_series(s3)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-16-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-16-output-1.png)
 
 #### Training and evaluating
 
@@ -345,7 +345,7 @@ evaluation
 plot_series(s3, eval_df, max_insample_length=5*12)
 ```
 
-![](weighting_timesteps_files/figure-markdown_strict/cell-18-output-1.png)
+![](./weighting_timesteps_files/figure-markdown_strict/cell-18-output-1.png)
 
 Here, we see that using `sample_weight` improved the performance again.
 Although it’s hard to see in the plot, the model trained with

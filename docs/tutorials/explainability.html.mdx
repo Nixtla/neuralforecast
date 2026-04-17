@@ -298,7 +298,7 @@ shap_explanation = shap.Explanation(
 shap.plots.waterfall(shap_explanation)
 ```
 
-![](explainability_files/figure-markdown_strict/cell-10-output-1.png)
+![](./explainability_files/figure-markdown_strict/cell-10-output-1.png)
 
 As you can see, we now have a nice waterfall plot showing the baseline
 prediction, E\[f(X)\] = 396.092, and how each features contributes to
@@ -311,7 +311,7 @@ example, we can do a simple bar plot as shown below.
 shap.plots.bar(shap_explanation)
 ```
 
-![](explainability_files/figure-markdown_strict/cell-11-output-1.png)
+![](./explainability_files/figure-markdown_strict/cell-11-output-1.png)
 
 In both figures above, we have the breakdown of each feature at each
 timestep. This can make the plots crowded or it can be a level of
@@ -366,7 +366,7 @@ shap_explanation = shap.Explanation(
 shap.plots.waterfall(shap_explanation)
 ```
 
-![](explainability_files/figure-markdown_strict/cell-12-output-1.png)
+![](./explainability_files/figure-markdown_strict/cell-12-output-1.png)
 
 As you can see from the plot above, we have combined all inputs of each
 type of feature into a single category, so we can see how each overall
@@ -764,9 +764,9 @@ for series_out_idx in range(expl["baseline_predictions"].shape[2]):
     plt.show()
 ```
 
-![](explainability_files/figure-markdown_strict/cell-20-output-1.png)
+![](./explainability_files/figure-markdown_strict/cell-20-output-1.png)
 
-![](explainability_files/figure-markdown_strict/cell-20-output-2.png)
+![](./explainability_files/figure-markdown_strict/cell-20-output-2.png)
 
 ## References
 

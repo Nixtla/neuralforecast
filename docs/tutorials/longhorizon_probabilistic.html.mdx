@@ -113,7 +113,7 @@ ax.text(x_test, 3, '  Test', fontsize=12)
 fig
 ```
 
-![](longhorizon_probabilistic_files/figure-markdown_strict/cell-6-output-1.png)
+![](./longhorizon_probabilistic_files/figure-markdown_strict/cell-6-output-1.png)
 
 ## 3. Hyperparameter selection and forecasting
 
@@ -260,7 +260,7 @@ plot_df = Y_df.merge(Y_hat_df, on=['unique_id','ds'], how='outer').tail(96*10+50
 plot_series(forecasts_df=plot_df.drop(columns='AutoNHITS').rename(columns={'AutoNHITS-median': 'AutoNHITS'}), level=[90])
 ```
 
-![](longhorizon_probabilistic_files/figure-markdown_strict/cell-15-output-1.png)
+![](./longhorizon_probabilistic_files/figure-markdown_strict/cell-15-output-1.png)
 
 ## References
 
