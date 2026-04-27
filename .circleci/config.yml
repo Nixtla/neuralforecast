@@ -1,7 +1,7 @@
 version: 2.1
 jobs:
   pytest:
-    resource_class: xlarge
+    resource_class: large
     docker:
       - image: python:3.10-slim
     steps:
@@ -31,7 +31,7 @@ jobs:
             - ~/.cache/uv
             - .venv
   test-model-performance:
-    resource_class: xlarge
+    resource_class: large
     docker:
       - image: python:3.10-slim
     steps:
@@ -65,7 +65,7 @@ jobs:
           path: ./action_files/test_models/data/evaluation.csv
           destination: evaluation.csv
   test-model-performance2:
-    resource_class: xlarge
+    resource_class: large
     docker:
       - image: python:3.10-slim
     steps:
