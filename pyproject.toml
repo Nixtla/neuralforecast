@@ -31,7 +31,7 @@ dependencies = [
     "scipy",
     "torch>=2.4.0",
     "tornado>=6.5.5",
-    "pytorch-lightning>=2.0.0",
+    "pytorch-lightning>=2.0.0,<2.6.0",
     "ray[train,tune]>=2.2.0",
     "optuna",
     "utilsforecast>=0.2.3",
