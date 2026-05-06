@@ -93,7 +93,7 @@ Y_df = Y_df.query("ds >= '2022-01-01' & ds <= '2022-10-01'")
 Y_df.plot(x='ds', y='y', figsize=(20, 7))
 ```
 
-![](electricity_peak_forecasting_files/figure-markdown_strict/cell-4-output-1.png)
+![](./electricity_peak_forecasting_files/figure-markdown_strict/cell-4-output-1.png)
 
 ## Fit and Forecast with NHITS
 
@@ -126,7 +126,7 @@ We fit the model by instantiating a `NeuralForecast` object with the
 following required parameters:
 
 -   `models`: a list of models. Select the models you want from
-    [models](../capabilities/overview.html.ipynb) and import them.
+    [models](../capabilities/overview.html) and import them.
 
 -   `freq`: a string indicating the frequency of the data. (See [panda’s
     available
@@ -144,7 +144,7 @@ The `cross_validation` method allows the user to simulate multiple
 historic forecasts, greatly simplifying pipelines by replacing for loops
 with `fit` and `predict` methods. This method re-trains the model and
 forecast each window. See [this
-tutorial](https://nixtlaverse.nixtla.io/statsforecast/examples/getting_started_complete.html)
+tutorial](https://nixtlaverse.nixtla.io/statsforecast/docs/getting-started/getting_started_complete.html)
 for an animation of how the windows are defined.
 
 Use the `cross_validation` method to produce all the daily forecasts for
@@ -227,7 +227,7 @@ plt.grid()
 plt.legend()
 ```
 
-![](electricity_peak_forecasting_files/figure-markdown_strict/cell-13-output-1.png)
+![](./electricity_peak_forecasting_files/figure-markdown_strict/cell-13-output-1.png)
 
 > **Important**
 >

@@ -112,7 +112,7 @@ from utilsforecast.plotting import plot_series
 plot_series(Y_df)
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-8-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-8-output-1.png)
 
 ## 3. Train multiple models using cross-validation
 
@@ -324,7 +324,7 @@ cv_df.rename(columns = {'y': 'actual'}, inplace=True) # rename actual values
 plot_series(Y_df, cv_df.drop(columns='cutoff'), max_insample_length=300)
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-17-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-17-output-1.png)
 
 To clarify the concept of cross-validation further, we’ll plot the
 forecasts generated at each cutoff for the series with `unique_id='H1'`.
@@ -346,9 +346,9 @@ for cutoff in cv_df['cutoff'].unique():
     )
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-18-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-18-output-1.png)
 
-![](cross_validation_files/figure-markdown_strict/cell-18-output-2.png)
+![](./cross_validation_files/figure-markdown_strict/cell-18-output-2.png)
 
-![](cross_validation_files/figure-markdown_strict/cell-18-output-3.png)
+![](./cross_validation_files/figure-markdown_strict/cell-18-output-3.png)
 

@@ -32,7 +32,7 @@ allows us to showcase the versatility and power of our methodology.
 We will train an assortment of models from various forecasting
 paradigms:
 
-*[StatsForecast]((https://github.com/Nixtla/statsforecast))*
+*[StatsForecast](https://github.com/Nixtla/statsforecast)*
 
 -   Baseline models: These models are simple yet often highly effective
     for providing an initial perspective on the forecasting problem. We
@@ -156,14 +156,14 @@ from utilsforecast.plotting import plot_series
 plot_series(Y_df)
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-9-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-9-output-1.png)
 
 ```python
 # Feature: plot groups of series for EDA
 plot_series(Y_df, ids=["FOODS_3_432_TX_2"])
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-10-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-10-output-1.png)
 
 # Create forecasts with Stats, Ml and Neural methods.
 
@@ -523,7 +523,7 @@ fcst_df.head()
 plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-27-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-27-output-1.png)
 
 Use the plot function to explore models and ID’s
 
@@ -536,7 +536,7 @@ plot_series(
 )
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-28-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-28-output-1.png)
 
 # Validate Model’s Performance
 
@@ -703,11 +703,11 @@ for cutoff in cutoffs:
     )
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-37-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-37-output-1.png)
 
-![](comparing_methods_files/figure-markdown_strict/cell-37-output-2.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-37-output-2.png)
 
-![](comparing_methods_files/figure-markdown_strict/cell-37-output-3.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-37-output-3.png)
 
 ### Aggregate Demand
 
@@ -734,11 +734,11 @@ for cutoff in cutoffs:
     )
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-40-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-40-output-1.png)
 
-![](comparing_methods_files/figure-markdown_strict/cell-40-output-2.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-40-output-2.png)
 
-![](comparing_methods_files/figure-markdown_strict/cell-40-output-3.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-40-output-3.png)
 
 ## Evaluation per series and CV window
 
@@ -820,7 +820,7 @@ evaluation_df_long = pd.melt(evaluation_df, id_vars=['unique_id', 'metric'], var
 sns.violinplot(evaluation_df_long.query('metric=="smape"'), x='error', y='model');
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-48-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-48-output-1.png)
 
 ### Choose models for groups of series
 
@@ -840,7 +840,7 @@ count_best_model = evaluation_df.groupby(['metric', 'best_model']).size().rename
 sns.barplot(count_best_model, x='n', y='best_model', hue='metric')
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-49-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-49-output-1.png)
 
 ### Et pluribus unum: an inclusive forecasting Pie.
 
@@ -853,7 +853,7 @@ plt.pie(counts_series, labels=counts_series.index, autopct='%.0f%%')
 plt.show()
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-50-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-50-output-1.png)
 
 ```python
 plot_series(
@@ -864,7 +864,7 @@ plot_series(
 )
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-51-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-51-output-1.png)
 
 # Choose Forecasting method for different groups of series
 
@@ -885,7 +885,7 @@ fcst_df = pd.pivot_table(fcst_df, index=['unique_id', 'ds'], values=['forecast']
 plot_series(Y_df, fcst_df, max_insample_length=28 * 3)
 ```
 
-![](comparing_methods_files/figure-markdown_strict/cell-53-output-1.png)
+![](./comparing_methods_files/figure-markdown_strict/cell-53-output-1.png)
 
 # Further materials
 

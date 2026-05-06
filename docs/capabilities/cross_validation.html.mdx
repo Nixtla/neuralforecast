@@ -111,7 +111,7 @@ Y_df.head()
 plot_series(Y_df)
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-7-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-7-output-1.png)
 
 ## 3. Using cross-validation
 
@@ -165,7 +165,7 @@ plt.legend()
 plt.tight_layout()
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-9-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-9-output-1.png)
 
 In the figure above, we observe four cutoff points, each corresponding
 to a cross-validation window. Note that these windows are defined from
@@ -222,7 +222,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-11-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-11-output-1.png)
 
 Here, we predict only the test set, which corresponds to the last 200
 time steps. Since the model has a forecast horizon of 100, and
@@ -263,7 +263,7 @@ plt.legend()
 plt.tight_layout()
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-13-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-13-output-1.png)
 
 Notice that when we run cross-validation with `refit=True`, there were 4
 training loops that were completed. This is expected because the model
@@ -312,7 +312,7 @@ plt.legend()
 plt.tight_layout()
 ```
 
-![](cross_validation_files/figure-markdown_strict/cell-15-output-1.png)
+![](./cross_validation_files/figure-markdown_strict/cell-15-output-1.png)
 
 In the figure above, we see that our two folds overlap between time
 steps 601 and 650, since the step size is 50. This happens because:
