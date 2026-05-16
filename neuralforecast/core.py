@@ -198,6 +198,7 @@ MODEL_FILENAME_DICT = {
     "softs": SOFTS,
     "autosofts": SOFTS,
     "softssharp": SOFTSSharp,
+    "autosoftssharp": SOFTSSharp,
     "timemixer": TimeMixer,
     "autotimemixer": TimeMixer,
     "kan": KAN,

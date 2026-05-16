@@ -31,7 +31,7 @@ The optimization process uses temporal cross-validation where the validation set
 
 ## 2. Available AutoModels
 
-NeuralForecast provides 34 `AutoModel` variants, each wrapping a specific forecasting model with automatic hyperparameter optimization. Each `AutoModel` has a `default_config` attribute that defines sensible search spaces for its corresponding model.
+NeuralForecast provides `AutoModel` variants, each wrapping a specific forecasting model with automatic hyperparameter optimization. Each `AutoModel` has a `default_config` attribute that defines sensible search spaces for its corresponding model.
 
 ### RNN-Based Models
 Recurrent neural networks for sequential forecasting:
@@ -83,6 +83,7 @@ Models designed for specific forecasting scenarios:
 - `AutoKAN`: [Kolmogorov-Arnold Network for time series](./models.kan.html)
 - `AutoStemGNN`: [Graph neural network for multivariate forecasting](./models.stemgnn.html)
 - `AutoSOFTS`: [Spectral Optimal Fourier Transform model](./models.softs.html)
+- `AutoSOFTSSharp`: [SOFTS extension with stochastic variable-position encoding](./models.softssharp.html)
 - `AutoTimeMixer`: [Temporal mixing architecture](./models.timemixer.html)
 - `AutoRMoK`: [Random Mixture of Kernels](./models.rmok.html)
 - `AutoHINT`: [Hierarchical forecasting with automatic reconciliation](./models.hint.html)

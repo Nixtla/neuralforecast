@@ -100,13 +100,44 @@ class STADSharp(nn.Module):
 class SOFTSSharp(BaseModel):
     """SOFTSSharp
 
-    SOFTS# (SOFTSSharp) extends SOFTS with stochastic variable-position
-    encoding and dropout inside the STAD component.
+    SOFTS# (SOFTSSharp) extends SOFTS by stochastically adding
+    variable-position embeddings and multiple dropout layers inside the STAD
+    component.
 
     Args:
+        h (int): Forecast horizon.
+        input_size (int): Autoregressive inputs size.
+        n_series (int): Number of time-series.
+        hidden_size (int): Dimension of the model.
+        d_core (int): Dimension of core in STADSharp.
+        e_layers (int): Number of encoder layers.
+        d_ff (int): Dimension of fully-connected layer.
+        dropout (float): Dropout rate.
         pe_keep_prob (float): probability of applying variable-position encoding
             during training. During inference, the positional encoding is scaled
             by this value.
+        use_norm (bool): Whether to normalize or not.
+        loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch.html).
+        valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch.html).
+        max_steps (int): Maximum number of training steps.
+        learning_rate (float): Learning rate between (0, 1).
+        num_lr_decays (int): Number of learning rate decays, evenly distributed across max_steps.
+        early_stop_patience_steps (int): Number of validation iterations before early stopping.
+        val_monitor (str): Metric to monitor for early stopping.
+        val_check_steps (int): Number of training steps between every validation loss check.
+        batch_size (int): Number of different series in each batch.
+        valid_batch_size (int): Number of different series in each validation and test batch, if None uses batch_size.
+        windows_batch_size (int): Number of windows to sample in each training batch, default uses all.
+        inference_windows_batch_size (int): Number of windows to sample in each inference batch, -1 uses all.
+        start_padding_enabled (bool): If True, the model will pad the time series with zeros at the beginning, by input size.
+        step_size (int): Step size between each window of temporal data.
+        scaler_type (str): Type of scaler for temporal inputs normalization.
+        random_seed (int): Random seed for pytorch initializer and numpy generators.
+        drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full batch.
+        alias (str): Optional custom name of the model.
+
+    References:
+        - [Lu Han, Xu-Yang Chen, Han-Jia Ye, De-Chuan Zhan. "SOFTS: Efficient Multivariate Time Series Forecasting with Series-Core Fusion"](https://arxiv.org/pdf/2404.14197)
     """
 
     # Class attributes
