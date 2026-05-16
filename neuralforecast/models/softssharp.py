@@ -137,6 +137,8 @@ class SOFTSSharp(BaseModel):
         alias (str): Optional custom name of the model.
 
     References:
+        - [Hrvoje Ljubić. "SOFTSSharp: SOFTS extension with stochastic variable-position encoding", reference implementation; manuscript in preparation](https://github.com/hljubic/SOFTSsharp)
+        - [Hrvoje Ljubić, Goran Martinović, Tomislav Volarić, Robert Rozić. "SOFTS++: Fast and accurate linear model for multivariate long-term time series forecasting", related work](https://doi.org/10.1177/1088467X251380055)
         - [Lu Han, Xu-Yang Chen, Han-Jia Ye, De-Chuan Zhan. "SOFTS: Efficient Multivariate Time Series Forecasting with Series-Core Fusion"](https://arxiv.org/pdf/2404.14197)
     """
 

@@ -31,7 +31,7 @@ The optimization process uses temporal cross-validation where the validation set
 
 ## 2. Available AutoModels
 
-NeuralForecast provides `AutoModel` variants, each wrapping a specific forecasting model with automatic hyperparameter optimization. Each `AutoModel` has a `default_config` attribute that defines sensible search spaces for its corresponding model.
+NeuralForecast provides 35 `AutoModel` variants, each wrapping a specific forecasting model with automatic hyperparameter optimization. Each `AutoModel` has a `default_config` attribute that defines sensible search spaces for its corresponding model.
 
 ### RNN-Based Models
 Recurrent neural networks for sequential forecasting:
