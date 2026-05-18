@@ -33,7 +33,7 @@ Networks on Sequence Modeling”.](https:arxivorg/abs/1412.3555)
 Encoder-Decoder Approaches”.](https://arxiv.org/abs/1409.1259)
 
 
-![Figure 1. Gated Recurrent Unit Cell.](imgs_models/gru.png)
+![Figure 1. Gated Recurrent Unit Cell.](./imgs_models/gru.png)
 *Figure 1. Gated Recurrent Unit
 Cell.*
 

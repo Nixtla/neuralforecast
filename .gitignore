@@ -44,3 +44,4 @@ nbs/_extensions
 *.png
 
 CLAUDE.md
+.venv/

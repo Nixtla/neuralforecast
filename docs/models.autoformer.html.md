@@ -29,7 +29,7 @@ long-term series
 forecasting”](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)
 
 
-![Figure 1. Autoformer Architecture.](imgs_models/autoformer.png)
+![Figure 1. Autoformer Architecture.](./imgs_models/autoformer.png)
 *Figure 1. Autoformer
 Architecture.*
 
