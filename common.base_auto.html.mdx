@@ -24,7 +24,7 @@ Comprehending the impacts of hyperparameters is still a
 precious skill, as it can help guide the design of informed hyperparameter
 spaces that are faster to explore automatically.
 
-![](imgs_models/data_splits.png)
+![](./imgs_models/data_splits.png)
 *Figure 1. Example of dataset split (left), validation (yellow) and test (orange). The hyperparameter optimization guiding signal is obtained from the validation set.*
 
 ## 

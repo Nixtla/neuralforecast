@@ -30,7 +30,7 @@ of the variance dwells, contrary to other deep learning techniques like
     Forecasting.](https://www.sciencedirect.com/science/article/pii/S0169207019301888)
 
 
-![](imgs_models/temporal_norm.png)
+![](./imgs_models/temporal_norm.png)
 *Figure 1. Illustration of temporal normalization (left), layer normalization (center) and batch normalization (right). The entries in green show the components used to compute the normalizing statistics.*
 
 ## 1. Auxiliary Functions
