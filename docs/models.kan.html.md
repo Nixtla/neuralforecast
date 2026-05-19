@@ -14,7 +14,7 @@ Perceptrons (MLPs). This model uses KANs similarly as our MLP model.
 James Halverson, Marin Soljačić, Thomas Y. Hou, Max Tegmark. “KAN:
 Kolmogorov–Arnold Networks”](https://arxiv.org/html/2404.19756v1)
 
-![Figure 1. KAN compared to MLP.](imgs_models/kan.png)
+![Figure 1. KAN compared to MLP.](./imgs_models/kan.png)
 *Figure 1. KAN compared to
 MLP.*
 
