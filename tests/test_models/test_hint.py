@@ -87,3 +87,37 @@ def test_hint_model():
             parent_value = hint_mean[parent_idx]
             children_sum = hint_mean[children_list].sum()
             np.testing.assert_allclose(children_sum, parent_value, rtol=1e-6)
+
+
+# HINT wrapper must survive nf.fit() so that
+# nf.predict() emits the HINT column and applies reconciliation.
+def test_hint_fit_predict():
+    Y_df, S, quantiles = setup_synthetic_data()
+    nhits = NHITS(
+        h=4,
+        input_size=4,
+        loss=GMM(n_components=2, quantiles=quantiles, num_samples=len(quantiles)),
+        max_steps=5,
+        early_stop_patience_steps=2,
+        val_check_steps=1,
+        scaler_type="robust",
+        learning_rate=1e-3,
+    )
+    model = HINT(h=4, model=nhits, S=S, reconciliation="BottomUp")
+
+    nf = NeuralForecast(models=[model], freq="Q")
+    nf.fit(df=Y_df, val_size=4)
+    forecasts = nf.predict()
+
+    assert isinstance(nf.models[0], HINT), (
+        "HINT wrapper was replaced by the underlying model after fit()."
+    )
+    assert "HINT" in forecasts.columns, "fit()/predict() did not emit a HINT column."
+
+    parent_children_dict = {0: [1, 2], 1: [3, 4], 2: [5, 6]}
+    for _, df in forecasts.groupby("ds"):
+        hint_mean = df["HINT"].values
+        for parent_idx, children_list in parent_children_dict.items():
+            parent_value = hint_mean[parent_idx]
+            children_sum = hint_mean[children_list].sum()
+            np.testing.assert_allclose(children_sum, parent_value, rtol=1e-6)
