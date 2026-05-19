@@ -252,6 +252,11 @@ class BaseAuto(pl.LightningModule):
         )
 
         if self.run_config is not None:
+            if self.callbacks is not None:
+                warnings.warn(
+                    "`callbacks` is ignored when `run_config` is provided; "
+                    "set callbacks on the RunConfig instead.",
+                )
             run_config = self.run_config
         else:
             run_config = air.RunConfig(callbacks=self.callbacks, verbose=verbose)
