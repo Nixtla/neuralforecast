@@ -44,6 +44,7 @@ BaseAuto(
     alias=None,
     backend="ray",
     callbacks=None,
+    run_config=None,
 )
 ```
 
@@ -78,6 +79,7 @@ Name | Type | Description | Default
 `alias` | <code>[str](#str)</code> | Custom name of the model. | <code>None</code>
 `backend` | <code>[str](#str)</code> | Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'. | <code>'ray'</code>
 `callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html optuna reference: https://optuna.readthedocs.io/en/stable | <code>None</code>
+`run_config` | <code>[RunConfig](#ray.air.RunConfig)</code> | Ray Tune `RunConfig` forwarded to `tune.Tuner`. Use this to customize Ray Tune output. When provided, the user-supplied `RunConfig` is used as-is, so `callbacks` and `verbose` must be set on it directly. Only used with `backend='ray'`. See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html. | <code>None</code>
 
 ## 2. Available AutoModels
 
