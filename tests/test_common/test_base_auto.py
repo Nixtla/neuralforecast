@@ -169,6 +169,33 @@ def test_ray_time_budget(setup_module):
     assert y_hat.shape[0] > 0
 
 
+def test_ray_run_config_storage_path(setup_module, tmp_path):
+    dataset, _, _ = setup_module
+    from ray import air
+
+    storage_path = tmp_path / "ray_results"
+    config = {
+        "hidden_size": tune.choice([512]),
+        "num_layers": tune.choice([3, 4]),
+        "input_size": 12,
+        "max_steps": 1,
+        "val_check_steps": 1,
+    }
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config,
+        num_samples=1,
+        cpus=1,
+        gpus=0,
+        run_config=air.RunConfig(storage_path=str(storage_path), name="nf_test"),
+    )
+    auto.fit(dataset=dataset)
+    assert (storage_path / "nf_test").is_dir()
+
+
 def test_optuna_time_budget(setup_module):
     dataset, _, _ = setup_module
     auto = BaseAuto(

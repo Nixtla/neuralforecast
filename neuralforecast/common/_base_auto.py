@@ -64,6 +64,11 @@ class BaseAuto(pl.LightningModule):
         callbacks (list of callable): List of functions to call during the optimization process.
             ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
             optuna reference: https://optuna.readthedocs.io/en/stable
+        run_config (ray.air.RunConfig, optional): Ray Tune `RunConfig` forwarded to `tune.Tuner`.
+            Use this to customize Ray Tune output.
+            When provided, the user-supplied `RunConfig` is used as-is, so `callbacks`
+            and `verbose` must be set on it directly. Only used with `backend='ray'`.
+            See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
     """
 
     def __init__(
@@ -83,6 +88,7 @@ class BaseAuto(pl.LightningModule):
         alias=None,
         backend="ray",
         callbacks=None,
+        run_config=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -160,6 +166,7 @@ class BaseAuto(pl.LightningModule):
         self.alias = alias
         self.backend = backend
         self.callbacks = callbacks
+        self.run_config = run_config
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -244,9 +251,14 @@ class BaseAuto(pl.LightningModule):
             else None
         )
 
+        if self.run_config is not None:
+            run_config = self.run_config
+        else:
+            run_config = air.RunConfig(callbacks=self.callbacks, verbose=verbose)
+
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
+            run_config=run_config,
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
