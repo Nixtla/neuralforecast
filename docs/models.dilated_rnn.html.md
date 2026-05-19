@@ -37,7 +37,7 @@ al. “Zalando Research: PyTorch Dilated Recurrent Neural
 Networks”.](https://arxiv.org/abs/1710.02224)
 
 
-![Figure 1. Three layer DilatedRNN with dilation 1, 2, 4.](imgs_models/dilated_rnn.png)
+![Figure 1. Three layer DilatedRNN with dilation 1, 2, 4.](./imgs_models/dilated_rnn.png)
 *Figure 1. Three layer DilatedRNN with
 dilation 1, 2, 4.*
 

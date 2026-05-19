@@ -27,7 +27,7 @@ Fusion Transformers for interpretable multi-horizon time series
 forecasting”](https://www.sciencedirect.com/science/article/pii/S0169207021000637)
 
 
-![Figure 1. Temporal Fusion Transformer Architecture.](imgs_models/tft_architecture.png)
+![Figure 1. Temporal Fusion Transformer Architecture.](./imgs_models/tft_architecture.png)
 *Figure 1. Temporal Fusion Transformer Architecture.*
 
 ## 1. Temporal Fusion Decoder
@@ -421,7 +421,7 @@ transformation is defined by:
 $$\mathrm{GLU}(\gamma) = \sigma(\mathbf{W}_{4}\gamma +b_{4}) \odot (\mathbf{W}_{5}\gamma +b_{5})$$
 
 
-![Figure 2. Gated Residual Network.](imgs_models/tft_grn.png)
+![Figure 2. Gated Residual Network.](./imgs_models/tft_grn.png)
 *Figure 2. Gated Residual Network.*
 
 ### 4.2 Variable Selection Networks
@@ -444,7 +444,7 @@ $$s^{(h)}_{t}=\mathrm{SoftMax}(\mathrm{GRN}(\mathbf{E}^{(h)}_{t},\mathbf{E}^{(s)
 The VSN processed features are then:
 $$\tilde{\mathbf{E}}^{(h)}_{t}= \sum_{j} s^{(h)}_{j} \tilde{e}^{(h)}_{t,j}$$
 
-![Figure 3. Variable Selection Network](imgs_models/tft_vsn.png)
+![Figure 3. Variable Selection Network](./imgs_models/tft_vsn.png)
 *Figure 3. Variable Selection Network*
 
 ### 4.3. Multi-Head Attention

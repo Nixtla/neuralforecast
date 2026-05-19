@@ -35,7 +35,7 @@ Transformer for Long Sequence Time-Series
 Forecasting”](https://arxiv.org/abs/2012.07436)
 
 
-![Figure 1. Temporal Fusion Transformer Architecture.](imgs_models/informer_architecture.png)
+![Figure 1. Temporal Fusion Transformer Architecture.](./imgs_models/informer_architecture.png)
 *Figure 1. Temporal Fusion Transformer
 Architecture.*
 

@@ -38,7 +38,7 @@ Ben Taieb, Shanika Wickramasuriya, and Artur Dubrawski (2022).
 forecasting in python”. Journal of Machine Learning Research, submitted,
 abs/2207.03517, 2022b.](https://arxiv.org/abs/2207.03517)
 
-![Figure 1. Hierarchical Mixture Networks (HINT).](imgs_models/hint.png)
+![Figure 1. Hierarchical Mixture Networks (HINT).](./imgs_models/hint.png)
 *Figure 1. Hierarchical Mixture Networks
 (HINT).*
 
@@ -68,7 +68,7 @@ Outline:
 3. Fit and Predict HINT
 4. Forecast Plot
 
-![](imgs_models/hint_notation.png)
+![](./imgs_models/hint_notation.png)
 
 
 ```python

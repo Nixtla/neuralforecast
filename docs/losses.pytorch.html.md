@@ -34,7 +34,7 @@ These metrics are on the same scale as the data.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/mae_loss.png)
+![](./imgs_losses/mae_loss.png)
 
 ## Mean Squared Error (MSE)
 
@@ -43,7 +43,7 @@ These metrics are on the same scale as the data.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/mse_loss.png)
+![](./imgs_losses/mse_loss.png)
 
 ## Root Mean Squared Error (RMSE)
 
@@ -52,7 +52,7 @@ These metrics are on the same scale as the data.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/rmse_loss.png)
+![](./imgs_losses/rmse_loss.png)
 
 # 2. Percentage errors
 
@@ -65,7 +65,7 @@ These metrics are unit-free, suitable for comparisons across series.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/mape_loss.png)
+![](./imgs_losses/mape_loss.png)
 
 ## Symmetric MAPE (sMAPE)
 
@@ -85,7 +85,7 @@ These metrics measure the relative improvements versus baselines.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/mase_loss.png)
+![](./imgs_losses/mase_loss.png)
 
 ## Relative Mean Squared Error (relMSE)
 
@@ -115,7 +115,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/q_loss.png)
+![](./imgs_losses/q_loss.png)
 
 ## Multi Quantile Loss (MQLoss)
 
@@ -124,7 +124,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/mq_loss.png)
+![](./imgs_losses/mq_loss.png)
 
 ## Implicit Quantile Loss (IQLoss)
 
@@ -152,7 +152,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/pmm.png)
+![](./imgs_losses/pmm.png)
 
 ## Gaussian Mixture Mesh (GMM)
 
@@ -161,7 +161,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/gmm.png)
+![](./imgs_losses/gmm.png)
 
 ## Negative Binomial Mixture Mesh (NBMM)
 
@@ -179,7 +179,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/huber_loss.png)
+![](./imgs_losses/huber_loss.png)
 
 ## Tukey Loss
 
@@ -188,7 +188,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/tukey_loss.png)
+![](./imgs_losses/tukey_loss.png)
 
 ## Huberized Quantile Loss
 
@@ -197,7 +197,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/huber_qloss.png)
+![](./imgs_losses/huber_qloss.png)
 
 ## Huberized MQLoss
 
@@ -206,7 +206,7 @@ non-symmetrically deviation, producing under/over estimation.
       members: [__init__, __call__]
       heading_level: 3
 
-![](imgs_losses/hmq_loss.png)
+![](./imgs_losses/hmq_loss.png)
 
 ## Huberized IQLoss
 
