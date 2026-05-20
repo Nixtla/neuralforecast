@@ -50,6 +50,7 @@ BaseAuto(
     callbacks=None,
     run_config=None,
     study_kwargs=None,
+    create_study_kwargs=None,
 )
 ```
 
@@ -86,6 +87,7 @@ Name | Type | Description | Default
 `callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html optuna reference: https://optuna.readthedocs.io/en/stable | <code>None</code>
 `run_config` | <code>[RunConfig](#ray.air.RunConfig)</code> | Ray Tune `RunConfig` forwarded to `tune.Tuner`. Use this to customize Ray Tune output. When provided, the user-supplied `RunConfig` is used as-is, so `callbacks` and `verbose` must be set on it directly. Only used with `backend='ray'`. See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html. | <code>None</code>
 `study_kwargs` | <code>[dict](#dict)</code> | Additional keyword arguments forwarded to `optuna.Study.optimize`. Keys that overlap with arguments already passed by this class (`n_trials`, `show_progress_bar`, `callbacks`, `timeout`) take precedence over the defaults. Only used with `backend='optuna'`. See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize. | <code>None</code>
+`create_study_kwargs` | <code>[dict](#dict)</code> | Additional keyword arguments forwarded to `optuna.create_study`. Keys that overlap with arguments already passed by this class (`sampler`, `direction`) take precedence over the defaults. Only used with `backend='optuna'`. See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html. | <code>None</code>
 
 #### `BaseAuto.fit`
 
