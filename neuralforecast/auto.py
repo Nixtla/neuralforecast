@@ -87,6 +87,7 @@ class AutoRNN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -110,6 +111,7 @@ class AutoRNN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -163,6 +165,7 @@ class AutoLSTM(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -187,6 +190,7 @@ class AutoLSTM(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -240,6 +244,7 @@ class AutoGRU(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -264,6 +269,7 @@ class AutoGRU(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -316,6 +322,7 @@ class AutoTCN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -340,6 +347,7 @@ class AutoTCN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -395,6 +403,7 @@ class AutoDeepAR(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -419,6 +428,7 @@ class AutoDeepAR(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -471,6 +481,7 @@ class AutoDilatedRNN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -495,6 +506,7 @@ class AutoDilatedRNN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -547,6 +559,7 @@ class AutoBiTCN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -571,6 +584,7 @@ class AutoBiTCN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -623,6 +637,7 @@ class AutoxLSTM(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -647,6 +662,7 @@ class AutoxLSTM(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -697,6 +713,7 @@ class AutoMLP(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -721,6 +738,7 @@ class AutoMLP(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -769,6 +787,7 @@ class AutoNBEATS(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -793,6 +812,7 @@ class AutoNBEATS(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -841,6 +861,7 @@ class AutoNBEATSx(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -865,6 +886,7 @@ class AutoNBEATSx(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -926,6 +948,7 @@ class AutoNHITS(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -950,6 +973,7 @@ class AutoNHITS(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -999,6 +1023,7 @@ class AutoDLinear(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1023,6 +1048,7 @@ class AutoDLinear(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1071,6 +1097,7 @@ class AutoNLinear(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1095,6 +1122,7 @@ class AutoNLinear(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1151,6 +1179,7 @@ class AutoTiDE(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1175,6 +1204,7 @@ class AutoTiDE(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1226,6 +1256,7 @@ class AutoDeepNPTS(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1250,6 +1281,7 @@ class AutoDeepNPTS(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1301,6 +1333,7 @@ class AutoKAN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1325,6 +1358,7 @@ class AutoKAN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1375,6 +1409,7 @@ class AutoTFT(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1399,6 +1434,7 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1449,6 +1485,7 @@ class AutoVanillaTransformer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1473,6 +1510,7 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1523,6 +1561,7 @@ class AutoInformer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1547,6 +1586,7 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1597,6 +1637,7 @@ class AutoAutoformer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1621,6 +1662,7 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1670,6 +1712,7 @@ class AutoFEDformer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1694,6 +1737,7 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1746,6 +1790,7 @@ class AutoPatchTST(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1770,6 +1815,7 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1821,6 +1867,7 @@ class AutoiTransformer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1856,6 +1903,7 @@ class AutoiTransformer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1912,6 +1960,7 @@ class AutoTimeXer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1947,6 +1996,7 @@ class AutoTimeXer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2002,6 +2052,7 @@ class AutoTimesNet(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2026,6 +2077,7 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2077,6 +2129,7 @@ class AutoStemGNN(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2112,6 +2165,7 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2155,6 +2209,7 @@ class AutoHINT(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         super(AutoHINT, self).__init__(
@@ -2175,6 +2230,7 @@ class AutoHINT(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
         if backend == "optuna":
             raise Exception("Optuna is not supported for AutoHINT.")
@@ -2247,6 +2303,7 @@ class AutoTSMixer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2282,6 +2339,7 @@ class AutoTSMixer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2339,6 +2397,7 @@ class AutoTSMixerx(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2374,6 +2433,7 @@ class AutoTSMixerx(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2430,6 +2490,7 @@ class AutoMLPMultivariate(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2465,6 +2526,7 @@ class AutoMLPMultivariate(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2521,6 +2583,7 @@ class AutoSOFTS(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2556,6 +2619,7 @@ class AutoSOFTS(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2613,6 +2677,7 @@ class AutoTimeMixer(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2648,6 +2713,7 @@ class AutoTimeMixer(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2707,6 +2773,7 @@ class AutoRMoK(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2742,6 +2809,7 @@ class AutoRMoK(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2798,6 +2866,7 @@ class AutoXLinear(BaseAuto):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2833,6 +2902,7 @@ class AutoXLinear(BaseAuto):
             callbacks=callbacks,
             run_config=run_config,
             study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod

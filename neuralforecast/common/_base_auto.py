@@ -75,6 +75,11 @@ class BaseAuto(pl.LightningModule):
             `show_progress_bar`, `callbacks`, `timeout`) take precedence over the
             defaults. Only used with `backend='optuna'`.
             See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize.
+        create_study_kwargs (dict, optional): Additional keyword arguments forwarded
+            to `optuna.create_study`.
+            Keys that overlap with arguments already passed by this class (`sampler`,
+            `direction`) take precedence over the defaults. Only used with `backend='optuna'`.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
     """
 
     def __init__(
@@ -96,6 +101,7 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
         run_config=None,
         study_kwargs=None,
+        create_study_kwargs=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -124,6 +130,10 @@ class BaseAuto(pl.LightningModule):
         if backend == "ray" and study_kwargs is not None:
             warnings.warn(
                 "`study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
+            )
+        if backend == "ray" and create_study_kwargs is not None:
+            warnings.warn(
+                "`create_study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
             )
         if backend == "optuna" and run_config is not None:
             warnings.warn(
@@ -183,6 +193,7 @@ class BaseAuto(pl.LightningModule):
         self.callbacks = callbacks
         self.run_config = run_config
         self.study_kwargs = study_kwargs
+        self.create_study_kwargs = create_study_kwargs
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -354,13 +365,19 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
                 distributed_config=distributed_config,
             )
-            trial.set_user_attr("ALL_PARAMS", user_cfg)
+            # `loss` and `valid_loss` are PyTorch modules and not JSON-serializable;
+            # exclude them so the study can be persisted to backends like SQLite.
+            # They are re-attached from `self.loss` / `self.valid_loss` in `fit`.
+            persistable_cfg = {
+                k: v for k, v in user_cfg.items() if k not in ("loss", "valid_loss")
+            }
+            trial.set_user_attr("ALL_PARAMS", persistable_cfg)
             metrics = model.metrics
             trial.set_user_attr(
                 "METRICS",
                 {
-                    "loss": metrics["ptl/val_loss"],
-                    "train_loss": metrics["train_loss"],
+                    "loss": float(metrics["ptl/val_loss"]),
+                    "train_loss": float(metrics["train_loss"]),
                 },
             )
             return trial.user_attrs["METRICS"]["loss"]
@@ -370,7 +387,16 @@ class BaseAuto(pl.LightningModule):
         else:
             sampler = None
 
-        study = optuna.create_study(sampler=sampler, direction="minimize")
+        create_kwargs = {"sampler": sampler, "direction": "minimize"}
+        if self.create_study_kwargs is not None:
+            overridden = sorted(set(self.create_study_kwargs) & set(create_kwargs))
+            if overridden:
+                warnings.warn(
+                    f"`create_study_kwargs` overrides default values for {overridden}; "
+                    "user-supplied values take precedence.",
+                )
+            create_kwargs.update(self.create_study_kwargs)
+        study = optuna.create_study(**create_kwargs)
         optimize_kwargs = {
             "n_trials": num_samples,
             "show_progress_bar": verbose,
@@ -461,7 +487,14 @@ class BaseAuto(pl.LightningModule):
                 distributed_config=distributed_config,
                 time_budget=self.time_budget,
             )
-            best_config = results.best_trial.user_attrs["ALL_PARAMS"]
+            # Deepcopy so the final fit doesn't mutate the loss instances stored on
+            # `self` (matches the historic behavior where optuna's `set_user_attr`
+            # deepcopied the config dict).
+            best_config = {
+                **results.best_trial.user_attrs["ALL_PARAMS"],
+                "loss": deepcopy(self.loss),
+                "valid_loss": deepcopy(self.valid_loss),
+            }
         self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
