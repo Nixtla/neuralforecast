@@ -69,6 +69,12 @@ class BaseAuto(pl.LightningModule):
             When provided, the user-supplied `RunConfig` is used as-is, so `callbacks`
             and `verbose` must be set on it directly. Only used with `backend='ray'`.
             See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
+        study_kwargs (dict, optional): Additional keyword arguments forwarded to
+            `optuna.Study.optimize`. Keys that
+            overlap with arguments already passed by this class (`n_trials`,
+            `show_progress_bar`, `callbacks`, `timeout`) take precedence over the
+            defaults. Only used with `backend='optuna'`.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize.
     """
 
     def __init__(
@@ -89,6 +95,7 @@ class BaseAuto(pl.LightningModule):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -113,6 +120,14 @@ class BaseAuto(pl.LightningModule):
         else:
             raise ValueError(
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
+            )
+        if backend == "ray" and study_kwargs is not None:
+            warnings.warn(
+                "`study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
+            )
+        if backend == "optuna" and run_config is not None:
+            warnings.warn(
+                "`run_config` is ignored when `backend='optuna'`; it only applies to `backend='ray'`.",
             )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
@@ -167,6 +182,7 @@ class BaseAuto(pl.LightningModule):
         self.backend = backend
         self.callbacks = callbacks
         self.run_config = run_config
+        self.study_kwargs = study_kwargs
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -355,13 +371,21 @@ class BaseAuto(pl.LightningModule):
             sampler = None
 
         study = optuna.create_study(sampler=sampler, direction="minimize")
-        study.optimize(
-            objective,
-            n_trials=num_samples,
-            show_progress_bar=verbose,
-            callbacks=self.callbacks,
-            timeout=time_budget,
-        )
+        optimize_kwargs = {
+            "n_trials": num_samples,
+            "show_progress_bar": verbose,
+            "callbacks": self.callbacks,
+            "timeout": time_budget,
+        }
+        if self.study_kwargs is not None:
+            overridden = sorted(set(self.study_kwargs) & set(optimize_kwargs))
+            if overridden:
+                warnings.warn(
+                    f"`study_kwargs` overrides default values for {overridden}; "
+                    "user-supplied values take precedence.",
+                )
+            optimize_kwargs.update(self.study_kwargs)
+        study.optimize(objective, **optimize_kwargs)
         return study
 
     def _fit_model(
