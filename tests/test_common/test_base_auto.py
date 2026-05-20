@@ -196,6 +196,95 @@ def test_ray_run_config_storage_path(setup_module, tmp_path):
     assert (storage_path / "nf_test").is_dir()
 
 
+def config_with_failure(trial):
+    cfg = {
+        "hidden_size": trial.suggest_categorical("hidden_size", [512]),
+        "num_layers": trial.suggest_categorical("num_layers", [3]),
+        "input_size": 12,
+        "max_steps": 1,
+        "val_check_steps": 1,
+    }
+    if getattr(trial, "number", -1) == 0:
+        raise RuntimeError("simulated failing trial")
+    return cfg
+
+
+def test_optuna_study_kwargs_catch(setup_module):
+    dataset, _, _ = setup_module
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_with_failure,
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=2,
+        backend="optuna",
+        cpus=1,
+        gpus=0,
+        study_kwargs={"catch": (RuntimeError,)},
+    )
+    auto.fit(dataset=dataset)
+    assert isinstance(auto.results, optuna.Study)
+    states = [t.state for t in auto.results.trials]
+    assert optuna.trial.TrialState.FAIL in states
+    assert optuna.trial.TrialState.COMPLETE in states
+    assert auto.results.best_trial.state == optuna.trial.TrialState.COMPLETE
+
+
+def test_study_kwargs_wrong_backend_warns(setup_config):
+    with pytest.warns(UserWarning, match="study_kwargs.*backend='ray'"):
+        BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            cpus=1,
+            gpus=0,
+            study_kwargs={"catch": (RuntimeError,)},
+        )
+
+
+def test_run_config_wrong_backend_warns():
+    from ray import air
+
+    with pytest.warns(UserWarning, match="run_config.*backend='optuna'"):
+        BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=config_f,
+            search_alg=optuna.samplers.RandomSampler(seed=0),
+            num_samples=1,
+            backend="optuna",
+            cpus=1,
+            gpus=0,
+            run_config=air.RunConfig(name="nf_test"),
+        )
+
+
+def test_optuna_study_kwargs_override_warns(setup_module):
+    dataset, _, _ = setup_module
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_f,
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=1,
+        backend="optuna",
+        cpus=1,
+        gpus=0,
+        study_kwargs={"n_trials": 1},
+    )
+    with pytest.warns(UserWarning, match="overrides default values for \\['n_trials'\\]"):
+        auto.fit(dataset=dataset)
+
+
 def test_optuna_time_budget(setup_module):
     dataset, _, _ = setup_module
     auto = BaseAuto(
