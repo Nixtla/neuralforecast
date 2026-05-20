@@ -125,6 +125,10 @@ class BaseAuto(pl.LightningModule):
             warnings.warn(
                 "`create_study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
             )
+        if backend == "optuna" and run_config is not None:
+            warnings.warn(
+                "`run_config` is ignored when `backend='optuna'`; it only applies to `backend='ray'`.",
+            )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:

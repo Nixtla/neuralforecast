@@ -239,6 +239,25 @@ def test_optuna_create_study_kwargs_persistence(setup_module, tmp_path):
     assert len(auto2.results.trials) == 2
 
 
+def test_run_config_wrong_backend_warns():
+    from ray import air
+
+    with pytest.warns(UserWarning, match="run_config.*backend='optuna'"):
+        BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=config_f,
+            search_alg=optuna.samplers.RandomSampler(seed=0),
+            num_samples=1,
+            backend="optuna",
+            cpus=1,
+            gpus=0,
+            run_config=air.RunConfig(name="nf_test"),
+        )
+
+
 def test_create_study_kwargs_wrong_backend_warns(setup_config):
     with pytest.warns(UserWarning, match="create_study_kwargs.*backend='ray'"):
         BaseAuto(
