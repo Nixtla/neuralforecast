@@ -86,6 +86,7 @@ class AutoRNN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
         # Define search space, input/output sizes
@@ -109,6 +110,7 @@ class AutoRNN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -162,6 +164,7 @@ class AutoLSTM(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -186,6 +189,7 @@ class AutoLSTM(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -239,6 +243,7 @@ class AutoGRU(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -263,6 +268,7 @@ class AutoGRU(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -315,6 +321,7 @@ class AutoTCN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -339,6 +346,7 @@ class AutoTCN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -394,6 +402,7 @@ class AutoDeepAR(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -418,6 +427,7 @@ class AutoDeepAR(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -470,6 +480,7 @@ class AutoDilatedRNN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -494,6 +505,7 @@ class AutoDilatedRNN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -546,6 +558,7 @@ class AutoBiTCN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -570,6 +583,7 @@ class AutoBiTCN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -622,6 +636,7 @@ class AutoxLSTM(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -646,6 +661,7 @@ class AutoxLSTM(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -696,6 +712,7 @@ class AutoMLP(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -720,6 +737,7 @@ class AutoMLP(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -768,6 +786,7 @@ class AutoNBEATS(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -792,6 +811,7 @@ class AutoNBEATS(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -840,6 +860,7 @@ class AutoNBEATSx(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -864,6 +885,7 @@ class AutoNBEATSx(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -925,6 +947,7 @@ class AutoNHITS(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -949,6 +972,7 @@ class AutoNHITS(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -998,6 +1022,7 @@ class AutoDLinear(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1022,6 +1047,7 @@ class AutoDLinear(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1070,6 +1096,7 @@ class AutoNLinear(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1094,6 +1121,7 @@ class AutoNLinear(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1150,6 +1178,7 @@ class AutoTiDE(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1174,6 +1203,7 @@ class AutoTiDE(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1225,6 +1255,7 @@ class AutoDeepNPTS(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1249,6 +1280,7 @@ class AutoDeepNPTS(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1300,6 +1332,7 @@ class AutoKAN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1324,6 +1357,7 @@ class AutoKAN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1374,6 +1408,7 @@ class AutoTFT(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1398,6 +1433,7 @@ class AutoTFT(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1448,6 +1484,7 @@ class AutoVanillaTransformer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1472,6 +1509,7 @@ class AutoVanillaTransformer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1522,6 +1560,7 @@ class AutoInformer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1546,6 +1585,7 @@ class AutoInformer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1596,6 +1636,7 @@ class AutoAutoformer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1620,6 +1661,7 @@ class AutoAutoformer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1669,6 +1711,7 @@ class AutoFEDformer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1693,6 +1736,7 @@ class AutoFEDformer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1745,6 +1789,7 @@ class AutoPatchTST(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1769,6 +1814,7 @@ class AutoPatchTST(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1820,6 +1866,7 @@ class AutoiTransformer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1855,6 +1902,7 @@ class AutoiTransformer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -1911,6 +1959,7 @@ class AutoTimeXer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -1946,6 +1995,7 @@ class AutoTimeXer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2001,6 +2051,7 @@ class AutoTimesNet(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2025,6 +2076,7 @@ class AutoTimesNet(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2076,6 +2128,7 @@ class AutoStemGNN(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2111,6 +2164,7 @@ class AutoStemGNN(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2154,6 +2208,7 @@ class AutoHINT(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2174,6 +2229,7 @@ class AutoHINT(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
         if backend == "optuna":
@@ -2246,6 +2302,7 @@ class AutoTSMixer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2281,6 +2338,7 @@ class AutoTSMixer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2338,6 +2396,7 @@ class AutoTSMixerx(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2373,6 +2432,7 @@ class AutoTSMixerx(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2429,6 +2489,7 @@ class AutoMLPMultivariate(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2464,6 +2525,7 @@ class AutoMLPMultivariate(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2520,6 +2582,7 @@ class AutoSOFTS(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2555,6 +2618,7 @@ class AutoSOFTS(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2612,6 +2676,7 @@ class AutoTimeMixer(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2647,6 +2712,7 @@ class AutoTimeMixer(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2706,6 +2772,7 @@ class AutoRMoK(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2741,6 +2808,7 @@ class AutoRMoK(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
@@ -2797,6 +2865,7 @@ class AutoXLinear(BaseAuto):
         backend="ray",
         callbacks=None,
         run_config=None,
+        study_kwargs=None,
         create_study_kwargs=None,
     ):
 
@@ -2832,6 +2901,7 @@ class AutoXLinear(BaseAuto):
             backend=backend,
             callbacks=callbacks,
             run_config=run_config,
+            study_kwargs=study_kwargs,
             create_study_kwargs=create_study_kwargs,
         )
 
