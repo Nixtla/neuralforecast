@@ -196,6 +196,83 @@ def test_ray_run_config_storage_path(setup_module, tmp_path):
     assert (storage_path / "nf_test").is_dir()
 
 
+def test_optuna_create_study_kwargs_persistence(setup_module, tmp_path):
+    dataset, _, _ = setup_module
+    db_path = tmp_path / "study.db"
+    create_study_kwargs = {
+        "study_name": "nf_persist",
+        "storage": f"sqlite:///{db_path}",
+        "load_if_exists": True,
+    }
+    auto1 = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_f,
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=1,
+        backend="optuna",
+        cpus=1,
+        gpus=0,
+        create_study_kwargs=create_study_kwargs,
+    )
+    auto1.fit(dataset=dataset)
+    assert db_path.exists()
+    assert len(auto1.results.trials) == 1
+
+    auto2 = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_f,
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=1,
+        backend="optuna",
+        cpus=1,
+        gpus=0,
+        create_study_kwargs=create_study_kwargs,
+    )
+    auto2.fit(dataset=dataset)
+    # The reloaded study keeps the first run's trial and appends the new one.
+    assert len(auto2.results.trials) == 2
+
+
+def test_create_study_kwargs_wrong_backend_warns(setup_config):
+    with pytest.warns(UserWarning, match="create_study_kwargs.*backend='ray'"):
+        BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            cpus=1,
+            gpus=0,
+            create_study_kwargs={"study_name": "ignored"},
+        )
+
+
+def test_optuna_create_study_kwargs_override_warns(setup_module):
+    dataset, _, _ = setup_module
+    auto = BaseAuto(
+        h=12,
+        loss=MAE(),
+        valid_loss=MSE(),
+        cls_model=MLP,
+        config=config_f,
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=1,
+        backend="optuna",
+        cpus=1,
+        gpus=0,
+        create_study_kwargs={"direction": "minimize"},
+    )
+    with pytest.warns(UserWarning, match="overrides default values for \\['direction'\\]"):
+        auto.fit(dataset=dataset)
+
+
 def test_optuna_time_budget(setup_module):
     dataset, _, _ = setup_module
     auto = BaseAuto(

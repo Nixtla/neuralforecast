@@ -69,6 +69,12 @@ class BaseAuto(pl.LightningModule):
             When provided, the user-supplied `RunConfig` is used as-is, so `callbacks`
             and `verbose` must be set on it directly. Only used with `backend='ray'`.
             See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
+        create_study_kwargs (dict, optional): Additional keyword arguments forwarded
+            to `optuna.create_study`. Useful for persisting the study across runs via
+            `create_study_kwargs={'study_name': ..., 'storage': 'sqlite:///path.db', 'load_if_exists': True}`.
+            Keys that overlap with arguments already passed by this class (`sampler`,
+            `direction`) take precedence over the defaults. Only used with `backend='optuna'`.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
     """
 
     def __init__(
@@ -89,6 +95,7 @@ class BaseAuto(pl.LightningModule):
         backend="ray",
         callbacks=None,
         run_config=None,
+        create_study_kwargs=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -113,6 +120,10 @@ class BaseAuto(pl.LightningModule):
         else:
             raise ValueError(
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
+            )
+        if backend == "ray" and create_study_kwargs is not None:
+            warnings.warn(
+                "`create_study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
             )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
@@ -167,6 +178,7 @@ class BaseAuto(pl.LightningModule):
         self.backend = backend
         self.callbacks = callbacks
         self.run_config = run_config
+        self.create_study_kwargs = create_study_kwargs
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -338,13 +350,19 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
                 distributed_config=distributed_config,
             )
-            trial.set_user_attr("ALL_PARAMS", user_cfg)
+            # `loss` and `valid_loss` are PyTorch modules and not JSON-serializable;
+            # exclude them so the study can be persisted to backends like SQLite.
+            # They are re-attached from `self.loss` / `self.valid_loss` in `fit`.
+            persistable_cfg = {
+                k: v for k, v in user_cfg.items() if k not in ("loss", "valid_loss")
+            }
+            trial.set_user_attr("ALL_PARAMS", persistable_cfg)
             metrics = model.metrics
             trial.set_user_attr(
                 "METRICS",
                 {
-                    "loss": metrics["ptl/val_loss"],
-                    "train_loss": metrics["train_loss"],
+                    "loss": float(metrics["ptl/val_loss"]),
+                    "train_loss": float(metrics["train_loss"]),
                 },
             )
             return trial.user_attrs["METRICS"]["loss"]
@@ -354,7 +372,16 @@ class BaseAuto(pl.LightningModule):
         else:
             sampler = None
 
-        study = optuna.create_study(sampler=sampler, direction="minimize")
+        create_kwargs = {"sampler": sampler, "direction": "minimize"}
+        if self.create_study_kwargs is not None:
+            overridden = sorted(set(self.create_study_kwargs) & set(create_kwargs))
+            if overridden:
+                warnings.warn(
+                    f"`create_study_kwargs` overrides default values for {overridden}; "
+                    "user-supplied values take precedence.",
+                )
+            create_kwargs.update(self.create_study_kwargs)
+        study = optuna.create_study(**create_kwargs)
         study.optimize(
             objective,
             n_trials=num_samples,
@@ -437,7 +464,11 @@ class BaseAuto(pl.LightningModule):
                 distributed_config=distributed_config,
                 time_budget=self.time_budget,
             )
-            best_config = results.best_trial.user_attrs["ALL_PARAMS"]
+            best_config = {
+                **results.best_trial.user_attrs["ALL_PARAMS"],
+                "loss": self.loss,
+                "valid_loss": self.valid_loss,
+            }
         self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,
