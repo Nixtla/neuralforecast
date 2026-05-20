@@ -70,8 +70,7 @@ class BaseAuto(pl.LightningModule):
             and `verbose` must be set on it directly. Only used with `backend='ray'`.
             See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
         create_study_kwargs (dict, optional): Additional keyword arguments forwarded
-            to `optuna.create_study`. Useful for persisting the study across runs via
-            `create_study_kwargs={'study_name': ..., 'storage': 'sqlite:///path.db', 'load_if_exists': True}`.
+            to `optuna.create_study`.
             Keys that overlap with arguments already passed by this class (`sampler`,
             `direction`) take precedence over the defaults. Only used with `backend='optuna'`.
             See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
@@ -468,10 +467,13 @@ class BaseAuto(pl.LightningModule):
                 distributed_config=distributed_config,
                 time_budget=self.time_budget,
             )
+            # Deepcopy so the final fit doesn't mutate the loss instances stored on
+            # `self` (matches the historic behavior where optuna's `set_user_attr`
+            # deepcopied the config dict).
             best_config = {
                 **results.best_trial.user_attrs["ALL_PARAMS"],
-                "loss": self.loss,
-                "valid_loss": self.valid_loss,
+                "loss": deepcopy(self.loss),
+                "valid_loss": deepcopy(self.valid_loss),
             }
         self.model = self._fit_model(
             cls_model=self.cls_model,
