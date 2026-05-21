@@ -497,7 +497,9 @@ class NeuralForecast:
                 `val_df` can be temporally independent (no requirement that it starts immediately after `df`).
                 Cannot be used together with `val_size`. Only supported when `df` is a pandas or polars DataFrame.
                 All series in `val_df` must have the same length.
-            use_init_models (bool, optional): Use initial model passed when NeuralForecast object was instantiated.
+            use_init_models (bool, optional): If True, discards any previously fitted weights
+                and reinitializes the models from the configs passed at `NeuralForecast(__init__)`.
+                Use this to start training from scratch. Defaults to False.
             verbose (bool): Print processing steps.
             id_col (str): Column that identifies each serie.
             time_col (str): Column that identifies each timestep, its values can be timestamps or integers.
@@ -1766,7 +1768,12 @@ class NeuralForecast:
     def _reset_models(self):
         self.models = [deepcopy(model) for model in self.models_init]
         if self._fitted:
-            print("WARNING: Deleting previously fitted models.")
+            warnings.warn(
+                "Deleting previously fitted models because `use_init_models=True` "
+                "was passed; fitted weights will be discarded and models reinitialized "
+                "from the configs given at `NeuralForecast(__init__)`.",
+                stacklevel=2,
+            )
 
     def _no_refit_cross_validation(
         self,
@@ -1776,6 +1783,7 @@ class NeuralForecast:
         step_size: int,
         val_size: Optional[int],
         test_size: int,
+        use_fitted: bool,
         verbose: bool,
         id_col: str,
         time_col: str,
@@ -1786,96 +1794,137 @@ class NeuralForecast:
         if (df is None) and not (hasattr(self, "dataset")):
             raise Exception("You must pass a DataFrame or have one stored.")
 
-        # Process and save new dataset (in self)
-        if df is not None:
-            validate_freq(df[time_col], self.freq)
-            self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
-                df=df,
-                static_df=static_df,
+        # When use_fitted=True we evaluate the already-fitted model on a new
+        # holdout `df` without retraining.
+        restore_fitted_state = use_fitted and df is not None
+        _snapshot: Dict[str, object] = {}
+        if restore_fitted_state:
+            _snapshot = {
+                attr: getattr(self, attr)
+                for attr in (
+                    "scalers_",
+                    "static_scalers_",
+                    "dataset",
+                    "uids",
+                    "last_dates",
+                    "ds",
+                    "id_col",
+                    "time_col",
+                    "target_col",
+                )
+            }
+
+        try:
+            # Process and save new dataset in self
+            if df is not None:
+                validate_freq(df[time_col], self.freq)
+                self.dataset, self.uids, self.last_dates, self.ds = (
+                    self._prepare_fit(
+                        df=df,
+                        static_df=static_df,
+                        id_col=id_col,
+                        time_col=time_col,
+                        target_col=target_col,
+                    )
+                )
+            else:
+                if verbose:
+                    print("Using stored dataset.")
+
+            if val_size is not None:
+                if self.dataset.min_size < (val_size + test_size):
+                    warnings.warn(
+                        "Validation and test sets are larger than the shorter time-series."
+                    )
+
+            fcsts_df = ufp.cv_times(
+                times=self.ds,
+                uids=self.uids,
+                indptr=self.dataset.indptr,
+                h=h,
+                test_size=test_size,
+                step_size=step_size,
                 id_col=id_col,
                 time_col=time_col,
-                target_col=target_col,
             )
-        else:
-            if verbose:
-                print("Using stored dataset.")
+            # the cv_times is sorted by window and then id
+            fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
 
-        if val_size is not None:
-            if self.dataset.min_size < (val_size + test_size):
-                warnings.warn(
-                    "Validation and test sets are larger than the shorter time-series."
+            fcsts_list: List = []
+            for model in self.models:
+                if self._add_level and (
+                    model.loss.outputsize_multiplier > 1
+                    or isinstance(model.loss, (IQLoss, HuberIQLoss))
+                ):
+                    continue
+
+                if use_fitted:
+                    _saved_model_test_size = model.get_test_size()
+                    model.set_test_size(test_size)
+                    try:
+                        model_fcsts = model.predict(
+                            self.dataset, step_size=step_size, h=h, **data_kwargs
+                        )
+                    finally:
+                        model.set_test_size(_saved_model_test_size)
+                else:
+                    model.fit(
+                        dataset=self.dataset,
+                        val_size=val_size,
+                        test_size=test_size,
+                    )
+                    model_fcsts = model.predict(
+                        self.dataset, step_size=step_size, h=h, **data_kwargs
+                    )
+                # Append predictions in memory placeholder
+                fcsts_list.append(model_fcsts)
+
+            fcsts = np.concatenate(fcsts_list, axis=-1)
+            # we may have allocated more space than needed
+            # each serie can produce at most (serie.size - 1) // self.h CV windows
+            effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
+            needs_trim = effective_sizes.sum() != fcsts.shape[0]
+            if self.scalers_ or needs_trim:
+                indptr = np.arange(
+                    0,
+                    n_windows * h * (self.dataset.n_groups + 1),
+                    n_windows * h,
+                    dtype=np.int32,
                 )
+                if self.scalers_:
+                    fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+                if needs_trim:
+                    # we keep only the effective samples of each serie from the cv results
+                    trimmed = np.empty_like(
+                        fcsts, shape=(effective_sizes.sum(), fcsts.shape[1])
+                    )
+                    cv_indptr = np.append(0, effective_sizes).cumsum(dtype=np.int32)
+                    for i in range(fcsts.shape[1]):
+                        ga = GroupedArray(fcsts[:, i], indptr)
+                        trimmed[:, i] = ga._tails(cv_indptr)
+                    fcsts = trimmed
 
-        fcsts_df = ufp.cv_times(
-            times=self.ds,
-            uids=self.uids,
-            indptr=self.dataset.indptr,
-            h=h,
-            test_size=test_size,
-            step_size=step_size,
-            id_col=id_col,
-            time_col=time_col,
-        )
-        # the cv_times is sorted by window and then id
-        fcsts_df = ufp.sort(fcsts_df, [id_col, "cutoff", time_col])
+            self._fitted = True
 
-        fcsts_list: List = []
-        for model in self.models:
-            if self._add_level and (
-                model.loss.outputsize_multiplier > 1
-                or isinstance(model.loss, (IQLoss, HuberIQLoss))
-            ):
-                continue
+            # Add predictions to forecasts DataFrame
+            cols = self._get_model_names(add_level=self._add_level)
+            if isinstance(self.uids, pl_Series):
+                fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
+            else:
+                fcsts = pd.DataFrame(fcsts, columns=cols)
+            fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
 
-            model.fit(dataset=self.dataset, val_size=val_size, test_size=test_size)
-            model_fcsts = model.predict(
-                self.dataset, step_size=step_size, h=h, **data_kwargs
+            # Add original input df's y to forecasts DataFrame
+            return ufp.join(
+                fcsts_df,
+                df[[id_col, time_col, target_col]],
+                how="left",
+                on=[id_col, time_col],
             )
-            # Append predictions in memory placeholder
-            fcsts_list.append(model_fcsts)
-
-        fcsts = np.concatenate(fcsts_list, axis=-1)
-        # we may have allocated more space than needed
-        # each serie can produce at most (serie.size - 1) // self.h CV windows
-        effective_sizes = ufp.counts_by_id(fcsts_df, id_col)["counts"].to_numpy()
-        needs_trim = effective_sizes.sum() != fcsts.shape[0]
-        if self.scalers_ or needs_trim:
-            indptr = np.arange(
-                0,
-                n_windows * h * (self.dataset.n_groups + 1),
-                n_windows * h,
-                dtype=np.int32,
-            )
-            if self.scalers_:
-                fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
-            if needs_trim:
-                # we keep only the effective samples of each serie from the cv results
-                trimmed = np.empty_like(
-                    fcsts, shape=(effective_sizes.sum(), fcsts.shape[1])
-                )
-                cv_indptr = np.append(0, effective_sizes).cumsum(dtype=np.int32)
-                for i in range(fcsts.shape[1]):
-                    ga = GroupedArray(fcsts[:, i], indptr)
-                    trimmed[:, i] = ga._tails(cv_indptr)
-                fcsts = trimmed
-
-        self._fitted = True
-
-        # Add predictions to forecasts DataFrame
-        cols = self._get_model_names(add_level=self._add_level)
-        if isinstance(self.uids, pl_Series):
-            fcsts = pl_DataFrame(dict(zip(cols, fcsts.T)))
-        else:
-            fcsts = pd.DataFrame(fcsts, columns=cols)
-        fcsts_df = ufp.horizontal_concat([fcsts_df, fcsts])
-
-        # Add original input df's y to forecasts DataFrame
-        return ufp.join(
-            fcsts_df,
-            df[[id_col, time_col, target_col]],
-            how="left",
-            on=[id_col, time_col],
-        )
+        finally:
+            if restore_fitted_state:
+                for attr, value in _snapshot.items():
+                    setattr(self, attr, value)
 
     def cross_validation(
         self,
@@ -1886,6 +1935,7 @@ class NeuralForecast:
         val_size: Optional[int] = 0,
         test_size: Optional[int] = None,
         use_init_models: bool = False,
+        use_fitted: bool = False,
         verbose: bool = False,
         refit: Union[bool, int] = False,
         id_col: str = "unique_id",
@@ -1910,7 +1960,14 @@ class NeuralForecast:
             step_size (int): Step size between each window.
             val_size (int, optional): Length of validation size. If passed, set `n_windows=None`. Defaults to 0.
             test_size (int, optional): Length of test size. If passed, set `n_windows=None`.
-            use_init_models (bool, optional): Use initial model passed when object was instantiated.
+            use_init_models (bool, optional): If True, discards any previously fitted weights
+                and reinitializes the models from the configs passed at `NeuralForecast(__init__)`.
+                Use this to start cross-validation from scratch. Defaults to False.
+            use_fitted (bool, optional): Evaluate the already-fitted model on `df` without retraining
+                (transfer-learning cross-validation). Requires a previous `fit` call, `refit=False`,
+                `use_init_models=False`, and `prediction_intervals=None`. Local scalers, if any, are
+                refit per series on `df` and the fitted state (model weights, stored dataset, scalers)
+                is restored after CV completes. Defaults to False.
             verbose (bool): Print processing steps.
             refit (bool or int): Retrain model for each cross validation window.
                 If False, the models are trained at the beginning and then used to predict each window.
@@ -1976,6 +2033,26 @@ class NeuralForecast:
         assert n_windows is not None
         assert test_size is not None
 
+        if use_fitted:
+            if not self._fitted:
+                raise ValueError(
+                    "`use_fitted=True` requires a model previously fitted with `fit`."
+                )
+            if refit:
+                raise ValueError(
+                    "`use_fitted=True` is only supported with `refit=False`."
+                )
+            if use_init_models:
+                raise ValueError(
+                    "`use_fitted=True` cannot be combined with `use_init_models=True`; "
+                    "`use_init_models` discards the fitted weights that `use_fitted` relies on."
+                )
+            if prediction_intervals is not None:
+                raise ValueError(
+                    "`use_fitted=True` is not supported with `prediction_intervals` "
+                    "(calibration requires retraining)."
+                )
+
         # Recover initial model if use_init_models.
         if use_init_models:
             self._reset_models()
@@ -2003,6 +2080,7 @@ class NeuralForecast:
                 step_size=step_size,
                 val_size=val_size,
                 test_size=test_size,
+                use_fitted=use_fitted,
                 verbose=verbose,
                 id_col=id_col,
                 time_col=time_col,
