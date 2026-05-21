@@ -604,6 +604,18 @@ class BaseModel(pl.LightningModule):
         self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
         self.trainer_kwargs["check_val_every_n_epoch"] = None
 
+        # The EarlyStopping callback is created once in __init__ and reused across every fit.
+        # Reset here so every fit starts with a fresh early-stopping counter.
+        for cb in self.trainer_kwargs.get("callbacks") or []:
+            if isinstance(cb, EarlyStopping):
+                cb.wait_count = 0
+                cb.stopped_epoch = 0
+                cb.best_score = (
+                    torch.tensor(torch.inf)
+                    if cb.mode == "min"
+                    else torch.tensor(-torch.inf)
+                )
+
         if is_local:
             model = self
             trainer = pl.Trainer(**model.trainer_kwargs)
