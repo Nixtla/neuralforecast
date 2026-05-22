@@ -2047,10 +2047,14 @@ class NeuralForecast:
                     "`use_fitted=True` cannot be combined with `use_init_models=True`; "
                     "`use_init_models` discards the fitted weights that `use_fitted` relies on."
                 )
-            if prediction_intervals is not None:
+            if (
+                prediction_intervals is not None
+                or getattr(self, "prediction_intervals", None) is not None
+            ):
                 raise ValueError(
                     "`use_fitted=True` is not supported with `prediction_intervals` "
-                    "(calibration requires retraining)."
+                    "(calibration requires retraining). This applies whether the "
+                    "intervals were passed here or configured during the prior `fit` call."
                 )
 
         # Recover initial model if use_init_models.

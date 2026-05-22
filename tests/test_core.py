@@ -580,6 +580,22 @@ def test_cross_validation_use_fitted_validation_errors():
             df=series, n_windows=1, use_fitted=True, use_init_models=True
         )
 
+    with pytest.raises(ValueError, match="prediction_intervals"):
+        nf.cross_validation(
+            df=series,
+            n_windows=1,
+            use_fitted=True,
+            prediction_intervals=PredictionIntervals(),
+        )
+
+    # Even when the user doesn't pass prediction_intervals to cross_validation,
+    # a prior fit(prediction_intervals=...) leaves them on `self`; conformal
+    # downstream logic would still activate, so use_fitted must reject this too.
+    nf.prediction_intervals = PredictionIntervals()
+    with pytest.raises(ValueError, match="prediction_intervals"):
+        nf.cross_validation(df=series, n_windows=1, use_fitted=True)
+    nf.prediction_intervals = None
+
 
 def test_neural_forecast_boxcox_scaling(setup_airplane_data):
     """Test BoxCox scaling functionality for NeuralForecast models."""
