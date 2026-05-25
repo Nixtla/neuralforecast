@@ -5,7 +5,7 @@ output-file: models.timexer.html
 title: TimeXer
 ---
 
-![Figure 1. Architecture of TimeXer.](imgs_models/timexer.png)
+![Figure 1. Architecture of TimeXer.](./imgs_models/timexer.png)
 *Figure 1. Architecture of TimeXer.*
 
 ## 1. TimeXer

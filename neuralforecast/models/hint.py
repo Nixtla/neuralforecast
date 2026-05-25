@@ -214,7 +214,7 @@ class HINT:
         Returns:
             self: A fitted base `NeuralForecast` model.
         """
-        model = self.model.fit(
+        self.model = self.model.fit(
             dataset=dataset,
             val_size=val_size,
             test_size=test_size,
@@ -226,7 +226,7 @@ class HINT:
         self.futr_exog_list = self.model.futr_exog_list
         self.hist_exog_list = self.model.hist_exog_list
         self.stat_exog_list = self.model.stat_exog_list
-        return model
+        return self
 
     def predict(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
         """HINT.predict

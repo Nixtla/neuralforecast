@@ -64,6 +64,22 @@ class BaseAuto(pl.LightningModule):
         callbacks (list of callable): List of functions to call during the optimization process.
             ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
             optuna reference: https://optuna.readthedocs.io/en/stable
+        run_config (ray.air.RunConfig, optional): Ray Tune `RunConfig` forwarded to `tune.Tuner`.
+            Use this to customize Ray Tune output.
+            When provided, the user-supplied `RunConfig` is used as-is, so `callbacks`
+            and `verbose` must be set on it directly. Only used with `backend='ray'`.
+            See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
+        study_kwargs (dict, optional): Additional keyword arguments forwarded to
+            `optuna.Study.optimize`. Keys that
+            overlap with arguments already passed by this class (`n_trials`,
+            `show_progress_bar`, `callbacks`, `timeout`) take precedence over the
+            defaults. Only used with `backend='optuna'`.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize.
+        create_study_kwargs (dict, optional): Additional keyword arguments forwarded
+            to `optuna.create_study`.
+            Keys that overlap with arguments already passed by this class (`sampler`,
+            `direction`) take precedence over the defaults. Only used with `backend='optuna'`.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
     """
 
     def __init__(
@@ -83,6 +99,9 @@ class BaseAuto(pl.LightningModule):
         alias=None,
         backend="ray",
         callbacks=None,
+        run_config=None,
+        study_kwargs=None,
+        create_study_kwargs=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -107,6 +126,18 @@ class BaseAuto(pl.LightningModule):
         else:
             raise ValueError(
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
+            )
+        if backend == "ray" and study_kwargs is not None:
+            warnings.warn(
+                "`study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
+            )
+        if backend == "ray" and create_study_kwargs is not None:
+            warnings.warn(
+                "`create_study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
+            )
+        if backend == "optuna" and run_config is not None:
+            warnings.warn(
+                "`run_config` is ignored when `backend='optuna'`; it only applies to `backend='ray'`.",
             )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
@@ -160,6 +191,9 @@ class BaseAuto(pl.LightningModule):
         self.alias = alias
         self.backend = backend
         self.callbacks = callbacks
+        self.run_config = run_config
+        self.study_kwargs = study_kwargs
+        self.create_study_kwargs = create_study_kwargs
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -244,9 +278,19 @@ class BaseAuto(pl.LightningModule):
             else None
         )
 
+        if self.run_config is not None:
+            if self.callbacks is not None:
+                warnings.warn(
+                    "`callbacks` is ignored when `run_config` is provided; "
+                    "set callbacks on the RunConfig instead.",
+                )
+            run_config = self.run_config
+        else:
+            run_config = air.RunConfig(callbacks=self.callbacks, verbose=verbose)
+
         tuner = tune.Tuner(
             tune.with_resources(train_fn_with_parameters, device_dict),
-            run_config=air.RunConfig(callbacks=self.callbacks, verbose=verbose),
+            run_config=run_config,
             tune_config=tune.TuneConfig(
                 metric="loss",
                 mode="min",
@@ -321,13 +365,19 @@ class BaseAuto(pl.LightningModule):
                 test_size=test_size,
                 distributed_config=distributed_config,
             )
-            trial.set_user_attr("ALL_PARAMS", user_cfg)
+            # `loss` and `valid_loss` are PyTorch modules and not JSON-serializable;
+            # exclude them so the study can be persisted to backends like SQLite.
+            # They are re-attached from `self.loss` / `self.valid_loss` in `fit`.
+            persistable_cfg = {
+                k: v for k, v in user_cfg.items() if k not in ("loss", "valid_loss")
+            }
+            trial.set_user_attr("ALL_PARAMS", persistable_cfg)
             metrics = model.metrics
             trial.set_user_attr(
                 "METRICS",
                 {
-                    "loss": metrics["ptl/val_loss"],
-                    "train_loss": metrics["train_loss"],
+                    "loss": float(metrics["ptl/val_loss"]),
+                    "train_loss": float(metrics["train_loss"]),
                 },
             )
             return trial.user_attrs["METRICS"]["loss"]
@@ -337,14 +387,31 @@ class BaseAuto(pl.LightningModule):
         else:
             sampler = None
 
-        study = optuna.create_study(sampler=sampler, direction="minimize")
-        study.optimize(
-            objective,
-            n_trials=num_samples,
-            show_progress_bar=verbose,
-            callbacks=self.callbacks,
-            timeout=time_budget,
-        )
+        create_kwargs = {"sampler": sampler, "direction": "minimize"}
+        if self.create_study_kwargs is not None:
+            overridden = sorted(set(self.create_study_kwargs) & set(create_kwargs))
+            if overridden:
+                warnings.warn(
+                    f"`create_study_kwargs` overrides default values for {overridden}; "
+                    "user-supplied values take precedence.",
+                )
+            create_kwargs.update(self.create_study_kwargs)
+        study = optuna.create_study(**create_kwargs)
+        optimize_kwargs = {
+            "n_trials": num_samples,
+            "show_progress_bar": verbose,
+            "callbacks": self.callbacks,
+            "timeout": time_budget,
+        }
+        if self.study_kwargs is not None:
+            overridden = sorted(set(self.study_kwargs) & set(optimize_kwargs))
+            if overridden:
+                warnings.warn(
+                    f"`study_kwargs` overrides default values for {overridden}; "
+                    "user-supplied values take precedence.",
+                )
+            optimize_kwargs.update(self.study_kwargs)
+        study.optimize(objective, **optimize_kwargs)
         return study
 
     def _fit_model(
@@ -420,7 +487,14 @@ class BaseAuto(pl.LightningModule):
                 distributed_config=distributed_config,
                 time_budget=self.time_budget,
             )
-            best_config = results.best_trial.user_attrs["ALL_PARAMS"]
+            # Deepcopy so the final fit doesn't mutate the loss instances stored on
+            # `self` (matches the historic behavior where optuna's `set_user_attr`
+            # deepcopied the config dict).
+            best_config = {
+                **results.best_trial.user_attrs["ALL_PARAMS"],
+                "loss": deepcopy(self.loss),
+                "valid_loss": deepcopy(self.valid_loss),
+            }
         self.model = self._fit_model(
             cls_model=self.cls_model,
             config=best_config,

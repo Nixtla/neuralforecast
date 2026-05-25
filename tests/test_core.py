@@ -253,6 +253,64 @@ def test_neural_forecast_refit(setup_airplane_data):
             )
 
 
+# Cross_validation(refit=True, val_size=...) must give each refit window a fresh
+# EarlyStopping state. Otherwise the prior window's wait_count and best_score
+# carry over and subsequent refits stop on the first validation check.
+def test_cross_validation_refit_resets_early_stopping(setup_airplane_data):
+    import pytorch_lightning as pl
+    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    class _CaptureEarlyStoppingState(pl.Callback):
+        def __init__(self):
+            self.snapshots = []
+
+        def on_train_start(self, trainer, pl_module):
+            es = next(
+                (cb for cb in trainer.callbacks if isinstance(cb, EarlyStopping)),
+                None,
+            )
+            assert es is not None, "EarlyStopping callback missing from trainer"
+            self.snapshots.append(
+                {
+                    "wait_count": es.wait_count,
+                    "stopped_epoch": es.stopped_epoch,
+                    "best_score": float(es.best_score),
+                }
+            )
+
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=4,
+        val_check_steps=1,
+        early_stop_patience_steps=1,
+        callbacks=[_CaptureEarlyStoppingState()],
+        enable_progress_bar=False,
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+    capture = next(
+        cb
+        for cb in nf.models[0].trainer_kwargs["callbacks"]
+        if isinstance(cb, _CaptureEarlyStoppingState)
+    )
+
+    nf.cross_validation(
+        df=AirPassengersPanel_train,
+        val_size=12,
+        n_windows=3,
+        refit=True,
+    )
+
+    # One fit per refit window.
+    assert len(capture.snapshots) == 3, capture.snapshots
+    for i, snap in enumerate(capture.snapshots):
+        assert snap["wait_count"] == 0, (i, snap)
+        assert snap["stopped_epoch"] == 0, (i, snap)
+        assert snap["best_score"] == float("inf"), (i, snap)
+
+
 def test_neural_forecast_scaling(setup_airplane_data):
     """Test scaling functionality for NeuralForecast models."""
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
@@ -419,6 +477,182 @@ def test_local_scaler_refits_on_transfer_learning():
         preds_again["LSTM"].values,
         err_msg="predict() after predict(df=...) should return the same results as before.",
     )
+
+
+def test_use_init_models_emits_warning():
+    """Calling fit with use_init_models=True on an already-fitted model warns."""
+    h = 5
+    series = generate_series(3, min_length=100, max_length=100, equal_ends=True)
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                scaler_type=None,
+                max_steps=2,
+                val_check_steps=2,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+    )
+    nf.fit(series)
+    with pytest.warns(UserWarning, match="Deleting previously fitted models"):
+        nf.fit(series, use_init_models=True)
+
+
+def test_cross_validation_use_fitted_transfer_learning():
+    """`cross_validation(use_fitted=True)` reuses fitted weights and refits scalers.
+
+    `cross_validation(refit=False)` always retrained the model on the holdout dataset, 
+    and `local_scaler_type` raised a series-count mismatch when the holdout had a different
+    number of series than the training set.
+    """
+    h = 5
+    master = generate_series(5, min_length=200, max_length=200, equal_ends=True)
+    holdout = generate_series(
+        3, min_length=200, max_length=200, equal_ends=True, seed=42
+    ).copy()
+    holdout["unique_id"] = ("h_" + holdout["unique_id"].astype(str)).astype("category")
+    holdout["y"] = holdout["y"] + 1000.0
+
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                scaler_type=None,
+                max_steps=5,
+                val_check_steps=5,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(master)
+
+    fitted_weights = {
+        k: v.detach().clone() for k, v in nf.models[0].state_dict().items()
+    }
+    fitted_uids = list(nf.uids)
+    fitted_scalers = nf.scalers_
+
+    cv_df = nf.cross_validation(
+        df=holdout,
+        n_windows=3,
+        step_size=1,
+        refit=False,
+        use_fitted=True,
+    )
+
+    assert set(cv_df["unique_id"].unique()) == set(holdout["unique_id"].unique())
+    assert cv_df["cutoff"].nunique() == 3
+    assert "MLP" in cv_df.columns
+    assert not cv_df["MLP"].isna().any()
+
+    for k, v in nf.models[0].state_dict().items():
+        torch.testing.assert_close(
+            fitted_weights[k],
+            v,
+            msg=lambda m, k=k: f"Weight {k} changed during use_fitted CV: {m}",
+        )
+
+    assert list(nf.uids) == fitted_uids
+    assert nf.scalers_ is fitted_scalers
+
+    master_preds = nf.predict()
+    assert set(master_preds["unique_id"].unique()) == set(master["unique_id"].unique())
+
+
+def test_cross_validation_use_fitted_restores_state_on_exception():
+    """If CV raises mid-way, fitted state must still be restored (try/finally)."""
+    h = 5
+    master = generate_series(4, min_length=120, max_length=120, equal_ends=True)
+    holdout = generate_series(
+        2, min_length=120, max_length=120, equal_ends=True, seed=7
+    ).copy()
+    holdout["unique_id"] = ("h_" + holdout["unique_id"].astype(str)).astype("category")
+
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                scaler_type=None,
+                max_steps=2,
+                val_check_steps=2,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(master)
+
+    fitted_uids = list(nf.uids)
+    fitted_scalers = nf.scalers_
+    fitted_dataset = nf.dataset
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("simulated failure")
+
+    nf.models[0].predict = _boom
+
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        nf.cross_validation(df=holdout, n_windows=2, refit=False, use_fitted=True)
+
+    assert list(nf.uids) == fitted_uids
+    assert nf.scalers_ is fitted_scalers
+    assert nf.dataset is fitted_dataset
+
+
+def test_cross_validation_use_fitted_validation_errors():
+    """`use_fitted=True` rejects incompatible argument combinations."""
+    h = 5
+    series = generate_series(3, min_length=100, max_length=100, equal_ends=True)
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                scaler_type=None,
+                max_steps=2,
+                val_check_steps=2,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+    )
+
+    with pytest.raises(ValueError, match="requires a model previously fitted"):
+        nf.cross_validation(df=series, n_windows=1, use_fitted=True)
+
+    nf.fit(series)
+
+    with pytest.raises(ValueError, match="only supported with `refit=False`"):
+        nf.cross_validation(df=series, n_windows=1, use_fitted=True, refit=True)
+
+    with pytest.raises(ValueError, match="cannot be combined with `use_init_models"):
+        nf.cross_validation(
+            df=series, n_windows=1, use_fitted=True, use_init_models=True
+        )
+
+    with pytest.raises(ValueError, match="prediction_intervals"):
+        nf.cross_validation(
+            df=series,
+            n_windows=1,
+            use_fitted=True,
+            prediction_intervals=PredictionIntervals(),
+        )
+
+    # Even when the user doesn't pass prediction_intervals to cross_validation,
+    # a prior fit(prediction_intervals=...) leaves them on `self`; conformal
+    # downstream logic would still activate, so use_fitted must reject this too.
+    nf.prediction_intervals = PredictionIntervals()
+    with pytest.raises(ValueError, match="prediction_intervals"):
+        nf.cross_validation(df=series, n_windows=1, use_fitted=True)
+    nf.prediction_intervals = None
 
 
 def test_neural_forecast_boxcox_scaling(setup_airplane_data):

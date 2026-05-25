@@ -38,7 +38,7 @@ Research Repository, abs/1803.01271. URL:
 https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)
 
 
-![Figure 1. Visualization of a stack of dilated causal convolutional layers.](imgs_models/tcn.png)
+![Figure 1. Visualization of a stack of dilated causal convolutional layers.](./imgs_models/tcn.png)
 *Figure 1. Visualization of a stack of
 dilated causal convolutional layers.*
 
