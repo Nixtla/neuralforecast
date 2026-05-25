@@ -102,6 +102,7 @@
               "models.itransformer.html",
               "models.kan.html",
               "models.lstm.html",
+              "models.mamba.html",
               "models.mlp.html",
               "models.mlpmultivariate.html",
               "models.nbeats.html",

@@ -1,7 +1,7 @@
 
 
 
-__all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoBiTCN', 'AutoxLSTM', 'AutoMLP',
+__all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoBiTCN', 'AutoxLSTM', 'AutoMamba', 'AutoMLP',
            'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS',
            'AutoKAN', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer',
            'AutoPatchTST', 'AutoiTransformer', 'AutoTimeXer', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer',
@@ -29,6 +29,7 @@ from .models.informer import Informer
 from .models.itransformer import iTransformer
 from .models.kan import KAN
 from .models.lstm import LSTM
+from .models.mamba import Mamba
 from .models.mlp import MLP
 from .models.mlpmultivariate import MLPMultivariate
 from .models.nbeats import NBEATS
@@ -646,6 +647,86 @@ class AutoxLSTM(BaseAuto):
 
         super(AutoxLSTM, self).__init__(
             cls_model=xLSTM,
+            h=h,
+            loss=loss,
+            valid_loss=valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            time_budget=time_budget,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+            run_config=run_config,
+            study_kwargs=study_kwargs,
+            create_study_kwargs=create_study_kwargs,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * x for x in config["input_size_multiplier"]]
+        )
+        config["step_size"] = tune.choice([1, h])
+        del config["input_size_multiplier"]
+        if backend == "optuna":
+            config = cls._ray_config_to_optuna(config)
+
+        return config
+
+
+class AutoMamba(BaseAuto):
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3, 4, 5],
+        "h": None,
+        "hidden_size": tune.choice([64, 128, 256]),
+        "d_state": tune.choice([8, 16, 32]),
+        "d_conv": tune.choice([2, 4]),
+        "expand": tune.choice([1, 2]),
+        "e_layers": tune.randint(1, 4),
+        "dropout": tune.choice([0.0, 0.1, 0.2]),
+        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000]),
+        "batch_size": tune.choice([32, 64, 128, 256]),
+        "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=MAE(),
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        time_budget=None,
+        refit_with_val=False,
+        cpus=cpu_count(),
+        gpus=torch.cuda.device_count(),
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+        run_config=None,
+        study_kwargs=None,
+        create_study_kwargs=None,
+    ):
+
+        # Define search space, input/output sizes
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend)
+
+        super(AutoMamba, self).__init__(
+            cls_model=Mamba,
             h=h,
             loss=loss,
             valid_loss=valid_loss,
