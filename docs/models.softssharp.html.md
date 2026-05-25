@@ -5,9 +5,11 @@ output-file: models.softssharp.html
 title: SOFTSSharp
 ---
 
-SOFTSSharp extends SOFTS by stochastically adding variable-position embeddings
-and multiple dropout layers inside the STAD aggregation-redistribution component
-while preserving linear complexity.
+SOFTSSharp extends SOFTS by stochastically adding variable-position embeddings and multiple dropout layers inside the STAD aggregation-redistribution component, aiming to improve forecasting accuracy while preserving linear complexity.
+
+
+![Figure 1. Architecture of SOFTSSharp](imgs_models/softssharp.png)
+*Figure 1. Architecture of SOFTSSharp*
 
 ## 1. SOFTSSharp
 
