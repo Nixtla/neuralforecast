@@ -253,6 +253,64 @@ def test_neural_forecast_refit(setup_airplane_data):
             )
 
 
+# Cross_validation(refit=True, val_size=...) must give each refit window a fresh
+# EarlyStopping state. Otherwise the prior window's wait_count and best_score
+# carry over and subsequent refits stop on the first validation check.
+def test_cross_validation_refit_resets_early_stopping(setup_airplane_data):
+    import pytorch_lightning as pl
+    from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    class _CaptureEarlyStoppingState(pl.Callback):
+        def __init__(self):
+            self.snapshots = []
+
+        def on_train_start(self, trainer, pl_module):
+            es = next(
+                (cb for cb in trainer.callbacks if isinstance(cb, EarlyStopping)),
+                None,
+            )
+            assert es is not None, "EarlyStopping callback missing from trainer"
+            self.snapshots.append(
+                {
+                    "wait_count": es.wait_count,
+                    "stopped_epoch": es.stopped_epoch,
+                    "best_score": float(es.best_score),
+                }
+            )
+
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=4,
+        val_check_steps=1,
+        early_stop_patience_steps=1,
+        callbacks=[_CaptureEarlyStoppingState()],
+        enable_progress_bar=False,
+    )
+    nf = NeuralForecast(models=[model], freq="M")
+    capture = next(
+        cb
+        for cb in nf.models[0].trainer_kwargs["callbacks"]
+        if isinstance(cb, _CaptureEarlyStoppingState)
+    )
+
+    nf.cross_validation(
+        df=AirPassengersPanel_train,
+        val_size=12,
+        n_windows=3,
+        refit=True,
+    )
+
+    # One fit per refit window.
+    assert len(capture.snapshots) == 3, capture.snapshots
+    for i, snap in enumerate(capture.snapshots):
+        assert snap["wait_count"] == 0, (i, snap)
+        assert snap["stopped_epoch"] == 0, (i, snap)
+        assert snap["best_score"] == float("inf"), (i, snap)
+
+
 def test_neural_forecast_scaling(setup_airplane_data):
     """Test scaling functionality for NeuralForecast models."""
     AirPassengersPanel_train, AirPassengersPanel_test = setup_airplane_data
