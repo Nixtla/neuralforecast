@@ -8,7 +8,7 @@ import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import fsspec
 import numpy as np
@@ -295,6 +295,8 @@ class BaseModel(pl.LightningModule):
             raise Exception("max_epochs is deprecated, use max_steps instead.")
 
         # Callbacks
+        self._early_stop_kwargs: Optional[dict] = None
+        self._early_stop_cb: Optional[EarlyStopping] = None
         if early_stop_patience_steps > 0:
             valid_monitors = ["ptl/val_loss", "valid_loss", "train_loss"]
             if val_monitor not in valid_monitors:
@@ -304,11 +306,12 @@ class BaseModel(pl.LightningModule):
                 )
             if "callbacks" not in trainer_kwargs:
                 trainer_kwargs["callbacks"] = []
-            trainer_kwargs["callbacks"].append(
-                EarlyStopping(
-                    monitor=val_monitor, patience=early_stop_patience_steps
-                )
-            )
+            self._early_stop_kwargs = {
+                "monitor": val_monitor,
+                "patience": early_stop_patience_steps,
+            }
+            self._early_stop_cb = EarlyStopping(**self._early_stop_kwargs)
+            trainer_kwargs["callbacks"].append(self._early_stop_cb)
 
         # Add GPU accelerator if available
         if trainer_kwargs.get("accelerator", None) is None:
@@ -603,6 +606,17 @@ class BaseModel(pl.LightningModule):
         val_check_interval = min(self.val_check_steps, self.max_steps)
         self.trainer_kwargs["val_check_interval"] = int(val_check_interval)
         self.trainer_kwargs["check_val_every_n_epoch"] = None
+
+        # The EarlyStopping callback we add in __init__ accumulates state across fits.
+        # Rebuild it from the stored kwargs.
+        # We match by identity, so user-supplied EarlyStopping callbacks are left untouched.
+        if self._early_stop_cb is not None and self._early_stop_kwargs is not None:
+            callbacks = self.trainer_kwargs.get("callbacks") or []
+            for i, cb in enumerate(callbacks):
+                if cb is self._early_stop_cb:
+                    self._early_stop_cb = EarlyStopping(**self._early_stop_kwargs)
+                    callbacks[i] = self._early_stop_cb
+                    break
 
         if is_local:
             model = self
