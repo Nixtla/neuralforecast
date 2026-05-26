@@ -165,7 +165,9 @@ class BaseAuto(pl.LightningModule):
             warnings.filterwarnings("ignore")
             # the following line issues a warning about the loss attribute being saved
             # but we do want to save it
-            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+            # Ignore deprecated kwargs so they aren't persisted into checkpoints
+            # and break loads after they're removed in v3.2.0.
+            self.save_hyperparameters(ignore=["cpus", "gpus"])
 
         if backend == "ray":
             if not isinstance(config, dict):
