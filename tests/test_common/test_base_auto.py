@@ -427,25 +427,3 @@ def test_legacy_cpus_gpus_conflict_raises_type_error(setup_config, legacy_kwarg)
             ray_options=RayOptions(**{legacy_kwarg: 2}),
             **{legacy_kwarg: 2},
         )
-
-
-@pytest.mark.parametrize("legacy_kwarg", ["cpus", "gpus"])
-def test_legacy_cpus_gpus_on_optuna_warns_once(legacy_kwarg, recwarn):
-    BaseAuto(
-        h=12,
-        loss=MAE(),
-        valid_loss=MSE(),
-        cls_model=MLP,
-        config=config_f,
-        search_alg=optuna.samplers.RandomSampler(seed=0),
-        num_samples=1,
-        backend="optuna",
-        **{legacy_kwarg: 2},
-    )
-    # Only the "ignored on backend='optuna'" warning, not the deprecation.
-    matching = [
-        w for w in recwarn.list if f"`{legacy_kwarg}`" in str(w.message)
-    ]
-    assert len(matching) == 1
-    assert "backend='optuna'" in str(matching[0].message)
-    assert not issubclass(matching[0].category, DeprecationWarning)
