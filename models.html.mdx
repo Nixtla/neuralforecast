@@ -37,8 +37,6 @@ BaseAuto(
     search_alg=BasicVariantGenerator(random_state=1),
     num_samples=10,
     time_budget=None,
-    cpus=cpu_count(),
-    gpus=torch.cuda.device_count(),
     refit_with_val=False,
     verbose=False,
     alias=None,
@@ -46,10 +44,8 @@ BaseAuto(
     callbacks=None,
     ray_options=None,
     optuna_options=None,
-    run_config=None,
-    scheduler=None,
-    study_kwargs=None,
-    create_study_kwargs=None,
+    cpus=None,
+    gpus=None,
 )
 ```
 
@@ -77,19 +73,15 @@ Name | Type | Description | Default
 `search_alg` | <code>ray.tune.search variant or optuna.sampler</code> | For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html. | <code>[BasicVariantGenerator](#ray.tune.search.basic_variant.BasicVariantGenerator)(random_state=1)</code>
 `num_samples` | <code>[int](#int)</code> | Number of hyperparameter optimization steps/samples. | <code>10</code>
 `time_budget` | <code>[int](#int)</code> | Time budget in seconds for the hyperparameter search. | <code>None</code>
-`cpus` | <code>[int](#int)</code> | Number of cpus to use during optimization. Only used with ray tune. | <code>[cpu_count](#os.cpu_count)()</code>
-`gpus` | <code>[int](#int)</code> | Number of gpus to use during optimization, default all available. Only used with ray tune. | <code>[device_count](#torch.cuda.device_count)()</code>
 `refit_with_val` | <code>[bool](#bool)</code> | Refit of best model should preserve val_size. | <code>False</code>
 `verbose` | <code>[bool](#bool)</code> | Track progress. | <code>False</code>
 `alias` | <code>[str](#str)</code> | Custom name of the model. | <code>None</code>
 `backend` | <code>[str](#str)</code> | Backend to use for searching the hyperparameter space, can be either 'ray' or 'optuna'. | <code>'ray'</code>
 `callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html optuna reference: https://optuna.readthedocs.io/en/stable | <code>None</code>
-`ray_options` | <code>[RayOptions](#neuralforecast.common._base_auto.RayOptions)</code> | Container for Ray-only options. See `RayOptions` for the supported fields (`run_config`, `scheduler`). Only used with `backend='ray'`. | <code>None</code>
+`ray_options` | <code>[RayOptions](#neuralforecast.common._base_auto.RayOptions)</code> | Container for Ray-only options. See `RayOptions` for the supported fields (`run_config`, `scheduler`, `cpus`, `gpus`). Only used with `backend='ray'`. | <code>None</code>
 `optuna_options` | <code>[OptunaOptions](#neuralforecast.common._base_auto.OptunaOptions)</code> | Container for Optuna-only options. See `OptunaOptions` for the supported fields (`study_kwargs`, `create_study_kwargs`). Only used with `backend='optuna'`. | <code>None</code>
-`run_config` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(run_config=...)` instead. | <code>None</code>
-`scheduler` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(scheduler=...)` instead. | <code>None</code>
-`study_kwargs` | | Deprecated, will be removed in v3.2.0. Pass `optuna_options=OptunaOptions(study_kwargs=...)` instead. | <code>None</code>
-`create_study_kwargs` | | Deprecated, will be removed in v3.2.0. Pass `optuna_options=OptunaOptions(create_study_kwargs=...)` instead. | <code>None</code>
+`cpus` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(cpus=...)` instead. | <code>None</code>
+`gpus` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(gpus=...)` instead. | <code>None</code>
 
 ## 2. Available AutoModels
 
