@@ -9,9 +9,6 @@ __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilat
            'RayOptions', 'OptunaOptions']
 
 
-from os import cpu_count
-
-import torch
 from ray import tune
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
@@ -80,18 +77,14 @@ class AutoRNN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
         # Define search space, input/output sizes
         if config is None:
@@ -115,10 +108,6 @@ class AutoRNN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -164,18 +153,14 @@ class AutoLSTM(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -200,10 +185,6 @@ class AutoLSTM(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -249,18 +230,14 @@ class AutoGRU(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -285,10 +262,6 @@ class AutoGRU(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -333,18 +306,14 @@ class AutoTCN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -369,10 +338,6 @@ class AutoTCN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -420,18 +385,14 @@ class AutoDeepAR(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -456,10 +417,6 @@ class AutoDeepAR(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -504,18 +461,14 @@ class AutoDilatedRNN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -540,10 +493,6 @@ class AutoDilatedRNN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -588,18 +537,14 @@ class AutoBiTCN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -624,10 +569,6 @@ class AutoBiTCN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -672,18 +613,14 @@ class AutoxLSTM(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -708,10 +645,6 @@ class AutoxLSTM(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -754,18 +687,14 @@ class AutoMLP(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -790,10 +719,6 @@ class AutoMLP(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -834,18 +759,14 @@ class AutoNBEATS(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -870,10 +791,6 @@ class AutoNBEATS(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -914,18 +831,14 @@ class AutoNBEATSx(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -950,10 +863,6 @@ class AutoNBEATSx(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1007,18 +916,14 @@ class AutoNHITS(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1043,10 +948,6 @@ class AutoNHITS(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1088,18 +989,14 @@ class AutoDLinear(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1124,10 +1021,6 @@ class AutoDLinear(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1168,18 +1061,14 @@ class AutoNLinear(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1204,10 +1093,6 @@ class AutoNLinear(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1256,18 +1141,14 @@ class AutoTiDE(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1292,10 +1173,6 @@ class AutoTiDE(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1339,18 +1216,14 @@ class AutoDeepNPTS(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1375,10 +1248,6 @@ class AutoDeepNPTS(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1422,18 +1291,14 @@ class AutoKAN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1458,10 +1323,6 @@ class AutoKAN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1504,18 +1365,14 @@ class AutoTFT(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1540,10 +1397,6 @@ class AutoTFT(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1586,18 +1439,14 @@ class AutoVanillaTransformer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1622,10 +1471,6 @@ class AutoVanillaTransformer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1668,18 +1513,14 @@ class AutoInformer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1704,10 +1545,6 @@ class AutoInformer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1750,18 +1587,14 @@ class AutoAutoformer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1786,10 +1619,6 @@ class AutoAutoformer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1831,18 +1660,14 @@ class AutoFEDformer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1867,10 +1692,6 @@ class AutoFEDformer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1915,18 +1736,14 @@ class AutoPatchTST(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -1951,10 +1768,6 @@ class AutoPatchTST(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -1998,18 +1811,14 @@ class AutoiTransformer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2045,10 +1854,6 @@ class AutoiTransformer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2097,18 +1902,14 @@ class AutoTimeXer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2144,10 +1945,6 @@ class AutoTimeXer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2195,18 +1992,14 @@ class AutoTimesNet(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2231,10 +2024,6 @@ class AutoTimesNet(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2278,18 +2067,14 @@ class AutoStemGNN(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2325,10 +2110,6 @@ class AutoStemGNN(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2363,8 +2144,8 @@ class AutoHINT(BaseAuto):
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         time_budget=None,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         refit_with_val=False,
         verbose=False,
         alias=None,
@@ -2372,10 +2153,6 @@ class AutoHINT(BaseAuto):
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         super(AutoHINT, self).__init__(
@@ -2396,10 +2173,6 @@ class AutoHINT(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
         if backend == "optuna":
             raise Exception("Optuna is not supported for AutoHINT.")
@@ -2464,18 +2237,14 @@ class AutoTSMixer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2511,10 +2280,6 @@ class AutoTSMixer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2564,18 +2329,14 @@ class AutoTSMixerx(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2611,10 +2372,6 @@ class AutoTSMixerx(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2663,18 +2420,14 @@ class AutoMLPMultivariate(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2710,10 +2463,6 @@ class AutoMLPMultivariate(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2762,18 +2511,14 @@ class AutoSOFTS(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2809,10 +2554,6 @@ class AutoSOFTS(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2862,18 +2603,14 @@ class AutoTimeMixer(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -2909,10 +2646,6 @@ class AutoTimeMixer(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -2964,18 +2697,14 @@ class AutoRMoK(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -3011,10 +2740,6 @@ class AutoRMoK(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod
@@ -3063,18 +2788,14 @@ class AutoXLinear(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -3110,10 +2831,6 @@ class AutoXLinear(BaseAuto):
             callbacks=callbacks,
             ray_options=ray_options,
             optuna_options=optuna_options,
-            run_config=run_config,
-            scheduler=scheduler,
-            study_kwargs=study_kwargs,
-            create_study_kwargs=create_study_kwargs,
         )
 
     @classmethod

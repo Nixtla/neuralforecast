@@ -51,8 +51,7 @@ def test_ray_tune(setup_module):
         cls_model=MLP,
         config=config,
         num_samples=2,
-        cpus=1,
-        gpus=0,
+        ray_options=RayOptions(cpus=1, gpus=0),
         callbacks=[RayLogLossesCallback()],
     )
     auto.fit(dataset=dataset)
@@ -123,8 +122,7 @@ def test_instantiation(setup_config):
         cls_model=MLP,
         config=config,
         num_samples=2,
-        cpus=1,
-        gpus=0,
+        ray_options=RayOptions(cpus=1, gpus=0),
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MAE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
@@ -137,8 +135,7 @@ def test_validation_default(setup_config):
         cls_model=MLP,
         config=setup_config,
         num_samples=2,
-        cpus=1,
-        gpus=0,
+        ray_options=RayOptions(cpus=1, gpus=0),
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
@@ -161,8 +158,7 @@ def test_ray_time_budget(setup_module):
         config=config,
         num_samples=1,
         time_budget=60,
-        cpus=1,
-        gpus=0,
+        ray_options=RayOptions(cpus=1, gpus=0),
     )
     auto.fit(dataset=dataset)
     y_hat = auto.predict(dataset=dataset)
@@ -188,10 +184,10 @@ def test_ray_run_config_storage_path(setup_module, tmp_path):
         cls_model=MLP,
         config=config,
         num_samples=1,
-        cpus=1,
-        gpus=0,
         ray_options=RayOptions(
             run_config=air.RunConfig(storage_path=str(storage_path), name="nf_test"),
+            cpus=1,
+            gpus=0,
         ),
     )
     auto.fit(dataset=dataset)
@@ -215,8 +211,6 @@ def test_optuna_create_study_kwargs_persistence(setup_module, tmp_path):
         search_alg=optuna.samplers.RandomSampler(seed=0),
         num_samples=1,
         backend="optuna",
-        cpus=1,
-        gpus=0,
         optuna_options=OptunaOptions(create_study_kwargs=create_study_kwargs),
     )
     auto1.fit(dataset=dataset)
@@ -232,8 +226,6 @@ def test_optuna_create_study_kwargs_persistence(setup_module, tmp_path):
         search_alg=optuna.samplers.RandomSampler(seed=0),
         num_samples=1,
         backend="optuna",
-        cpus=1,
-        gpus=0,
         optuna_options=OptunaOptions(create_study_kwargs=create_study_kwargs),
     )
     auto2.fit(dataset=dataset)
@@ -265,8 +257,6 @@ def test_optuna_study_kwargs_catch(setup_module):
         search_alg=optuna.samplers.RandomSampler(seed=0),
         num_samples=2,
         backend="optuna",
-        cpus=1,
-        gpus=0,
         optuna_options=OptunaOptions(study_kwargs={"catch": (RuntimeError,)}),
     )
     auto.fit(dataset=dataset)
@@ -286,8 +276,7 @@ def test_optuna_options_wrong_backend_warns(setup_config):
             cls_model=MLP,
             config=setup_config,
             num_samples=1,
-            cpus=1,
-            gpus=0,
+            ray_options=RayOptions(cpus=1, gpus=0),
             optuna_options=OptunaOptions(study_kwargs={"catch": (RuntimeError,)}),
         )
 
@@ -305,8 +294,6 @@ def test_ray_options_wrong_backend_warns():
             search_alg=optuna.samplers.RandomSampler(seed=0),
             num_samples=1,
             backend="optuna",
-            cpus=1,
-            gpus=0,
             ray_options=RayOptions(run_config=air.RunConfig(name="nf_test")),
         )
 
@@ -339,130 +326,10 @@ def test_ray_scheduler_passthrough(setup_module):
         cls_model=MLP,
         config=config,
         num_samples=2,
-        cpus=1,
-        gpus=0,
-        ray_options=RayOptions(scheduler=scheduler),
+        ray_options=RayOptions(scheduler=scheduler, cpus=1, gpus=0),
     )
     auto.fit(dataset=dataset)
     assert scheduler.added == 2
-
-
-@pytest.mark.parametrize(
-    "legacy_kwarg,attr_name,value_factory,options_cls,backend,extra",
-    [
-        (
-            "run_config",
-            "run_config",
-            lambda: __import__("ray.air", fromlist=["RunConfig"]).RunConfig(name="nf_test"),
-            RayOptions,
-            "ray",
-            {},
-        ),
-        (
-            "scheduler",
-            "scheduler",
-            lambda: __import__(
-                "ray.tune.schedulers", fromlist=["FIFOScheduler"]
-            ).FIFOScheduler(),
-            RayOptions,
-            "ray",
-            {},
-        ),
-        (
-            "study_kwargs",
-            "study_kwargs",
-            lambda: {"catch": (RuntimeError,)},
-            OptunaOptions,
-            "optuna",
-            {"search_alg": optuna.samplers.RandomSampler(seed=0)},
-        ),
-        (
-            "create_study_kwargs",
-            "create_study_kwargs",
-            lambda: {"study_name": "x"},
-            OptunaOptions,
-            "optuna",
-            {"search_alg": optuna.samplers.RandomSampler(seed=0)},
-        ),
-    ],
-)
-def test_legacy_kwarg_emits_deprecation_warning(
-    legacy_kwarg, attr_name, value_factory, options_cls, backend, extra
-):
-    config = config_f if backend == "optuna" else setup_config_dict()
-    with pytest.warns(DeprecationWarning, match=rf"`{legacy_kwarg}` is deprecated"):
-        auto = BaseAuto(
-            h=12,
-            loss=MAE(),
-            valid_loss=MSE(),
-            cls_model=MLP,
-            config=config,
-            num_samples=1,
-            backend=backend,
-            cpus=1,
-            gpus=0,
-            **{legacy_kwarg: value_factory()},
-            **extra,
-        )
-    # The legacy value lands on the options dataclass.
-    options = auto.ray_options if options_cls is RayOptions else auto.optuna_options
-    assert getattr(options, attr_name) is not None
-
-
-@pytest.mark.parametrize(
-    "legacy_kwarg,attr_name,value_factory,options_kwarg,options_cls,backend,extra",
-    [
-        (
-            "scheduler",
-            "scheduler",
-            lambda: __import__(
-                "ray.tune.schedulers", fromlist=["FIFOScheduler"]
-            ).FIFOScheduler(),
-            "ray_options",
-            RayOptions,
-            "ray",
-            {},
-        ),
-        (
-            "study_kwargs",
-            "study_kwargs",
-            lambda: {"catch": (RuntimeError,)},
-            "optuna_options",
-            OptunaOptions,
-            "optuna",
-            {"search_alg": optuna.samplers.RandomSampler(seed=0)},
-        ),
-    ],
-)
-def test_legacy_kwarg_conflict_raises_type_error(
-    legacy_kwarg, attr_name, value_factory, options_kwarg, options_cls, backend, extra
-):
-    config = config_f if backend == "optuna" else setup_config_dict()
-    value = value_factory()
-    with pytest.raises(TypeError, match=rf"`{legacy_kwarg}` and `{options_kwarg}"):
-        BaseAuto(
-            h=12,
-            loss=MAE(),
-            valid_loss=MSE(),
-            cls_model=MLP,
-            config=config,
-            num_samples=1,
-            backend=backend,
-            cpus=1,
-            gpus=0,
-            **{legacy_kwarg: value, options_kwarg: options_cls(**{attr_name: value})},
-            **extra,
-        )
-
-
-def setup_config_dict():
-    return {
-        "hidden_size": tune.choice([512]),
-        "num_layers": tune.choice([3]),
-        "input_size": 12,
-        "max_steps": 1,
-        "val_check_steps": 1,
-    }
 
 
 def test_create_study_kwargs_wrong_backend_warns(setup_config):
@@ -474,8 +341,7 @@ def test_create_study_kwargs_wrong_backend_warns(setup_config):
             cls_model=MLP,
             config=setup_config,
             num_samples=1,
-            cpus=1,
-            gpus=0,
+            ray_options=RayOptions(cpus=1, gpus=0),
             optuna_options=OptunaOptions(create_study_kwargs={"study_name": "ignored"}),
         )
 
@@ -491,8 +357,6 @@ def test_optuna_create_study_kwargs_override_warns(setup_module):
         search_alg=optuna.samplers.RandomSampler(seed=0),
         num_samples=1,
         backend="optuna",
-        cpus=1,
-        gpus=0,
         optuna_options=OptunaOptions(create_study_kwargs={"direction": "minimize"}),
     )
     with pytest.warns(UserWarning, match="overrides default values for \\['direction'\\]"):
@@ -510,8 +374,6 @@ def test_optuna_study_kwargs_override_warns(setup_module):
         search_alg=optuna.samplers.RandomSampler(seed=0),
         num_samples=1,
         backend="optuna",
-        cpus=1,
-        gpus=0,
         optuna_options=OptunaOptions(study_kwargs={"n_trials": 1}),
     )
     with pytest.warns(UserWarning, match="overrides default values for \\['n_trials'\\]"):
@@ -537,3 +399,31 @@ def test_optuna_time_budget(setup_module):
     assert y_hat.shape[0] > 0
 
 
+@pytest.mark.parametrize("legacy_kwarg", ["cpus", "gpus"])
+def test_legacy_cpus_gpus_emit_deprecation_warning(setup_config, legacy_kwarg):
+    with pytest.warns(DeprecationWarning, match=rf"`{legacy_kwarg}` is deprecated"):
+        auto = BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            **{legacy_kwarg: 2},
+        )
+    assert getattr(auto.ray_options, legacy_kwarg) == 2
+
+
+@pytest.mark.parametrize("legacy_kwarg", ["cpus", "gpus"])
+def test_legacy_cpus_gpus_conflict_raises_type_error(setup_config, legacy_kwarg):
+    with pytest.raises(TypeError, match=rf"`{legacy_kwarg}` and `ray_options"):
+        BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            ray_options=RayOptions(**{legacy_kwarg: 2}),
+            **{legacy_kwarg: 2},
+        )

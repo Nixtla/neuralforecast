@@ -27,54 +27,16 @@ class RayOptions:
             forwarded to `tune.TuneConfig`. Use this to enable schedulers other
             than the default FIFO (e.g. ASHA, HyperBand, BOHB).
             See https://docs.ray.io/en/latest/tune/api/schedulers.html.
+        cpus (int, optional): Number of cpus to use during optimization.
+            Defaults to `os.cpu_count()` when unset.
+        gpus (int, optional): Number of gpus to use during optimization.
+            Defaults to `torch.cuda.device_count()` when unset.
     """
 
     run_config: Optional[Any] = None
     scheduler: Optional[Any] = None
-
-
-def _coalesce_legacy_option(
-    legacy_name, legacy_value, options_obj, attr_name, options_kwarg_name
-):
-    """Route a deprecated top-level kwarg into its options dataclass.
-
-    Raises TypeError if both the legacy kwarg and the corresponding options
-    field are set, since precedence is ambiguous.
-    """
-    if legacy_value is None:
-        return
-    if getattr(options_obj, attr_name) is not None:
-        raise TypeError(
-            f"`{legacy_name}` and `{options_kwarg_name}.{attr_name}` were both "
-            f"provided; pass only `{options_kwarg_name}={type(options_obj).__name__}"
-            f"({attr_name}=...)` — `{legacy_name}` is deprecated."
-        )
-    warnings.warn(
-        f"`{legacy_name}` is deprecated and will be removed in v3.2.0; "
-        f"pass `{options_kwarg_name}={type(options_obj).__name__}"
-        f"({attr_name}=...)` instead.",
-        DeprecationWarning,
-        stacklevel=3,
-    )
-    setattr(options_obj, attr_name, legacy_value)
-
-
-def _warn_unused_options(backend, ray_options, optuna_options):
-    """Warn when an options object is supplied for the wrong backend."""
-    if backend == "ray":
-        unused = optuna_options
-        unused_name = "optuna_options"
-    else:
-        unused = ray_options
-        unused_name = "ray_options"
-    set_fields = [
-        f.name for f in fields(unused) if getattr(unused, f.name) is not None
-    ]
-    if set_fields:
-        warnings.warn(
-            f"{set_fields} on `{unused_name}` are ignored when "
-            f"`backend={backend!r}`.",
-        )
+    cpus: Optional[int] = None
+    gpus: Optional[int] = None
 
 
 @dataclass
@@ -96,6 +58,24 @@ class OptunaOptions:
 
     study_kwargs: Optional[dict] = None
     create_study_kwargs: Optional[dict] = None
+
+
+def _warn_unused_options(backend, ray_options, optuna_options):
+    """Warn when an options object is supplied for the wrong backend."""
+    if backend == "ray":
+        unused = optuna_options
+        unused_name = "optuna_options"
+    else:
+        unused = ray_options
+        unused_name = "ray_options"
+    set_fields = [
+        f.name for f in fields(unused) if getattr(unused, f.name) is not None
+    ]
+    if set_fields:
+        warnings.warn(
+            f"{set_fields} on `{unused_name}` are ignored when "
+            f"`backend={backend!r}`.",
+        )
 
 
 class MockTrial:
@@ -141,8 +121,6 @@ class BaseAuto(pl.LightningModule):
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
         time_budget (int, optional): Time budget in seconds for the hyperparameter search.
-        cpus (int): Number of cpus to use during optimization. Only used with ray tune.
-        gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
         refit_with_val (bool): Refit of best model should preserve val_size.
         verbose (bool): Track progress.
         alias (str): Custom name of the model.
@@ -151,19 +129,15 @@ class BaseAuto(pl.LightningModule):
             ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
             optuna reference: https://optuna.readthedocs.io/en/stable
         ray_options (RayOptions, optional): Container for Ray-only options. See
-            `RayOptions` for the supported fields (`run_config`, `scheduler`).
-            Only used with `backend='ray'`.
+            `RayOptions` for the supported fields (`run_config`, `scheduler`,
+            `cpus`, `gpus`). Only used with `backend='ray'`.
         optuna_options (OptunaOptions, optional): Container for Optuna-only options.
             See `OptunaOptions` for the supported fields (`study_kwargs`,
             `create_study_kwargs`). Only used with `backend='optuna'`.
-        run_config: Deprecated, will be removed in v3.2.0. Pass
-            `ray_options=RayOptions(run_config=...)` instead.
-        scheduler: Deprecated, will be removed in v3.2.0. Pass
-            `ray_options=RayOptions(scheduler=...)` instead.
-        study_kwargs: Deprecated, will be removed in v3.2.0. Pass
-            `optuna_options=OptunaOptions(study_kwargs=...)` instead.
-        create_study_kwargs: Deprecated, will be removed in v3.2.0. Pass
-            `optuna_options=OptunaOptions(create_study_kwargs=...)` instead.
+        cpus: Deprecated, will be removed in v3.2.0. Pass
+            `ray_options=RayOptions(cpus=...)` instead.
+        gpus: Deprecated, will be removed in v3.2.0. Pass
+            `ray_options=RayOptions(gpus=...)` instead.
     """
 
     def __init__(
@@ -176,8 +150,6 @@ class BaseAuto(pl.LightningModule):
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         time_budget=None,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
         refit_with_val=False,
         verbose=False,
         alias=None,
@@ -185,10 +157,8 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        run_config=None,
-        scheduler=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
+        cpus=None,
+        gpus=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
@@ -219,23 +189,29 @@ class BaseAuto(pl.LightningModule):
         optuna_options = (
             optuna_options if optuna_options is not None else OptunaOptions()
         )
-        _coalesce_legacy_option(
-            "run_config", run_config, ray_options, "run_config", "ray_options"
-        )
-        _coalesce_legacy_option(
-            "scheduler", scheduler, ray_options, "scheduler", "ray_options"
-        )
-        _coalesce_legacy_option(
-            "study_kwargs", study_kwargs, optuna_options, "study_kwargs", "optuna_options"
-        )
-        _coalesce_legacy_option(
-            "create_study_kwargs",
-            create_study_kwargs,
-            optuna_options,
-            "create_study_kwargs",
-            "optuna_options",
-        )
+        for _name, _val in (("cpus", cpus), ("gpus", gpus)):
+            if _val is None:
+                continue
+            if getattr(ray_options, _name) is not None:
+                raise TypeError(
+                    f"`{_name}` and `ray_options.{_name}` were both provided; "
+                    f"pass only `ray_options=RayOptions({_name}=...)` — "
+                    f"`{_name}` is deprecated."
+                )
+            warnings.warn(
+                f"`{_name}` is deprecated and will be removed in v3.2.0; "
+                f"pass `ray_options=RayOptions({_name}=...)` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            setattr(ray_options, _name, _val)
         _warn_unused_options(backend, ray_options, optuna_options)
+        # Resolve None defaults for ray; optuna doesn't use cpus/gpus.
+        if backend == "ray":
+            if ray_options.cpus is None:
+                ray_options.cpus = cpu_count()
+            if ray_options.gpus is None:
+                ray_options.gpus = torch.cuda.device_count()
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:
@@ -281,8 +257,8 @@ class BaseAuto(pl.LightningModule):
         self.num_samples = num_samples
         self.time_budget = time_budget
         self.search_alg = search_alg
-        self.cpus = cpus
-        self.gpus = gpus
+        self.cpus = ray_options.cpus
+        self.gpus = ray_options.gpus
         self.refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
         self.verbose = verbose
         self.alias = alias
