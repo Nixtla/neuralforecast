@@ -3,7 +3,7 @@ __all__ = ['BaseAuto', 'RayOptions', 'OptunaOptions']
 
 import warnings
 from copy import deepcopy
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, replace
 from os import cpu_count
 from typing import Any, Optional
 
@@ -185,9 +185,11 @@ class BaseAuto(pl.LightningModule):
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
             )
 
-        ray_options = ray_options if ray_options is not None else RayOptions()
+        # Shallow-copy user-supplied options so subsequent mutations
+        # (legacy coalescing, default resolution) don't leak back to the caller.
+        ray_options = replace(ray_options) if ray_options is not None else RayOptions()
         optuna_options = (
-            optuna_options if optuna_options is not None else OptunaOptions()
+            replace(optuna_options) if optuna_options is not None else OptunaOptions()
         )
         for _name, _val in (("cpus", cpus), ("gpus", gpus)):
             if _val is None:
