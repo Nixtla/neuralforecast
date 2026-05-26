@@ -196,6 +196,14 @@ class BaseAuto(pl.LightningModule):
         for _name, _val in (("cpus", cpus), ("gpus", gpus)):
             if _val is None:
                 continue
+            if backend != "ray":
+                # On non-ray backends cpus/gpus aren't used, so skip the
+                # deprecation (which would only point at RayOptions, also unused).
+                warnings.warn(
+                    f"`{_name}` is ignored when `backend={backend!r}`; "
+                    f"it only applies to `backend='ray'`.",
+                )
+                continue
             if getattr(ray_options, _name) is not None:
                 raise TypeError(
                     f"`{_name}` and `ray_options.{_name}` were both provided; "
