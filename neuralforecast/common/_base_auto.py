@@ -167,7 +167,7 @@ class BaseAuto(pl.LightningModule):
             # but we do want to save it
             # Ignore deprecated kwargs so they aren't persisted into checkpoints
             # and break loads after they're removed in v3.2.0.
-            self.save_hyperparameters(ignore=["cpus", "gpus"])
+            self.save_hyperparameters(ignore=["cpus", "gpus", "ray_options", "optuna_options"])
 
         if backend == "ray":
             if not isinstance(config, dict):
