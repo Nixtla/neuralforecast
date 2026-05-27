@@ -191,11 +191,6 @@ Seed set to 1
 Next, pass the datasets to the `df` and `static_df` inputs of the `fit`
 method.
 
-> **Tip**
->
-> You can scale static variables using the `local_static_scaler_type`
-> parameter when initializing a `NeuralForecast` instance.
-
 ```python
 nf = NeuralForecast(models=models, freq='h')
 nf.fit(df=df, static_df=static_df)
