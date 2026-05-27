@@ -13,6 +13,10 @@ cross-learning technique to fit flexible-shared models such as neural
 networks improving its generalization capabilities as shown by the M4
 international forecasting competition (Smyl 2019, Semenoglou 2021).
 
+While missing values are supported, we require data to be uniformly
+samples. This means that each consecutive timesteps must be evenly
+spaced.
+
 You can run these experiments using GPU with Google Colab.
 
 <a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/getting-started/datarequirements.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -116,6 +120,34 @@ Y_df
 | 141 | 1.0       | 1960-10-01 | 461 |
 | 142 | 1.0       | 1960-11-01 | 390 |
 | 143 | 1.0       | 1960-12-01 | 432 |
+
+## Missing values
+
+Missing values are supported as long as you provide the `available_mask`
+column to signal if the value is observed or not. We recommend using a
+finite placeholder for unobserved values instead of `NaN` to avoid
+issues during training.
+
+Here’s an example of a input dataset with missing values for
+`neuralforecast`.
+
+```python
+df = pd.DataFrame({
+    "unique_id": ["A", "A", "A", "A", "A"],
+    "ds": pd.date_range("2024-01-01", periods=5, freq="D"),
+    "y": [10.0, 12.0, 0.0, 15.0, 16.0],
+    "available_mask": [1, 1, 0, 1, 1],
+})
+df.head()
+```
+
+|     | unique_id | ds         | y    | available_mask |
+|-----|-----------|------------|------|----------------|
+| 0   | A         | 2024-01-01 | 10.0 | 1              |
+| 1   | A         | 2024-01-02 | 12.0 | 1              |
+| 2   | A         | 2024-01-03 | 0.0  | 0              |
+| 3   | A         | 2024-01-04 | 15.0 | 1              |
+| 4   | A         | 2024-01-05 | 16.0 | 1              |
 
 ## References
 
