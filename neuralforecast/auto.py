@@ -2604,12 +2604,14 @@ class AutoSOFTSSharp(BaseAuto):
         num_samples=10,
         time_budget=None,
         refit_with_val=False,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
+        cpus=None,
+        gpus=None,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
+        ray_options=None,
+        optuna_options=None,
     ):
 
         if config is None:
@@ -2641,6 +2643,8 @@ class AutoSOFTSSharp(BaseAuto):
             alias=alias,
             backend=backend,
             callbacks=callbacks,
+            ray_options=ray_options,
+            optuna_options=optuna_options,
         )
 
     @classmethod
