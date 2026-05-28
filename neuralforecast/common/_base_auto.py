@@ -1,15 +1,81 @@
-__all__ = ['BaseAuto']
+__all__ = ['BaseAuto', 'RayOptions', 'OptunaOptions']
 
 
 import warnings
 from copy import deepcopy
+from dataclasses import dataclass, fields, replace
 from os import cpu_count
+from typing import Any, Optional
 
 import pytorch_lightning as pl
 import torch
 from ray import air, tune
 from ray.tune.integration.pytorch_lightning import TuneReportCallback
 from ray.tune.search.basic_variant import BasicVariantGenerator
+
+
+@dataclass
+class RayOptions:
+    """Container for Ray-only options forwarded to `tune.Tuner` / `tune.TuneConfig`.
+
+    Attributes:
+        run_config (ray.air.RunConfig, optional): Forwarded to `tune.Tuner`.
+            When provided, it is used as-is, so `callbacks` and `verbose` must be
+            set on it directly.
+            See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
+        scheduler (ray.tune.schedulers.TrialScheduler, optional): Trial scheduler
+            forwarded to `tune.TuneConfig`. Use this to enable schedulers other
+            than the default FIFO (e.g. ASHA, HyperBand, BOHB).
+            See https://docs.ray.io/en/latest/tune/api/schedulers.html.
+        cpus (int, optional): Number of cpus to use during optimization.
+            Defaults to `os.cpu_count()` when unset.
+        gpus (int, optional): Number of gpus to use during optimization.
+            Defaults to `torch.cuda.device_count()` when unset.
+    """
+
+    run_config: Optional[Any] = None
+    scheduler: Optional[Any] = None
+    cpus: Optional[int] = None
+    gpus: Optional[int] = None
+
+
+@dataclass
+class OptunaOptions:
+    """Container for Optuna-only options forwarded to `optuna.create_study` / `study.optimize`.
+
+    Attributes:
+        study_kwargs (dict, optional): Additional keyword arguments forwarded to
+            `optuna.Study.optimize`. Keys that overlap with arguments already
+            passed by `BaseAuto` (`n_trials`, `show_progress_bar`, `callbacks`,
+            `timeout`) take precedence over the defaults.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize.
+        create_study_kwargs (dict, optional): Additional keyword arguments
+            forwarded to `optuna.create_study`. Keys that overlap with arguments
+            already passed by `BaseAuto` (`sampler`, `direction`) take precedence
+            over the defaults.
+            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
+    """
+
+    study_kwargs: Optional[dict] = None
+    create_study_kwargs: Optional[dict] = None
+
+
+def _warn_unused_options(backend, ray_options, optuna_options):
+    """Warn when an options object is supplied for the wrong backend."""
+    if backend == "ray":
+        unused = optuna_options
+        unused_name = "optuna_options"
+    else:
+        unused = ray_options
+        unused_name = "ray_options"
+    set_fields = [
+        f.name for f in fields(unused) if getattr(unused, f.name) is not None
+    ]
+    if set_fields:
+        warnings.warn(
+            f"{set_fields} on `{unused_name}` are ignored when "
+            f"`backend={backend!r}`.",
+        )
 
 
 class MockTrial:
@@ -55,8 +121,6 @@ class BaseAuto(pl.LightningModule):
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
         time_budget (int, optional): Time budget in seconds for the hyperparameter search.
-        cpus (int): Number of cpus to use during optimization. Only used with ray tune.
-        gpus (int): Number of gpus to use during optimization, default all available. Only used with ray tune.
         refit_with_val (bool): Refit of best model should preserve val_size.
         verbose (bool): Track progress.
         alias (str): Custom name of the model.
@@ -64,22 +128,16 @@ class BaseAuto(pl.LightningModule):
         callbacks (list of callable): List of functions to call during the optimization process.
             ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html
             optuna reference: https://optuna.readthedocs.io/en/stable
-        run_config (ray.air.RunConfig, optional): Ray Tune `RunConfig` forwarded to `tune.Tuner`.
-            Use this to customize Ray Tune output.
-            When provided, the user-supplied `RunConfig` is used as-is, so `callbacks`
-            and `verbose` must be set on it directly. Only used with `backend='ray'`.
-            See https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html.
-        study_kwargs (dict, optional): Additional keyword arguments forwarded to
-            `optuna.Study.optimize`. Keys that
-            overlap with arguments already passed by this class (`n_trials`,
-            `show_progress_bar`, `callbacks`, `timeout`) take precedence over the
-            defaults. Only used with `backend='optuna'`.
-            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.study.Study.html#optuna.study.Study.optimize.
-        create_study_kwargs (dict, optional): Additional keyword arguments forwarded
-            to `optuna.create_study`.
-            Keys that overlap with arguments already passed by this class (`sampler`,
-            `direction`) take precedence over the defaults. Only used with `backend='optuna'`.
-            See https://optuna.readthedocs.io/en/stable/reference/generated/optuna.create_study.html.
+        ray_options (RayOptions, optional): Container for Ray-only options. See
+            `RayOptions` for the supported fields (`run_config`, `scheduler`,
+            `cpus`, `gpus`). Only used with `backend='ray'`.
+        optuna_options (OptunaOptions, optional): Container for Optuna-only options.
+            See `OptunaOptions` for the supported fields (`study_kwargs`,
+            `create_study_kwargs`). Only used with `backend='optuna'`.
+        cpus: Deprecated, will be removed in v3.2.0. Pass
+            `ray_options=RayOptions(cpus=...)` instead.
+        gpus: Deprecated, will be removed in v3.2.0. Pass
+            `ray_options=RayOptions(gpus=...)` instead.
     """
 
     def __init__(
@@ -92,23 +150,24 @@ class BaseAuto(pl.LightningModule):
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         time_budget=None,
-        cpus=cpu_count(),
-        gpus=torch.cuda.device_count(),
         refit_with_val=False,
         verbose=False,
         alias=None,
         backend="ray",
         callbacks=None,
-        run_config=None,
-        study_kwargs=None,
-        create_study_kwargs=None,
+        ray_options=None,
+        optuna_options=None,
+        cpus=None,
+        gpus=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
             # the following line issues a warning about the loss attribute being saved
             # but we do want to save it
-            self.save_hyperparameters()  # Allows instantiation from a checkpoint from class
+            # Ignore deprecated kwargs so they aren't persisted into checkpoints
+            # and break loads after they're removed in v3.2.0.
+            self.save_hyperparameters(ignore=["cpus", "gpus", "ray_options", "optuna_options"])
 
         if backend == "ray":
             if not isinstance(config, dict):
@@ -127,18 +186,44 @@ class BaseAuto(pl.LightningModule):
             raise ValueError(
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
             )
-        if backend == "ray" and study_kwargs is not None:
+
+        # Shallow-copy user-supplied options so subsequent mutations
+        # (legacy coalescing, default resolution) don't leak back to the caller.
+        ray_options = replace(ray_options) if ray_options is not None else RayOptions()
+        optuna_options = (
+            replace(optuna_options) if optuna_options is not None else OptunaOptions()
+        )
+        for _name, _val in (("cpus", cpus), ("gpus", gpus)):
+            if _val is None:
+                continue
+            if backend != "ray":
+                # On non-ray backends cpus/gpus aren't used, so skip the
+                # deprecation (which would only point at RayOptions, also unused).
+                warnings.warn(
+                    f"`{_name}` is ignored when `backend={backend!r}`; "
+                    f"it only applies to `backend='ray'`.",
+                )
+                continue
+            if getattr(ray_options, _name) is not None:
+                raise TypeError(
+                    f"`{_name}` and `ray_options.{_name}` were both provided; "
+                    f"pass only `ray_options=RayOptions({_name}=...)` — "
+                    f"`{_name}` is deprecated."
+                )
             warnings.warn(
-                "`study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
+                f"`{_name}` is deprecated and will be removed in v3.2.0; "
+                f"pass `ray_options=RayOptions({_name}=...)` instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
-        if backend == "ray" and create_study_kwargs is not None:
-            warnings.warn(
-                "`create_study_kwargs` is ignored when `backend='ray'`; it only applies to `backend='optuna'`.",
-            )
-        if backend == "optuna" and run_config is not None:
-            warnings.warn(
-                "`run_config` is ignored when `backend='optuna'`; it only applies to `backend='ray'`.",
-            )
+            setattr(ray_options, _name, _val)
+        _warn_unused_options(backend, ray_options, optuna_options)
+        # Resolve None defaults for ray; optuna doesn't use cpus/gpus.
+        if backend == "ray":
+            if ray_options.cpus is None:
+                ray_options.cpus = cpu_count()
+            if ray_options.gpus is None:
+                ray_options.gpus = torch.cuda.device_count()
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:
@@ -184,16 +269,15 @@ class BaseAuto(pl.LightningModule):
         self.num_samples = num_samples
         self.time_budget = time_budget
         self.search_alg = search_alg
-        self.cpus = cpus
-        self.gpus = gpus
+        self.cpus = ray_options.cpus
+        self.gpus = ray_options.gpus
         self.refit_with_val = refit_with_val or self.early_stop_patience_steps > 0
         self.verbose = verbose
         self.alias = alias
         self.backend = backend
         self.callbacks = callbacks
-        self.run_config = run_config
-        self.study_kwargs = study_kwargs
-        self.create_study_kwargs = create_study_kwargs
+        self.ray_options = ray_options
+        self.optuna_options = optuna_options
 
         # Base Class attributes
         self.EXOGENOUS_FUTR = cls_model.EXOGENOUS_FUTR
@@ -278,13 +362,13 @@ class BaseAuto(pl.LightningModule):
             else None
         )
 
-        if self.run_config is not None:
+        if self.ray_options.run_config is not None:
             if self.callbacks is not None:
                 warnings.warn(
-                    "`callbacks` is ignored when `run_config` is provided; "
+                    "`callbacks` is ignored when `ray_options.run_config` is provided; "
                     "set callbacks on the RunConfig instead.",
                 )
-            run_config = self.run_config
+            run_config = self.ray_options.run_config
         else:
             run_config = air.RunConfig(callbacks=self.callbacks, verbose=verbose)
 
@@ -296,6 +380,7 @@ class BaseAuto(pl.LightningModule):
                 mode="min",
                 num_samples=num_samples,
                 search_alg=search_alg,
+                scheduler=self.ray_options.scheduler,
                 trial_dirname_creator=trial_dirname_creator,
                 time_budget_s=time_budget,
             ),
@@ -388,14 +473,16 @@ class BaseAuto(pl.LightningModule):
             sampler = None
 
         create_kwargs = {"sampler": sampler, "direction": "minimize"}
-        if self.create_study_kwargs is not None:
-            overridden = sorted(set(self.create_study_kwargs) & set(create_kwargs))
+        if self.optuna_options.create_study_kwargs is not None:
+            overridden = sorted(
+                set(self.optuna_options.create_study_kwargs) & set(create_kwargs)
+            )
             if overridden:
                 warnings.warn(
-                    f"`create_study_kwargs` overrides default values for {overridden}; "
-                    "user-supplied values take precedence.",
+                    f"`optuna_options.create_study_kwargs` overrides default values for "
+                    f"{overridden}; user-supplied values take precedence.",
                 )
-            create_kwargs.update(self.create_study_kwargs)
+            create_kwargs.update(self.optuna_options.create_study_kwargs)
         study = optuna.create_study(**create_kwargs)
         optimize_kwargs = {
             "n_trials": num_samples,
@@ -403,14 +490,16 @@ class BaseAuto(pl.LightningModule):
             "callbacks": self.callbacks,
             "timeout": time_budget,
         }
-        if self.study_kwargs is not None:
-            overridden = sorted(set(self.study_kwargs) & set(optimize_kwargs))
+        if self.optuna_options.study_kwargs is not None:
+            overridden = sorted(
+                set(self.optuna_options.study_kwargs) & set(optimize_kwargs)
+            )
             if overridden:
                 warnings.warn(
-                    f"`study_kwargs` overrides default values for {overridden}; "
-                    "user-supplied values take precedence.",
+                    f"`optuna_options.study_kwargs` overrides default values for "
+                    f"{overridden}; user-supplied values take precedence.",
                 )
-            optimize_kwargs.update(self.study_kwargs)
+            optimize_kwargs.update(self.optuna_options.study_kwargs)
         study.optimize(objective, **optimize_kwargs)
         return study
 
