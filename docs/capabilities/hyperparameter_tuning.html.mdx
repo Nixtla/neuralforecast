@@ -177,6 +177,13 @@ from neuralforecast.losses.pytorch import MAE
 from neuralforecast.auto import AutoNHITS
 ```
 
+> **Tip**
+>
+> You can configure different options for Ray using `ray_options`.
+> Specifically you can pass: - `run_config` which is forwarded to
+> `tune.Tuner` - `scheduler` for different schedulers - `cpus` for the
+> number of CPUs to use during optimization - `gpu` for the number of
+> GPUs to use during optimization
 
 ```python
 model = AutoNHITS(
@@ -349,6 +356,13 @@ To instantiate an `Auto` model you need to define:
 -   `backend`: backend to use, default is `ray`. If `optuna`, the `Auto`
     class will use the `Optuna` backend.
 -   `num_samples`: number of configurations explored.
+
+> **Tip**
+>
+> You can configure different options for Optuna using `optuna_options`.
+> Specifically you can pass: - `study_kwargs` for
+> `optuna.Study.optimize` - `create_study_kwargs` for
+> `optuna.create_study`
 
 ```python
 model = AutoNHITS(

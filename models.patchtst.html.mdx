@@ -21,7 +21,7 @@ Forecasting with
 Transformers”](https://arxiv.org/pdf/2211.14730.pdf)
 
 
-![Figure 1. PatchTST.](imgs_models/patchtst.png)
+![Figure 1. PatchTST.](./imgs_models/patchtst.png)
 *Figure 1. PatchTST.*
 
 ## 1. PatchTST

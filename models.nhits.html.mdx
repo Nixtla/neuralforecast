@@ -48,7 +48,7 @@ S.; Peng, J.; Zhang, S.; Li, J.; Xiong, H.; and Zhang, W. (2020).
 Forecasting”. Association for the Advancement of Artificial Intelligence
 Conference 2021 (AAAI 2021).](https://arxiv.org/abs/2012.07436)
 
-![Figure 1. Neural Hierarchical Interpolation for Time Series (NHITS).](imgs_models/nhits.png)
+![Figure 1. Neural Hierarchical Interpolation for Time Series (NHITS).](./imgs_models/nhits.png)
 *Figure 1. Neural Hierarchical
 Interpolation for Time Series (NHITS).*
 

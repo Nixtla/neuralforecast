@@ -112,6 +112,7 @@
               "models.rmok.html",
               "models.rnn.html",
               "models.softs.html",
+              "models.softssharp.html",
               "models.stemgnn.html",
               "models.tcn.html",
               "models.tft.html",
