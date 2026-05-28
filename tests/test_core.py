@@ -2126,6 +2126,53 @@ def test_neuralforecast_conformal_prediction(setup_airplane_data, setup_airplane
     assert "uid" in preds.columns
     assert any(col.startswith(model.__name__) for col in preds.columns)
 
+def test_auto_model_prediction_intervals_runs_search_once(setup_airplane_data, monkeypatch):
+    """Auto model with prediction_intervals must not
+    re-run the hyperparameter search after `_conformity_scores` already ran it."""
+    from neuralforecast.common._base_auto import BaseAuto
+
+    AirPassengersPanel_train, _ = setup_airplane_data
+
+    def config(trial):
+        return {
+            "input_size": trial.suggest_categorical("input_size", [12]),
+            "max_steps": 1,
+            "val_check_steps": 1,
+            "hidden_size": trial.suggest_categorical("hidden_size", [8, 16]),
+        }
+
+    call_count = {"n": 0}
+    original = BaseAuto._optuna_tune_model
+
+    def counting(self, *args, **kwargs):
+        call_count["n"] += 1
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(BaseAuto, "_optuna_tune_model", counting)
+
+    nf = NeuralForecast(
+        models=[
+            AutoMLP(
+                h=12,
+                config=config,
+                num_samples=2,
+                backend="optuna",
+                search_alg=optuna.samplers.TPESampler(seed=0),
+            )
+        ],
+        freq="M",
+    )
+    nf.fit(
+        AirPassengersPanel_train,
+        prediction_intervals=PredictionIntervals(n_windows=2),
+    )
+
+    assert call_count["n"] == 1, (
+        "Optuna hyperparameter search ran "
+        f"{call_count['n']} times, expected 1 (issue #1232)"
+    )
+
+
 def test_neuralforecast_cross_validation_conformal_prediction(setup_airplane_data):
     """Test cross validation can support conformal prediction with proper refit parameter."""
     AirPassengersPanel_train, _ = setup_airplane_data
