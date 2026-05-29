@@ -1,6 +1,7 @@
 __all__ = ['BaseAuto', 'RayOptions', 'OptunaOptions']
 
 
+import inspect
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass, fields, replace
@@ -117,6 +118,10 @@ class BaseAuto(pl.LightningModule):
         loss (PyTorch module): Instantiated train loss class from [losses collection](./losses.pytorch.html).
         valid_loss (PyTorch module): Instantiated valid loss class from [losses collection](./losses.pytorch.html).
         config (dict or callable): Dictionary with ray.tune defined search space or function that takes an optuna trial and returns a configuration dict.
+            The config must include every parameter of the underlying model that has no
+            default value (e.g. `input_size`, and `n_series` for multivariate models),
+            either as a fixed value or as a search variable. `h`, `loss`, and `valid_loss`
+            are injected automatically and must not be set in `config`.
         search_alg (ray.tune.search variant or optuna.sampler): For ray see https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
             For optuna see https://optuna.readthedocs.io/en/stable/reference/samplers/index.html.
         num_samples (int): Number of hyperparameter optimization steps/samples.
@@ -240,6 +245,29 @@ class BaseAuto(pl.LightningModule):
             self.early_stop_patience_steps = 1
         else:
             self.early_stop_patience_steps = -1
+
+        # Surface required-but-missing parameters up front. Without this,
+        auto_provided = {"h", "loss", "valid_loss"}
+        missing_required = [
+            name
+            for name, param in inspect.signature(cls_model.__init__).parameters.items()
+            if name != "self"
+            and name not in auto_provided
+            and name not in config_base
+            and param.default is inspect.Parameter.empty
+            and param.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        ]
+        if missing_required:
+            raise ValueError(
+                f"`config` is missing required parameter(s) for "
+                f"{cls_model.__name__}: {missing_required}. These parameters "
+                f"have no default and must be provided in `config` (either as "
+                f"a fixed value or as a tune/optuna search variable)."
+            )
 
         if callable(config):
             # reset config_base here to save params to override in the config fn

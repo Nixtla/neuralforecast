@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from ray import tune
 
+from neuralforecast.auto import AutoMLP
 from neuralforecast.common._base_auto import BaseAuto, OptunaOptions, RayOptions
 from neuralforecast.losses.pytorch import MAE, MSE
 from neuralforecast.models.mlp import MLP
@@ -139,6 +140,30 @@ def test_validation_default(setup_config):
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
+
+
+def test_config_missing_required_param_raises():
+    # A config that omits a required no-default arg of the underlying model used to fail deep
+    # inside ray with an opaque "No best trial found" error. Now it must fail fast
+    # at construction time with a message naming the missing key.
+    with pytest.raises(ValueError, match="input_size"):
+        AutoMLP(
+            h=4,
+            config={
+                "max_steps": tune.choice([5]),
+                "random_seed": tune.choice([0]),
+            },
+            backend="ray",
+        )
+
+    def config_fn(trial):
+        return {
+            "max_steps": trial.suggest_categorical("max_steps", [5]),
+            "random_seed": trial.suggest_categorical("random_seed", [0]),
+        }
+
+    with pytest.raises(ValueError, match="input_size"):
+        AutoMLP(h=4, config=config_fn, backend="optuna")
 
 
 def test_ray_time_budget(setup_module):
