@@ -2161,7 +2161,7 @@ def test_auto_model_prediction_intervals_runs_search_once(
             "hidden_size": tune.choice([8, 16]),
         }
         tune_method = "_tune_model"
-        auto_kwargs = dict(config=config)
+        auto_kwargs = dict(config=config, cpus=1)
 
     call_count = {"n": 0}
     original = getattr(BaseAuto, tune_method)
