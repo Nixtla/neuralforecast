@@ -2126,50 +2126,66 @@ def test_neuralforecast_conformal_prediction(setup_airplane_data, setup_airplane
     assert "uid" in preds.columns
     assert any(col.startswith(model.__name__) for col in preds.columns)
 
-def test_auto_model_prediction_intervals_runs_search_once(setup_airplane_data, monkeypatch):
-    """Auto model with prediction_intervals must not
-    re-run the hyperparameter search after `_conformity_scores` already ran it."""
+@pytest.mark.parametrize("backend", ["optuna", "ray"])
+@pytest.mark.parametrize("use_init_models", [False, True])
+def test_auto_model_prediction_intervals_runs_search_once(
+    setup_airplane_data, monkeypatch, backend, use_init_models
+):
+    """Auto model with prediction_intervals must not re-run the hyperparameter search
+    after `_conformity_scores` already ran it. With `use_init_models=True`,
+    `_reset_models` swaps in fresh clones, so the captured search results must be
+    restored onto them or the search runs twice."""
     from neuralforecast.common._base_auto import BaseAuto
 
     AirPassengersPanel_train, _ = setup_airplane_data
 
-    def config(trial):
-        return {
-            "input_size": trial.suggest_categorical("input_size", [12]),
+    if backend == "optuna":
+        def config(trial):
+            return {
+                "input_size": trial.suggest_categorical("input_size", [12]),
+                "max_steps": 1,
+                "val_check_steps": 1,
+                "hidden_size": trial.suggest_categorical("hidden_size", [8, 16]),
+            }
+
+        tune_method = "_optuna_tune_model"
+        auto_kwargs = dict(
+            config=config,
+            search_alg=optuna.samplers.TPESampler(seed=0),
+        )
+    else:
+        config = {
+            "input_size": tune.choice([12]),
             "max_steps": 1,
             "val_check_steps": 1,
-            "hidden_size": trial.suggest_categorical("hidden_size", [8, 16]),
+            "hidden_size": tune.choice([8, 16]),
         }
+        tune_method = "_tune_model"
+        auto_kwargs = dict(config=config)
 
     call_count = {"n": 0}
-    original = BaseAuto._optuna_tune_model
+    original = getattr(BaseAuto, tune_method)
 
     def counting(self, *args, **kwargs):
         call_count["n"] += 1
         return original(self, *args, **kwargs)
 
-    monkeypatch.setattr(BaseAuto, "_optuna_tune_model", counting)
+    monkeypatch.setattr(BaseAuto, tune_method, counting)
 
     nf = NeuralForecast(
-        models=[
-            AutoMLP(
-                h=12,
-                config=config,
-                num_samples=2,
-                backend="optuna",
-                search_alg=optuna.samplers.TPESampler(seed=0),
-            )
-        ],
+        models=[AutoMLP(h=12, num_samples=2, backend=backend, **auto_kwargs)],
         freq="M",
     )
     nf.fit(
         AirPassengersPanel_train,
         prediction_intervals=PredictionIntervals(n_windows=2),
+        use_init_models=use_init_models,
     )
 
     assert call_count["n"] == 1, (
-        "Optuna hyperparameter search ran "
-        f"{call_count['n']} times, expected 1 (issue #1232)"
+        f"{backend} hyperparameter search ran {call_count['n']} times with "
+        f"use_init_models={use_init_models}, expected 1 (issue #1232; search results "
+        "must survive _reset_models)"
     )
 
 
