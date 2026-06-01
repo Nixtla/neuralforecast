@@ -422,33 +422,3 @@ def test_optuna_time_budget(setup_module):
     assert isinstance(auto.results, optuna.Study)
     y_hat = auto.predict(dataset=dataset)
     assert y_hat.shape[0] > 0
-
-
-@pytest.mark.parametrize("legacy_kwarg", ["cpus", "gpus"])
-def test_legacy_cpus_gpus_emit_deprecation_warning(setup_config, legacy_kwarg):
-    with pytest.warns(DeprecationWarning, match=rf"`{legacy_kwarg}` is deprecated"):
-        auto = BaseAuto(
-            h=12,
-            loss=MAE(),
-            valid_loss=MSE(),
-            cls_model=MLP,
-            config=setup_config,
-            num_samples=1,
-            **{legacy_kwarg: 2},
-        )
-    assert getattr(auto.ray_options, legacy_kwarg) == 2
-
-
-@pytest.mark.parametrize("legacy_kwarg", ["cpus", "gpus"])
-def test_legacy_cpus_gpus_conflict_raises_type_error(setup_config, legacy_kwarg):
-    with pytest.raises(TypeError, match=rf"`{legacy_kwarg}` and `ray_options"):
-        BaseAuto(
-            h=12,
-            loss=MAE(),
-            valid_loss=MSE(),
-            cls_model=MLP,
-            config=setup_config,
-            num_samples=1,
-            ray_options=RayOptions(**{legacy_kwarg: 2}),
-            **{legacy_kwarg: 2},
-        )

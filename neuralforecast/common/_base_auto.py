@@ -139,10 +139,6 @@ class BaseAuto(pl.LightningModule):
         optuna_options (OptunaOptions, optional): Container for Optuna-only options.
             See `OptunaOptions` for the supported fields (`study_kwargs`,
             `create_study_kwargs`). Only used with `backend='optuna'`.
-        cpus: Deprecated, will be removed in v3.2.0. Pass
-            `ray_options=RayOptions(cpus=...)` instead.
-        gpus: Deprecated, will be removed in v3.2.0. Pass
-            `ray_options=RayOptions(gpus=...)` instead.
     """
 
     def __init__(
@@ -162,17 +158,15 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
         ray_options=None,
         optuna_options=None,
-        cpus=None,
-        gpus=None,
     ):
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
             # the following line issues a warning about the loss attribute being saved
             # but we do want to save it
-            # Ignore deprecated kwargs so they aren't persisted into checkpoints
-            # and break loads after they're removed in v3.2.0.
-            self.save_hyperparameters(ignore=["cpus", "gpus", "ray_options", "optuna_options"])
+            # `ray_options`/`optuna_options` are not JSON-serializable, so exclude
+            # them from the saved hyperparameters.
+            self.save_hyperparameters(ignore=["ray_options", "optuna_options"])
 
         if backend == "ray":
             if not isinstance(config, dict):
@@ -193,35 +187,11 @@ class BaseAuto(pl.LightningModule):
             )
 
         # Shallow-copy user-supplied options so subsequent mutations
-        # (legacy coalescing, default resolution) don't leak back to the caller.
+        # (default resolution) don't leak back to the caller.
         ray_options = replace(ray_options) if ray_options is not None else RayOptions()
         optuna_options = (
             replace(optuna_options) if optuna_options is not None else OptunaOptions()
         )
-        for _name, _val in (("cpus", cpus), ("gpus", gpus)):
-            if _val is None:
-                continue
-            if backend != "ray":
-                # On non-ray backends cpus/gpus aren't used, so skip the
-                # deprecation (which would only point at RayOptions, also unused).
-                warnings.warn(
-                    f"`{_name}` is ignored when `backend={backend!r}`; "
-                    f"it only applies to `backend='ray'`.",
-                )
-                continue
-            if getattr(ray_options, _name) is not None:
-                raise TypeError(
-                    f"`{_name}` and `ray_options.{_name}` were both provided; "
-                    f"pass only `ray_options=RayOptions({_name}=...)` — "
-                    f"`{_name}` is deprecated."
-                )
-            warnings.warn(
-                f"`{_name}` is deprecated and will be removed in v3.2.0; "
-                f"pass `ray_options=RayOptions({_name}=...)` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            setattr(ray_options, _name, _val)
         _warn_unused_options(backend, ray_options, optuna_options)
         # Resolve None defaults for ray; optuna doesn't use cpus/gpus.
         if backend == "ray":

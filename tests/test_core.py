@@ -34,6 +34,7 @@ from neuralforecast.auto import (
     Informer,
     MLPMultivariate,
     NBEATSx,
+    RayOptions,
     StemGNN,
     TSMixer,
     TSMixerx,
@@ -1007,7 +1008,7 @@ def test_aliases(setup_airplane_data):
     }
     models = [
         # test Auto
-        AutoDilatedRNN(h=12, config=config_drnn, cpus=1, num_samples=2, alias="AutoDIL"),
+        AutoDilatedRNN(h=12, config=config_drnn, ray_options=RayOptions(cpus=1), num_samples=2, alias="AutoDIL"),
         # test BaseWindows
         NHITS(h=12, input_size=24, loss=MQLoss(level=[80]), max_steps=1, alias="NHITSMQ"),
         # test BaseRecurrent
@@ -1082,7 +1083,7 @@ def test_training_with_an_iterative_dataset(setup_airplane_data):
             backend="optuna",
             search_alg=optuna.samplers.TPESampler(seed=0),
         ),  # type: ignore
-        AutoNBEATSx(h=12, config=config_ray, cpus=1, num_samples=2),
+        AutoNBEATSx(h=12, config=config_ray, ray_options=RayOptions(cpus=1), num_samples=2),
     ]
     nf = NeuralForecast(models=models, freq="M")
 
@@ -1148,7 +1149,7 @@ def test_cross_validation(h=12, test_size=12):
     }
     fcst = NeuralForecast(
         models=[
-            AutoDilatedRNN(h=12, config=config_drnn, cpus=1, num_samples=1),
+            AutoDilatedRNN(h=12, config=config_drnn, ray_options=RayOptions(cpus=1), num_samples=1),
             DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1),
             RNN(
                 h=12,
@@ -1168,7 +1169,7 @@ def test_cross_validation(h=12, test_size=12):
                 futr_exog_list=["trend"],
                 hist_exog_list=["y_[lag12]"],
             ),
-            AutoMLP(h=12, config=config, cpus=1, num_samples=1),
+            AutoMLP(h=12, config=config, ray_options=RayOptions(cpus=1), num_samples=1),
             MLP(h=12, input_size=12, max_steps=1, scaler_type="robust"),
             NBEATSx(
                 h=12,
@@ -1213,7 +1214,7 @@ def test_cross_validation(h=12, test_size=12):
     # cross validation
     fcst = NeuralForecast(
         models=[
-            AutoDilatedRNN(h=12, config=config_drnn, cpus=1, num_samples=1),
+            AutoDilatedRNN(h=12, config=config_drnn, ray_options=RayOptions(cpus=1), num_samples=1),
             DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1),
             RNN(
                 h=12,
@@ -1233,7 +1234,7 @@ def test_cross_validation(h=12, test_size=12):
                 futr_exog_list=["trend"],
                 hist_exog_list=["y_[lag12]"],
             ),
-            AutoMLP(h=12, config=config, cpus=1, num_samples=1),
+            AutoMLP(h=12, config=config, ray_options=RayOptions(cpus=1), num_samples=1),
             MLP(h=12, input_size=12, max_steps=1, scaler_type="robust"),
             NBEATSx(
                 h=12,
@@ -1326,9 +1327,9 @@ def test_save_load(setup_airplane_data):
 
     fcst = NeuralForecast(
         models=[
-            AutoRNN(h=12, config=config_drnn, cpus=1, num_samples=2, refit_with_val=True),
+            AutoRNN(h=12, config=config_drnn, ray_options=RayOptions(cpus=1), num_samples=2, refit_with_val=True),
             DilatedRNN(h=12, input_size=-1, encoder_hidden_size=5, max_steps=1),
-            AutoMLP(h=12, config=config, cpus=1, num_samples=2),
+            AutoMLP(h=12, config=config, ray_options=RayOptions(cpus=1), num_samples=2),
             NHITS(
                 h=12,
                 input_size=12,
