@@ -1,0 +1,363 @@
+---
+title: Converting Models to ONNX
+---
+
+It is possible to convert any NeuralForecast model to the Open Neural
+Network Exchange (ONNX) format. With ONNX, you get: - faster inference -
+hardware acceleration - easy deployment to edge devices - a broader
+device support
+
+In this tutorial, we show how you can convert a NeuralForecast model to
+ONNX. We show an example for a univariate and multivariate model using
+all types of exogenous features, and with multiple unique series, making
+it the most general case possible.
+
+You can run these experiments using GPU with Google Colab.
+
+<a href="https://colab.research.google.com/github/Nixtla/neuralforecast/blob/main/nbs/docs/tutorials/converting_onnx.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
+## Install dependencies
+
+```python
+%%capture
+!pip install neuralforecast onnxruntime onnxscript onnx
+```
+
+## Key considerations
+
+There are some key elements to understand when converting a
+NeuralForecast model to ONNX. It comes from our the library works and it
+explains why directly `to_onnx()` doesn’t work.
+
+1.  The `forward` method in `neuralforecast` takes a dictionary
+    (`windows_batch`), but that cannot be traced, so using `to_onnx()`
+    directly fails. We must define a wrapper that takes tensors and
+    rebuilds the dictionary internally.
+2.  Recall that `futr_exog` spans the history and the forecast horizon.
+    When running inference, make sure to pass values that cover the
+    input window and the horizon
+3.  The series order matters and it must match the order of training.
+    Internally, series are sorted by `unique_id`. At the inference, the
+    same order must be passed.
+4.  The scaler matters. With `scaler_type="identity"`, the output is in
+    the same scale of the series. Any other scaler requires you to
+    inverse-transform the predictions manually.
+5.  The batch size used when exporting to ONNX becomes fixed and you
+    must use the same batch size at inference. To keep it flexible, we
+    can use `torch.onnx.export(..., dynamo=True)`.
+6.  For multivariate models, `n_series` must be constant between
+    training and inference. We set batch size to 1 because predictions
+    are done in one joint window.
+
+## Converting a univariate model
+
+Let’s see an example of converting the univariate MLP to ONNX.
+
+### Import packages
+
+```python
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import onnxruntime as ort
+from utilsforecast.data import generate_series
+
+from neuralforecast import NeuralForecast
+from neuralforecast.models import MLP, MLPMultivariate
+from neuralforecast.losses.pytorch import MAE
+```
+
+### Set constants
+
+```python
+HIST_EXOG = ["hist_measure"]
+FUTR_EXOG = ["sin_doy", "cos_doy"]
+STAT_EXOG = ["static_0", "static_1"]
+```
+
+### Function to create synthetic data
+
+```python
+def add_exog_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add future (calendar) and historical exogenous columns."""
+    df = df.copy()
+    doy = df["ds"].dt.dayofyear.to_numpy()
+    # Future exog: deterministic calendar features, computable for any date.
+    df["sin_doy"] = np.sin(2 * np.pi * doy / 365.25)
+    df["cos_doy"] = np.cos(2 * np.pi * doy / 365.25)
+    # Historical exog: a measurement we only have for the past.
+    rng = np.random.default_rng(0)
+    df["hist_measure"] = rng.normal(size=len(df))
+    return df
+
+
+def make_dataset():
+    series = generate_series(
+        n_series=4,
+        freq="D",
+        min_length=120,
+        max_length=120,
+        n_static_features=2,
+        static_as_categorical=False,
+        equal_ends=True,
+    )
+    # NeuralForecast requires static features in a separate static_df.
+    static_df = series[["unique_id", *STAT_EXOG]].drop_duplicates("unique_id")
+    df = add_exog_features(series.drop(columns=STAT_EXOG))
+    return df, static_df
+```
+
+### Step1: Create an ONNX wrapper
+
+```python
+class MLPONNXWrapper(nn.Module):
+    def __init__(self, model: MLP):
+        super().__init__()
+        self.model = model.eval()
+
+    def forward(self, insample_y, futr_exog, hist_exog, stat_exog):
+        windows_batch = {
+            "insample_y": insample_y,
+            "insample_mask": None,
+            "futr_exog": futr_exog,
+            "hist_exog": hist_exog,
+            "stat_exog": stat_exog,
+        }
+        return self.model(windows_batch)
+```
+
+### Step 2: Train the model in `neuralforecast`
+
+```python
+df, static_df = make_dataset()
+horizon = 14
+
+model = MLP(
+    h=horizon,
+    input_size=30,
+    hist_exog_list=HIST_EXOG,
+    futr_exog_list=FUTR_EXOG,
+    stat_exog_list=STAT_EXOG,
+    max_steps=50,
+    loss=MAE(),
+    scaler_type="identity",  # ONNX output stays in the raw data scale
+)
+nf = NeuralForecast(models=[model], freq="D")
+nf.fit(df, static_df=static_df)
+
+model = nf.models[0] # extract fitted model
+```
+
+### Step 3: Convert to ONNX
+
+```python
+def convert_to_onnx(model: MLP, n_windows, path="mlp_univariate.onnx") -> str:
+    wrapper = MLPONNXWrapper(model)
+    L, h = model.input_size, model.h
+    n_futr, n_hist, n_stat = len(FUTR_EXOG), len(HIST_EXOG), len(STAT_EXOG)
+    B = n_windows
+
+    example = (
+        torch.randn(B, L, 1),           # insample_y
+        torch.randn(B, L + h, n_futr),  # futr_exog (input window + horizon)
+        torch.randn(B, L, n_hist),      # hist_exog
+        torch.randn(B, n_stat),         # stat_exog
+    )
+    input_names = ["insample_y", "futr_exog", "hist_exog", "stat_exog"]
+
+    torch.onnx.export(
+        wrapper,
+        example,
+        path,
+        input_names=input_names,
+        output_names=["forecast"],
+        opset_version=17,
+    )
+    return path
+
+n_windows = df["unique_id"].nunique()
+onnx_path = convert_to_onnx(model, n_windows)
+```
+
+### Step 4: Prepare input for inference
+
+```python
+def build_inputs(df, static_df, futr_df, model: MLP):
+    L, h = model.input_size, model.h
+    ids = sorted(df["unique_id"].unique())
+    B = len(ids)
+
+    insample_y = np.zeros((B, L, 1), np.float32)
+    hist_exog = np.zeros((B, L, len(HIST_EXOG)), np.float32)
+    futr_exog = np.zeros((B, L + h, len(FUTR_EXOG)), np.float32)
+    stat_exog = np.zeros((B, len(STAT_EXOG)), np.float32)
+
+    static_df = static_df.set_index("unique_id")
+    for i, uid in enumerate(ids):
+        win = df[df["unique_id"] == uid].iloc[-L:]
+        fut = futr_df[futr_df["unique_id"] == uid]
+
+        insample_y[i, :, 0] = win["y"].to_numpy()
+        hist_exog[i] = win[HIST_EXOG].to_numpy()
+        futr_exog[i] = np.concatenate(
+            [win[FUTR_EXOG].to_numpy(), fut[FUTR_EXOG].to_numpy()], axis=0
+        )
+        stat_exog[i] = static_df.loc[uid, STAT_EXOG].to_numpy()
+
+    feeds = {
+        "insample_y": insample_y,
+        "futr_exog": futr_exog,
+        "hist_exog": hist_exog,
+        "stat_exog": stat_exog,
+    }
+    return ids, feeds
+
+futr_df = nf.make_future_dataframe()
+futr_df = add_exog_features(futr_df)
+
+ids, feeds = build_inputs(df, static_df, futr_df, model)
+```
+
+### Step 5: Predict
+
+```python
+def predict(path, feeds):
+    sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+    return sess.run(["forecast"], feeds)[0]
+
+forecast = predict(onnx_path, feeds) # [n_series, h, 1]
+```
+
+## Converting a multivariate model
+
+Now, let’s see an example of converting the multivariate MLP to ONNX.
+Note that we don’t repeat the steps to create the synthetic dataset.
+
+### Step 1: Create the ONNX wrapper
+
+```python
+class MLPMultivariateONNXWrapper(nn.Module):
+    def __init__(self, model: MLPMultivariate):
+        super().__init__()
+        self.model = model.eval()
+
+    def forward(self, insample_y, futr_exog, hist_exog, stat_exog):
+        windows_batch = {
+            "insample_y": insample_y,
+            "insample_mask": None,
+            "futr_exog": futr_exog,
+            "hist_exog": hist_exog,
+            "stat_exog": stat_exog,
+        }
+        return self.model(windows_batch)
+```
+
+### Step 2: Train the model
+
+```python
+df, static_df = make_dataset()
+horizon = 14
+n_series = df["unique_id"].nunique()
+
+model = MLPMultivariate(
+    h=horizon,
+    input_size=30,
+    n_series=n_series,
+    hist_exog_list=HIST_EXOG,
+    futr_exog_list=FUTR_EXOG,
+    stat_exog_list=STAT_EXOG,
+    max_steps=50,
+    loss=MAE(),
+    scaler_type="identity",
+)
+nf = NeuralForecast(models=[model], freq="D")
+nf.fit(df, static_df=static_df)
+
+model = nf.models[0]
+```
+
+### Step 3: Convert to ONNX
+
+Recall that all series are predicted in one joint window, so batch size
+is set to 1. Also, `n_series` is fixed by the trained model.
+
+```python
+def convert_to_onnx(model: MLPMultivariate, n_series, path="mlpmultivariate.onnx"):
+    wrapper = MLPMultivariateONNXWrapper(model)
+    L, h, N = model.input_size, model.h, n_series
+    n_futr, n_hist, n_stat = len(FUTR_EXOG), len(HIST_EXOG), len(STAT_EXOG)
+
+    example = (
+        torch.randn(1, L, N),               # insample_y      [1, L, N]
+        torch.randn(1, n_futr, L + h, N),   # futr_exog       [1, F, L+h, N]
+        torch.randn(1, n_hist, L, N),       # hist_exog       [1, X, L, N]
+        torch.randn(N, n_stat),             # stat_exog       [N, S]
+    )
+    input_names = ["insample_y", "futr_exog", "hist_exog", "stat_exog"]
+    
+    torch.onnx.export(
+        wrapper,
+        example,
+        path,
+        input_names=input_names,
+        output_names=["forecast"],
+        opset_version=17,
+    )
+    return path
+
+onnx_path = convert_to_onnx(model, n_series)
+```
+
+### Step 4: Prepare input for inference
+
+```python
+def build_inputs(df, static_df, futr_df, model: MLPMultivariate):
+    L, h = model.input_size, model.h
+    ids = sorted(df["unique_id"].unique())
+    N = len(ids)
+
+    insample_y = np.zeros((1, L, N), np.float32)
+    hist_exog = np.zeros((1, len(HIST_EXOG), L, N), np.float32)
+    futr_exog = np.zeros((1, len(FUTR_EXOG), L + h, N), np.float32)
+    stat_exog = np.zeros((N, len(STAT_EXOG)), np.float32)
+
+    static_df = static_df.set_index("unique_id")
+    for j, uid in enumerate(ids):  # j indexes the series axis
+        win = df[df["unique_id"] == uid].iloc[-L:]
+        fut = futr_df[futr_df["unique_id"] == uid]
+
+        insample_y[0, :, j] = win["y"].to_numpy()
+        for k, col in enumerate(HIST_EXOG):
+            hist_exog[0, k, :, j] = win[col].to_numpy()
+        for k, col in enumerate(FUTR_EXOG):
+            # future exog spans the input window AND the horizon
+            futr_exog[0, k, :, j] = np.concatenate(
+                [win[col].to_numpy(), fut[col].to_numpy()]
+            )
+        stat_exog[j] = static_df.loc[uid, STAT_EXOG].to_numpy()
+
+    feeds = {
+        "insample_y": insample_y,
+        "futr_exog": futr_exog,
+        "hist_exog": hist_exog,
+        "stat_exog": stat_exog,
+    }
+    return ids, feeds
+
+futr_df = nf.make_future_dataframe()
+futr_df = add_exog_features(futr_df)
+
+ids, feeds = build_inputs(df, static_df, futr_df, model)
+```
+
+### Step 5: Predict
+
+```python
+def predict(path, feeds):
+    sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+    return sess.run(["forecast"], feeds)[0]
+
+forecast = predict(onnx_path, feeds)  # [1, h, N]
+```
+
