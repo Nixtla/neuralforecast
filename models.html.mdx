@@ -44,8 +44,6 @@ BaseAuto(
     callbacks=None,
     ray_options=None,
     optuna_options=None,
-    cpus=None,
-    gpus=None,
 )
 ```
 
@@ -80,8 +78,6 @@ Name | Type | Description | Default
 `callbacks` | <code>list of callable</code> | List of functions to call during the optimization process. ray reference: https://docs.ray.io/en/latest/tune/tutorials/tune-metrics.html optuna reference: https://optuna.readthedocs.io/en/stable | <code>None</code>
 `ray_options` | <code>[RayOptions](#neuralforecast.common._base_auto.RayOptions)</code> | Container for Ray-only options. See `RayOptions` for the supported fields (`run_config`, `scheduler`, `cpus`, `gpus`). Only used with `backend='ray'`. | <code>None</code>
 `optuna_options` | <code>[OptunaOptions](#neuralforecast.common._base_auto.OptunaOptions)</code> | Container for Optuna-only options. See `OptunaOptions` for the supported fields (`study_kwargs`, `create_study_kwargs`). Only used with `backend='optuna'`. | <code>None</code>
-`cpus` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(cpus=...)` instead. | <code>None</code>
-`gpus` | | Deprecated, will be removed in v3.2.0. Pass `ray_options=RayOptions(gpus=...)` instead. | <code>None</code>
 
 ## 2. Available AutoModels
 
