@@ -215,6 +215,32 @@ def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     pd.testing.assert_frame_equal(init_cv, after_cv)
     pd.testing.assert_frame_equal(after_fcst, init_fcst)
 
+
+# cross_validation() with no `df` should reuse the stored dataset
+@pytest.mark.parametrize("use_polars", [False, True])
+def test_cross_validation_without_df_uses_stored_dataset(
+    use_polars, setup_airplane_data, setup_airplane_data_polars
+):
+    if use_polars:
+        df, _ = setup_airplane_data_polars
+        freq = "1mo"
+        col_kwargs = dict(id_col="uid", time_col="time", target_col="target")
+        assert_frame_equal = polars.testing.assert_frame_equal
+    else:
+        df, _ = setup_airplane_data
+        freq = "M"
+        col_kwargs = {}
+        assert_frame_equal = pd.testing.assert_frame_equal
+
+    models = [NHITS(h=12, input_size=24, max_steps=2, random_seed=0)]
+    nf = NeuralForecast(models=models, freq=freq)
+    nf.fit(df, **col_kwargs)
+    # use_init_models resets to the same seeded weights before each run
+    cv_with_df = nf.cross_validation(df, use_init_models=True, **col_kwargs)
+    cv_no_df = nf.cross_validation(use_init_models=True, **col_kwargs)
+    assert_frame_equal(cv_no_df, cv_with_df)
+
+
 # test cross_validation with refit
 def test_neural_forecast_refit(setup_airplane_data):
     AirPassengersPanel_train, _ = setup_airplane_data
