@@ -20,7 +20,8 @@ from neuralforecast.models.kan import KAN
 
 from neuralforecast.auto import (
     AutoMLP, 
-    AutoDilatedRNN, 
+    AutoDilatedRNN,
+    RayOptions,
 )
 
 from neuralforecast.losses.pytorch import SMAPE, MAE, IQLoss
@@ -49,11 +50,11 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
                    "scaler_type": "minmax1"}
 
     models = [
-        AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, cpus=1),
+        AutoDilatedRNN(h=horizon, loss=MAE(), config=config_drnn, num_samples=2, ray_options=RayOptions(cpus=1)),
         RNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         TCN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         NHITS(h=horizon, input_size=2 * horizon, dropout_prob_theta=0.5, loss=MAE(), max_steps=1000, val_check_steps=500),
-        AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, cpus=1),
+        AutoMLP(h=horizon, loss=MAE(), config=config, num_samples=2, ray_options=RayOptions(cpus=1)),
         DLinear(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=2000, val_check_steps=500),
         TFT(h=horizon, input_size=2 * horizon, loss=SMAPE(), hidden_size=64, scaler_type='robust', windows_batch_size=512, max_steps=1500, val_check_steps=500),
         VanillaTransformer(h=horizon, input_size=2 * horizon, loss=MAE(), hidden_size=64, scaler_type='minmax1', windows_batch_size=512, max_steps=1500, val_check_steps=500),
