@@ -555,7 +555,15 @@ class BaseAuto(pl.LightningModule):
         # hyperparameter selection.
         search_alg = deepcopy(self.search_alg)
         val_size = val_size if val_size > 0 else self.h
-        if self.backend == "ray":
+        # When `_reuse_search` is set (by `NeuralForecast.fit` during conformal
+        # interval calibration), refit with the previously found best config
+        reuse_search = (
+            getattr(self, "_reuse_search", False)
+            and getattr(self, "results", None) is not None
+        )
+        if reuse_search:
+            results = self.results
+        elif self.backend == "ray":
             if distributed_config is not None:
                 raise ValueError(
                     "distributed training is not supported for the ray backend."
@@ -573,7 +581,6 @@ class BaseAuto(pl.LightningModule):
                 config=self.config,
                 time_budget=self.time_budget,
             )
-            best_config = results.get_best_result().config
         else:
             results = self._optuna_tune_model(
                 cls_model=self.cls_model,
@@ -587,6 +594,10 @@ class BaseAuto(pl.LightningModule):
                 distributed_config=distributed_config,
                 time_budget=self.time_budget,
             )
+
+        if self.backend == "ray":
+            best_config = results.get_best_result().config
+        else:
             # Deepcopy so the final fit doesn't mutate the loss instances stored on
             # `self` (matches the historic behavior where optuna's `set_user_attr`
             # deepcopied the config dict).
