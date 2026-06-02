@@ -83,5 +83,5 @@ def test_automlp():
         config.update({'max_steps': 2, 'val_check_steps': 1, 'input_size': 12, 'hidden_size': 8})
         return config
 
-    model = AutoMLP(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoMLP(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12

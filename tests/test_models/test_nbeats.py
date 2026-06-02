@@ -1,11 +1,7 @@
-import logging
-import warnings
-
 import numpy as np
-import pandas as pd
 import pytest
 
-from neuralforecast.auto import NBEATS, AutoNBEATS
+from neuralforecast.auto import AutoNBEATS, NBEATS, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.tsdataset import TimeSeriesDataset
@@ -89,7 +85,7 @@ def test_autonbeats(setup_dataset):
         config.update({'max_steps': 2, 'val_check_steps': 1, 'input_size': 12, 'mlp_units': 3 * [[8, 8]]})
         return config
 
-    model = AutoNBEATS(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoNBEATS(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=dataset)
 
@@ -99,5 +95,5 @@ def test_autonbeats(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
     my_config['mlp_units'] = 3 * [[8, 8]]
-    model = AutoNBEATS(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoNBEATS(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)

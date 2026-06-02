@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoDLinear, DLinear
+from neuralforecast.auto import AutoDLinear, DLinear, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -21,7 +21,7 @@ def test_autodlinear(setup_dataset):
         config.update({'max_steps': 2, 'val_check_steps': 1, 'input_size': 12})
         return config
 
-    model = AutoDLinear(h=12, config=my_config_new, backend='optuna', cpus=1)
+    model = AutoDLinear(h=12, config=my_config_new, backend='optuna')
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=dataset)
 
@@ -30,5 +30,5 @@ def test_autodlinear(setup_dataset):
     my_config['max_steps'] = 2
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
-    model = AutoDLinear(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoDLinear(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)

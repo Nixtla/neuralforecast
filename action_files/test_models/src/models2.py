@@ -13,7 +13,8 @@ from neuralforecast.models.xlstm import xLSTM
 
 from neuralforecast.auto import (
     AutoNHITS, 
-    AutoNBEATS, 
+    AutoNBEATS,
+    RayOptions,
 )
 
 from neuralforecast.losses.pytorch import MAE
@@ -36,8 +37,8 @@ def main(dataset: str = 'M3', group: str = 'Monthly') -> None:
         LSTM(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         DilatedRNN(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
         GRU(h=horizon, input_size=2 * horizon, encoder_hidden_size=64, max_steps=300),
-        AutoNBEATS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
-        AutoNHITS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, cpus=1),
+        AutoNBEATS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, ray_options=RayOptions(cpus=1)),
+        AutoNHITS(h=horizon, loss=MAE(), config=config_nbeats, num_samples=2, ray_options=RayOptions(cpus=1)),
         NBEATSx(h=horizon, input_size=2 * horizon, loss=MAE(), max_steps=1000),
         xLSTM(h=horizon, input_size=2 * horizon, max_steps=300, backbone='mLSTM',),
     ]

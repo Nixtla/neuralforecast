@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoRNN
+from neuralforecast.auto import AutoRNN, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import RNN
@@ -22,7 +22,7 @@ def test_autornn_model(setup_dataset):
         config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': -1, 'encoder_hidden_size': 8})
         return config
 
-    model = AutoRNN(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoRNN(h=12, config=my_config_new, backend='optuna', num_samples=1)
     model.fit(dataset=dataset)
 
     assert model.config(MockTrial())['h'] == 12
@@ -32,5 +32,5 @@ def test_autornn_model(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = -1
     my_config['encoder_hidden_size'] = 8
-    model = AutoRNN(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoRNN(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
