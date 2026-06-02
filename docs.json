@@ -124,7 +124,8 @@
               "models.tsmixer.html",
               "models.tsmixerx.html",
               "models.vanillatransformer.html",
-              "models.xlinear.html"
+              "models.xlinear.html",
+              "models.xlstm.html"
             ]
           },
           "models.html",
