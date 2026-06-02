@@ -40,7 +40,6 @@ Y_test_df = AirPassengersPanel[AirPassengersPanel.ds>=AirPassengersPanel['ds'].v
 
 model = xLSTM(h=12, 
             input_size=24,
-            n_series=2,
             stat_exog_list=['airline1'],
             hist_exog_list=["y_[lag12]"],
             futr_exog_list=['trend'],            
