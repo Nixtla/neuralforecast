@@ -70,7 +70,8 @@
               "docs/tutorials/temporal_classification.html",
               "docs/tutorials/transfer_learning.html",
               "docs/tutorials/adding_models.html",
-              "docs/tutorials/large_datasets.html"
+              "docs/tutorials/large_datasets.html",
+              "docs/tutorials/converting_onnx.html"
             ]
           }
         ]
