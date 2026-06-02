@@ -651,14 +651,35 @@ class NeuralForecast:
                     f"{train_size} timestamp(s) available for training after removing val_size."
                 )
 
+        # `_conformity_scores` (above) already ran the Auto* search and left the
+        # results on the current models. Capture them before any reset so the search
+        # can be reused for the final fit instead of rerunning on the full dataset.
+        auto_search_results = [
+            getattr(model, "results", None) if isinstance(model, BaseAuto) else None
+            for model in self.models
+        ]
+
         # Recover initial model if use_init_models
         if use_init_models:
             self._reset_models()
 
+        # When `_conformity_scores` has already run the Auto* search, mark the
+        # Auto* models so the search is reused instead of rerunning on the full dataset.
+        reuse_auto_search = self._cs_df is not None
         for i, model in enumerate(self.models):
-            self.models[i] = model.fit(
-                self.dataset, val_size=val_size, distributed_config=distributed_config
-            )
+            if reuse_auto_search and isinstance(model, BaseAuto):
+                # `_reset_models` swaps in fresh clones without results; restore the
+                # captured search results so the reuse guard in BaseAuto.fit passes.
+                if auto_search_results[i] is not None:
+                    model.results = auto_search_results[i]
+                model._reuse_search = True
+            try:
+                self.models[i] = model.fit(
+                    self.dataset, val_size=val_size, distributed_config=distributed_config
+                )
+            finally:
+                if isinstance(model, BaseAuto):
+                    model._reuse_search = False
 
         self._fitted = True
 
