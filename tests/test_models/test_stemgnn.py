@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoStemGNN, StemGNN
+from neuralforecast.auto import AutoStemGNN, RayOptions, StemGNN
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -30,5 +30,5 @@ def test_autostemgnn(setup_dataset):
     my_config['max_steps'] = 1
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
-    model = AutoStemGNN(h=12, n_series=1, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoStemGNN(h=12, n_series=1, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=setup_dataset)

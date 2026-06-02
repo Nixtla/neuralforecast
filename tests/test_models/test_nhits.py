@@ -1,4 +1,4 @@
-from neuralforecast.auto import NHITS, AutoNHITS
+from neuralforecast.auto import AutoNHITS, NHITS, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -22,7 +22,7 @@ def test_autonhits(setup_dataset):
         config.update({'max_steps': 2, 'val_check_steps': 1, 'input_size': 12, 'mlp_units': 3 * [[8, 8]]})
         return config
 
-    model = AutoNHITS(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoNHITS(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=dataset)
 
@@ -32,5 +32,5 @@ def test_autonhits(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
     my_config['mlp_units'] = 3 * [[8, 8]]
-    model = AutoNHITS(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoNHITS(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)

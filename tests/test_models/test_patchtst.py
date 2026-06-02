@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoPatchTST, PatchTST
+from neuralforecast.auto import AutoPatchTST, PatchTST, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -19,7 +19,7 @@ def test_autopatchtst(setup_dataset):
         config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': 12, 'hidden_size': 16})
         return config
 
-    model = AutoPatchTST(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoPatchTST(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=setup_dataset)
 
@@ -29,5 +29,5 @@ def test_autopatchtst(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
     my_config['hidden_size'] = 16
-    model = AutoPatchTST(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoPatchTST(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=setup_dataset)

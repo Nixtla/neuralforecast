@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoTimeXer, TimeXer
+from neuralforecast.auto import AutoTimeXer, RayOptions, TimeXer
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -21,7 +21,7 @@ def test_autotimxer(setup_dataset):
         config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': 12, 'patch_len': 12})
         return config
 
-    model = AutoTimeXer(h=12, n_series=1, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoTimeXer(h=12, n_series=1, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=setup_dataset)
 
@@ -31,5 +31,5 @@ def test_autotimxer(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
     my_config['patch_len'] = 12
-    model = AutoTimeXer(h=12, n_series=1, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoTimeXer(h=12, n_series=1, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=setup_dataset)

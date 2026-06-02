@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoTCN
+from neuralforecast.auto import AutoTCN, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import TCN
@@ -23,7 +23,7 @@ def test_autotcn(setup_dataset):
         config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': -1, 'encoder_hidden_size': 8})
         return config
 
-    model = AutoTCN(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoTCN(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=dataset)
 
@@ -33,5 +33,5 @@ def test_autotcn(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = -1
     my_config['encoder_hidden_size'] = 8
-    model = AutoTCN(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoTCN(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)

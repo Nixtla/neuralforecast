@@ -1,4 +1,4 @@
-from neuralforecast.auto import AutoBiTCN, BiTCN
+from neuralforecast.auto import AutoBiTCN, BiTCN, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
@@ -23,7 +23,7 @@ def test_autobitcn(setup_dataset):
         config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': 12, 'hidden_size': 8})
         return config
 
-    model = AutoBiTCN(h=12, config=my_config_new, backend='optuna', num_samples=1, cpus=1)
+    model = AutoBiTCN(h=12, config=my_config_new, backend='optuna', num_samples=1)
     assert model.config(MockTrial())['h'] == 12
     model.fit(dataset=dataset)
 
@@ -33,5 +33,5 @@ def test_autobitcn(setup_dataset):
     my_config['val_check_steps'] = 1
     my_config['input_size'] = 12
     my_config['hidden_size'] = 8
-    model = AutoBiTCN(h=12, config=my_config, backend='ray', num_samples=1, cpus=1)
+    model = AutoBiTCN(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
