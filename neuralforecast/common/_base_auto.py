@@ -139,6 +139,10 @@ class BaseAuto(pl.LightningModule):
         optuna_options (OptunaOptions, optional): Container for Optuna-only options.
             See `OptunaOptions` for the supported fields (`study_kwargs`,
             `create_study_kwargs`). Only used with `backend='optuna'`.
+        cpus: No longer supported as of v3.2.0. Pin neuralforecast to v3.1.9, or
+            pass `ray_options=RayOptions(cpus=...)` instead.
+        gpus: No longer supported as of v3.2.0. Pin neuralforecast to v3.1.9, or
+            pass `ray_options=RayOptions(gpus=...)` instead.
     """
 
     def __init__(
@@ -158,7 +162,16 @@ class BaseAuto(pl.LightningModule):
         callbacks=None,
         ray_options=None,
         optuna_options=None,
+        cpus=None,
+        gpus=None,
     ):
+        for _name, _val in (("cpus", cpus), ("gpus", gpus)):
+            if _val is not None:
+                raise TypeError(
+                    f"`{_name}` is no longer supported as of v3.2.0. "
+                    f"Either pin neuralforecast to v3.1.9, or pass "
+                    f"`ray_options=RayOptions({_name}=...)` instead."
+                )
         super(BaseAuto, self).__init__()
         with warnings.catch_warnings(record=False):
             warnings.filterwarnings("ignore")
