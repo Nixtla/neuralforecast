@@ -1941,8 +1941,10 @@ class NeuralForecast:
             # Add original input df's y to forecasts DataFrame
             if df is None:
                 # Reconstruct the target from the stored dataset. The dataset's
-                # temporal values are scaled, so undo any target scaling
-                target_values = self.dataset.temporal[:, self.dataset.y_idx].numpy()
+                # temporal values are scaled, so undo any target scaling.
+                target_values = (
+                    self.dataset.temporal[:, self.dataset.y_idx].clone().numpy()
+                )
                 if self.scalers_:
                     target_values = self._scalers_target_inverse_transform(
                         target_values.reshape(-1, 1), self.dataset.indptr
