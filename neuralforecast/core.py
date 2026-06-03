@@ -553,12 +553,23 @@ class NeuralForecast:
             )
             if prediction_intervals is not None:
                 self.prediction_intervals = prediction_intervals
+                # Conformal calibration retrains the models via cross-validation.
+                # Forward the same validation size used for the final fit.
+                conformal_val_size = val_size or 0
+                if val_df is not None:
+                    conformal_val_size = self.dataset.align(
+                        val_df,
+                        id_col=id_col,
+                        time_col=time_col,
+                        target_col=target_col,
+                    ).min_size
                 self._cs_df = self._conformity_scores(
                     df=df,
                     id_col=id_col,
                     time_col=time_col,
                     target_col=target_col,
                     static_df=static_df,
+                    val_size=conformal_val_size,
                 )
 
         elif isinstance(df, SparkDataFrame):
@@ -2602,6 +2613,7 @@ class NeuralForecast:
         time_col: str,
         target_col: str,
         static_df: Optional[DataFrame],
+        val_size: int = 0,
     ) -> DataFrame:
         """Compute conformity scores.
 
@@ -2616,6 +2628,8 @@ class NeuralForecast:
             time_col (str): Column that identifies each timestep.
             target_col (str): Column that contains the target.
             static_df (Optional[DataFrame]): DataFrame with static exogenous variables.
+            val_size (int): Validation size used to retrain the models during
+                calibration, mirroring the validation size of the final fit.
         """
         if self.prediction_intervals is None:
             raise AttributeError(
@@ -2624,12 +2638,15 @@ class NeuralForecast:
 
         min_size = ufp.counts_by_id(df, id_col)["counts"].min()
         step_size = self.prediction_intervals.step_size
-        min_samples = self.h + step_size * (self.prediction_intervals.n_windows - 1) + 1
+        min_samples = (
+            self.h + step_size * (self.prediction_intervals.n_windows - 1) + 1 + val_size
+        )
         if min_size < min_samples:
             raise ValueError(
                 "Minimum required samples in each serie for the prediction intervals "
                 f"settings are: {min_samples}, shortest serie has: {min_size}. "
-                "Please reduce the number of windows, horizon or remove those series."
+                "Please reduce the number of windows, horizon, validation size or "
+                "remove those series."
             )
 
         self._add_level = True
@@ -2638,6 +2655,7 @@ class NeuralForecast:
             static_df=static_df,
             n_windows=self.prediction_intervals.n_windows,
             step_size=step_size,
+            val_size=val_size,
             id_col=id_col,
             time_col=time_col,
             target_col=target_col,
