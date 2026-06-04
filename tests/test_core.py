@@ -171,6 +171,29 @@ def test_neural_forecast_val_monitor_invalid():
         )
 
 
+# Conformal calibration retrains the models via cross-validation; it must forward
+# the same val_size as the main fit so early stopping doesn't crash.
+def test_prediction_intervals_with_early_stopping(setup_airplane_data):
+    AirPassengersPanel_train, _ = setup_airplane_data
+    model = NHITS(
+        h=12,
+        input_size=12,
+        max_steps=2,
+        val_check_steps=1,
+        early_stop_patience_steps=2,
+        val_monitor="ptl/val_loss",
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(
+        AirPassengersPanel_train,
+        val_size=12,
+        prediction_intervals=PredictionIntervals(n_windows=2),
+    )
+    preds = nf.predict(level=[80])
+    assert "NHITS-lo-80" in preds.columns
+    assert "NHITS-hi-80" in preds.columns
+
+
 # test that fit raises ValueError when series are too short for input_size + h
 def test_fit_raises_on_short_series():
     # 10 timestamps, h=12, input_size=24 → train_size=10 < 24
