@@ -1863,6 +1863,11 @@ class NeuralForecast:
                     )
                 )
             else:
+                id_col, time_col, target_col = (
+                    self.id_col,
+                    self.time_col,
+                    self.target_col,
+                )
                 if verbose:
                     print("Using stored dataset.")
 
@@ -1953,13 +1958,14 @@ class NeuralForecast:
             if df is None:
                 # Reconstruct the target from the stored dataset. The dataset's
                 # temporal values are scaled, so undo any target scaling.
-                target_values = (
-                    self.dataset.temporal[:, self.dataset.y_idx].clone().numpy()
-                )
+                target_column = self.dataset.temporal[:, self.dataset.y_idx]
                 if self.scalers_:
                     target_values = self._scalers_target_inverse_transform(
-                        target_values.reshape(-1, 1), self.dataset.indptr
+                        target_column.clone().numpy().reshape(-1, 1),
+                        self.dataset.indptr,
                     ).reshape(-1)
+                else:
+                    target_values = target_column.numpy()
                 df = type(fcsts_df)(
                     {
                         id_col: ufp.repeat(self.uids, np.diff(self.dataset.indptr)),

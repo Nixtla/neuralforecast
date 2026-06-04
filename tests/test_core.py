@@ -239,10 +239,11 @@ def test_neural_forecast_fit_cross_validation(setup_airplane_data):
     pd.testing.assert_frame_equal(after_fcst, init_fcst)
 
 
-# cross_validation() with no `df` should reuse the stored dataset
+# cross_validation() with no `df` should reuse the stored dataset.
+@pytest.mark.parametrize("local_scaler_type", [None, "standard"])
 @pytest.mark.parametrize("use_polars", [False, True])
 def test_cross_validation_without_df_uses_stored_dataset(
-    use_polars, setup_airplane_data, setup_airplane_data_polars
+    use_polars, local_scaler_type, setup_airplane_data, setup_airplane_data_polars
 ):
     if use_polars:
         df, _ = setup_airplane_data_polars
@@ -256,11 +257,12 @@ def test_cross_validation_without_df_uses_stored_dataset(
         assert_frame_equal = pd.testing.assert_frame_equal
 
     models = [NHITS(h=12, input_size=24, max_steps=2, random_seed=0)]
-    nf = NeuralForecast(models=models, freq=freq)
+    nf = NeuralForecast(models=models, freq=freq, local_scaler_type=local_scaler_type)
     nf.fit(df, **col_kwargs)
     # use_init_models resets to the same seeded weights before each run
     cv_with_df = nf.cross_validation(df, use_init_models=True, **col_kwargs)
-    cv_no_df = nf.cross_validation(use_init_models=True, **col_kwargs)
+    # No column kwargs here: the stored dataset's column names must be preserved.
+    cv_no_df = nf.cross_validation(use_init_models=True)
     assert_frame_equal(cv_no_df, cv_with_df)
 
 
