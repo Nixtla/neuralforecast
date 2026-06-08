@@ -37,7 +37,7 @@ dependencies = [
     "utilsforecast>=0.2.3",
 ]
 [project.optional-dependencies]
-spark = ["fugue", "pyspark>=3.5"]
+spark = ["fugue", "pyspark>=3.5", "pyarrow>=23.0.1"]
 
 [dependency-groups]
 aws = ["fsspec[s3]"]
