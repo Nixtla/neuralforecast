@@ -49,6 +49,10 @@ FEDformer(
     stat_exog_list=None,
     hist_exog_list=None,
     futr_exog_list=None,
+    futr_cat_exog_list=None,
+    hist_cat_exog_list=None,
+    categorical_cardinalities=None,
+    cat_emb_dim="fastai",
     decoder_input_size_multiplier=0.5,
     version="Fourier",
     modes=64,
@@ -115,6 +119,10 @@ Name | Type | Description | Default
 `stat_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | static exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | historic exogenous columns. | <code>None</code>
 `futr_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | future exogenous columns. | <code>None</code>
+`futr_cat_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | categorical future exogenous columns; subset of `futr_exog_list`, fed through learned embeddings instead of being scaled. | <code>None</code>
+`hist_cat_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | categorical historic exogenous columns; subset of `hist_exog_list`, fed through learned embeddings instead of being scaled. | <code>None</code>
+`categorical_cardinalities` | <code>[dict](#dict)</code> | mapping from each categorical column to its number of distinct categories. | <code>None</code>
+`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `decoder_input_size_multiplier` | <code>[float](#float)</code> | multiplier for the input size of the decoder. | <code>0.5</code>
 `version` | <code>[str](#str)</code> | version of the model. | <code>'Fourier'</code>
 `modes` | <code>[int](#int)</code> | number of modes for the Fourier block. | <code>64</code>

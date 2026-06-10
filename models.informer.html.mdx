@@ -50,6 +50,10 @@ Informer(
     futr_exog_list=None,
     hist_exog_list=None,
     stat_exog_list=None,
+    futr_cat_exog_list=None,
+    hist_cat_exog_list=None,
+    categorical_cardinalities=None,
+    cat_emb_dim="fastai",
     exclude_insample_y=False,
     decoder_input_size_multiplier=0.5,
     hidden_size=128,
@@ -119,6 +123,10 @@ Name | Type | Description | Default
 `futr_exog_list` | <code>str list</code> | future exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>str list</code> | historic exogenous columns. | <code>None</code>
 `stat_exog_list` | <code>str list</code> | static exogenous columns. | <code>None</code>
+`futr_cat_exog_list` | <code>str list</code> | categorical future exogenous columns; subset of `futr_exog_list`, fed through learned embeddings instead of being scaled. | <code>None</code>
+`hist_cat_exog_list` | <code>str list</code> | categorical historic exogenous columns; subset of `hist_exog_list`, fed through learned embeddings instead of being scaled. | <code>None</code>
+`categorical_cardinalities` | <code>[dict](#dict)</code> | mapping from each categorical column to its number of distinct categories. | <code>None</code>
+`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `exclude_insample_y` | <code>[bool](#bool)</code> | the model skips the autoregressive features y[t-input_size:t] if True. | <code>False</code>
 `decoder_input_size_multiplier` | <code>[float](#float)</code> | multiplier for the input size of the decoder. | <code>0.5</code>
 `hidden_size` | <code>[int](#int)</code> | units of embeddings and encoders. | <code>128</code>
