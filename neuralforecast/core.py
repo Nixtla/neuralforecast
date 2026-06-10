@@ -285,17 +285,85 @@ class NeuralForecast:
         self.local_static_scaler_type = local_static_scaler_type
         self.scalers_: Dict
         self.static_scalers_: Dict
+        self.categorical_vocab_: Dict[str, Dict] = {}
 
         # Flags and attributes
         self._fitted = False
         self._reset_models()
         self._add_level = False
 
+    def _get_categorical_exog(self) -> Dict[str, int]:
+        """Aggregate categorical exogenous features declared across models.
+
+        Returns a mapping ``{column: cardinality}`` where the cardinality is the
+        smallest declared across models that use the feature (the tightest bound
+        the panel-wide vocabulary must respect).
+        """
+        cardinalities: Dict[str, int] = {}
+        for m in self.models:
+            cat_cols = list(getattr(m, "hist_cat_exog_list", []) or []) + list(
+                getattr(m, "futr_cat_exog_list", []) or []
+            )
+            model_cards = getattr(m, "categorical_cardinalities", {}) or {}
+            for col in cat_cols:
+                card = model_cards.get(col)
+                if card is None:
+                    continue
+                cardinalities[col] = (
+                    min(cardinalities[col], card) if col in cardinalities else card
+                )
+        return cardinalities
+
+    def _has_categorical(self) -> bool:
+        return len(self._get_categorical_exog()) > 0
+
+    def _build_categorical_vocab(self, df: DataFrame) -> None:
+        """Build the panel-wide value->index vocabulary (index 0 = OOV/unseen)."""
+        self.categorical_vocab_ = {}
+        for col, max_card in self._get_categorical_exog().items():
+            if isinstance(df, pl_DataFrame):
+                uniques = df.get_column(col).drop_nulls().unique().to_list()
+            else:
+                uniques = df[col].dropna().unique().tolist()
+            uniques = sorted(uniques)
+            if len(uniques) > max_card:
+                raise ValueError(
+                    f"Categorical feature '{col}' has {len(uniques)} distinct values in "
+                    f"the training data but `categorical_cardinalities` declares only "
+                    f"{max_card}. Increase the declared cardinality."
+                )
+            self.categorical_vocab_[col] = {val: i + 1 for i, val in enumerate(uniques)}
+
+    def _encode_categoricals(self, df: DFType) -> DFType:
+        """Map declared categorical columns to integer indices (unseen -> 0)."""
+        if not self.categorical_vocab_:
+            return df
+        cols = [c for c in self.categorical_vocab_ if c in df.columns]
+        if not cols:
+            return df
+        if isinstance(df, pl_DataFrame):
+            import polars as pl
+
+            return df.with_columns(
+                [
+                    pl.col(col).replace_strict(
+                        self.categorical_vocab_[col],
+                        default=0,
+                        return_dtype=pl.Int64,
+                    )
+                    for col in cols
+                ]
+            )
+        df = ufp.copy_if_pandas(df, deep=False)
+        for col in cols:
+            df[col] = df[col].map(self.categorical_vocab_[col]).fillna(0).astype(np.int64)
+        return df
+
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
         self.scalers_, self.static_scalers_ = {}, {}
         if self.local_scaler_type is not None:
             for i, col in enumerate(dataset.temporal_cols):
-                if col in ("available_mask", "sample_weight"):
+                if col in ("available_mask", "sample_weight") or col in self.categorical_vocab_:
                     continue
                 ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
                 self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
@@ -309,6 +377,8 @@ class NeuralForecast:
     def _scalers_transform(self, dataset: TimeSeriesDataset) -> None:
         if self.scalers_:
             for i, col in enumerate(dataset.temporal_cols):
+                if col in self.categorical_vocab_:
+                    continue
                 scaler = self.scalers_.get(col, None)
                 if scaler is None:
                     continue
@@ -338,6 +408,11 @@ class NeuralForecast:
         self.time_col = time_col
         self.target_col = target_col
         self._check_nan(df, static_df, id_col, time_col, target_col)
+
+        if self._has_categorical():
+            if not self.categorical_vocab_:
+                self._build_categorical_vocab(df)
+            df = self._encode_categoricals(df)
 
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
@@ -540,6 +615,15 @@ class NeuralForecast:
 
         self._cs_df: Optional[DataFrame] = None
         self.prediction_intervals: Optional[PredictionIntervals] = None
+
+        # Categorical vocabulary is rebuilt for each fit; built once from the
+        # training panel in `_prepare_fit` and reused at predict time.
+        self.categorical_vocab_ = {}
+        if self._has_categorical() and not isinstance(df, (pd.DataFrame, pl_DataFrame)):
+            raise NotImplementedError(
+                "Categorical exogenous features are only supported with pandas or "
+                "polars DataFrames."
+            )
 
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
@@ -1099,6 +1183,7 @@ class NeuralForecast:
                 warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
             if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
                 raise ValueError("Found null values in `futr_df`")
+        futr_df = self._encode_categoricals(futr_df)
         futr_dataset = dataset.align(
             futr_df,
             id_col=self.id_col,
@@ -1373,6 +1458,10 @@ class NeuralForecast:
         """
         if not self._fitted:
             raise Exception("You must fit the model before simulating.")
+        if self._has_categorical():
+            raise NotImplementedError(
+                "simulate() does not yet support models with categorical exogenous features."
+            )
         if not isinstance(n_paths, int) or n_paths < 1:
             raise ValueError(
                 f"`n_paths` must be a positive integer, got {n_paths!r}."
@@ -1599,6 +1688,11 @@ class NeuralForecast:
             explanations (dict): Dictionary of explanations for the predictions.
         """
         warnings.warn("This function is beta and subject to change.")
+
+        if self._has_categorical():
+            raise NotImplementedError(
+                "explain() does not yet support models with categorical exogenous features."
+            )
 
         if h is None:
             h_explain = self.h  # Default to model's training horizon
@@ -2481,6 +2575,7 @@ class NeuralForecast:
             "local_static_scaler_type": self.local_static_scaler_type,
             "scalers_": self.scalers_,
             "static_scalers_": self.static_scalers_,
+            "categorical_vocab_": self.categorical_vocab_,
             "id_col": self.id_col,
             "time_col": self.time_col,
             "target_col": self.target_col,
@@ -2609,6 +2704,7 @@ class NeuralForecast:
 
         neuralforecast.scalers_ = config_dict.get("scalers_", default_scalars_)
         neuralforecast.static_scalers_ = config_dict.get("static_scalers_", {})
+        neuralforecast.categorical_vocab_ = config_dict.get("categorical_vocab_", {})
 
         return neuralforecast
 

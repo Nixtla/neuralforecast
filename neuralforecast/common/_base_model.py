@@ -87,10 +87,37 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.numpy()
 
 
+def _resolve_cat_emb_dim(strategy: Union[str, int], cardinality: int) -> int:
+    """Resolve a categorical embedding dimension from a named strategy.
+
+    Args:
+        strategy: Either an explicit integer or one of ``"fastai"``, ``"sqrt"``,
+            ``"half"``.
+        cardinality: Number of distinct categories for the feature.
+
+    Returns:
+        The embedding dimension to use for the feature.
+    """
+    if isinstance(strategy, int):
+        return strategy
+    if strategy == "fastai":
+        return min(50, int(math.ceil(1.6 * cardinality**0.56)))
+    if strategy == "sqrt":
+        return min(50, int(math.ceil(cardinality**0.5)))
+    if strategy == "half":
+        return min(50, (cardinality + 1) // 2)
+    raise ValueError(
+        f"Unknown cat_emb_dim strategy '{strategy}'. "
+        "Use one of 'fastai', 'sqrt', 'half', or an integer."
+    )
+
+
 class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
     EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
+    CAT_EXOGENOUS_FUTR = False  # If the model can embed categorical future exogenous variables
+    CAT_EXOGENOUS_HIST = False  # If the model can embed categorical historical exogenous variables
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -123,6 +150,10 @@ class BaseModel(pl.LightningModule):
         futr_exog_list: Union[List, None] = None,
         hist_exog_list: Union[List, None] = None,
         stat_exog_list: Union[List, None] = None,
+        futr_cat_exog_list: Union[List, None] = None,
+        hist_cat_exog_list: Union[List, None] = None,
+        categorical_cardinalities: Union[Dict[str, int], None] = None,
+        cat_emb_dim: Union[str, int] = "fastai",
         exclude_insample_y: Union[bool, None] = False,
         drop_last_loader: Union[bool, None] = False,
         random_seed: Union[int, None] = 1,
@@ -245,6 +276,33 @@ class BaseModel(pl.LightningModule):
             raise Exception(
                 f"{type(self).__name__} does not support static exogenous variables."
             )
+
+        # Categorical exogenous features. They bypass the scalers and are fed to
+        # the model through learned embeddings.
+        self.futr_cat_exog_list = (
+            list(futr_cat_exog_list) if futr_cat_exog_list is not None else []
+        )
+        self.hist_cat_exog_list = (
+            list(hist_cat_exog_list) if hist_cat_exog_list is not None else []
+        )
+        self.categorical_cardinalities = (
+            dict(categorical_cardinalities)
+            if categorical_cardinalities is not None
+            else {}
+        )
+        self.cat_emb_dim = cat_emb_dim
+        self._check_categorical_exog()
+
+        # Per-feature embedding tables (held in the base class) and the effective
+        # exogenous sizes. Models size their input layers from self.hist_exog_size and self.futr_exog_size.
+        self.hist_cat_embeddings = self._build_cat_embeddings(self.hist_cat_exog_list)
+        self.futr_cat_embeddings = self._build_cat_embeddings(self.futr_cat_exog_list)
+        self.hist_exog_size = self._effective_exog_size(
+            self.hist_exog_list, self.hist_cat_exog_list
+        )
+        self.futr_exog_size = self._effective_exog_size(
+            self.futr_exog_list, self.futr_cat_exog_list
+        )
 
         # Protections for loss functions
         if isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
@@ -427,7 +485,10 @@ class BaseModel(pl.LightningModule):
         self.scaler = TemporalNorm(
             scaler_type=scaler_type,
             dim=1,  # Time dimension is 1.
-            num_features=1 + len(self.hist_exog_list) + len(self.futr_exog_list),
+            # Categorical features bypass the scaler
+            num_features=1
+            + (len(self.hist_exog_list) - len(self.hist_cat_exog_list))
+            + (len(self.futr_exog_list) - len(self.futr_cat_exog_list)),
         )
 
         # Fit arguments
@@ -469,14 +530,83 @@ class BaseModel(pl.LightningModule):
                 f"{missing_stat} static exogenous variables not found in input dataset"
             )
 
+    def _check_categorical_exog(self):
+        if self.hist_cat_exog_list and not self.CAT_EXOGENOUS_HIST:
+            raise Exception(
+                f"{type(self).__name__} does not support categorical historical exogenous variables."
+            )
+        if self.futr_cat_exog_list and not self.CAT_EXOGENOUS_FUTR:
+            raise Exception(
+                f"{type(self).__name__} does not support categorical future exogenous variables."
+            )
+        missing_hist = set(self.hist_cat_exog_list) - set(self.hist_exog_list)
+        if missing_hist:
+            raise Exception(
+                f"Categorical historical features {missing_hist} must also be listed in `hist_exog_list`."
+            )
+        missing_futr = set(self.futr_cat_exog_list) - set(self.futr_exog_list)
+        if missing_futr:
+            raise Exception(
+                f"Categorical future features {missing_futr} must also be listed in `futr_exog_list`."
+            )
+        missing_card = [
+            c
+            for c in self.hist_cat_exog_list + self.futr_cat_exog_list
+            if c not in self.categorical_cardinalities
+        ]
+        if missing_card:
+            raise Exception(
+                f"Missing `categorical_cardinalities` entries for categorical features {missing_card}."
+            )
+
+    def _cat_emb_dim(self, col):
+        return _resolve_cat_emb_dim(
+            self.cat_emb_dim, self.categorical_cardinalities[col]
+        )
+
+    def _build_cat_embeddings(self, cat_exog_list):
+        # +1 row reserved for OOV / unseen categories (index 0).
+        return nn.ModuleList(
+            [
+                nn.Embedding(
+                    self.categorical_cardinalities[col] + 1, self._cat_emb_dim(col)
+                )
+                for col in cat_exog_list
+            ]
+        )
+
+    def _effective_exog_size(self, exog_list, cat_exog_list):
+        n_continuous = len(exog_list) - len(cat_exog_list)
+        emb_total = sum(self._cat_emb_dim(c) for c in cat_exog_list)
+        return n_continuous + emb_total
+
+    def _embed_stream(self, x, exog_list, cat_exog_list, embeddings):
+        # x: [..., n_raw] with the feature axis last, columns in exog_list order.
+        # Returns [..., n_continuous + sum(emb_dim)] with continuous features first,
+        # followed by each categorical feature's embedding. Inert (returns x) when
+        # there are no categorical features, keeping the default path unchanged.
+        if not cat_exog_list:
+            return x
+        cont_idxs = [i for i, c in enumerate(exog_list) if c not in cat_exog_list]
+        pieces = []
+        if cont_idxs:
+            pieces.append(x[..., cont_idxs])
+        for emb, col in zip(embeddings, cat_exog_list):
+            pos = exog_list.index(col)
+            pieces.append(emb(x[..., pos].long()))
+        return torch.cat(pieces, dim=-1)
+
     def _restart_seed(self, random_seed):
         if random_seed is None:
             random_seed = self.random_seed
         torch.manual_seed(random_seed)
 
     def _get_temporal_exogenous_cols(self, temporal_cols):
+        # Categorical features bypass TemporalNorm.
+        cat_cols = set(self.hist_cat_exog_list + self.futr_cat_exog_list)
         return list(
-            set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list)
+            (set(temporal_cols.tolist()) & set(self.hist_exog_list + self.futr_exog_list))
+            - cat_cols
         )
 
     def _set_quantiles(self, quantiles=None):
@@ -1001,6 +1131,12 @@ class BaseModel(pl.LightningModule):
                 hist_exog = windows["temporal"][:, : self.input_size, hist_exog_idx]
             if not self.MULTIVARIATE:
                 hist_exog = hist_exog.squeeze(-1)
+                hist_exog = self._embed_stream(
+                    hist_exog,
+                    self.hist_exog_list,
+                    self.hist_cat_exog_list,
+                    self.hist_cat_embeddings,
+                )
             else:
                 hist_exog = hist_exog.swapaxes(1, 2)
 
@@ -1013,6 +1149,12 @@ class BaseModel(pl.LightningModule):
                 futr_exog = futr_exog[:, 1:]
             if not self.MULTIVARIATE:
                 futr_exog = futr_exog.squeeze(-1)
+                futr_exog = self._embed_stream(
+                    futr_exog,
+                    self.futr_exog_list,
+                    self.futr_cat_exog_list,
+                    self.futr_cat_embeddings,
+                )
             else:
                 futr_exog = futr_exog.swapaxes(1, 2)
 

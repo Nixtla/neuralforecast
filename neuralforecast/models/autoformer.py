@@ -414,6 +414,10 @@ class Autoformer(BaseModel):
         futr_exog_list (str list): future exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
+        futr_cat_exog_list (str list): categorical future exogenous columns; subset of `futr_exog_list`, fed through learned embeddings instead of being scaled.
+        hist_cat_exog_list (str list): categorical historic exogenous columns; subset of `hist_exog_list`, fed through learned embeddings instead of being scaled.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
         decoder_input_size_multiplier (float): .
         hidden_size (int): units of embeddings and encoders.
@@ -459,6 +463,8 @@ class Autoformer(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    CAT_EXOGENOUS_FUTR = True
+    CAT_EXOGENOUS_HIST = False
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -471,6 +477,10 @@ class Autoformer(BaseModel):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        futr_cat_exog_list=None,
+        hist_cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         decoder_input_size_multiplier: float = 0.5,
         hidden_size: int = 128,
@@ -514,6 +524,10 @@ class Autoformer(BaseModel):
             stat_exog_list=stat_exog_list,
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
+            futr_cat_exog_list=futr_cat_exog_list,
+            hist_cat_exog_list=hist_cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
