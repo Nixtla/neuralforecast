@@ -37,7 +37,16 @@ def _futr_df(n_series=4, n=48, h=6, unseen=False):
 
 
 def _model(cls, **kwargs):
-    base = dict(h=6, input_size=12, max_steps=2, random_seed=1, scaler_type="standard")
+    # Force CPU: the MacOS MPS backend exhausts its small shared pool when many
+    # models are trained in one session.
+    base = dict(
+        h=6,
+        input_size=12,
+        max_steps=2,
+        random_seed=1,
+        scaler_type="standard",
+        accelerator="cpu",
+    )
     base.update(kwargs)
     return cls(**base)
 
