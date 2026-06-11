@@ -38,9 +38,6 @@ TimesNet(
     stat_exog_list=None,
     hist_exog_list=None,
     futr_exog_list=None,
-    cat_exog_list=None,
-    categorical_cardinalities=None,
-    cat_emb_dim="fastai",
     exclude_insample_y=False,
     hidden_size=64,
     dropout=0.1,
@@ -91,9 +88,6 @@ Name | Type | Description | Default
 `stat_exog_list` | <code>list of str</code> | optional (default=None), Static exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>list of str</code> | optional (default=None), Historic exogenous columns. | <code>None</code>
 `futr_exog_list` | <code>list of str</code> | optional (default=None), Future exogenous columns. | <code>None</code>
-`cat_exog_list` | <code>list of str</code> | optional (default=None), exogenous columns (from `hist_exog_list` / `futr_exog_list`) to embed instead of scale. | <code>None</code>
-`categorical_cardinalities` | <code>[dict](#dict)</code> | optional (default=None), mapping from each categorical column to its number of distinct categories. | <code>None</code>
-`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `exclude_insample_y` | <code>[bool](#bool)</code> | The model skips the autoregressive features y[t-input_size:t] if True. | <code>False</code>
 `hidden_size` | <code>[int](#int)</code> | Size of embedding for embedding and encoders. | <code>64</code>
 `dropout` | <code>[float](#float)</code> | Dropout for embeddings. | <code>0.1</code>
