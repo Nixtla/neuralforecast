@@ -409,8 +409,7 @@ class FEDformer(BaseModel):
         stat_exog_list (List[str]): static exogenous columns.
         hist_exog_list (List[str]): historic exogenous columns.
         futr_exog_list (List[str]): future exogenous columns.
-        futr_cat_exog_list (List[str]): categorical future exogenous columns; subset of `futr_exog_list`, fed through learned embeddings instead of being scaled.
-        hist_cat_exog_list (List[str]): categorical historic exogenous columns; subset of `hist_exog_list`, fed through learned embeddings instead of being scaled.
+        cat_exog_list (List[str]): exogenous columns (from `hist_exog_list` / `futr_exog_list`) to embed instead of scale.
         categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
         cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         decoder_input_size_multiplier (float): multiplier for the input size of the decoder.
@@ -460,8 +459,7 @@ class FEDformer(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
-    CAT_EXOGENOUS_FUTR = True
-    CAT_EXOGENOUS_HIST = False
+    CAT_EXOGENOUS = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -474,8 +472,7 @@ class FEDformer(BaseModel):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
-        futr_cat_exog_list=None,
-        hist_cat_exog_list=None,
+        cat_exog_list=None,
         categorical_cardinalities=None,
         cat_emb_dim="fastai",
         decoder_input_size_multiplier: float = 0.5,
@@ -522,8 +519,7 @@ class FEDformer(BaseModel):
             stat_exog_list=stat_exog_list,
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
-            futr_cat_exog_list=futr_cat_exog_list,
-            hist_cat_exog_list=hist_cat_exog_list,
+            cat_exog_list=cat_exog_list,
             categorical_cardinalities=categorical_cardinalities,
             cat_emb_dim=cat_emb_dim,
             loss=loss,

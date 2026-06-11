@@ -70,8 +70,7 @@ def test_categoricals_run(cls, hist_cat, futr_cat):
         cls,
         hist_exog_list=hist_cat,
         futr_exog_list=futr_cat,
-        hist_cat_exog_list=hist_cat,
-        futr_cat_exog_list=futr_cat,
+        cat_exog_list=hist_cat + futr_cat,
         categorical_cardinalities=cards,
     )
     nf = NeuralForecast(models=[model], freq=1)
@@ -88,8 +87,7 @@ def test_effective_exog_sizes():
         MLP,
         hist_exog_list=["city"],
         futr_exog_list=["dow"],
-        hist_cat_exog_list=["city"],
-        futr_cat_exog_list=["dow"],
+        cat_exog_list=["city", "dow"],
         categorical_cardinalities={"city": 4, "dow": 7},
         cat_emb_dim=5,
     )
@@ -105,7 +103,7 @@ def test_embeddings_differ_from_numeric_baseline():
     emb = _model(
         MLP,
         hist_exog_list=["city"],
-        hist_cat_exog_list=["city"],
+        cat_exog_list=["city"],
         categorical_cardinalities={"city": 4},
     )
     nf_emb = NeuralForecast(models=[emb], freq=1)
@@ -128,7 +126,7 @@ def test_unseen_category_resolves_to_oov():
     model = _model(
         MLP,
         futr_exog_list=["dow"],
-        futr_cat_exog_list=["dow"],
+        cat_exog_list=["dow"],
         categorical_cardinalities={"dow": 7},
     )
     nf = NeuralForecast(models=[model], freq=1)
@@ -144,8 +142,7 @@ def test_save_load_reproduces_predictions(tmp_path):
         MLP,
         hist_exog_list=["city"],
         futr_exog_list=["dow"],
-        hist_cat_exog_list=["city"],
-        futr_cat_exog_list=["dow"],
+        cat_exog_list=["city", "dow"],
         categorical_cardinalities={"city": 4, "dow": 7},
     )
     nf = NeuralForecast(models=[model], freq=1)
@@ -184,7 +181,7 @@ def test_recurrent_model_rejects_categoricals():
             input_size=12,
             max_steps=2,
             hist_exog_list=["city"],
-            hist_cat_exog_list=["city"],
+            cat_exog_list=["city"],
             categorical_cardinalities={"city": 4},
         )
 
@@ -197,7 +194,7 @@ def test_multivariate_model_rejects_categoricals():
             n_series=4,
             max_steps=2,
             hist_exog_list=["city"],
-            hist_cat_exog_list=["city"],
+            cat_exog_list=["city"],
             categorical_cardinalities={"city": 4},
         )
 
@@ -207,7 +204,7 @@ def test_categorical_must_be_subset_of_exog_list():
         _model(
             MLP,
             hist_exog_list=[],
-            hist_cat_exog_list=["city"],
+            cat_exog_list=["city"],
             categorical_cardinalities={"city": 4},
         )
 
@@ -217,7 +214,7 @@ def test_missing_cardinality_raises():
         _model(
             MLP,
             hist_exog_list=["city"],
-            hist_cat_exog_list=["city"],
+            cat_exog_list=["city"],
         )
 
 
@@ -226,7 +223,7 @@ def test_too_many_categories_raises():
     model = _model(
         MLP,
         hist_exog_list=["city"],
-        hist_cat_exog_list=["city"],
+        cat_exog_list=["city"],
         categorical_cardinalities={"city": 2},  # under-declared
     )
     nf = NeuralForecast(models=[model], freq=1)
@@ -239,7 +236,7 @@ def test_explain_guard():
     model = _model(
         MLP,
         hist_exog_list=["city"],
-        hist_cat_exog_list=["city"],
+        cat_exog_list=["city"],
         categorical_cardinalities={"city": 4},
     )
     nf = NeuralForecast(models=[model], freq=1)
@@ -253,7 +250,7 @@ def test_simulate_guard():
     model = _model(
         MLP,
         hist_exog_list=["city"],
-        hist_cat_exog_list=["city"],
+        cat_exog_list=["city"],
         categorical_cardinalities={"city": 4},
     )
     nf = NeuralForecast(models=[model], freq=1)

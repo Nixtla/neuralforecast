@@ -116,8 +116,7 @@ class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
     EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
-    CAT_EXOGENOUS_FUTR = False  # If the model can embed categorical future exogenous variables
-    CAT_EXOGENOUS_HIST = False  # If the model can embed categorical historical exogenous variables
+    CAT_EXOGENOUS = False  # If the model can embed categorical exogenous variables
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -150,8 +149,7 @@ class BaseModel(pl.LightningModule):
         futr_exog_list: Union[List, None] = None,
         hist_exog_list: Union[List, None] = None,
         stat_exog_list: Union[List, None] = None,
-        futr_cat_exog_list: Union[List, None] = None,
-        hist_cat_exog_list: Union[List, None] = None,
+        cat_exog_list: Union[List, None] = None,
         categorical_cardinalities: Union[Dict[str, int], None] = None,
         cat_emb_dim: Union[str, int] = "fastai",
         exclude_insample_y: Union[bool, None] = False,
@@ -277,14 +275,17 @@ class BaseModel(pl.LightningModule):
                 f"{type(self).__name__} does not support static exogenous variables."
             )
 
-        # Categorical exogenous features. They bypass the scalers and are fed to
-        # the model through learned embeddings.
-        self.futr_cat_exog_list = (
-            list(futr_cat_exog_list) if futr_cat_exog_list is not None else []
-        )
-        self.hist_cat_exog_list = (
-            list(hist_cat_exog_list) if hist_cat_exog_list is not None else []
-        )
+        # Categorical exogenous features. `cat_exog_list` names the exogenous
+        # columns to embed; the historical / future split is resolved by
+        # intersecting it with `hist_exog_list` / `futr_exog_list`. They bypass
+        # the scalers and are fed to the model through learned embeddings.
+        self.cat_exog_list = list(cat_exog_list) if cat_exog_list is not None else []
+        self.hist_cat_exog_list = [
+            c for c in self.cat_exog_list if c in self.hist_exog_list
+        ]
+        self.futr_cat_exog_list = [
+            c for c in self.cat_exog_list if c in self.futr_exog_list
+        ]
         self.categorical_cardinalities = (
             dict(categorical_cardinalities)
             if categorical_cardinalities is not None
@@ -531,28 +532,20 @@ class BaseModel(pl.LightningModule):
             )
 
     def _check_categorical_exog(self):
-        if self.hist_cat_exog_list and not self.CAT_EXOGENOUS_HIST:
+        if self.cat_exog_list and not self.CAT_EXOGENOUS:
             raise Exception(
-                f"{type(self).__name__} does not support categorical historical exogenous variables."
+                f"{type(self).__name__} does not support categorical exogenous variables."
             )
-        if self.futr_cat_exog_list and not self.CAT_EXOGENOUS_FUTR:
+        unknown = set(self.cat_exog_list) - set(
+            self.hist_exog_list + self.futr_exog_list
+        )
+        if unknown:
             raise Exception(
-                f"{type(self).__name__} does not support categorical future exogenous variables."
-            )
-        missing_hist = set(self.hist_cat_exog_list) - set(self.hist_exog_list)
-        if missing_hist:
-            raise Exception(
-                f"Categorical historical features {missing_hist} must also be listed in `hist_exog_list`."
-            )
-        missing_futr = set(self.futr_cat_exog_list) - set(self.futr_exog_list)
-        if missing_futr:
-            raise Exception(
-                f"Categorical future features {missing_futr} must also be listed in `futr_exog_list`."
+                f"Categorical features {unknown} must also be listed in "
+                "`hist_exog_list` or `futr_exog_list`."
             )
         missing_card = [
-            c
-            for c in self.hist_cat_exog_list + self.futr_cat_exog_list
-            if c not in self.categorical_cardinalities
+            c for c in self.cat_exog_list if c not in self.categorical_cardinalities
         ]
         if missing_card:
             raise Exception(

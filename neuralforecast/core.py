@@ -301,9 +301,7 @@ class NeuralForecast:
         """
         cardinalities: Dict[str, int] = {}
         for m in self.models:
-            cat_cols = list(getattr(m, "hist_cat_exog_list", []) or []) + list(
-                getattr(m, "futr_cat_exog_list", []) or []
-            )
+            cat_cols = list(getattr(m, "cat_exog_list", []) or [])
             model_cards = getattr(m, "categorical_cardinalities", {}) or {}
             for col in cat_cols:
                 card = model_cards.get(col)
