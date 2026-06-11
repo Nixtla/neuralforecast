@@ -198,6 +198,10 @@ class BaseAuto(pl.LightningModule):
             raise ValueError(
                 f"Unknown backend {backend}. The supported backends are 'ray' and 'optuna'."
             )
+        # Translate `*input_size_multiplier` entries (as used by the models'
+        # `default_config`) into concrete `*input_size` ones, so that configs
+        # built on top of `default_config` are valid `config` arguments.
+        config_base = self._translate_input_size_multipliers(config_base, h)
 
         # Shallow-copy user-supplied options so subsequent mutations
         # (default resolution) don't leak back to the caller.
@@ -268,7 +272,9 @@ class BaseAuto(pl.LightningModule):
         else:
 
             def config_f(trial):
-                return {**config(trial), **config_base}
+                return self._translate_input_size_multipliers(
+                    {**config(trial), **config_base}, h
+                )
 
             self.config = config_f
 
@@ -299,6 +305,43 @@ class BaseAuto(pl.LightningModule):
 
     def __repr__(self):
         return type(self).__name__ if self.alias is None else self.alias
+
+    @staticmethod
+    def _translate_input_size_multipliers(config, h):
+        """Translate `*input_size_multiplier` config entries into `*input_size` ones.
+
+        The models' `default_config` express the input sizes as multiples of the
+        horizon (`input_size_multiplier` and `inference_input_size_multiplier`).
+        These keys are not valid model arguments, so apply here the same
+        translation that `get_default_config` performs, which allows users to
+        provide configs built on top of `default_config`.
+
+        Args:
+            config (dict): Configuration dict, possibly containing
+                `*input_size_multiplier` entries.
+            h (int): Forecast horizon.
+
+        Returns:
+            dict: Configuration dict with the multipliers translated into sizes.
+        """
+        translations = {
+            "input_size_multiplier": "input_size",
+            "inference_input_size_multiplier": "inference_input_size",
+        }
+        if not any(key in config for key in translations):
+            return config
+        config = dict(config)
+        for multiplier_key, size_key in translations.items():
+            if multiplier_key not in config:
+                continue
+            multipliers = config.pop(multiplier_key)
+            if size_key in config:
+                continue
+            if isinstance(multipliers, (list, tuple)):
+                config[size_key] = tune.choice([h * x for x in multipliers])
+            else:
+                config[size_key] = h * multipliers
+        return config
 
     def _train_tune(self, config_step, cls_model, dataset, val_size, test_size):
         """BaseAuto._train_tune
