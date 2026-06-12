@@ -166,6 +166,59 @@ def test_config_missing_required_param_raises():
         AutoMLP(h=4, config=config_fn, backend="optuna")
 
 
+def test_default_config_copy_is_valid_user_config(setup_module):
+    # https://github.com/Nixtla/neuralforecast/issues/571
+    # The default configs express the input size as `input_size_multiplier`,
+    # which used to be translated into `input_size` only when `config=None`,
+    # making configs built on top of `default_config` invalid.
+    dataset, _, _ = setup_module
+    config = AutoMLP.default_config.copy()
+    # tweak the search space, keeping it small so the test runs fast
+    config["input_size_multiplier"] = [1, 2]
+    config["hidden_size"] = tune.choice([8])
+    config["num_layers"] = 2
+    config["max_steps"] = 1
+    config["val_check_steps"] = 1
+    auto = AutoMLP(
+        h=12,
+        config=config,
+        num_samples=1,
+        ray_options=RayOptions(cpus=1, gpus=0),
+    )
+    assert "input_size_multiplier" not in auto.config
+    assert "input_size" in auto.config
+    auto.fit(dataset=dataset)
+    y_hat = auto.predict(dataset=dataset)
+    assert y_hat.shape[0] > 0
+
+
+def test_optuna_config_translates_input_size_multiplier(setup_module):
+    # https://github.com/Nixtla/neuralforecast/issues/571 (optuna variant)
+    dataset, _, _ = setup_module
+
+    def config_multiplier(trial):
+        return {
+            "input_size_multiplier": trial.suggest_categorical(
+                "input_size_multiplier", [1, 2]
+            ),
+            "hidden_size": trial.suggest_categorical("hidden_size", [8]),
+            "num_layers": 2,
+            "max_steps": 1,
+            "val_check_steps": 1,
+        }
+
+    auto = AutoMLP(
+        h=12,
+        config=config_multiplier,
+        backend="optuna",
+        search_alg=optuna.samplers.RandomSampler(seed=0),
+        num_samples=1,
+    )
+    auto.fit(dataset=dataset)
+    y_hat = auto.predict(dataset=dataset)
+    assert y_hat.shape[0] > 0
+
+
 def test_ray_time_budget(setup_module):
     dataset, _, _ = setup_module
     config = {
