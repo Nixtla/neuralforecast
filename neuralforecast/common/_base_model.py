@@ -87,6 +87,57 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.numpy()
 
 
+def _num_requested_devices(trainer_kwargs: dict) -> int:
+    """Best-effort count of the devices a ``pl.Trainer`` built from
+    ``trainer_kwargs`` would use. Returns 1 when the count cannot be
+    determined."""
+    devices = trainer_kwargs.get("devices")
+    if devices is None:
+        return 1
+    if isinstance(devices, (list, tuple)):
+        return len(devices)
+    if isinstance(devices, str):
+        if devices.strip() == "auto":
+            devices = -1
+        else:
+            try:
+                devices = int(devices)
+            except ValueError:
+                return 1
+    if devices == -1:
+        # all devices of the accelerator. only CUDA can resolve to more than
+        # one device here, MPS is single-device and Lightning's CPU
+        # accelerator defaults to a single process.
+        accelerator = trainer_kwargs.get("accelerator")
+        if accelerator in (None, "auto", "gpu", "cuda"):
+            return max(torch.cuda.device_count(), 1)
+        return 1
+    return int(devices)
+
+
+def _check_multivariate_single_device(model_name: str, num_devices: int) -> None:
+    """Raise an informative error when a multivariate model is configured to
+    run on more than one device.
+
+    Lightning's data-parallel strategies (DDP and friends) split each batch
+    across devices, but multivariate models require every batch to contain all
+    series, so multi-device training crashes with cryptic tensor-shape errors
+    (https://github.com/Nixtla/neuralforecast/issues/1100). Fail fast with an
+    actionable message instead."""
+    if num_devices > 1:
+        raise ValueError(
+            f"{model_name} is a multivariate model, which requires all series to be "
+            f"present in every batch, but it was configured to run on {num_devices} devices "
+            "and data-parallel strategies split each batch across devices. "
+            "This is not supported and crashes with tensor-shape errors "
+            "(see https://github.com/Nixtla/neuralforecast/issues/1100). "
+            "Single-device execution is the supported configuration for multivariate models: "
+            f"please pass devices=1 (e.g. {model_name}(..., devices=1), or "
+            "trainer_kwargs={'devices': 1} in the config of Auto models) "
+            "or devices=[DEVICE_ID] to select a specific GPU."
+        )
+
+
 class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
@@ -321,6 +372,15 @@ class BaseModel(pl.LightningModule):
             if torch.cuda.is_available():
                 trainer_kwargs["devices"] = -1
 
+        # Multivariate models require all series in every batch, which is
+        # incompatible with multi-device data-parallel training (#1100).
+        if self.MULTIVARIATE:
+            num_nodes = trainer_kwargs.get("num_nodes") or 1
+            _check_multivariate_single_device(
+                type(self).__name__,
+                _num_requested_devices(trainer_kwargs) * num_nodes,
+            )
+
         # Avoid saturating local memory, disabled fit model checkpoints
         if trainer_kwargs.get("enable_checkpointing", None) is None:
             trainer_kwargs["enable_checkpointing"] = False
@@ -497,6 +557,11 @@ class BaseModel(pl.LightningModule):
         test_size,
     ):
         assert distributed_config is not None
+        if self.MULTIVARIATE:
+            _check_multivariate_single_device(
+                type(self).__name__,
+                distributed_config.num_nodes * distributed_config.devices,
+            )
         from pyspark.ml.torch.distributor import TorchDistributor
 
         def train_fn(
