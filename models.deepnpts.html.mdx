@@ -42,9 +42,6 @@ DeepNPTS(
     stat_exog_list=None,
     hist_exog_list=None,
     futr_exog_list=None,
-    cat_exog_list=None,
-    categorical_cardinalities=None,
-    cat_emb_dim="fastai",
     exclude_insample_y=False,
     loss=MAE(),
     valid_loss=MAE(),
@@ -93,9 +90,6 @@ Name | Type | Description | Default
 `stat_exog_list` | <code>[list](#list)</code> | static exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>[list](#list)</code> | historic exogenous columns. | <code>None</code>
 `futr_exog_list` | <code>[list](#list)</code> | future exogenous columns. | <code>None</code>
-`cat_exog_list` | <code>[list](#list)</code> | exogenous columns (from `hist_exog_list` / `futr_exog_list`) to embed instead of scale. | <code>None</code>
-`categorical_cardinalities` | <code>[dict](#dict)</code> | mapping from each categorical column to its number of distinct categories. | <code>None</code>
-`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `exclude_insample_y` | <code>[bool](#bool)</code> | the model skips the autoregressive features y[t-input_size:t] if True. | <code>False</code>
 `loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
 `valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
